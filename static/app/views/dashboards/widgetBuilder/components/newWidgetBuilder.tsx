@@ -15,9 +15,7 @@ import omit from 'lodash/omit';
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Flex} from '@sentry/scraps/layout';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -87,9 +85,6 @@ export function WidgetBuilderV2({
   setOpenWidgetTemplates,
   openWidgetTemplates,
 }: WidgetBuilderV2Props) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
   const [queryConditionsValid, setQueryConditionsValid] = useState(true);
   const theme = useTheme();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
@@ -174,65 +169,63 @@ export function WidgetBuilderV2({
           />
           <Backdrop zIndex="widgetBuilderDrawer" />
           <WidgetBuilderProvider>
-            <CustomMeasurementsProvider organization={organization} selection={selection}>
-              <ContainerWithoutSidebar
-                style={
-                  navigationElementRef.current
-                    ? isMediumScreen
-                      ? {
-                          left: 0,
-                          top: contentTop,
-                          willChange: 'top',
-                        }
-                      : {
-                          left: `${dimensions.width ?? 0}px`,
-                          top: contentTop,
-                          willChange: 'left',
-                        }
-                    : undefined
-                }
-              >
-                <WidgetBuilderContainer>
-                  <SlideoutContainer>
-                    <WidgetBuilderSlideout
-                      onClose={() => {
-                        onClose();
-                        setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
-                      }}
-                      onSave={onSave}
-                      onQueryConditionChange={setQueryConditionsValid}
-                      dashboard={dashboard}
-                      dashboardFilters={dashboardFilters}
-                      setIsPreviewDraggable={setIsPreviewDraggable}
-                      isQueryConditionInvalid={!queryConditionsValid}
-                      openWidgetTemplates={openWidgetTemplates}
-                      setOpenWidgetTemplates={setOpenWidgetTemplates}
-                      onDataFetched={handleWidgetDataFetched}
-                      thresholdMetaState={thresholdMetaState}
-                    />
-                  </SlideoutContainer>
-                  {(!isSmallScreen || isPreviewDraggable) && (
-                    <DndContext
-                      onDragEnd={handleDragEnd}
-                      onDragMove={handleDragMove}
-                      collisionDetection={closestCorners}
-                    >
-                      <Flex justify="center" align="center" width="100%" height="100%">
-                        <WidgetPreviewContainer
-                          dashboardFilters={dashboardFilters}
-                          dashboard={dashboard}
-                          dragPosition={translate}
-                          isDraggable={isPreviewDraggable}
-                          isQueryConditionInvalid={!queryConditionsValid}
-                          onDataFetched={handleWidgetDataFetched}
-                          openWidgetTemplates={openWidgetTemplates}
-                        />
-                      </Flex>
-                    </DndContext>
-                  )}
-                </WidgetBuilderContainer>
-              </ContainerWithoutSidebar>
-            </CustomMeasurementsProvider>
+            <ContainerWithoutSidebar
+              style={
+                navigationElementRef.current
+                  ? isMediumScreen
+                    ? {
+                        left: 0,
+                        top: contentTop,
+                        willChange: 'top',
+                      }
+                    : {
+                        left: `${dimensions.width ?? 0}px`,
+                        top: contentTop,
+                        willChange: 'left',
+                      }
+                  : undefined
+              }
+            >
+              <WidgetBuilderContainer>
+                <SlideoutContainer>
+                  <WidgetBuilderSlideout
+                    onClose={() => {
+                      onClose();
+                      setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+                    }}
+                    onSave={onSave}
+                    onQueryConditionChange={setQueryConditionsValid}
+                    dashboard={dashboard}
+                    dashboardFilters={dashboardFilters}
+                    setIsPreviewDraggable={setIsPreviewDraggable}
+                    isQueryConditionInvalid={!queryConditionsValid}
+                    openWidgetTemplates={openWidgetTemplates}
+                    setOpenWidgetTemplates={setOpenWidgetTemplates}
+                    onDataFetched={handleWidgetDataFetched}
+                    thresholdMetaState={thresholdMetaState}
+                  />
+                </SlideoutContainer>
+                {(!isSmallScreen || isPreviewDraggable) && (
+                  <DndContext
+                    onDragEnd={handleDragEnd}
+                    onDragMove={handleDragMove}
+                    collisionDetection={closestCorners}
+                  >
+                    <Flex justify="center" align="center" width="100%" height="100%">
+                      <WidgetPreviewContainer
+                        dashboardFilters={dashboardFilters}
+                        dashboard={dashboard}
+                        dragPosition={translate}
+                        isDraggable={isPreviewDraggable}
+                        isQueryConditionInvalid={!queryConditionsValid}
+                        onDataFetched={handleWidgetDataFetched}
+                        openWidgetTemplates={openWidgetTemplates}
+                      />
+                    </Flex>
+                  </DndContext>
+                )}
+              </WidgetBuilderContainer>
+            </ContainerWithoutSidebar>
           </WidgetBuilderProvider>
         </Fragment>
       )}

@@ -14,6 +14,9 @@ from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 
 AUTO_ASSIGN_FLAG = "organizations:seer-smart-assignment-assign"
+SEER_ADDED = "organizations:seer-added"
+SEAT_BASED_SEER = "organizations:seat-based-seer-enabled"
+ASSIGN_FEATURES = [AUTO_ASSIGN_FLAG, SEER_ADDED]
 
 
 class ProcessSmartAssignmentCompletionTest(TestCase):
@@ -87,16 +90,36 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
 
     def test_no_writes_without_flag(self) -> None:
         alice = self._member()
-        process_smart_assignment_completion(self.group, self._activity([alice.id]))
+        with self.feature(SEER_ADDED):
+            process_smart_assignment_completion(self.group, self._activity([alice.id]))
 
         # Everything user-facing is behind the flag: no suggested owner, no assignment.
         assert self._suggested_owners() == []
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
-    def test_suggests_without_assigning_when_project_auto_assign_off(self) -> None:
+    def test_no_writes_without_seer_customer_flag(self) -> None:
         alice = self._member()
         self._set_project_auto_assignment(False)
         with self.feature(AUTO_ASSIGN_FLAG):
+            process_smart_assignment_completion(self.group, self._activity([alice.id]))
+
+        assert self._suggested_owners() == []
+        assert not GroupAssignee.objects.filter(group=self.group).exists()
+
+    def test_suggests_with_seat_based_seer(self) -> None:
+        alice = self._member()
+        self._set_project_auto_assignment(False)
+        with self.feature([AUTO_ASSIGN_FLAG, SEAT_BASED_SEER]):
+            process_smart_assignment_completion(self.group, self._activity([alice.id]))
+
+        owners = self._suggested_owners()
+        assert len(owners) == 1
+        assert owners[0].user_id == alice.id
+
+    def test_suggests_without_assigning_when_project_auto_assign_off(self) -> None:
+        alice = self._member()
+        self._set_project_auto_assignment(False)
+        with self.feature(ASSIGN_FEATURES):
             process_smart_assignment_completion(self.group, self._activity([alice.id, None]))
 
         owners = self._suggested_owners()
@@ -109,7 +132,7 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
     def test_promotes_suggestion_to_assignment_when_project_auto_assigns(self) -> None:
         alice = self._member()
         self._set_project_auto_assignment(True)
-        with self.feature(AUTO_ASSIGN_FLAG):
+        with self.feature(ASSIGN_FEATURES):
             process_smart_assignment_completion(self.group, self._activity([alice.id]))
 
         # Suggested owner is always written...
@@ -128,7 +151,7 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
         alice = self._member()
         GroupAssignee.objects.assign(self.group, existing)
         self._set_project_auto_assignment(True)
-        with self.feature(AUTO_ASSIGN_FLAG):
+        with self.feature(ASSIGN_FEATURES):
             process_smart_assignment_completion(self.group, self._activity([alice.id]))
 
         # We record the suggestion but never override a manual assignment.
@@ -140,7 +163,7 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
         # alternate behind them is the one that can actually own the issue.
         alice = self._member()
         self._set_project_auto_assignment(False)
-        with self.feature(AUTO_ASSIGN_FLAG):
+        with self.feature(ASSIGN_FEATURES):
             process_smart_assignment_completion(self.group, self._activity([None, alice.id]))
 
         owners = self._suggested_owners()
@@ -150,14 +173,14 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
         assert self._extras()["predicted_assignee_user_ids"] == [None, alice.id]
 
     def test_no_writes_when_top_pick_unlinked(self) -> None:
-        with self.feature(AUTO_ASSIGN_FLAG):
+        with self.feature(ASSIGN_FEATURES):
             process_smart_assignment_completion(self.group, self._activity([None]))
 
         assert self._suggested_owners() == []
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
     def test_no_writes_on_abstain(self) -> None:
-        with self.feature(AUTO_ASSIGN_FLAG):
+        with self.feature(ASSIGN_FEATURES):
             process_smart_assignment_completion(self.group, self._activity([]))
 
         assert self._suggested_owners() == []
@@ -166,7 +189,7 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
     def test_suggested_owner_is_idempotent(self) -> None:
         alice = self._member()
         self._set_project_auto_assignment(False)
-        with self.feature(AUTO_ASSIGN_FLAG):
+        with self.feature(ASSIGN_FEATURES):
             process_smart_assignment_completion(self.group, self._activity([alice.id]))
             process_smart_assignment_completion(self.group, self._activity([alice.id]))
 

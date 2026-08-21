@@ -67,7 +67,10 @@ export const useTransactionsDeprecationWarning = ({
     return createExploreUrl(widget.exploreUrls[0]!, selection, organization);
   }, [organization, widget.widgetType, widget.exploreUrls, selection]);
 
-  if (!exploreUrl) {
+  if (
+    !exploreUrl ||
+    !organization.features.includes('performance-transaction-deprecation-banner')
+  ) {
     return null;
   }
 
@@ -311,11 +314,11 @@ export function getMenuOptions(
         const {timeSeries, label, seriesName, widgetQuery} = transformed;
 
         const baseQuery =
-          applyDashboardFilters(
-            widgetQuery?.conditions,
+          applyDashboardFilters({
+            baseQuery: widgetQuery?.conditions,
             dashboardFilters,
-            widget.widgetType
-          ) ?? '';
+            widgetType: widget.widgetType,
+          }) ?? '';
 
         // Add group-by values as filters to the alert query
         const search = new MutableSearch(baseQuery);

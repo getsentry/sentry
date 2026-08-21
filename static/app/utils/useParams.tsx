@@ -37,6 +37,7 @@ type ParamKeys =
   | 'installationId'
   | 'integrationId'
   | 'integrationSlug'
+  | 'investigationId'
   | 'invoiceGuid'
   | 'issueId'
   | 'memberId'

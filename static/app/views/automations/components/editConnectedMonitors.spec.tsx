@@ -86,11 +86,7 @@ describe('EditConnectedMonitors', () => {
     expect(allProjectsRadio).toBeDisabled();
 
     await userEvent.hover(allProjectsRadio);
-    expect(
-      await screen.findByText(
-        'Only organization owners and managers can create global issue monitors.'
-      )
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/owners and managers/)).toBeInTheDocument();
   });
 
   it('selects all projects', async () => {

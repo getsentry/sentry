@@ -72,33 +72,6 @@ class InvestigationParameter(DefaultFieldsModel):
 
 
 @cell_silo_model
-class InvestigationCellParameter(DefaultFieldsModel):
-    """Declares that a cell consumes a notebook-level parameter."""
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    cell = FlexibleForeignKey(
-        "investigations.InvestigationCell",
-        on_delete=models.CASCADE,
-        related_name="parameter_links",
-    )
-    parameter = FlexibleForeignKey(
-        "investigations.InvestigationParameter",
-        on_delete=models.CASCADE,
-        related_name="cell_links",
-    )
-
-    class Meta:
-        app_label = "investigations"
-        db_table = "investigations_investigationcellparameter"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["cell", "parameter"], name="investigation_unique_cell_parameter"
-            )
-        ]
-
-
-@cell_silo_model
 class InvestigationBlockParameter(DefaultFieldsModel):
     """Declares that a block consumes a notebook-level parameter."""
 

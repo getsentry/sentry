@@ -45,8 +45,8 @@ export function IssuesSecondaryNavigation() {
                   analyticsItemName="issues_inbox"
                   trailingItems={
                     <Fragment>
-                      <FeatureBadge type="experimental" />
                       <InboxCountBadge />
+                      <FeatureBadge type="new" />
                     </Fragment>
                   }
                 >

@@ -1347,6 +1347,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             widget.discover_widget_split = None
             widget.dataset_source = DatasetSourcesTypes.UNKNOWN.value
 
+        if widget.widget_type is None and widget.display_type != DashboardWidgetDisplayTypes.TEXT:
+            raise serializers.ValidationError(
+                {"widget_type": "`widgetType` is required for widgets that are not text widgets"}
+            )
+
         widget.save()
 
         if is_text_widget:

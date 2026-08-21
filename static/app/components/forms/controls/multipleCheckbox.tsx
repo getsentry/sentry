@@ -11,7 +11,6 @@ type Props<T> = {
   name: string;
   value: T[];
   className?: string;
-  disabled?: boolean;
   onChange?: (value: T[], event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -20,11 +19,9 @@ type CheckboxItemProps<T> = {
   value: T;
   className?: string;
   disabled?: boolean;
-  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 type MultipleCheckboxContextValue<T> = {
-  disabled: Props<T>['disabled'];
   handleChange: (itemValue: T, event: React.ChangeEvent<HTMLInputElement>) => void;
   name: string;
   value: Props<T>['value'];
@@ -34,13 +31,11 @@ const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue<any>>
   handleChange: noop,
   value: [],
   name: '',
-  disabled: false,
 });
 
 export function MultipleCheckbox<T extends string | number>({
   children,
   value,
-  disabled,
   onChange,
   name,
   className,
@@ -65,9 +60,8 @@ export function MultipleCheckbox<T extends string | number>({
       value,
       handleChange,
       name,
-      disabled,
     }),
-    [disabled, handleChange, name, value]
+    [handleChange, name, value]
   );
 
   return (
@@ -83,12 +77,11 @@ function Item<T extends string | number>({
   value: itemValue,
   children,
   disabled: itemDisabled,
-  onChange,
   className,
 }: CheckboxItemProps<T>) {
-  const {disabled, value, handleChange, name} = useContext<
-    MultipleCheckboxContextValue<T>
-  >(MultipleCheckboxContext);
+  const {value, handleChange, name} = useContext<MultipleCheckboxContextValue<T>>(
+    MultipleCheckboxContext
+  );
 
   return (
     <LabelContainer className={className}>
@@ -96,10 +89,9 @@ function Item<T extends string | number>({
         <Checkbox
           name={name}
           checked={value.includes(itemValue)}
-          disabled={disabled || itemDisabled}
+          disabled={itemDisabled}
           onChange={e => {
             handleChange(itemValue, e);
-            onChange?.(e);
           }}
           value={value.toString()}
         />

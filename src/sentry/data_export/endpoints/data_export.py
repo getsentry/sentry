@@ -84,8 +84,9 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
         ):
             if not dataset:
+                supported = ", ".join(sorted(SUPPORTED_TRACE_ITEM_DATASETS))
                 raise serializers.ValidationError(
-                    f"Please specify dataset. Supported datasets for this query type are {str(SUPPORTED_TRACE_ITEM_DATASETS.keys())}."
+                    f"Please specify dataset. Supported datasets for this query type are {supported}."
                 )
 
             if dataset not in SUPPORTED_TRACE_ITEM_DATASETS:

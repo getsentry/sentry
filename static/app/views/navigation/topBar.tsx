@@ -24,6 +24,7 @@ import {
 import {
   NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
+  PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
@@ -50,19 +51,20 @@ function TopBarContent() {
     if (isSeerExplorerOpen) {
       return getExplorerFeedbackOptions(seerExplorerRunId);
     }
-    return {tags: {['feedback.source']: 'top_navigation'}};
+    return {tags: {'feedback.source': 'top_navigation'}};
   }, [isSeerExplorerOpen, seerExplorerRunId]);
 
   return (
     <Flex
       as="header"
-      height={{
+      minHeight={{
         'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
         'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
       background="secondary"
       align="center"
+      gap="sm"
       padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
@@ -70,6 +72,7 @@ function TopBarContent() {
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
+      wrap="wrap"
     >
       <SizeProvider size="sm">
         {/*
@@ -86,7 +89,7 @@ function TopBarContent() {
           align="center"
           gap="sm"
           minWidth="0"
-          flexGrow={1}
+          flex={`1 1 ${PRIMARY_HEADER_TITLE_MIN_WIDTH}px`}
           containerType="inline-size"
         >
           <Slot.Outlet name="breadcrumbs">

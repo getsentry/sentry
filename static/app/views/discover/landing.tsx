@@ -264,7 +264,11 @@ function DiscoverLanding() {
                         {tct(
                           'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
                           {
-                            exploreLink: <Link to="/explore/saved-queries/" />,
+                            exploreLink: (
+                              <Link
+                                to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                              />
+                            ),
                           }
                         )}
                       </Alert>
@@ -276,7 +280,11 @@ function DiscoverLanding() {
                           {tct(
                             'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
                             {
-                              exploreLink: <Link to="/explore/saved-queries/" />,
+                              exploreLink: (
+                                <Link
+                                  to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                                />
+                              ),
                             }
                           )}
                         </Alert>

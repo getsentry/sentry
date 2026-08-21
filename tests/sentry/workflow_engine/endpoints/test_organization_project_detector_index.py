@@ -632,6 +632,67 @@ class OrganizationProjectDetectorIndexMonitorPostTest(APITestCase):
         assert "dataSources" in response.data
         assert "Either name or slug must be provided" in str(response.data["dataSources"])
 
+    def test_create_two_unnamed_monitors_generates_unique_slugs(self) -> None:
+        data = self._get_detector_post_data(
+            name="New Monitor",
+            dataSources=[
+                {
+                    "name": "New Monitor",
+                    "config": {
+                        "schedule": "0 * * * *",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ],
+        )
+
+        for _ in range(2):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
+        slugs = sorted(
+            Monitor.objects.filter(
+                organization_id=self.organization.id, name="New Monitor"
+            ).values_list("slug", flat=True)
+        )
+        assert len(slugs) == 2
+        assert slugs[0] == "new-monitor"
+        assert slugs[1].startswith("new-monitor-")
+
+    def test_create_monitor_with_explicit_duplicate_slug_returns_400(self) -> None:
+        data = self._get_detector_post_data(
+            dataSources=[
+                {
+                    "name": "Taken Monitor",
+                    "slug": "taken-slug",
+                    "config": {
+                        "schedule": "0 * * * *",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ],
+        )
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=201,
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert 'The slug "taken-slug" is already in use.' in str(
+            response.data["dataSources"]["slug"]
+        )
+
     def test_create_monitor_with_optional_fields(self) -> None:
         data = self._get_detector_post_data(
             dataSources=[

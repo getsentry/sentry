@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Set as AbstractSet
 from datetime import datetime
 from typing import Any, TypedDict, override
 
@@ -127,7 +128,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     omits the nested collections so list reads stay cheap.
     """
 
-    def __init__(self, accessible_project_ids: set[int]) -> None:
+    def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
         self.accessible_project_ids = accessible_project_ids
 
     def _blocks_by_investigation(

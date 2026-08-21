@@ -96,7 +96,7 @@ export function SupergroupDetailDrawer({
               formTitle: t('Give feedback on Issue Groups'),
               messagePlaceholder: t('How can we make Issue Groups better for you?'),
               tags: {
-                ['feedback.source']: 'supergroup_drawer',
+                'feedback.source': 'supergroup_drawer',
               },
             }}
             tooltipProps={{title: t('Give feedback on Issue Groups')}}

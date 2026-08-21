@@ -210,7 +210,7 @@ class ActivityDocumentReadersTest(TestCase):
 
     def test_reviews_requested_count_from_doc(self) -> None:
         self._write_doc(_doc(counts={"review_requested": 3, "review_request_removed": 1}))
-        assert review_activity(self.pr).requested_count == 2
+        assert review_activity(self.pr, doc=load_activity_document(self.pr)).requested_count == 2
 
     def test_reviews_requested_count_from_legacy_rows(self) -> None:
         # No PullRequestActivityLog row → routes to the legacy PullRequestActivity
@@ -233,7 +233,7 @@ class ActivityDocumentReadersTest(TestCase):
             event_type=PullRequestActivityType.REVIEW_REQUEST_REMOVED,
             payload={},
         )
-        assert review_activity(self.pr).requested_count == 1
+        assert review_activity(self.pr, doc=load_activity_document(self.pr)).requested_count == 1
 
     def test_review_results_from_doc(self) -> None:
         self._write_doc(
@@ -244,7 +244,7 @@ class ActivityDocumentReadersTest(TestCase):
                 ]
             )
         )
-        assert review_activity(self.pr).results == {
+        assert review_activity(self.pr, doc=load_activity_document(self.pr)).results == {
             "approved": 1,
             "changes_requested": 1,
             "commented": 0,
@@ -259,7 +259,7 @@ class ActivityDocumentReadersTest(TestCase):
             event_type=PullRequestActivityType.REVIEW_SUBMITTED,
             payload={"review_state": "commented"},
         )
-        assert review_activity(self.pr).results == {
+        assert review_activity(self.pr, doc=load_activity_document(self.pr)).results == {
             "approved": 0,
             "changes_requested": 0,
             "commented": 1,
@@ -275,6 +275,20 @@ class ActivityDocumentReadersTest(TestCase):
             )
         )
         assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is True
+
+    def test_ci_failed_at_open_from_doc_without_an_open_entry(self) -> None:
+        # Tracking started after the PR opened, so nothing names the opening head:
+        # the first sync link's ``before_sha`` is the head that push replaced, which
+        # is the opening head only if it was the first push. With no head to scope
+        # to, the failing suite on record can't be attributed to the open.
+        self._write_doc(
+            _doc(
+                events=[_entry("synchronized", "s1", after_sha="sha2", before_sha="sha1")],
+                sync_chain=[["sha2", "sha1", "alice", "User", "s1"]],
+                checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")},
+            )
+        )
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is False
 
     def test_ci_failed_at_open_from_doc_excludes_later_head(self) -> None:
         # The failing check belongs to a later push's head, not the opening one.
