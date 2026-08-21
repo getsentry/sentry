@@ -51,7 +51,7 @@ def decode(
     *,  # Force passing optional arguments by keyword
     audience: str | bool | None = None,
     algorithms: list[str] | None = None,
-    options: Options | None = None,
+    require_exp: bool = True,
 ) -> dict[str, Any]:
     """Returns the claims (payload) in the JWT token.
 
@@ -64,21 +64,22 @@ def decode(
     :param audience: Set this to the audience you expect to be present in the claims.  Set
        this to ``False`` to disable verifying the audience.
     :param algorithms: The algorithms which should be tried to verify the payload.
-    :param options: Additional options to pass to PyJWT when decoding the token.
+    :param require_exp: Whether the token must include an expiration claim. Tokens with an
+       expiration claim are always rejected after they expire.
     """
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
-    decode_options: Options = options.copy() if options is not None else {}
+    options: Options = {"require": ["exp"], "verify_exp": True} if require_exp else {}
     kwargs: dict[str, Any] = {}
     if audience is False:
-        decode_options["verify_aud"] = False
+        options["verify_aud"] = False
     elif audience is True:
         raise ValueError("audience can not be True")
     elif audience is not None:
         kwargs["audience"] = audience
     if algorithms is None:
         algorithms = ["HS256"]
-    return pyjwt.decode(token, key, options=decode_options, algorithms=algorithms, **kwargs)
+    return pyjwt.decode(token, key, options=options, algorithms=algorithms, **kwargs)
 
 
 def encode(
