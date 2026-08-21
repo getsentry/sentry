@@ -22,9 +22,9 @@ class RecalibrationBias(Bias):
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         if is_project_mode_sampling(project.organization):
-            adjusted_factor = get_adjusted_project_factor(project.id)
+            adjusted_factor = get_adjusted_project_factor(project.id, source="serving")
         else:
-            adjusted_factor = get_adjusted_factor(project.organization.id)
+            adjusted_factor = get_adjusted_factor(project.organization.id, source="serving")
 
         # We don't want to generate any rule in case the factor is 1.0 since we should multiply the factor and 1.0
         # is the identity of the multiplication.
