@@ -34,12 +34,13 @@ export function SsoForm({authConfig}: Props) {
       navigate({pathname: response.nextUri});
     },
     onError: response => {
-      if (response instanceof RequestError) {
-        const detail = response.responseJSON?.detail;
-        if (typeof detail === 'string') {
-          setError(detail);
-        }
-      }
+      const detail =
+        response instanceof RequestError ? response.responseJSON?.detail : undefined;
+      setError(
+        typeof detail === 'string'
+          ? detail
+          : t('Unable to locate the organization. Please try again.')
+      );
     },
   });
   const form = useScrapsForm({
