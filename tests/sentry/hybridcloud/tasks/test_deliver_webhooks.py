@@ -113,6 +113,25 @@ class ScheduleWebhooksTest(TestCase):
         )
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_head_in_backoff_blocks_mailbox(self, mock_deliver: MagicMock) -> None:
+        # The mailbox head (lowest id) is in a backoff window while a later
+        # message is due. The whole mailbox must be skipped — scheduling the
+        # later message would break head-of-line delivery ordering.
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        webhook_two = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+        )
+        assert webhook_two.schedule_for < timezone.now()
+
+        schedule_webhook_delivery()
+        assert mock_deliver.delay.call_count == 0
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_updates_mailbox_attributes(self, mock_deliver: MagicMock) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
