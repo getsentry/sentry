@@ -54,9 +54,10 @@ It runs on every item of every tick, and an item it rejects is not dispatched.
 Use it for a check that must see the state at dispatch time.
 
 Optional prevalidate_batch callback, for a batched check at cycle start. It
-receives the queryset's rows and returns the PKs to keep:
+receives the queryset's rows and returns the PKs to keep, in the order it got
+them:
 
-    def has_my_feature(orgs: Sequence[Organization]) -> Collection[int]:
+    def has_my_feature(orgs: Sequence[Organization]) -> Sequence[int]:
         results = features.batch_has_for_organizations("organizations:my-feature", orgs)
         return [org.id for org in orgs if results[f"organization:{org.id}"]]
 
@@ -65,10 +66,11 @@ receives the queryset's rows and returns the PKs to keep:
         prevalidate_batch=has_my_feature,
     )
 
-It runs once per cycle, when the PK list is snapshotted. Only the PKs it keeps
-reach Redis, so the rest never occupy a batch and the check costs one
-cycle-start rather than time on every tick. The tradeoff is staleness: an item
-that stops qualifying mid-cycle is still dispatched until the next snapshot.
+It runs at cycle start, when the PK list is snapshotted, over chunks of at most
+PREVALIDATE_CHUNK_SIZE rows. Only the PKs it keeps reach Redis, so the rest
+never occupy a batch and the check costs one cycle-start rather than time on
+every tick. The tradeoff is staleness: an item that stops qualifying mid-cycle
+is still dispatched until the next snapshot.
 
 Getting the rows rather than their PKs means a check that needs more than the PK —
 a feature flag, an option — does not have to fetch them back. Setting it makes the
@@ -85,8 +87,9 @@ import logging
 import math
 import random
 import time
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Sequence
 from datetime import timedelta
+from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache
@@ -97,6 +100,7 @@ from sentry.locks import locks
 from sentry.utils import metrics, redis
 from sentry.utils.iterators import chunked
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +113,8 @@ LOCK_PREFIX = "cursored_scheduler_lock"
 DEFAULT_LOCK_DURATION_SECONDS = 120
 MIN_BATCH_SIZE = 1
 RPUSH_CHUNK_SIZE = 10_000
+# How many rows a single prevalidate_batch call gets.
+PREVALIDATE_CHUNK_SIZE = 10_000
 
 
 def _get_tick_interval(schedule_key: str) -> timedelta:
@@ -164,7 +170,7 @@ class CursoredScheduler[M: Model]:
         cycle_duration: timedelta,
         lock_duration: int = DEFAULT_LOCK_DURATION_SECONDS,
         validate_item: Callable[[int], bool] | None = None,
-        prevalidate_batch: Callable[[Sequence[M]], Collection[int]] | None = None,
+        prevalidate_batch: Callable[[Sequence[M]], Sequence[int]] | None = None,
         shuffle: bool = False,
         preserve_queryset_order: bool = False,
     ):
@@ -264,15 +270,25 @@ class CursoredScheduler[M: Model]:
 
     def _prevalidated_pks(self, queryset: QuerySet[M]) -> list[int]:
         """
-        Apply the batch prevalidation function to the queryset.
-        If no prevalidation function is provided, return the PKs in queryset order.
+        Apply the batch prevalidation function to the queryset, one chunk at a time.
+        Chunks are fetched by PK range (RangeQuerySetWrapper) because server-side
+        cursors from QuerySet.iterator() do not work through pgbouncer.
+        The returned PKs follow the queryset order.
         """
         if self.prevalidate_batch is None:
             return list(queryset.values_list("pk", flat=True))
 
-        rows = list(queryset)
-        kept = set(self.prevalidate_batch(rows))
-        return [row.pk for row in rows if row.pk in kept]
+        unordered: QuerySet[Any] = queryset.order_by()
+        rows_by_pk = RangeQuerySetWrapper[M](unordered, step=PREVALIDATE_CHUNK_SIZE)
+        kept_pks: list[int] = []
+        for rows in chunked(rows_by_pk, PREVALIDATE_CHUNK_SIZE):
+            kept_pks.extend(self.prevalidate_batch(rows))
+
+        if not self.preserve_queryset_order:
+            return kept_pks
+
+        kept = set(kept_pks)
+        return [pk for pk in queryset.values_list("pk", flat=True) if pk in kept]
 
     def _initialize_cycle(self) -> int:
         init_start = time.time()
