@@ -12,6 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -35,10 +36,25 @@ const PROJECT = ProjectFixture();
 
 /**
  * The route band's own query, which is a `spans` read like the trace rows are and
- * so has to be told apart from them. It is the only one narrowed by `span.op`.
+ * so has to be told apart from them. It is the only one narrowed *to* a set of
+ * `span.op`s.
+ *
+ * The negated form is excluded deliberately: the services band narrows by
+ * `!span.op:[…]`, which contains this substring, and without the guard that query
+ * would be answered by the route band's mock.
  */
 function isRouteQuery(options: Record<string, any>) {
-  return String(options.query.query).includes('span.op:[');
+  const query = String(options.query.query);
+  return query.includes('span.op:[') && !query.includes('!span.op:[');
+}
+
+/**
+ * The services band's query: the fourth read of the `spans` dataset, and the only
+ * one that drops the `session.id` term — it joins on trace ids instead, which is
+ * the whole point of it.
+ */
+function isServicesQuery(options: Record<string, any>) {
+  return String(options.query.query).includes('trace:[');
 }
 
 /**
@@ -61,6 +77,7 @@ function mockDataset(dataset: string, kind: 'count' | 'rows', data: unknown[]) {
       (_url: string, options: Record<string, any>) =>
         options.query.dataset === dataset &&
         !isRouteQuery(options) &&
+        !isServicesQuery(options) &&
         !isVitalsQuery(options) &&
         !isHealthQuery(options) &&
         // The counts query asks for aggregates only; the rows query asks for the
@@ -84,6 +101,21 @@ function mockRouteVisits(data: unknown[]) {
     method: 'GET',
     body: {data, meta: {fields: {}}},
     match: [(_url: string, options: Record<string, any>) => isRouteQuery(options)],
+  });
+}
+
+/**
+ * The server segment spans the services band is built from. Every test gets an
+ * empty one by default, so the band is absent unless a test is about it — a band
+ * appearing under every session with a trace would add rows to assertions about
+ * the lanes above it.
+ */
+function mockServices(data: unknown[]) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/',
+    method: 'GET',
+    body: {data, meta: {fields: {}}},
+    match: [(_url: string, options: Record<string, any>) => isServicesQuery(options)],
   });
 }
 
@@ -113,6 +145,7 @@ function mockRowsPage(
       (_url: string, options: Record<string, any>) =>
         options.query.dataset === dataset &&
         !isRouteQuery(options) &&
+        !isServicesQuery(options) &&
         !isVitalsQuery(options) &&
         !isHealthQuery(options) &&
         options.query.field.includes('timestamp') &&
@@ -240,6 +273,7 @@ describe('SessionDetailView', () => {
     // Mocks are matched most-recently-registered first, so a test about the band
     // overrides this by calling `mockRouteVisits` itself.
     mockRouteVisits([]);
+    mockServices([]);
     mockVitals([]);
     mockUnhandled(0);
     // The feedback lane rides on `issuePlatform` rather than on a dataset of its
@@ -284,7 +318,11 @@ describe('SessionDetailView', () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 1}]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:01+00:00'},
+      {
+        id: 'log1',
+        message: 'first log',
+        timestamp: '2024-01-01T00:00:01+00:00',
+      },
     ]);
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -378,7 +416,11 @@ describe('SessionDetailView', () => {
     mockDataset('logs', 'count', [{'count()': 1}]);
     mockDataset('spans', 'count', [{'count_unique(trace)': 1}]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:00+00:00'},
+      {
+        id: 'log1',
+        message: 'first log',
+        timestamp: '2024-01-01T00:00:00+00:00',
+      },
     ]);
     mockDataset('spans', 'rows', [
       {
@@ -410,8 +452,16 @@ describe('SessionDetailView', () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'before the gap', timestamp: '2024-01-01T00:00:00+00:00'},
-      {id: 'log2', message: 'after the gap', timestamp: '2024-01-01T00:01:00+00:00'},
+      {
+        id: 'log1',
+        message: 'before the gap',
+        timestamp: '2024-01-01T00:00:00+00:00',
+      },
+      {
+        id: 'log2',
+        message: 'after the gap',
+        timestamp: '2024-01-01T00:01:00+00:00',
+      },
     ]);
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -551,17 +601,30 @@ describe('SessionDetailView', () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
     const rowsRequest = mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:01+00:00'},
-      {id: 'log2', message: 'second log', timestamp: '2024-01-01T00:00:02+00:00'},
+      {
+        id: 'log1',
+        message: 'first log',
+        timestamp: '2024-01-01T00:00:01+00:00',
+      },
+      {
+        id: 'log2',
+        message: 'second log',
+        timestamp: '2024-01-01T00:00:02+00:00',
+      },
     ]);
 
-    const {router} = render(<SessionDetailView />, {organization, initialRouterConfig});
+    const {router} = render(<SessionDetailView />, {
+      organization,
+      initialRouterConfig,
+    });
 
     // Default: newest first, without needing a sort param in the URL.
     expect(await screen.findByText('second log')).toBeInTheDocument();
     expect(rowsRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      expect.objectContaining({query: expect.objectContaining({sort: '-timestamp'})})
+      expect.objectContaining({
+        query: expect.objectContaining({sort: '-timestamp'}),
+      })
     );
     expect(within(railItems()[0]!).getByText('second log')).toBeInTheDocument();
 
@@ -570,7 +633,9 @@ describe('SessionDetailView', () => {
     expect(router.location.query.sort).toBe('timestamp');
     expect(rowsRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      expect.objectContaining({query: expect.objectContaining({sort: 'timestamp'})})
+      expect.objectContaining({
+        query: expect.objectContaining({sort: 'timestamp'}),
+      })
     );
     await waitFor(() => {
       expect(within(railItems()[0]!).getByText('first log')).toBeInTheDocument();
@@ -630,7 +695,12 @@ describe('SessionDetailView', () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${PROJECT.slug}/trace-items/abc123def4567890/`,
       method: 'GET',
-      body: {itemId: 'abc123def4567890', timestamp: '', attributes: [], meta: {}},
+      body: {
+        itemId: 'abc123def4567890',
+        timestamp: '',
+        attributes: [],
+        meta: {},
+      },
     });
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -675,7 +745,9 @@ describe('SessionDetailView', () => {
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
     await userEvent.click(await screen.findByText('first log'));
-    const panel = await screen.findByRole('complementary', {name: 'Telemetry details'});
+    const panel = await screen.findByRole('complementary', {
+      name: 'Telemetry details',
+    });
     const href = within(panel)
       .getByRole('button', {name: 'Open in Logs'})
       .getAttribute('href')!;
@@ -699,7 +771,9 @@ describe('SessionDetailView', () => {
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
     await userEvent.click(await screen.findByText('checkout.latency'));
-    const panel = await screen.findByRole('complementary', {name: 'Telemetry details'});
+    const panel = await screen.findByRole('complementary', {
+      name: 'Telemetry details',
+    });
     const href = within(panel)
       .getByRole('button', {name: 'Open in Trace'})
       .getAttribute('href')!;
@@ -711,11 +785,22 @@ describe('SessionDetailView', () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
-      {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+      {
+        id: 'log1',
+        message: 'early log',
+        timestamp: '2024-01-01T00:00:00+00:00',
+      },
+      {
+        id: 'log2',
+        message: 'late log',
+        timestamp: '2024-01-01T00:01:00+00:00',
+      },
     ]);
 
-    const {router} = render(<SessionDetailView />, {organization, initialRouterConfig});
+    const {router} = render(<SessionDetailView />, {
+      organization,
+      initialRouterConfig,
+    });
 
     expect(await screen.findByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
     // This session is logs and nothing else, so the other four lanes are absent
@@ -742,8 +827,16 @@ describe('SessionDetailView', () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
-      {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+      {
+        id: 'log1',
+        message: 'early log',
+        timestamp: '2024-01-01T00:00:00+00:00',
+      },
+      {
+        id: 'log2',
+        message: 'late log',
+        timestamp: '2024-01-01T00:01:00+00:00',
+      },
     ]);
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -772,8 +865,16 @@ describe('SessionDetailView', () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
-      {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+      {
+        id: 'log1',
+        message: 'early log',
+        timestamp: '2024-01-01T00:00:00+00:00',
+      },
+      {
+        id: 'log2',
+        message: 'late log',
+        timestamp: '2024-01-01T00:01:00+00:00',
+      },
     ]);
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -794,7 +895,11 @@ describe('SessionDetailView', () => {
     mockDataset('logs', 'count', [{'count()': 1}]);
     mockDataset('errors', 'count', [{'count()': 1}]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:01+00:00'},
+      {
+        id: 'log1',
+        message: 'first log',
+        timestamp: '2024-01-01T00:00:01+00:00',
+      },
     ]);
     mockDataset('errors', 'rows', [
       {
@@ -805,13 +910,19 @@ describe('SessionDetailView', () => {
       },
     ]);
 
-    const {router} = render(<SessionDetailView />, {organization, initialRouterConfig});
+    const {router} = render(<SessionDetailView />, {
+      organization,
+      initialRouterConfig,
+    });
 
     // Every type is on by default, with no param in the URL.
     expect(await screen.findByText('first log')).toBeInTheDocument();
     expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
 
-    const logsLane = screen.getByRole('button', {name: 'Logs 1', pressed: true});
+    const logsLane = screen.getByRole('button', {
+      name: 'Logs 1',
+      pressed: true,
+    });
     await userEvent.click(logsLane);
 
     expect(router.location.query.telemetryType).toEqual([
@@ -839,11 +950,23 @@ describe('SessionDetailView', () => {
   it('narrows the rail to a keyboard-selected window, and resets it', async () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [
-      {'count()': 2, 'min(timestamp)': undefined, 'max(timestamp)': undefined},
+      {
+        'count()': 2,
+        'min(timestamp)': undefined,
+        'max(timestamp)': undefined,
+      },
     ]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
-      {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+      {
+        id: 'log1',
+        message: 'early log',
+        timestamp: '2024-01-01T00:00:00+00:00',
+      },
+      {
+        id: 'log2',
+        message: 'late log',
+        timestamp: '2024-01-01T00:01:00+00:00',
+      },
     ]);
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -940,8 +1063,11 @@ describe('SessionDetailView', () => {
 
       // Zooming in does move something, so it is.
       expect(
-        wheelTrack(track, {clientX: 500, clientY: laneY('Logs'), deltaY: -200})
-          .defaultPrevented
+        wheelTrack(track, {
+          clientX: 500,
+          clientY: laneY('Logs'),
+          deltaY: -200,
+        }).defaultPrevented
       ).toBe(true);
     });
 
@@ -956,7 +1082,11 @@ describe('SessionDetailView', () => {
       expect(await screen.findByText('log at 30s')).toBeInTheDocument();
 
       // 100px to 600px of 1000px across a minute: 6s to 36s.
-      dragTrack(trackWithGeometry(), {from: 100, to: 600, clientY: laneY('Logs')});
+      dragTrack(trackWithGeometry(), {
+        from: 100,
+        to: 600,
+        clientY: laneY('Logs'),
+      });
 
       await waitFor(() => {
         expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
@@ -985,7 +1115,11 @@ describe('SessionDetailView', () => {
 
       // The strip is drawn against the session however far the lanes are zoomed, so
       // 700px of 1000px is 42s whatever else is going on.
-      dragTrack(withGeometry(overviewStrip()), {from: 700, to: 1000, clientY: 10});
+      dragTrack(withGeometry(overviewStrip()), {
+        from: 700,
+        to: 1000,
+        clientY: 10,
+      });
 
       await waitFor(() => {
         expect(screen.queryByText('log at 30s')).not.toBeInTheDocument();
@@ -1006,7 +1140,11 @@ describe('SessionDetailView', () => {
       expect(await screen.findByText('log at 30s')).toBeInTheDocument();
 
       // The session's first half, taken the ordinary way.
-      dragTrack(withGeometry(overviewStrip()), {from: 0, to: 500, clientY: 10});
+      dragTrack(withGeometry(overviewStrip()), {
+        from: 0,
+        to: 500,
+        clientY: 10,
+      });
       await waitFor(() => {
         expect(screen.queryByText('log at 60s')).not.toBeInTheDocument();
       });
@@ -1015,7 +1153,11 @@ describe('SessionDetailView', () => {
       // Now a drag that *starts* inside that range, which carries it instead of
       // replacing it: 250px to 500px slides it 15s along rather than selecting the
       // 15s-to-30s slice a fresh drag between those points would.
-      dragTrack(withGeometry(overviewStrip()), {from: 250, to: 500, clientY: 10});
+      dragTrack(withGeometry(overviewStrip()), {
+        from: 250,
+        to: 500,
+        clientY: 10,
+      });
 
       await waitFor(() => {
         expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
@@ -1036,14 +1178,22 @@ describe('SessionDetailView', () => {
       expect(await screen.findByText('log at 30s')).toBeInTheDocument();
 
       // 15s to 30s, taken the ordinary way.
-      dragTrack(withGeometry(overviewStrip()), {from: 250, to: 500, clientY: 10});
+      dragTrack(withGeometry(overviewStrip()), {
+        from: 250,
+        to: 500,
+        clientY: 10,
+      });
       await waitFor(() => {
         expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
       });
 
       // A drag from the frame's right edge takes that end to 48s and leaves the
       // other where it was — where a carry from the same point would have slid both.
-      dragTrack(withGeometry(overviewStrip()), {from: 500, to: 800, clientY: 10});
+      dragTrack(withGeometry(overviewStrip()), {
+        from: 500,
+        to: 800,
+        clientY: 10,
+      });
       expect(
         await screen.findByText(
           'Showing 0:15.00 to 0:48.00. Scroll to zoom, or drag the highlighted range above to move or resize it.'
@@ -1051,7 +1201,11 @@ describe('SessionDetailView', () => {
       ).toBeInTheDocument();
 
       // And the same from the left edge, outwards.
-      dragTrack(withGeometry(overviewStrip()), {from: 250, to: 100, clientY: 10});
+      dragTrack(withGeometry(overviewStrip()), {
+        from: 250,
+        to: 100,
+        clientY: 10,
+      });
       expect(
         await screen.findByText(
           'Showing 0:06.00 to 0:48.00. Scroll to zoom, or drag the highlighted range above to move or resize it.'
@@ -1158,9 +1312,21 @@ describe('SessionDetailView', () => {
       mockEmptyDatasets(['logs']);
       mockDataset('logs', 'count', [{'count()': 3}]);
       mockDataset('logs', 'rows', [
-        {id: 'log1', message: 'log at 0s', timestamp: '2024-01-01T00:00:00+00:00'},
-        {id: 'log2', message: 'log at 300s', timestamp: '2024-01-01T00:05:00+00:00'},
-        {id: 'log3', message: 'log at 600s', timestamp: '2024-01-01T00:10:00+00:00'},
+        {
+          id: 'log1',
+          message: 'log at 0s',
+          timestamp: '2024-01-01T00:00:00+00:00',
+        },
+        {
+          id: 'log2',
+          message: 'log at 300s',
+          timestamp: '2024-01-01T00:05:00+00:00',
+        },
+        {
+          id: 'log3',
+          message: 'log at 600s',
+          timestamp: '2024-01-01T00:10:00+00:00',
+        },
       ]);
 
       render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -1420,7 +1586,11 @@ describe('SessionDetailView', () => {
       },
     ]);
     mockDataset('logs', 'rows', [
-      {id: 'log1', message: 'the only row', timestamp: '2024-01-01T00:01:00+00:00'},
+      {
+        id: 'log1',
+        message: 'the only row',
+        timestamp: '2024-01-01T00:01:00+00:00',
+      },
     ]);
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -1455,7 +1625,12 @@ describe('SessionDetailView', () => {
       return MockApiClient.addMockResponse({
         url: `/projects/org-slug/${PROJECT.slug}/trace-items/${id}/`,
         method: 'GET',
-        body: {itemId: id, timestamp: '2024-01-01T00:00:01+00:00', attributes, meta: {}},
+        body: {
+          itemId: id,
+          timestamp: '2024-01-01T00:00:01+00:00',
+          attributes,
+          meta: {},
+        },
       });
     }
 
@@ -1495,7 +1670,10 @@ describe('SessionDetailView', () => {
         organization,
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query: {item: 'logs:log1'}},
+          location: {
+            ...initialRouterConfig.location,
+            query: {item: 'logs:log1'},
+          },
         },
       });
 
@@ -1512,7 +1690,10 @@ describe('SessionDetailView', () => {
         organization,
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query: {item: 'logs:log1'}},
+          location: {
+            ...initialRouterConfig.location,
+            query: {item: 'logs:log1'},
+          },
         },
       });
 
@@ -1601,8 +1782,16 @@ describe('SessionDetailView', () => {
       mockEmptyDatasets(['logs']);
       mockDataset('logs', 'count', [{'count()': 2}]);
       mockDataset('logs', 'rows', [
-        {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
-        {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+        {
+          id: 'log1',
+          message: 'early log',
+          timestamp: '2024-01-01T00:00:00+00:00',
+        },
+        {
+          id: 'log2',
+          message: 'late log',
+          timestamp: '2024-01-01T00:01:00+00:00',
+        },
       ]);
 
       const {router} = render(<SessionDetailView />, {
@@ -1796,7 +1985,10 @@ describe('SessionDetailView', () => {
         organization,
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query: {item: 'logs:log1'}},
+          location: {
+            ...initialRouterConfig.location,
+            query: {item: 'logs:log1'},
+          },
         },
       });
 
@@ -2060,7 +2252,10 @@ describe('SessionDetailView', () => {
 
       // A third of the session on `/`, the remaining two thirds on `/cart` — from
       // the gap between arrivals, not from either span's own duration.
-      expect(segments[0]).toHaveStyle({left: '0%', width: '33.33333333333333%'});
+      expect(segments[0]).toHaveStyle({
+        left: '0%',
+        width: '33.33333333333333%',
+      });
       expect(segments[1]).toHaveStyle({
         left: '33.33333333333333%',
         width: '66.66666666666667%',
@@ -2132,8 +2327,16 @@ describe('SessionDetailView', () => {
       mockDataset('spans', 'rows', []);
       mockDataset('logs', 'count', [{'count()': 2}]);
       mockDataset('logs', 'rows', [
-        {id: 'log1', message: 'on the home page', timestamp: '2024-01-01T00:00:05+00:00'},
-        {id: 'log2', message: 'in the cart', timestamp: '2024-01-01T00:00:40+00:00'},
+        {
+          id: 'log1',
+          message: 'on the home page',
+          timestamp: '2024-01-01T00:00:05+00:00',
+        },
+        {
+          id: 'log2',
+          message: 'in the cart',
+          timestamp: '2024-01-01T00:00:40+00:00',
+        },
       ]);
       mockRouteVisits([
         {
@@ -2158,7 +2361,10 @@ describe('SessionDetailView', () => {
 
       // A route already is a span of time, so clicking one performs the drag the
       // user would otherwise have to aim by hand.
-      clickTrack(trackWithGeometry(1000, 258), {clientX: 100, clientY: ROUTE_Y});
+      clickTrack(trackWithGeometry(1000, 258), {
+        clientX: 100,
+        clientY: ROUTE_Y,
+      });
 
       await waitFor(() => {
         expect(screen.queryByText('in the cart')).not.toBeInTheDocument();
@@ -2224,7 +2430,11 @@ describe('SessionDetailView', () => {
       mockEmptyDatasets(['logs']);
       mockDataset('logs', 'count', [{'count()': 1}]);
       mockDataset('logs', 'rows', [
-        {id: 'log1', message: 'a backend log', timestamp: '2024-01-01T00:00:00+00:00'},
+        {
+          id: 'log1',
+          message: 'a backend log',
+          timestamp: '2024-01-01T00:00:00+00:00',
+        },
       ]);
 
       render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -2292,6 +2502,327 @@ describe('SessionDetailView', () => {
       expect(segments[1]).toHaveAttribute('title', '/ · 40.0s · 0:20.00 navigation');
     });
   });
+
+  describe('services band', () => {
+    /**
+     * A session running 0s to 60s that started `count` traces, which is what the
+     * band joins on. The frontend rows are what supply the trace ids, so a session
+     * with no traces cannot have a band at all.
+     */
+    function mockSessionWithTraces(count: number) {
+      mockEmptyDatasets(['spans']);
+      mockDataset('spans', 'count', [
+        {
+          'count_unique(trace)': count,
+          'min(precise.start_ts)': Date.parse('2024-01-01T00:00:00Z') / 1000,
+          'max(precise.finish_ts)': Date.parse('2024-01-01T00:01:00Z') / 1000,
+        },
+      ]);
+      mockDataset(
+        'spans',
+        'rows',
+        Array.from({length: count}, (_, index) => ({
+          id: `span${index}`,
+          transaction: `/page-${index}`,
+          'span.op': 'pageload',
+          'span.duration': 100,
+          // One arrival per second from the top of the session.
+          timestamp: `2024-01-01T00:00:${String(index).padStart(2, '0')}+00:00`,
+          trace: String(index).padStart(32, '0'),
+          project: PROJECT.slug,
+          'project.id': Number(PROJECT.id),
+        }))
+      );
+    }
+
+    /**
+     * One server segment span, as the band's query returns them. The `id` is what
+     * the bar is addressed by when it is clicked, so a fixture without one is
+     * dropped from the band entirely.
+     */
+    function serverSpan({
+      project,
+      at,
+      id = `server-${project}`,
+      transaction = `GET /${project}`,
+      duration = 1000,
+      status = 'ok',
+    }: {
+      at: string;
+      project: string;
+      duration?: number;
+      id?: string;
+      status?: string;
+      transaction?: string;
+    }) {
+      return {
+        id,
+        project,
+        'project.id': Number(PROJECT.id),
+        timestamp: at,
+        transaction,
+        'span.op': 'http.server',
+        'span.duration': duration,
+        'span.status': status,
+        trace: '0'.repeat(32),
+      };
+    }
+
+    it('draws one row per project, ordered by when the session reached it', async () => {
+      mockSessionWithTraces(2);
+      mockServices([
+        serverSpan({
+          project: 'payments-api',
+          at: '2024-01-01T00:00:30+00:00',
+        }),
+        serverSpan({project: 'api-gateway', at: '2024-01-01T00:00:05+00:00'}),
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Services reached')).toBeInTheDocument();
+      expect(screen.getByText('api-gateway')).toBeInTheDocument();
+      expect(screen.getByText('payments-api')).toBeInTheDocument();
+      expect(screen.getAllByTestId('service-lane')).toHaveLength(2);
+
+      // Ordered by first contact rather than alphabetically, so the band reads
+      // top to bottom as the order things were called.
+      const labels = screen
+        .getAllByTestId('service-lane')
+        .map(track => track.previousElementSibling?.textContent);
+      expect(labels).toEqual(['api-gateway', 'payments-api']);
+    });
+
+    it('names the session own project with its bare slug', async () => {
+      mockSessionWithTraces(1);
+      mockServices([
+        serverSpan({project: PROJECT.slug, at: '2024-01-01T00:00:10+00:00'}),
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      await screen.findByText('Services reached');
+
+      // The Next.js case: a meta-framework ships both halves of the app to one
+      // project. The row is still just that project — qualifying it as "the
+      // backend" is a distinction the icon and the band's heading already make.
+      const labels = screen
+        .getAllByTestId('service-lane')
+        .map(track => track.previousElementSibling?.textContent);
+      expect(labels).toEqual([PROJECT.slug]);
+    });
+
+    it('marks only the stretch that failed, not the whole service row', async () => {
+      mockSessionWithTraces(1);
+      mockServices([
+        serverSpan({
+          id: 'ok-call',
+          project: 'api-gateway',
+          at: '2024-01-01T00:00:05+00:00',
+        }),
+        serverSpan({
+          id: 'bad-call',
+          project: 'api-gateway',
+          at: '2024-01-01T00:00:20+00:00',
+          status: 'internal_error',
+        }),
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('api-gateway')).toBeInTheDocument();
+      expect(screen.getAllByTestId('service-lane')).toHaveLength(1);
+
+      // Severity is the one thing allowed to take colour in this band, and it
+      // belongs to the call that failed. A service that answered one request and
+      // dropped another is not a failing service, and a row painted red end to end
+      // would say it was while hiding which call actually broke.
+      const bars = screen.getAllByTestId('service-bar');
+      expect(bars.map(bar => bar.getAttribute('data-failed'))).toEqual(['false', 'true']);
+    });
+
+    it('says the gap is unknown rather than empty when the trace cap skipped some', async () => {
+      // Past the first-ten-plus-last-ten cap, so the middle of the session was
+      // never queried.
+      mockSessionWithTraces(24);
+      mockServices([
+        serverSpan({project: 'api-gateway', at: '2024-01-01T00:00:02+00:00'}),
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Services reached')).toBeInTheDocument();
+      expect(screen.getByText('4 traces not read')).toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('*'));
+      expect(
+        await screen.findByText(
+          'Built from the first and last 10 traces of this session. The 4 in between were never read, so the gap is unknown rather than empty.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('draws no unloaded window when every trace fit inside the cap', async () => {
+      mockSessionWithTraces(6);
+      mockServices([
+        serverSpan({project: 'api-gateway', at: '2024-01-01T00:00:02+00:00'}),
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('api-gateway')).toBeInTheDocument();
+      expect(screen.queryByText(/traces not read/)).not.toBeInTheDocument();
+      expect(screen.queryByText('*')).not.toBeInTheDocument();
+    });
+
+    it('says so when the band failed to load rather than showing nothing', async () => {
+      mockSessionWithTraces(1);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        method: 'GET',
+        statusCode: 400,
+        body: {detail: 'Invalid trace value.'},
+        match: [(_url: string, options: Record<string, any>) => isServicesQuery(options)],
+      });
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      // The heading stays: a band that broke and a session that called nothing
+      // are different answers, and only the heading can tell them apart.
+      expect(await screen.findByText('Services reached')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('service-lane')).toHaveLength(0);
+
+      await userEvent.hover(screen.getByText('*'));
+      expect(
+        await screen.findByText(
+          'Downstream services failed to load, so this band is missing.'
+        )
+      ).toBeInTheDocument();
+
+      // And it stays a missing band, not a broken timeline.
+      expect(
+        screen.queryByText('Failed to load session telemetry.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('leaves the band out entirely when nothing downstream answered', async () => {
+      mockSessionWithTraces(1);
+      mockServices([]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('/page-0')).toBeInTheDocument();
+
+      // An empty labelled band would read as "the servers did nothing", which is
+      // a claim a query that found no instrumented service cannot make.
+      expect(screen.queryByText('Services reached')).not.toBeInTheDocument();
+      expect(screen.queryAllByTestId('service-lane')).toHaveLength(0);
+    });
+
+    it('opens the details panel for the span behind a service bar', async () => {
+      mockSessionWithTraces(1);
+      mockServices([
+        serverSpan({
+          project: 'report-worker',
+          at: '2024-01-01T00:00:20+00:00',
+          id: 'server-span-1',
+          transaction: 'POST /api/report/generate',
+        }),
+      ]);
+
+      // What the panel reads once a bar is selected: the span's own attributes,
+      // and the trace its waterfall is built from.
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${PROJECT.slug}/trace-items/server-span-1/`,
+        method: 'GET',
+        body: {
+          itemId: 'server-span-1',
+          timestamp: '',
+          attributes: [],
+          meta: {},
+        },
+      });
+      const downstreamTrace = '0'.repeat(32);
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/events-trace/${downstreamTrace}/`,
+        method: 'GET',
+        body: {transactions: [], orphan_errors: []},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/events-trace-meta/${downstreamTrace}/`,
+        method: 'GET',
+        body: {
+          errors: 0,
+          performance_issues: 0,
+          projects: 0,
+          transactions: 0,
+          transaction_child_count_map: [],
+          span_count: 0,
+          span_count_map: {},
+        },
+      });
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+      await screen.findByText('report-worker');
+
+      const track = trackWithGeometry();
+      // A third of the way across a 60s session is 20s, which is where the span
+      // starts; the bar runs a second from there.
+      clickTrack(track, {clientX: 340, clientY: serviceY(0)});
+
+      // The same panel a rail row opens: a server segment span is a trace item
+      // reached from the other side of the request.
+      expect(
+        await screen.findByRole('button', {name: 'Open Full Trace'})
+      ).toBeInTheDocument();
+      expect(screen.getAllByText('POST /api/report/generate').length).toBeGreaterThan(0);
+    });
+
+    it('gives every service its project platform icon', async () => {
+      ProjectsStore.loadInitialData([
+        PROJECT,
+        ProjectFixture({id: '77', slug: 'report-worker', platform: 'python'}),
+      ]);
+      mockSessionWithTraces(1);
+      mockServices([
+        serverSpan({
+          project: 'report-worker',
+          at: '2024-01-01T00:00:20+00:00',
+        }),
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      const label = (await screen.findByText('report-worker')).closest('div');
+      expect(within(label!).getByTestId('platform-icon-python')).toBeInTheDocument();
+    });
+
+    it('joins on trace ids across every project, without a session filter', async () => {
+      mockSessionWithTraces(2);
+      const band = mockServices([]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      await screen.findByText('/page-0');
+
+      expect(band).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            // Every project, because a trace can land in any of them. Permissions
+            // are still applied server-side.
+            project: [ALL_ACCESS_PROJECTS],
+            query: expect.stringContaining(
+              `trace:[${'0'.repeat(32)},${'1'.padStart(32, '0')}]`
+            ),
+          }),
+        })
+      );
+      // No `session.id` term: backend SDKs never see one, and the trace id the
+      // frontend does propagate is the whole join.
+      expect(band.mock.calls[0][1].query.query).not.toContain('session.id');
+    });
+  });
 });
 
 /** Lane geometry from the scrubber: a 28px axis row over 40px lanes. */
@@ -2300,6 +2831,29 @@ const LANE_HEIGHT = 40;
 /** The route band, when there is one, inserts a 30px row under the axis. */
 const ROUTE_HEIGHT = 30;
 const ROUTE_Y = 42;
+/** The services band: a 22px heading below the lanes, then 26px rows. */
+const SERVICE_HEADER_HEIGHT = 22;
+const SERVICE_HEIGHT = 26;
+
+/**
+ * The vertical centre of one service row, counted from the bottom of the lanes.
+ *
+ * Read off the drawn lane toggles for the same reason {@link laneY} is: how far
+ * down the band starts depends on how many lanes the session drew.
+ */
+function serviceY(index: number) {
+  const chart = screen.getByRole('group', {name: 'Session time window'}).parentElement!;
+  const laneCount = chart.querySelectorAll('button[aria-pressed]').length;
+  const routeOffset = screen.queryByText('Route') === null ? 0 : ROUTE_HEIGHT;
+  return (
+    AXIS_HEIGHT +
+    routeOffset +
+    laneCount * LANE_HEIGHT +
+    SERVICE_HEADER_HEIGHT +
+    index * SERVICE_HEIGHT +
+    SERVICE_HEIGHT / 2
+  );
+}
 
 /**
  * The vertical centre of one lane, read off what the chart actually drew rather
@@ -2435,7 +2989,11 @@ function wheelTrack(
   track: HTMLElement,
   at: {clientX: number; clientY: number; deltaY: number; shiftKey?: boolean}
 ) {
-  const event = new WheelEvent('wheel', {bubbles: true, cancelable: true, ...at});
+  const event = new WheelEvent('wheel', {
+    bubbles: true,
+    cancelable: true,
+    ...at,
+  });
   act(() => {
     track.dispatchEvent(event);
   });

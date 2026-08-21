@@ -3,6 +3,7 @@ import {SESSION_ID} from '@sentry/conventions/attributes';
 import type {QueryFunctionContext} from '@tanstack/react-query';
 import {skipToken, useQueries, useQuery} from '@tanstack/react-query';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
@@ -34,6 +35,15 @@ import {
   resolveSessionName,
 } from 'sentry/views/explore/usersessions/sessionName';
 
+import type {BandTraces, ServiceBand} from './downstream';
+import {
+  buildServiceBand,
+  DOWNSTREAM_FIELDS,
+  DOWNSTREAM_FILTER,
+  downstreamEventsByKey,
+  NO_BAND_TRACES,
+  selectBandTraces,
+} from './downstream';
 import {itemKey} from './itemKey';
 import type {RouteBand} from './routeVisits';
 import {buildRouteVisits, ROUTE_OPS} from './routeVisits';
@@ -123,7 +133,10 @@ function fetchTimelineRows(config: SessionDataset) {
 
     // `headers` is unused downstream — the cursors it carries have already been
     // spent getting here.
-    return {headers: {}, json: {rows: rows.slice(0, config.maxRows), hasMore}};
+    return {
+      headers: {},
+      json: {rows: rows.slice(0, config.maxRows), hasMore},
+    };
   };
 }
 
@@ -529,6 +542,54 @@ export function useSessionDetail(sessionId: string) {
     }),
   });
 
+  /** Where the trace rows sit in the fan-out, so the band can read them back. */
+  const tracesIndex = SESSION_DATASETS.findIndex(config => config.key === 'traces');
+
+  /**
+   * The traces the services band joins on, and the stretch the cap skipped.
+   *
+   * Derived from the raw query results rather than from `detail` on purpose. The
+   * band's query is keyed on these ids, and `detail` moves with the text filter,
+   * the type toggles, the sort and the scrubber's window — none of which should
+   * cost a refetch of the backend half of the page.
+   */
+  const bandTraces = useMemo((): BandTraces => {
+    const rows = rowQueries.results[tracesIndex]?.data?.rows;
+    return rows === undefined ? NO_BAND_TRACES : selectBandTraces(rows);
+  }, [rowQueries.results, tracesIndex]);
+
+  /**
+   * The session's downstream work: every server segment span in the traces the
+   * frontend started.
+   *
+   * Two things separate this from every other query on the page. It carries no
+   * `session.id` term — backend SDKs never see one, and the trace id the frontend
+   * *does* propagate is the whole join. And it is not scoped to the page's project
+   * filter: a trace can end up in any project in the org, which is exactly what
+   * this band exists to show. `ALL_ACCESS_PROJECTS` is how the trace endpoint
+   * solves the same problem server-side, and permissions still apply — a service
+   * the reader cannot see is silently absent, which is why the band's header says
+   * "reached" rather than claiming to be complete.
+   */
+  const servicesQuery = useQuery(
+    apiOptions.as<EventsResponse>()('/organizations/$organizationIdOrSlug/events/', {
+      path:
+        enabled && bandTraces.ids.length > 0
+          ? {organizationIdOrSlug: organization.slug}
+          : skipToken,
+      query: {
+        ...commonQuery,
+        project: [ALL_ACCESS_PROJECTS],
+        dataset: TRACES.dataset,
+        query: `trace:[${bandTraces.ids.join(',')}] ${DOWNSTREAM_FILTER}`,
+        field: DOWNSTREAM_FIELDS,
+        sort: 'timestamp',
+        per_page: TRACES.pageSize,
+      },
+      staleTime: 0,
+    })
+  );
+
   const detail = useMemo((): SessionDetail => {
     const counts: Record<SessionDatasetKey, number> = {
       logs: 0,
@@ -756,9 +817,46 @@ export function useSessionDetail(sessionId: string) {
     };
   }, [routeQuery.data, routeQuery.isError, detail.bounds]);
 
+  /**
+   * Derived here rather than in the scrubber for the same reason the routes are:
+   * a service's activity is only meaningful clamped against the session's own
+   * extent, and `bounds` is what the pass above establishes.
+   */
+  const services = useMemo(
+    (): ServiceBand =>
+      buildServiceBand(servicesQuery.data?.data ?? [], detail.bounds, {
+        isError: servicesQuery.isError,
+        // Inferred from the row count rather than read off the `Link` header,
+        // which would cost this query the pagination handling the row queries
+        // need. A session that lands on exactly a full page is called truncated,
+        // which is the over-cautious direction.
+        isTruncated: (servicesQuery.data?.data.length ?? 0) >= TRACES.pageSize,
+        unloaded: bandTraces.unloaded,
+      }),
+    [servicesQuery.data, servicesQuery.isError, detail.bounds, bandTraces.unloaded]
+  );
+
+  /**
+   * The timeline's items plus the band's, under one index.
+   *
+   * Unioned here rather than inside `detail` because the band is a second wave —
+   * it is keyed on trace ids that only exist once the rows have landed, so it
+   * cannot be part of the pass that produces them. The selection, the `item` URL
+   * param and the details panel all read this one map, which is what lets a
+   * service bar open the same panel a rail row does.
+   */
+  const eventsByKey = useMemo(
+    () => new Map([...detail.eventsByKey, ...downstreamEventsByKey(services)]),
+    [detail.eventsByKey, services]
+  );
+
   return {
     ...detail,
+    eventsByKey,
     routes,
+    services,
+    /** How many traces the band's cap skipped, for its footnote. */
+    skippedBandTraces: bandTraces.skipped,
     dateParams,
     filters,
     sortDirection,
@@ -768,11 +866,20 @@ export function useSessionDetail(sessionId: string) {
     // rather than growing a row under the pointer. It is the cheapest of the
     // five — one page, no pagination loop — so it is rarely the straggler.
     isPending: countQueries.isPending || rowQueries.isPending || routeQuery.isPending,
-    // Deliberately *not* in `isError`: a route band that failed to load is a
-    // missing band, not a broken timeline, and the rail below still reads fine.
-    // It is not swallowed either — the band's own label carries the failure, or a
+    /**
+     * Deliberately *not* folded into `isPending` the way the route query is.
+     *
+     * It cannot be: it is keyed on trace ids that only exist once the rows have
+     * landed, so waiting on it would hold the whole chart behind a second wave.
+     * The band grows in underneath instead, which is a row appearing below
+     * everything rather than the chart reflowing around it.
+     */
+    isServicesPending: servicesQuery.isPending,
+    // Deliberately *not* in `isError`: a band that failed to load is a missing
+    // band, not a broken timeline, and the rail below still reads fine. It is not
+    // swallowed either — each band's own label carries its failure, or a
     // permanently broken query would look exactly like a session that never
-    // navigated anywhere.
+    // navigated anywhere and never called a server.
     isError: countQueries.isError || rowQueries.isError,
   };
 }

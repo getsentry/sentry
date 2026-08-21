@@ -2,21 +2,27 @@ import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconWindow} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconStack, IconWindow} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types/platform';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
+import type {ServiceActivity, ServiceBand, ServiceLane} from './downstream';
+import {BAND_TRACES_PER_END, bandCaveat} from './downstream';
 import {itemKey} from './itemKey';
 import type {RouteBand, RouteVisit} from './routeVisits';
 import {formatDurationMs, formatOffset} from './sessionTime';
+import {graphicsColor} from './severity';
 import {TelemetryTypeIcon} from './telemetryTypeIcon';
 import {TimelineSettings} from './timelineSettings';
 import type {IdleAnalysis, ScaleSegment, TimeScale} from './timeScale';
@@ -62,6 +68,42 @@ const OVERVIEW_HEIGHT = 20;
  * than markers that need vertical room to differ in size.
  */
 const ROUTE_HEIGHT = 30;
+
+/**
+ * The services band: its heading, and one row per service under it.
+ *
+ * A service row is shorter than a telemetry lane because it holds less. A lane
+ * has to fit markers that differ in height — that difference is how it says how
+ * much landed where — while a service row carries flat bars that only differ in
+ * width, and vertical room they cannot use just pushes the rail further down the
+ * page.
+ *
+ * The heading is what keeps the band from reading as five more lanes. Everything
+ * above it is the client's own telemetry, sorted by kind; everything below it is
+ * somewhere else entirely, sorted by who did the work. That is a different axis,
+ * and it needs a rule and a name rather than just a gap.
+ */
+const SERVICE_HEADER_HEIGHT = 22;
+const SERVICE_HEIGHT = 26;
+
+/**
+ * A service bar. Flatter than a trace bar in the lanes above, because it is
+ * carrying less: a lane's bar is one item you can click, while these are the shape
+ * of a service's working time and nothing more.
+ */
+const SERVICE_BAR_HEIGHT = 8;
+/** A server call can be shorter than a pixel of session. It still happened. */
+const SERVICE_BAR_MIN_PX = 3;
+
+/**
+ * The heading, plus a row per service. `repeat(0, …)` is invalid, so a band that
+ * has only its heading to show — which is what a failed query leaves — emits the
+ * heading alone.
+ */
+function serviceRows(count: number) {
+  const rows = count > 0 ? ` repeat(${count}, ${SERVICE_HEIGHT}px)` : '';
+  return `${SERVICE_HEADER_HEIGHT}px${rows}`;
+}
 
 /**
  * Which of the chart palettes the route band recycles. This one is eleven distinct
@@ -232,6 +274,12 @@ interface LaneHit {
   laneIndex: number;
 }
 
+/** The same, for the services band, which indexes its own rows. */
+interface ServiceHit {
+  activity: ServiceActivity;
+  laneIndex: number;
+}
+
 interface Props {
   bounds: SessionRange;
   /**
@@ -265,6 +313,14 @@ interface Props {
   selectedKey: string | null;
   /** Telemetry types currently shown. A type that is off dims its lane. */
   selectedTypes: SessionDatasetKey[];
+  /**
+   * The backend the session reached, one row per project. No services and no
+   * failure means a session that called nothing we can see, and the band is left
+   * out rather than drawn empty.
+   */
+  services: ServiceBand;
+  /** How many traces the band's cap skipped, which its footnote qualifies. */
+  skippedBandTraces: number;
   truncatedByType: Record<SessionDatasetKey, boolean>;
   /**
    * The range in view, or null for the whole session.
@@ -283,7 +339,10 @@ function extentOf(event: SessionEvent): {end: number; start: number} | undefined
   if (event.timestamp === undefined) {
     return undefined;
   }
-  return {start: event.timestamp, end: event.timestamp + (event.duration ?? 0)};
+  return {
+    start: event.timestamp,
+    end: event.timestamp + (event.duration ?? 0),
+  };
 }
 
 /**
@@ -330,6 +389,8 @@ export function SessionScrubber({
   eventsByType,
   idle,
   routes,
+  services,
+  skippedBandTraces,
   truncatedByType,
   selectedTypes,
   onToggleType,
@@ -358,12 +419,16 @@ export function SessionScrubber({
    * position that goes with it. Null between gestures, which is what hands the next
    * notch back to the rendered viewport.
    */
-  const wheelView = useRef<{hoverAt: number; next: SessionRange | null} | null>(null);
+  const wheelView = useRef<{
+    hoverAt: number;
+    next: SessionRange | null;
+  } | null>(null);
   const wheelFrame = useRef<number | null>(null);
   const [hoverAt, setHoverAt] = useState<number | null>(null);
   const [hover, setHover] = useState<LaneHit | null>(null);
   /** The route segment under the pointer, which is a different aim than an item. */
   const [hoverRoute, setHoverRoute] = useState<RouteVisit | null>(null);
+  const [hoverService, setHoverService] = useState<ServiceHit | null>(null);
   const anchor = useRef<{clientX: number; timestamp: number} | null>(null);
   /**
    * How the chart is drawn, as opposed to what it is drawn from. Both come from the
@@ -415,7 +480,12 @@ export function SessionScrubber({
    */
   const linear = useMemo(
     () =>
-      buildTimeScale({bounds, idle: {gaps: [], regions: []}, width: trackWidth, buckets}),
+      buildTimeScale({
+        bounds,
+        idle: {gaps: [], regions: []},
+        width: trackWidth,
+        buckets,
+      }),
     [bounds, buckets, trackWidth]
   );
 
@@ -530,6 +600,40 @@ export function SessionScrubber({
   const laneTop = HEADER_HEIGHT + (hasRoutes ? ROUTE_HEIGHT : 0);
   /** Row 1 is the strip, row 2 the axis, and row 3 the route band when there is one. */
   const firstLaneRow = hasRoutes ? 4 : 3;
+
+  /**
+   * The services band, on the same terms as the route band above: drawn when there
+   * is something to say, including when what it has to say is that its query
+   * failed.
+   *
+   * A session with no band is the common case and not a defect — it means nothing
+   * downstream of this session is instrumented, or the traces it started never
+   * left the browser. An empty labelled band would read as "the servers did
+   * nothing", which is a claim we are in no position to make.
+   */
+  const serviceLanes = services.lanes;
+  const hasServices = serviceLanes.length > 0 || services.isError;
+  /** The heading closes the lanes; the service rows follow it. */
+  const serviceHeadingRow = firstLaneRow + visibleLanes.length;
+  const firstServiceRow = serviceHeadingRow + 1;
+  /** Where the first service row starts, in track-relative pixels. */
+  const serviceTop = laneTop + visibleLanes.length * LANE_HEIGHT + SERVICE_HEADER_HEIGHT;
+
+  /**
+   * Platforms for the band's rows, so each service can carry its own icon.
+   *
+   * Read straight from the store rather than asked for by slug. `useProjects`
+   * would fetch any slug the store is missing, but the store already holds every
+   * project the reader can see — so the only slugs it could fetch are ones the
+   * band could not have returned a row for in the first place. A row whose project
+   * is somehow absent renders without an icon, which is the same silent omission
+   * the band's header already declines to claim completeness about.
+   */
+  const {projects} = useProjects();
+  const platformBySlug = useMemo(
+    () => new Map(projects.map(project => [project.slug, project.platform])),
+    [projects]
+  );
 
   /**
    * Categorical rather than semantic: a route is not good or bad, and borrowing
@@ -862,6 +966,52 @@ export function SessionScrubber({
   );
 
   /**
+   * The service bar under the pointer, if the pointer is in the band below the
+   * lanes.
+   *
+   * Separate from `hitAt` for the same reason `routeAt` is: mutually exclusive by
+   * geometry, and aiming at a different index. It shares `hitAt`'s tolerance
+   * though, and for the same reason — a server call can be narrower than the
+   * pointer is accurate, and a bar you cannot hit is a bar that is not really
+   * clickable.
+   */
+  const serviceAt = useCallback(
+    (clientX: number, clientY: number): ServiceHit | null => {
+      const rect = trackRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0 || !hasServices) {
+        return null;
+      }
+      const laneIndex = Math.floor((clientY - rect.top - serviceTop) / SERVICE_HEIGHT);
+      const lane = serviceLanes[laneIndex];
+      if (!lane || clientY < rect.top + serviceTop) {
+        return null;
+      }
+
+      const from = fromClientX(clientX - HIT_TOLERANCE_PX);
+      const to = fromClientX(clientX + HIT_TOLERANCE_PX);
+      // The shortest bar overlapping the pointer, matching how `hitAt` breaks a
+      // tie: a brief call nested inside a long one is the more specific answer to
+      // "what is this".
+      let found: ServiceActivity | undefined;
+      let foundDuration = Infinity;
+      lane.activity.forEach(activity => {
+        const {start, end} = activity.range;
+        if (start > to || end < from) {
+          return;
+        }
+        const duration = end - start;
+        if (duration < foundDuration) {
+          found = activity;
+          foundDuration = duration;
+        }
+      });
+
+      return found === undefined ? null : {activity: found, laneIndex};
+    },
+    [fromClientX, hasServices, serviceLanes, serviceTop]
+  );
+
+  /**
    * The breaks to draw, and where across the track they land.
    *
    * A break only exists while the stretch it stands for is actually compressed. Zoom
@@ -927,7 +1077,10 @@ export function SessionScrubber({
     if (event.button !== 0) {
       return;
     }
-    anchor.current = {clientX: event.clientX, timestamp: fromClientX(event.clientX)};
+    anchor.current = {
+      clientX: event.clientX,
+      timestamp: fromClientX(event.clientX),
+    };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
@@ -938,11 +1091,13 @@ export function SessionScrubber({
     if (!start || Math.abs(event.clientX - start.clientX) < MIN_DRAG_PX) {
       setHover(hitAt(event.clientX, event.clientY));
       setHoverRoute(routeAt(event.clientX, event.clientY));
+      setHoverService(serviceAt(event.clientX, event.clientY));
       return;
     }
     // Mid-drag the pointer is aiming at a range, not at an item or a route.
     setHover(null);
     setHoverRoute(null);
+    setHoverService(null);
     const at = fromClientX(event.clientX);
     setDraft({
       start: Math.min(start.timestamp, at),
@@ -1000,6 +1155,14 @@ export function SessionScrubber({
     const hit = hitAt(event.clientX, event.clientY);
     if (hit) {
       onSelectItem(hit.key);
+      return;
+    }
+
+    // A service bar opens the same panel a rail row does — it is a trace item like
+    // any other, reached from the other side of the request.
+    const service = serviceAt(event.clientX, event.clientY);
+    if (service) {
+      onSelectItem(service.activity.key);
     }
   };
 
@@ -1042,7 +1205,12 @@ export function SessionScrubber({
         explicitly positioned overlay below, which silently pushes the first
         lane's label onto a row of its own.
       */}
-      <Chart hasRoutes={hasRoutes} laneCount={visibleLanes.length}>
+      <Chart
+        hasRoutes={hasRoutes}
+        hasServices={hasServices}
+        laneCount={visibleLanes.length}
+        serviceCount={serviceLanes.length}
+      >
         <SessionHeader />
         <Overview
           bounds={bounds}
@@ -1081,7 +1249,9 @@ export function SessionScrubber({
                 style={{
                   left: `${ratio * 100}%`,
                   // The end labels tuck inside the track instead of hanging off it.
-                  transform: `translate(${ratio === 0 ? '0%' : ratio === 1 ? '-100%' : '-50%'}, -50%)`,
+                  transform: `translate(${
+                    ratio === 0 ? '0%' : ratio === 1 ? '-100%' : '-50%'
+                  }, -50%)`,
                 }}
               >
                 {/*
@@ -1196,12 +1366,58 @@ export function SessionScrubber({
           );
         })}
 
+        {hasServices && (
+          <Fragment>
+            <ServicesHeader
+              caveat={bandCaveat(services, skippedBandTraces)}
+              laneCount={serviceLanes.length}
+              row={serviceHeadingRow}
+              skipped={skippedBandTraces}
+            />
+            {/*
+              Before the rows rather than over them, so the service tracks — which
+              are transparent — paint on top of it and any bar that does overlap the
+              stretch still reads. The wash is what is behind those bars, not
+              something laid across them.
+            */}
+            {services.unloaded !== null && (
+              <UnloadedCell style={{gridRow: `${firstServiceRow} / -1`}}>
+                <UnloadedWindow
+                  style={{
+                    left: `${Math.max(0, toPercent(services.unloaded.start))}%`,
+                    width: `${
+                      Math.min(100, toPercent(services.unloaded.end)) -
+                      Math.max(0, toPercent(services.unloaded.start))
+                    }%`,
+                  }}
+                >
+                  <Text size="xs" variant="muted">
+                    {tn('%s trace not read', '%s traces not read', skippedBandTraces)}
+                  </Text>
+                </UnloadedWindow>
+              </UnloadedCell>
+            )}
+            {serviceLanes.map((lane, index) => (
+              <ServiceRow
+                key={lane.project}
+                lane={lane}
+                row={firstServiceRow + index}
+                toPercent={toPercent}
+                isLast={index === serviceLanes.length - 1}
+                hoveredKey={hoverService?.activity.key ?? null}
+                selectedKey={selectedKey}
+                platform={platformBySlug.get(lane.project)}
+              />
+            ))}
+          </Fragment>
+        )}
+
         <Track
           ref={trackRef}
           tabIndex={0}
           role="group"
           aria-label={t('Session time window')}
-          data-hit={hover || hoverRoute ? true : undefined}
+          data-hit={hover || hoverRoute || hoverService ? true : undefined}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -1209,6 +1425,7 @@ export function SessionScrubber({
             setHoverAt(null);
             setHover(null);
             setHoverRoute(null);
+            setHoverService(null);
           }}
           onKeyDown={handleKeyDown}
         >
@@ -1229,7 +1446,10 @@ export function SessionScrubber({
                 key={segment.start}
                 data-test-id="session-break"
                 title={t('%s with no telemetry. Click to expand.', duration)}
-                style={{left: `${from}%`, width: `${Math.min(100, right) - from}%`}}
+                style={{
+                  left: `${from}%`,
+                  width: `${Math.min(100, right) - from}%`,
+                }}
               >
                 <BreakLabel>{duration}</BreakLabel>
               </Break>
@@ -1275,7 +1495,9 @@ export function SessionScrubber({
                   ? describeRoute(hoverRoute, bounds.start)
                   : hover
                     ? describe(hover.event, hoverAt - bounds.start)
-                    : formatOffset(hoverAt - bounds.start)}
+                    : hoverService
+                      ? describe(hoverService.activity.event, hoverAt - bounds.start)
+                      : formatOffset(hoverAt - bounds.start)}
               </GuideLabel>
             </Guide>
           )}
@@ -1354,9 +1576,9 @@ function describeRoute(visit: RouteVisit, sessionStart: number): string {
       : visit.op === 'navigation.redirect'
         ? t('redirect')
         : t('navigation');
-  return `${visit.route} · ${formatDurationMs(visit.end - visit.start)} · ${formatOffset(
-    visit.start - sessionStart
-  )} ${arrival}`;
+  return `${visit.route} · ${formatDurationMs(
+    visit.end - visit.start
+  )} · ${formatOffset(visit.start - sessionStart)} ${arrival}`;
 }
 
 /**
@@ -1862,6 +2084,159 @@ const RouteBand = memo(function RouteBandImpl({
 });
 
 /**
+ * The heading that opens the services band.
+ *
+ * It exists to mark a change of axis. Everything above it is this session's own
+ * telemetry sorted by kind, and everything below it is other people's work sorted
+ * by who did it — a rule and a name are what stop the second thing from reading as
+ * five more of the first.
+ *
+ * The count is deliberately phrased as "reached" rather than as a total. Services
+ * the reader has no access to are dropped by the API without saying so, and a
+ * label claiming completeness would be the one part of this band we cannot stand
+ * behind.
+ */
+const ServicesHeader = memo(function ServicesHeaderImpl({
+  caveat,
+  laneCount,
+  row,
+  skipped,
+}: {
+  caveat: ReturnType<typeof bandCaveat>;
+  laneCount: number;
+  row: number;
+  skipped: number;
+}) {
+  return (
+    <Fragment>
+      <ServicesHeadingLabel style={{gridRow: String(row)}}>
+        <LaneIcon>
+          <IconStack size="xs" />
+        </LaneIcon>
+        <Text size="xs" variant="muted" uppercase>
+          {t('Services reached')}
+        </Text>
+      </ServicesHeadingLabel>
+      <ServicesHeadingTrack style={{gridRow: String(row)}}>
+        <Text size="xs" variant="muted">
+          {laneCount > 0 &&
+            tct('[count] from the traces this session started', {
+              count: tn('%s project', '%s projects', laneCount),
+            })}
+        </Text>
+        {caveat !== null && (
+          <InfoText
+            size="xs"
+            variant="warning"
+            title={
+              caveat === 'error'
+                ? t('Downstream services failed to load, so this band is missing.')
+                : caveat === 'truncated'
+                  ? t(
+                      'This band plots a full page of server spans, so a service may be missing from it.'
+                    )
+                  : tct(
+                      'Built from the first and last [limit] traces of this session. The [skipped] in between were never read, so the gap is unknown rather than empty.',
+                      {limit: BAND_TRACES_PER_END, skipped}
+                    )
+            }
+          >
+            {'*'}
+          </InfoText>
+        )}
+      </ServicesHeadingTrack>
+    </Fragment>
+  );
+});
+
+/**
+ * One service's row: its name, and every stretch it was busy.
+ *
+ * The bars carry no hue of their own, and that is the rule the whole band rests
+ * on. The four lanes above each own a colour, and a fifth would quietly promote
+ * downstream work to a fifth kind of telemetry — when what it actually is, is the
+ * same session seen from the other side. So a stretch is neutral when it worked
+ * and `danger` when it did not, which leaves red meaning exactly what it means
+ * everywhere else on this page.
+ *
+ * Red is per bar rather than per row, and the name never takes it. A service that
+ * answered ten calls and failed one is not a failing service, and a row painted
+ * red end to end would say it was — while hiding the one call that actually broke
+ * among nine that did not.
+ */
+const ServiceRow = memo(function ServiceRowImpl({
+  lane,
+  row,
+  toPercent,
+  isLast,
+  hoveredKey,
+  selectedKey,
+  platform,
+}: {
+  hoveredKey: string | null;
+  isLast: boolean;
+  lane: ServiceLane;
+  platform: PlatformKey | undefined;
+  row: number;
+  selectedKey: string | null;
+  toPercent: (at: number) => number;
+}) {
+  const theme = useTheme();
+  const healthy = graphicsColor('muted', theme);
+  const failed = graphicsColor('danger', theme);
+
+  return (
+    <Fragment>
+      <ServiceLabelCell data-last={isLast} style={{gridRow: String(row)}}>
+        {/*
+          The project's own icon, which is how a service is recognized everywhere
+          else in Sentry. It carries the thing the label cannot at a glance: that
+          `payments-api` is Go and `report-worker` is Python, so a band of four
+          rows reads as a stack rather than as four names.
+        */}
+        <ProjectAvatar project={{slug: lane.project, platform}} size={14} />
+        <Text size="sm" variant="muted" ellipsis>
+          {lane.project}
+        </Text>
+      </ServiceLabelCell>
+      <ServiceTrack
+        aria-hidden
+        data-last={isLast}
+        data-test-id="service-lane"
+        style={{gridRow: String(row)}}
+      >
+        {lane.activity.map(({key, range, hasFailure}) => {
+          const from = toPercent(range.start);
+          const to = toPercent(range.end);
+          if (to <= 0 || from >= 100) {
+            return null;
+          }
+          const left = Math.max(0, from);
+          // A floor rather than the true width: server work can be shorter than a
+          // pixel of session, and a bar rounded away would say the service was
+          // never called.
+          const widthPercent = Math.max(Math.min(100, to) - left, 0);
+          return (
+            <ServiceBar
+              key={key}
+              data-failed={hasFailure}
+              data-hover={hoveredKey === key ? true : undefined}
+              data-selected={selectedKey === key ? true : undefined}
+              data-test-id="service-bar"
+              style={{
+                left: `${left}%`,
+                width: `${widthPercent}%`,
+                background: hasFailure ? failed : healthy,
+              }}
+            />
+          );
+        })}
+      </ServiceTrack>
+    </Fragment>
+  );
+});
+
+/**
  * The whole session, whatever the lanes are showing of it.
  *
  * Zooming costs the one thing a fixed chart had for free: knowing where you are.
@@ -2337,7 +2712,11 @@ const LaneCanvas = memo(function LaneCanvasImpl({
       ref={canvasRef}
       aria-hidden
       data-test-id="session-lanes"
-      style={{gridRow: `${firstLaneRow} / -1`, height}}
+      // Spanning exactly the lanes, not `/ -1`. The services band adds rows after
+      // them, and a canvas running to the end of the grid would be laid over the
+      // band's own track — where it would paint nothing but would still sit on
+      // top of it.
+      style={{gridRow: `${firstLaneRow} / span ${lanes.length}`, height}}
     />
   );
 });
@@ -2433,12 +2812,18 @@ function densityMarks(
  * The frame. Column gaps would break the row rules, so the two columns are
  * divided by a border and padded from the inside instead.
  */
-const Chart = styled('div')<{hasRoutes: boolean; laneCount: number}>`
+const Chart = styled('div')<{
+  hasRoutes: boolean;
+  hasServices: boolean;
+  laneCount: number;
+  serviceCount: number;
+}>`
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   grid-template-rows:
     ${OVERVIEW_HEIGHT}px ${HEADER_HEIGHT}px
-    ${p => (p.hasRoutes ? `${ROUTE_HEIGHT}px ` : '')} ${p => laneRows(p.laneCount)};
+    ${p => (p.hasRoutes ? `${ROUTE_HEIGHT}px ` : '')} ${p => laneRows(p.laneCount)}
+    ${p => (p.hasServices ? serviceRows(p.serviceCount) : '')};
   /*
    * Bottom edge only. The chart used to be a bordered, rounded card floating
    * inside the panel, which drew a second frame a few pixels in from the frame
@@ -2560,6 +2945,141 @@ const RouteName = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+/**
+ * The services heading, across both columns.
+ *
+ * Its top rule is heavier than the ones between lanes on purpose: every other rule
+ * in this chart separates two rows of the same thing, and this one separates two
+ * different things. It is the only horizontal line here that means "what follows
+ * is not more of what came before".
+ */
+const ServicesHeadingLabel = styled('div')`
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: 0 ${p => p.theme.space.lg};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+`;
+
+const ServicesHeadingTrack = styled('div')`
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.lg};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+  overflow: hidden;
+  white-space: nowrap;
+`;
+
+/**
+ * A service's name. A div rather than a button, like the route band's label and
+ * unlike a lane's: there is nothing to toggle here. A lane can be switched off
+ * because it is one of the things the session *is*, while a service is context for
+ * all of them at once.
+ */
+const ServiceLabelCell = styled('div')`
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--scrubber-label-gap);
+  min-width: 0;
+  padding: 0 ${p => p.theme.space.lg};
+  border-right: 1px solid var(--scrubber-rule);
+  border-bottom: 1px solid var(--scrubber-rule);
+
+  &[data-last='true'] {
+    border-bottom: none;
+  }
+`;
+
+const ServiceTrack = styled('div')`
+  grid-column: 2;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--scrubber-rule);
+
+  &[data-last='true'] {
+    border-bottom: none;
+  }
+`;
+
+/**
+ * One stretch of server work.
+ *
+ * Squarer and flatter than anything in the lanes above. A lane's marks vary in
+ * height to say how much landed there; these vary only in width, because what a
+ * service row answers is when — not how much, which the row has no honest way to
+ * know from segment spans alone.
+ */
+const ServiceBar = styled('div')`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: ${SERVICE_BAR_HEIGHT}px;
+  min-width: ${SERVICE_BAR_MIN_PX}px;
+  border-radius: ${p => p.theme.radius['2xs']};
+  opacity: 0.75;
+
+  /*
+   * The same two rings the lanes above draw around a hovered and a selected item —
+   * neutral for "the pointer is here", accent for "this is the one the panel is
+   * about" — so a bar answers the pointer identically on both sides of the
+   * heading. An outline rather than a border because it is drawn outside the box:
+   * a border would resize a bar that may already be at its minimum width.
+   */
+  &[data-hover] {
+    opacity: 1;
+    outline: 1.5px solid ${p => p.theme.tokens.graphics.neutral.vibrant};
+    outline-offset: 1px;
+  }
+
+  &[data-selected] {
+    opacity: 1;
+    outline: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
+    outline-offset: 1px;
+  }
+`;
+
+/** The area the unloaded marker is positioned inside: every service row at once. */
+const UnloadedCell = styled('div')`
+  grid-column: 2;
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+`;
+
+/**
+ * The stretch of the session the band never asked about.
+ *
+ * Dashed edges and a flat wash rather than the diagonal hatch used elsewhere in
+ * this chart. That hatch already means "compressed quiet stretch" on the track
+ * above, and the two are near opposites: one is time we know nothing happened in,
+ * this is time we know nothing about. Reusing the mark would say both with one
+ * shape.
+ */
+const UnloadedWindow = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border-left: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-right: 1px dashed ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+  opacity: 0.85;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0 ${p => p.theme.space['2xs']};
 `;
 
 /**

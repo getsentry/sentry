@@ -55,6 +55,8 @@ export default function SessionDetailView() {
     isError,
     dateParams,
     routes,
+    services,
+    skippedBandTraces,
     sortDirection,
     toggleSort,
     truncatedByType,
@@ -103,6 +105,8 @@ export default function SessionDetailView() {
       eventsByType={eventsByType}
       idle={idle}
       routes={routes}
+      services={services}
+      skippedBandTraces={skippedBandTraces}
       truncatedByType={truncatedByType}
       selectedTypes={filters.types}
       onToggleType={toggleType}
