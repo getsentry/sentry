@@ -33,7 +33,14 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
-    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
+    onSubmit: async ({value}) => {
+      try {
+        await mutation.mutateAsync(schema.parse(value));
+      } catch {
+        // mutateAsync rejects even though the mutation exposes the error state.
+        // Swallow it here so it does not escape the form submit handler.
+      }
+    },
   });
 
   useEffect(() => {
