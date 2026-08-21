@@ -76,7 +76,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
-import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useSpansSaveQueryFrom} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
@@ -227,24 +227,20 @@ function SaveAsActionsComponent({
   queryParams: ReadableQueryParams;
 }) {
   const organization = useOrganization();
-  const currentPageFilters = usePageFilters();
-  const pageFilters = {...currentPageFilters, selection: draftPageFilters};
   const {projects} = useProjects();
   const [interval] = useChartInterval();
   const {addToDashboard} = useAddToDashboard({
     pageFilters: draftPageFilters,
     queryParams,
   });
-  const {saveQuery} = useSpansSaveQuery({pageFilters, queryParams});
+  const {saveQuery} = useSpansSaveQueryFrom(draftPageFilters, queryParams);
   const query = queryParams.query;
   const visualizes = queryParams.visualizes.filter(isVisualizeFunction);
   const visualizeYAxes = dedupeArray(visualizes.map(visualize => visualize.yAxis));
   const project =
     projects.length === 1
       ? projects[0]
-      : projects.find(
-          candidate => candidate.id === `${pageFilters.selection.projects[0]}`
-        );
+      : projects.find(candidate => candidate.id === `${draftPageFilters.projects[0]}`);
   const canCreateMonitors = !getMetricAlertsUpsellTooltip(organization);
   const canAddToDashboard = organization.features.includes('dashboards-edit');
 
@@ -285,7 +281,7 @@ function SaveAsActionsComponent({
                 to={getAlertsUrl({
                   project,
                   query,
-                  pageFilters: pageFilters.selection,
+                  pageFilters: draftPageFilters,
                   aggregate: yAxis,
                   organization,
                   dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,

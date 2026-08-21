@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import type {DateString} from 'sentry/types/core';
+import type {DateString, PageFilters} from 'sentry/types/core';
 import type {SavedQuery as OrganizationSavedQuery} from 'sentry/types/organization';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -68,16 +68,10 @@ type ExploreSavedQueryRequest = {
 
 function useSavedQueryForDataset(
   dataset: 'spans' | 'logs' | 'replays',
-  overrides?: {
-    pageFilters?: ReturnType<typeof usePageFilters>;
-    queryParams?: ReadableQueryParams;
-  }
+  pageFilters: PageFilters,
+  queryParams: ReadableQueryParams
 ) {
-  const currentPageFilters = usePageFilters();
   const [interval] = useChartInterval();
-  const currentQueryParams = useQueryParams();
-  const pageFilters = overrides?.pageFilters ?? currentPageFilters;
-  const queryParams = overrides?.queryParams ?? currentQueryParams;
   const {id, title} = queryParams;
 
   const [caseInsensitive] = useCaseInsensitivity();
@@ -189,19 +183,29 @@ export function useFromSavedQuery() {
   return {saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
 
-export function useSpansSaveQuery(overrides?: {
-  pageFilters?: ReturnType<typeof usePageFilters>;
-  queryParams?: ReadableQueryParams;
-}) {
-  return useSavedQueryForDataset('spans', overrides);
+export function useSpansSaveQuery() {
+  const {selection} = usePageFilters();
+  const queryParams = useQueryParams();
+  return useSavedQueryForDataset('spans', selection, queryParams);
+}
+
+export function useSpansSaveQueryFrom(
+  pageFilters: PageFilters,
+  queryParams: ReadableQueryParams
+) {
+  return useSavedQueryForDataset('spans', pageFilters, queryParams);
 }
 
 export function useLogsSaveQuery() {
-  return useSavedQueryForDataset('logs');
+  const {selection} = usePageFilters();
+  const queryParams = useQueryParams();
+  return useSavedQueryForDataset('logs', selection, queryParams);
 }
 
 export function useReplaySaveQuery() {
-  return useSavedQueryForDataset('replays');
+  const {selection} = usePageFilters();
+  const queryParams = useQueryParams();
+  return useSavedQueryForDataset('replays', selection, queryParams);
 }
 
 function convertQueryParamsToRequest({
@@ -214,13 +218,12 @@ function convertQueryParamsToRequest({
 }: {
   dataset: 'spans' | 'logs' | 'replays';
   interval: string;
-  pageFilters: ReturnType<typeof usePageFilters>;
+  pageFilters: PageFilters;
   queryParams: ReadableQueryParams;
   title: string;
   caseInsensitive?: '1';
 }): ExploreSavedQueryRequest {
-  const {selection} = pageFilters;
-  const {datetime, projects, environments} = selection;
+  const {datetime, projects, environments} = pageFilters;
   const {start, end, period} = datetime;
 
   const {sortBys, fields, search, mode, crossEvents} = queryParams;
