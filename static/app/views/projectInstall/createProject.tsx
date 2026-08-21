@@ -25,7 +25,6 @@ import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -70,7 +69,6 @@ type FormData = {
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
   alertRule?: Partial<AlertRuleOptions>;
-  notificationRule?: IssueAlertRule;
   team?: string;
   wasNameManuallyModified?: boolean;
 };
@@ -78,10 +76,8 @@ type CreatedProject = Pick<Project, 'name' | 'id'> & {
 function getMissingValues({
   team,
   projectName,
-  conditions,
   notificationProps,
   shouldCreateRule,
-  shouldCreateCustomRule,
   isOrgMemberWithNoAccess,
   platform,
 }: {
@@ -93,17 +89,10 @@ function getMissingValues({
   projectName: string;
   team: string | undefined;
   platform?: OnboardingSelectedSDK;
-} & Partial<
-  Pick<RequestDataFragment, 'conditions' | 'shouldCreateCustomRule' | 'shouldCreateRule'>
->) {
+} & Partial<Pick<RequestDataFragment, 'shouldCreateRule'>>) {
   return {
     isMissingTeam: !isOrgMemberWithNoAccess && !team,
     isMissingProjectName: projectName === '',
-    isMissingAlertThreshold:
-      shouldCreateCustomRule &&
-      (!conditions ||
-        conditions.length === 0 ||
-        !conditions.every(condition => !!condition.value)),
     isMissingMessagingIntegrationChannel:
       shouldCreateRule &&
       notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION) &&
@@ -114,7 +103,6 @@ function getMissingValues({
 
 function getSubmitTooltipText({
   isMissingProjectName,
-  isMissingAlertThreshold,
   isMissingMessagingIntegrationChannel,
   isMissingPlatform,
   formErrorCount,
@@ -126,9 +114,6 @@ function getSubmitTooltipText({
   }
   if (isMissingProjectName) {
     return t('Please provide a project slug');
-  }
-  if (isMissingAlertThreshold) {
-    return t('Please provide an alert threshold');
   }
   if (isMissingMessagingIntegrationChannel) {
     return t('Please provide an integration channel for alert notifications');
@@ -160,15 +145,7 @@ export function CreateProject() {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
 
-  const createNotificationActionParam = useMemo(() => {
-    return autoFill && createdProject?.notificationRule?.actions
-      ? {actions: createdProject.notificationRule.actions}
-      : undefined;
-  }, [autoFill, createdProject?.notificationRule?.actions]);
-
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
-    createNotificationActionParam
-  );
+  const {notificationProps} = useCreateNotificationAction();
 
   const validateChannel = useQuery({
     ...validateChannelQueryOptions({
@@ -237,9 +214,7 @@ export function CreateProject() {
     notificationProps,
     projectName: formData.projectName,
     team: formData.team,
-    shouldCreateCustomRule: alertRuleConfig.shouldCreateCustomRule,
     shouldCreateRule: alertRuleConfig.shouldCreateRule,
-    conditions: alertRuleConfig.conditions,
     platform: formData.platform,
   });
 
@@ -251,7 +226,6 @@ export function CreateProject() {
     missingValues.isMissingPlatform,
     missingValues.isMissingTeam,
     missingValues.isMissingProjectName,
-    missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
     isNotifyingViaIntegration && validateChannelError,
   ].filter(Boolean).length;
@@ -313,26 +287,18 @@ export function CreateProject() {
       });
 
       try {
-        const {project, notificationRule, ruleIds} =
-          await createProjectAndRules.mutateAsync({
-            projectName,
-            platform: selectedPlatform,
-            team,
-            alertRuleConfig,
-            createNotificationAction,
-          });
+        const {project} = await createProjectAndRules.mutateAsync({
+          projectName,
+          platform: selectedPlatform,
+          team,
+          alertRuleConfig,
+        });
 
         trackAnalytics('project_creation_page.created', {
           organization,
-          issue_alert: alertRuleConfig.shouldCreateCustomRule
-            ? 'Custom'
-            : alertRuleConfig.shouldCreateRule
-              ? 'Default'
-              : 'No Rule',
+          issue_alert: alertRuleConfig.shouldCreateRule ? 'Default' : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: ruleIds,
-          notification_rule_created: !!notificationRule,
           variant: 'legacy',
         });
 
@@ -348,7 +314,6 @@ export function CreateProject() {
           team: project.team?.slug,
           platform: selectedPlatform,
           alertRule,
-          notificationRule,
           wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
@@ -385,7 +350,6 @@ export function CreateProject() {
       setCreatedProject,
       navigate,
       createProjectAndRules,
-      createNotificationAction,
       alertRuleConfig,
       accessTeams,
     ]
@@ -525,9 +489,6 @@ export function CreateProject() {
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
           <IssueAlertOptions
             alertSetting={formData.alertRule?.alertSetting}
-            interval={formData.alertRule?.interval}
-            metric={formData.alertRule?.metric}
-            threshold={formData.alertRule?.threshold}
             notificationProps={notificationProps}
             onFieldChange={(field, value) => {
               updateFormData('alertRule', {
@@ -537,21 +498,11 @@ export function CreateProject() {
               if (field === 'alertSetting') {
                 const optionMap: Record<number, string> = {
                   [RuleAction.DEFAULT_ALERT]: 'high_priority',
-                  [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
                   [RuleAction.CREATE_ALERT_LATER]: 'create_later',
                 };
                 trackAnalytics('project_creation.project_details_alert_selected', {
                   organization,
-                  option: optionMap[value as number] ?? String(value),
-                  variant: 'legacy',
-                });
-              } else if (
-                (field === 'threshold' || field === 'metric' || field === 'interval') &&
-                formData.alertRule?.alertSetting === RuleAction.CUSTOMIZED_ALERTS
-              ) {
-                trackAnalytics('project_creation.alert_threshold_edited', {
-                  organization,
-                  field,
+                  option: optionMap[value] ?? String(value),
                   variant: 'legacy',
                 });
               }

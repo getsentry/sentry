@@ -7,10 +7,6 @@
 export type ProjectCreationVariant = 'scm' | 'legacy';
 
 export type ProjectCreationEventParameters = {
-  'project_creation.alert_threshold_edited': {
-    field: 'threshold' | 'metric' | 'interval';
-    variant?: ProjectCreationVariant;
-  };
   'project_creation.back_button_clicked': {
     variant?: ProjectCreationVariant;
   };
@@ -175,7 +171,6 @@ export const projectCreationEventMap: Record<
     'Project Creation: Data Removal Modal Rendered',
   'project_creation.data_removed': 'Project Creation: Data Removed',
   'project_creation.back_button_clicked': 'Project Creation: Back Button Clicked',
-  'project_creation.alert_threshold_edited': 'Project Creation: Alert Threshold Edited',
   'project_creation.notify_integration_toggled':
     'Project Creation: Notify Integration Toggled',
   'project_creation.notify_provider_changed': 'Project Creation: Notify Provider Changed',

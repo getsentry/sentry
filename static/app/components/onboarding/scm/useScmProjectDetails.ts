@@ -149,9 +149,8 @@ export function useScmProjectDetails({
   );
 
   // Provides the messaging-integration notification picker (notificationProps,
-  // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useScmNotificationAction(
+  // rendered in ScmAlertFrequencySection).
+  const {notificationProps} = useScmNotificationAction(
     restoredNotificationSelectionRef.current
   );
 
@@ -213,18 +212,11 @@ export function useScmProjectDetails({
       if (key === 'alertSetting') {
         const optionMap: Record<number, string> = {
           [RuleAction.DEFAULT_ALERT]: 'high_priority',
-          [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
           [RuleAction.CREATE_ALERT_LATER]: 'create_later',
         };
         trackAnalytics('project_creation.project_details_alert_selected', {
           organization,
-          option: optionMap[value as number] ?? String(value),
-          variant: 'scm',
-        });
-      } else if (key === 'threshold' || key === 'metric' || key === 'interval') {
-        trackAnalytics('project_creation.alert_threshold_edited', {
-          organization,
-          field: key,
+          option: optionMap[value] ?? String(value),
           variant: 'scm',
         });
       }
@@ -320,9 +312,6 @@ export function useScmProjectDetails({
     projectNameResolved === savedForm.projectName &&
     teamSlugResolved === savedForm.teamSlug &&
     alertRuleConfig.alertSetting === savedAlert?.alertSetting &&
-    alertRuleConfig.interval === savedAlert?.interval &&
-    alertRuleConfig.metric === savedAlert?.metric &&
-    alertRuleConfig.threshold === savedAlert?.threshold &&
     isEqual(
       hasNotificationAction ? buildNotificationSelection(notificationProps) : undefined,
       savedForm?.notificationSelection
@@ -350,13 +339,10 @@ export function useScmProjectDetails({
       notificationSelection,
     };
     // Mirror the legacy project_creation_page.created `issue_alert` breakdown
-    // (see createProject.tsx): Custom > Default > No Rule, derived from the
-    // configured alert setting.
+    // (see createProject.tsx): Default > No Rule, derived from the configured
+    // alert setting.
     let issueAlert: 'Custom' | 'Default' | 'No Rule';
     switch (alertRuleConfig.alertSetting) {
-      case RuleAction.CUSTOMIZED_ALERTS:
-        issueAlert = 'Custom';
-        break;
       case RuleAction.CREATE_ALERT_LATER:
         issueAlert = 'No Rule';
         break;
@@ -377,8 +363,6 @@ export function useScmProjectDetails({
           project_id: existingProject.id,
           platform: selectedPlatform.key,
           issue_alert: issueAlert,
-          notification_rule_created: false,
-          rule_ids: [],
           variant: 'scm',
         });
         onComplete({project: existingProject, projectDetailsForm: submittedForm});
@@ -391,7 +375,6 @@ export function useScmProjectDetails({
           platform: selectedPlatform,
           team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
           alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-          createNotificationAction,
         })
         .catch(error => {
           trackAnalytics('project_creation.project_details_create_failed', {
@@ -411,7 +394,7 @@ export function useScmProjectDetails({
       if (!creation) {
         return;
       }
-      const {project, ruleIds, notificationRule} = creation;
+      const {project} = creation;
 
       if (selectedRepository?.id) {
         await linkProjectToRepository({
@@ -426,8 +409,6 @@ export function useScmProjectDetails({
         project_id: project.id,
         platform: selectedPlatform.key,
         issue_alert: issueAlert,
-        notification_rule_created: !!notificationRule,
-        rule_ids: ruleIds,
         variant: 'scm',
       });
 
@@ -440,7 +421,6 @@ export function useScmProjectDetails({
     accessTeams,
     alertRuleConfig,
     canSubmit,
-    createNotificationAction,
     createProjectAndRules,
     existingProject,
     hasNotificationAction,

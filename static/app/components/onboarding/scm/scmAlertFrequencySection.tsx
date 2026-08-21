@@ -72,7 +72,6 @@ export function ScmAlertFrequencySection({
     // Summarize the current selection in the collapsed header.
     const alertSettingLabel: Record<RuleAction, [string, TagVariant]> = {
       [RuleAction.DEFAULT_ALERT]: [t('High priority issues'), 'info'],
-      [RuleAction.CUSTOMIZED_ALERTS]: [t('Custom'), 'info'],
       [RuleAction.CREATE_ALERT_LATER]: [t('Off'), 'muted'],
     };
 

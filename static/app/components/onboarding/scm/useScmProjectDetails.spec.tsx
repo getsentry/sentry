@@ -8,7 +8,6 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import * as analytics from 'sentry/utils/analytics';
 import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
@@ -103,18 +102,6 @@ describe('useScmProjectDetails', () => {
     TeamStore.reset();
     MockApiClient.clearMockResponses();
     jest.restoreAllMocks();
-  });
-
-  it('tracks threshold edits for SCM project creation', () => {
-    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const {result} = renderDetails();
-
-    act(() => result.current.onAlertChange('threshold', '10'));
-
-    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-      'project_creation.alert_threshold_edited',
-      expect.objectContaining({field: 'threshold', variant: 'scm'})
-    );
   });
 
   it('requires an integration channel when notifying via integration', () => {

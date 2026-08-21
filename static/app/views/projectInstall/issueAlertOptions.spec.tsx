@@ -42,30 +42,19 @@ describe('IssueAlertOptions', () => {
     jest.clearAllMocks();
   });
 
-  it('should pre-fill threshold value after a valid server response', () => {
+  it('should report the selected alert setting', async () => {
     render(getComponent());
-    expect(screen.getByTestId('range-input')).toHaveValue(10);
+    await userEvent.click(screen.getByLabelText(/I'll create my own alerts later/i));
+    expect(mockOnChange).toHaveBeenCalledWith(
+      'alertSetting',
+      RuleAction.CREATE_ALERT_LATER
+    );
   });
 
-  it('should provide fallthroughType with issue action', async () => {
-    render(getComponent());
-    await userEvent.click(screen.getByLabelText(/When there are more than/i));
-    expect(mockOnChange).toHaveBeenCalledWith('alertSetting', 1);
-  });
-
-  it('should render alert configuration if `Default` or `Custom` alerts are selected', async () => {
+  it('should render alert configuration if `Default` alerts are selected', () => {
     render(getComponent());
 
     // Default will be RuleAction.DEFAULT_ALERT
-    expect(screen.getByRole('checkbox', {name: 'Notify via email'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('checkbox', {
-        name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
-      })
-    ).toBeInTheDocument();
-
-    // Select RuleAction.CUSTOMIZED_ALERTS
-    await userEvent.click(screen.getByLabelText(/When there are more than/i));
     expect(screen.getByRole('checkbox', {name: 'Notify via email'})).toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', {
