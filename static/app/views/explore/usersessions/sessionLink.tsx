@@ -5,7 +5,10 @@ import type {Organization} from 'sentry/types/organization';
 import {USER_SESSIONS_SUB_PATH} from './settings';
 
 /** The session detail page for a given `session.id`. */
-export function getSessionDetailUrl(organization: Organization, sessionId: string): string {
+export function getSessionDetailUrl(
+  organization: Organization,
+  sessionId: string
+): string {
   return `/organizations/${organization.slug}/explore/${USER_SESSIONS_SUB_PATH}/${sessionId}/`;
 }
 

@@ -1,5 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import {Fragment, memo, useCallback, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
@@ -10,6 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
+import {scrollEventContextRowIntoView} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -135,6 +136,7 @@ type LogsRowProps = {
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
+  elementId?: string;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -229,6 +231,7 @@ function isInsideButton(element: Element | null): boolean {
 export const LogRowContent = memo(function LogRowContentImpl({
   dataRow,
   embedded = false,
+  elementId,
   embeddedOptions,
   highlightTerms,
   meta,
@@ -266,6 +269,13 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const expansionKey = expansionKeyProp ?? rowId;
 
   const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(isPinned);
+  const rowRef = useRef<HTMLTableRowElement>(null);
+
+  useEffect(() => {
+    if (isHighlighted) {
+      scrollEventContextRowIntoView(rowRef.current);
+    }
+  }, [isHighlighted]);
 
   // This only applies in embedded views where clicking doesn't expand row details.
   function onClick(event: SyntheticEvent) {
@@ -459,6 +469,8 @@ export const LogRowContent = memo(function LogRowContentImpl({
   return (
     <Fragment>
       <LogTableRow
+        ref={rowRef}
+        id={elementId}
         data-test-id="log-table-row"
         data-row-hover-linked={isHoverLinked}
         data-row-linked={isHighlighted}

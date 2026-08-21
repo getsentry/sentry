@@ -46,6 +46,7 @@ export const enum SectionKey {
   CSP = 'csp',
   TEMPLATE = 'template',
 
+  EVENT_CONTEXT_TIMELINE = 'event-context-timeline',
   BREADCRUMBS = 'breadcrumbs',
   LOGS = 'logs',
   METRICS = 'metrics',

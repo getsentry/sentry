@@ -383,6 +383,28 @@ describe('FoldSection', () => {
     });
   });
 
+  it('expands when in-page navigation changes the section hash', async () => {
+    const {router} = render(
+      <FoldSection
+        title="Test Section"
+        sectionKey={SectionKey.HIGHLIGHTS}
+        initialCollapse
+        disableCollapsePersistence
+      >
+        <div>Section content</div>
+      </FoldSection>
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Collapse Test Section Section'})
+    );
+    expect(screen.queryByText('Section content')).not.toBeInTheDocument();
+
+    router.navigate({...router.location, hash: '#highlights'});
+
+    expect(await screen.findByText('Section content')).toBeInTheDocument();
+  });
+
   describe('Context integration', () => {
     it('updates context on mount', () => {
       render(

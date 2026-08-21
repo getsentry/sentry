@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -12,8 +13,13 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {
+  clearEventContextFocus,
+  focusEventContextRows,
+} from 'sentry/components/events/eventContextTimeline/eventContextFocus';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {IssueType} from 'sentry/types/group';
+import {SectionKey} from 'sentry/views/issueDetails/context';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -123,6 +129,8 @@ describe('OurlogsSection', () => {
   let mockRequest: jest.Mock;
   beforeEach(() => {
     logId = '11111111111111111111111111111111';
+    // The timeline focus is a module store, so it outlives a render.
+    clearEventContextFocus();
 
     ProjectsStore.loadInitialData([project]);
 
@@ -207,6 +215,31 @@ describe('OurlogsSection', () => {
     await waitFor(() => {
       expect(screen.queryByText(/Logs/)).not.toBeInTheDocument();
     });
+  });
+
+  it('highlights a log targeted by the event context timeline', async () => {
+    Element.prototype.scrollIntoView = jest.fn();
+    render(<OurlogsSection event={event} project={project} group={group} />, {
+      organization,
+    });
+    const row = await screen.findByTestId('log-table-row');
+
+    act(() => focusEventContextRows(SectionKey.LOGS, [logId]));
+
+    expect(row).toHaveAttribute('id', `event-context-log-${logId}`);
+    expect(row).toHaveAttribute('data-row-linked', 'true');
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('ignores a focus aimed at a different section', async () => {
+    render(<OurlogsSection event={event} project={project} group={group} />, {
+      organization,
+    });
+    const row = await screen.findByTestId('log-table-row');
+
+    act(() => focusEventContextRows(SectionKey.METRICS, [logId]));
+
+    expect(row).not.toHaveAttribute('data-row-linked', 'true');
   });
 
   it('renders logs', async () => {

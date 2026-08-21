@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {useEventContextFocus} from 'sentry/components/events/eventContextTimeline/eventContextFocus';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
@@ -29,6 +30,7 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {mapMetricUnitToFieldType} from 'sentry/views/explore/metrics/utils';
+import {SectionKey} from 'sentry/views/issueDetails/context';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
@@ -49,6 +51,7 @@ export function MetricsSamplesTable({
   overrideTableData,
 }: MetricsSamplesTableProps) {
   const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
+  const {ids: focusedMetricIds} = useEventContextFocus(SectionKey.METRICS);
   const columns = isEmbedded
     ? TraceSamplesTableEmbeddedColumns
     : TraceSamplesTableColumns;
@@ -102,6 +105,9 @@ export function MetricsSamplesTable({
               columns={columns}
               meta={metaWithValueUnit}
               source={source}
+              isHighlighted={focusedMetricIds.includes(
+                String(row[TraceMetricKnownFieldKey.ID] ?? '')
+              )}
             />
           ))
         ) : isFetching ? (
