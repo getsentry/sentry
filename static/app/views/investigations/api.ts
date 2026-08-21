@@ -15,6 +15,7 @@ import type {
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationListItem,
+  InvestigationTitleGeneration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
@@ -74,6 +75,22 @@ export function investigationExecutionDetailQueryOptions({
         investigationId,
         blockId,
         executionId,
+      },
+      staleTime: 0,
+    }
+  );
+}
+
+export function investigationTitleGenerationQueryOptions(
+  organizationSlug: string,
+  investigationId: string
+) {
+  return apiOptions.as<InvestigationTitleGeneration>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/title-generation/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
       },
       staleTime: 0,
     }
@@ -154,7 +171,8 @@ type MutationOptions<TData, TVariables> = Omit<
 function useInvestigationMutation<TData, TVariables>(
   organizationSlug: string,
   mutationFn: (variables: TVariables) => Promise<TData>,
-  options?: MutationOptions<TData, TVariables>
+  options?: MutationOptions<TData, TVariables>,
+  {invalidateCandidates = false}: {invalidateCandidates?: boolean} = {}
 ) {
   const queryClient = useQueryClient();
 
@@ -162,9 +180,16 @@ function useInvestigationMutation<TData, TVariables>(
     ...options,
     mutationFn,
     onSuccess: async (data, variables, onMutateResult, context) => {
-      await queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
+        }),
+        invalidateCandidates
+          ? queryClient.invalidateQueries({
+              queryKey: ['investigation-candidates', organizationSlug],
+            })
+          : Promise.resolve(),
+      ]);
       await options?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
@@ -202,7 +227,8 @@ export function useLaunchInvestigationMutation(
           source,
         },
       }),
-    options
+    options,
+    {invalidateCandidates: true}
   );
 }
 
@@ -694,6 +720,7 @@ export function useDeleteInvestigationMutation(
         method: 'DELETE',
         data: {investigationVersion: investigation.version},
       }),
-    options
+    options,
+    {invalidateCandidates: true}
   );
 }

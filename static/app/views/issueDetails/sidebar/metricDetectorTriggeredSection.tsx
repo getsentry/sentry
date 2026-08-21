@@ -59,6 +59,7 @@ import {
   investigationDetailQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
+import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -561,23 +562,6 @@ const GroupListWrapper = styled('div')`
   margin-top: ${p => p.theme.space.md};
 `;
 
-const InvestigationSummaryCard = styled(Stack)`
-  position: relative;
-  overflow: hidden;
-  padding: 14px 16px;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 8px;
-  box-shadow: ${p => p.theme.shadow.low};
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: ${p => p.theme.tokens.background.accent.vibrant};
-  }
-`;
-
 function SeerInvestigationSection({
   eventId,
   groupId,
@@ -620,6 +604,27 @@ function SeerInvestigationSection({
     enabled: source !== null,
   });
   const candidate = data?.items[0];
+  const existingInvestigationId =
+    candidate?.status === 'view' ? candidate.investigationId : null;
+  const {data: existingInvestigation, isPending: isExistingInvestigationPending} =
+    useQuery({
+      ...investigationDetailQueryOptions(
+        organization.slug,
+        existingInvestigationId ?? 'disabled'
+      ),
+      enabled: existingInvestigationId !== null,
+      refetchInterval: query => {
+        const investigation = query.state.data?.json;
+        if (
+          !investigation ||
+          (investigation.summary && investigation.summaryDescription) ||
+          investigation.titleGeneration?.status === 'failed'
+        ) {
+          return false;
+        }
+        return 2000;
+      },
+    });
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
       queryClient.setQueryData(candidateOptions.queryKey, {
@@ -657,16 +662,24 @@ function SeerInvestigationSection({
       titleLabel={t('Seer Investigation')}
       sectionKey="seer_investigation"
     >
-      {isOpenPeriodPending || (source !== null && isCandidatePending) ? (
+      {isOpenPeriodPending ||
+      (source !== null && isCandidatePending) ||
+      (existingInvestigationId !== null && isExistingInvestigationPending) ? (
         <Placeholder height="40px" width="160px" />
       ) : (
         <Stack gap="md">
-          <InvestigationSummaryCard gap="xs">
-            <Text size="lg" bold>
-              {t('Different investigation title')}
+          {existingInvestigation?.summary && existingInvestigation.summaryDescription ? (
+            <InvestigationSummaryCard
+              summary={existingInvestigation.summary}
+              summaryDescription={existingInvestigation.summaryDescription}
+            />
+          ) : investigationPath ? null : (
+            <Text size="md" variant="muted">
+              {t(
+                'Launch a Seer investigation to understand what happened, identify what drove the breach, and get evidence-backed next steps.'
+              )}
             </Text>
-            <Text size="md">{t('Different investigation summary text')}</Text>
-          </InvestigationSummaryCard>
+          )}
           <Flex>
             {investigationPath ? (
               <LinkButton size="md" variant="primary" to={investigationPath}>

@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -31,6 +31,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   investigationDetailQueryOptions,
+  investigationListQueryOptions,
+  investigationTitleGenerationQueryOptions,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -38,6 +40,7 @@ import {
 } from 'sentry/views/investigations/api';
 import {InvestigationCell} from 'sentry/views/investigations/detail/cell';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
   InvestigationBlockKind,
   InvestigationDetail,
@@ -81,7 +84,9 @@ function InvestigationBootstrapPage({investigationId}: {investigationId: string}
   } = useQuery({
     ...detailOptions,
     refetchInterval: query =>
-      query.state.data?.json.blocks?.some(block => isExecutionActive(block.outputStatus))
+      query.state.data?.json.blocks?.some(block =>
+        isExecutionActive(block.outputStatus)
+      ) || isTitleGenerationActive(query.state.data?.json.titleGeneration?.status)
         ? 2000
         : false,
   });
@@ -108,12 +113,71 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
-  const [draftTitle, setDraftTitle] = useState(investigation.title);
+  const [draftTitle, setDraftTitle] = useState<string | null>(null);
+  const displayedTitle = draftTitle ?? investigation.title;
   const persistedTitle = useRef(investigation.title);
+  const titleEditedByUser = useRef(false);
+  const titleGenerationSettled = useRef(false);
   const detailOptions = investigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );
+  const titleGenerationQuery = useQuery({
+    ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
+    enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
+    refetchInterval: query =>
+      isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
+  });
+
+  useEffect(() => {
+    const generatedTitle = titleGenerationQuery.data?.preview;
+    if (!generatedTitle || titleEditedByUser.current) {
+      return;
+    }
+    setDraftTitle(generatedTitle);
+    updateInvestigationCache(
+      queryClient,
+      organization.slug,
+      investigation.id,
+      current => ({...current, title: generatedTitle})
+    );
+    if (titleGenerationQuery.data?.status === 'completed') {
+      persistedTitle.current = generatedTitle;
+    }
+  }, [
+    investigation.id,
+    organization.slug,
+    queryClient,
+    titleGenerationQuery.data?.preview,
+    titleGenerationQuery.data?.status,
+  ]);
+
+  useEffect(() => {
+    const status = titleGenerationQuery.data?.status;
+    if (isTitleGenerationActive(status)) {
+      titleGenerationSettled.current = false;
+      return;
+    }
+    if (
+      (status === 'completed' || status === 'failed') &&
+      !titleGenerationSettled.current
+    ) {
+      titleGenerationSettled.current = true;
+      void Promise.all([
+        queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
+        queryClient.invalidateQueries({
+          queryKey: investigationListQueryOptions({
+            organizationSlug: organization.slug,
+          }).queryKey,
+        }),
+      ]);
+    }
+  }, [
+    detailOptions.queryKey,
+    organization.slug,
+    queryClient,
+    titleGenerationQuery.data?.status,
+  ]);
 
   const renameMutation = useRenameInvestigationMutation(
     organization.slug,
@@ -160,6 +224,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 
   function handleTitleChange(nextTitle: string) {
+    titleEditedByUser.current = true;
     setDraftTitle(nextTitle);
     updateInvestigationCache(
       queryClient,
@@ -171,9 +236,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   function handleTitleBlur() {
-    const title = draftTitle.trim();
+    const title = displayedTitle.trim();
     if (title) {
-      if (title !== draftTitle) {
+      if (title !== displayedTitle) {
         handleTitleChange(title);
       }
       return;
@@ -182,6 +247,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   const blocks = investigation.blocks ?? [];
+  const failedBlock = blocks.find(block => block.currentExecution?.status === 'failed');
+  const hasFailureCancellation = blocks.some(
+    block =>
+      block.currentExecution?.status === 'cancelled' &&
+      block.currentExecution.error?.code === 'investigation_execution_failed'
+  );
+  const investigationExecutionFailed = Boolean(failedBlock || hasFailureCancellation);
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
 
@@ -198,7 +270,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   return (
-    <SentryDocumentTitle title={draftTitle} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
         <Layout.Title>
           <HeaderBreadcrumbs
@@ -215,7 +287,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               {t('Investigations')}
             </HeaderBreadcrumbLink>
             <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{draftTitle}</HeaderInvestigationTitle>
+            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
             <DropdownMenu
               items={[
                 {
@@ -265,7 +337,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             <Stack gap="xs" minWidth={0}>
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
-                value={draftTitle}
+                value={displayedTitle}
                 onChange={event => handleTitleChange(event.target.value)}
                 onBlur={handleTitleBlur}
                 maxLength={200}
@@ -292,6 +364,27 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
+              {investigationExecutionFailed ? (
+                <InvestigationFailureAlert data-test-id="investigation-execution-failed">
+                  <Alert variant="danger">
+                    <strong>
+                      {failedBlock
+                        ? t('%s failed.', failedBlock.title || t('A cell'))
+                        : t('The investigation failed.')}
+                    </strong>{' '}
+                    {failedBlock?.currentExecution?.error?.message ||
+                      t('The agent run failed.')}{' '}
+                    {t(
+                      'The investigation was stopped and remaining cells were cancelled.'
+                    )}
+                  </Alert>
+                </InvestigationFailureAlert>
+              ) : null}
+              <NotebookSummaryCard
+                summary={investigation.summary}
+                summaryDescription={investigation.summaryDescription}
+              />
+
               {summaryBlock ? (
                 <InvestigationCell
                   block={summaryBlock}
@@ -418,6 +511,10 @@ function isExecutionActive(status: string) {
   return ['pending', 'running', 'awaiting_input', 'stopping'].includes(status);
 }
 
+function isTitleGenerationActive(status: string | null | undefined) {
+  return status === 'pending' || status === 'running';
+}
+
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
   return normalizeUrl(
     `/organizations/${organizationSlug}/seer/investigation/${investigationId}/`
@@ -455,6 +552,14 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
 const InvestigationCanvas = styled(Stack)`
   width: min(100%, 884px);
   margin: 0 auto;
+`;
+
+const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const InvestigationFailureAlert = styled(Alert.Container)`
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`
