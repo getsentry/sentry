@@ -134,7 +134,9 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Conduit-Token, X-Conduit-Channel-Id, X-Conduit-Url, "
+            "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert "Access-Control-Allow-Credentials" not in response
@@ -161,7 +163,9 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Conduit-Token, X-Conduit-Channel-Id, X-Conduit-Url, "
+            "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
@@ -188,7 +192,9 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Conduit-Token, X-Conduit-Channel-Id, X-Conduit-Url, "
+            "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
@@ -216,7 +222,9 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Conduit-Token, X-Conduit-Channel-Id, X-Conduit-Url, "
+            "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
@@ -288,7 +296,9 @@ class EndpointTest(APITestCase):
             "sentry-trace, baggage, X-CSRFToken"
         )
         assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "X-Conduit-Token, X-Conduit-Channel-Id, X-Conduit-Url, "
+            "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 

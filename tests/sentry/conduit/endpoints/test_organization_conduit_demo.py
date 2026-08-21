@@ -35,11 +35,9 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
             status_code=201,
         )
 
-        assert "conduit" in response.data
-        assert "token" in response.data["conduit"]
-        assert "channel_id" in response.data["conduit"]
-        assert "url" in response.data["conduit"]
-        assert str(self.organization.id) in response.data["conduit"]["url"]
+        assert response["X-Conduit-Token"]
+        assert response["X-Conduit-Channel-Id"]
+        assert str(self.organization.id) in response["X-Conduit-Url"]
 
     @override_settings(
         CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY_B64,
@@ -65,9 +63,8 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
             status_code=201,
         )
 
-        assert "conduit" in response.data
-        assert "token" in response.data["conduit"]
-        assert "channel_id" in response.data["conduit"]
+        assert response["X-Conduit-Token"]
+        assert response["X-Conduit-Channel-Id"]
 
     @with_feature("organizations:conduit-demo")
     def test_post_without_org_access(self) -> None:
@@ -112,8 +109,8 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
             status_code=201,
         )
 
-        assert response1.data["conduit"]["token"] != response2.data["conduit"]["token"]
-        assert response1.data["conduit"]["channel_id"] != response2.data["conduit"]["channel_id"]
+        assert response1["X-Conduit-Token"] != response2["X-Conduit-Token"]
+        assert response1["X-Conduit-Channel-Id"] != response2["X-Conduit-Channel-Id"]
 
     @override_settings(
         CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY_B64,
