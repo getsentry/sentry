@@ -243,7 +243,8 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                 return self.paginate(request=request, paginator=ChainPaginator([]))
             # Restrict the metrics query to names that have context, so count,
             # sort, and pagination all operate on the filtered set.
-            name_filter = build_escaped_term_filter(METRIC_NAME_ALIAS, context_names)
+            with handle_query_errors():
+                name_filter = build_escaped_term_filter(METRIC_NAME_ALIAS, context_names)
             query_string = f"{query_string} {name_filter}".strip()
 
         # Resolve the requested sort to a query orderby, always appending the

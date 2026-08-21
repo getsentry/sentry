@@ -158,19 +158,19 @@ def _get_errors_counts_timeseries_eap(
         )
         return []
 
-    query_parts: list[str] = []
-
-    release_filter = build_escaped_term_filter("release", release_value_list)
-    if release_filter:
-        query_parts.append(release_filter)
-
-    environment_filter = build_escaped_term_filter("environment", environments_list or [])
-    if environment_filter:
-        query_parts.append(environment_filter)
-
-    query_string = " ".join(query_parts)
-
     try:
+        query_parts: list[str] = []
+
+        release_filter = build_escaped_term_filter("release", release_value_list)
+        if release_filter:
+            query_parts.append(release_filter)
+
+        environment_filter = build_escaped_term_filter("environment", environments_list or [])
+        if environment_filter:
+            query_parts.append(environment_filter)
+
+        query_string = " ".join(query_parts)
+
         timeseries_results = Occurrences.run_grouped_timeseries_query(
             params=snuba_params,
             query_string=query_string,
