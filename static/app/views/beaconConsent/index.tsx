@@ -61,6 +61,7 @@ function BeaconConsent({onSubmitSuccess}: Props) {
             'We have made some updates to our self-hosted beacon broadcast system, and just need to get a quick answer from you.'
           )}
         </Text>
+        <Stack.Separator />
         <form.AppForm form={form}>
           <Stack gap="xl">
             <form.AppField name="beacon.record_cpu_ram_usage">
