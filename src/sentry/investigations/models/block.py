@@ -80,6 +80,19 @@ class InvestigationBlock(DefaultFieldsModel):
     # from a current one before a replacement execution finishes.
     stale_at = models.DateTimeField(null=True)
 
+    # Agentic reports use stable keys and revision fencing so late Seer writes
+    # cannot mutate a newer report. These remain empty for template and manual
+    # notebook blocks.
+    orchestration_run = FlexibleForeignKey(
+        "investigations.InvestigationOrchestrationRun",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="report_blocks",
+    )
+    report_revision = BoundedPositiveIntegerField(null=True)
+    stable_agent_key = models.CharField(max_length=128, null=True)
+    producing_seer_run_id = models.BigIntegerField(null=True)
+
     # Blocks are hidden rather than hard-deleted so execution history remains
     # inspectable and stale references retain a stable target.
     deleted_at = models.DateTimeField(null=True)
@@ -90,6 +103,14 @@ class InvestigationBlock(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["investigation", "deleted_at", "position"]),
             models.Index(fields=["investigation", "-date_updated"]),
+            models.Index(fields=["orchestration_run", "report_revision", "stable_agent_key"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["orchestration_run", "report_revision", "stable_agent_key"],
+                condition=Q(stable_agent_key__isnull=False),
+                name="invest_unique_report_block_key",
+            )
         ]
 
     __repr__ = sane_repr("investigation_id", "kind", "position")
