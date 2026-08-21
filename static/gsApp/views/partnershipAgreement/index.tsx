@@ -5,6 +5,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -25,6 +26,9 @@ export default function PartnershipAgreement({
         data,
       }),
     onSuccess: onSubmitSuccess,
+    onError: () => {
+      addErrorMessage(t('Unable to accept the partnership agreement.'));
+    },
   });
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -33,7 +37,7 @@ export default function PartnershipAgreement({
       try {
         await mutation.mutateAsync(value);
       } catch {
-        // Prevent an unhandled rejection; the API client handles the request error.
+        // Prevent an unhandled rejection; the mutation displays the request error.
       }
     },
   });
