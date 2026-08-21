@@ -10,6 +10,7 @@ from sentry.issues.action_log.types import (
     ActionSource,
     GroupActionActor,
     SeerIterationStartedAction,
+    SeerPRCreatedAction,
     TriggerAutofixAction,
 )
 from sentry.models.activity import Activity
@@ -619,7 +620,20 @@ class SeerOperatorTest(TestCase):
     def test_create_seer_activity_all_mapped_event_types(self, _mock_has_access):
         with capture_action_log() as action_log:
             for seer_event, expected_activity_type in SEER_EVENT_TO_ACTIVITY_TYPE.items():
-                event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+                event_payload: dict[str, Any] = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+                if seer_event == SentryAppEventType.SEER_PR_CREATED:
+                    # PR-created activities require at least one created PR.
+                    event_payload["pull_requests"] = [
+                        {
+                            "repo_name": "owner/repo",
+                            "provider": "github",
+                            "status": "completed",
+                            "pull_request": {
+                                "pr_number": 42,
+                                "pr_url": "https://github.com/owner/repo/pull/42",
+                            },
+                        }
+                    ]
                 process_autofix_updates(
                     event_type=seer_event,
                     event_payload=event_payload,
@@ -716,7 +730,48 @@ class SeerOperatorTest(TestCase):
                     },
                     "repo_name": "owner/repo",
                     "provider": "github",
+                    "status": "completed",
+                    "error": None,
                 }
+            ],
+        }
+
+        with capture_action_log() as action_log:
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
+        assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
+        action_log.assert_logged(SeerPRCreatedAction, group_id=self.group.id)
+        assert (
+            activity.data["pull_requests"][0]["pull_request"]["pr_url"]
+            == "https://github.com/owner/repo/pull/42"
+        )
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_pr_created_filters_failed_entries(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "pull_requests": [
+                {
+                    "pull_request": {
+                        "pr_number": 42,
+                        "pr_url": "https://github.com/owner/repo/pull/42",
+                    },
+                    "repo_name": "owner/repo",
+                    "provider": "github",
+                    "status": "completed",
+                },
+                {
+                    "pull_request": None,
+                    "repo_name": "owner/failed-repo",
+                    "provider": "unknown",
+                    "status": "error",
+                },
             ],
         }
 
@@ -727,11 +782,51 @@ class SeerOperatorTest(TestCase):
         )
 
         activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
-        assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
-        assert (
-            activity.data["pull_requests"][0]["pull_request"]["pr_url"]
-            == "https://github.com/owner/repo/pull/42"
+        assert [pr["repo_name"] for pr in activity.data["pull_requests"]] == ["owner/repo"]
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_pr_created_null_pull_requests(self, _mock_has_access):
+        # seer_rpc.send_seer_webhook forwards Seer's payload verbatim, including explicit nulls.
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "pull_requests": None,
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_PR_CREATED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
         )
+
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SEER_PR_CREATED.value
+        ).exists()
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_pr_created_no_activity_when_all_failed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "pull_requests": [
+                {
+                    "pull_request": None,
+                    "repo_name": "owner/failed-repo",
+                    "provider": "unknown",
+                    "status": "error",
+                }
+            ],
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_PR_CREATED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SEER_PR_CREATED.value
+        ).exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_iteration_completed(self, _mock_has_access):
