@@ -96,6 +96,9 @@ class ProcessDetectorsResult:
             "error": self.evaluation_error.msg if self.evaluation_error else None,
         }
 
+    def to_artifact(self) -> dict[str, object]:
+        return self.artifact_data
+
     def evaluation_artifacts(self) -> list[dict[str, object]]:
         if not self.evaluations:
             return [self.to_artifact()]

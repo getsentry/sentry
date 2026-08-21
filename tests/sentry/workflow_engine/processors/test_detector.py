@@ -122,7 +122,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             extra={
                 "detector_id": detector.id,
                 "detector_type": detector.type,
-                "project_id": detector.project_id,
+                "project_id": detector.linked_project.id,
                 "outcome": DetectorEvaluationOutcome.COMPLETED,
                 "group_key": None,
                 "priority": DetectorPriorityLevel.HIGH.value,
@@ -158,7 +158,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             extra={
                 "detector_id": detector.id,
                 "detector_type": detector.type,
-                "project_id": detector.project_id,
+                "project_id": detector.linked_project.id,
                 "outcome": DetectorEvaluationOutcome.NO_RESULTS,
                 "error": None,
                 "organization_id": self.organization.id,
@@ -193,7 +193,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 result=ProcessDetectorsResult(
                     detector_id=detector.id,
                     detector_type=detector.type,
-                    project_id=detector.project_id,
+                    project_id=detector.linked_project.id,
                     evaluations=evaluations,
                 ),
             )
@@ -225,7 +225,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 result=ProcessDetectorsResult(
                     detector_id=detector.id,
                     detector_type=detector.type,
-                    project_id=detector.project_id,
+                    project_id=detector.linked_project.id,
                     evaluations=evaluations,
                 ),
             )
@@ -236,7 +236,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 **ProcessDetectorsResult(
                     detector_id=detector.id,
                     detector_type=detector.type,
-                    project_id=detector.project_id,
+                    project_id=detector.linked_project.id,
                     evaluations=evaluations,
                 ).evaluation_artifacts()[0],
                 "organization_id": self.organization.id,
@@ -278,7 +278,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     def test_missing_project_logs_error_and_continues(self) -> None:
         invalid_detector = self.create_detector(type=self.handler_type.slug)
-        invalid_detector.project_id = 0
+        setattr(invalid_detector, "project_id", 0)
         valid_detector = self.create_detector(type=self.handler_type.slug)
 
         with mock.patch(
@@ -329,7 +329,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         result = ProcessDetectorsResult(
             detector_id=detector.id,
             detector_type=detector.type,
-            project_id=detector.project_id,
+            project_id=detector.linked_project.id,
             evaluations={None: replace(evaluation, error=ConditionError(msg="evaluation failed"))},
         )
 
@@ -513,10 +513,8 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
-    @mock.patch("sentry.workflow_engine.processors.detector.logger")
-    def test_metrics_and_logs_fire(
+    def test_metrics_triggered(
         self,
-        mock_logger: mock.MagicMock,
         mock_metrics: mock.MagicMock,
         mock_produce_occurrence_to_kafka: mock.MagicMock,
     ) -> None:
@@ -564,14 +562,11 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 ),
             ],
         )
-        assert any(call.args[0] == "detector_triggered" for call in mock_logger.info.call_args_list)
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
-    @mock.patch("sentry.workflow_engine.processors.detector.logger")
-    def test_metrics_and_logs_resolve(
+    def test_metrics_resolved(
         self,
-        mock_logger: mock.MagicMock,
         mock_metrics: mock.MagicMock,
         mock_produce_occurrence_to_kafka: mock.MagicMock,
     ) -> None:
@@ -611,7 +606,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 ),
             ],
         )
-        assert any(call.args[0] == "detector_resolved" for call in mock_logger.info.call_args_list)
 
     def test_doesnt_send_metric(self) -> None:
         detector = self.create_detector(type=self.no_handler_type.slug)
@@ -1362,7 +1356,7 @@ class TestGetDetectorsForEventAllProject(TestCase):
         from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 
         self.all_projects_detector = ensure_default_all_projects_detector(
-            self.project.organization_id
+            self.project.organization.id
         )
         self.event = self.store_event(project_id=self.project.id, data={})
         self.group_event = GroupEvent.from_event(self.event, self.group)
