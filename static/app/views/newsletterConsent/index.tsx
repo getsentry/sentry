@@ -12,8 +12,12 @@ import {t, tct} from 'sentry/locale';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const consentChoiceSchema = z.enum(['true', 'false']);
-const schema = z.object({subscribed: consentChoiceSchema});
-const defaultValues: z.infer<typeof schema> = {subscribed: 'true'};
+const schema = z.object({
+  subscribed: consentChoiceSchema
+    .or(z.literal(''))
+    .refine(value => value !== '', t('Please select an option')),
+});
+const defaultValues: z.input<typeof schema> = {subscribed: ''};
 
 type Props = {
   onSubmitSuccess?: () => void;
@@ -29,7 +33,7 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   useEffect(() => {
@@ -41,45 +45,47 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
   // NOTE: the text here is duplicated within ``RegisterForm`` on the backend
   return (
     <NarrowLayout>
-      <form.AppForm form={form}>
-        <Stack gap="lg">
-          <Text>
-            {t('Pardon the interruption, we just need to get a quick answer from you.')}
-          </Text>
-          <form.AppField name="subscribed">
-            {field => (
-              <field.Layout.Stack
-                label={t('Email Updates')}
-                hintText={tct(
-                  `We'd love to keep you updated via email with product and feature
-                  announcements, promotions, educational materials, and events. Our updates
-                  focus on relevant information, and we'll never sell your data to third
-                  parties. See our [link:Privacy Policy] for more details.`,
-                  {link: <ExternalLink href="https://sentry.io/privacy/" />}
-                )}
-                required
-              >
+      <Stack gap="xl">
+        <Text as="p">
+          {t('Pardon the interruption, we just need to get a quick answer from you.')}
+        </Text>
+        <form.AppForm form={form}>
+          <Stack gap="xl">
+            <form.AppField name="subscribed">
+              {field => (
                 <field.Radio.Group
                   value={field.state.value}
                   onChange={value => field.handleChange(consentChoiceSchema.parse(value))}
                 >
-                  <Stack gap="sm">
-                    <field.Radio.Item value="true">
-                      {t('Yes, I would like to receive updates via email')}
-                    </field.Radio.Item>
-                    <field.Radio.Item value="false">
-                      {t("No, I'd prefer not to receive these updates")}
-                    </field.Radio.Item>
-                  </Stack>
+                  <field.Layout.Stack
+                    label={t('Email Updates')}
+                    hintText={tct(
+                      `We'd love to keep you updated via email with product and feature
+                    announcements, promotions, educational materials, and events. Our updates
+                    focus on relevant information, and we'll never sell your data to third
+                    parties. See our [link:Privacy Policy] for more details.`,
+                      {link: <ExternalLink href="https://sentry.io/privacy/" />}
+                    )}
+                    required
+                  >
+                    <Stack gap="sm">
+                      <field.Radio.Item value="true">
+                        {t('Yes, I would like to receive updates via email')}
+                      </field.Radio.Item>
+                      <field.Radio.Item value="false">
+                        {t("No, I'd prefer not to receive these updates")}
+                      </field.Radio.Item>
+                    </Stack>
+                  </field.Layout.Stack>
                 </field.Radio.Group>
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-          <Flex justify="end">
-            <form.SubmitButton>{t('Continue')}</form.SubmitButton>
-          </Flex>
-        </Stack>
-      </form.AppForm>
+              )}
+            </form.AppField>
+            <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
+              <form.SubmitButton>{t('Continue')}</form.SubmitButton>
+            </Flex>
+          </Stack>
+        </form.AppForm>
+      </Stack>
     </NarrowLayout>
   );
 }

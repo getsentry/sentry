@@ -55,47 +55,49 @@ function BeaconConsent({onSubmitSuccess}: Props) {
 
   return (
     <NarrowLayout>
-      <form.AppForm form={form}>
-        <Stack gap="lg">
-          <Text>
-            {t(
-              'We have made some updates to our self-hosted beacon broadcast system, and just need to get a quick answer from you.'
-            )}
-          </Text>
-          <form.AppField name="beacon.record_cpu_ram_usage">
-            {field => (
-              <field.Layout.Stack
-                label={t('CPU/RAM Usage')}
-                hintText={tct(
-                  `Recording CPU/RAM usage will greatly help our development team understand how self-hosted sentry
-                  is typically being used, and to keep track of improvements that we hope to bring you in the future.`,
-                  {link: <ExternalLink href="https://sentry.io/privacy/" />}
-                )}
-                required
-              >
+      <Stack gap="xl">
+        <Text as="p">
+          {t(
+            'We have made some updates to our self-hosted beacon broadcast system, and just need to get a quick answer from you.'
+          )}
+        </Text>
+        <form.AppForm form={form}>
+          <Stack gap="xl">
+            <form.AppField name="beacon.record_cpu_ram_usage">
+              {field => (
                 <field.Radio.Group
                   value={field.state.value}
                   onChange={value => field.handleChange(consentChoiceSchema.parse(value))}
                 >
-                  <Stack gap="sm">
-                    <field.Radio.Item value="true">
-                      {t(
-                        'Yes, I would love to help Sentry developers improve the experience of self-hosted by sending CPU/RAM usage'
-                      )}
-                    </field.Radio.Item>
-                    <field.Radio.Item value="false">
-                      {t("No, I'd prefer to keep CPU/RAM usage private")}
-                    </field.Radio.Item>
-                  </Stack>
+                  <field.Layout.Stack
+                    label={t('CPU/RAM Usage')}
+                    hintText={tct(
+                      `Recording CPU/RAM usage will greatly help our development team understand how self-hosted sentry
+                  is typically being used, and to keep track of improvements that we hope to bring you in the future.`,
+                      {link: <ExternalLink href="https://sentry.io/privacy/" />}
+                    )}
+                    required
+                  >
+                    <Stack gap="sm">
+                      <field.Radio.Item value="true">
+                        {t(
+                          'Yes, I would love to help Sentry developers improve the experience of self-hosted by sending CPU/RAM usage'
+                        )}
+                      </field.Radio.Item>
+                      <field.Radio.Item value="false">
+                        {t("No, I'd prefer to keep CPU/RAM usage private")}
+                      </field.Radio.Item>
+                    </Stack>
+                  </field.Layout.Stack>
                 </field.Radio.Group>
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-          <Flex justify="end">
-            <form.SubmitButton>{t('Continue')}</form.SubmitButton>
-          </Flex>
-        </Stack>
-      </form.AppForm>
+              )}
+            </form.AppField>
+            <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
+              <form.SubmitButton>{t('Continue')}</form.SubmitButton>
+            </Flex>
+          </Stack>
+        </form.AppForm>
+      </Stack>
     </NarrowLayout>
   );
 }
