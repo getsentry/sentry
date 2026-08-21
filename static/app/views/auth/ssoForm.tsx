@@ -37,9 +37,7 @@ export function SsoForm({authConfig}: Props) {
       const detail =
         response instanceof RequestError ? response.responseJSON?.detail : undefined;
       setError(
-        typeof detail === 'string'
-          ? detail
-          : t('Unable to locate the organization. Please try again.')
+        typeof detail === 'string' ? detail : t('Unable to locate the organization.')
       );
     },
   });

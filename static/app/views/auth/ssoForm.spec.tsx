@@ -64,7 +64,7 @@ describe('SsoForm', () => {
     await doSso(mockRequest);
 
     expect(
-      await screen.findByText('Unable to locate the organization. Please try again.')
+      await screen.findByText('Unable to locate the organization.')
     ).toBeInTheDocument();
   });
 
