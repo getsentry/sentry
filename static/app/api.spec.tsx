@@ -2,7 +2,7 @@ import fetchMock from 'jest-fetch-mock';
 
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {Client, Request} from 'sentry/api';
+import {Client, registerApiErrorHandler, Request} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 import type {ResponseMeta} from 'sentry/types/api';
 
@@ -104,5 +104,21 @@ describe('api', () => {
         'test'
       )
     ).not.toThrow();
+  });
+
+  it('registers and unregisters global error handlers', async () => {
+    const errorHandler = jest.fn(() => false);
+    const unregister = registerApiErrorHandler(errorHandler);
+    const client = new Client();
+
+    fetchMock.mockResponseOnce(JSON.stringify({detail: 'Nope'}), {status: 500});
+    await expect(client.requestPromise('/first/')).rejects.toBeDefined();
+    expect(errorHandler).toHaveBeenCalledTimes(1);
+
+    unregister();
+
+    fetchMock.mockResponseOnce(JSON.stringify({detail: 'Still nope'}), {status: 500});
+    await expect(client.requestPromise('/second/')).rejects.toBeDefined();
+    expect(errorHandler).toHaveBeenCalledTimes(1);
   });
 });

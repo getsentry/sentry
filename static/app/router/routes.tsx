@@ -15,6 +15,7 @@ import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
+import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
 import {AuthLayoutRoute} from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
@@ -150,16 +151,61 @@ function buildRoutes(): RouteObject[] {
       }
     : {};
 
+  const publicRootChildren: SentryRouteObject[] = [
+    {
+      path: '/accept/:orgId/:memberId/:token/',
+      component: make(() => import('sentry/views/acceptOrganizationInvite')),
+    },
+    {
+      path: '/share/group/:shareId/',
+      redirectTo: '/share/issue/:shareId/',
+    },
+    {
+      path: '/share/issue/:shareId/',
+      component: make(() => import('sentry/views/sharedGroupDetails')),
+    },
+    {
+      path: '/unsubscribe/project/:id/',
+      component: make(() => import('sentry/views/unsubscribe/project')),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/unsubscribe/:orgId/project/:id/',
+      component: make(() => import('sentry/views/unsubscribe/project')),
+    },
+    {
+      path: '/unsubscribe/issue/:id/',
+      component: make(() => import('sentry/views/unsubscribe/issue')),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/unsubscribe/:orgId/issue/:id/',
+      component: make(() => import('sentry/views/unsubscribe/issue')),
+    },
+    {
+      path: '/join-request/',
+      component: withDomainRequired(
+        make(() => import('sentry/views/organizationJoinRequest'))
+      ),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/join-request/:orgId/',
+      component: withDomainRedirect(
+        make(() => import('sentry/views/organizationJoinRequest'))
+      ),
+    },
+  ];
+  const publicRootRoutes: SentryRouteObject = {
+    component: errorHandler(AppBodyContentRoute),
+    children: publicRootChildren,
+  };
   const rootChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/app/root')),
     },
     routeHook('routes:root'),
-    {
-      path: '/accept/:orgId/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
     {
       path: '/accept-transfer/',
       component: make(() => import('sentry/views/acceptProjectTransfer')),
@@ -181,40 +227,14 @@ function buildRoutes(): RouteObject[] {
       path: '/account/',
       redirectTo: '/settings/account/details/',
     },
-    {
-      path: '/share/group/:shareId/',
-      redirectTo: '/share/issue/:shareId/',
-    },
     // Add redirect from old user feedback to new feedback
     {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
     },
     {
-      path: '/share/issue/:shareId/',
-      component: make(() => import('sentry/views/sharedGroupDetails')),
-    },
-    {
       path: '/organizations/:orgId/share/issue/:shareId/',
       component: make(() => import('sentry/views/sharedGroupDetails')),
-    },
-    {
-      path: '/unsubscribe/project/:id/',
-      component: make(() => import('sentry/views/unsubscribe/project')),
-      customerDomainOnlyRoute: true,
-    },
-    {
-      path: '/unsubscribe/:orgId/project/:id/',
-      component: make(() => import('sentry/views/unsubscribe/project')),
-    },
-    {
-      path: '/unsubscribe/issue/:id/',
-      component: make(() => import('sentry/views/unsubscribe/issue')),
-      customerDomainOnlyRoute: true,
-    },
-    {
-      path: '/unsubscribe/:orgId/issue/:id/',
-      component: make(() => import('sentry/views/unsubscribe/issue')),
     },
     {
       path: '/organizations/new/',
@@ -243,19 +263,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/organizations/:orgId/restore/',
       component: make(() => import('sentry/views/organizationRestore')),
-    },
-    {
-      path: '/join-request/',
-      component: withDomainRequired(
-        make(() => import('sentry/views/organizationJoinRequest'))
-      ),
-      customerDomainOnlyRoute: true,
-    },
-    {
-      path: '/join-request/:orgId/',
-      component: withDomainRedirect(
-        make(() => import('sentry/views/organizationJoinRequest'))
-      ),
     },
     {
       path: '/relocation/',
@@ -2966,17 +2973,23 @@ function buildRoutes(): RouteObject[] {
         path: '/',
         component: errorHandler(App),
         children: [
-          rootRoutes,
+          publicRootRoutes,
           authV2Routes,
-          organizationRoutes,
-          legacyRedirectRoutes,
           {
-            path: '*',
-            component: errorHandler(OrganizationLayout),
+            component: AuthenticatedApiErrorHandler,
             children: [
+              rootRoutes,
+              organizationRoutes,
+              legacyRedirectRoutes,
               {
                 path: '*',
-                component: errorHandler(RouteNotFound),
+                component: errorHandler(OrganizationLayout),
+                children: [
+                  {
+                    path: '*',
+                    component: errorHandler(RouteNotFound),
+                  },
+                ],
               },
             ],
           },
