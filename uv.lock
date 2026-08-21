@@ -2361,7 +2361,7 @@ requires-dist = [
     { name = "sentry-kafka-schemas", specifier = ">=2.2.0" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-options", specifier = ">=1.2.6" },
-    { name = "sentry-protos", specifier = ">=0.62.3" },
+    { name = "sentry-protos", specifier = ">=0.63.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
     { name = "sentry-scm", specifier = "==1.5.0" },
@@ -2384,7 +2384,7 @@ requires-dist = [
     { name = "ua-parser", specifier = ">=0.10.0" },
     { name = "unidiff", specifier = ">=0.7.4" },
     { name = "urllib3", specifier = ">=2.7.0" },
-    { name = "vroomrs", specifier = ">=0.1.23" },
+    { name = "vroomrs", specifier = ">=0.1.24" },
     { name = "xmlsec", specifier = ">=1.3.17" },
     { name = "zstandard", specifier = ">=0.18.0" },
 ]
@@ -2541,7 +2541,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.62.3"
+version = "0.63.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs" },
@@ -2549,7 +2549,7 @@ dependencies = [
     { name = "protobuf" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.62.3-py3-none-any.whl", hash = "sha256:2f59f07bd6c263e6b4b1cc4ad68a6d36ed95803fa3f8f9b224db84818e4a1cd4" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.63.0-py3-none-any.whl", hash = "sha256:1c7f5d7f122bf4dcd5f5784f7f21e5b743ae94a09fa48105f6323f40d996b53f" },
 ]
 
 [[package]]
@@ -3098,12 +3098,12 @@ wheels = [
 
 [[package]]
 name = "vroomrs"
-version = "0.1.23"
+version = "0.1.24"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.23-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:bc1b1d48df6632c012f99b429c59908130956f114666fa909461d3267080520c" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.23-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1584857a24ca3e09a5ccc5213a69d359c4493dc2e93a0573c7280a2e167bc80d" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.23-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:46baa2c0db8e64ee990a595d99597206c3d06ebd51e3c8137ec580aaaa403219" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.24-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:76b3aaed924cac28fca8fba43a57b4c7fcada72bf71cf3e12f45faef2de96365" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.24-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:081f8fbc76009c631d566c03222baa1a70485bbb61f5d00113cb45ee68230ae8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.24-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e5a75f3050fbf8d100089a38fa273bdae99fb3f6135c18905cf3e57942da686c" },
 ]
 
 [[package]]
