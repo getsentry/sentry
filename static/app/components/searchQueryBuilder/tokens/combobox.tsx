@@ -495,14 +495,14 @@ export function SearchQueryBuilderCombobox<
         state.close();
       },
       onKeyDown: e => {
-        onKeyDown?.(e, {state});
-
         // React Aria's selectable collection stops key events from bubbling out of
         // an open combobox. Let the global command palette shortcut through.
         if (matchesHotkey(COMMAND_PALETTE_HOTKEYS, e.nativeEvent)) {
           e.continuePropagation();
           return;
         }
+
+        onKeyDown?.(e, {state});
 
         if (e.key === 'Escape') {
           state.close();
