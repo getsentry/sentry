@@ -17,6 +17,7 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -24,13 +25,16 @@ import {
 } from 'sentry/views/app/asyncSDKIntegrationProvider';
 import {
   getInvestigationDetailQueryOptions,
+  getInvestigationOrchestrationPollInterval,
   investigationExecutionDetailQueryOptions,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import type {
   InvestigationBlock,
   InvestigationDetail,
+  InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 
 jest.unmock('@tanstack/react-pacer');
@@ -42,6 +46,8 @@ const organization = OrganizationFixture({
 const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
 const titleGenerationUrl =
   '/organizations/org-slug/investigations/investigation-1/title-generation/';
+const orchestrationUrl =
+  '/organizations/org-slug/investigations/investigation-1/orchestration/';
 
 const feedbackForm = {
   appendToDom: jest.fn(),
@@ -141,6 +147,44 @@ function InvestigationDetailFixture(
   };
 }
 
+function InvestigationOrchestrationFixture(
+  overrides: Partial<InvestigationOrchestration> = {}
+): InvestigationOrchestration {
+  return {
+    runId: 'run-1',
+    investigationId: 'investigation-1',
+    sourceType: 'manual',
+    workflowVersion: 1,
+    generation: 1,
+    notebookRevision: 0,
+    phase: 'broad_scan',
+    status: 'processing',
+    broadScan: {status: 'running', summary: null, error: null},
+    hypotheses: [],
+    report: {
+      revision: 0,
+      status: 'not_started',
+      includedHypothesisIds: [],
+      primaryHypothesisId: null,
+      currentBlockKey: null,
+      notebookRevision: 0,
+      metadata: {
+        status: 'not_started',
+        title: null,
+        summary: null,
+        summaryDescription: null,
+        error: null,
+      },
+      error: null,
+    },
+    pendingInput: null,
+    errors: [],
+    heartbeatAt: '2026-08-20T20:00:00Z',
+    updatedAt: '2026-08-20T20:00:00Z',
+    ...overrides,
+  };
+}
+
 function renderView(
   renderOrganization = organization,
   queryClient = makeTestQueryClient(),
@@ -180,6 +224,47 @@ describe('Investigation detail', () => {
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
+  });
+
+  it('polls active orchestration quickly and backs off server failures', () => {
+    expect(
+      getInvestigationOrchestrationPollInterval({
+        orchestration: InvestigationOrchestrationFixture(),
+        error: null,
+        failureCount: 0,
+      })
+    ).toBe(2000);
+    expect(
+      getInvestigationOrchestrationPollInterval({
+        orchestration: InvestigationOrchestrationFixture({status: 'completed'}),
+        error: null,
+        failureCount: 0,
+      })
+    ).toBe(false);
+
+    const serverError = new RequestError('GET', orchestrationUrl, new Error('failed'));
+    serverError.status = 500;
+    expect(
+      getInvestigationOrchestrationPollInterval({
+        orchestration: undefined,
+        error: serverError,
+        failureCount: 2,
+      })
+    ).toBe(8000);
+
+    const notFoundError = new RequestError(
+      'GET',
+      orchestrationUrl,
+      new Error('not found')
+    );
+    notFoundError.status = 404;
+    expect(
+      getInvestigationOrchestrationPollInterval({
+        orchestration: undefined,
+        error: notFoundError,
+        failureCount: 1,
+      })
+    ).toBe(false);
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -245,6 +330,85 @@ describe('Investigation detail', () => {
         })
       );
     });
+  });
+
+  it('does not request orchestration for a legacy investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+    const orchestrationRequest = MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
+    ).toBeInTheDocument();
+    expect(orchestrationRequest).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('investigation-orchestration')).not.toBeInTheDocument();
+  });
+
+  it('keeps an agentic notebook usable when orchestration is unavailable', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({mode: 'agentic'}),
+    });
+    const orchestrationRequest = MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      statusCode: 404,
+      body: {detail: 'Not found'},
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
+    ).toBeInTheDocument();
+    await waitFor(() => expect(orchestrationRequest).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('investigation-orchestration')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Unable to load investigation progress.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('refetches notebook detail only when the notebook revision changes', async () => {
+    const queryClient = makeTestQueryClient();
+    const detailRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({mode: 'agentic'}),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView(organization, queryClient);
+
+    expect(
+      await screen.findByRole('heading', {name: 'Investigation plan'})
+    ).toBeInTheDocument();
+    expect(detailRequest).toHaveBeenCalledTimes(1);
+
+    const orchestrationOptions = investigationOrchestrationQueryOptions(
+      organization.slug,
+      'investigation-1'
+    );
+    queryClient.setQueryData(orchestrationOptions.queryKey, {
+      headers: {},
+      json: InvestigationOrchestrationFixture({phase: 'planning'}),
+    });
+    await act(async () => {});
+    expect(detailRequest).toHaveBeenCalledTimes(1);
+
+    queryClient.setQueryData(orchestrationOptions.queryKey, {
+      headers: {},
+      json: InvestigationOrchestrationFixture({notebookRevision: 1}),
+    });
+
+    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
   });
 
   it('renders completed investigation metadata above the first block', async () => {

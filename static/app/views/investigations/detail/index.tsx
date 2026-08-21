@@ -32,8 +32,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
+  getInvestigationOrchestrationPollInterval,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
+  isInvestigationOrchestrationNotFoundError,
+  shouldRetryInvestigationOrchestration,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -44,6 +48,7 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationOrchestrationWorkflow} from 'sentry/views/investigations/detail/orchestrationWorkflow';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
@@ -124,10 +129,26 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
   const titleGenerationSettledFor = useRef<string | null>(null);
+  const notebookRevision = useRef<{
+    investigationId: string;
+    revision: number;
+  } | null>(null);
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );
+  const orchestrationQuery = useQuery({
+    ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
+    enabled: investigation.mode === 'agentic',
+    retry: shouldRetryInvestigationOrchestration,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 10_000),
+    refetchInterval: query =>
+      getInvestigationOrchestrationPollInterval({
+        error: query.state.error,
+        failureCount: query.state.fetchFailureCount,
+        orchestration: query.state.data?.json,
+      }),
+  });
   const titleGenerationQuery = useQuery({
     ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
     enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
@@ -141,6 +162,29 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+
+  useEffect(() => {
+    const nextRevision = orchestrationQuery.data?.notebookRevision;
+    if (nextRevision === undefined) {
+      return;
+    }
+    const previousRevision = notebookRevision.current;
+    notebookRevision.current = {
+      investigationId: investigation.id,
+      revision: nextRevision,
+    };
+    if (
+      previousRevision?.investigationId === investigation.id &&
+      previousRevision.revision !== nextRevision
+    ) {
+      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+    }
+  }, [
+    detailOptions.queryKey,
+    investigation.id,
+    orchestrationQuery.data?.notebookRevision,
+    queryClient,
+  ]);
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -262,7 +306,15 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   const blocks = investigation.blocks ?? [];
-  const summaryBlock = investigation.template ? blocks[0] : undefined;
+  const failedBlock = blocks.find(block => block.currentExecution?.status === 'failed');
+  const hasFailureCancellation = blocks.some(
+    block =>
+      block.currentExecution?.status === 'cancelled' &&
+      block.currentExecution.error?.code === 'investigation_execution_failed'
+  );
+  const investigationExecutionFailed = Boolean(failedBlock || hasFailureCancellation);
+  const summaryBlock =
+    investigation.mode !== 'agentic' && investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
   const visibleSummaryBlock =
     summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
@@ -403,6 +455,36 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
+              {investigationExecutionFailed ? (
+                <InvestigationFailureAlert data-test-id="investigation-execution-failed">
+                  <Alert variant="danger">
+                    <strong>
+                      {failedBlock
+                        ? t('%s failed.', failedBlock.title || t('A cell'))
+                        : t('The investigation failed.')}
+                    </strong>{' '}
+                    {failedBlock?.currentExecution?.error?.message ||
+                      t('The agent run failed.')}{' '}
+                    {t(
+                      'The investigation was stopped and remaining cells were cancelled.'
+                    )}
+                  </Alert>
+                </InvestigationFailureAlert>
+              ) : null}
+              {orchestrationQuery.data ? (
+                <Container paddingBottom="xl">
+                  <InvestigationOrchestrationWorkflow
+                    orchestration={orchestrationQuery.data}
+                  />
+                </Container>
+              ) : orchestrationQuery.isError &&
+                !isInvestigationOrchestrationNotFoundError(orchestrationQuery.error) ? (
+                <InvestigationFailureAlert>
+                  <Alert variant="danger">
+                    {t('Unable to load investigation progress.')}
+                  </Alert>
+                </InvestigationFailureAlert>
+              ) : null}
               <NotebookSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}

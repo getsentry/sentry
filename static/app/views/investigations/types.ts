@@ -13,6 +13,7 @@ export type InvestigationListItem = {
   summaryDescription: string | null;
   title: string;
   version: number;
+  mode?: 'agentic' | 'manual' | 'template';
   titleGeneration?: {
     status: 'pending' | 'running' | 'completed' | 'failed' | null;
   };
@@ -140,6 +141,157 @@ export type InvestigationDetail = InvestigationListItem & {
 export type InvestigationTitleGeneration = {
   preview: string | null;
   status: 'pending' | 'running' | 'completed' | 'failed' | null;
+};
+
+type InvestigationOrchestrationOpenString<T extends string> = T | (string & {});
+
+export type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
+  | 'intake'
+  | 'broad_scan'
+  | 'planning'
+  | 'investigating'
+  | 'judging'
+  | 'reporting'
+  | 'metadata'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+>;
+
+export type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenString<
+  'pending' | 'processing' | 'awaiting_input' | 'completed' | 'failed' | 'cancelled'
+>;
+
+export type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString<
+  | 'not_started'
+  | 'queued'
+  | 'running'
+  | 'blocked'
+  | 'reauth_required'
+  | 'stalled'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+>;
+
+export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString<
+  | 'pending'
+  | 'investigating'
+  | 'supported'
+  | 'refuted'
+  | 'inconclusive'
+  | 'accepted'
+  | 'rejected'
+  | 'failed'
+  | 'cancelled'
+>;
+
+export type InvestigationOrchestrationError = {
+  code: string;
+  message: string;
+  retryable: boolean;
+  occurredAt?: string;
+  source?: string | null;
+};
+
+export type InvestigationOrchestrationEvidence = {
+  data: Record<string, unknown>;
+  id: string;
+  kind: InvestigationOrchestrationOpenString<
+    | 'issue'
+    | 'event'
+    | 'trace'
+    | 'profile'
+    | 'replay'
+    | 'query'
+    | 'chart'
+    | 'release'
+    | 'monitor'
+    | 'external'
+    | 'other'
+  >;
+  title: string;
+  reference?: string | null;
+  summary?: string | null;
+  url?: string | null;
+};
+
+export type InvestigationVerificationStep = {
+  error: InvestigationOrchestrationError | null;
+  evidence: InvestigationOrchestrationEvidence[];
+  id: string;
+  method: string;
+  objective: string;
+  order: number;
+  result: string | null;
+  status: InvestigationOrchestrationWorkStatus;
+  title: string;
+};
+
+export type InvestigationHypothesis = {
+  confidence: number | null;
+  decisionSource: InvestigationOrchestrationOpenString<'none' | 'agent' | 'user'>;
+  effectiveStatus: InvestigationHypothesisStatus;
+  error: InvestigationOrchestrationError | null;
+  evidence: InvestigationOrchestrationEvidence[];
+  id: string;
+  order: number;
+  rationale: string;
+  statement: string;
+  status: InvestigationOrchestrationWorkStatus;
+  verificationSteps: InvestigationVerificationStep[];
+};
+
+export type InvestigationOrchestrationReport = {
+  currentBlockKey: string | null;
+  error: InvestigationOrchestrationError | null;
+  includedHypothesisIds: string[];
+  metadata: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationOpenString<
+      'not_started' | 'generating' | 'completed' | 'failed'
+    >;
+    summary: string | null;
+    summaryDescription: string | null;
+    title: string | null;
+  };
+  notebookRevision: number;
+  primaryHypothesisId: string | null;
+  revision: number;
+  status: InvestigationOrchestrationOpenString<
+    | 'not_started'
+    | 'waiting'
+    | 'composing'
+    | 'completed'
+    | 'partial_failed'
+    | 'failed'
+    | 'cancelled'
+  >;
+};
+
+export type InvestigationOrchestration = {
+  broadScan: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationWorkStatus;
+    summary: string | null;
+  };
+  errors: InvestigationOrchestrationError[];
+  generation: number;
+  heartbeatAt: string | null;
+  hypotheses: InvestigationHypothesis[];
+  investigationId: string;
+  notebookRevision: number;
+  phase: InvestigationOrchestrationPhase;
+  report: InvestigationOrchestrationReport;
+  runId: string | null;
+  sourceType: InvestigationOrchestrationOpenString<'manual' | 'breached_metric'>;
+  status: InvestigationOrchestrationStatus;
+  updatedAt: string;
+  workflowVersion: number;
+  pendingInput?: {
+    missingFields: Array<'prompt' | 'time_range'>;
+    prompt: string;
+  } | null;
 };
 
 export type MetricOpenPeriodInvestigationSource = {
