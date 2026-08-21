@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -8,6 +10,13 @@ class SolutionStep(BaseModel):
     description: str = Field(
         description="One line description of what specifically needs to be done"
     )
+
+
+class FixabilityAssessment(BaseModel):
+    assessment: Literal["fixable", "needs_more_context", "not_actionable"] = Field(
+        description="Whether the root cause is fixable through code changes"
+    )
+    reason: str = Field(description="Brief explanation for the assessment")
 
 
 # Artifact schemas for each step
@@ -28,6 +37,9 @@ class RootCauseArtifact(BaseModel):
     relevant_repo: str | None = Field(
         default=None,
         description="The full repository name (e.g. 'owner/repo') where the fix should be made. Pick the one repo most directly responsible for the root cause.",
+    )
+    fixability: FixabilityAssessment = Field(
+        description="Assessment of whether this root cause is fixable through code changes"
     )
 
 

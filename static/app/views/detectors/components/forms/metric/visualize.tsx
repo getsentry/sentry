@@ -32,7 +32,6 @@ import {MetricsVisualize} from 'sentry/views/detectors/components/forms/metric/m
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -243,7 +242,6 @@ export function Visualize() {
 
 function GenericVisualize() {
   const organization = useOrganization();
-  const {customMeasurements} = useCustomMeasurements();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
   const aggregateFunction = useMetricDetectorFormField(
@@ -280,8 +278,8 @@ function GenericVisualize() {
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
 
   const aggregateOptions = useMemo(() => {
-    return datasetConfig.getAggregateOptions(organization, tags, customMeasurements);
-  }, [organization, tags, datasetConfig, customMeasurements]);
+    return datasetConfig.getAggregateOptions(organization, tags, {});
+  }, [organization, tags, datasetConfig]);
 
   const fieldOptions = useMemo(() => {
     // For Spans dataset, use span-specific options from the provider
@@ -405,7 +403,7 @@ function GenericVisualize() {
   const lockedOption = lockSpanOptions ? LOCKED_SPAN_AGGREGATES[aggregate] : null;
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex gap="md" align="end">
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
@@ -490,7 +488,7 @@ function GenericVisualize() {
           );
         })}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

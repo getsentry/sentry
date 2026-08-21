@@ -43,7 +43,7 @@ class OutboxCategory(IntEnum):
 
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
-    ORGANIZATION_MEMBER_TEAM_UPDATE = 26
+    UNUSED_EIGHT = 26  # was ORGANIZATION_MEMBER_TEAM_UPDATE, no longer in use
     ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
     API_KEY_UPDATE = 28
     PARTNER_ACCOUNT_UPDATE = 29
@@ -52,7 +52,7 @@ class OutboxCategory(IntEnum):
     API_TOKEN_UPDATE = 32
     ORG_AUTH_TOKEN_UPDATE = 33
     ISSUE_COMMENT_UPDATE = 34
-    EXTERNAL_ACTOR_UPDATE = 35
+    UNUSED_SEVEN = 35  # was EXTERNAL_ACTOR_UPDATE, no longer in use
 
     UNUSED_FIVE = 36
     UNUSED_SIX = 37
@@ -279,7 +279,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
-            OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
+            OutboxCategory.UNUSED_EIGHT,
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
@@ -315,7 +315,7 @@ class OutboxScope(IntEnum):
     )
     INTEGRATION_SCOPE = scope_categories(
         5,
-        {OutboxCategory.INTEGRATION_UPDATE, OutboxCategory.EXTERNAL_ACTOR_UPDATE},
+        {OutboxCategory.INTEGRATION_UPDATE, OutboxCategory.UNUSED_SEVEN},
     )
     APP_SCOPE = scope_categories(
         6,

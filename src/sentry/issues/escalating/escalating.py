@@ -11,6 +11,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 
+from django.db import router, transaction
 from django.db.models.signals import post_save
 from snuba_sdk import (
     Column,
@@ -567,25 +568,29 @@ def manage_issue_states(
             auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
-        updated = Group.objects.filter(
-            id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
-        ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        if updated:
-            group.status = GroupStatus.UNRESOLVED
-            group.substatus = GroupSubStatus.ONGOING
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group,
-                    instance=group,
-                    created=False,
-                    update_fields=["status", "substatus"],
-                )
-            add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
-            record_group_history(group, GroupHistoryStatus.ONGOING)
+        with transaction.atomic(router.db_for_write(Group)):
+            updated = Group.objects.filter(
+                id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
+            ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+            if updated:
+                group.status = GroupStatus.UNRESOLVED
+                group.substatus = GroupSubStatus.ONGOING
+                if not options.get("groups.enable-post-update-signal"):
+                    post_save.send_robust(
+                        sender=Group,
+                        instance=group,
+                        created=False,
+                        update_fields=["status", "substatus"],
+                    )
+                add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
+                record_group_history(group, GroupHistoryStatus.ONGOING)
 
-            Activity.objects.create_group_activity(
-                group=group, type=ActivityType.SET_UNRESOLVED, data=data, send_notification=False
-            )
+                Activity.objects.create_group_activity(
+                    group=group,
+                    type=ActivityType.SET_UNRESOLVED,
+                    data=data,
+                    send_notification=False,
+                )
 
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
         updated = Group.objects.filter(

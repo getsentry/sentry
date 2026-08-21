@@ -1,5 +1,6 @@
 import type React from 'react';
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -13,7 +14,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -33,6 +34,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
@@ -70,7 +72,12 @@ import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
-export type TraceWaterfallSource = 'issues' | 'performance' | 'replay' | 'trace_view';
+export type TraceWaterfallSource =
+  | 'feedback'
+  | 'issues'
+  | 'performance'
+  | 'replay'
+  | 'trace_view';
 
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
@@ -93,6 +100,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
   const isEAP = useIsEAPTraceEnabled();
 
@@ -682,20 +690,28 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     waterfallTraceId = undefined;
   }
 
+  // On the standalone trace page these two moved into the page-title crumb.
+  // Embedded waterfalls (issues, replay) have no such crumb, so they keep them.
+  const showToolbarTraceActions = !(props.source === 'performance' && hasNewBreadcrumbs);
+
   return (
-    <Flex direction="column" flex={1}>
+    <Stack flex={1}>
       <Flex gap="md">
         <TraceSearchInput onTraceSearch={onTraceSearch} />
-        <TraceLinksNavigation
-          rootEventResults={props.rootEventResults}
-          source={props.source}
-        />
-        <TraceOpenInExploreButton
-          trace_id={props.traceSlug}
-          traceEventView={props.traceEventView}
-          source={props.source}
-          replayId={props.replay?.id}
-        />
+        {showToolbarTraceActions && (
+          <Fragment>
+            <TraceLinksNavigation
+              rootEventResults={props.rootEventResults}
+              source={props.source}
+            />
+            <TraceOpenInExploreButton
+              traceSlug={props.traceSlug}
+              traceEventView={props.traceEventView}
+              source={props.source}
+              replayId={props.replay?.id}
+            />
+          </Fragment>
+        )}
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}
@@ -761,7 +777,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceGrid>
-    </Flex>
+    </Stack>
   );
 }
 

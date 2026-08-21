@@ -1,23 +1,20 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow} from 'sentry/icons/iconArrow';
+import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
-import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
@@ -33,10 +30,7 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
-  TableHeadCellContent,
   TableRow,
-  TableStatus,
-  useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -105,19 +99,12 @@ export function AggregatesTable({
     [aggregateFields]
   );
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleAggregateFields.map(aggregateField => {
-      if (isGroupBy(aggregateField)) {
-        return aggregateField.groupBy;
-      }
-      return aggregateField.yAxis;
-    }),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-    }
+  const visibleFields = useMemo(
+    () =>
+      visibleAggregateFields.map(aggregateField =>
+        isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
+      ),
+    [visibleAggregateFields]
   );
 
   const meta = useMemo(
@@ -152,12 +139,14 @@ export function AggregatesTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles}>
+      <Table
+        fields={visibleFields}
+        minimumColumnWidth={50}
+        prefixColumnWidth="min-content"
+      >
         <TableHead>
           <TableRow>
-            <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
-            </TableHeadCell>
+            <TableHeadCell isFirst={false} />
             {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
@@ -180,34 +169,15 @@ export function AggregatesTable({
               }
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent onClick={updateSort}>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
-                  {i !== visibleAggregateFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
-                    />
-                  )}
+                <TableHeadCell
+                  align={align}
+                  columnIndex={i}
+                  key={i}
+                  isFirst={i === 0}
+                  onSort={updateSort}
+                  sort={direction}
+                >
+                  {label}
                 </TableHeadCell>
               );
             })}
@@ -215,13 +185,13 @@ export function AggregatesTable({
         </TableHead>
         <TableBody>
           {result.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : result.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const menuItems: MenuItemProps[] = [
@@ -290,6 +260,7 @@ export function AggregatesTable({
                         <FieldRenderer
                           column={columns[field]}
                           data={row}
+                          disableTraceLinks
                           unit={meta?.units?.[field]}
                           meta={meta}
                         />
@@ -300,11 +271,11 @@ export function AggregatesTable({
               );
             })
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>
@@ -323,12 +294,17 @@ function prettifyField(
   numberTags: TagCollection,
   booleanTags: TagCollection
 ): string {
+  const prettifiedAggregation = prettifyAggregation(field);
+  if (prettifiedAggregation) {
+    return prettifiedAggregation;
+  }
+
   const tag = stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
   if (tag) {
     return tag.name;
   }
 
-  return prettifyAggregation(field) ?? prettifyTagKey(field);
+  return prettifyTagKey(field);
 }
 
 const TopResultsIndicator = styled('div')<{color: string}>`

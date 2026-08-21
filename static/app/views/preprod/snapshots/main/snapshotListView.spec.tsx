@@ -1,5 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -69,17 +70,7 @@ const erroredItem: SidebarItem = {
 describe('SnapshotListView', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-      width: 900,
-      height: 600,
-      top: 0,
-      left: 0,
-      bottom: 600,
-      right: 900,
-      x: 0,
-      y: 0,
-      toJSON: jest.fn(),
-    });
+    mockElementSize({width: 900, height: 600});
     // jsdom returns empty padding strings; parseFloat('') is NaN, which would
     // propagate into the virtualizer's height math. Force numeric padding.
     jest

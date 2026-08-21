@@ -79,6 +79,17 @@ class MetricsBackend(local):
     ) -> None:
         raise NotImplementedError
 
+    def set(
+        self,
+        key: str,
+        value: str | int,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        raise NotImplementedError
+
     def event(
         self,
         title: str,

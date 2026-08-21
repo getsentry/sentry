@@ -133,6 +133,57 @@ describe('FiltersBar', () => {
     });
   });
 
+  it('should sync merged filters on external global filter url change', async () => {
+    const savedFilter: GlobalFilter = {
+      dataset: WidgetType.SPANS,
+      tag: {key: 'os.name', name: 'OS Name', kind: FieldKind.FIELD},
+      value: 'os.name:[Windows]',
+    };
+    const urlFilter: GlobalFilter = {
+      dataset: WidgetType.SPANS,
+      tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
+      value: 'browser.name:[Chrome]',
+    };
+
+    // Render with only the saved filter — no URL filter yet
+    const onDashboardFilterChange = jest.fn();
+    const {rerender} = renderFilterBar({
+      location: LocationFixture(),
+      filters: {
+        [DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter],
+      },
+      onDashboardFilterChange,
+    });
+
+    // Only the saved filter should be visible initially
+    expect(
+      await screen.findByRole('button', {name: /os\.name.*Windows/i})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /browser\.name.*Chrome/i})
+    ).not.toBeInTheDocument();
+
+    // Simulate an external component (e.g. AgentTags) pushing a new filter into the URL
+    rerender(
+      <FiltersBar
+        location={LocationFixture({
+          query: {[DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter)},
+        })}
+        filters={{[DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter]}}
+        hasUnsavedChanges={false}
+        isEditingDashboard={false}
+        isPreview={false}
+        onDashboardFilterChange={onDashboardFilterChange}
+      />
+    );
+
+    // Both filters should now be visible — the new URL filter was merged in
+    expect(
+      await screen.findByRole('button', {name: /browser\.name.*Chrome/i})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /os\.name.*Windows/i})).toBeInTheDocument();
+  });
+
   it('should not sync filters to URL when no saved filters to merge', async () => {
     const urlFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,

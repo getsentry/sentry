@@ -22,7 +22,11 @@ from sentry.integrations.github.blame import (
     is_graphql_response,
 )
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
-from sentry.integrations.github.utils import get_jwt, get_next_link
+from sentry.integrations.github.pull_request_status import (
+    create_pull_request_status_query,
+    extract_pull_request_statuses_from_response,
+)
+from sentry.integrations.github.utils import get_jwt, get_last_page_number, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.source_code_management.commit_context import (
@@ -36,7 +40,12 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.source_code_management.status_check import StatusCheckClient
+from sentry.integrations.source_code_management.status_check import (
+    PullRequestStatusClient,
+    PullRequestStatusRequest,
+    PullRequestStatusResult,
+    StatusCheckClient,
+)
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
@@ -47,12 +56,15 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiError,
+    ApiForbiddenError,
     ApiPaginationTruncated,
     ApiRateLimitedError,
     UnknownHostError,
 )
 from sentry.silo.base import control_silo_function
+from sentry.silo.util import PROXY_PATH, trim_leading_slashes
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.tracing import start_span
 
@@ -63,7 +75,29 @@ logger = logging.getLogger("sentry.integrations.github")
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
 
+# When Github advertises the total page count up front, the pages after the
+# first are fetched concurrently. Bounded to keep the fan-out comfortably under
+# Github's secondary (concurrent request) rate limits.
+PAGINATION_MAX_WORKERS = 10
+
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
+
+
+def _is_rate_limit_forbidden(error: ApiForbiddenError) -> bool:
+    """
+    GitHub does not only use 429 for rate limits: it also returns 403 when an
+    installation trips its primary or secondary rate limits, naming the limit
+    in the response body (e.g. "You have exceeded a secondary rate limit" or
+    "API rate limit exceeded"). ApiForbiddenError does not retain the
+    Retry-After header GitHub sets on these responses, so detect the condition
+    from the body message instead. A plain permission 403 has no such message.
+    """
+    message = ""
+    if isinstance(error.json, dict):
+        raw_message = error.json.get("message")
+        if isinstance(raw_message, str):
+            message = raw_message
+    return "rate limit" in (message or error.text or "").lower()
 
 
 class CachedRepo(TypedDict):
@@ -132,6 +166,7 @@ class GitHubApiRequestType(StrEnum):
     GET_PULL_REQUEST_COMMENTS = "get_pull_request_comments"
     GET_PULL_REQUEST_FILES = "get_pull_request_files"
     GET_PULL_REQUEST_FROM_COMMIT = "get_pull_request_from_commit"
+    GET_PULL_REQUEST_STATUS = "get_pull_request_status"
     GET_RATE_LIMIT = "get_rate_limit"
     GET_REPO = "get_repo"
     GET_REPO_TREE = "get_repo_tree"
@@ -421,7 +456,12 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubBaseClient(
-    GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient, StatusCheckClient
+    GithubProxyClient,
+    RepositoryClient,
+    CommitContextClient,
+    RepoTreesClient,
+    StatusCheckClient,
+    PullRequestStatusClient,
 ):
     allow_redirects = True
 
@@ -667,6 +707,7 @@ class GitHubBaseClient(
         self,
         page_number_limit: int | None = None,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
@@ -678,6 +719,10 @@ class GitHubBaseClient(
         When ``raise_on_page_limit`` is True, raises ``ApiPaginationTruncated`` if the
         pagination loop exits because it hit the cap while there were still
         more pages available.
+
+        When ``parallel`` is True, pages after the first are fetched concurrently
+        (see ``_get_with_pagination``). Only interactive callers opt in; the
+        background ``link_all_repos`` task keeps the serial default.
         """
         with SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
@@ -692,6 +737,7 @@ class GitHubBaseClient(
                     page_number_limit=page_number_limit,
                     api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
                     raise_on_page_limit=raise_on_page_limit,
+                    parallel=parallel,
                 )
             except ApiPaginationTruncated as e:
                 # Hitting the pagination cap is an expected signal.
@@ -700,20 +746,22 @@ class GitHubBaseClient(
                 lifecycle.record_halt(e, create_issue=False)
                 raise
 
-    def get_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
+    def get_repos_cached(self, ttl: int = 300, parallel: bool = False) -> list[CachedRepo]:
         """
         Return all repos accessible to this installation, cached in
         Django cache for ``ttl`` seconds.
 
         Only the fields used by get_repositories() are stored to keep
         the cache payload small.
+
+        ``parallel`` is forwarded to ``get_repos`` for the cache-miss fetch.
         """
         cache_key = f"github:repos:{self.integration.id}"
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-        all_repos = self.get_repos()
+        all_repos = self.get_repos(parallel=parallel)
         repos: list[CachedRepo] = [
             {
                 "id": r["id"],
@@ -756,44 +804,131 @@ class GitHubBaseClient(
         page_number_limit: int | None = None,
         api_request_type: GitHubApiRequestType | None = None,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[Any]:
         """
-        Github uses the Link header to provide pagination links. Github
-        recommends using the provided link relations and not constructing our
-        own URL.
+        Github uses the Link header to provide pagination links.
         https://docs.github.com/en/rest/guides/traversing-with-pagination
 
         Use response_key when the API stores the results within a key.
         For instance, the repositories API returns the list of repos under the "repositories" key.
 
-        When ``raise_on_page_limit`` is True and the loop exits because it hit
-        ``page_number_limit`` while Github was still advertising a next page,
+        By default the remaining pages are fetched serially by following the
+        ``next`` links one round-trip at a time, which is what Github recommends.
+
+        When ``parallel`` is True and Github advertises the total page count via
+        a ``rel="last"`` link on the first response, the remaining pages are
+        fetched concurrently instead. Callers opt into this only where the
+        latency matters and the bounded extra concurrency against Github's
+        secondary rate limits is acceptable. Even when ``parallel`` is True,
+        endpoints that do not advertise a last page (a single page, or
+        cursor-based pagination where arbitrary page jumps are unsupported) fall
+        back to the serial ``next`` walk.
+
+        When ``raise_on_page_limit`` is True and pagination stops because it hit
+        ``page_number_limit`` while Github was still advertising more pages,
         raises ``ApiPaginationTruncated`` with the partial result attached.
         """
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
+        def page_items(resp: Any) -> Any:
+            return resp[response_key] if response_key else resp
+
         with start_span(
             op=f"{self.integration_type}.http.pagination",
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
-            output: list[dict[str, Any]] = []
-
-            page_number = 1
-            resp = self.get(
+            # Fetch the first page serially. Besides returning its data, this
+            # warms up any lazily-initialized client state (auth token, session)
+            # before any fan-out, and tells us how many pages there are.
+            first_response = self.get(
                 path, params={"per_page": self.page_size}, api_request_type=api_request_type
             )
-            output.extend(resp) if not response_key else output.extend(resp[response_key])
-            next_link = get_next_link(resp)
+            output: list[Any] = list(page_items(first_response))
 
-            # XXX: In order to speed up this function we will need to parallelize this
-            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+            if parallel:
+                last_page_number = get_last_page_number(first_response)
+                if last_page_number is not None and last_page_number > 1:
+                    truncated = last_page_number > page_number_limit
+                    remaining_pages = range(2, min(last_page_number, page_number_limit) + 1)
+
+                    # Pages are addressed by number (per_page + page) rather than
+                    # by following Github's next-link URLs. Any query params
+                    # already in ``path`` survive because fetch_page reuses it, so
+                    # this matches next-link following for offset-paginated
+                    # endpoints (the only kind we take this path for, since it is
+                    # gated on a numeric rel="last"). The one gap: if this function
+                    # ever grows a ``params`` argument for filter/sort/q, fetch_page
+                    # must forward it too -- it hardcodes only per_page and page, so
+                    # params supplied any way other than via ``path`` would be
+                    # dropped from pages 2..N.
+                    def fetch_page(page_number: int) -> Any:
+                        return self.get(
+                            path,
+                            params={"per_page": self.page_size, "page": page_number},
+                            api_request_type=api_request_type,
+                        )
+
+                    if remaining_pages:
+                        # Stats for the parallel fan-out so we can watch whether
+                        # the extra concurrency is what tips installs over
+                        # GitHub's secondary rate limits (the ``rate_limited``
+                        # outcome), and how wide the fan-outs actually get. These
+                        # fire only on multi-page picker opens, and rate_limited
+                        # is rarer still, so pin sample_rate=1.0 (prod lowers the
+                        # global default) to keep the rare event visible.
+                        metrics.distribution(
+                            "integrations.github.parallel_pagination.pages",
+                            len(remaining_pages) + 1,
+                            sample_rate=1.0,
+                        )
+                        try:
+                            with ContextPropagatingThreadPoolExecutor(
+                                thread_name_prefix=__name__,
+                                max_workers=min(PAGINATION_MAX_WORKERS, len(remaining_pages)),
+                            ) as executor:
+                                # ``map`` yields results in input order, so the pages
+                                # are concatenated in order regardless of which request
+                                # finished first. If a page fails, ``map`` cancels the
+                                # pages it has not started yet, so a failed fan-out costs
+                                # at most roughly one in-flight batch of extra requests
+                                # (bounded by max_workers), not the whole page range.
+                                for resp in executor.map(fetch_page, remaining_pages):
+                                    output.extend(page_items(resp))
+                        except (ApiRateLimitedError, ApiForbiddenError) as e:
+                            # GitHub signals a tripped rate limit with either a
+                            # 429 or a 403 whose body names the limit (primary or
+                            # secondary), so attribute both to the rate_limited
+                            # outcome to keep the fan-out's rate-limit exposure
+                            # visible. A plain permission 403 re-raises untagged.
+                            if isinstance(e, ApiRateLimitedError) or _is_rate_limit_forbidden(e):
+                                metrics.incr(
+                                    "integrations.github.parallel_pagination",
+                                    tags={"outcome": "rate_limited"},
+                                    sample_rate=1.0,
+                                )
+                            raise
+                        metrics.incr(
+                            "integrations.github.parallel_pagination",
+                            tags={"outcome": "success"},
+                            sample_rate=1.0,
+                        )
+
+                    if truncated and raise_on_page_limit:
+                        raise ApiPaginationTruncated(
+                            output,
+                            f"pagination stopped at page_number_limit={page_number_limit}",
+                        )
+                    return output
+
+            # Serial walk: the default, and the fallback when ``parallel`` is
+            # requested but Github does not advertise a last page.
+            page_number = 1
+            next_link = get_next_link(first_response)
             while next_link and page_number < page_number_limit:
-                # If a per_page is specified, GitHub preserves the per_page value
-                # in the response headers.
                 resp = self.get(next_link, api_request_type=api_request_type)
-                output.extend(resp) if not response_key else output.extend(resp[response_key])
-
+                output.extend(page_items(resp))
                 next_link = get_next_link(resp)
                 page_number += 1
 
@@ -1096,6 +1231,67 @@ class GitHubBaseClient(
             },
         )
 
+    def _get_pull_request_status_cache_key(self, pull_request: PullRequestStatusRequest) -> str:
+        cache_key_data: dict[str, str | bool] = {
+            "repo": pull_request.repo,
+            "pull_number": pull_request.pull_number,
+        }
+        if pull_request.include_files:
+            cache_key_data["include_files"] = True
+        cache_data = orjson.dumps(cache_key_data).decode()
+        return self.get_cache_key("/graphql/pull-request-status", "", cache_data)
+
+    def get_pull_request_statuses(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        """Return checks and review state, fetching all cache misses in one query."""
+        results: dict[PullRequestStatusRequest, PullRequestStatusResult] = {}
+        cache_keys: dict[PullRequestStatusRequest, str] = {}
+        uncached_pull_requests: list[PullRequestStatusRequest] = []
+
+        for pull_request in dict.fromkeys(pull_requests):
+            cache_key = self._get_pull_request_status_cache_key(pull_request)
+            cache_keys[pull_request] = cache_key
+            cached_result = self.check_cache(cache_key)
+            if isinstance(cached_result, PullRequestStatusResult):
+                results[pull_request] = cached_result
+            else:
+                uncached_pull_requests.append(pull_request)
+
+        if not uncached_pull_requests:
+            return results
+
+        data = create_pull_request_status_query(uncached_pull_requests)
+        response = self.post(
+            path="/graphql",
+            data=data,
+            allow_text=False,
+            api_request_type=GitHubApiRequestType.GET_PULL_REQUEST_STATUS,
+        )
+
+        if not is_graphql_response(response):
+            raise ApiError("Response is not JSON")
+
+        errors = response.get("errors", [])
+        if errors:
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+            if not response.get("data"):
+                raise ApiError("\n".join(error.get("message", "") for error in errors))
+            logger.info(
+                "github.get_pull_request_statuses.partial_errors",
+                extra={"error_count": len(errors)},
+            )
+
+        fetched_results = extract_pull_request_statuses_from_response(
+            response, uncached_pull_requests
+        )
+        for pull_request, result in fetched_results.items():
+            # Short enough that checks still appear to advance while CI runs.
+            self.set_cache(cache_keys[pull_request], result, 60)
+        results.update(fetched_results)
+        return results
+
     def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/checks/runs#create-a-check-run
@@ -1138,10 +1334,73 @@ GITHUB_RATE_LIMIT_WINDOW = 3600
 GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
 GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
 GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
+GITHUB_RATE_LIMIT_REMAINING = "x-ratelimit-remaining"
+GITHUB_RATE_LIMIT_STATUS_CODES = frozenset((403, 429))
 
 # Requests to this resource do not count against GitHub's primary rate limit, so our
 # internal rate limiter ignores them. https://docs.github.com/en/rest/rate-limit
 GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
+
+# GitHub meters several quota pools independently, each with its own limit and window. Usage
+# against one pool tells us nothing about another, and their limits differ by more than two
+# orders of magnitude (`search` is 30/minute, `core` is at least 5000/hour), so they must be
+# tracked separately.
+# https://docs.github.com/en/rest/rate-limit/rate-limit?apiVersion=2026-03-10#about-rate-limits
+GITHUB_RESOURCE_CORE = "core"
+GITHUB_RESOURCE_SEARCH = "search"
+GITHUB_RESOURCE_CODE_SEARCH = "code_search"
+GITHUB_RESOURCE_GRAPHQL = "graphql"
+
+# Routes authenticated with the app's JWT rather than an installation token are metered against
+# the app, not the installation. Keep them out of the installation's `core` pool.
+GITHUB_RESOURCE_APP = "app"
+
+GITHUB_RESOURCE_WINDOWS = {
+    GITHUB_RESOURCE_CORE: 3600,
+    GITHUB_RESOURCE_GRAPHQL: 3600,
+    GITHUB_RESOURCE_APP: 3600,
+    GITHUB_RESOURCE_SEARCH: 60,
+    GITHUB_RESOURCE_CODE_SEARCH: 60,
+}
+
+
+def resolve_rate_limit_resource(path: str) -> str:
+    """
+    Map an upstream GitHub path to the quota pool GitHub meters it against.
+
+    Anything unrecognized is attributed to `core`, which is where GitHub accounts for the
+    overwhelming majority of REST routes.
+    """
+    path = path.partition("?")[0]
+    if not path.startswith("/"):
+        path = f"/{path}"
+
+    if path == "/graphql":
+        return GITHUB_RESOURCE_GRAPHQL
+    if path == "/search/code":
+        return GITHUB_RESOURCE_CODE_SEARCH
+    if path.startswith("/search/"):
+        return GITHUB_RESOURCE_SEARCH
+    if path.startswith("/app/") or path == "/app":
+        return GITHUB_RESOURCE_APP
+    return GITHUB_RESOURCE_CORE
+
+
+def is_rate_limit_response(response: Response) -> bool:
+    """Return True if GitHub rejected the request because a rate limit was exhausted."""
+    if response.status_code not in GITHUB_RATE_LIMIT_STATUS_CODES:
+        return False
+    if response.status_code == 429:
+        return True
+    return response.headers.get(GITHUB_RATE_LIMIT_REMAINING) == "0"
+
+
+def resolve_upstream_path(request: PreparedRequest) -> str:
+    """Return the final path of the request."""
+    proxy_path = request.headers.get(PROXY_PATH)
+    if proxy_path:
+        return f"/{trim_leading_slashes(proxy_path)}"
+    return request.path_url
 
 
 class GitHubApiClient(GitHubBaseClient):
@@ -1187,6 +1446,7 @@ class GitHubApiClient(GitHubBaseClient):
             rate_limit_provider=RedisRateLimitProvider(),
             rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
             referrer_allocation=REFERRER_ALLOCATION,
+            resource_windows=GITHUB_RESOURCE_WINDOWS,
         )
 
     @contextlib.contextmanager
@@ -1201,19 +1461,25 @@ class GitHubApiClient(GitHubBaseClient):
     def _do_send(
         self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
     ) -> Response:
+        path = resolve_upstream_path(request)
+
         # The rate-limit resource is not itself rate limited by GitHub, so we skip the internal
         # rate limiter entirely. Counting these requests would both consume quota we don't owe and
         # pollute the recorded capacity with the rate-limit resource's own (unrelated) headers.
-        if request.path_url.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
+        if path.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
             return super()._do_send(session, request, session_settings)
+
+        # Quota is metered per resource on GitHub's side, so the counter we consult and the
+        # capacity we record must both be scoped to the resource this request belongs to.
+        resource = resolve_rate_limit_resource(path)
 
         is_rate_limited = False
         try:
-            if self.__rate_limiter.is_rate_limited(self.__referrer):
+            if self.__rate_limiter.is_rate_limited(self.__referrer, resource=resource):
                 # For now do nothing. We'll eventually use this once we understand its behavior better.
                 # raise RateLimitExceed
                 is_rate_limited = True
-                metrics.incr("sentry.scm.github.rate_limit_exceeded")
+                metrics.incr("sentry.scm.github.rate_limit_exceeded", tags={"resource": resource})
         except Exception as e:
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
             sentry_sdk.capture_exception(e)
@@ -1222,7 +1488,7 @@ class GitHubApiClient(GitHubBaseClient):
 
         try:
             capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])
-            self.__rate_limiter.set_total_capacity(capacity=capacity)
+            self.__rate_limiter.set_total_capacity(capacity=capacity, resource=resource)
         except KeyError:
             # GitHub didn't return rate-limit headers for some unknown reason.
             metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
@@ -1231,11 +1497,12 @@ class GitHubApiClient(GitHubBaseClient):
             sentry_sdk.capture_exception(e)
 
         # QA metrics.
-        if is_rate_limited and response.status_code != 429:
+        was_rejected = is_rate_limit_response(response)
+        if is_rate_limited and not was_rejected:
             # We thought we exceeded our rate-limit but actually we didn't.
-            metrics.incr("sentry.scm.github.rate_limit.false_positive")
-        elif response.status_code == 429 and not is_rate_limited:
+            metrics.incr("sentry.scm.github.rate_limit.false_positive", tags={"resource": resource})
+        elif was_rejected and not is_rate_limited:
             # We thought we had capacity but actually we didn't.
-            metrics.incr("sentry.scm.github.rate_limit.false_negative")
+            metrics.incr("sentry.scm.github.rate_limit.false_negative", tags={"resource": resource})
 
         return response

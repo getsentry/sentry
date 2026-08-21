@@ -3,12 +3,14 @@ Core framework for the derived-data pipeline.
 No Django dependencies — pure Python, fully testable in isolation.
 """
 
+import base64
 import copy
+import hashlib
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, ClassVar, Final, Literal, Protocol, runtime_checkable
 
 _MISSING = object()
 
@@ -102,6 +104,9 @@ class Feature[T]:
     The ``codec`` handles conversion to/from storage representations.
     JSON-blob features use ``to_json`` / ``from_json``; column-backed
     features use ``to_column`` / ``from_column``.
+
+    Increment ``version`` whenever the feature's aggregation logic changes
+    meaningfully so that stale derived data can be detected.
     """
 
     def __init__(
@@ -111,14 +116,21 @@ class Feature[T]:
         default: Any = _MISSING,
         default_factory: Callable[[], Any] | None = None,
         codec: Codec[T] | None = None,
+        version: int = 0,
     ) -> None:
         if default is _MISSING and default_factory is None:
             raise ValueError("Must provide default or default_factory")
-        self.name = name
+        self.name: Final[str] = name
+        self._version: Final[int] = version
         self._default = default
         self._default_factory = default_factory
         self._codec = codec or IDENTITY_CODEC
-        self._hash = hash(name)
+        self._hash = hash((name, version))
+
+    @property
+    def content_id(self) -> str:
+        """Versioned identifier for this feature, e.g. ``"view_count:0"``."""
+        return f"{self.name}:{self._version}"
 
     def initial_value(self) -> T:
         if self._default_factory is not None:
@@ -141,6 +153,8 @@ class Feature[T]:
         return (self, val)
 
     def __repr__(self) -> str:
+        if self._version:
+            return f"Feature({self.name!r}, v={self._version})"
         return f"Feature({self.name!r})"
 
     def __hash__(self) -> int:
@@ -148,7 +162,7 @@ class Feature[T]:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Feature):
-            return self.name == other.name
+            return self.name == other.name and self._version == other._version
         return NotImplemented
 
 
@@ -267,6 +281,19 @@ def emit(*entries: FeatureEntry) -> AggregatorResult:
     return StateUpdate(dict(entries))
 
 
+class Scope(StrEnum):
+    """Special aggregator scopes.
+
+    ALL runs for every entry. DEPS runs whenever any dependency producer runs.
+    """
+
+    ALL = "all"
+    DEPS = "deps"
+
+
+type EffectiveScope = Literal[Scope.ALL] | frozenset[int]
+
+
 @dataclass(frozen=True)
 class Aggregator[E: HasType]:
     """A named function that reads from dep features and writes to output features."""
@@ -275,24 +302,47 @@ class Aggregator[E: HasType]:
     deps: tuple[Feature[Any], ...]
     outputs: tuple[Feature[Any], ...]
     fn: AggregatorFn[E]
-    scope: tuple[int, ...] | None = None
+    scope: Scope | tuple[int, ...] = Scope.ALL
 
 
-def aggregator[E: HasType, S: IntEnum](
+class _HasGetType(Protocol):
+    @classmethod
+    def get_type(cls) -> IntEnum: ...
+
+
+type ScopeItem = IntEnum | type[_HasGetType]
+
+
+def _scope_int(item: ScopeItem) -> int:
+    if isinstance(item, IntEnum):
+        return item.value
+    return item.get_type().value
+
+
+def aggregator[E: HasType](
     outputs: tuple[Feature[Any], ...],
     *,
     deps: tuple[Feature[Any], ...] = (),
-    scope: tuple[S, ...] | None = None,
+    scope: Scope | tuple[ScopeItem, ...] = Scope.ALL,
 ) -> Callable[[AggregatorFn[E]], Aggregator[E]]:
-    """Decorator to create an Aggregator. `scope` accepts enum members directly."""
+    """Create an aggregator with a fixed, universal, or dependency-derived scope."""
     if not outputs:
         raise ValueError("aggregator must declare at least one output")
-    raw_scope = tuple(s.value for s in scope) if scope is not None else None
+    if scope is Scope.DEPS and not deps:
+        raise ValueError("Scope.DEPS requires at least one dependency")
+    raw_scope = scope if isinstance(scope, Scope) else tuple(_scope_int(s) for s in scope)
 
     def decorator(fn: AggregatorFn[E]) -> Aggregator[E]:
         return Aggregator(name=fn.__name__, deps=deps, outputs=outputs, fn=fn, scope=raw_scope)
 
     return decorator
+
+
+@dataclass(frozen=True)
+class _ValidatedPipeline[E: HasType]:
+    aggregators: tuple[Aggregator[E], ...]
+    features: tuple[Feature[Any], ...]
+    effective_scopes: dict[str, EffectiveScope]
 
 
 # ---------------------------------------------------------------------------
@@ -303,25 +353,34 @@ def aggregator[E: HasType, S: IntEnum](
 class Pipeline[E: HasType]:
     """Applies a set of Aggregators to a State for each event in a sequence, producing a new State."""
 
+    # Bump this manually when pipeline behaviour changes in ways that affect
+    # results but the feature set itself is unchanged (e.g. changing
+    # aggregator execution order). This value is an input to pipeline_hash.
+    _version: ClassVar[int] = 0
+
     def __init__(
         self,
         aggregators: Iterable[Aggregator[E]],
         *,
-        version: int,
         check_mutations: bool = False,
     ) -> None:
-        self._version = version
         self._check_mutations = check_mutations
         aggregators = tuple(aggregators)
-        self._aggregators, self._features = _validate_and_sort(aggregators)
+        validated = _validate_and_sort(aggregators)
+        self._aggregators = validated.aggregators
+        self._features = validated.features
         self._steps = tuple(
-            (agg, frozenset({*agg.deps, *agg.outputs}), frozenset(agg.outputs))
+            (
+                agg,
+                frozenset({*agg.deps, *agg.outputs}),
+                frozenset(agg.outputs),
+                validated.effective_scopes[agg.name],
+            )
             for agg in self._aggregators
         )
-
-    @property
-    def version(self) -> int:
-        return self._version
+        payload = f"{self._version}:" + ",".join(sorted(f.content_id for f in self._features))
+        digest = hashlib.blake2b(payload.encode(), digest_size=8).digest()
+        self._pipeline_hash = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
     @property
     def aggregators(self) -> tuple[Aggregator[E], ...]:
@@ -331,14 +390,20 @@ class Pipeline[E: HasType]:
     def features(self) -> tuple[Feature[Any], ...]:
         return self._features
 
+    @property
+    def pipeline_hash(self) -> str:
+        """Short digest capturing the pipeline version, feature set, and feature versions."""
+        return self._pipeline_hash
+
     def initial_state(self) -> State:
         return State({f: f.initial_value() for f in self._features})
 
     def step(self, state: State, entry: E) -> State:
         entry_type = entry.type
-        for agg, view_fields, output_fields in self._steps:
-            if agg.scope is not None and entry_type not in agg.scope:
-                continue
+        for agg, view_fields, output_fields, effective_scope in self._steps:
+            if effective_scope is not Scope.ALL:
+                if entry_type not in effective_scope:
+                    continue
             subset = state.view(view_fields)
             snapshot = copy.deepcopy(subset._data) if self._check_mutations else None
             result = agg.fn(subset, entry)
@@ -391,9 +456,23 @@ def resolve[E: HasType](
     return [agg for agg in all_aggs if agg.name in needed]
 
 
+def _ensure_no_aliasing(features: Iterable[Feature[Any]]) -> tuple[Feature[Any], ...]:
+    """Return the unique features, raising if the same name maps to different instances."""
+    seen: dict[str, Feature[Any]] = {}
+    for f in features:
+        existing = seen.get(f.name)
+        if existing is not None and existing is not f:
+            raise ValueError(
+                f"Feature {f.name!r} has multiple distinct instances in the pipeline; "
+                f"use the same Feature object everywhere"
+            )
+        seen[f.name] = f
+    return tuple(seen.values())
+
+
 def _validate_and_sort[E: HasType](
     aggregators: tuple[Aggregator[E], ...],
-) -> tuple[tuple[Aggregator[E], ...], tuple[Feature[Any], ...]]:
+) -> _ValidatedPipeline[E]:
     output_owners: dict[str, Aggregator[E]] = {}
     for agg in aggregators:
         for feature in agg.outputs:
@@ -439,9 +518,43 @@ def _validate_and_sort[E: HasType](
         remaining = {a.name for a in aggregators} - {a.name for a in order}
         raise ValueError(f"Cycle detected among aggregators: {remaining}")
 
-    all_features: dict[str, Feature[Any]] = {}
-    for agg in aggregators:
-        for f in (*agg.deps, *agg.outputs):
-            all_features[f.name] = f
+    effective_scopes: dict[str, EffectiveScope] = {}
+    for agg in order:
+        if agg.scope is Scope.DEPS:
+            if not agg.deps:
+                raise ValueError(f"Aggregator {agg.name!r} uses Scope.DEPS without dependencies")
+            scope_values: set[int] = set()
+            for dep in agg.deps:
+                producer = output_owners[dep.name]
+                if producer.name == agg.name:
+                    raise ValueError(
+                        f"Aggregator {agg.name!r} cannot derive its scope from its own output"
+                    )
+                producer_scope = effective_scopes[producer.name]
+                if producer_scope is Scope.ALL:
+                    effective_scopes[agg.name] = Scope.ALL
+                    break
+                scope_values.update(producer_scope)
+            else:
+                effective_scopes[agg.name] = frozenset(scope_values)
+        elif agg.scope is Scope.ALL:
+            effective_scopes[agg.name] = Scope.ALL
+        else:
+            effective_scopes[agg.name] = frozenset(agg.scope)
 
-    return tuple(order), tuple(all_features.values())
+    for agg in aggregators:
+        scope = effective_scopes[agg.name]
+        for dep in agg.deps:
+            producer = output_owners[dep.name]
+            producer_scope = effective_scopes[producer.name]
+            if scope is Scope.ALL:
+                continue
+            if producer_scope is Scope.ALL or not scope.issuperset(producer_scope):
+                raise ValueError(
+                    f"Aggregator {agg.name!r} has a scope that does not cover "
+                    f"dependency {dep.name!r} produced by {producer.name!r}"
+                )
+
+    all_features = _ensure_no_aliasing(f for agg in aggregators for f in (*agg.deps, *agg.outputs))
+
+    return _ValidatedPipeline(tuple(order), all_features, effective_scopes)

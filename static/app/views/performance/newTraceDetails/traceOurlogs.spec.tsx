@@ -1,11 +1,20 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
-import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
-  TraceViewLogsDataProvider,
+  TraceViewLogsPageDataProvider,
+  TraceViewLogsQueryParamsProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 
@@ -13,13 +22,17 @@ const TRACE_SLUG = '00000000000000000000000000000000';
 
 function Component({traceSlug}: {traceSlug: string}) {
   return (
-    <TraceViewLogsDataProvider traceSlug={traceSlug}>
-      <TraceViewLogsSection />
-    </TraceViewLogsDataProvider>
+    <TraceViewLogsQueryParamsProvider traceSlug={traceSlug}>
+      <TraceViewLogsPageDataProvider>
+        <TraceViewLogsSection />
+      </TraceViewLogsPageDataProvider>
+    </TraceViewLogsQueryParamsProvider>
   );
 }
 
-beforeEach(mockGetBoundingClientRect);
+beforeEach(() => {
+  mockElementSize();
+});
 
 describe('TraceViewLogsSection', () => {
   beforeEach(() => {
@@ -81,6 +94,29 @@ describe('TraceViewLogsSection', () => {
     expect(mockRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('passes the trace timestamp from the URL to the logs query', async () => {
+    const organization = OrganizationFixture({features: ['ourlogs-enabled']});
+    setWindowLocation(
+      `http://localhost/organizations/${organization.slug}/explore/logs/trace/${TRACE_SLUG}/?timestamp=1743695410`
+    );
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {
+        data: [],
+        meta: {},
+      },
+    });
+    render(<Component traceSlug={TRACE_SLUG} />, {organization});
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-logs/`,
+      expect.objectContaining({
+        query: expect.objectContaining({statsPeriod: '30d', timestamp: 1743695410}),
+      })
+    );
+  });
+
   it('shows filter key suggestions when the search is focused', async () => {
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     MockApiClient.addMockResponse({
@@ -97,6 +133,30 @@ describe('TraceViewLogsSection', () => {
     );
 
     expect(await screen.findByRole('option', {name: 'severity'})).toBeInTheDocument();
+  });
+
+  it('reflects an added filter in the URL', async () => {
+    const organization = OrganizationFixture({features: ['ourlogs-enabled']});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {
+        data: [],
+        meta: {},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
+    const {router} = render(<Component traceSlug={TRACE_SLUG} />, {organization});
+
+    const search = await screen.findByRole('combobox', {name: 'Add a search term'});
+    await userEvent.type(search, 'hello{enter}');
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_QUERY_KEY]).toContain('hello');
+    });
   });
 
   it('shows the similar spans log row action', async () => {

@@ -3,12 +3,13 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db import IntegrityError, router
 
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -74,7 +75,9 @@ def set_commits(release, commit_list):
             )
 
     fill_in_missing_release_head_commits(release, head_commit_by_repo)
-    update_group_resolutions(release, commit_author_by_commit)
+
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        update_group_resolutions(release, commit_author_by_commit)
 
 
 @metrics.wraps("set_commits_on_release")
@@ -187,9 +190,11 @@ def update_group_resolutions(release, commit_author_by_commit):
         .select_related("commit")
         .values("commit_id", "commit__key", "commit__repository_id")
     )
+    release_project_ids = list(release.projects.values_list("id", flat=True))
 
     commit_resolutions = list(
         GroupLink.objects.filter(
+            project_id__in=release_project_ids,
             linked_type=GroupLink.LinkedType.commit,
             linked_id__in=[rc["commit_id"] for rc in release_commits],
         ).values_list("group_id", "linked_id")
@@ -212,6 +217,7 @@ def update_group_resolutions(release, commit_author_by_commit):
 
     pull_request_resolutions = list(
         GroupLink.objects.filter(
+            project_id__in=release_project_ids,
             relationship=GroupLink.Relationship.resolves,
             linked_type=GroupLink.LinkedType.pull_request,
             linked_id__in=pr_ids_by_merge_commit,
@@ -308,13 +314,17 @@ def update_group_resolutions(release, commit_author_by_commit):
             group.update(status=GroupStatus.RESOLVED, substatus=None)
             remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
             if should_create_resolution_activity:
+                activity_data: dict[str, Any] = {"version": release.version}
+                resolution_commit_id = commit_id_by_group.get(group_id)
+                if resolution_commit_id is not None:
+                    activity_data["commit"] = resolution_commit_id
                 Activity.objects.create(
                     project_id=group.project_id,
                     group=group,
                     type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                     user_id=actor.id if actor is not None else None,
                     ident=resolution.id,
-                    data={"version": release.version},
+                    data=activity_data,
                 )
             record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 

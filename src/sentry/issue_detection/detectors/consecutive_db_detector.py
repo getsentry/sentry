@@ -122,7 +122,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         evidence_data = {
             "op": "db",
             "cause_span_ids": cause_span_ids,
-            "parent_span_ids": None,
+            "parent_span_ids": [],
             "offender_span_ids": offender_span_ids,
             "transaction_name": self._event.get("transaction", ""),
             "span_evidence_key_value": [
@@ -150,7 +150,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             desc=query,  # TODO: figure out which query to use for description
             type=PerformanceConsecutiveDBQueriesGroupType,
             cause_span_ids=cause_span_ids,
-            parent_span_ids=None,
+            parent_span_ids=[],
             offender_span_ids=offender_span_ids,
             evidence_data=evidence_data,
             evidence_display=[

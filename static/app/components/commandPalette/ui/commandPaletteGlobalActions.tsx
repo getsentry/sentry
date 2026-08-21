@@ -50,7 +50,7 @@ import {
   IconTerminal,
   IconUser,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -75,7 +75,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
@@ -108,10 +108,12 @@ export function isNavItemVisible(
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
+import {FeatureFlagCommandPaletteActions} from './featureFlagCommandPaletteActions';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -322,7 +324,6 @@ export function GlobalCommandPaletteActions() {
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
   );
-  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
@@ -386,12 +387,22 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/explore/metrics/`}
             />
           )}
-          {organization.features.includes('explore-errors') && (
-            <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
-          )}
+          {organization.features.includes('explore-errors') &&
+            !getDiscoverDeprecation(organization) && (
+              <CMDKAction
+                display={{label: t('Errors')}}
+                to={`${prefix}/explore/errors-v2/`}
+              />
+            )}
           <CMDKAction
-            display={{label: t('Discover')}}
-            to={`${prefix}/explore/discover/homepage/`}
+            display={{
+              label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+            }}
+            to={
+              getDiscoverDeprecation(organization)
+                ? `${prefix}/explore/errors/homepage/`
+                : `${prefix}/explore/discover/homepage/`
+            }
           />
           {organization.features.includes('profiling') && (
             <CMDKAction
@@ -414,8 +425,8 @@ export function GlobalCommandPaletteActions() {
           />
           {organization.features.includes('gen-ai-conversations') && (
             <CMDKAction
-              display={{label: t('Conversations')}}
-              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/?referrer=cmdk`}
+              display={{label: t('Agents')}}
+              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
             />
           )}
           <CMDKAction
@@ -432,16 +443,8 @@ export function GlobalCommandPaletteActions() {
         </CMDKAction>
 
         <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
-          {hasPrebuiltDashboards && (
-            <CMDKAction
-              display={{label: t('Dashboards')}}
-              to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
-            />
-          )}
           <CMDKAction
-            display={{
-              label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
-            }}
+            display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
           />
           {hasPrebuiltDashboards && (
@@ -465,7 +468,7 @@ export function GlobalCommandPaletteActions() {
             </CMDKAction>
           )}
           <CMDKAction
-            display={{label: t('All Dashboards'), icon: <IconSearch />}}
+            display={{label: t('Search Dashboards'), icon: <IconSearch />}}
             prompt={t('Search for a dashboard...')}
             limit={5}
             resource={query =>
@@ -490,110 +493,88 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         </CMDKAction>
 
-        {/* Hide the entire Insights section only when both migrations are active.
-            During partial rollout, individual items are gated: domain links
-            (Frontend, Backend, etc.) by insights-to-dashboards-ui-rollout,
-            and Crons/Uptime by workflow-engine-ui. */}
-        {organization.features.includes('performance-view') &&
-          !(hasInsightsRollout && hasWorkflowEngineUI) && (
-            <CMDKAction
-              display={{
-                label: t('Insights'),
-                icon: <IconGraph type="area" />,
-              }}
-              limit={4}
-            >
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Frontend')}}
-                  keywords={[t('apdex'), t('web vitals'), t('performance score')]}
-                  to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Backend')}}
-                  to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Mobile')}}
-                  to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Agents')}}
-                  to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('MCP')}}
-                  to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasWorkflowEngineUI && (
-                <CMDKAction
-                  display={{label: t('Crons')}}
-                  keywords={[t('jobs'), t('cron jobs')]}
-                  to={`${prefix}/insights/crons/`}
-                />
-              )}
-              {organization.features.includes('uptime') && !hasWorkflowEngineUI && (
-                <CMDKAction
-                  display={{label: t('Uptime')}}
-                  keywords={[t('uptime monitors')]}
-                  to={`${prefix}/insights/uptime/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Projects')}}
-                  to={`${prefix}/insights/projects/`}
-                />
-              )}
-            </CMDKAction>
-          )}
-
-        {hasWorkflowEngineUI && (
-          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
-            <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
-            <CMDKAction
-              display={{label: t('My Monitors')}}
-              to={`${prefix}/monitors/my-monitors/`}
-            />
-            <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
-            <CMDKAction
-              display={{label: t('Metric')}}
-              to={`${prefix}/monitors/metrics/`}
-            />
-            <CMDKAction
-              display={{label: t('Cron')}}
-              keywords={[t('jobs'), t('cron jobs')]}
-              to={`${prefix}/monitors/crons/`}
-            />
-            {organization.features.includes('uptime') && (
+        {/* Hide the Insights section once the insights-to-dashboards migration
+            is active; Crons and Uptime now live under the Monitors section. */}
+        {organization.features.includes('performance-view') && !hasInsightsRollout && (
+          <CMDKAction
+            display={{
+              label: t('Insights'),
+              icon: <IconGraph type="area" />,
+            }}
+            limit={4}
+          >
+            {!hasInsightsRollout && (
               <CMDKAction
-                display={{label: t('Uptime')}}
-                keywords={[t('uptime monitors'), t('monitors')]}
-                to={`${prefix}/monitors/uptime/`}
+                display={{label: t('Frontend')}}
+                keywords={[t('apdex'), t('web vitals'), t('performance score')]}
+                to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
               />
             )}
-            {organization.features.includes('preprod-size-monitors-frontend') && (
+            {!hasInsightsRollout && (
               <CMDKAction
-                display={{label: t('Mobile Build')}}
-                to={`${prefix}/monitors/mobile-builds/`}
+                display={{label: t('Backend')}}
+                to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
               />
             )}
-            <CMDKAction
-              display={{label: t('Alerts')}}
-              keywords={[t('alert rules'), t('issue alert')]}
-              to={`${prefix}/monitors/alerts/`}
-            />
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Mobile')}}
+                to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Agents')}}
+                to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('MCP')}}
+                to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Projects')}}
+                to={`${prefix}/insights/projects/`}
+              />
+            )}
           </CMDKAction>
         )}
+
+        <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
+          <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
+          <CMDKAction
+            display={{label: t('My Monitors')}}
+            to={`${prefix}/monitors/my-monitors/`}
+          />
+          <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
+          <CMDKAction display={{label: t('Metric')}} to={`${prefix}/monitors/metrics/`} />
+          <CMDKAction
+            display={{label: t('Cron')}}
+            keywords={[t('jobs'), t('cron jobs')]}
+            to={`${prefix}/monitors/crons/`}
+          />
+          {organization.features.includes('uptime') && (
+            <CMDKAction
+              display={{label: t('Uptime')}}
+              keywords={[t('uptime monitors'), t('monitors')]}
+              to={`${prefix}/monitors/uptime/`}
+            />
+          )}
+          {organization.features.includes('preprod-size-monitors-frontend') && (
+            <CMDKAction
+              display={{label: t('Mobile Build')}}
+              to={`${prefix}/monitors/mobile-builds/`}
+            />
+          )}
+          <CMDKAction
+            display={{label: t('Alerts')}}
+            keywords={[t('alert rules'), t('issue alert')]}
+            to={`${prefix}/monitors/alerts/`}
+          />
+        </CMDKAction>
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
           {visibleOrgSettingsNavItems.map(item => (
@@ -720,7 +701,6 @@ export function GlobalCommandPaletteActions() {
                   // some orgs have thousands of projects.
                   // `params.projectId`/`queryProjectIds` bust the cache when
                   // the active project changes (affects "Current" tag display).
-                  // eslint-disable-next-line @tanstack/query/exhaustive-deps
                   cmdkQueryOptions({
                     queryKey: [
                       'project-settings',
@@ -756,6 +736,7 @@ export function GlobalCommandPaletteActions() {
 
       {user.isStaff && (
         <CMDKAction display={{label: t('Admin')}}>
+          <FeatureFlagCommandPaletteActions />
           <CMDKAction
             display={{label: t('Open _admin'), icon: <IconOpen />}}
             keywords={[t('superuser')]}
@@ -976,7 +957,6 @@ export function GlobalCommandPaletteActions() {
           // TanStack serializes the entire key for cache lookups, and
           // including the full projects array would be too costly —
           // some orgs have thousands of projects.
-
           cmdkQueryOptions({
             queryKey: [
               'cmdk-project-nav',
@@ -984,8 +964,8 @@ export function GlobalCommandPaletteActions() {
               projects.map(p => p.slug).join(','),
             ],
             queryFn: () =>
-              [...projects]
-                .sort((a, b) => a.slug.localeCompare(b.slug))
+              projects
+                .toSorted((a, b) => a.slug.localeCompare(b.slug))
                 .map(project => ({
                   display: {
                     label: project.slug,
@@ -1116,6 +1096,16 @@ export function GlobalCommandPaletteActions() {
               '_blank',
               'noreferrer'
             );
+          }}
+        />
+      )}
+
+      {(NODE_ENV === 'development' || user.isStaff) && (
+        <CMDKAction
+          display={{label: t('Toggle Translation Markers'), icon: <IconFlag />}}
+          keywords={['locale', 'debug', 'i18n', 'translation', 'markers']}
+          onAction={() => {
+            toggleLocaleDebug();
           }}
         />
       )}

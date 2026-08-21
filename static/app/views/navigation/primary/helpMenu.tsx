@@ -1,15 +1,17 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
+  IconBroadcast,
   IconBuilding,
   IconDiscord,
   IconDocs,
   IconEllipsis,
   IconGithub,
-  IconGlobe,
   IconGroup,
   IconMegaphone,
   IconOpen,
@@ -26,24 +28,32 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  NavigationTourReminder,
-  useNavigationTour,
-} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {
+  useWhatsNewBroadcasts,
+  WhatsNewContent,
+} from 'sentry/views/navigation/primary/whatsNew';
 
-export function PrimaryNavigationHelpMenu() {
+interface PrimaryNavigationHelpMenuProps {
+  additionalItems?: MenuItemProps[];
+  indicator?: 'accent' | 'danger' | 'warning';
+}
+
+export function PrimaryNavigationHelpMenu({
+  additionalItems = [],
+  indicator,
+}: PrimaryNavigationHelpMenuProps = {}) {
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const {startTour} = useNavigationTour();
 
   useEffect(() => {
     trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
   }, [organization]);
 
   const items: MenuItemProps[] = [
+    ...additionalItems,
     {
       key: 'resources',
       label: t('Resources'),
@@ -189,23 +199,11 @@ export function PrimaryNavigationHelpMenu() {
           onAction() {
             openForm?.({
               tags: {
-                ['feedback.source']: 'navigation_sidebar',
+                'feedback.source': 'navigation_sidebar',
               },
             });
           },
           hidden: !openForm,
-        },
-        {
-          key: 'tour',
-          label: t('Tour the new navigation'),
-          leadingItems: (
-            <MenuIcon>
-              <IconGlobe />
-            </MenuIcon>
-          ),
-          onAction() {
-            startTour();
-          },
         },
       ],
     },
@@ -213,13 +211,44 @@ export function PrimaryNavigationHelpMenu() {
 
   return (
     <PrimaryNavigation.Menu
-      triggerWrap={NavigationTourReminder}
       items={items}
       analyticsKey="help"
       label={t('Help')}
       icon={<IconEllipsis />}
+      indicator={indicator}
     />
   );
+}
+
+export function useWhatsNewHelpMenuItem(): PrimaryNavigationHelpMenuProps {
+  const {unseenPostIds} = useWhatsNewBroadcasts();
+
+  return {
+    additionalItems: [
+      {
+        key: 'whats-new',
+        label: t("What's New"),
+        leadingItems: (
+          <MenuIcon>
+            <IconBroadcast />
+          </MenuIcon>
+        ),
+        onAction() {
+          openModal(({Header, Body}) => (
+            <Fragment>
+              <Header closeButton>{t("What's New")}</Header>
+              <Body>
+                <ErrorBoundary customComponent={null}>
+                  <WhatsNewContent />
+                </ErrorBoundary>
+              </Body>
+            </Fragment>
+          ));
+        },
+      },
+    ],
+    indicator: unseenPostIds.length > 0 ? 'accent' : undefined,
+  };
 }
 
 function getContactSupportItem(organization: Organization): MenuItemProps | null {

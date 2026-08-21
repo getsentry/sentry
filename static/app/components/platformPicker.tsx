@@ -55,17 +55,17 @@ export type Platform = PlatformIntegration & {
 interface PlatformPickerProps {
   setPlatform: (props: Platform | null) => void;
   defaultCategory?: Category;
-  listClassName?: string;
-  listProps?: React.HTMLAttributes<HTMLDivElement>;
   loading?: boolean;
-  modal?: boolean;
-  navClassName?: string;
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
-  showFilterBar?: boolean;
   showOther?: boolean;
   source?: string;
+  /**
+   * For project-creation picker events, `source` identifies the flow and `variant`
+   * identifies the SCM or legacy experience.
+   */
+  variant?: 'scm' | 'legacy';
   /**
    * When `false`, hides the close button and does not display a custom background color.
    */
@@ -77,14 +77,11 @@ export function PlatformPicker({
   noAutoFilter,
   platform,
   setPlatform,
-  listProps,
-  listClassName,
-  navClassName,
   organization,
   source,
+  variant,
   visibleSelection = true,
   loading = false,
-  showFilterBar = true,
   showOther = true,
 }: PlatformPickerProps) {
   const {isSelfHosted} = useLegacyStore(ConfigStore);
@@ -155,12 +152,20 @@ export function PlatformPicker({
     filter,
     platformList,
     source,
+    variant,
     organization,
     category,
   });
 
   useEffect(() => {
-    latestValuesRef.current = {filter, platformList, source, organization, category};
+    latestValuesRef.current = {
+      filter,
+      platformList,
+      source,
+      variant,
+      organization,
+      category,
+    };
   });
 
   const debounceSearch = useRef(
@@ -169,6 +174,7 @@ export function PlatformPicker({
         filter: currentFilter,
         platformList: currentPlatformList,
         source: currentSource,
+        variant: currentVariant,
         organization: currentOrganization,
         category: currentCategory,
       } = latestValuesRef.current;
@@ -180,6 +186,7 @@ export function PlatformPicker({
         search: currentFilter.toLowerCase(),
         num_results: currentPlatformList.length,
         source: currentSource,
+        variant: currentVariant,
         organization: currentOrganization ?? null,
       });
 
@@ -201,7 +208,7 @@ export function PlatformPicker({
 
   return (
     <Fragment>
-      <NavContainer className={navClassName}>
+      <NavContainer>
         <Container marginBottom="xl">
           <Tabs
             value={category}
@@ -209,6 +216,7 @@ export function PlatformPicker({
               trackAnalytics('growth.platformpicker_category', {
                 category: val,
                 source,
+                variant,
                 organization: organization ?? null,
               });
               setCategory(val);
@@ -222,19 +230,17 @@ export function PlatformPicker({
             </TabList>
           </Tabs>
         </Container>
-        {showFilterBar && (
-          <StyledSearchBar
-            size="sm"
-            query={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={val => {
-              setFilter(val);
-              debounceSearch();
-            }}
-          />
-        )}
+        <StyledSearchBar
+          size="sm"
+          query={filter}
+          placeholder={t('Filter Platforms')}
+          onChange={val => {
+            setFilter(val);
+            debounceSearch();
+          }}
+        />
       </NavContainer>
-      <PlatformList className={listClassName} {...listProps}>
+      <PlatformList>
         {platformList.map(item => {
           return (
             <div key={item.id} style={{position: 'relative'}}>
@@ -251,7 +257,9 @@ export function PlatformPicker({
                 onClick={() => {
                   trackAnalytics('growth.select_platform', {
                     platform_id: item.id,
+                    selection_source: 'manual',
                     source,
+                    variant,
                     organization: organization ?? null,
                   });
 

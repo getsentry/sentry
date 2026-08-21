@@ -1,0 +1,69 @@
+---
+title: AssistantActions
+description: Thumbs up/down feedback and a copy button for an agent's response.
+category: chat
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/assistantActions.tsx
+---
+
+import {AssistantActions} from '@sentry/scraps/chat';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chat/assistantActions');
+
+The `AssistantActions` renders the action bar for an agent's response: thumbs
+up/down feedback and a copy button.
+
+It is presentation only. It reports votes through `onFeedback` and copies
+through `onCopy`, and holds no submitted state — the caller decides what a vote
+means, what to copy, and owns any analytics or persistence. Placement and
+hover-reveal are the caller's responsibility via the forwarded `ButtonBar`
+props.
+
+## With copy button
+
+Pass `copyText` to show the copy button alongside feedback.
+
+<Storybook.Demo>
+  <AssistantActions onFeedback={() => {}} copyText="The agent response." />
+</Storybook.Demo>
+
+```jsx
+<AssistantActions
+  onFeedback={feedback => recordFeedback(feedback)}
+  copyText={response}
+  onCopy={() => trackCopy()}
+/>
+```
+
+## Without copy button
+
+Omit `copyText` (or leave it empty) to render feedback only.
+
+<Storybook.Demo>
+  <AssistantActions onFeedback={() => {}} />
+</Storybook.Demo>
+
+```jsx
+<AssistantActions onFeedback={recordFeedback} />
+```
+
+## Disabled
+
+Set `feedbackDisabled` once a vote has been recorded to lock both feedback
+buttons and switch their tooltip to a submitted state. Hover a thumb to see the
+"Feedback submitted" tooltip.
+
+<Storybook.Demo>
+  <AssistantActions
+    onFeedback={() => {}}
+    feedbackDisabled
+    copyText="The agent response."
+  />
+</Storybook.Demo>
+
+```jsx
+<AssistantActions onFeedback={recordFeedback} feedbackDisabled copyText={response} />
+```

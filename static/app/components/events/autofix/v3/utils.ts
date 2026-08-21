@@ -1,3 +1,4 @@
+import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   isCodeChangesArtifact,
@@ -150,13 +151,9 @@ function repoPRStatesToMarkdown(
 
   parts.push(
     ...artifact
-      .map(pullRequest => {
-        if (!pullRequest.pr_url || !pullRequest.pr_number) {
-          return null;
-        }
-        return `[${pullRequest.repo_name}#${pullRequest.pr_number}](${pullRequest.pr_url})`;
-      })
+      .map(getRepoPullRequestLink)
       .filter(defined)
+      .map(link => `[${link.repoName}#${link.prNumber}](${link.url})`)
   );
 
   return parts.join('\n');

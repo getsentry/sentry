@@ -1,11 +1,13 @@
+import {skipToken, useQuery, type UseQueryOptions} from '@tanstack/react-query';
+
 import type {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import type {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types/group';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -77,8 +79,9 @@ export function saveRecentSearch(
   return promise;
 }
 
-function makeRecentSearchesQueryKey({
+function recentSearchesApiOptions({
   limit,
+  namespace,
   orgSlug,
   savedSearchType,
   query,
@@ -86,19 +89,34 @@ function makeRecentSearchesQueryKey({
   limit: number;
   orgSlug: string;
   savedSearchType: SavedSearchType | null;
+  namespace?: string;
   query?: string;
-}): ApiQueryKey {
-  return [
-    getRecentSearchUrl(orgSlug),
-    {
-      query: {
-        query,
-        type: savedSearchType,
-        limit,
-      },
-    },
-  ];
+}) {
+  return {
+    ...apiOptions.as<RecentSearch[]>()(
+      '/organizations/$organizationIdOrSlug/recent-searches/',
+      {
+        path: savedSearchType === null ? skipToken : {organizationIdOrSlug: orgSlug},
+        query: {
+          query: encodeNamespacedRecentSearch(namespace, query),
+          type: savedSearchType,
+          limit,
+        },
+        staleTime: 0,
+      }
+    ),
+    select: ({json}: ApiResponse<RecentSearch[]>) =>
+      json.map(search => ({
+        ...search,
+        query: decodeNamespacedRecentSearch(namespace, search.query),
+      })),
+  };
 }
+
+type RecentSearchesQueryOptions = Omit<
+  UseQueryOptions<ApiResponse<RecentSearch[]>, Error, RecentSearch[], ApiQueryKey>,
+  'queryKey' | 'queryFn' | 'select'
+>;
 
 export function useFetchRecentSearches(
   {
@@ -112,29 +130,18 @@ export function useFetchRecentSearches(
     namespace?: string;
     query?: string;
   },
-  options: Partial<UseApiQueryOptions<RecentSearch[]>> = {}
+  options: RecentSearchesQueryOptions = {}
 ) {
   const organization = useOrganization();
 
-  const response = useApiQuery<RecentSearch[]>(
-    makeRecentSearchesQueryKey({
+  return useQuery({
+    ...recentSearchesApiOptions({
       limit,
+      namespace,
       orgSlug: organization.slug,
-      query: encodeNamespacedRecentSearch(namespace, query),
+      query,
       savedSearchType,
     }),
-    {
-      staleTime: 0,
-      enabled: defined(savedSearchType),
-      ...options,
-    }
-  );
-
-  return {
-    ...response,
-    data: response.data?.map(search => ({
-      ...search,
-      query: decodeNamespacedRecentSearch(namespace, search.query),
-    })),
-  };
+    ...options,
+  });
 }

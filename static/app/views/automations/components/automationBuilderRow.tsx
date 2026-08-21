@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
@@ -13,6 +13,7 @@ interface RowProps {
   onDelete: () => void;
   errorMessage?: string;
   hasError?: boolean;
+  hideDeleteButton?: boolean;
   warningMessages?: string[];
 }
 
@@ -21,20 +22,23 @@ export function AutomationBuilderRow({
   children,
   hasError,
   errorMessage,
+  hideDeleteButton,
   warningMessages = [],
 }: RowProps) {
   return (
-    <Flex direction="column" gap="xs">
+    <Stack gap="xs">
       <RowContainer incompatible={hasError}>
         <RowLine>{children}</RowLine>
-        <DeleteButton
-          aria-label={t('Delete row')}
-          size="sm"
-          icon={<IconDelete />}
-          variant="transparent"
-          onClick={onDelete}
-          className="delete-row"
-        />
+        {!hideDeleteButton && (
+          <DeleteButton
+            aria-label={t('Delete row')}
+            size="sm"
+            icon={<IconDelete />}
+            variant="transparent"
+            onClick={onDelete}
+            className="delete-row"
+          />
+        )}
       </RowContainer>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       {warningMessages.length > 0 && (
@@ -51,7 +55,7 @@ export function AutomationBuilderRow({
           {t('This action is incompatible with the current configuration.')}
         </Alert>
       )}
-    </Flex>
+    </Stack>
   );
 }
 

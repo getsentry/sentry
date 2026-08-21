@@ -26,6 +26,7 @@ import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountFo
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
@@ -115,7 +116,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const activeThreadId = useActiveThreadId();
 
   // Get data for markdown copy functionality
-  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
+  const {runState: autofixData, autofixFormatted} = useExplorerAutofix(group, {
+    enabled: false,
+  });
 
   const handleCopyMarkdown = useCallback(() => {
     const markdownText = issueAndEventToMarkdown({
@@ -124,6 +127,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       autofixData,
       activeThreadId,
       organization,
+      autofixFormatted,
     });
 
     trackAnalytics('issue_details.copy_issue_details_as_markdown', {
@@ -134,7 +138,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     });
 
     return markdownText;
-  }, [activeThreadId, event, group, autofixData, organization]);
+  }, [activeThreadId, event, group, autofixData, organization, autofixFormatted]);
 
   return (
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
@@ -337,13 +341,19 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                           sort: location.query.sort ?? '-timestamp',
                         },
                       }}
-                      aria-label={t('Open in Discover')}
+                      aria-label={
+                        getDiscoverDeprecation(organization)
+                          ? t('Open in Explore')
+                          : t('Open in Discover')
+                      }
                       size="xs"
                       icon={<IconTelescope />}
                       analyticsEventKey="issue_details.discover_clicked"
                       analyticsEventName="Issue Details: Discover Clicked"
                     >
-                      {t('Open in Discover')}
+                      {getDiscoverDeprecation(organization)
+                        ? t('Open in Explore')
+                        : t('Open in Discover')}
                     </LinkButton>
                   )}
                   <LinkButton

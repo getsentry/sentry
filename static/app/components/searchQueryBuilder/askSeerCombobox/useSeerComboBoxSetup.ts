@@ -9,7 +9,7 @@ import {
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import type {DateString} from 'sentry/types/core';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
 import {parseTraceMetricFromQuery} from 'sentry/views/explore/metrics/utils';
@@ -23,7 +23,7 @@ import type {
   SeerRawResponse,
   SeerRawResponseItem,
 } from './types';
-import {getExpandedProjectIds} from './utils';
+import {getExpandedProjectIds, normalizeSeerDateTimeParams} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
@@ -235,25 +235,33 @@ export function buildSeerDateTimeSelection(
   resultStart: string | null,
   resultEnd: string | null,
   statsPeriod: string,
-  pageFiltersDatetime: PageFilters['datetime']
+  pageFiltersDatetime: PageFilterDatetime
 ): SeerDateTimeSelection {
-  let start: DateString = null;
-  let end: DateString = null;
+  const normalized = normalizeSeerDateTimeParams({
+    start: resultStart,
+    end: resultEnd,
+    statsPeriod,
+  });
 
-  if (resultStart && resultEnd) {
-    start = getUtcDateString(resultStart);
-    end = getUtcDateString(resultEnd);
-  } else {
-    start = pageFiltersDatetime.start;
-    end = pageFiltersDatetime.end;
+  if (normalized.statsPeriod) {
+    return {
+      start: null,
+      end: null,
+      period: normalized.statsPeriod,
+      utc: null,
+    };
   }
 
-  return {
-    start,
-    end,
-    // Seer returns absolute ranges as UTC, so display them in UTC to match the
-    // suggestion preview the user accepted.
-    utc: resultStart && resultEnd ? true : pageFiltersDatetime.utc,
-    period: resultStart && resultEnd ? null : statsPeriod || pageFiltersDatetime.period,
-  };
+  if (normalized.start && normalized.end) {
+    return {
+      start: getUtcDateString(normalized.start),
+      end: getUtcDateString(normalized.end),
+      period: null,
+      // Seer returns absolute ranges as UTC, so display them in UTC to match
+      // the suggestion preview the user accepted.
+      utc: true,
+    };
+  }
+
+  return {...pageFiltersDatetime};
 }

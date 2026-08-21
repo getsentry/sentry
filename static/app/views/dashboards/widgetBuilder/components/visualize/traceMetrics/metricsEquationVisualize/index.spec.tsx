@@ -54,11 +54,7 @@ jest.mock('sentry/views/explore/metrics/hooks/useStableLabels', () => {
 
 const mockedUseNavigate = jest.mocked(useNavigate);
 
-const EQUATION_FEATURES = [
-  'tracemetrics-enabled',
-  'tracemetrics-equations-in-dashboards',
-  'tracemetrics-equations-in-explore',
-];
+const EQUATION_FEATURES = ['tracemetrics-enabled'];
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
@@ -75,14 +71,14 @@ function setupMockApis() {
     body: {
       data: [
         {
-          ['metric.name']: 'alpha_metric',
-          ['metric.type']: 'counter',
-          ['count(metric.name)']: 1,
+          'metric.name': 'alpha_metric',
+          'metric.type': 'counter',
+          'count(metric.name)': 1,
         },
         {
-          ['metric.name']: 'beta_metric',
-          ['metric.type']: 'counter',
-          ['count(metric.name)']: 1,
+          'metric.name': 'beta_metric',
+          'metric.type': 'counter',
+          'count(metric.name)': 1,
         },
       ],
     },

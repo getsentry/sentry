@@ -5,7 +5,8 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
@@ -22,6 +23,8 @@ export function ExploreSecondaryNavigation() {
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
+
+  const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
 
   return (
     <Fragment>
@@ -65,8 +68,8 @@ export function ExploreSecondaryNavigation() {
             <Feature features="organizations:explore-errors">
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/errors/`}
-                  activeTo={`${baseUrl}/errors/`}
+                  to={`${baseUrl}/errors-v2/`}
+                  activeTo={`${baseUrl}/errors-v2/`}
                   analyticsItemName="explore_errors"
                   trailingItems={<FeatureBadge type="alpha" />}
                 >
@@ -80,11 +83,19 @@ export function ExploreSecondaryNavigation() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/discover/homepage/`}
-                  activeTo={`${baseUrl}/discover/`}
+                  to={
+                    discoverTransactionsDeprecation
+                      ? `${baseUrl}/errors/homepage/`
+                      : `${baseUrl}/discover/homepage/`
+                  }
+                  activeTo={
+                    discoverTransactionsDeprecation
+                      ? `${baseUrl}/errors/`
+                      : `${baseUrl}/discover/`
+                  }
                   analyticsItemName="explore_discover"
                 >
-                  {t('Discover')}
+                  {discoverTransactionsDeprecation ? t('Errors') : t('Discover')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
@@ -117,6 +128,10 @@ export function ExploreSecondaryNavigation() {
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/releases/`}
+                activeTo={[
+                  `${baseUrl}/releases/`,
+                  `/organizations/${organization.slug}/preprod/`,
+                ]}
                 analyticsItemName="explore_releases"
               >
                 {t('Releases')}
@@ -127,16 +142,33 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
                   to={{
-                    pathname: `${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`,
+                    pathname: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
                   trailingItems={<FeatureBadge type="beta" />}
                 >
-                  {t('Conversations')}
+                  {t('Agents')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
+            {organization.openMembership && (
+              <Feature features="organizations:investigations">
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/investigations/`}
+                    activeTo={[
+                      `${baseUrl}/investigations/`,
+                      `/organizations/${organization.slug}/seer/investigation/`,
+                    ]}
+                    analyticsItemName="explore_investigations"
+                    trailingItems={<FeatureBadge type="beta" />}
+                  >
+                    {t('Investigations')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </Feature>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>

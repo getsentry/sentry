@@ -1,5 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
@@ -20,28 +18,6 @@ const basePermissions: Permissions = {
 describe('Resource Subscriptions', () => {
   describe('initial no-access permissions', () => {
     it('renders disabled checkbox with no issue permission', () => {
-      const org = OrganizationFixture({features: ['preprod-artifact-webhooks']});
-      render(
-        <Form>
-          <Subscriptions
-            events={[]}
-            permissions={{...basePermissions, Event: 'no-access'}}
-            onChange={jest.fn()}
-          />
-        </Form>,
-        {organization: org}
-      );
-
-      expect(screen.getAllByRole('checkbox')).toHaveLength(5);
-      expect(screen.getByRole('checkbox', {name: 'issue'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'error'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'comment'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'seer'})).toBeDisabled();
-      // preprod_artifact requires Project permission which is 'write' here, so it's enabled
-      expect(screen.getByRole('checkbox', {name: 'preprod_artifact'})).toBeEnabled();
-    });
-
-    it('hides preprod_artifact checkbox without preprod-artifact-webhooks flag', () => {
       render(
         <Form>
           <Subscriptions
@@ -52,10 +28,12 @@ describe('Resource Subscriptions', () => {
         </Form>
       );
 
-      expect(screen.getAllByRole('checkbox')).toHaveLength(4);
-      expect(
-        screen.queryByRole('checkbox', {name: 'preprod_artifact'})
-      ).not.toBeInTheDocument();
+      expect(screen.getByRole('checkbox', {name: 'issue'})).toBeDisabled();
+      expect(screen.getByRole('checkbox', {name: 'error'})).toBeDisabled();
+      expect(screen.getByRole('checkbox', {name: 'comment'})).toBeDisabled();
+      expect(screen.getByRole('checkbox', {name: 'seer'})).toBeDisabled();
+      // preprod_artifact requires Project permission which is 'write' here, so it's enabled
+      expect(screen.getByRole('checkbox', {name: 'preprod_artifact'})).toBeEnabled();
     });
 
     it('updates events state when new permissions props is passed', () => {
@@ -72,10 +50,6 @@ describe('Resource Subscriptions', () => {
   });
 
   describe('granular event subscriptions', () => {
-    const organization = OrganizationFixture({
-      features: ['sentry-apps-granular-events'],
-    });
-
     function renderSubscriptions(
       events: WebhookSubscription[],
       permissions: Permissions = basePermissions
@@ -84,8 +58,7 @@ describe('Resource Subscriptions', () => {
       render(
         <Form>
           <Subscriptions events={events} permissions={permissions} onChange={onChange} />
-        </Form>,
-        {organization}
+        </Form>
       );
       return onChange;
     }
@@ -143,7 +116,7 @@ describe('Resource Subscriptions', () => {
       render(
         <Form>
           <Subscriptions
-            events={['issue']}
+            events={['issue.created']}
             permissions={basePermissions}
             onChange={jest.fn()}
           />
@@ -159,7 +132,7 @@ describe('Resource Subscriptions', () => {
       render(
         <Form>
           <Subscriptions
-            events={['issue']}
+            events={['issue.created']}
             permissions={{...basePermissions, Event: 'no-access'}}
             onChange={jest.fn()}
           />

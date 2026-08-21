@@ -260,8 +260,10 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
-    '\\.(css|less|png|gif|jpg|woff|mp4)$':
+    '\\.(css|less|png|gif|jpg|avif|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
+    '^sentry/stories/storyManifest\\.generated$':
+      '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^@sentry/scraps/(.*)': '<rootDir>/static/app/components/core/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
@@ -274,7 +276,7 @@ const config: Config.InitialOptions = {
 
     // Disable echarts in test, since they're very slow and take time to
     // transform
-    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+    '^echarts(?:/.*)?$': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
 
     // @sentry/sqlish is ESM-only with `exports` that only define `import`
@@ -288,7 +290,7 @@ const config: Config.InitialOptions = {
   },
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
-    '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
+    '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
@@ -299,6 +301,11 @@ const config: Config.InitialOptions = {
     ? testMatch
     : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  // Coding agents check out nested git worktrees under .claude/worktrees/, each a
+  // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
+  // mock in static/ collides with its copies and the file that ends up backing
+  // jest.mock() is decided by crawl order. Keep the module map to this checkout.
+  modulePathIgnorePatterns: ['<rootDir>/\\.claude/'],
 
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',

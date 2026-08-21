@@ -5,7 +5,7 @@ import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -49,32 +49,8 @@ export function AutofixStartCard({
   };
 
   return (
-    <Flex direction="column" gap="md">
-      <Flex
-        border="muted"
-        radius="md"
-        padding="lg"
-        gap="lg"
-        align="center"
-        justify="between"
-      >
-        <Container>
-          <Text>{t('Have Seer...')}</Text>
-          <Container as="ol" margin="0">
-            <li>{t('Determine the root cause of your issue')}</li>
-            <li>{t('Outline a plan')}</li>
-            <li>{t('Create a code fix')}</li>
-          </Container>
-        </Container>
-        <ImageContainer
-          justify="end"
-          align="center"
-          aspectRatio="9 / 16"
-          height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
-        >
-          <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
-        </ImageContainer>
-      </Flex>
+    <Stack gap="md">
+      <AutofixStartCardContent />
       <Button
         size="md"
         icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
@@ -88,6 +64,36 @@ export function AutofixStartCard({
       >
         {t('Start Analysis')}
       </Button>
+    </Stack>
+  );
+}
+
+export function AutofixStartCardContent() {
+  return (
+    <Flex
+      border="muted"
+      radius="md"
+      padding="lg"
+      gap="lg"
+      align="center"
+      justify="between"
+    >
+      <Container>
+        <Text>{t('Have Seer...')}</Text>
+        <Container as="ol" margin="0">
+          <li>{t('Determine the root cause of your issue')}</li>
+          <li>{t('Outline a plan')}</li>
+          <li>{t('Create a code fix')}</li>
+        </Container>
+      </Container>
+      <ImageContainer
+        justify="end"
+        align="center"
+        aspectRatio="9 / 16"
+        height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
+      >
+        <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
+      </ImageContainer>
     </Flex>
   );
 }

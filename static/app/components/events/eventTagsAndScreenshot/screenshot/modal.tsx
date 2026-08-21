@@ -5,13 +5,14 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Stack, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
-import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {webmMimeTypes} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
@@ -97,8 +98,9 @@ export function ScreenshotModal({
     };
   }
 
-  const AttachmentComponent =
-    getImageAttachmentRenderer(currentEventAttachment) ?? ImageViewer;
+  const AttachmentComponent = webmMimeTypes.includes(currentEventAttachment.mimetype)
+    ? VideoViewer
+    : ImageViewer;
 
   return (
     <Fragment>
@@ -106,7 +108,7 @@ export function ScreenshotModal({
         <h5>{t('Screenshot')}</h5>
       </Header>
       <Body>
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
             <AttachmentComponent
@@ -150,7 +152,7 @@ export function ScreenshotModal({
               },
             ]}
           />
-        </Flex>
+        </Stack>
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">

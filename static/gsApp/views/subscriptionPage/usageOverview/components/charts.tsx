@@ -1,4 +1,4 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {ChartControls, InlineContainer} from 'sentry/components/charts/styles';
@@ -131,7 +131,7 @@ export function UsageCharts({
         usagePeriodEnd={usageData.periodEnd}
         footer={renderFooter()}
       />
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <UsageTotalsTable
           category={category}
           subscription={subscription}
@@ -150,7 +150,7 @@ export function UsageCharts({
               />
             );
           })}
-      </Flex>
+      </Stack>
     </Container>
   );
 }

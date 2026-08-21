@@ -40,6 +40,7 @@ import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAuto
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 const DEFAULT_INITIAL_DATA = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,
@@ -68,12 +69,12 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
         <Alert variant="info">
           {t('This alert will only trigger on issues created by this monitor.')}
         </Alert>
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Stack gap="md">
             <AutomationBuilder />
           </Stack>
           <ActionThrottleSelectField />
-        </Flex>
+        </Stack>
         <EmbeddedTextField
           required
           name="name"

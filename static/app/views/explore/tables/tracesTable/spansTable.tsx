@@ -7,6 +7,7 @@ import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
@@ -16,6 +17,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useQueryParamsQuery} from 'sentry/views/explore//queryParams/context';
+import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {FIELDS, SORTS, type Field} from 'sentry/views/explore/tables/tracesTable/data';
@@ -55,6 +57,13 @@ export function SpanTable({trace}: {trace: TraceResult}) {
   });
 
   const spans = useMemo(() => data?.data ?? [], [data]);
+
+  const [caseInsensitive] = useCaseInsensitivity();
+
+  const highlightTerms = useMemo(
+    () => getBodySearchTerms(new MutableSearch(query), 'span.description'),
+    [query]
+  );
 
   const showErrorState = useMemo(() => {
     return !isPending && isError;
@@ -99,6 +108,8 @@ export function SpanTable({trace}: {trace: TraceResult}) {
               key={span.id}
               span={span}
               trace={trace}
+              highlightTerms={highlightTerms}
+              caseSensitiveHighlighting={!caseInsensitive}
             />
           ))}
           {hasData && spans.length < trace.matchingSpans && (
@@ -120,7 +131,11 @@ function SpanRow({
   organization,
   span,
   trace,
+  highlightTerms,
+  caseSensitiveHighlighting,
 }: {
+  caseSensitiveHighlighting: boolean;
+  highlightTerms: string[];
   organization: Organization;
   span: SpanResult<Field>;
   trace: TraceResult;
@@ -146,7 +161,11 @@ function SpanRow({
         />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="left" overflow>
-        <SpanDescriptionRenderer span={span} />
+        <SpanDescriptionRenderer
+          span={span}
+          highlightTerms={highlightTerms}
+          caseSensitiveHighlighting={caseSensitiveHighlighting}
+        />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right">
         <TraceBreakdownContainer>

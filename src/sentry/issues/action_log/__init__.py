@@ -14,12 +14,14 @@ from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
+    GroupActorType,
 )
 
 __all__ = [
     "ActionContext",
     "ActionSource",
     "GroupActionActor",
+    "GroupActorType",
     "SYSTEM_ACTOR",
     "action_context_scope",
     "get_action_context",

@@ -26,11 +26,13 @@ interface DragNDropContextProps<T> {
   }) => React.ReactNode;
   columns: T[];
   setColumns: (columns: T[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
+  canReorder?: (oldIndex: number, newIndex: number) => boolean;
 }
 
 export function DragNDropContext<T>({
   columns,
   setColumns,
+  canReorder,
   children,
 }: DragNDropContextProps<T>) {
   const {
@@ -42,6 +44,7 @@ export function DragNDropContext<T>({
   } = useDragNDropColumns({
     columns,
     setColumns,
+    canReorder,
   });
 
   const sensors = useSensors(

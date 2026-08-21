@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength, hasPerformance} from 'getsentry/utils/billing';
+import {getTrialLength, hasPerformance, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {FeatureList} from './featureList';
@@ -45,11 +45,6 @@ type Props = {
    */
   source: string;
   subscription: Subscription;
-
-  /**
-   * Show specific content related to a trial being rest
-   */
-  showTrialResetContent?: boolean;
 };
 
 type State = {
@@ -290,20 +285,9 @@ export class Details extends Component<Props, State> {
   };
 
   get sentences() {
-    const {subscription, showTrialResetContent} = this.props;
-    // special logic if the trial was reset
-    if (showTrialResetContent) {
-      return [
-        t(
-          'Here’s another free 14-day trial of the Sentry Business Plan, because we believe in second chances.'
-        ),
-        t(
-          'Your Sentry organization is perfect just the way it is, but try out all the Business Plan features to make it even better.'
-        ),
-      ];
-    }
+    const {subscription} = this.props;
 
-    return subscription.isTrial
+    return isTrial(subscription)
       ? // If the subscription already has performance
         hasPerformance(subscription.planDetails)
         ? [
@@ -367,13 +351,8 @@ export class Details extends Component<Props, State> {
   }
 
   get cta() {
-    const {subscription, organization, showTrialResetContent} = this.props;
-    if (showTrialResetContent) {
-      return t(
-        'Start your trial again to invite team members, integrate with Sentry with services like Slack, GitHub, and Jira, and build custom dashboards to view issues across projects.'
-      );
-    }
-    return subscription.canTrial && !subscription.isTrial
+    const {subscription, organization} = this.props;
+    return subscription.canTrial && !isTrial(subscription)
       ? t(
           'Enable all power features by starting your %s day trial',
           getTrialLength(organization)
@@ -398,7 +377,7 @@ export class Details extends Component<Props, State> {
   }
 
   render() {
-    const {subscription, organization, showTrialResetContent} = this.props;
+    const {subscription, organization} = this.props;
     const highlightedFeature = this.highlightedFeature;
     const orgSub = {organization, subscription};
 
@@ -432,7 +411,6 @@ export class Details extends Component<Props, State> {
           organization={organization}
           onCloseModal={this.props.onCloseModal}
           source={this.props.source}
-          showTrialResetContent={showTrialResetContent}
         />
       </Fragment>
     );

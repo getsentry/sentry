@@ -214,6 +214,7 @@ export function ReleaseComparisonChart({
               'event.type:error',
               `release:${release.version}`,
             ]).formatString(),
+            dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
         }),
@@ -221,6 +222,7 @@ export function ReleaseComparisonChart({
           query: {
             field: ['count()'],
             query: new MutableSearch(['event.type:error']).formatString(),
+            dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
         }),
@@ -1162,16 +1164,23 @@ const Change = styled('div')<{color?: string}>`
 const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  grid-template-columns: minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${p =>
-      p.withExpanders ? '75px' : ''};
+
+  && {
+    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
+        p.withExpanders ? '75px' : ''};
+  }
+
+  @container (min-width: ${p => p.theme.container['4xl']}) {
+    && {
+      grid-template-columns: minmax(400px, auto) repeat(
+          3,
+          minmax(min-content, 1fr)
+        ) ${p => (p.withExpanders ? '75px' : '')};
+    }
+  }
 
   > * {
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
-        p.withExpanders ? '75px' : ''};
   }
 `;
 

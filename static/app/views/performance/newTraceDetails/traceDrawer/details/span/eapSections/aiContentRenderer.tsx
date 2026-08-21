@@ -1,18 +1,99 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
-import {t} from 'sentry/locale';
-import {MarkedText} from 'sentry/utils/marked/markedText';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   detectAIContentType,
   parseXmlTagSegments,
   preprocessInlineXmlTags,
+  tryParsePythonDict,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
+import {fenceContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentFencing';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {parseJsonWithFix} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+
+// Sensible defaults for JSON embedded in a larger message, distinct from a
+// whole-message JSON payload (which threads its own depth/collapse settings).
+const EMBEDDED_JSON_MAX_DEPTH = 2;
+const EMBEDDED_JSON_AUTO_COLLAPSE_LIMIT = 5;
+
+const STRUCTURED_DATA_CONFIG = {
+  isString: (v: unknown) => typeof v === 'string',
+  isBoolean: (v: unknown) => typeof v === 'boolean',
+  isNumber: (v: unknown) => typeof v === 'number',
+};
+
+/**
+ * Parses JSON leniently — strict JSON, then repaired JSON, then a Python-repr
+ * dict (single quotes, True/False/None). Returns null if none apply.
+ */
+function parseJson(raw: string): unknown {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null) {
+      return parsed;
+    }
+  } catch {
+    // fall through to the lenient parsers
+  }
+  const {parsed, fixedInvalidJson} = parseJsonWithFix(raw);
+  if (fixedInvalidJson && typeof parsed === 'object' && parsed !== null) {
+    return parsed;
+  }
+  return tryParsePythonDict(raw);
+}
+
+/** Renders a parsed JSON value as an interactive tree, without any surrounding chrome. */
+function JsonTree({value}: {value: unknown}) {
+  const initialExpandedPaths = Array.from(
+    new Set([
+      '$',
+      ...getDefaultExpanded(
+        EMBEDDED_JSON_MAX_DEPTH,
+        value,
+        EMBEDDED_JSON_AUTO_COLLAPSE_LIMIT
+      ),
+    ])
+  );
+  return (
+    <StructuredData
+      config={STRUCTURED_DATA_CONFIG}
+      value={value}
+      maxDefaultDepth={EMBEDDED_JSON_MAX_DEPTH}
+      autoCollapseLimit={EMBEDDED_JSON_AUTO_COLLAPSE_LIMIT}
+      initialExpandedPaths={initialExpandedPaths}
+      withAnnotatedText
+    />
+  );
+}
+
+// Renders ```json code blocks as an interactive JSON tree, falling back to a
+// highlighted code block when the content isn't valid JSON. Only fenced code
+// blocks are handled; inline `code` spans are left untouched.
+const markdownComponents: MarkdownProps['components'] = {
+  CodeBlock: ({children, lang, Default}) => {
+    if (lang?.toLowerCase() === 'json') {
+      const parsed = parseJson(children);
+      if (parsed !== null) {
+        return <JsonTree value={parsed} />;
+      }
+    }
+    return <Default lang={lang}>{children}</Default>;
+  },
+};
+
+/** Fences raw AI content and renders it. Memoized since fencing scans the whole string. */
+function FencedMarkdown({raw}: {raw: string}) {
+  const fenced = useMemo(() => fenceContent(raw), [raw]);
+  return <Markdown raw={fenced} components={markdownComponents} />;
+}
 
 interface AIContentRendererProps {
   text: string;
@@ -28,20 +109,43 @@ interface AIContentRendererProps {
   maxJsonDepth?: number;
 }
 
+/**
+ * Tag names (case-insensitive, punctuation-insensitive) whose collapsible
+ * blocks start expanded — the user's own message is the most useful content in
+ * a transcript, so we don't hide it behind a caret.
+ */
+const EXPANDED_BY_DEFAULT_TAGS = new Set(['usermessage', 'usermsg', 'userinput']);
+
+function isExpandedByDefaultTag(tagName: string): boolean {
+  return EXPANDED_BY_DEFAULT_TAGS.has(tagName.toLowerCase().replace(/[-_]/g, ''));
+}
+
 function XmlTagBlock({
   tagName,
+  attributes,
   content,
   collapsible,
 }: {
+  attributes: string;
   content: string;
   tagName: string;
   collapsible?: boolean;
 }) {
   const theme = useTheme();
+  // Show the tag as it appears in the raw text (name + attributes), kept to a
+  // single line with an ellipsis and a tooltip when it overflows.
+  const rawTag = `<${tagName}${attributes}>`;
   const label = (
-    <Text size={collapsible ? 'md' : 'xs'} variant="muted">
-      {tagName}
-    </Text>
+    <Flex flex="1" minWidth={0}>
+      {/* Not InfoText: it repurposes `variant` for the tooltip underline, so it
+          can't render the label in the muted text color used here. */}
+      {/* eslint-disable-next-line @sentry/scraps/prefer-info-text */}
+      <Tooltip title={rawTag} showOnlyOnOverflow skipWrapper>
+        <Text size={collapsible ? 'md' : 'xs'} variant="muted" ellipsis>
+          {rawTag}
+        </Text>
+      </Tooltip>
+    </Flex>
   );
   const body = (
     <MarkdownWithXmlRenderer text={content} collapsibleXmlTags={collapsible} />
@@ -50,7 +154,7 @@ function XmlTagBlock({
   if (collapsible) {
     return (
       <Container margin="sm 0">
-        <CollapsibleContent title={label}>
+        <CollapsibleContent title={label} defaultOpen={isExpandedByDefaultTag(tagName)}>
           <Container paddingTop="md" paddingLeft="md">
             {body}
           </Container>
@@ -60,15 +164,14 @@ function XmlTagBlock({
   }
 
   return (
-    <Flex
-      direction="column"
+    <Stack
       padding="0 0 0 md"
       margin="sm 0"
       style={{borderLeft: `2px solid ${theme.tokens.border.primary}`}}
     >
       <Container margin="0 0 xs 0">{label}</Container>
       {body}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -91,15 +194,12 @@ function MarkdownWithXmlRenderer({
           <XmlTagBlock
             key={i}
             tagName={segment.tagName}
+            attributes={segment.attributes}
             content={segment.content}
             collapsible={collapsibleXmlTags}
           />
         ) : (
-          <MarkedText
-            key={i}
-            as={TraceDrawerComponents.MarkdownContainer}
-            text={segment.content}
-          />
+          <FencedMarkdown key={i} raw={segment.content} />
         )
       )}
     </Fragment>
@@ -124,6 +224,7 @@ export function AIContentRenderer({
 
   switch (detection.type) {
     case 'json':
+    case 'fixed-json':
     case 'python-dict':
       return (
         <TraceDrawerComponents.MultilineJSON
@@ -132,21 +233,6 @@ export function AIContentRenderer({
           autoCollapseLimit={autoCollapseLimit}
           clip={clipJson}
         />
-      );
-
-    case 'fixed-json':
-      return (
-        <Fragment>
-          <TraceDrawerComponents.MultilineJSON
-            value={detection.parsedData}
-            maxDefaultDepth={maxJsonDepth}
-            autoCollapseLimit={autoCollapseLimit}
-            clip={clipJson}
-          />
-          <Text size="xs" variant="muted">
-            {t('Truncated')}
-          </Text>
-        </Fragment>
       );
 
     case 'markdown-with-xml':
@@ -171,10 +257,13 @@ export function AIContentRenderer({
 
     case 'markdown':
       if (inline) {
-        return <MarkedText as={TraceDrawerComponents.MarkdownContainer} text={text} />;
+        return <FencedMarkdown raw={text} />;
       }
       return (
-        <TraceDrawerComponents.MultilineText clip={clipText}>
+        <TraceDrawerComponents.MultilineText
+          clip={clipText}
+          renderFormatted={rawText => <FencedMarkdown raw={rawText} />}
+        >
           {text}
         </TraceDrawerComponents.MultilineText>
       );

@@ -399,14 +399,6 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
-// Occurrence type IDs for hidden issue types - used to filter API queries.
-// Note: This only works for issuePlatform events not discover/error events.
-export const HIDDEN_OCCURRENCE_TYPE_IDS: number[] = Object.entries(
-  OCCURRENCE_TYPE_TO_ISSUE_TYPE
-)
-  .filter(([_, issueType]) => HIDDEN_ISSUE_TYPES.includes(issueType))
-  .map(([id]) => Number(id));
-
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
 
 export function getIssueTypeFromOccurrenceType(
@@ -458,6 +450,12 @@ export type Tag = {
   key: string;
   name: string;
   alias?: string;
+
+  /**
+   * For trace-item attributes, whether the attribute was defined by Sentry
+   * ('sentry') or sent by the user ('user').
+   */
+  attributeSource?: 'sentry' | 'user';
 
   isInput?: boolean;
 
@@ -550,11 +548,12 @@ export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
   | 'projectOwnership'
+  | 'seerSuggested'
   // TODO: codeowners may no longer exist
   | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
-type SuggestedOwner = {
+export type SuggestedOwner = {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
@@ -610,6 +609,10 @@ export enum GroupActivityType {
   SEER_ITERATION_STARTED = 'seer_iteration_started',
   SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
   PULL_REQUEST_CLOSED = 'pull_request_closed',
+  PULL_REQUEST_REOPENED = 'pull_request_reopened',
+  PULL_REQUEST_MERGED = 'pull_request_merged',
+  PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
+  TRIGGER_AUTOFIX = 'trigger_autofix',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -622,6 +625,7 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_PR_CREATED,
   GroupActivityType.SEER_ITERATION_STARTED,
   GroupActivityType.SEER_ITERATION_COMPLETED,
+  GroupActivityType.TRIGGER_AUTOFIX,
 ]);
 
 interface GroupActivityBase {
@@ -633,6 +637,12 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
+export interface GroupActivityIntegrationData {
+  integration_id?: number | string;
+  provider?: string;
+  provider_key?: string;
+}
+
 interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
@@ -641,7 +651,7 @@ interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, string>;
+  data: GroupActivityIntegrationData & Record<string, string>;
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -664,12 +674,12 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, string>;
+  data: GroupActivityIntegrationData & Record<string, string>;
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
 interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
-  data: {
+  data: GroupActivityIntegrationData & {
     forecast: number;
   };
   type: GroupActivityType.SET_UNRESOLVED;
@@ -742,26 +752,25 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
-interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
-  data: {
-    // Set for semver releases
-    current_release_version: string;
-    inNextRelease?: boolean;
-    integration_id?: number;
-    provider?: string;
-    provider_key?: string;
-  };
-  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+interface GroupActivityResolvedInReleaseData extends GroupActivityIntegrationData {
+  /** The commit that caused the release to resolve the issue. */
+  commit?: Commit | null;
+  inNextRelease?: boolean;
+}
+
+interface GroupActivityResolvedAfterCurrentReleaseData extends GroupActivityResolvedInReleaseData {
+  /** The current release; later releases resolve the issue. */
+  current_release_version: string;
+}
+
+interface GroupActivityResolvedInSpecificReleaseData extends GroupActivityResolvedInReleaseData {
+  version?: string;
 }
 
 interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
-  data: {
-    inNextRelease?: boolean;
-    integration_id?: number;
-    provider?: string;
-    provider_key?: string;
-    version?: string;
-  };
+  data:
+    | GroupActivityResolvedAfterCurrentReleaseData
+    | GroupActivityResolvedInSpecificReleaseData;
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 }
 
@@ -791,6 +800,53 @@ export interface GroupActivityPullRequestClosed extends GroupActivityBase {
     pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.PULL_REQUEST_CLOSED;
+}
+
+interface GroupActivityPullRequestReopened extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_REOPENED;
+}
+
+interface GroupActivityPullRequestMerged extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_MERGED;
+}
+
+interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_UNLINKED;
+}
+
+/**
+ * Mirrors `sentry.seer.autofix.constants.AutofixReferrer` on the backend.
+ * Keep these values in sync when the backend enum changes.
+ */
+type AutofixReferrer =
+  | 'api.cli'
+  | 'api.group_ai_autofix'
+  | 'api.linear_agent'
+  | 'api.mcp'
+  | 'api.web'
+  | 'autofix.on_completion_hook'
+  | 'github.check_suite'
+  | 'github.pr_comment'
+  | 'github.pr_review'
+  | 'issue_summary.post_process_fixability'
+  | 'night_shift'
+  | 'slack'
+  | 'unknown';
+
+interface GroupActivityTriggerAutofix extends GroupActivityBase {
+  data: {
+    referrer?: AutofixReferrer;
+  };
+  type: GroupActivityType.TRIGGER_AUTOFIX;
 }
 
 export interface GroupActivitySetIgnored extends GroupActivityBase {
@@ -866,7 +922,7 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
-export interface GroupActivitySetPriority extends GroupActivityBase {
+interface GroupActivitySetPriority extends GroupActivityBase {
   data: {
     priority: PriorityLevel;
     reason: string;
@@ -888,7 +944,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'codeowners'
       | 'slack'
       | 'msteams'
-      | 'suspectCommitter';
+      | 'suspectCommitter'
+      | 'seerSuggested';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
     user?: Team | User;
@@ -896,7 +953,7 @@ export interface GroupActivityAssigned extends GroupActivityBase {
   type: GroupActivityType.ASSIGNED;
 }
 
-export interface GroupActivityCreateIssue extends GroupActivityBase {
+interface GroupActivityCreateIssue extends GroupActivityBase {
   data: {
     location: string;
     provider: string;
@@ -974,6 +1031,7 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
     iteration_index?: number;
+    referrer?: AutofixReferrer;
     run_id?: number;
   };
   type: GroupActivityType.SEER_ITERATION_STARTED;
@@ -1006,7 +1064,6 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
-  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivityReferencedInCommit
   | GroupActivitySetByResolvedInPullRequest
@@ -1035,7 +1092,11 @@ export type GroupActivity =
   | GroupActivitySeerPrCreated
   | GroupActivitySeerIterationStarted
   | GroupActivitySeerIterationCompleted
-  | GroupActivityPullRequestClosed;
+  | GroupActivityPullRequestClosed
+  | GroupActivityPullRequestReopened
+  | GroupActivityPullRequestMerged
+  | GroupActivityPullRequestUnlinked
+  | GroupActivityTriggerAutofix;
 
 export type Activity = GroupActivity;
 
@@ -1070,7 +1131,6 @@ export interface IgnoredStatusDetails {
 }
 export interface ResolvedStatusDetails {
   actor?: AvatarUser;
-  autoResolved?: boolean;
   inCommit?: {
     commit?: string;
     dateCreated?: string;
@@ -1144,6 +1204,24 @@ export const enum FixabilityScoreThresholds {
   SUPER_LOW = 'super_low',
 }
 
+export enum ProgressState {
+  IDENTIFIED = 'identified',
+  ASSIGNED = 'assigned',
+  DIAGNOSED = 'diagnosed',
+  FIX_PROPOSED = 'fix_proposed',
+  FIX_APPLIED = 'fix_applied',
+}
+
+interface GroupDerivedData {
+  hasOpenFixPr: boolean;
+  hasRootCause: boolean;
+  isAssigned: boolean;
+  lastProgressedAt: string | null;
+  progress: ProgressState;
+  status: 'open' | 'closed';
+  viewCount: number;
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -1178,6 +1256,7 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
+  derivedData?: GroupDerivedData;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;

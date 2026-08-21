@@ -1,28 +1,23 @@
 import React, {Fragment} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 interface SubscriptionHeaderCardProps {
   sections: React.ReactNode[];
   isHighlighted?: boolean;
-  isMainCard?: boolean;
-  subtitle?: React.ReactNode;
   title?: React.ReactNode;
 }
 
 export function SubscriptionHeaderCard({
   title,
   sections,
-  isMainCard = false,
-  subtitle,
   isHighlighted = false,
 }: SubscriptionHeaderCardProps) {
   return (
-    <Flex
-      direction="column"
+    <Stack
       padding="xl"
-      background={isMainCard ? 'secondary' : 'primary'}
+      background="primary"
       border={isHighlighted ? 'accent' : 'primary'}
       radius="md"
       gap="lg"
@@ -35,12 +30,11 @@ export function SubscriptionHeaderCard({
         </Flex>
       )}
 
-      {subtitle && <Text variant="muted">{subtitle}</Text>}
-      <Flex direction="column" gap="lg" align="start" height="100%">
+      <Stack gap="lg" align="start" height="100%">
         {sections.map((section, index) => {
           return <Fragment key={index}>{section}</Fragment>;
         })}
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 }

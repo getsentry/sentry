@@ -339,11 +339,11 @@ function _getWidgetExploreUrl(
     visualize,
     groupBy: visualize.length > 0 ? groupBy : [],
     field: fields,
-    query: applyDashboardFilters(
-      overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
+    query: applyDashboardFilters({
+      baseQuery: overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
       dashboardFilters,
-      widget.widgetType
-    ),
+      widgetType: widget.widgetType,
+    }),
     sort: sort || undefined,
     interval:
       decodeScalar(locationQueryParams.interval) ??
@@ -363,13 +363,17 @@ function _getWidgetExploreUrl(
         ? [OurLogKnownFieldKey.TIMESTAMP, ...queryParams.field]
         : queryParams.field;
 
+    const logsAggregateFields = [
+      ...queryParams.groupBy.map(g => ({groupBy: g})),
+      ...logsVisualize,
+    ];
+
     return getLogsUrl({
       organization: queryParams.organization,
       selection: queryParams.selection,
       query: queryParams.query,
       field: logsField,
-      groupBy: queryParams.groupBy,
-      aggregateFields: logsVisualize,
+      aggregateFields: logsAggregateFields,
       interval: queryParams.interval,
       mode: queryParams.mode,
       referrer: queryParams.referrer,
@@ -415,7 +419,7 @@ function _getWidgetExploreUrlForMultipleQueries(
     selection: currentSelection,
     queries: widget.queries.map(query => ({
       chartType: getChartType(widget.displayType),
-      query: applyDashboardFilters(query.conditions, dashboardFilters) ?? '',
+      query: applyDashboardFilters({baseQuery: query.conditions, dashboardFilters}) ?? '',
       sortBys: decodeSorts(query.orderby).filter(
         s => s.field !== SpanFields.IS_STARRED_TRANSACTION
       ),

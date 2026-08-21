@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
-import type {QueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -44,7 +43,6 @@ import type {
   OnDemandBudgets,
   Plan,
   PreviewData,
-  PromotionData,
   Subscription,
 } from 'getsentry/types';
 import {
@@ -53,10 +51,9 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isNewPayingCustomer,
+  isTrial,
 } from 'getsentry/utils/billing';
-import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {withPromotions} from 'getsentry/utils/withPromotions';
 import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {CheckoutSuccess} from 'getsentry/views/amCheckout/components/checkoutSuccess';
 import {AddBillingInformation} from 'getsentry/views/amCheckout/steps/addBillingInfo';
@@ -73,13 +70,9 @@ import {
 
 type Props = {
   api: Client;
-  isError: boolean;
-  isLoading: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
-  queryClient: QueryClient;
   subscription: Subscription;
-  promotionData?: PromotionData;
 };
 
 export type State = {
@@ -96,7 +89,7 @@ export type State = {
 
 function AMCheckout(props: Props) {
   const organization = useOrganization();
-  const {api, isLoading, location, navigate, subscription, promotionData} = props;
+  const {api, location, navigate, subscription} = props;
 
   const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -175,11 +168,12 @@ function AMCheckout(props: Props) {
    * 2. The subscription is free
    * 3. Or, the subscription is on a free trial
    */
+  const subscriptionIsTrial = isTrial(subscription);
   const shouldDefaultToBusiness = useCallback(() => {
     const hasUpsell = referrer?.startsWith('upgrade') || referrer?.startsWith('upsell');
 
-    return hasUpsell || subscription.isFree || subscription.isTrial;
-  }, [referrer, subscription.isFree, subscription.isTrial]);
+    return hasUpsell || subscription.isFree || subscriptionIsTrial;
+  }, [referrer, subscription.isFree, subscriptionIsTrial]);
 
   const getBusinessPlan = useCallback(
     (config: BillingConfig) => {
@@ -498,7 +492,7 @@ function AMCheckout(props: Props) {
       if (!isEqual(validData.reserved, data.reserved)) {
         Sentry.withScope(scope => {
           scope.setExtras({validData, updatedData, previous: formData});
-          scope.setLevel('warning' as any);
+          scope.setLevel('warning');
           Sentry.captureException(new Error('Plan event levels do not match'));
         });
       }
@@ -617,7 +611,7 @@ function AMCheckout(props: Props) {
     );
   }, [subscription]);
 
-  if (loading || isLoading) {
+  if (loading) {
     return <LoadingIndicator />;
   }
 
@@ -658,11 +652,6 @@ function AMCheckout(props: Props) {
     );
   }
 
-  const promotionClaimed = getCompletedOrActivePromotion(promotionData);
-  const promo = promotionClaimed?.promotion;
-
-  const discountInfo = promo?.discountInfo;
-
   const overviewProps = {
     formData,
     billingConfig,
@@ -670,14 +659,10 @@ function AMCheckout(props: Props) {
     onUpdate: handleUpdate,
     organization,
     subscription,
-    discountInfo: discountInfo ?? undefined,
   };
 
   const showAnnualTerms =
     subscription.billingInterval === ANNUAL || activePlan.billingInterval === ANNUAL;
-
-  const promotionDisclaimerText =
-    promotionData?.activePromotions?.[0]?.promotion.discountInfo.disclaimerText;
 
   const isOnSponsoredPartnerPlan =
     (subscription.partner?.isActive && subscription.isSponsored) || false;
@@ -764,13 +749,7 @@ function AMCheckout(props: Props) {
   );
 
   return (
-    <Flex
-      width="100%"
-      background="primary"
-      justify="center"
-      align="center"
-      direction="column"
-    >
+    <Stack width="100%" background="primary" justify="center" align="center">
       <SentryDocumentTitle title={t('Change Subscription')} orgSlug={organization.slug} />
       {isOnSponsoredPartnerPlan && (
         <Alert.Container>
@@ -781,11 +760,6 @@ function AMCheckout(props: Props) {
               moment(subscription.billingPeriodEnd).format('ll')
             )}
           </Alert>
-        </Alert.Container>
-      )}
-      {promotionDisclaimerText && (
-        <Alert.Container>
-          <Alert variant="info">{promotionDisclaimerText}</Alert>
         </Alert.Container>
       )}
       <CheckoutHeader>
@@ -821,7 +795,7 @@ function AMCheckout(props: Props) {
       >
         {renderCheckoutContent()}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -911,4 +885,4 @@ const CheckoutStepsContainer = styled('div')`
   }
 `;
 
-export default withPromotions(withApi(withSubscription(AMCheckout)));
+export default withApi(withSubscription(AMCheckout));

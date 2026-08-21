@@ -5,12 +5,11 @@ import * as Sentry from '@sentry/react';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
-import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   issues: ['issues'],
-  explore: ['explore'],
+  explore: ['explore', 'preprod'],
   dashboards: ['dashboards', 'dashboard'],
   insights: ['insights'],
   projects: ['projects'], // No primary nav button — accessed via logo nav. Needed for secondary nav routing.
@@ -21,6 +20,16 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
 } as const;
 
 type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
+
+const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
+  group: NavigationGroup;
+  pattern: RegExp;
+}> = [
+  {
+    group: 'explore',
+    pattern: /(?:^|\/)seer\/investigation\/[^/]+\/?$/,
+  },
+];
 
 interface PrimaryNavigationFeatures {
   /** Whether the device supports hover interactions (false on touch-only devices) */
@@ -70,13 +79,11 @@ export function PrimaryNavigationContextProvider(
   );
 
   return (
-    <NavigationTourReminderContextProvider>
-      <SecondaryNavigationContextProvider>
-        <PrimaryNavigationContext.Provider value={value}>
-          {props.children}
-        </PrimaryNavigationContext.Provider>
-      </SecondaryNavigationContextProvider>
-    </NavigationTourReminderContextProvider>
+    <SecondaryNavigationContextProvider>
+      <PrimaryNavigationContext.Provider value={value}>
+        {props.children}
+      </PrimaryNavigationContext.Provider>
+    </SecondaryNavigationContextProvider>
   );
 }
 
@@ -96,6 +103,13 @@ const getPrimaryRoutePath = (path: string): string | undefined => {
 
 function useActiveNavigationGroup(): NavigationGroup {
   const location = useLocation();
+  const routeOverride = PRIMARY_NAVIGATION_ROUTE_OVERRIDES.find(({pattern}) =>
+    pattern.test(location.pathname)
+  );
+  if (routeOverride) {
+    return routeOverride.group;
+  }
+
   const primaryPath = getPrimaryRoutePath(location.pathname);
 
   if (!primaryPath) {

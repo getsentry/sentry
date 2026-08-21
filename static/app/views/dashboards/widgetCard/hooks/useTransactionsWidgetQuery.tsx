@@ -22,7 +22,7 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
@@ -84,10 +84,6 @@ export function useTransactionsSeriesQuery(
   );
 
   // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
@@ -170,7 +166,7 @@ export function useTransactionsSeriesQuery(
                 const fetchFnRef = {
                   current: () =>
                     doOnDemandMetricsRequest(
-                      context.meta?.api,
+                      QUERY_API_CLIENT,
                       onDemandRequestData,
                       filteredWidget.widgetType
                     )
@@ -182,7 +178,7 @@ export function useTransactionsSeriesQuery(
             }
 
             return doOnDemandMetricsRequest(
-              context.meta?.api,
+              QUERY_API_CLIENT,
               onDemandRequestData,
               filteredWidget.widgetType
             ).then(toApiResponse);
@@ -202,13 +198,7 @@ export function useTransactionsSeriesQuery(
           return apiFetch<TransactionsSeriesResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
       });
@@ -315,10 +305,6 @@ export function useTransactionsTableQuery(
   );
 
   // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       // Clone the query to avoid mutating the original
@@ -392,13 +378,7 @@ export function useTransactionsTableQuery(
           return apiFetch<TransactionsTableResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         select: selectJsonWithHeaders,
       });

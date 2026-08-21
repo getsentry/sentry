@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
@@ -148,8 +148,7 @@ function ReplayLayoutBody({
               })
             }
             sized={
-              <Flex
-                direction="column"
+              <Stack
                 flex="1"
                 minHeight="0"
                 minWidth="0"
@@ -157,12 +156,11 @@ function ReplayLayoutBody({
                 paddingBottom={isLeftRight ? undefined : 'md'}
               >
                 <PanelContainer>{video}</PanelContainer>
-              </Flex>
+              </Stack>
             }
             fill={
               isFocusAreaCollapsed ? undefined : (
-                <Flex
-                  direction="column"
+                <Stack
                   flex="1"
                   minHeight="0"
                   minWidth="0"
@@ -170,7 +168,7 @@ function ReplayLayoutBody({
                   paddingTop={isLeftRight ? undefined : 'md'}
                 >
                   {focusArea}
-                </Flex>
+                </Stack>
               )
             }
           />

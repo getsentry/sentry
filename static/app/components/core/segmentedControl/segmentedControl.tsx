@@ -7,8 +7,7 @@ import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {RadioGroupProps, RadioGroupState} from '@react-stately/radio';
 import {useRadioGroupState} from '@react-stately/radio';
-import type {Node} from '@react-types/shared';
-import type {CollectionChildren} from '@react-types/shared/src/collections';
+import type {CollectionChildren, Node} from '@react-types/shared';
 import {LayoutGroup} from 'framer-motion';
 
 import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button';
@@ -80,32 +79,27 @@ interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-interface SegmentedControlProps<Value extends string> extends Omit<
-  RadioGroupProps,
-  'value' | 'defaultValue' | 'onChange' | 'isDisabled'
-> {
+interface SegmentedControlProps<Value extends string> {
   children: CollectionChildren<Value>;
   onChange: (value: Value) => void;
   value: Value;
-  disabled?: RadioGroupProps['isDisabled'];
   priority?: Priority;
   size?: FormSize;
 }
 
-const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
+const collectionFactory = <T,>(nodes: Iterable<Node<T>>) => new ListCollection(nodes);
 
 export function SegmentedControl<Value extends string>({
   value,
   onChange,
   size = 'md',
   priority = 'default',
-  disabled,
   ...props
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const collection = useCollection(
-    props as Parameters<typeof useCollection>[0],
+  const collection = useCollection<Value, ListCollection<Value>>(
+    props,
     collectionFactory
   );
   const ariaProps = {
@@ -113,7 +107,6 @@ export function SegmentedControl<Value extends string>({
     value,
     onChange: onChange as (value: string) => void,
     orientation: 'horizontal',
-    isDisabled: disabled,
   } satisfies RadioGroupProps;
 
   const state = useRadioGroupState(ariaProps);
@@ -139,7 +132,7 @@ export function SegmentedControl<Value extends string>({
             prevKey={option.prevKey}
             value={String(option.key)}
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            isDisabled={option.props.disabled || disabled}
+            isDisabled={option.props.disabled}
             state={state}
             size={size}
             priority={priority}

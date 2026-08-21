@@ -29,7 +29,7 @@ type State = {
  */
 class SendWeeklyEmailAction extends Component<Props, State> {
   state: State = {
-    dryRun: true,
+    dryRun: false,
     targetEmail: '',
     deliveryEmail: '',
   };
@@ -40,6 +40,11 @@ class SendWeeklyEmailAction extends Component<Props, State> {
 
   handleConfirm = (_params: AdminConfirmParams) => {
     const {targetEmail, deliveryEmail, dryRun} = this.state;
+
+    if (!dryRun && !deliveryEmail) {
+      addErrorMessage('Delivery email address is required when dry run is disabled');
+      return;
+    }
 
     addLoadingMessage('Sending Email');
     this.props.api
@@ -83,7 +88,7 @@ class SendWeeklyEmailAction extends Component<Props, State> {
           flexibleControlStateSize
           label="Delivery email address"
           help="The weekly email will be sent to this address."
-          required
+          required={!this.state.dryRun}
           name="username"
           inputMode="text"
           value={this.state.deliveryEmail}
@@ -91,6 +96,7 @@ class SendWeeklyEmailAction extends Component<Props, State> {
         />
         <BooleanField
           label="Dry Run"
+          help="When enabled, generates the report without sending an email for performance testing. Delivery email address is not required in dry run mode. When disabled, a delivery email address must be provided."
           inline={false}
           name="dryrun"
           stacked

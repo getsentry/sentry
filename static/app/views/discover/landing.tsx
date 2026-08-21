@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
@@ -33,7 +33,7 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import QueryList from './queryList';
-import {getPrebuiltQueries} from './utils';
+import {getDiscoverDeprecation, getPrebuiltQueries} from './utils';
 
 const SORT_OPTIONS = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -186,13 +186,18 @@ function DiscoverLanding() {
       features="discover-query"
       renderDisabled={() => <NoAccess />}
     >
-      <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
+        orgSlug={organization.slug}
+      >
         <Stack flex={1}>
           <TopBar.Slot name="title">
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Discover'),
+                  label: getDiscoverDeprecation(organization)
+                    ? t('Errors')
+                    : t('Discover'),
                   to: getDiscoverLandingUrl(organization),
                 },
                 {label: t('Saved Queries')},
@@ -201,7 +206,15 @@ function DiscoverLanding() {
           </TopBar.Slot>
           <Layout.Body>
             <Layout.Main width="full">
-              <StyledActions>
+              <Grid
+                columns={{
+                  zero: 'auto',
+                  xl: 'auto max-content min-content max-content',
+                }}
+                gap="xl"
+                align="center"
+                marginBottom="xl"
+              >
                 <StyledSearchBar
                   defaultQuery=""
                   query={savedSearchQuery}
@@ -238,23 +251,45 @@ function DiscoverLanding() {
                 >
                   {t('Build a new query')}
                 </LinkButton>
-              </StyledActions>
+              </Grid>
               {status === 'pending' ? (
                 <LoadingIndicator />
               ) : status === 'error' ? (
                 <LoadingError message={error.message} />
               ) : (
                 <QueriesContainer>
-                  {organization.features.includes('expose-migrated-discover-queries') && (
-                    <Alert variant="info">
-                      {tct(
-                        'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
-                        {
-                          exploreLink: <Link to="/explore/saved-queries/" />,
-                        }
-                      )}
-                    </Alert>
-                  )}
+                  {organization.features.includes('expose-migrated-discover-queries') &&
+                    (getDiscoverDeprecation(organization) ? (
+                      <Alert variant="info">
+                        {tct(
+                          'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                          {
+                            exploreLink: (
+                              <Link
+                                to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                              />
+                            ),
+                          }
+                        )}
+                      </Alert>
+                    ) : (
+                      organization.features.includes(
+                        'expose-migrated-discover-queries'
+                      ) && (
+                        <Alert variant="info">
+                          {tct(
+                            'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
+                            {
+                              exploreLink: (
+                                <Link
+                                  to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                                />
+                              ),
+                            }
+                          )}
+                        </Alert>
+                      )
+                    ))}
                   <QueryList
                     pageLinks={savedQueriesPageLinks ?? ''}
                     savedQueries={savedQueries}
@@ -284,18 +319,6 @@ const PrebuiltSwitch = styled('label')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-const StyledActions = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  grid-template-columns: auto max-content min-content max-content;
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-  }
 `;
 
 const QueriesContainer = styled('div')`

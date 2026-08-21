@@ -1,8 +1,23 @@
 __all__ = [
     "DataConditionEvaluation",
     "DataConditionEvaluationException",
-    "TriggerResult",
+    "DataConditionGroupEvaluation",
+    "DetectorEvaluation",
+    "DetectorEvaluationData",
+    "DeferredWorkflowEvaluationResult",
+    "ProcessWorkflowsResult",
+    "WorkflowEvaluation",
+    "WorkflowEvaluationData",
+    "WorkflowEvaluationOutcome",
 ]
 
 from .condition import DataConditionEvaluation, DataConditionEvaluationException
-from .trigger_result import TriggerResult
+from .condition_group import DataConditionGroupEvaluation
+from .detector import DetectorEvaluation, DetectorEvaluationData
+from .workflow import (
+    DeferredWorkflowEvaluationResult,
+    ProcessWorkflowsResult,
+    WorkflowEvaluation,
+    WorkflowEvaluationData,
+    WorkflowEvaluationOutcome,
+)

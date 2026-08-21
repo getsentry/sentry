@@ -1,17 +1,17 @@
 import logging
 import posixpath
 import re
-import shutil
-import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
+from contextlib import closing
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
-from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from objectstore_client import RequestError
 from rest_framework import status
@@ -26,7 +26,7 @@ from sentry.apidocs.response_types import DetailResponse
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
 
-from sentry import ratelimits
+from sentry import features, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -51,9 +51,11 @@ from sentry.models.debugfile import (
     ProguardArtifactRelease,
     ProjectDebugFile,
     build_proguard_reupload_dif_meta,
-    create_dif_from_id,
+    clean_redundant_difs,
     create_files_from_dif_zip,
+    find_existing_dif,
     get_debug_id_from_dif_request,
+    get_dif_download_filename,
 )
 from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
@@ -274,6 +276,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         if debug_file is None:
             raise Http404
+
+        if debug_file.uses_objectstore_for_read() and features.has(
+            "organizations:objectstore-debugfiles-direct-read", project.organization
+        ):
+            return HttpResponseRedirect(debug_file.get_objectstore_presigned_url(self.request))
 
         try:
             fp = debug_file.get_file()
@@ -835,22 +842,63 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    if debug_file.file is not None:
-        dif, created = create_dif_from_id(project, meta, file=debug_file.file)
-    elif debug_file.storage_path is not None:
-        source_fileobj = debug_file.get_file()
-        try:
-            # Spool into a temporary file to get a seekable stream.
-            with tempfile.TemporaryFile() as tmp:
-                shutil.copyfileobj(source_fileobj, tmp)
-                tmp.seek(0)
-                dif, created = create_dif_from_id(project, meta, fileobj=tmp)
-        finally:
-            source_fileobj.close()
-    else:
-        raise ValueError("ProjectDebugFile has neither file nor storage_path")
+    checksum = debug_file.get_checksum()
 
-    if created:
+    dif = find_existing_dif(project, meta, checksum)
+    if dif is None:
+        objectstore_metadata: dict[str, object] = {}
+        objectstore_session = None
+        storage_path = None
+        if debug_file.storage_path is not None:
+            content_type = debug_file.get_content_type()
+            file_size = debug_file.get_file_size()
+            objectstore_session = debug_file.get_objectstore_session()
+            with closing(debug_file.get_file()) as source_fileobj:
+                storage_path = objectstore_session.put(
+                    source_fileobj,
+                    content_type=content_type,
+                    filename=get_dif_download_filename(meta),
+                    compression=(
+                        "zstd"
+                        if features.has(
+                            "organizations:objectstore-debugfiles-compression",
+                            project.organization,
+                        )
+                        else "none"
+                    ),
+                )
+
+            objectstore_metadata = {
+                "storage_path": storage_path,
+                "content_type": content_type,
+                "file_size": file_size,
+                "date_created": timezone.now(),
+            }
+
+        try:
+            dif = ProjectDebugFile.objects.create(
+                file=debug_file.file,
+                checksum=checksum,
+                debug_id=meta.debug_id,
+                code_id=meta.code_id,
+                cpu_name=meta.arch,
+                object_name="proguard-mapping",
+                project_id=project.id,
+                data=meta.data,
+                **objectstore_metadata,
+            )
+        except Exception:
+            if storage_path is not None:
+                assert objectstore_session is not None
+                try:
+                    objectstore_session.delete(storage_path)
+                except Exception:
+                    logger.exception(
+                        "Failed to clean up Objectstore debug file after database error"
+                    )
+            raise
+
+        clean_redundant_difs(project, meta.debug_id)
         record_last_upload(project)
 
     return {

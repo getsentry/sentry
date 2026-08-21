@@ -3,7 +3,9 @@ export type ConversationsEventParameters = {
   'conversations.detail.click-trace-link': Record<string, unknown>;
   'conversations.detail.copy-conversation': Record<string, unknown>;
   'conversations.detail.copy-conversation-id': Record<string, unknown>;
+  'conversations.detail.expand-embedding': {expanded: boolean};
   'conversations.detail.expand-thinking': {expanded: boolean};
+  'conversations.detail.expand-tool-calls': {expanded: boolean};
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
   'conversations.detail.tab-switch': {
@@ -14,6 +16,9 @@ export type ConversationsEventParameters = {
   'conversations.message.click-tool-call': Record<string, unknown>;
   'conversations.onboarding.page-view': Record<string, unknown>;
   'conversations.page-view': Record<string, unknown>;
+  'conversations.save_as': {
+    save_type: 'alert' | 'dashboard';
+  };
   'conversations.save_query_modal': {
     action: 'open' | 'submit';
     save_type?: 'save_new_query' | 'rename_query';
@@ -28,10 +33,13 @@ export type ConversationsEventParameters = {
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {
   'conversations.onboarding.page-view': 'Conversations: Onboarding Page View',
   'conversations.page-view': 'Conversations: Page View',
+  'conversations.save_as': 'Conversations: Save As',
   'conversations.save_query_modal': 'Conversations: Save Query Modal',
   'conversations.table.page-view': 'Conversations: Table Page View',
   'conversations.table.paginate': 'Conversations: Table Paginate',
+  'conversations.detail.expand-embedding': 'Conversations: Detail Expand Embedding',
   'conversations.detail.expand-thinking': 'Conversations: Detail Expand Thinking',
+  'conversations.detail.expand-tool-calls': 'Conversations: Detail Expand Tool Calls',
   'conversations.detail.page-view': 'Conversations: Detail Page View',
   'conversations.detail.tab-switch': 'Conversations: Detail Tab Switch',
   'conversations.detail.select-span': 'Conversations: Detail Select Span',

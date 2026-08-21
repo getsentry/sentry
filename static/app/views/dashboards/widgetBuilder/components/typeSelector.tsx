@@ -76,7 +76,7 @@ export function WidgetBuilderTypeSelector({
       ? [
           {
             type: DisplayType.HEATMAP,
-            label: t('Heat Map'),
+            label: t('Heatmap'),
             details: t('Visualize the distribution of a measurement over time.'),
           },
         ]

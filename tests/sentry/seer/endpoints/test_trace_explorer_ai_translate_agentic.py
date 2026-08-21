@@ -57,7 +57,6 @@ class SearchAgentTranslateEndpointTest(APITestCase):
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
             },
-            extra_feature_flags={},
         )
 
     @patch(

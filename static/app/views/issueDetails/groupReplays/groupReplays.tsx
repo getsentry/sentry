@@ -27,7 +27,7 @@ import {
   ReplaySessionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
-import {replayMobilePlatforms} from 'sentry/data/platformCategories';
+import {replayVideoPlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -40,7 +40,6 @@ import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsO
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 
@@ -96,7 +95,7 @@ function GroupReplaysContent({group}: Props) {
     organization,
   });
 
-  const isMobilePlatform = replayMobilePlatforms.includes(
+  const isVideoReplayPlatform = replayVideoPlatforms.includes(
     group.project.platform ?? 'other'
   );
 
@@ -130,7 +129,7 @@ function GroupReplaysContent({group}: Props) {
           </Flex>
         </Stack>
         <ReplayTable
-          columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
+          columns={isVideoReplayPlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           error={fetchError}
           isPending={isFetching}
           replays={[]}
@@ -237,7 +236,11 @@ function GroupReplaysTable({
   replayCount: number;
 }) {
   const organization = useOrganization();
-  const {allMobileProj} = useAllMobileProj({});
+  // Key column selection off the issue's own project, not the global page
+  // filter, so it stays consistent with the empty-state table above.
+  const isVideoReplayPlatform = replayVideoPlatforms.includes(
+    group.project.platform ?? 'other'
+  );
   const {index: selectedReplayIndex} = useSelectedReplayIndex();
 
   const {groupId} = useParams<{groupId: string}>();
@@ -262,7 +265,7 @@ function GroupReplaysTable({
       query={playlistQuery}
       columns={[
         ...(selectedReplay ? [ReplayPlayPauseColumn] : []),
-        ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
+        ...(isVideoReplayPlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
       ]}
       error={replayListData.fetchError}
       isPending={replayListData.isFetching}

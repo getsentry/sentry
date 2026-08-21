@@ -1,9 +1,11 @@
+import {z} from 'zod';
+
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
-import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -17,9 +19,14 @@ interface RenameIssueViewModalProps extends ModalRenderProps {
   view: GroupSearchView;
 }
 
+const schema = z.object({
+  name: z.string().min(1, t('Name is required')),
+});
+
 export function RenameIssueViewModal({
   Header,
   Body,
+  Footer,
   closeModal,
   view,
   analyticsSurface,
@@ -28,11 +35,7 @@ export function RenameIssueViewModal({
   const organization = useOrganization();
   const user = useUser();
 
-  const {
-    mutate: updateIssueView,
-    isPending,
-    isError,
-  } = useUpdateGroupSearchView({
+  const {mutateAsync: updateIssueView, isError} = useUpdateGroupSearchView({
     onSuccess: data => {
       closeModal();
       trackAnalytics('issue_views.edit_name', {
@@ -44,26 +47,15 @@ export function RenameIssueViewModal({
     },
   });
 
-  const handleSubmit: OnSubmitCallback = data => {
-    updateIssueView({
-      ...view,
-      name: data.name,
-    });
-  };
-
-  const initialData = {
-    name: view.name,
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {name: view.name},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => updateIssueView({...view, name: value.name}).catch(() => {}),
+  });
 
   return (
-    <Form
-      onSubmit={handleSubmit}
-      onCancel={closeModal}
-      saveOnBlur={false}
-      submitLabel={t('Save Changes')}
-      submitDisabled={isPending}
-      initialData={initialData}
-    >
+    <form.AppForm form={form}>
       <Header>
         <h4>{t('Rename Issue View')}</h4>
       </Header>
@@ -76,18 +68,26 @@ export function RenameIssueViewModal({
             </Alert>
           </Alert.Container>
         )}
-        <TextField
-          key="name"
-          name="name"
-          label={t('Name')}
-          placeholder="e.g. My Search Results"
-          inline={false}
-          stacked
-          flexibleControlStateSize
-          required
-          autoFocus
-        />
+        <form.AppField name="name">
+          {field => (
+            <field.Layout.Stack label={t('Name')} required>
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. My Search Results"
+                autoFocus
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
       </Body>
-    </Form>
+
+      <Footer>
+        <Flex gap="sm" justify="end">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }

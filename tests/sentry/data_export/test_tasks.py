@@ -1,5 +1,6 @@
 from typing import Any, Iterable, cast
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 from django.db import IntegrityError
 from django.http import StreamingHttpResponse
@@ -16,7 +17,13 @@ from sentry.data_export.writers import OutputMode
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.testutils.cases import OurLogTestCase, SnubaTestCase, SpanTestCase, TestCase
+from sentry.testutils.cases import (
+    OurLogTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+    TestCase,
+    TraceMetricsTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -706,7 +713,9 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         assert emailer.called
 
 
-class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
+class AssembleDownloadExploreTest(
+    TestCase, SnubaTestCase, SpanTestCase, OurLogTestCase, TraceMetricsTestCase
+):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
@@ -829,7 +838,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             assert_row_equals_export(rows_by_agent[user_agent], expected_rows_by_agent[user_agent])
 
     def _explore_logs_jsonl_rich_field_api_request_body(
-        self, start: str, end: str, *, limit: int | None = None
+        self, start: str, end: str, *, limit: int | None = None, query: str = ""
     ) -> dict[str, Any]:
         body: dict[str, Any] = {
             "query_type": ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
@@ -838,7 +847,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 "project": [self.project.id],
                 "field": [],
                 "equations": [],
-                "query": "",
+                "query": query,
                 "dataset": "logs",
                 "start": start,
                 "end": end,
@@ -849,14 +858,16 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         return body
 
     def _post_explore_logs_jsonl_rich_field_export(
-        self, start: str, end: str, *, limit: int | None = None
+        self, start: str, end: str, *, limit: int | None = None, query: str = ""
     ) -> dict[str, Any]:
         self.login_as(self.user)
         url = reverse(
             "sentry-api-0-organization-data-export",
             kwargs={"organization_id_or_slug": self.org.slug},
         )
-        request_body = self._explore_logs_jsonl_rich_field_api_request_body(start, end, limit=limit)
+        request_body = self._explore_logs_jsonl_rich_field_api_request_body(
+            start, end, limit=limit, query=query
+        )
         with self.feature("organizations:discover-query"):
             response = self.client.post(
                 url,
@@ -994,6 +1005,110 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         assert b"log.body,severity_text" in content
 
     @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_tracemetrics_dataset_called_correctly(self, emailer: MagicMock) -> None:
+        metrics = [
+            self.create_trace_metric(
+                "llm.token_usage",
+                value,
+                "distribution",
+                timestamp=before_now(minutes=10),
+                organization=self.org,
+                project=self.project,
+                attributes={"model": model},
+            )
+            for model, value in (("gpt-5", 100.0), ("gpt-5", 50.0), ("claude-opus-5", 25.0))
+        ]
+        self.store_eap_items(metrics)
+
+        aggregate = "sum(value,llm.token_usage,distribution,-)"
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.EXPLORE,
+            query_info={
+                "project": [self.project.id],
+                "field": ["model", aggregate],
+                "query": "",
+                "sort": [f"-{aggregate}"],
+                "dataset": "tracemetrics",
+                "start": before_now(minutes=15).isoformat(),
+                "end": before_now(minutes=5).isoformat(),
+            },
+        )
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.file_id is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "text/csv"}
+
+        with file.getfile() as f:
+            content = f.read().strip().decode()
+        rows = content.splitlines()
+
+        assert rows[0] == f'model,"{aggregate}"'
+        assert rows[1:] == ["gpt-5,150.0", "claude-opus-5,25.0"]
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_tracemetrics_jsonl_full_export(self, emailer: MagicMock) -> None:
+        """
+        Wide JSONL export of trace metrics, which goes through Snuba's ExportTraceItems
+        endpoint rather than a table query.
+        """
+        metrics = [
+            self.create_trace_metric(
+                "llm.token_usage",
+                float(value),
+                "distribution",
+                timestamp=before_now(minutes=10, seconds=offset),
+                organization=self.org,
+                project=self.project,
+                attributes={"model": "gpt-5"},
+            )
+            for offset, value in ((0, 100), (30, 50))
+        ]
+        self.store_eap_items(metrics)
+
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.TRACE_ITEM_FULL_EXPORT,
+            query_info={
+                "project": [self.project.id],
+                "field": [],
+                "equations": [],
+                "query": "",
+                "dataset": "tracemetrics",
+                "start": before_now(minutes=15).isoformat(),
+                "end": before_now(minutes=5).isoformat(),
+            },
+            export_format=OutputMode.JSONL.value,
+        )
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=2, export_limit=100)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "application/x-ndjson"}
+
+        with file.getfile() as f:
+            rows = [json.loads(line) for line in f.read().strip().splitlines()]
+
+        assert len(rows) == len(metrics)
+        # The wide export carries every attribute, including ones no table query selected.
+        assert {row["value"] for row in rows} == {100.0, 50.0}
+        assert {row["metric.name"] for row in rows} == {"llm.token_usage"}
+        assert {row["model"] for row in rows} == {"gpt-5"}
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_logs_jsonl_format(self, emailer: MagicMock) -> None:
         logs = [
             self.create_ourlog(
@@ -1125,6 +1240,123 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             raw, expected_rows_by_agent, ignored_keys
         )
         assert not emailer.called
+
+    def _store_two_groups_of_logs_fixture(
+        self,
+        *,
+        matching_fields: dict[str, Any] | None = None,
+        other_fields: dict[str, Any] | None = None,
+        matching_attributes: dict[str, Any] | None = None,
+        other_attributes: dict[str, Any] | None = None,
+        matching: int = 3,
+        other: int = 4,
+    ) -> tuple[str, str, int]:
+        """
+        Store `matching` logs in one group and `other` logs in a second group, where the
+        groups are distinguished by first-class fields (e.g. trace_id) and/or attributes.
+        Returns (start_iso, end_iso, matching) spanning the stored logs.
+        """
+        logs = [
+            self.create_ourlog(
+                {"body": f"match-{i}", **(matching_fields or {})},  # type: ignore[arg-type,typeddict-item]
+                timestamp=before_now(minutes=10, seconds=i),
+                organization=self.org,
+                project=self.project,
+                attributes=matching_attributes or {},
+            )
+            for i in range(matching)
+        ] + [
+            self.create_ourlog(
+                {"body": f"other-{i}", **(other_fields or {})},  # type: ignore[arg-type,typeddict-item]
+                timestamp=before_now(minutes=10, seconds=i),
+                organization=self.org,
+                project=self.project,
+                attributes=other_attributes or {},
+            )
+            for i in range(other)
+        ]
+        self.store_eap_items(logs)
+
+        start = before_now(minutes=15).isoformat()
+        end = before_now(seconds=30).isoformat()
+        return start, end, matching
+
+    def _assert_full_export_respects_filter(
+        self,
+        emailer: MagicMock,
+        *,
+        start: str,
+        end: str,
+        query: str,
+        output_key: str,
+        matching_value: str,
+        matching_count: int,
+    ) -> None:
+        """
+        Run a full JSONL trace-item export with `query` and assert it returns exactly
+        `matching_count` rows, all carrying `matching_value` under `output_key`.
+        """
+        payload = self._post_explore_logs_jsonl_rich_field_export(start, end, query=query)
+        de = self._assert_explore_logs_jsonl_export_create_payload(payload)
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=2, export_limit=100)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "application/x-ndjson"}
+
+        with file.getfile() as f:
+            content = f.read().strip()
+
+        rows = [json.loads(ln.decode("utf-8")) for ln in content.split(b"\n") if ln]
+        assert len(rows) == matching_count
+        assert {row[output_key] for row in rows} == {matching_value}
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_logs_jsonl_full_export_respects_trace_filter(self, emailer: MagicMock) -> None:
+        """
+        Full trace-item export with a `trace:<id>` filter
+        """
+        matching_trace = uuid4().hex
+        start, end, matching_count = self._store_two_groups_of_logs_fixture(
+            matching_fields={"trace_id": matching_trace},
+            other_fields={"trace_id": uuid4().hex},
+        )
+        self._assert_full_export_respects_filter(
+            emailer,
+            start=start,
+            end=end,
+            query=f"trace:{matching_trace}",
+            output_key="trace",
+            matching_value=matching_trace,
+            matching_count=matching_count,
+        )
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_logs_jsonl_full_export_respects_attribute_filter(
+        self, emailer: MagicMock
+    ) -> None:
+        """
+        Full trace-item export honors a query filter on a regular attribute
+        """
+        matching_agent = "chrome"
+        start, end, matching_count = self._store_two_groups_of_logs_fixture(
+            matching_attributes={"user_agent": matching_agent},
+            other_attributes={"user_agent": "firefox"},
+        )
+        self._assert_full_export_respects_filter(
+            emailer,
+            start=start,
+            end=end,
+            query=f"user_agent:{matching_agent}",
+            output_key="user_agent",
+            matching_value=matching_agent,
+            matching_count=matching_count,
+        )
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_datasets_isolation(self, emailer: MagicMock) -> None:

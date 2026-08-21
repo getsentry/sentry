@@ -309,6 +309,51 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
             },
         ]
 
+    def test_valid_equation_orderby(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": [
+                    "equation|avg(span.duration) * 2",
+                    "span.duration",
+                ],
+                "orderby": ["-equation|avg(span.duration) * 2"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["orderby"] == [
+            {
+                "error": None,
+                "name": "-equation|avg(span.duration) * 2",
+                "valid": True,
+                "attrType": None,
+            },
+        ]
+
+    def test_invalid_equation_orderby(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "orderby": ["-equation|avg(span.duration) * 2"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["orderby"] == [
+            {
+                "error": "Orderby must also be a selected field",
+                "name": "-equation|avg(span.duration) * 2",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+
     def test_invalid_environment(self) -> None:
         response = self.do_request(
             {

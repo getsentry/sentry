@@ -1,10 +1,19 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
+import {parseNaturalLanguageToQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {
   useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
@@ -15,6 +24,7 @@ import {
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
+import {createConvertHumanizedItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {
@@ -29,17 +39,20 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   collapseTextTokens,
+  getFieldDefinitionForFilterKey,
   parseTokenKey,
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
   parseSearch,
+  TermOperator,
   Token,
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -106,13 +119,82 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  operator?: TermOperator
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key))
+    getInitialFilterText(key, getFieldDefinition(key), operator)
   );
+}
+
+const NUMERIC_COMPARISON_VALUE_TYPES = new Set<FieldValueType>([
+  FieldValueType.INTEGER,
+  FieldValueType.NUMBER,
+  FieldValueType.CURRENCY,
+  FieldValueType.DURATION,
+  FieldValueType.SIZE,
+  FieldValueType.PERCENTAGE,
+]);
+
+const COMPARISON_SHORTCUT_OPERATORS = [
+  TermOperator.GREATER_THAN,
+  TermOperator.LESS_THAN,
+  TermOperator.EQUAL,
+] as const;
+
+function getNumericComparisonFilterShortcut({
+  value,
+  cursorPosition,
+  getSuggestedFilterKey,
+  getFieldDefinition,
+  filterKeys,
+}: {
+  cursorPosition: number;
+  filterKeys: TagCollection;
+  getFieldDefinition: FieldDefinitionGetter;
+  getSuggestedFilterKey: (key: string) => string | null;
+  value: string;
+}) {
+  const word = getWordAtCursorPosition(value, cursorPosition);
+  const operator = COMPARISON_SHORTCUT_OPERATORS.find(op => word.endsWith(op));
+
+  if (!operator) {
+    return null;
+  }
+
+  const key = word.slice(0, -operator.length);
+  if (!key || key.endsWith('!')) {
+    return null;
+  }
+
+  const filterKey = getSuggestedFilterKey(key) ?? key;
+  const fieldDefinition = getFieldDefinitionForFilterKey(
+    filterKey,
+    getFieldDefinition,
+    filterKeys
+  );
+  const valueType = fieldDefinition?.valueType;
+  if (
+    !fieldDefinition ||
+    fieldDefinition.kind === FieldKind.FUNCTION ||
+    !valueType ||
+    !NUMERIC_COMPARISON_VALUE_TYPES.has(valueType)
+  ) {
+    return null;
+  }
+
+  return {
+    fieldDefinition,
+    filterKey,
+    operator,
+    text: replaceFocusedWord(
+      value,
+      cursorPosition,
+      getInitialFilterText(filterKey, fieldDefinition, operator)
+    ),
+  };
 }
 
 function countPreviousItemsOfType({
@@ -129,8 +211,6 @@ function countPreviousItemsOfType({
   }
   const currentIndex = itemKeys.indexOf(focusedKey);
 
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
       return count + 1;
@@ -247,6 +327,33 @@ function HiddenText({
   );
 }
 
+/**
+ * Best-effort local conversion of "humanized ESQ" into a real ESQ query.
+ * Runs on every keystroke; returns null when the feature is off or the input
+ * isn't cleanly invertible, so the existing Seer path is left unchanged.
+ */
+function useHumanizedEsqSuggestion(
+  filterKeys: TagCollection,
+  inputValue: string
+): string | null {
+  const organization = useOrganization();
+  const hasHumanizedEsq = organization.features.includes(
+    'search-query-builder-humanized-esq'
+  );
+
+  return useMemo(() => {
+    if (!hasHumanizedEsq) {
+      return null;
+    }
+    const trimmed = inputValue.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const esq = parseNaturalLanguageToQuery(trimmed, key => Boolean(filterKeys[key]));
+    return esq && esq !== trimmed ? esq : null;
+  }, [hasHumanizedEsq, inputValue, filterKeys]);
+}
+
 function SearchQueryBuilderInputInternal({
   item,
   token,
@@ -254,12 +361,16 @@ function SearchQueryBuilderInputInternal({
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const restoreFocusAfterBlurRef = useRef(false);
   const trimmedTokenValue = token.text.trim();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
 
   const organization = useOrganization();
+  const enableNumberOperatorConversion = organization.features.includes(
+    'search-query-builder-number-operator-conversion'
+  );
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -275,6 +386,7 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
+    replaceRawSearchKeys,
   } = useSearchQueryBuilderConfig();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const {
@@ -302,13 +414,32 @@ function SearchQueryBuilderInputInternal({
       includeSuggestions: true,
     });
 
-  const items = customMenu ? sectionItems : sortedFilteredItems;
+  const humanizedEsqSuggestion = useHumanizedEsqSuggestion(filterKeys, inputValue);
+
+  // A valid conversion must surface the Convert row in the flat list. When the
+  // input ends in a space the word-at-cursor is empty, which would otherwise
+  // swap in the exploration menu and hide the row — so suppress that menu while
+  // we have a suggestion (the user is finishing a query, not browsing keys).
+  const effectiveCustomMenu = humanizedEsqSuggestion ? undefined : customMenu;
+  const baseItems = effectiveCustomMenu ? sectionItems : sortedFilteredItems;
+  const items = humanizedEsqSuggestion
+    ? [createConvertHumanizedItem(humanizedEsqSuggestion), ...baseItems]
+    : baseItems;
   const shouldReopenDropdownOnFocus =
     reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
   const hasFilter = [...state.collection].some(collectionItem => {
     const collectionValue = collectionItem.value;
     return collectionValue?.type === Token.FILTER;
   });
+
+  useLayoutEffect(() => {
+    // React Aria only restores focus when the collection's focused key changes. A raw
+    // text blur updates this token in place, so restore the input focus explicitly.
+    if (restoreFocusAfterBlurRef.current && inputRef.current) {
+      restoreFocusAfterBlurRef.current = false;
+      inputRef.current.focus();
+    }
+  }, [trimmedTokenValue]);
 
   useEffect(() => {
     if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
@@ -401,6 +532,29 @@ function SearchQueryBuilderInputInternal({
         .replace('\n', '')
         .trim();
 
+      const comparisonShortcut = getNumericComparisonFilterShortcut({
+        value: clipboardText,
+        cursorPosition: clipboardText.length,
+        getSuggestedFilterKey,
+        getFieldDefinition,
+        filterKeys,
+      });
+
+      if (enableNumberOperatorConversion && comparisonShortcut) {
+        dispatch({
+          type: 'UPDATE_FREE_TEXT_ON_COLON',
+          tokens: [token],
+          text: comparisonShortcut.text,
+          focusOverride: calculateNextFocusForFilter(
+            state,
+            comparisonShortcut.fieldDefinition
+          ),
+          shouldCommitQuery: false,
+        });
+        resetInputValue();
+        return;
+      }
+
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
         tokens: [token],
@@ -408,7 +562,16 @@ function SearchQueryBuilderInputInternal({
       });
       resetInputValue();
     },
-    [dispatch, resetInputValue, token]
+    [
+      dispatch,
+      enableNumberOperatorConversion,
+      filterKeys,
+      getFieldDefinition,
+      getSuggestedFilterKey,
+      resetInputValue,
+      state,
+      token,
+    ]
   );
 
   const onClick = useCallback(() => {
@@ -443,7 +606,7 @@ function SearchQueryBuilderInputInternal({
         isOpen={isOpen}
       />
       <SearchQueryBuilderCombobox
-        customMenu={customMenu}
+        customMenu={effectiveCustomMenu}
         ref={inputRef}
         items={items}
         isLoading={isLoadingFilterKeys}
@@ -462,6 +625,20 @@ function SearchQueryBuilderInputInternal({
               query: option.value,
               focusOverride: {itemKey: 'end'},
             });
+            return;
+          }
+
+          if (option.type === 'convert-humanized') {
+            // Replace only the focused free-text token with the converted ESQ,
+            // leaving any other filters/tokens in the query intact.
+            dispatch({
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
+              tokens: [token],
+              text: option.value,
+              shouldCommitQuery: true,
+              focusOverride: calculateNextFocusForInsertedToken(item),
+            });
+            resetInputValue();
             return;
           }
 
@@ -542,21 +719,34 @@ function SearchQueryBuilderInputInternal({
             new_experience: true,
           });
         }}
-        onCustomValueBlurred={value => {
+        onCustomValueBlurred={(value, event) => {
+          const focusOverride = calculateNextFocusForCommittedCustomValue({
+            currentFocusedKey: item.key.toString(),
+            value,
+          });
+          if (event) {
+            restoreFocusAfterBlurRef.current = Boolean(
+              replaceRawSearchKeys?.length &&
+              !focusOverride &&
+              !event.relatedTarget &&
+              value.trim() !== trimmedTokenValue
+            );
+          }
           dispatch({
             type: 'UPDATE_FREE_TEXT_ON_BLUR',
             tokens: [token],
             text: value,
-            focusOverride: calculateNextFocusForCommittedCustomValue({
-              currentFocusedKey: item.key.toString(),
-              value,
-            }),
+            focusOverride,
             shouldCommitQuery: false,
           });
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasFilter) {
+          if (
+            defaultToAskSeerOnFreeTextSearch &&
+            value.trim().split(/\s+/).length >= 2 &&
+            !hasFilter
+          ) {
             setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);
@@ -650,6 +840,38 @@ function SearchQueryBuilderInputInternal({
               shouldCommitQuery: false,
             });
             resetInputValue();
+            return;
+          }
+
+          const cursorPosition = e.target.selectionStart ?? rawValue.length;
+          const comparisonShortcut = getNumericComparisonFilterShortcut({
+            value: rawValue,
+            cursorPosition,
+            getSuggestedFilterKey,
+            getFieldDefinition,
+            filterKeys,
+          });
+
+          if (enableNumberOperatorConversion && comparisonShortcut) {
+            const {fieldDefinition, filterKey, text} = comparisonShortcut;
+            const key = filterKeys[filterKey];
+            dispatch({
+              type: 'UPDATE_FREE_TEXT_ON_COLON',
+              tokens: [token],
+              text,
+              focusOverride: calculateNextFocusForFilter(state, fieldDefinition),
+              shouldCommitQuery: false,
+            });
+            resetInputValue();
+            trackAnalytics('search.key_manually_typed', {
+              organization,
+              search_type: recentSearchTypeToLabel(recentSearches),
+              search_source: searchSource,
+              item_name: filterKey,
+              item_kind: key?.kind ?? FieldKind.FIELD,
+              item_value_type: fieldDefinition.valueType ?? FieldValueType.STRING,
+              new_experience: true,
+            });
             return;
           }
 

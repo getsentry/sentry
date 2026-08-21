@@ -89,7 +89,7 @@ function FullscreenModalContent({
   };
 
   return (
-    <Flex direction="column" gap="md" height="100%" width="100%">
+    <Stack gap="md" height="100%" width="100%">
       <InputGroup>
         <InputGroup.LeadingItems>
           <IconSearch />
@@ -123,7 +123,7 @@ function FullscreenModalContent({
           insightsAvailable={insightsAvailable}
         />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -225,9 +225,6 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         color: theme.colors.white,
         fontFamily: 'Rubik',
         padding: 0,
-        textShadowBlur: 2,
-        textShadowColor: theme.colors.gray800,
-        textShadowOffsetY: 0.5,
       },
       upperLabel: {
         show: true,
@@ -239,9 +236,6 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         borderRadius: [2, 2, 0, 0],
         fontFamily: 'Rubik',
         padding: 0,
-        textShadowBlur: 2,
-        textShadowColor: theme.colors.gray800,
-        textShadowOffsetY: 0.5,
       },
     };
 
@@ -546,7 +540,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   }
 
   return (
-    <Flex direction="column" gap="sm" height="100%" width="100%">
+    <Stack gap="sm" height="100%" width="100%">
       {alertMessage && (
         <ClickableAlert
           variant="warning"
@@ -577,7 +571,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         />
         <TreemapControlButtons buttons={treemapControlButtons} />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 

@@ -98,7 +98,6 @@ function TaskCard({
 }
 
 interface TaskStatusIconProps {
-  progress?: number;
   status?: 'complete' | 'skipped';
   tooltipText?: string;
 }
@@ -136,7 +135,7 @@ interface SkipConfirmationProps {
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
     <Alert variant="info">
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="between" gap="xs" flex={1}>
           <LinkButton external href="https://sentry.io/support/" size="xs">
@@ -164,7 +163,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
             </Button>
           </Grid>
         </Flex>
-      </Flex>
+      </Stack>
     </Alert>
   );
 }
@@ -172,7 +171,6 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
 interface TaskProps {
   hidePanel: () => void;
   task: OnboardingTask;
-  completed?: boolean;
 }
 
 function Task({task, hidePanel}: TaskProps) {

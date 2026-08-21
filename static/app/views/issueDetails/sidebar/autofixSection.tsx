@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {
   type AutofixSection,
   getAutofixArtifactFromSection,
@@ -98,12 +99,12 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
     >
-      <AutofixContentHook aiConfig={aiConfig} group={group} project={project} />
+      <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
   );
 }
 
-const AutofixContentHook = registerLLMContext(
+export const AutofixQuotaContent = registerLLMContext(
   'autofix',
   OverrideOrDefault({
     overrideName: 'component:ai-configure-seer-quota-sidebar',
@@ -113,7 +114,9 @@ const AutofixContentHook = registerLLMContext(
 
 export function AutofixContent({aiConfig, group, project}: AutofixContentProps) {
   const organization = useOrganization();
-  const autofix = useExplorerAutofix(group.id);
+  const analyticsArea = useAnalyticsArea() || 'seer';
+  const setupAnalyticsEventKey = `${analyticsArea}.seer_setup_clicked`;
+  const autofix = useExplorerAutofix(group);
   const {data: setupCheck, isPending} = useQuery(
     getSeerOnboardingCheckQueryOptions({organization})
   );
@@ -197,11 +200,11 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
     return <Placeholder height="160px" />;
   }
 
-  // non seat based seer plans are allowed to run autofix without the SCM integration
-  if (organization.features.includes('seat-based-seer-enabled')) {
+  // legacy seer plans are allowed to run autofix without the SCM integration
+  if (!organization.features.includes('seer-added')) {
     if (needOrgSetup || needProjSetup) {
       return (
-        <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
+        <Stack border="muted" radius="md" padding="lg" gap="lg">
           <Text bold>{t('Finish Configuring Seer')}</Text>
           <Text>
             {t(
@@ -219,8 +222,12 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/seer/onboarding/`}
                 icon={<IconSeer />}
-                analyticsEventKey="issue_details.seer_setup_clicked"
-                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsEventKey={setupAnalyticsEventKey}
+                analyticsEventName={
+                  analyticsArea === 'issue_inbox'
+                    ? 'Issue Inbox: Seer Setup Clicked'
+                    : 'Seer: Setup Clicked'
+                }
                 analyticsParams={{group_id: group.id, setup_type: 'organization'}}
               >
                 {t('Set Up Seer')}
@@ -229,15 +236,19 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 icon={<IconSeer />}
-                analyticsEventKey="issue_details.seer_setup_clicked"
-                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsEventKey={setupAnalyticsEventKey}
+                analyticsEventName={
+                  analyticsArea === 'issue_inbox'
+                    ? 'Issue Inbox: Seer Setup Clicked'
+                    : 'Seer: Setup Clicked'
+                }
                 analyticsParams={{group_id: group.id, setup_type: 'project'}}
               >
                 {t('Set Up Seer for This Project')}
               </LinkButton>
             ) : null}
           </Flex>
-        </Flex>
+        </Stack>
       );
     }
   }
@@ -334,7 +345,7 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
   });
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {sections.map(section => {
         // there should only be 1 section of each type
         if (isRootCauseSection(section)) {
@@ -383,6 +394,6 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
       >
         {t('Open Autofix')}
       </Button>
-    </Flex>
+    </Stack>
   );
 }

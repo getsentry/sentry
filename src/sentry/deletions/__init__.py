@@ -32,8 +32,10 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.discover import models as discover
     from sentry.incidents import models as incidents
     from sentry.integrations import models as integrations
+    from sentry.investigations import models as investigations
     from sentry.monitors import models as monitors
     from sentry.preprod import models as preprod
+    from sentry.seer.models.run import SeerRun
     from sentry.sentry_apps import models as sentry_apps
     from sentry.snuba import models as snuba
     from sentry.uptime import models as uptime
@@ -85,6 +87,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.ProjectKey, BulkModelDeletionTask)
     manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
     manager.register(models.PullRequestActivity, BulkModelDeletionTask)
+    manager.register(models.PullRequestActivityLog, BulkModelDeletionTask)
     manager.register(models.Release, defaults.ReleaseDeletionTask)
     manager.register(models.ReleaseCommit, BulkModelDeletionTask)
     manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
@@ -107,6 +110,14 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(incidents.Incident, defaults.IncidentDeletionTask)
     manager.register(integrations.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
+    manager.register(investigations.Investigation, defaults.InvestigationDeletionTask)
+    manager.register(investigations.InvestigationBlock, defaults.InvestigationBlockDeletionTask)
+    manager.register(investigations.InvestigationBlockDependency, BulkModelDeletionTask)
+    manager.register(investigations.InvestigationBlockExecution, defaults.InvestigationBlockExecutionDeletionTask)
+    manager.register(investigations.InvestigationBlockExecutionProject, BulkModelDeletionTask)
+    manager.register(investigations.InvestigationBlockParameter, BulkModelDeletionTask)
+    manager.register(investigations.InvestigationFavoriteUser, BulkModelDeletionTask)
+    manager.register(investigations.InvestigationProject, BulkModelDeletionTask)
     manager.register(monitors.Monitor, defaults.MonitorDeletionTask)
     manager.register(monitors.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
     manager.register(monitors.MonitorCheckIn, defaults.MonitorCheckInDeletionTask)
@@ -123,6 +134,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(workflow_engine.Workflow, defaults.WorkflowDeletionTask)
     manager.register(uptime.UptimeSubscription, defaults.UptimeSubscriptionDeletionTask)
     manager.register(uptime.UptimeResponseCapture, ModelDeletionTask)
+    manager.register(SeerRun, ModelDeletionTask)
     # fmt: on
 
 

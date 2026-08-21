@@ -4,6 +4,7 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
@@ -26,6 +27,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer import agent_token
 from sentry.utils import auth
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,16 @@ if TYPE_CHECKING:
     from rest_framework.views import APIView
 
     from sentry.models.organization import Organization
+
+
+def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
+    """Choose the weakest user-grantable scope; break unrelated ties deterministically."""
+    grantable_scopes = allowed_scopes - settings.SENTRY_TOKEN_ONLY_SCOPES
+    for scope in sorted(grantable_scopes):
+        implied = set(settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(scope, ()))
+        if not implied.intersection(grantable_scopes - {scope}):
+            return scope
+    return min(grantable_scopes) if grantable_scopes else None
 
 
 class RelayPermission(BasePermission):
@@ -129,7 +141,15 @@ class ScopedPermission(BasePermission):
             # scopes so permission_denied can advertise them via RFC 6750 insufficient_scope;
             # has_permission itself stays a plain bool. (Skipped when no scope could satisfy
             # the method, e.g. an unset scope_map entry, to avoid an empty challenge.)
-            setattr(request, INSUFFICIENT_SCOPE_ATTR, allowed_scopes)
+            unsatisfied_scopes = allowed_scopes
+            if agent_token.is_agent_auth(request.auth):
+                required_scope = _least_privileged_scope(allowed_scopes)
+                if required_scope is None:
+                    unsatisfied_scopes = set()
+                else:
+                    unsatisfied_scopes = {required_scope}
+            if unsatisfied_scopes:
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, unsatisfied_scopes)
         return False
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
@@ -165,6 +185,8 @@ class SentryPermission(ScopedPermission):
         from sentry.api.base import logger
 
         user_id = request.user.id if request.user else None
+        agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
+
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
@@ -180,13 +202,19 @@ class SentryPermission(ScopedPermission):
         extra = {"organization_id": organization.id, "user_id": user_id}
 
         if request.auth:
-            if request.user and request.user.is_authenticated:
+            if agent_auth is not None:
+                request.access = access.from_rpc_auth(
+                    auth=agent_auth, rpc_user_org_context=org_context
+                )
+            elif request.user and request.user.is_authenticated:
                 request.access = access.from_request_org_and_scopes(
                     request=request,
                     rpc_user_org_context=org_context,
                     scopes=request.auth.get_scopes(),
                 )
             else:
+                # Userless credential (org token, or agent token acting on behalf of a
+                # member). from_rpc_auth dispatches the agent to member-derived access.
                 request.access = access.from_rpc_auth(
                     auth=request.auth, rpc_user_org_context=org_context
                 )
@@ -380,6 +408,11 @@ class DisallowImpersonatedTokenCreation(BasePermission):
             )
             return False
         return True
+
+
+class DisallowAgentToken(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return not agent_token.is_agent_auth(request.auth)
 
 
 class SentryIsAuthenticated(IsAuthenticated):

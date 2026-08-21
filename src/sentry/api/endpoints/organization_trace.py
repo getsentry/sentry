@@ -17,13 +17,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.trace import (
-    SerializedEvent,
-    SerializedIssue,
-    SerializedSpan,
-    SerializedUptimeCheck,
-    query_trace_data,
-)
+from sentry.snuba.trace import SerializedTraceItem, query_trace_data
 from sentry.utils.tracing import trace
 from sentry.utils.validators import is_event_id
 
@@ -113,7 +107,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         include_uptime: bool = False,
         *,
         organization: Organization,
-    ) -> list[SerializedEvent]:
+    ) -> list[SerializedTraceItem]:
         return query_trace_data(
             snuba_params,
             trace_id,
@@ -141,7 +135,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationTraceResponse",
-                list[SerializedSpan | SerializedIssue | SerializedUptimeCheck],
+                list[SerializedTraceItem],
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -151,7 +145,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
     )
     def get(
         self, request: Request, organization: Organization, trace_id: str
-    ) -> Response[list[SerializedSpan | SerializedIssue | SerializedUptimeCheck]] | Response[None]:
+    ) -> Response[list[SerializedTraceItem]] | Response[None]:
         """
         Retrieve the spans, errors, and (optionally) uptime checks that make up a single trace.
 
@@ -176,7 +170,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         if error_id is not None and not is_event_id(error_id):
             raise ParseError(f"eventId: {error_id} needs to be a valid uuid")
 
-        def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
+        def data_fn(offset: int, limit: int) -> list[SerializedTraceItem]:
             """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
                 update_snuba_params_with_timestamp(request, snuba_params)

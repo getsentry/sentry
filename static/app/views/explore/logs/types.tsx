@@ -25,6 +25,7 @@ export enum OurLogKnownFieldKey {
   SPAN_ID = 'span_id',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_PRECISE = 'timestamp_precise',
+  TIMESTAMP_SEQUENCE = 'timestamp.sequence',
   OBSERVED_TIMESTAMP_PRECISE = 'observed_timestamp',
   LOGGER = 'logger.name',
 
@@ -53,6 +54,9 @@ export enum OurLogKnownFieldKey {
 
   // From the EAP dataset directly not using a column alias, should be hidden.
   ITEM_TYPE = 'sentry.item_type',
+
+  // Trace item details fall back to this when OBSERVED_TIMESTAMP_PRECISE can't be aliased.
+  OBSERVED_TIMESTAMP_NANOS = 'sentry.observed_timestamp_nanos',
 
   // Deprecated fields
   TIMESTAMP_NANOS = 'sentry.timestamp_nanos',
@@ -119,7 +123,7 @@ export type OurLogsAggregate =
   | AggregationKey.MAX;
 
 type OurLogsAggregateKeys = `${OurLogsAggregate}(${OurLogFieldKey})`;
-type OurLogsAggregateResponseItem = Record<
+export type OurLogsAggregateResponseItem = Record<
   keyof OurLogsResponseItem | OurLogsAggregateKeys,
   string | number
 >;

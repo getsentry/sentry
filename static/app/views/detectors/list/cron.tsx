@@ -12,6 +12,7 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {OnboardingPanel} from 'sentry/components/onboardingPanel';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -65,7 +66,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   });
 
   return (
-    <Cell
+    <SimpleTable.RowCell
       data-column-name="visualization"
       padding="lg 0"
       borderLeft="muted"
@@ -92,7 +93,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
           );
         })}
       </Stack>
-    </Cell>
+    </SimpleTable.RowCell>
   );
 }
 
@@ -167,7 +168,7 @@ function CronEmptyState() {
           {platformGuides
             .filter(({platform}) => !['cli', 'http'].includes(platform))
             .map(({platform, label}) => (
-              <Flex key={platform} direction="column" gap="xs" align="center">
+              <Stack key={platform} gap="xs" align="center">
                 <PlatformLinkButton
                   variant="secondary"
                   to={makeCreateUrl(platform)}
@@ -176,7 +177,7 @@ function CronEmptyState() {
                   <PlatformIcon platform={platform} format="lg" size="100%" />
                 </PlatformLinkButton>
                 <Text variant="muted">{label}</Text>
-              </Flex>
+              </Stack>
             ))}
         </Flex>
         <Flex gap="md">
@@ -205,7 +206,12 @@ function CronEmptyState() {
   );
 }
 
+const CronsListPageHeader = OverrideOrDefault({
+  overrideName: 'component:crons-list-page-header',
+});
+
 export default function CronDetectorsList() {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const detectorListQuery = useDetectorListQuery({
     detectorFilter: 'monitor_check_in_failure',
@@ -222,14 +228,14 @@ export default function CronDetectorsList() {
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (
-            <Cell
+            <SimpleTable.RowCell
               data-column-name="visualization"
               padding="lg 0"
               borderLeft="muted"
               height="100%"
             >
               <CheckInPlaceholder />
-            </Cell>
+            </SimpleTable.RowCell>
           );
         }
         if (detector.type === 'monitor_check_in_failure') {
@@ -249,6 +255,7 @@ export default function CronDetectorsList() {
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
         >
+          <CronsListPageHeader organization={organization} />
           <InsightsRedirectNotice>
             {t('Cron monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
@@ -270,10 +277,6 @@ export default function CronDetectorsList() {
     </MonitorViewContext.Provider>
   );
 }
-
-const Cell = styled(SimpleTable.RowCell)`
-  z-index: 4;
-`;
 
 const TimelineFadeIn = styled('div')`
   width: 100%;

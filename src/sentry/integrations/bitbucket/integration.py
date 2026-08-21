@@ -130,6 +130,7 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         username = self.model.metadata.get("uuid", self.username)
         if not query:

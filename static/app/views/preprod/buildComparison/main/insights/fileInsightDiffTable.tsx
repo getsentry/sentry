@@ -50,7 +50,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  const sortedDiffItems = [...fileDiffItems].sort((a: DiffItem, b: DiffItem) => {
+  const sortedDiffItems = fileDiffItems.toSorted((a: DiffItem, b: DiffItem) => {
     const {field, kind} = sort;
 
     let aValue: number | string = '';
@@ -114,7 +114,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
 
   let rowIndex = 0;
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <DiffTableWithColumns gridTemplateColumns="150px minmax(200px, 3fr) 180px">
         <DiffTableHeader>
           {tableHeaders.map(header => (
@@ -224,6 +224,6 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
           </ButtonBar>
         </Flex>
       )}
-    </Flex>
+    </Stack>
   );
 }

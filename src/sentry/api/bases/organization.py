@@ -19,11 +19,11 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
     ProjectIdOrSlugField,
+    filter_projects_by_permissions,
     parse_id_or_slug_params,
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
-from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -40,12 +40,13 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer.agent_token import is_agent_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.utils.tracing import set_span_data, start_span
 
 
 class NoProjects(Exception):
@@ -457,34 +458,13 @@ class OrganizationEndpoint(Endpoint):
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
-        with start_span(op="apply_project_permissions", name="apply_project_permissions") as span:
-            set_span_data(span, "Project Count", len(projects))
-            if force_global_perms:
-                set_span_tag(span, "mode", "force_global_perms")
-                return projects
-
-            # There is a special case for staff, where we want to fetch a single project (OrganizationStatsEndpointV2)
-            # or all projects (OrganizationMetricsDetailsEndpoint) in _admin. Staff cannot use has_project_access
-            # like superuser because it fails due to staff having no scopes. The workaround is to create a lambda that
-            # mimics checking for active projects like has_project_access without further validation.
-            # NOTE: We must check staff before superuser or else _admin will fail when both cookies are active
-            if is_active_staff(request):
-                set_span_tag(span, "mode", "staff_fetch_all")
-                proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
-            # Superuser should fetch all projects.
-            # Also fetch all accessible projects if requesting $all
-            elif is_active_superuser(request) or include_all_accessible:
-                set_span_tag(span, "mode", "has_project_access")
-                proj_filter = request.access.has_project_access
-            # Check if explicitly requesting specific projects
-            elif not filter_by_membership:
-                set_span_tag(span, "mode", "has_project_access")
-                proj_filter = request.access.has_project_access
-            else:
-                set_span_tag(span, "mode", "has_project_membership")
-                proj_filter = request.access.has_project_membership
-
-            return [p for p in projects if proj_filter(p)]
+        return filter_projects_by_permissions(
+            projects=projects,
+            request=request,
+            filter_by_membership=filter_by_membership,
+            force_global_perms=force_global_perms,
+            include_all_accessible=include_all_accessible,
+        )
 
     def get_requested_project_ids_unchecked(self, request: HttpRequest) -> set[int]:
         """
@@ -812,8 +792,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             is_api_token_auth(request.auth) and request.access.has_scope("project:releases")
         )
 
+        agent_auth = request.auth if is_agent_auth(request.auth) else None
+        has_valid_agent_auth = (
+            agent_auth is not None and agent_auth.organization_id == organization.id
+        )
+
         if not (
-            has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
+            has_valid_api_key
+            or has_valid_agent_auth
+            or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
 
@@ -847,14 +834,16 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         via has_global_access.
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
+        Agent requests bypass the cache so every call rechecks live project membership.
         """
         actor_id = None
         has_perms = None
         key = None
-        if request.user.is_authenticated:
-            actor_id = "user:%s" % request.user.id
-        elif request.auth is not None:
-            actor_id = "apikey:%s" % request.auth.entity_id
+        if not is_agent_auth(request.auth):
+            if request.user.is_authenticated:
+                actor_id = "user:%s" % request.user.id
+            elif request.auth is not None:
+                actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             if project_ids:
                 requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())

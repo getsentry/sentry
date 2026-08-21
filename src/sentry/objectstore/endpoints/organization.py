@@ -88,7 +88,7 @@ class ObjectstoreEndpoint(Endpoint):
             url=target_url,
             headers=headers,
             data=get_raw_body(request._request),
-            params=dict(request.GET) if request.GET else None,
+            params=request.META.get("QUERY_STRING") or None,
             stream=True,
             allow_redirects=False,
         )
@@ -183,12 +183,13 @@ def stream_response(
     CHUNK_SIZE = 512 * 1024
 
     def stream_generator() -> Generator[bytes]:
-        external_response.raw.decode_content = decode_content
-        while True:
-            chunk = external_response.raw.read(CHUNK_SIZE)
-            if not chunk:
-                break
-            yield chunk
+        with external_response:
+            external_response.raw.decode_content = decode_content
+            while True:
+                chunk = external_response.raw.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                yield chunk
 
     response = StreamingHttpResponse(
         streaming_content=stream_generator(),

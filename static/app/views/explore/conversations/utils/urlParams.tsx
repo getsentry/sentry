@@ -1,10 +1,46 @@
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
+import {
+  EXPLORE_AGENTS_SUB_PATH,
+  CONVERSATIONS_DETAIL_SUB_PATH,
+} from 'sentry/views/explore/conversations/settings';
+
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
 interface ConversationsUrlOptions {
   end?: string;
   project?: number | string;
   referrer?: string;
   start?: string;
+}
+
+/**
+ * Returns the in-app path to a conversation's detail view, scoped to a time
+ * window around the conversation and the given projects.
+ */
+export function getConversationDetailUrl(
+  orgSlug: string,
+  conversation: Conversation,
+  projects: number[],
+  referrer = 'conversations-table'
+): string {
+  const basePath = `/organizations/${orgSlug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
+  const params = new URLSearchParams();
+  if (conversation.startTimestamp) {
+    params.set(
+      'start',
+      new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString()
+    );
+  }
+  if (conversation.endTimestamp) {
+    params.set('end', new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString());
+  }
+  for (const project of projects) {
+    params.append('project', String(project));
+  }
+  params.set('referrer', referrer);
+  const qs = params.toString();
+  return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
 }
 
 /**
@@ -17,7 +53,7 @@ export function getConversationsUrlForExternalUse(
   conversationId: number | string,
   options?: ConversationsUrlOptions
 ): string {
-  const base = `https://sentry.io/organizations/${organizationSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversationId)}/`;
+  const base = `https://sentry.io/organizations/${organizationSlug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(conversationId)}/`;
   const params = new URLSearchParams();
   if (options?.start) {
     params.set('start', options.start);

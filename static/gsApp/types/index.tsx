@@ -2,7 +2,6 @@ import type {StripeConstructor} from '@stripe/stripe-js';
 
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
-import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
@@ -34,7 +33,8 @@ declare global {
 
   namespace React {
     interface DOMAttributes<T> {
-      'data-test-id'?: string;
+      // Keep T referenced because declaration merging requires this to exactly match React's generic.
+      'data-test-id'?: string | (T & never);
     }
   }
 }
@@ -70,7 +70,6 @@ export enum PlanName {
   BUSINESS_BUNDLE = 'Business Bundle',
   TEAM_SPONSORED = 'Sponsored Team',
   BUSINESS_SPONSORED = 'Sponsored Business',
-  ENTERPRISE_TEAM = 'Enterprise (Team)',
   ENTERPRISE_BUSINESS = 'Enterprise (Business)',
 }
 
@@ -159,8 +158,6 @@ export type Plan = {
    */
   categories: DataCategory[];
   dashboardLimit: number;
-  features: string[];
-
   hasOnDemandModes: boolean;
   id: string;
   /**
@@ -307,17 +304,12 @@ export type Subscription = {
   // GDPR Info
   gdprDetails: GDPRDetails | null;
   hadCustomDynamicSampling: boolean;
-  hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
-  hasRestrictedIntegration: boolean | null;
   id: string;
 
   // Added by SubscriptionStore to show/hide a UI element
   isEnterpriseTrial: boolean;
-  // was the trial forced on to the org to rectify access to premium features
-  isExemptFromForcedTrial: boolean;
-  isForcedTrial: boolean;
   isFree: boolean;
 
   // Subscription flags
@@ -326,12 +318,10 @@ export type Subscription = {
 
   isPartner: boolean;
   isPastDue: boolean;
-  isPerformancePlanTrial: boolean;
   isSelfServePartner: boolean;
   isSponsored: boolean;
   isSuspended: boolean;
 
-  isTrial: boolean;
   lastTrialEnd: string | null;
   membersDeactivatedFromLimit: number;
   name: string;
@@ -409,49 +399,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-};
-
-type DiscountInfo = {
-  amount: number;
-  billingInterval: 'monthly' | 'annual';
-  billingPeriods: number;
-  // TODO: better typing
-  creditCategory: InvoiceItemType | null;
-  disclaimerText: string;
-  discountType: 'percentPoints' | 'events';
-  durationText: string;
-  maxCentsPerPeriod: number;
-  modalDisclaimerText: string;
-  planRequirement: 'business' | 'paid' | null;
-  reminderText: string;
-};
-
-export type Promotion = {
-  autoOptIn: boolean;
-  discountInfo: DiscountInfo;
-  endDate: string;
-  name: string;
-  promptActivityTrigger: string | null;
-  showDiscountInfo: boolean;
-  slug: string;
-  startDate: string;
-  timeLimit: string;
-};
-
-export type PromotionClaimed = {
-  dateClaimed: string;
-  dateCompleted: string;
-  dateExpired: string;
-  freeEventCreditDaysLeft: number;
-  isLastCycleForFreeEvents: boolean;
-  promotion: Promotion;
-  claimant?: User;
-};
-
-export type PromotionData = {
-  activePromotions: PromotionClaimed[];
-  availablePromotions: Promotion[];
-  completedPromotions: PromotionClaimed[];
 };
 
 export type Feature = {
@@ -614,8 +561,14 @@ type CamelToSnake<
         ? `${Prev extends '' ? '' : Prev extends 'lower' ? '_' : ''}${Lowercase<First>}`
         : Rest extends `${infer Next}${infer _Tail}`
           ? Next extends Lowercase<Next>
-            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
-            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
+            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<
+                Rest,
+                'upper'
+              >}`
+            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<
+                Rest,
+                'upper'
+              >}`
           : never
       : `${First}${CamelToSnake<Rest, Prev>}`
   : S;
@@ -629,7 +582,9 @@ type CamelToSnake<
  * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "ondemand_monitor_seats"
  */
 type OnDemandInvoiceItemType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? `ondemand_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -643,7 +598,9 @@ type OnDemandInvoiceItemType = {
  * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "reserved_monitor_seats"
  */
 type ReservedInvoiceItemType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? `reserved_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -816,7 +773,9 @@ export type PreviewInvoiceItem = BaseInvoiceItem & {
  * Example: DATA_CATEGORY_INFO.LOG_BYTE (singular: "logByte") -> "log_byte"
  */
 type DynamicCreditType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['singular']>
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];

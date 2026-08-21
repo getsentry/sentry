@@ -47,6 +47,36 @@ describe('viewSamplesTarget', () => {
     });
   });
 
+  it('does not add a filter for an empty group by', () => {
+    const location = LocationFixture({
+      query: {
+        aggregateField: [
+          JSON.stringify({groupBy: ''}),
+          JSON.stringify({yAxes: ['count(span.duration)']}),
+        ],
+        aggregateSort: '-count(span.duration)',
+        groupBy: '',
+        visualize: JSON.stringify({yAxes: ['count(span.duration)']}),
+      },
+    });
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: [''],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {},
+      projects,
+    });
+
+    expect(target.query.aggregateField).toEqual(location.query.aggregateField);
+    expect(target.query.aggregateSort).toBe('-count(span.duration)');
+    expect(target.query.groupBy).toBe('');
+    expect(target.query.visualize).toBe(location.query.visualize);
+    expect(target.query.query).toBe('');
+  });
+
   it('simple drill down with single group by', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
@@ -168,6 +198,81 @@ describe('viewSamplesTarget', () => {
         mode: 'samples',
         query: '',
         project: String(project.id),
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down with numeric group by value', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['org_id'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        org_id: 123,
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'org_id:123',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down replaces existing filter for the same key', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: 'bar:old_value',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        bar: 'new_value',
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'bar:new_value',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down preserves existing filters for different keys', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: 'existing_key:existing_value',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        bar: 'bar',
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'existing_key:existing_value bar:bar',
         sort: ['-span.duration'],
       },
     });
@@ -339,7 +444,7 @@ describe('removeHiddenKeys', () => {
       project_id: {key: 'project_id', name: 'project_id', kind: FieldKind.TAG},
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual({
       'log.field': {key: 'log.field', name: 'log.field', kind: FieldKind.TAG},
     });
   });
@@ -360,7 +465,7 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual({
       'log.duration': {
         key: 'log.duration',
         name: 'log.duration',
@@ -383,7 +488,33 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual(tags);
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual(tags);
+  });
+
+  it('keeps user-sent attributes whose name collides with a hidden key', () => {
+    const tags: TagCollection = {
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'user',
+      },
+    };
+
+    expect(removeHiddenKeys(tags, new Set(['organization.id']))).toEqual(tags);
+  });
+
+  it('still hides Sentry-sourced attributes that match a hidden key', () => {
+    const tags: TagCollection = {
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'sentry',
+      },
+    };
+
+    expect(removeHiddenKeys(tags, new Set(['organization.id']))).toEqual({});
   });
 });
 

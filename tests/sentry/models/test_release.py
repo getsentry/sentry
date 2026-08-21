@@ -10,6 +10,8 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log.types import SetResolvedInReleaseAction
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -40,6 +42,7 @@ from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.strings import truncatechars
@@ -95,6 +98,49 @@ def test_version_is_semver_valid(release_version) -> None:
 )
 def test_version_is_semver_invalid(release_version) -> None:
     assert Release.is_semver_version(release_version) is False
+
+
+class GetOrCreateNoCreateTest(TestCase):
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org, name="foo")
+
+    def test_returns_none_on_miss_without_creating(self) -> None:
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is None
+        assert not Release.objects.filter(organization_id=self.org.id).exists()
+
+    def test_does_not_cache_miss(self) -> None:
+        # A miss must not be cached, so a release created later is still found.
+        assert Release.get_or_create(project=self.project, version="1.0", create=False) is None
+
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_returns_existing_release(self) -> None:
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_associates_existing_org_release_with_project(self) -> None:
+        # A release that exists in the org but is linked to a different project is
+        # associated with the ingesting project, not skipped.
+        other_project = self.create_project(organization=self.org, name="bar")
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(other_project)
+        assert not existing.projects.filter(id=self.project.id).exists()
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+        assert release.projects.filter(id=self.project.id).exists()
 
 
 class MergeReleasesTest(TestCase):
@@ -523,6 +569,35 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
+    def test_commit_resolves_only_when_released_to_issue_project(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        frontend_project = self.create_project(organization=org, name="frontend")
+        backend_project = self.create_project(organization=org, name="backend")
+        frontend_group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=backend_project, name="test/monorepo")
+        commit = self.create_commit(
+            repo=repo,
+            message=f"fixes {frontend_group.qualified_short_id}",
+        )
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert list(backend_release.projects.all()) == [backend_project]
+        assert not GroupResolution.objects.filter(
+            group=frontend_group, release=backend_release
+        ).exists()
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=frontend_group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.RESOLVED
+
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
     def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
@@ -592,6 +667,25 @@ class SetCommitsTestCase(TestCase):
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             ),
+        )
+
+    @receivers_raise_on_send()
+    def test_resolution_attributes_to_system(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+
+        release = self.create_release(project=project, version="abcdabc")
+        with capture_action_log() as log:
+            release.set_commits(
+                [{"id": "a" * 40, "message": "fixes %s" % (group.qualified_short_id)}]
+            )
+
+        log.assert_logged(
+            SetResolvedInReleaseAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
         )
 
     @patch("sentry.analytics.record")

@@ -1,19 +1,20 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Select, SelectOption} from '@sentry/scraps/select';
 
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   type IntegrationChannel,
   type IssueAlertNotificationProps,
   providerDetails,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
+import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
 type Channel = {
   display: string;
@@ -36,40 +37,56 @@ type ChannelListResponse = {
  *
  * @public Consumed by the SCM layout in a downstream PR.
  */
-export function useMessagingIntegrationAlertRule({
-  channel,
-  integration,
-  provider,
-  setChannel,
-  setIntegration,
-  setProvider,
-  providersToIntegrations,
-}: IssueAlertNotificationProps) {
+export function useMessagingIntegrationAlertRule(
+  {
+    channel,
+    integration,
+    provider,
+    setChannel,
+    setIntegration,
+    setProvider,
+    providersToIntegrations,
+  }: IssueAlertNotificationProps,
+  // For project creation, `variant` identifies the SCM or legacy experience.
+  // Other flows leave it undefined and do not emit these change events.
+  variant?: 'scm' | 'legacy'
+) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
 
-  const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            integrationId: integration?.id!,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!provider && !!integration?.id,
-    }
+  const {data: channels, isPending} = useQuery(
+    apiOptions.as<ChannelListResponse>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
+      {
+        path:
+          provider && integration?.id
+            ? {
+                organizationIdOrSlug: organization.slug,
+                integrationId: integration.id,
+              }
+            : skipToken,
+        staleTime: Infinity,
+      }
+    )
   );
 
-  const validateChannel = useValidateChannel({
+  const validateChannelOptions = validateChannelQueryOptions({
+    organizationSlug: organization.slug,
     channel,
     integrationId: integration?.id,
+  });
+  const validateChannel = useQuery({
+    ...validateChannelOptions,
     enabled: !!integration?.id && !!channel?.new,
   });
+  const channelError =
+    validateChannel.data?.valid === false
+      ? (validateChannel.data.detail ?? t('Channel not found or restricted'))
+      : validateChannel.error
+        ? t('Unexpected integration channel validation error')
+        : undefined;
+  const clearChannelValidation = () =>
+    queryClient.removeQueries({queryKey: validateChannelOptions.queryKey});
 
   const providerOptions = useMemo(
     () =>
@@ -100,6 +117,20 @@ export function useMessagingIntegrationAlertRule({
     [channels, provider]
   );
 
+  useEffect(() => {
+    // A restored channel (e.g. from persisted/default actions) only has a raw
+    // id as its label until the channel list loads. Upgrade it to the
+    // human-readable label once we can resolve it. Skips user-created
+    // channels, which intentionally keep their typed-in label.
+    if (!channel || channel.new || !channelOptions) {
+      return;
+    }
+    const match = channelOptions.find(option => option.value === channel.value);
+    if (match && match.label !== channel.label) {
+      setChannel({value: channel.value, label: match.label, new: false});
+    }
+  }, [channel, channelOptions, setChannel]);
+
   return {
     provider,
     integration,
@@ -108,28 +139,53 @@ export function useMessagingIntegrationAlertRule({
     integrationOptions,
     channelOptions,
     isChannelLoading: isPending || validateChannel.isFetching,
-    channelError: validateChannel.error,
+    channelError,
     providerDisabled: Object.keys(providersToIntegrations).length === 1,
     integrationDisabled: integrationOptions.length === 1,
     onProviderChange: (option: any) => {
       setProvider(option.value);
       setIntegration(providersToIntegrations[option.value]![0]);
       setChannel(undefined);
-      validateChannel.clear();
+      clearChannelValidation();
+      if (variant) {
+        trackAnalytics('project_creation.notify_provider_changed', {
+          organization,
+          provider: option.value,
+          variant,
+        });
+      }
     },
     onIntegrationChange: (option: any) => {
       setIntegration(option.value);
       setChannel(undefined);
-      validateChannel.clear();
+      clearChannelValidation();
+      if (variant) {
+        trackAnalytics('project_creation.notify_integration_changed', {
+          organization,
+          variant,
+        });
+      }
     },
     onChannelChange: (option: {label: React.ReactNode; value: string} | null) => {
       setChannel(
         option ? {value: option.value, label: option.label, new: false} : undefined
       );
-      validateChannel.clear();
+      clearChannelValidation();
+      if (variant) {
+        trackAnalytics('project_creation.notify_channel_changed', {
+          organization,
+          variant,
+        });
+      }
     },
     onCreateChannel: (newOption: string) => {
       setChannel({value: newOption, label: newOption, new: true});
+      if (variant) {
+        trackAnalytics('project_creation.notify_channel_changed', {
+          organization,
+          variant,
+        });
+      }
     },
   };
 }
@@ -171,7 +227,7 @@ export function ChannelSelect({
       options={options}
       isLoading={isLoading}
       disabled={disabled}
-      value={value ? {label: value.label, value: value.value} : undefined}
+      value={value ? {label: value.label, value: value.value} : null}
       onChange={onChange}
       onCreateOption={onCreateOption}
       clearable
@@ -210,7 +266,7 @@ export function MessagingIntegrationAlertRule(props: IssueAlertNotificationProps
     onIntegrationChange,
     onChannelChange,
     onCreateChannel,
-  } = useMessagingIntegrationAlertRule(props);
+  } = useMessagingIntegrationAlertRule(props, 'legacy');
 
   if (!provider) {
     return null;

@@ -1,12 +1,15 @@
 import {InfoText} from '@sentry/scraps/info';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Stack, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import type {TextProps} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
-import {CheckStatus, type UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndicator';
+import {
+  CheckStatus,
+  type UptimeSummary,
+} from 'sentry/views/detectors/components/uptime/types';
 
 type UptimePercentProps = {
   summary: UptimeSummary;
@@ -33,7 +36,7 @@ export function UptimePercent({summary, note, size}: UptimePercentProps) {
   const percent = Math.floor(percentFull * 1000) / 1000;
 
   const tooltip = (
-    <Flex direction="column" gap="md" style={{textAlign: 'left'}}>
+    <Stack gap="md" style={{textAlign: 'left'}}>
       {note}
       <Grid columns="max-content max-content max-content" gap="xs md">
         <span>
@@ -47,7 +50,7 @@ export function UptimePercent({summary, note, size}: UptimePercentProps) {
         <span>{t('Down Checks')}</span>
         <span>{formatAbbreviatedNumber(summary.downtimeChecks)}</span>
       </Grid>
-    </Flex>
+    </Stack>
   );
 
   return (

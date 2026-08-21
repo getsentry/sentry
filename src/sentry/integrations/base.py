@@ -125,6 +125,7 @@ class IntegrationFeatures(StrEnum):
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
     CODING_AGENT = "coding-agent"
+    MONITORING = "monitoring"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -242,6 +243,9 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
 
     allow_multiple = True
     """whether multiple installations of this integration are allowed per organization"""
+
+    overwrite_existing_integration = True
+    """whether installation refreshes an existing Integration's global fields"""
 
     can_disable = False
     """
@@ -421,14 +425,19 @@ class IntegrationInstallation(abc.ABC):
         """
         return []
 
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+    def update_organization_config(
+        self, data: MutableMapping[str, Any]
+    ) -> Mapping[str, Any] | None:
         """
         Update the configuration field for an organization integration.
+
+        May return per-config-field detail for the caller to record on an audit log entry,
+        keyed by the config field it describes. `None` means there is nothing extra to record.
         """
         from sentry.integrations.services.integration import integration_service
 
         if not self.org_integration:
-            return
+            return None
 
         config = self.org_integration.config
         config.update(data)
@@ -438,6 +447,8 @@ class IntegrationInstallation(abc.ABC):
         )
         if org_integration is not None:
             self.org_integration = org_integration
+
+        return None
 
     def get_config_data(self) -> Mapping[str, Any]:
         if not self.org_integration:

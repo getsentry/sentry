@@ -11,10 +11,9 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 interface Props {
   projectId: string | undefined;
   release: string;
-  withChart?: boolean;
 }
 
-export function NewIssues({release, projectId, withChart = false}: Props) {
+export function NewIssues({release, projectId}: Props) {
   const location = useLocation();
   const {data: releaseDetails} = useReleaseDetails({release});
   const queryParams = {
@@ -40,11 +39,13 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       queryParams={queryParams}
       query={
         releaseDetails
-          ? `release:"${escapeDoubleQuotes(releaseDetails?.versionInfo.version.raw)}"`
+          ? `release:"${escapeDoubleQuotes(
+              releaseDetails.versionInfo?.version.raw ?? releaseDetails.version
+            )}"`
           : ''
       }
       canSelectGroups={false}
-      withChart={withChart}
+      withChart={false}
       renderEmptyMessage={renderEmptyMessage}
       withPagination
       source="release-drawer"

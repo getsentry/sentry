@@ -5,6 +5,9 @@ import 'echarts/lib/component/brush';
 import 'echarts/lib/component/visualMap';
 import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
+// Canvas backend. Explicit so `renderer: 'canvas'` never silently relies on
+// another module importing the full `echarts` bundle.
+import 'zrender/lib/canvas/canvas';
 
 import {useId, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
@@ -29,7 +32,7 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -50,7 +53,7 @@ import type {
 import {defined} from 'sentry/utils/defined';
 
 import {Grid} from './components/grid';
-import {Legend} from './components/legend';
+import {legend as makeLegend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
@@ -58,7 +61,7 @@ import {
 } from './components/tooltip';
 import {XAxis} from './components/xAxis';
 import {YAxis} from './components/yAxis';
-import {LineSeries} from './series/lineSeries';
+import {lineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -433,7 +436,7 @@ export function BaseChart({
               markLine:
                 (s?.data?.[0] as any)?.[1] === undefined
                   ? undefined
-                  : MarkLine({
+                  : markLine({
                       silent: true,
                       lineStyle: {
                         type: 'solid',
@@ -449,7 +452,7 @@ export function BaseChart({
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
-        LineSeries({
+        lineSeries({
           name: previous.seriesName,
           data: previous.data.map(({name, value}) => [name, value]),
           lineStyle: {
@@ -571,7 +574,7 @@ export function BaseChart({
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
-      legend: legend ? Legend({theme, ...legend}) : undefined,
+      legend: legend ? makeLegend({theme, ...legend}) : undefined,
       yAxis: yAxisOrCustom,
       xAxis: xAxisOrCustom,
       series: resolvedSeries,
@@ -869,6 +872,19 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
 
   .echarts-for-react text {
     font-variant-numeric: tabular-nums !important;
+  }
+
+  /*
+   * Desktop Safari runs heuristics to determine whether an incoming trackpad
+   action is going to be a drag or a select. An SVG that contains text like our
+   charts is _ambiguous_ so Safari will wait for 500ms before determining that a
+   pointer action is a drag, which stalls box selection on Heat Maps for half a
+   second, creating major jank. We need to turn off user selection manually.
+   ECharts already does this, but unprefixed, which is not supported in Safari.
+   */
+  .echarts-for-react svg {
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   ${p => getTooltipStyles(p)}

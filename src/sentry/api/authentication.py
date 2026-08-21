@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 from collections.abc import Callable, Iterable
-from typing import Any, ClassVar
+from typing import Any, ClassVar, NoReturn
 
 import sentry_sdk
 from django.conf import settings
@@ -14,6 +14,7 @@ from django.http import HttpHeaders
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
+from jwt import PyJWTError
 from rest_framework.authentication import (
     BaseAuthentication,
     BasicAuthentication,
@@ -24,7 +25,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from sentry_relay.exceptions import UnpackError
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
@@ -41,6 +42,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
 from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.seer import agent_token
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
@@ -520,7 +522,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             return True
 
         token_str = force_str(auth[1])
-        return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
+        if token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX):
+            return False
+
+        return not agent_token.is_agent_token_string(token_str)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
@@ -603,6 +608,93 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             api_token_type=self.token_name,
             api_token_is_sentry_app=getattr(user, "is_sentry_app", False),
         )
+
+
+@AuthenticationSiloLimit(SiloMode.CELL, SiloMode.CONTROL)
+class AgentTokenAuthentication(StandardAuthentication):
+    """Authenticates the Seer agent's typed capability JWT.
+
+    The agent credential remains the authorization authority. A non-authoritative,
+    ephemeral copy of the delegating user is returned only for compatibility with
+    callsites that still require ``request.user``; API access is derived from the
+    delegating member and capped by the token in ``access.from_agent_auth``."""
+
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth) or len(auth) != 2:
+            return False
+        return agent_token.is_agent_token_string(force_str(auth[1]))
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        def fail(reason: str, **extra: Any) -> NoReturn:
+            # TODO(jstanley): Temporary logging to disambiguate agent-token 401s. Every
+            # rejection below returns the same opaque message, so a rejected credential
+            # is indistinguishable from no credential at all -- and because the scope
+            # challenge (403 insufficient_scope) lives downstream of authentication, a
+            # failure here silently forecloses the write-approval flow rather than
+            # prompting for it. Mirrors viewer_context_auth.failed below.
+            # Remove once the auth issue is resolved.
+            #
+            # Deliberately free of request-derived strings. `request.path` carries the
+            # org and project slugs, and a JWT library's message can quote the token it
+            # failed on -- neither belongs in a production log. Numeric ids and the
+            # exception's class name say which of the seven rejections fired, which is
+            # the whole diagnostic need.
+            logger.warning(
+                "agent_token_auth.failed",
+                extra={"reason": reason, **extra},
+            )
+            raise AuthenticationFailed("Invalid agent token")
+
+        try:
+            claims = agent_token.decode_agent_token(token_str)
+            # Building the token casts org and scopes too, so any missing/mis-typed claim
+            # in a signed token is a clean 401 here, not a 500 downstream.
+            auth_token = agent_token.build_authenticated_token(claims)
+            user_id = auth_token.user_id
+        except (PyJWTError, KeyError, ValueError, TypeError) as exc:
+            fail("decode_failed", error_type=type(exc).__name__)
+
+        if user_id is None:
+            fail("no_user_principal", org_id=auth_token.organization_id)
+
+        # The delegating user must still be valid even though they are not the request user.
+        user = user_service.get_user(user_id=user_id)
+        if user is None:
+            fail("user_not_found", user_id=user_id)
+        if not user.is_active:
+            fail("user_inactive", user_id=user_id)
+        if getattr(user, "is_suspended", False):
+            fail("user_suspended", user_id=user_id)
+
+        org_context = organization_service.get_organization_by_id(
+            id=auth_token.organization_id,
+            user_id=user_id,
+            include_projects=False,
+            include_teams=False,
+        )
+        if org_context is None:
+            fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
+        if org_context.member is None:
+            fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
+        if not features.has(
+            agent_token.FEATURE_FLAG,
+            org_context.organization,
+            actor=user,
+            skip_experiment_exposure=True,
+        ):
+            fail("feature_flag_off", user_id=user_id, org_id=auth_token.organization_id)
+
+        compatibility_user = user.copy(
+            update={
+                "is_staff": False,
+                "is_superuser": False,
+                "permissions": frozenset(),
+                "roles": frozenset(),
+            }
+        )
+        return self.transform_auth(compatibility_user, auth_token)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)

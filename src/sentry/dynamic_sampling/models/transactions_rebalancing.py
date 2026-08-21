@@ -15,11 +15,13 @@ class TransactionsRebalancingInput(ModelInput):
     total_num_classes: int | None
     total: float | None
     intensity: float
+    min_sample_rate: float = 0.0
 
     def validate(self) -> bool:
         return (
             0.0 <= self.sample_rate <= 1.0
             and 0.0 <= self.intensity <= 1.0
+            and 0.0 <= self.min_sample_rate <= 1.0
             and len(self.classes) > 0
         )
 
@@ -40,6 +42,12 @@ class TransactionsRebalancingModel(
         :param model_input.total_num_classes: total number of classes (including the explicitly specified in classes)
         :param model_input.intensity: the adjustment strength 0: no adjustment, 1: try to bring everything to mean
         :param model_input.total: total number of samples in all classes (including the explicitly specified classes)
+        :param model_input.min_sample_rate: lower bound applied to every explicit class rate. With many low-volume
+            classes the per-class ideal collapses to a near-zero rate, which sends the highest-volume classes to a
+            huge extrapolation factor (1 / rate) and makes their extrapolated volume spiky. Flooring the explicit
+            rates caps that factor at 1 / min_sample_rate; the budget this costs is reclaimed by lowering the
+            implicit (tail) rate. The floor is clamped to the overall sample rate so it never samples a class above
+            the project rate.
 
         :return: a list of items with calculated sample_rates and a rate for all other (unspecified) classes.
         """
@@ -48,6 +56,9 @@ class TransactionsRebalancingModel(
         total_num_classes = model_input.total_num_classes
         total = model_input.total
         intensity = model_input.intensity
+        # never floor a class above the project's overall rate (keeps very low-rate projects sane and
+        # bounds how much budget the floor can reclaim from the tail)
+        min_sample_rate = min(model_input.min_sample_rate, sample_rate)
 
         classes = sorted(classes, key=lambda x: (x.count, x.id), reverse=True)
 
@@ -81,7 +92,12 @@ class TransactionsRebalancingModel(
         if num_explicit_classes == total_num_classes:
             # we have specified all classes
             explicit_rates, _used = full_rebalancing.run(
-                FullRebalancingInput(classes=classes, sample_rate=sample_rate, intensity=intensity)
+                FullRebalancingInput(
+                    classes=classes,
+                    sample_rate=sample_rate,
+                    intensity=intensity,
+                    min_sample_rate=min_sample_rate,
+                )
             )
             implicit_rate = sample_rate  # doesn't really matter since everything is explicit
         elif total_implicit < implicit_budget:
@@ -97,7 +113,10 @@ class TransactionsRebalancingModel(
             explicit_rate = explicit_budget / total_explicit
             explicit_rates, _used = full_rebalancing.run(
                 FullRebalancingInput(
-                    classes=classes, sample_rate=explicit_rate, intensity=intensity
+                    classes=classes,
+                    sample_rate=explicit_rate,
+                    intensity=intensity,
+                    min_sample_rate=min_sample_rate,
                 )
             )
         elif total_explicit < explicit_budget:
@@ -130,10 +149,18 @@ class TransactionsRebalancingModel(
                     sample_rate=explicit_rate,
                     intensity=intensity,
                     min_budget=minimum_explicit_budget,
+                    min_sample_rate=min_sample_rate,
                 )
             )
-            # recalculate implicit_budget based on used
+            # recalculate implicit_budget based on used. Flooring the explicit rates can push `used`
+            # above what the un-floored split spent, so reclaim the difference from the implicit tail.
+            # The tail's extrapolation factor must stay bounded too, so it gets the same floor
+            # (a 0.0 rate would also be rewritten to 1.0 by the relay bias). This can overshoot the
+            # overall budget; accepted for now. Guarded so min_sample_rate == 0.0 stays bit-identical
+            # to the un-floored model.
             implicit_budget = total_budget - used
+            if min_sample_rate > 0.0:
+                implicit_budget = max(implicit_budget, min_sample_rate * total_implicit)
             implicit_rate = implicit_budget / total_implicit
 
         return explicit_rates, implicit_rate

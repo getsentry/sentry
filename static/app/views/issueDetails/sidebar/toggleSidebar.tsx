@@ -14,7 +14,7 @@ export function ToggleSidebar({size = 'md'}: {size?: 'md' | 'sm'}) {
   const {isSidebarOpen, dispatch} = useIssueDetails();
 
   return (
-    <Container position="relative" display={{'2xs': 'none', lg: 'block'}}>
+    <Container position="relative" display={{zero: 'none', '4xl': 'block'}}>
       <ToggleButton
         expanded={isSidebarOpen}
         onClick={() => dispatch({type: 'UPDATE_SIDEBAR_STATE', isOpen: !isSidebarOpen})}
@@ -40,10 +40,14 @@ const ToggleButton = styled(Button)<{expanded: boolean}>`
     p.expanded &&
     css`
       margin-right: calc(-${p.theme.space.xl} - 1px);
+      /* Square the right corners on both layers so the shadow (::before) reaches the edge like the surface (::after) */
+      &::before,
       &::after {
-        border-right-color: transparent;
         border-top-right-radius: 0px;
         border-bottom-right-radius: 0px;
+      }
+      &::after {
+        border-right-color: transparent;
       }
     `}
 `;

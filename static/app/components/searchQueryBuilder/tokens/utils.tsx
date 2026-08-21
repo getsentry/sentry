@@ -10,9 +10,11 @@ import type {
 
 import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
+  TermOperator,
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
+import {quoteFilterKey} from 'sentry/components/searchSyntax/utils';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -225,7 +227,7 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
     return `${key}()`;
   }
 
-  return key;
+  return quoteFilterKey(key);
 }
 
 function getInitialValueType(fieldDefinition: FieldDefinition | null) {
@@ -244,12 +246,21 @@ function getInitialValueType(fieldDefinition: FieldDefinition | null) {
 
 export function getInitialFilterText(
   key: string,
-  fieldDefinition: FieldDefinition | null
+  fieldDefinition: FieldDefinition | null,
+  operator: TermOperator = TermOperator.GREATER_THAN
 ) {
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
   const valueType = getInitialValueType(fieldDefinition);
+
+  // Array attributes filter by membership: `key[*]:value`. Add the `[*]` operator
+  // only when it isn't already present, so selection supplies it while a
+  // user-typed `[*]` is never doubled. No wildcard — `[*]` is the operator.
+  if (fieldDefinition?.kind === FieldKind.ARRAY) {
+    const membershipKey = keyText.endsWith('[*]') ? keyText : `${keyText}[*]`;
+    return `${membershipKey}:${defaultValue}`;
+  }
 
   switch (valueType) {
     case FieldValueType.INTEGER:
@@ -258,7 +269,7 @@ export function getInitialFilterText(
     case FieldValueType.DURATION:
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
-      return `${keyText}:>${defaultValue}`;
+      return `${keyText}:${operator}${defaultValue}`;
     case FieldValueType.STRING: {
       return areWildcardOperatorsAllowed(fieldDefinition, valueType)
         ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`

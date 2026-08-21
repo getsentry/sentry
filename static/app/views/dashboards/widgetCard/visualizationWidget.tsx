@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 
-import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
+import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -32,7 +32,6 @@ import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
   TimeSeries,
@@ -77,7 +76,6 @@ interface VisualizationWidgetProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
-  showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
   widgetInterval?: string;
 }
@@ -90,7 +88,6 @@ export function VisualizationWidget({
   onDataFetchStart,
   tableItemLimit,
   widgetInterval,
-  showReleaseAs = 'bubble',
   showConfidenceWarning,
   onZoom,
   legendSelection,
@@ -113,9 +110,7 @@ export function VisualizationWidget({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection, {
-    enabled: showReleaseAs !== 'none',
-  });
+  const {releases: releasesWithDate} = useReleaseStats(selection);
 
   const releases =
     releasesWithDate?.map(({date, version}) => ({
@@ -159,7 +154,7 @@ export function VisualizationWidget({
             errorMessage={errorMessage}
             loading={loading}
             releases={releases}
-            showReleaseAs={showReleaseAs}
+            showReleaseAs="bubble"
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
@@ -332,11 +327,11 @@ function VisualizationWidgetContent({
             aggregateField: [
               {chartType: getChartType(widget.displayType), yAxes: [yAxis]},
             ],
-            query: applyDashboardFilters(
-              exploreQuery.formatString(),
+            query: applyDashboardFilters({
+              baseQuery: exploreQuery.formatString(),
               dashboardFilters,
-              widget.widgetType
-            ),
+              widgetType: widget.widgetType,
+            }),
           });
           labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;
         }
@@ -422,7 +417,7 @@ function VisualizationWidgetContent({
   const hasNoPlottableData = !plottablesCanBeVisualized(plottables);
 
   if (hasNoPlottableData) {
-    return <Widget.WidgetError error={MISSING_DATA_MESSAGE} />;
+    return <TimeSeriesWidgetVisualization.NoData />;
   }
 
   const confidenceFooter = showConfidenceWarning ? (
@@ -441,7 +436,7 @@ function VisualizationWidgetContent({
 
   if (showBreakdownData) {
     return (
-      <Flex direction="column" height="100%">
+      <Stack height="100%">
         <Container overflow="hidden" flex={2} {...timeseriesContainerPadding}>
           <TimeSeriesWidgetVisualization
             plottables={plottables}
@@ -455,17 +450,17 @@ function VisualizationWidgetContent({
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
-        <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
+        <Stack flex={1} borderTop="primary" overflowY="auto">
           <Container flex={1} width="100%">
             {footerTable}
           </Container>
-        </Flex>
-      </Flex>
+        </Stack>
+      </Stack>
     );
   }
 
   return (
-    <Flex direction="column" height="100%">
+    <Stack height="100%">
       <Container flex={1} {...timeseriesContainerPadding}>
         <TimeSeriesWidgetVisualization
           plottables={plottables}
@@ -478,7 +473,7 @@ function VisualizationWidgetContent({
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -512,7 +507,15 @@ function decodeLegendSelection(encoded: LegendSelection): LegendSelection {
     decoded[WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(key, true)] =
       encoded[key]!;
   }
-  return decoded;
+  // remove any keys that are empty strings
+  const filteredSelections = Object.keys(decoded).reduce<LegendSelection>((acc, key) => {
+    if (key && decoded[key] !== undefined) {
+      acc[key] = decoded[key];
+    }
+    return acc;
+  }, {});
+
+  return filteredSelections;
 }
 
 /**

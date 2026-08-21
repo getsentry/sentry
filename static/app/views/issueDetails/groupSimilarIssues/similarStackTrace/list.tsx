@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
@@ -102,12 +102,12 @@ export function List({
           ))}
         {isError && (
           <SimpleTable.Empty>
-            <Flex direction="column" align="center" gap="sm">
+            <Stack align="center" gap="sm">
               <Text>{t("Couldn't load similar issues.")}</Text>
               <Button size="xs" onClick={onRetry}>
                 {t('Retry')}
               </Button>
-            </Flex>
+            </Stack>
           </SimpleTable.Empty>
         )}
         {isEmpty && <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>}

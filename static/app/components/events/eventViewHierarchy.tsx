@@ -67,7 +67,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
 
   // Memoize the JSON parsing because downstream hooks depend on
   // referential equality of objects in the data
-  const hierarchy = useMemo<ViewHierarchyData>(() => {
+  const hierarchy = useMemo(() => {
     if (!data) {
       return null;
     }
@@ -77,7 +77,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
     }
 
     try {
-      return JSON.parse(data);
+      return JSON.parse(data) as ViewHierarchyData;
     } catch (err) {
       Sentry.captureException(err);
       return null;

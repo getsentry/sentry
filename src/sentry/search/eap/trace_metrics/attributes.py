@@ -1,11 +1,9 @@
 from typing import Literal
 
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
+
 from sentry.search.eap import constants
-from sentry.search.eap.columns import (
-    AttributeContext,
-    ResolvedAttribute,
-    simple_sentry_field,
-)
+from sentry.search.eap.columns import AttributeContext, ResolvedAttribute, simple_sentry_field
 from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
 from sentry.search.utils import validate_event_id
 from sentry.utils.validators import normalize_event_id_strict
@@ -58,18 +56,23 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
         # Trace Metric specific fields
         simple_sentry_field("value", search_type="number"),
         ResolvedAttribute(
-            public_alias="metric.name",
+            public_alias=constants.METRIC_NAME_ALIAS,
             internal_name="sentry.metric_name",
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="metric.type",
+            public_alias=constants.METRIC_TYPE_ALIAS,
             internal_name="sentry.metric_type",
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="metric.unit",
+            public_alias=constants.METRIC_UNIT_ALIAS,
             internal_name="sentry.metric_unit",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="transaction",
+            internal_name=ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
             search_type="string",
         ),
     ]

@@ -14,7 +14,7 @@ from django.db import router
 from django.test import override_settings
 from django.utils import timezone
 
-from sentry import buffer
+from sentry import buffer, killswitches
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
@@ -47,11 +47,6 @@ from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
-from sentry.seer.autofix.constants import (
-    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
-    FixabilityScoreThresholds,
-)
-from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
@@ -59,6 +54,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.tasks import post_process as post_process_module
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
+    GENERIC_POST_PROCESS_PIPELINE,
     GROUP_CATEGORY_POST_PROCESS_PIPELINE,
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
@@ -179,6 +175,20 @@ class SiemSecurityLoggingTest(TestCase):
             set_siem_security_log_hook(original)
 
         assert calls == [{}]
+
+
+class PipelineStepNamesTest(TestCase):
+    def test_step_names_are_usable_as_killswitch_keys(self) -> None:
+        # post_process.disable-pipeline-steps addresses steps by function name, and
+        # so do the pipeline metric tags and span names. A decorator that forgets
+        # functools.wraps would silently make its steps unaddressable.
+        for pipeline in [
+            *GROUP_CATEGORY_POST_PROCESS_PIPELINE.values(),
+            GENERIC_POST_PROCESS_PIPELINE,
+        ]:
+            names = [step.__name__ for step in pipeline]
+            assert "wrapper" not in names
+            assert len(names) == len(set(names))
 
 
 class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -2843,6 +2853,87 @@ class ProcessSimilarityTestMixin(BasePostProcessGroupMixin):
         self.assert_not_called_with(mock_safe_execute)
 
 
+class PipelineKillswitchTestMixin(BasePostProcessGroupMixin):
+    """
+    Exercises post_process.disable-pipeline-steps against process_similarity, which
+    is observable through the safe_execute call it makes.
+    """
+
+    def run_pipeline(self, mock_safe_execute: MagicMock) -> bool:
+        from sentry import similarity
+
+        event = self.create_event(data={}, project_id=self.project.id)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        return mock.call(similarity.record, mock.ANY, mock.ANY) in mock_safe_execute.mock_calls
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_step_runs_when_killswitch_is_empty(self, mock_safe_execute: MagicMock) -> None:
+        assert self.run_pipeline(mock_safe_execute)
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    @override_options(
+        {"post_process.disable-pipeline-steps": [{"pipeline_step": "process_similarity"}]}
+    )
+    def test_step_is_skipped_by_name(self, mock_safe_execute: MagicMock) -> None:
+        assert not self.run_pipeline(mock_safe_execute)
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    @override_options(
+        {"post_process.disable-pipeline-steps": [{"pipeline_step": "process_commits"}]}
+    )
+    def test_other_steps_are_unaffected(self, mock_safe_execute: MagicMock) -> None:
+        assert self.run_pipeline(mock_safe_execute)
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_step_is_skipped_for_matching_project(self, mock_safe_execute: MagicMock) -> None:
+        with self.options(
+            {
+                "post_process.disable-pipeline-steps": [
+                    {"pipeline_step": "process_similarity", "project_id": self.project.id}
+                ]
+            }
+        ):
+            assert not self.run_pipeline(mock_safe_execute)
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    @override_options(
+        {
+            "post_process.disable-pipeline-steps": [
+                {"pipeline_step": "process_similarity", "project_id": 0}
+            ]
+        }
+    )
+    def test_step_runs_for_other_project(self, mock_safe_execute: MagicMock) -> None:
+        assert self.run_pipeline(mock_safe_execute)
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_step_is_skipped_by_fully_specified_condition(
+        self, mock_safe_execute: MagicMock
+    ) -> None:
+        # What the admin UI writes, as opposed to the partial conditions above.
+        with self.options(
+            {
+                "post_process.disable-pipeline-steps": killswitches.validate_user_input(
+                    "post_process.disable-pipeline-steps",
+                    [
+                        {
+                            "pipeline_step": "process_similarity",
+                            "project_id": self.project.id,
+                            "organization_id": self.organization.id,
+                            "issue_category": "error",
+                        }
+                    ],
+                )
+            }
+        ):
+            assert not self.run_pipeline(mock_safe_execute)
+
+
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
@@ -3184,366 +3275,32 @@ class KickOffLightweightRCAClusterTestMixin(BasePostProcessGroupMixin):
 
 
 @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
-class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
-    """Tests for the triage signals V0 flow."""
+class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
+    def _seat_based_post_process(self, **group_overrides):
+        """Helper: create event, optionally update group fields, run post-process."""
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        if group_overrides:
+            event.group.update(**group_overrides)
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+        return event
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_less_than_10_no_cache(
+    def test_seat_based_org_skips_old_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
-        """Test that with event count < 10 and no cached summary, we generate summary only (no automation)."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Ensure event count < 10
-        group = event.group
-        # Set times_seen_pending to 0 to ensure times_seen_with_pending < 10
-        group.times_seen_pending = 0
-        assert group.times_seen_with_pending < 10
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        # Should call generate_issue_summary_only (not generate_summary_and_run_automation)
-        mock_generate_summary_only.assert_called_once_with(group.id)
-
-    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_less_than_10_with_cache(
-        self, mock_generate_summary_only, mock_seat_based_tier
-    ):
-        """Test that with event count < 10 and cached summary exists, we do nothing."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Cache a summary for this group
-        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-
-        group = event.group
-        cache_key = get_issue_summary_cache_key(group.id)
-        cache.set(cache_key, {"summary": "test summary"}, 3600)
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        # Should not call anything since summary exists
+        self._seat_based_post_process(first_seen=timezone.now() - timedelta(minutes=10))
         mock_generate_summary_only.assert_not_called()
 
-    @patch(
-        "sentry.seer.autofix.utils.has_project_connected_repos",
-        return_value=True,
-    )
-    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_gte_10_with_cache(
-        self, mock_run_automation, mock_has_repos, mock_seat_based_tier
+    def test_seat_based_org_skips_when_fixability_exists(
+        self, mock_generate_summary_only, mock_seat_based_tier
     ):
-        """Test that with event count >= 10 and cached summary exists, we run automation directly."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Update group times_seen to simulate >= 10 events
-        group = event.group
-        group.times_seen = 1
-        group.save()
-        # Also update the event's cached group reference
-        event.group.times_seen = 1
-
-        # Mock buffer backend to return pending increments
-        from sentry import buffer
-
-        def mock_buffer_get(model, columns, filters):
-            return {"times_seen": 9}
-
-        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
-            # Cache a summary for this group
-            from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-
-            cache_key = get_issue_summary_cache_key(group.id)
-            cache.set(cache_key, {"summary": "test summary"}, 3600)
-
-            self.call_post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                event=event,
-            )
-
-        # Should call run_automation_only_task since summary exists
-        mock_run_automation.assert_called_once_with(group.id)
-
-    @patch(
-        "sentry.seer.autofix.utils.has_project_connected_repos",
-        return_value=True,
-    )
-    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_gte_10_no_cache(
-        self,
-        mock_generate_summary_and_run_automation,
-        mock_has_repos,
-        mock_seat_based_tier,
-    ):
-        """Test that with event count >= 10 and no cached summary, we generate summary + run automation."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Update group times_seen to simulate >= 10 events
-        group = event.group
-        group.times_seen = 1
-        group.save()
-        # Also update the event's cached group reference
-        event.group.times_seen = 1
-
-        # Mock buffer backend to return pending increments
-        from sentry import buffer
-
-        def mock_buffer_get(model, columns, filters):
-            return {"times_seen": 9}
-
-        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
-            self.call_post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                event=event,
-            )
-
-        # Should call generate_summary_and_run_automation to generate summary + run automation
-        mock_generate_summary_and_run_automation.assert_called_once_with(
-            group.id, trigger_path="seat_based_seer_automation"
-        )
-
-    @patch(
-        "sentry.seer.autofix.utils.has_project_connected_repos",
-        return_value=False,
-    )
-    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_gte_10_skips_without_connected_repos(
-        self,
-        mock_generate_summary_and_run_automation,
-        mock_has_repos,
-        mock_seat_based_tier,
-    ):
-        """Test that with event count >= 10 but no connected repos, we skip automation."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Update group times_seen to simulate >= 10 events
-        group = event.group
-        group.times_seen = 1
-        group.save()
-        event.group.times_seen = 1
-
-        # Mock buffer backend to return pending increments
-        from sentry import buffer
-
-        def mock_buffer_get(model, columns, filters):
-            return {"times_seen": 9}
-
-        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
-            self.call_post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                event=event,
-            )
-
-        # Should not call automation since no connected repos
-        mock_generate_summary_and_run_automation.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
-    @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_gte_10_skips_with_seer_last_triggered(
-        self, mock_run_automation, mock_seat_based_tier
-    ):
-        """Test that with event count >= 10 and seer_autofix_last_triggered set, we skip automation."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Update group times_seen and seer_autofix_last_triggered
-        group = event.group
-        group.times_seen = 1
-        group.seer_autofix_last_triggered = timezone.now()
-        group.save()
-        # Also update the event's cached group reference
-        event.group.times_seen = 1
-        event.group.seer_autofix_last_triggered = group.seer_autofix_last_triggered
-
-        # Mock buffer backend to return pending increments
-        from sentry import buffer
-
-        def mock_buffer_get(model, columns, filters):
-            return {"times_seen": 9}
-
-        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
-            # Cache a summary for this group
-            from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-
-            cache_key = get_issue_summary_cache_key(group.id)
-            cache.set(cache_key, {"summary": "test summary"}, 3600)
-
-            self.call_post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                event=event,
-            )
-
-        # Should not call automation since seer_autofix_last_triggered is set
-        mock_run_automation.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
-    @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_skips_with_explorer_last_triggered(
-        self, mock_run_automation, mock_seat_based_tier
-    ):
-        """Test that with event count >= 10 and seer_explorer_autofix_last_triggered set + feature flag, we skip automation."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Update group times_seen and seer_explorer_autofix_last_triggered
-        group = event.group
-        group.times_seen = AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD
-        group.seer_explorer_autofix_last_triggered = timezone.now()
-        group.seer_fixability_score = FixabilityScoreThresholds.MEDIUM.value
-        group.save()
-
-        def mock_buffer_get(model, columns, filters):
-            return {"times_seen": 9}
-
-        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
-            cache_key = get_issue_summary_cache_key(group.id)
-            cache.set(cache_key, {"summary": "test summary"}, 3600)
-            cache.set(f"seer-project-has-repos:{self.organization.id}:{self.project.id}", True)
-
-            self.call_post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                event=event,
-            )
-
-        # Should not call automation since seer_explorer_autofix_last_triggered is set
-        mock_run_automation.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
-    @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_gte_10_skips_with_existing_fixability_score(
-        self, mock_run_automation, mock_seat_based_tier
-    ):
-        """Test that with event count >= 10 and seer_fixability_score below MEDIUM threshold, we skip automation."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Update group times_seen and set seer_fixability_score below MEDIUM threshold (< 0.40)
-        group = event.group
-        group.times_seen = 1
-        group.seer_fixability_score = 0.3
-        group.save()
-        # Also update the event's cached group reference
-        event.group.times_seen = 1
-        event.group.seer_fixability_score = 0.3
-
-        # Mock buffer backend to return pending increments
-        from sentry import buffer
-
-        def mock_buffer_get(model, columns, filters):
-            return {"times_seen": 9}
-
-        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
-            # Cache a summary for this group
-            from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-
-            cache_key = get_issue_summary_cache_key(group.id)
-            cache.set(cache_key, {"summary": "test summary"}, 3600)
-
-            self.call_post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                event=event,
-            )
-
-        # Should not call automation since seer_fixability_score is below MEDIUM threshold
-        mock_run_automation.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
-    @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_skips_automation_for_old_issues(
-        self,
-        mock_run_automation,
-        mock_generate_summary_and_run_automation,
-        mock_seat_based_tier,
-    ):
-        """Test that automation is skipped for issues older than 14 days."""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        # Old issue with >= 10 events
-        group = event.group
-        group.first_seen = timezone.now() - timedelta(days=20)
-        group.times_seen = 1
-        group.save()
-
-        from sentry import buffer
-
-        def mock_buffer_get(model, columns, filters):
-            return {"times_seen": 9}
-
-        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
-            self.call_post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                event=event,
-            )
-
-        # Automation should be skipped for old issues
-        mock_generate_summary_and_run_automation.assert_not_called()
-        mock_run_automation.assert_not_called()
+        self._seat_based_post_process(seer_fixability_score=0.5)
+        mock_generate_summary_only.assert_not_called()
 
 
 class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
@@ -3612,7 +3369,7 @@ class PostProcessGroupErrorTest(
     ResourceChangeBoundsTestMixin,
     KickOffSeerAutomationTestMixin,
     KickOffLightweightRCAClusterTestMixin,
-    TriageSignalsV0TestMixin,
+    SeatBasedSeerAutomationTestMixin,
     SeerAutomationHelperFunctionsTestMixin,
     WorkflowEngineTestMixin,
     SnoozeTestMixin,
@@ -3624,8 +3381,21 @@ class PostProcessGroupErrorTest(
     UserReportEventLinkTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
     ProcessSimilarityTestMixin,
+    PipelineKillswitchTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
+    @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @with_feature({"organizations:gen-ai-features": True})
+    def test_seat_based_org_generates_summary_for_new_issues(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+        mock_generate_summary_only.assert_called_once_with(event.group.id)
+
     def setUp(self) -> None:
         super().setUp()
 
@@ -3659,7 +3429,7 @@ class PostProcessGroupPerformanceTest(
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
     KickOffSeerAutomationTestMixin,
-    TriageSignalsV0TestMixin,
+    SeatBasedSeerAutomationTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
@@ -3783,7 +3553,7 @@ class PostProcessGroupGenericTest(
     WorkflowEngineTestMixin,
     SnoozeTestMixin,
     KickOffSeerAutomationTestMixin,
-    TriageSignalsV0TestMixin,
+    SeatBasedSeerAutomationTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         data["type"] = "generic"
@@ -3969,6 +3739,39 @@ class PostProcessGroupFeedbackTest(
                 eventstream_type=EventStreamEventType.Error.value,
             )
         return cache_key
+
+    def run_decorated_step(self, killswitch_conditions):
+        # The step is wrapped by feedback_filter_decorator, so this only works if the
+        # decorator preserves the wrapped function's name.
+        calls = []
+
+        def process_snoozes(job):
+            calls.append(job)
+
+        event = self.create_event(data={}, project_id=self.project.id)
+        with (
+            patch(
+                "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+                {GroupCategory.FEEDBACK: [feedback_filter_decorator(process_snoozes)]},
+            ),
+            self.options({"post_process.disable-pipeline-steps": killswitch_conditions}),
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        return calls
+
+    def test_decorated_step_is_skipped_for_matching_issue_category(self) -> None:
+        conditions = [{"pipeline_step": "process_snoozes", "issue_category": "feedback"}]
+        assert self.run_decorated_step(conditions) == []
+
+    def test_decorated_step_runs_for_other_issue_category(self) -> None:
+        conditions = [{"pipeline_step": "process_snoozes", "issue_category": "error"}]
+        assert len(self.run_decorated_step(conditions)) == 1
 
     def test_not_ran_if_crash_report_option_disabled(self) -> None:
         self.project.update_option("sentry:feedback_user_report_notifications", False)

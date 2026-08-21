@@ -46,15 +46,10 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
                     {
                         "type": "seer_activity_trigger",
                         "comparison": [
-                            "rca_started",
                             "rca_completed",
-                            "solution_started",
                             "solution_completed",
-                            "coding_started",
                             "coding_completed",
-                            "pr_created",
-                            "iteration_started",
-                            "iteration_completed"
+                            "pr_created"
                         ],
                         "conditionResult": true
                     }
@@ -372,7 +367,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             {
                 "type": "latest_adopted_release",
                 "comparison": {
-                    "environment": "12345",
+                    "environment": "production",
                     "ageComparison": "older",
                     "releaseAgeType": "oldest"
                 },

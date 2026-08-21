@@ -2,7 +2,9 @@ from unittest.mock import Mock, patch
 
 from arroyo.backends.kafka import KafkaProducer
 
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.testutils.helpers.options import override_options
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 
 
 def test_registers_shutdown_at_construction() -> None:
@@ -43,3 +45,33 @@ def test_track_futures() -> None:
     producer._track_futures(second_future_mock)
     first_future_mock.result.assert_called_once_with()
     second_future_mock.assert_not_called()
+
+
+@override_options(
+    {
+        "arroyo.producer.record_poll_metrics": ["producer.fake"],
+        "arroyo.producer.poll_metric_frequency": 1,
+    }
+)
+@patch("sentry.utils.arroyo_producer.KafkaProducer")
+@patch("sentry.utils.arroyo_producer.build_kafka_producer_configuration")
+def test_poll_metrics(mock_build_config: Mock, mock_producer: Mock) -> None:
+    get_arroyo_producer("producer.fake", "fake-topic")
+    assert_mock_called_once_with_partial(
+        mock_producer, record_poll_metrics=True, poll_metric_frequency=1
+    )
+
+
+@override_options(
+    {
+        "arroyo.producer.record_poll_metrics": [],
+        "arroyo.producer.poll_metric_frequency": 1,
+    }
+)
+@patch("sentry.utils.arroyo_producer.KafkaProducer")
+@patch("sentry.utils.arroyo_producer.build_kafka_producer_configuration")
+def test_poll_metrics_not_enabled(mock_build_config: Mock, mock_producer: Mock) -> None:
+    get_arroyo_producer("producer.fake", "fake-topic")
+    assert_mock_called_once_with_partial(
+        mock_producer, record_poll_metrics=False, poll_metric_frequency=1
+    )

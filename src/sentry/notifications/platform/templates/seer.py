@@ -74,6 +74,8 @@ class SeerAutofixUpdate(NotificationData):
     group_link: str
     steps: list[str] = Field(default_factory=list)
     reasoning: list[str] = Field(default_factory=list)
+    reasoning_header: str | None = None
+    steps_header: str | None = None
     changes: list[SeerAutofixCodeChange] = Field(default_factory=list)
     pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None

@@ -197,7 +197,6 @@ function FilterActions({
       prompt: t('Select a value...'),
       limit: 4,
       resource: (_q: string, ctx: CMDKResourceContext) =>
-        // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
           queryFn: async () => {
@@ -278,7 +277,16 @@ function SortActions({
   query,
   onSortChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
+  const organization = useOrganization();
+  // Mirror the sort dropdown (sortOptions.tsx): Recommended is selectable when
+  // the org has the option flag, when it's the default sort, or when it's the
+  // active sort — otherwise a user defaulted to Recommended couldn't switch back.
+  const hasRecommendedSort =
+    organization.features.includes('issue-stream-recommended-sort') ||
+    organization.features.includes('issue-stream-recommended-sort-default') ||
+    sort === IssueSortOptions.RECOMMENDED;
   const sortKeys = [
+    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,

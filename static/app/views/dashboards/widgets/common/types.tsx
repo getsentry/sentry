@@ -14,7 +14,8 @@ type AttributeValueType =
   | 'size'
   | 'rate'
   | 'score'
-  | 'currency';
+  | 'currency'
+  | 'array';
 
 type AttributeValueUnit = DataUnit | null;
 
@@ -223,7 +224,7 @@ export type HeatMapValueUnit = AttributeValueUnit;
 /**
  * A single item in a heat map series.
  */
-interface HeatMapItem {
+export interface HeatMapItem {
   /**
    * The X-axis value
    */

@@ -12,12 +12,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import {
-  batchedPromptsCheck,
-  promptsCheck,
-  promptsUpdate,
-} from 'sentry/actionCreators/prompts';
+import {batchedPromptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -25,46 +20,28 @@ import {GuideStore} from 'sentry/stores/guideStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {showIntercom} from 'sentry/utils/intercom';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 
-import {
-  openForcedTrialModal,
-  openPartnerPlanEndingModal,
-  openTrialEndingModal,
-} from 'getsentry/actionCreators/modal';
+import {openTrialEndingModal} from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
-import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {type BilledDataCategoryInfo, type Subscription} from 'getsentry/types';
 import {
-  type BilledDataCategoryInfo,
-  type Promotion,
-  type PromotionClaimed,
-  type Subscription,
-} from 'getsentry/types';
-import {
-  getContractDaysLeft,
   getProductTrial,
-  hasPartnerMigrationFeature,
-  hasPerformance,
   isBusinessTrial,
-  partnerPlanEndingModalIsDismissed,
   trialPromptIsDismissed,
 } from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
-import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
-import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
   PAST_DUE = 'past-due',
@@ -251,13 +228,7 @@ function NoticeModal({
 
 type Props = {
   api: Client;
-  isLoading: boolean;
   organization: Organization;
-  promotionData: {
-    activePromotions: PromotionClaimed[];
-    availablePromotions: Promotion[];
-    completedPromotions: PromotionClaimed[];
-  };
   subscription: Subscription;
 };
 
@@ -273,28 +244,13 @@ class GSBanner extends Component<Props, State> {
     productTrialDismissed: objectFromBilledCategories(() => true),
   };
   async componentDidMount() {
-    if (this.props.promotionData) {
-      this.activateFirstAvailablePromo()
-        .then(() => this.initializePendo())
-        .catch(Sentry.captureException);
-    }
+    this.initializePendo().catch(Sentry.captureException);
     if (this.props.organization.access.length > 0) {
       this.tryTriggerTrialEndingModal();
       this.tryTriggerSuspendedModal();
       this.tryTriggerNoticeModal();
-      this.tryTriggerForcedTrial();
-      this.tryTriggerForcedTrialModal();
-      this.tryTriggerPartnerPlanEndingModal();
     }
     await this.checkPrompts();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (this.props.promotionData !== prevProps.promotionData) {
-      this.activateFirstAvailablePromo()
-        .then(() => this.initializePendo())
-        .catch(Sentry.captureException);
-    }
   }
 
   get trialEndMoment() {
@@ -303,20 +259,6 @@ class GSBanner extends Component<Props, State> {
 
   get hasBillingPerms() {
     return this.props.organization?.access?.includes('org:billing');
-  }
-
-  async activateFirstAvailablePromo() {
-    const {organization, promotionData, isLoading} = this.props;
-
-    if (!isLoading && promotionData) {
-      if (isActiveSuperuser()) {
-        return;
-      }
-      await claimAvailablePromotion({
-        promotionData,
-        organization,
-      });
-    }
   }
 
   async initializePendo() {
@@ -328,9 +270,6 @@ class GSBanner extends Component<Props, State> {
       const data = await this.props.api.requestPromise(
         `/organizations/${organization.slug}/pendo-details/`
       );
-
-      const activePromotions = this.props.promotionData?.activePromotions;
-      const completedPromotions = this.props.promotionData?.completedPromotions;
 
       const user = ConfigStore.get('user');
       // if there is a current guide active, delay Pendo until it's done
@@ -351,10 +290,7 @@ class GSBanner extends Component<Props, State> {
 
         account: {
           id: organization.id,
-          ...getPendoAccountFields(subscription, organization, {
-            activePromotions,
-            completedPromotions,
-          }),
+          ...getPendoAccountFields(subscription, organization),
           ...data.organizationDetails,
         },
       });
@@ -382,47 +318,6 @@ class GSBanner extends Component<Props, State> {
     }
 
     openTrialEndingModal({organization});
-  }
-
-  async tryTriggerPartnerPlanEndingModal() {
-    const {organization, subscription, api} = this.props;
-    const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
-    const hasPendingUpgrade =
-      subscription.pendingChanges !== null &&
-      subscription.pendingChanges?.planDetails.totalPrice > 0;
-    const daysLeft = getContractDaysLeft(subscription);
-
-    const showPartnerPlanEndingNotice =
-      subscription.partner !== null &&
-      !hasPendingUpgrade &&
-      daysLeft >= 0 &&
-      daysLeft <= 30 &&
-      subscription.partner.isActive &&
-      hasEndingPartnerPlan;
-
-    if (!showPartnerPlanEndingNotice) {
-      return;
-    }
-
-    let hasDismissed = true;
-    const prompt = await promptsCheck(api, {
-      organization,
-      feature: 'partner_plan_ending_modal',
-    });
-
-    if (daysLeft > 7) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'month');
-    } else if (daysLeft > 2) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'week');
-    } else if (daysLeft > 0) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'two');
-    } else if (daysLeft === 0) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'zero');
-    }
-
-    if (!hasDismissed) {
-      openPartnerPlanEndingModal({organization, subscription});
-    }
   }
 
   tryTriggerSuspendedModal() {
@@ -492,65 +387,6 @@ class GSBanner extends Component<Props, State> {
       ),
       {onClose}
     );
-  }
-
-  async tryTriggerForcedTrial() {
-    const {organization, subscription, api} = this.props;
-    const user = ConfigStore.get('user');
-
-    // check for required conditions of triggering a forced trial of any type
-    const considerTrigger =
-      subscription.canSelfServe && // must be self serve
-      subscription.isFree && // must be on Developer plan
-      !subscription.isTrial && // don't trigger if already on a trial
-      hasPerformance(subscription.planDetails) &&
-      !subscription.isExemptFromForcedTrial && // orgs who ever did enterprise trials are exempt
-      !user?.isSuperuser; // never trigger for superusers
-
-    if (!considerTrigger) {
-      return;
-    }
-
-    // mutliple possible trial endpoints depending on the situation
-    let endpoint: string;
-    // check for restricted integration
-    if (subscription.hasRestrictedIntegration) {
-      endpoint = `/organizations/${organization.slug}/restricted-integration-trial/`;
-      // only trigger if member limit is 1 and we have multiple licenses used
-    } else if (subscription.totalLicenses === 1 && subscription.usedLicenses > 1) {
-      endpoint = `/organizations/${organization.slug}/over-member-limit-trial/`;
-    } else {
-      return;
-    }
-
-    try {
-      await api.requestPromise(endpoint, {
-        method: 'POST',
-      });
-
-      trackMarketingEvent('Start Trial');
-
-      // Refresh organization and subscription state
-      // do not mark the trial since we have this modal
-      SubscriptionStore.loadData(organization.slug, null);
-      fetchOrganizationDetails(api, organization.slug);
-
-      openForcedTrialModal({organization});
-    } catch (error) {
-      // let check fail but capture exception
-      Sentry.captureException(error);
-    }
-  }
-
-  tryTriggerForcedTrialModal() {
-    const {subscription, organization} = this.props;
-    if (
-      subscription.isTrial &&
-      subscription.isForcedTrial &&
-      !subscription.hasDismissedForcedTrialNotice
-    ) {
-      openForcedTrialModal({organization});
-    }
   }
 
   async checkPrompts() {
@@ -862,7 +698,7 @@ class GSBanner extends Component<Props, State> {
   }
 }
 
-export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true})));
+export default withApi(withSubscription(GSBanner, {noLoader: true}));
 
 function InvertedAlert(props: Omit<AlertProps, 'system' | 'variant'>) {
   const invertedTheme = useInvertedTheme();

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
 import {fetchTagFacets} from 'sentry/actionCreators/events';
@@ -32,7 +32,6 @@ type Props = {
   organization: Organization;
   totalValues: null | number;
   confirmedQuery?: boolean;
-  onTagValueClick?: (title: string, value: TagSegment) => void;
 };
 
 type State = {
@@ -128,7 +127,7 @@ class Tags extends Component<Props, State> {
   };
 
   renderTag(tag: Tag, index: number) {
-    const {generateUrl, onTagValueClick, totalValues} = this.props;
+    const {generateUrl, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
       return {
@@ -150,7 +149,6 @@ class Tags extends Component<Props, State> {
           segments={segments}
           totalValues={Number(maxTotalValues)}
           expandByDefault={index === 0}
-          onTagValueClick={onTagValueClick}
         />
       </li>
     );
@@ -193,7 +191,7 @@ class Tags extends Component<Props, State> {
             (loading ? (
               this.renderPlaceholders()
             ) : (
-              <Flex direction="column" align="center">
+              <Stack align="center">
                 <Button
                   size="xs"
                   variant="primary"
@@ -205,7 +203,7 @@ class Tags extends Component<Props, State> {
                 >
                   {t('Show More')}
                 </Button>
-              </Flex>
+              </Stack>
             ))}
         </Fragment>
       );

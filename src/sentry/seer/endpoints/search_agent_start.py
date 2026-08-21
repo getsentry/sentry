@@ -16,7 +16,6 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.endpoints.utils import get_extra_seer_feature_flags
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -67,7 +66,10 @@ def send_search_agent_start_request(
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
-    extra_feature_flags: dict[str, bool] | None = None,
+    cross_event: bool = False,
+    project_expansion: bool = False,
+    reflection_step: bool = False,
+    code_mode: bool = False,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -82,13 +84,16 @@ def send_search_agent_start_request(
     if timezone:
         body["timezone"] = timezone
 
-    options: dict[str, Any] = {}
+    options: dict[str, Any] = {
+        "cross_event": cross_event,
+        "project_expansion": project_expansion,
+        "reflection_step": reflection_step,
+        "code_mode": code_mode,
+    }
     if model_name is not None:
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
-    extra_feature_flags = extra_feature_flags or {}
-    options["extra_feature_flags"] = extra_feature_flags
     body["options"] = options
 
     return enqueue_seer_run(
@@ -134,6 +139,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
+        code_mode_toggle = bool(options.get("code_mode"))
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -178,10 +184,6 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         user_org_context = collect_user_org_context(request.user, organization)
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
-        extra_feature_flags = get_extra_seer_feature_flags(
-            organization=organization, user=request.user
-        )
-
         try:
             viewer_context = SeerViewerContext(
                 organization_id=organization.id, user_id=request.user.id
@@ -197,7 +199,27 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 model_name=model_name,
                 metric_context=metric_context,
                 viewer_context=viewer_context,
-                extra_feature_flags=extra_feature_flags,
+                cross_event=features.has(
+                    "organizations:seer-assisted-query-cross-event-explorer",
+                    organization,
+                    actor=request.user,
+                ),
+                project_expansion=features.has(
+                    "organizations:seer-assisted-query-project-expansion",
+                    organization,
+                    actor=request.user,
+                ),
+                reflection_step=features.has(
+                    "organizations:seer-assisted-query-reflection",
+                    organization,
+                    actor=request.user,
+                ),
+                code_mode=code_mode_toggle
+                and features.has(
+                    "organizations:seer-assisted-query-codemode",
+                    organization,
+                    actor=request.user,
+                ),
             )
             return Response(
                 {

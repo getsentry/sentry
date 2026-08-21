@@ -21,11 +21,19 @@ export interface Conversation {
   endTimestamp: number;
   errors: number;
   firstInput: string | null;
+  // Summed duration (ms) of the conversation's generation (ai_client) spans.
+  generationDuration: number;
   inputTokens: number;
   lastOutput: string | null;
   llmCalls: number;
   outputTokens: number;
+  // Project the conversation's first span belongs to (null when unknown).
+  projectId: number | null;
   startTimestamp: number;
+  // AI-generated summary of the conversation. Not always available (title
+  // generation is gated and asynchronous), so consumers must fall back to the
+  // first input message.
+  title: string | null;
   toolCalls: number;
   toolErrors: number;
   toolNames: string[];
@@ -46,6 +54,14 @@ interface ConversationApiResponse extends Omit<
 
 const CONVERSATION_LIST_PER_PAGE = 50;
 
+function normalizeConversationPreview(
+  content: ConversationApiResponse['firstInput']
+): string | null {
+  return typeof content === 'string'
+    ? content
+    : (content?.find(part => part.type === 'text')?.text ?? null);
+}
+
 export function useConversations() {
   const organization = useOrganization();
   const {cursor, setCursor} = useTableCursor();
@@ -58,7 +74,7 @@ export function useConversations() {
     error,
   } = useQuery({
     ...apiOptions.as<ConversationApiResponse[]>()(
-      '/organizations/$organizationIdOrSlug/ai-conversations/',
+      '/organizations/$organizationIdOrSlug/agents/conversations/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
@@ -76,6 +92,7 @@ export function useConversations() {
   });
 
   const pageLinks = response?.headers.Link;
+  const isDirectHit = response?.headers['X-Sentry-Direct-Hit'] === '1';
 
   const data = useMemo(() => {
     return (response?.json ?? [])
@@ -85,14 +102,8 @@ export function useConversations() {
           lastOutput: rawLastOutput,
           ...rest
         }): Conversation => {
-          const firstInput =
-            typeof rawFirstInput === 'string'
-              ? rawFirstInput
-              : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
-          const lastOutput =
-            typeof rawLastOutput === 'string'
-              ? rawLastOutput
-              : (rawLastOutput?.find(content => content.type === 'text')?.text ?? null);
+          const firstInput = normalizeConversationPreview(rawFirstInput);
+          const lastOutput = normalizeConversationPreview(rawLastOutput);
           return {...rest, firstInput, lastOutput};
         }
       )
@@ -105,5 +116,6 @@ export function useConversations() {
     error,
     pageLinks,
     setCursor,
+    isDirectHit,
   };
 }

@@ -26,10 +26,8 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   noVisualizationPadding?: boolean;
   onCopyUrlClick?: () => void;
   onFullScreenViewClick?: () => void | Promise<void>;
-  revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
   title?: string;
-  titleBadges?: React.ReactNode;
   warnings?: string[];
 }
 
@@ -56,6 +54,9 @@ export function WidgetFrame(props: WidgetFrameProps) {
   const shouldShowCopyUrlButton = Boolean(props.onCopyUrlClick) && !props.error;
 
   const shouldShowActions = actions && actions.length > 0;
+  const hasDisabledActionsMessage = Boolean(
+    props.actionsDisabled && props.actionsMessage
+  );
 
   return (
     <Widget
@@ -83,10 +84,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             )}
         </Fragment>
       }
-      revealActions={
-        props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
-      }
-      TitleBadges={props.titleBadges}
+      revealActions={props.revealTooltip === 'always' ? 'always' : 'hover'}
       Actions={
         <Fragment>
           {props.description && (
@@ -140,6 +138,9 @@ export function WidgetFrame(props: WidgetFrameProps) {
                     variant: 'transparent',
                     showChevron: false,
                     icon: <IconEllipsis direction="down" size="sm" />,
+                    tooltipProps: {
+                      title: hasDisabledActionsMessage ? undefined : t('Widget actions'),
+                    },
                   }}
                   position="bottom-end"
                 />
@@ -166,6 +167,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
+              tooltipProps={{title: t('Open Full-Screen View')}}
               variant="transparent"
               icon={<IconExpand />}
               onClick={e => {

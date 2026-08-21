@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
@@ -52,10 +52,6 @@ type RowProps = {
    */
   bold?: boolean;
   /**
-   * Button to expand outcome section
-   */
-  expandButton?: React.ReactNode;
-  /**
    * If the row should be indented
    */
   indent?: boolean;
@@ -71,7 +67,6 @@ function OutcomeRow({
   category,
   totals,
   tooltipTitle,
-  expandButton,
   indent,
   barColor,
   bold,
@@ -92,7 +87,6 @@ function OutcomeRow({
           {barColor && <OutcomeLegend color={barColor} />}
           <OutcomeType indent={!barColor && indent}>
             <TextWrapper>
-              {expandButton}
               <Text bold={bold}>{name}</Text>
             </TextWrapper>
             {tooltipTitle && (
@@ -119,7 +113,6 @@ type OutcomeSectionProps = {
   name: string;
   quantity: number;
   totals: BillingStatTotal;
-  expanded?: boolean;
   isEventBreakdown?: boolean;
 };
 
@@ -199,6 +192,8 @@ function IngestionSummary({
   return (
     <Flex direction="column" gap="md">
       <Heading as="h4">{t('Total billed')}</Heading>
+    <Stack gap="md">
+      <Heading as="h4">{t('Total billed')}</Heading>
       <Flex justify="between" align="center" gap="lg">
         <Text wrap="nowrap">
           {formatUsageWithUnits(totalIngested, category, {
@@ -213,7 +208,7 @@ function IngestionSummary({
           outcomeToBarColor={outcomeToBarColor}
         />
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -290,7 +285,7 @@ export function UsageTotalsTable({
   const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
-    <Flex direction="column" gap="md" padding="md">
+    <Stack gap="md" padding="md">
       <IngestionSummary
         category={category}
         totals={totals}
@@ -343,7 +338,7 @@ export function UsageTotalsTable({
           />
         </OutcomeSection>
       </OutcomeTable>
-    </Flex>
+    </Stack>
   );
 }
 

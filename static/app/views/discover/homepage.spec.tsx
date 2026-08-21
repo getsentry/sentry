@@ -22,7 +22,6 @@ describe('Discover > Homepage', () => {
   const features = ['discover-query'];
   let organization: ReturnType<typeof OrganizationFixture>;
   let mockHomepage: jest.Mock;
-  let measurementsMetaMock: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -80,11 +79,6 @@ describe('Discover > Homepage', () => {
         query: 'event.type:error',
         queryDataset: 'discover',
       },
-    });
-    measurementsMetaMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/measurements-meta/',
-      method: 'GET',
-      body: {},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -177,12 +171,9 @@ describe('Discover > Homepage', () => {
       },
       organization,
     });
-    await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
-    });
 
     // 'Discover' is the header for the homepage
-    expect(screen.getByText('Discover')).toBeInTheDocument();
+    expect(await screen.findByText('Discover')).toBeInTheDocument();
     expect(screen.queryByText(/Created by:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
@@ -263,8 +254,6 @@ describe('Discover > Homepage', () => {
     expect(
       await screen.findByRole('menuitemradio', {name: 'Set as Default'})
     ).not.toHaveAttribute('aria-disabled', 'true');
-
-    expect(measurementsMetaMock).toHaveBeenCalled();
   });
 
   it('follows absolute date selection', async () => {
@@ -368,11 +357,7 @@ describe('Discover > Homepage', () => {
       `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
     );
 
-    await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
-    });
-
-    expect(screen.getByText('event.type')).toBeInTheDocument();
+    expect(await screen.findByText('event.type')).toBeInTheDocument();
   });
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
@@ -399,11 +384,8 @@ describe('Discover > Homepage', () => {
       },
       organization,
     });
-    await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
-    });
 
-    expect(screen.getByText('project-slug')).toBeInTheDocument();
+    expect(await screen.findByText('project-slug')).toBeInTheDocument();
   });
 
   it('allows users to set the All Events query as default', async () => {
@@ -518,5 +500,70 @@ describe('Discover > Homepage', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Remove Default'})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows default homepage when discover deprecation is enabled with transaction dataset homepage query', async () => {
+    organization = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-saved-queries-deprecation',
+        'deprecate-discover',
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          discoverSplitDecision: 'transaction-like',
+        },
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/discover/homepage/`,
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'homepage query',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['environment'],
+        widths: ['-1'],
+        range: '14d',
+        orderby: '-environment',
+        display: 'previous',
+        query: 'event.type:transaction',
+        topEvents: '5',
+        queryDataset: 'transaction-like',
+      },
+    });
+
+    const {router} = render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/errors/homepage/`,
+        },
+        route: '/organizations/:orgId/explore/errors/homepage/',
+      },
+      organization,
+    });
+
+    expect(await screen.findByText('Results')).toBeInTheDocument();
+    expect(screen.queryByText('homepage query')).not.toBeInTheDocument();
+    expect(screen.queryByText('environment')).not.toBeInTheDocument();
+
+    expect(router.location.query.dataset).toBe('errors');
+    expect(router.location.query.queryDataset).toBe('error-events');
   });
 });

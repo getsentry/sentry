@@ -136,11 +136,11 @@ function getAISpanAttributes({
     });
   }
 
-  const reasoningEffort = attributes[SpanFields.GEN_AI_REQUEST_REASONING_EFFORT];
-  if (reasoningEffort) {
+  const reasoningLevel = attributes[SpanFields.GEN_AI_REQUEST_REASONING_LEVEL];
+  if (reasoningLevel) {
     highlightedAttributes.push({
-      name: t('Reasoning Effort'),
-      value: reasoningEffort.toString(),
+      name: t('Reasoning Level'),
+      value: reasoningLevel.toString(),
     });
   }
 

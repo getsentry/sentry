@@ -1,3 +1,4 @@
+import type {PageFilterStorage} from 'sentry/components/pageFilters/persistence';
 import type {PageFiltersState} from 'sentry/components/pageFilters/store';
 import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
 
@@ -15,7 +16,9 @@ export function PageFiltersFixture(params: Partial<PageFilters> = {}): PageFilte
   };
 }
 
-export function PageFiltersStorageFixture(params = {}) {
+export function PageFiltersStorageFixture(
+  params: Partial<PageFilterStorage> = {}
+): PageFilterStorage {
   return {
     pinnedFilters: new Set<PinnedPageFilter>(['projects']),
     state: {

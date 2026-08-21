@@ -50,7 +50,7 @@ export function useSpanSamplesWebVitalsQuery({
   const sort = useWebVitalsSort({
     sortName,
     defaultSort: DEFAULT_INDEXED_SPANS_SORT,
-    sortableFields: filteredSortableFields as unknown as string[],
+    sortableFields: filteredSortableFields,
   });
 
   const mutableSearch = MutableSearch.fromQueryObject({

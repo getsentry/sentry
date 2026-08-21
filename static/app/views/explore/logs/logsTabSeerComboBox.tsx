@@ -1,8 +1,10 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
@@ -21,7 +23,7 @@ import {
 import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -65,7 +67,7 @@ export function getLogsSeerLocationQuery({
 }: {
   currentAggregateFields: readonly AggregateField[];
   currentLocation: Location;
-  pageDatetime: PageFilters['datetime'];
+  pageDatetime: PageFilterDatetime;
   result: AskSeerSearchQuery;
   projects?: Project[];
 }): LogsSeerLocationQueryResult {
@@ -77,7 +79,7 @@ export function getLogsSeerLocationQuery({
   );
   const targetLocation: Location = {
     ...currentLocation,
-    query: {...currentLocation.query},
+    query: omit(currentLocation.query, ALL_DATE_TIME_QUERY_KEYS),
   };
 
   if (projectIds?.length) {

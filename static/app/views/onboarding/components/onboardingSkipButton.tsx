@@ -1,11 +1,12 @@
 import {LinkButton} from '@sentry/scraps/button';
 
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OnboardingStepId} from 'sentry/views/onboarding/types';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 type SidebarSource = QuickStartEventParameters['quick_start.opened']['source'];
 
@@ -27,9 +28,10 @@ const SKIP_CONFIG_BY_STEP: Partial<Record<OnboardingStepId, SkipAnalyticsConfig>
     sidebarSource: 'targeted_onboarding_scm_platform_features_skip',
     referrer: 'onboarding-scm-platform-features-skip',
   },
-  [OnboardingStepId.SCM_PROJECT_DETAILS]: {
-    sidebarSource: 'targeted_onboarding_scm_project_details_skip',
-    referrer: 'onboarding-scm-project-details-skip',
+  [OnboardingStepId.SCM_MESSAGING]: {
+    // VDY-146 will add treatment-specific interaction analytics.
+    sidebarSource: 'onboarding_sidebar',
+    referrer: 'onboarding-scm-messaging-skip',
   },
   [OnboardingStepId.SETUP_DOCS]: {
     sidebarSource: 'targeted_onboarding_first_event_footer_skip',
@@ -43,6 +45,7 @@ interface OnboardingSkipButtonProps {
 
 export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
   const organization = useOrganization();
+  const {discardOnboardingSession} = useOnboardingContext();
   const {activateSidebar} = useOnboardingSidebar();
 
   const config = SKIP_CONFIG_BY_STEP[stepId];
@@ -51,6 +54,9 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
   }
 
   const handleClick = () => {
+    // Skipping exits the treatment and must not leave a half-staged session for
+    // the next /onboarding visit to silently resume from.
+    discardOnboardingSession();
     trackAnalytics('onboarding.scm_header_skip_clicked', {
       organization,
       step: stepId,

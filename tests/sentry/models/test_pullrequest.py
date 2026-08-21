@@ -4,6 +4,8 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
@@ -14,7 +16,7 @@ from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
     PullRequestCommit,
-    parse_pull_request_number,
+    parse_pull_request_url,
 )
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -106,8 +108,12 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
         )
-        assert activity.data == {"version": release.version}
+        assert activity.data == {"version": release.version, "commit": commit.id}
         assert activity.ident == str(resolution.id)
+
+        serialized_data = serialize(activity)["data"]
+        assert serialized_data["version"] == release.version
+        assert serialized_data["commit"]["id"] == commit.key
 
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()
@@ -183,8 +189,43 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
         )
-        assert activity.data == {"version": release.version}
+        commit = Commit.objects.get(key=merge_commit_sha)
+        assert activity.data == {"version": release.version, "commit": commit.id}
         assert activity.ident == str(resolution.id)
+
+        serialized_data = serialize(activity)["data"]
+        assert serialized_data["version"] == release.version
+        assert serialized_data["commit"]["id"] == commit.key
+        assert serialized_data["commit"]["pullRequest"]["id"] == pr.key
+
+    def test_pull_request_resolves_only_when_released_to_issue_project(self) -> None:
+        frontend_project = self.project
+        backend_project = self.create_project(organization=frontend_project.organization)
+        group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=frontend_project, name="example-monorepo")
+        merge_commit_sha = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=frontend_project.organization_id,
+            message=f"Fixes {group.qualified_short_id}",
+        )
+        pull_request.update(merge_commit_sha=merge_commit_sha)
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        assert not GroupResolution.objects.filter(group=group, release=backend_release).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
 
 
 class PullRequestRetentionTest(TestCase):
@@ -443,12 +484,14 @@ class GetOrCreateFromReferenceTest(TestCase):
         repo_name: str = "getsentry/sentry",
         provider: str | None = "github",
         key: int | str = 42,
+        repo_external_id: str | None = None,
     ):
         return PullRequest.objects.get_or_create_from_reference(
             organization_id=self.organization.id,
             repo_name=repo_name,
             provider=provider,
             key=key,
+            repo_external_id=repo_external_id,
         )
 
     def test_resolves_and_creates_pull_request(self) -> None:
@@ -456,9 +499,74 @@ class GetOrCreateFromReferenceTest(TestCase):
 
         assert resolved.repo_resolution == "resolved"
         assert resolved.provider_unmappable is False
+        assert resolved.resolved_by == "name"
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == self.repo.id
         assert resolved.pull_request.key == "42"
+
+    def test_resolves_by_external_id_when_name_cannot_match(self) -> None:
+        """GitLab reporters carry ``path_with_namespace`` while the row holds the
+        space-separated ``name_with_namespace``, so the name can never match."""
+        gitlab_repo = self.create_repo(
+            self.project,
+            name="My Group / My Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example.com:28",
+        )
+
+        resolved = self._resolve(
+            repo_name="my-group/my-project",
+            provider="gitlab",
+            repo_external_id="gitlab.example.com:28",
+        )
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.resolved_by == "external_id"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == gitlab_repo.id
+
+    def test_external_id_resolves_past_duplicate_names(self) -> None:
+        """Duplicate rows sharing a provider are ambiguous by name, and no provider value
+        can separate them -- only the external id can."""
+        duplicate = self.create_repo(
+            self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="99",
+        )
+        # create_repo get_or_creates: without a distinguishing field it returns the setUp
+        # row, and the duplicate this test is named for never exists.
+        assert duplicate.id != self.repo.id
+        assert self._resolve().repo_resolution == "ambiguous"
+
+        resolved = self._resolve(repo_external_id="99")
+
+        assert resolved.resolved_by == "external_id"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == duplicate.id
+
+    def test_treats_an_empty_external_id_as_absent(self) -> None:
+        """A reporter with no id for the repo sends ``""``. Querying it would match a row
+        that also has none, attaching the PR to an unrelated repository."""
+        self.create_repo(
+            self.project, name="unrelated/repo", provider="integrations:github", external_id=""
+        )
+
+        resolved = self._resolve(repo_external_id="")
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.resolved_by == "name"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
+
+    def test_falls_back_to_name_when_external_id_is_stale(self) -> None:
+        """A repo re-added under a new external id must be no worse off than before."""
+        resolved = self._resolve(repo_external_id="no-longer-in-use")
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.resolved_by == "name"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
 
     def test_coerces_integer_key_to_string(self) -> None:
         resolved = self._resolve(key=7)
@@ -558,23 +666,124 @@ class GetOrCreateFromReferenceTest(TestCase):
         assert not PullRequest.objects.filter(repository_id=self.repo.id).exists()
 
 
-class ParsePullRequestNumberTest(TestCase):
-    def test_extracts_number_from_supported_url_shapes(self) -> None:
-        # Each provider segment the regex recognizes must yield the trailing number.
-        cases = [
-            ("https://github.com/getsentry/sentry/pull/42", 42),
-            ("https://github.com/getsentry/sentry/pulls/7", 7),
-            ("https://gitlab.com/getsentry/sentry/merge_requests/13", 13),
-        ]
-        for url, expected in cases:
-            assert parse_pull_request_number(url) == expected
+class ForProviderPrTest(TestCase):
+    def setUp(self) -> None:
+        self.external_id = "556677"
+        self.integration_id = 909
+        self.repo = self.create_repo(
+            self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=self.external_id,
+            integration_id=self.integration_id,
+        )
+        self.pull_request = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
+        )
 
-    def test_returns_none_when_no_pr_segment(self) -> None:
-        # A branch/tree URL or a number-less path must not be mistaken for a PR.
+    def _for_provider_pr(self, *, integration_id: int | None = None, key: int | str = 42):
+        return PullRequest.objects.for_provider_pr(
+            external_id=self.external_id,
+            integration_id=self.integration_id if integration_id is None else integration_id,
+            key=key,
+        )
+
+    def test_resolves_row_in_own_org(self) -> None:
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_fans_across_orgs_sharing_installation(self) -> None:
+        other_org = self.create_organization()
+        other_repo = self.create_repo(
+            self.create_project(organization=other_org),
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=self.external_id,
+            integration_id=self.integration_id,
+        )
+        other_pr = self.create_pull_request(
+            organization_id=other_org.id, repository_id=other_repo.id, key="42"
+        )
+
+        assert {pr.id for pr in self._for_provider_pr()} == {self.pull_request.id, other_pr.id}
+
+    def test_coerces_integer_key_to_string(self) -> None:
+        assert [pr.id for pr in self._for_provider_pr(key=42)] == [self.pull_request.id]
+
+    def test_excludes_other_pr_numbers(self) -> None:
+        self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="99"
+        )
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_excludes_hidden_repositories(self) -> None:
+        self.repo.update(status=ObjectStatus.HIDDEN)
+        assert self._for_provider_pr() == []
+
+    def test_includes_non_hidden_inactive_repositories(self) -> None:
+        # A pending-deletion repo still gets webhooks (the fan-out only excludes
+        # HIDDEN), so its PR can emit and must stay in its own sibling set — matching
+        # how _repo_external_identity reads the repo regardless of status.
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_excludes_other_installations(self) -> None:
+        # Same external_id under a different installation (e.g. a second GHE host,
+        # where repo ids can collide) must not be treated as a sibling.
+        assert self._for_provider_pr(integration_id=self.integration_id + 1) == []
+
+
+class ParsePullRequestUrlTest(TestCase):
+    def test_parses_each_provider_url_shape(self) -> None:
+        cases = {
+            "https://github.com/getsentry/sentry/pull/42": (42, "github.com", "getsentry/sentry"),
+            "https://github.com/getsentry/sentry/pulls/7": (7, "github.com", "getsentry/sentry"),
+            "https://gitlab.com/gs/sentry/merge_requests/13": (13, "gitlab.com", "gs/sentry"),
+            # GitLab nests projects under subgroups and separates the MR path with "/-/", so
+            # the repo name spans the subgroups but excludes the separator.
+            "https://gitlab.com/grp/sub/proj/-/merge_requests/3": (3, "gitlab.com", "grp/sub/proj"),
+            "https://gitlab.com/grp/sub/proj/merge_requests/3": (3, "gitlab.com", "grp/sub/proj"),
+        }
+        for url, expected in cases.items():
+            assert parse_pull_request_url(url) == expected, url
+
+    def test_parses_past_trailing_url_segments(self) -> None:
+        # A PR URL stays a PR URL with a subpath, query, or fragment appended.
+        for url in [
+            "https://github.com/o/r/pull/5/files",
+            "https://github.com/o/r/pull/5?w=1",
+            "https://github.com/o/r/pull/5#issuecomment-1",
+        ]:
+            assert parse_pull_request_url(url) == (5, "github.com", "o/r"), url
+
+    def test_normalizes_the_host(self) -> None:
+        # Callers compare host to a known value, so casing, port and userinfo must not survive.
+        cases = {
+            "https://GitHub.com/o/r/pull/5": (5, "github.com", "o/r"),
+            "https://github.com:443/o/r/pull/5": (5, "github.com", "o/r"),
+            "https://user@github.com/o/r/pull/5": (5, "github.com", "o/r"),
+            # The real host is what follows the userinfo, not what precedes it.
+            "https://github.com@evil.com/o/r/pull/5": (5, "evil.com", "o/r"),
+        }
+        for url, expected in cases.items():
+            assert parse_pull_request_url(url) == expected, url
+
+    def test_returns_none_when_not_a_pr_url(self) -> None:
         cases = [
+            # A branch/tree URL or a number-less path must not be mistaken for a PR.
             "https://github.com/getsentry/sentry/tree/123",
             "https://github.com/getsentry/sentry/pulls",
             "https://github.com/getsentry/sentry",
+            # The number must end its path segment, not merely start it.
+            "https://github.com/o/r/pull/12x",
+            # Only https, so a parsed host can be trusted.
+            "http://github.com/o/r/pull/5",
+            # A PR URL smuggled into another URL's query string is not this URL's PR.
+            "https://evil.com/x?u=https://github.com/o/r/pull/5",
+            # A PR segment needs a repo above it; "pull" alone is not an owner/repo.
+            "https://github.com/pull/5",
+            # Malformed authority — urlsplit raises rather than returning a host.
+            "https://[::1/o/r/pull/5",
+            "",
         ]
         for url in cases:
-            assert parse_pull_request_number(url) is None
+            assert parse_pull_request_url(url) is None, url

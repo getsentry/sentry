@@ -7,12 +7,13 @@ import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT,
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
 } from 'sentry/views/navigation/constants';
 import {
   PrimaryNavigationFooterItems,
@@ -20,7 +21,12 @@ import {
   PrimaryNavigationItems,
 } from 'sentry/views/navigation/navigation';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {
+  PrimaryNavigationHelpMenu,
+  useWhatsNewHelpMenuItem,
+} from 'sentry/views/navigation/primary/helpMenu';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
@@ -46,6 +52,15 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
       {...props}
     />
   );
+}
+
+function MobileWhatsNewHelpMenu() {
+  const whatsNewHelpMenuOptions = useWhatsNewHelpMenuItem();
+  return <PrimaryNavigationHelpMenu {...whatsNewHelpMenuOptions} />;
+}
+
+function MobileHelpMenuFallback() {
+  return <PrimaryNavigationHelpMenu />;
 }
 
 function MobilePrimaryNavigation() {
@@ -120,7 +135,7 @@ export function MobileNavigation() {
     <SizeProvider size="sm">
       <MobileNavigationHeader
         padding="sm"
-        height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`}
+        height={`${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`}
       >
         <Flex align="center" gap="md" justify="between" width="100%">
           <Button
@@ -136,7 +151,14 @@ export function MobileNavigation() {
           />
           <Stack gap="md" direction="row">
             <PrimaryNavigation.ButtonBar orientation="horizontal">
-              <PrimaryNavigationFooterItems />
+              <PrimaryNavigationFooterItems>
+                <PrimaryNavigation.ButtonContainer>
+                  {buttonProps => <SearchButton {...buttonProps} />}
+                </PrimaryNavigation.ButtonContainer>
+                <ErrorBoundary customComponent={MobileHelpMenuFallback}>
+                  <MobileWhatsNewHelpMenu />
+                </ErrorBoundary>
+              </PrimaryNavigationFooterItems>
             </PrimaryNavigation.ButtonBar>
             <PrimaryNavigationFooterItemsUserDropdown />
           </Stack>

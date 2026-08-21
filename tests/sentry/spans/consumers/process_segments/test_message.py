@@ -4,12 +4,30 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 
+from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
+from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
+from sentry.issue_detection.detectors.span_first.span_first_utils import (
+    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
+    SpanFirstDetectorsRolloutController,
+)
+from sentry.issue_detection.performance_detection import (
+    DETECTOR_CLASSES,
+    detect_performance_problems,
+    get_detection_settings,
+)
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.spans.consumers.process_segments import message as message_module
-from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
+from sentry.spans.consumers.process_segments.message import (
+    _bump_release_last_seen,
+    _verify_compatibility,
+    process_segment,
+)
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.testutils.cases import TestCase
@@ -17,11 +35,17 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from tests.sentry.spans.consumers.process import build_mock_span
 
+DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
+
 
 @exclude_experimental_detectors
 class TestSpansTask(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project()
+        message_module.cache = None
+
+    def tearDown(self) -> None:
+        message_module.cache = None
 
     def generate_basic_spans(self):
         segment_span = build_mock_span(
@@ -153,7 +177,50 @@ class TestSpansTask(TestCase):
             name="a" * 64,
         )
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    def test_create_models_auto_creation_disabled(self) -> None:
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        spans = self.generate_basic_spans()
+
+        with self.feature("organizations:auto-release-creation"):
+            assert process_segment(spans)
+
+        Environment.objects.get(organization_id=self.organization.id, name="development")
+        assert not Release.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_models_auto_creation_disabled_associates_existing_release(self) -> None:
+        # A release created out-of-band (e.g. via the CLI) is still associated even
+        # when auto-creation is disabled.
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+        )
+        spans = self.generate_basic_spans()
+
+        with self.feature("organizations:auto-release-creation"):
+            assert process_segment(spans)
+
+        assert ReleaseProject.objects.filter(release=release, project=self.project).exists()
+        assert ReleaseProjectEnvironment.objects.filter(
+            release_id=release.id, project_id=self.project.id
+        ).exists()
+
+    def test_create_models_auto_creation_disabled_without_feature_flag(self) -> None:
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        spans = self.generate_basic_spans()
+        assert process_segment(spans)
+
+        assert Release.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_bump_release_last_seen_auto_creation_disabled(self) -> None:
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+
+        with self.feature("organizations:auto-release-creation"):
+            _bump_release_last_seen(self.project, "development", "1.0", timezone.now())
+
+        assert not Release.objects.filter(organization_id=self.organization.id).exists()
+
+    @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
         spans = self.generate_n_plus_one_spans()
@@ -170,7 +237,7 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(
@@ -224,6 +291,121 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
 
+    def test_detector_settings_only_fetched_once(self) -> None:
+        spans = self.generate_basic_spans()
+        detection_settings = get_detection_settings(self.project)
+
+        with (
+            override_options(
+                {DETECTORS_ENABLED_OPTION: ["*"], SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION: True}
+            ),
+            mock.patch.object(
+                SpanFirstDetectorsRolloutController, "should_check_experiment", return_value=True
+            ),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.get_detection_settings",
+                return_value=detection_settings,
+            ) as mock_get_detection_settings,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.run_span_first_detectors",
+                wraps=run_span_first_detectors,
+            ) as span_first_detectors_spy,
+        ):
+            process_segment(spans)
+
+            assert mock_get_detection_settings.call_count == 1
+            mock_get_detection_settings.assert_called_with(self.project)
+
+            legacy_settings = legacy_detectors_spy.call_args.kwargs["detection_settings"]
+            span_first_settings = span_first_detectors_spy.call_args.args[3]
+
+            assert legacy_settings is detection_settings
+            assert span_first_settings is detection_settings
+
+    def test_no_detectors_enabled(self) -> None:
+        """
+        An empty option value is the killswitch for all segment-based issue detection, so nothing
+        downstream of it should run -- not even the settings fetch.
+        """
+        spans = self.generate_n_plus_one_spans()
+
+        with (
+            override_options({DETECTORS_ENABLED_OPTION: []}),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.get_detection_settings",
+            ) as get_detection_settings_mock,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+            ) as legacy_detectors_mock,
+        ):
+            process_segment(spans)
+
+            get_detection_settings_mock.assert_not_called()
+            legacy_detectors_mock.assert_not_called()
+
+    def test_blanket_detector_enablement(self) -> None:
+        spans = self.generate_n_plus_one_spans()
+
+        with (
+            override_options({DETECTORS_ENABLED_OPTION: ["*"]}),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+        ):
+            process_segment(spans)
+
+            assert legacy_detectors_spy.call_args.kwargs["detector_classes"] == DETECTOR_CLASSES
+
+    def test_selective_detector_enablement(self) -> None:
+        spans = self.generate_n_plus_one_spans()
+
+        with (
+            override_options({DETECTORS_ENABLED_OPTION: ["n_plus_one_db"]}),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+        ):
+            process_segment(spans)
+
+            assert legacy_detectors_spy.call_args.kwargs["detector_classes"] == [
+                NPlusOneDBSpanDetector
+            ]
+
+    def test_invalid_detector_types_ignored_in_enablement_option(self) -> None:
+        """
+        A detector type we don't recognize is almost certainly a typo in the option value. Skipping
+        it lets the valid entries keep working, but it needs to be noisy about it, because
+        otherwise a typo is indistinguishable from having deliberately switched that detector off.
+        """
+        spans = self.generate_n_plus_one_spans()
+
+        with (
+            override_options({DETECTORS_ENABLED_OPTION: ["n_plus_one_db", "dogs_are_great"]}),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.logger.warning"
+            ) as logger_warning_mock,
+        ):
+            process_segment(spans)
+
+            # The bogus entry is dropped, but the valid one still runs
+            assert legacy_detectors_spy.call_args.kwargs["detector_classes"] == [
+                NPlusOneDBSpanDetector
+            ]
+            logger_warning_mock.assert_called_once_with(
+                "issue_detection.span_processor.invalid_enablement_option",
+                extra={"option_value": ["n_plus_one_db", "dogs_are_great"]},
+            )
+
     @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
     @pytest.mark.skip("temporarily disabled")
     def test_skip_produce_does_not_track_outcomes(self, mock_track_outcome: mock.MagicMock) -> None:
@@ -259,6 +441,25 @@ class TestSpansTask(TestCase):
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_http"]
         assert "has_insights_agent_monitoring" not in signals
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
+    def test_record_signals_vitals_from_top_level_is_segment(self, mock_track):
+        span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            span_op="pageload",
+            attributes={
+                "sentry.op": {"value": "pageload"},
+            },
+        )
+        assert "sentry.is_segment" not in (span.get("attributes") or {})
+
+        spans = process_segment([span])
+        assert len(spans) == 1
+        assert "sentry.is_segment" not in (spans[0].get("attributes") or {})
+
+        signals = [args[0][1] for args in mock_track.call_args_list]
+        assert "has_insights_vitals" in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
     def test_record_signals_agents_via_gen_ai_op_name(self, mock_track):
@@ -447,6 +648,21 @@ class TestSegmentDropKillswitch(TestCase):
         ):
             processed_spans = process_segment([child_span, segment_span])
             assert len(processed_spans) == 0
+
+    def test_drop_segment_with_skip_enrichment(self) -> None:
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+
+        with override_options(
+            {
+                "spans.process-segments.drop-segments": [
+                    {"org_id": str(self.project.organization_id)}
+                ]
+            }
+        ):
+            assert process_segment([segment_span], skip_enrichment=True) == []
 
 
 @exclude_experimental_detectors

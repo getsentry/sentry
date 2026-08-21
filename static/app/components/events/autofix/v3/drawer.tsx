@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo, useRef} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -39,8 +39,11 @@ interface SeerDrawerProps {
 export function SeerDrawer({group, project}: SeerDrawerProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const aiAutofix = useExplorerAutofix(group.id, {
-    pollPR: organization.features.includes('autofix-pr-iteration'),
+  const aiAutofix = useExplorerAutofix(group, {
+    // Automated CI iteration pushes commits with no user action, so poll for both.
+    pollPR:
+      organization.features.includes('autofix-pr-iteration') ||
+      organization.features.includes('autofix-pr-iteration-manual'),
   });
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
@@ -66,12 +69,11 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   });
 
   return (
-    <Flex
+    <Stack
       className="seer-drawer-container"
       position="relative"
       height="100%"
       overflowY="hidden"
-      direction="column"
       background="secondary"
     >
       <SeerDrawerHeader
@@ -83,20 +85,20 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       <AutofixWarnings warnings={aiAutofix.warnings} groupId={group.id} />
       <SeerDrawerBody ref={containerRef} onScroll={onScrollHandler}>
         {aiConfig.isAutofixSetupLoading ? (
-          <Flex data-test-id="ai-setup-loading-indicator" direction="column" gap="xl">
+          <Stack data-test-id="ai-setup-loading-indicator" gap="xl">
             <Placeholder height="10rem" />
             <Placeholder height="15rem" />
             <Placeholder height="15rem" />
-          </Flex>
+          </Stack>
         ) : (
           <SeerDrawerContent group={group} autofix={aiAutofix} aiConfig={aiConfig} />
         )}
       </SeerDrawerBody>
-    </Flex>
+    </Stack>
   );
 }
 
-export function useHandleCopyMarkdown({
+function useHandleCopyMarkdown({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
@@ -120,7 +122,7 @@ export function useHandleCopyMarkdown({
   }, [aiAutofix, copy]);
 }
 
-export function useHandleRestart({
+function useHandleRestart({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
@@ -240,7 +242,7 @@ export function AutofixWarnings({
   ));
 
   return (
-    <Flex direction="column" gap="md" padding="md 2xl 0">
+    <Stack gap="md" padding="md 2xl 0">
       <Alert
         variant="warning"
         trailingItems={
@@ -267,6 +269,6 @@ export function AutofixWarnings({
               'The configured GitHub App is missing permissions. Update the app and ask Seer to retry.'
             )}
       </Alert>
-    </Flex>
+    </Stack>
   );
 }

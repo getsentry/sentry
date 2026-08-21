@@ -3,7 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -202,7 +202,7 @@ export function SourceMapsList({project}: Props) {
   const platformByProject = defined(project.platform)
     ? projectPlatformToDocsMap[project.platform]
     : undefined;
-  const platform = platformByProject ?? project.platform ?? 'javascript';
+  const platform = platformByProject ?? 'javascript';
   const sourceMapsLinks = getSourceMapsDocLinks(platform);
 
   return (
@@ -438,7 +438,6 @@ function SourceMapUploadDetails({
 
 interface SourceMapUploadDeleteButtonProps {
   onDelete?: () => void;
-  size?: ButtonProps['size'];
 }
 
 function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProps) {
