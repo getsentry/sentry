@@ -140,11 +140,7 @@ export function useSetQueryParams() {
         writableQueryParams.breakdownCursor = null;
       }
 
-      if (options) {
-        setQueryParams(writableQueryParams, options);
-      } else {
-        setQueryParams(writableQueryParams);
-      }
+      setQueryParams(writableQueryParams, options);
     },
     [managedFields, setManagedFields, readableQueryParams, setQueryParams]
   );
