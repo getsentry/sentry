@@ -407,6 +407,24 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             )
         assert_serializer_results_match(response.data, workflow_response.data)
 
+    def test_partial_update_without_action_match(self) -> None:
+        """Partial PUTs may omit actionMatch; keep the existing match instead of 500ing."""
+        original_action_match = self.rule.data["action_match"]
+        payload = {
+            "name": "partial update",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": [
+                {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}
+            ],
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["id"] == str(self.rule.id)
+        self.rule.refresh_from_db()
+        assert self.rule.label == "partial update"
+        assert self.rule.data["action_match"] == original_action_match
+
     def test_issue_owners_action_returns_fallthrough_type(self) -> None:
         # An IssueOwners email action sent without a fallthroughType should still
         # return the default fallthroughType in the response, for both the legacy

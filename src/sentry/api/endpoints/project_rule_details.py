@@ -237,12 +237,14 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             if "filters" in data:
                 conditions.extend(data["filters"])
 
+            # Serializer is partial=True, so omit fields and keep existing rule values
+            # via ProjectRuleUpdater (None means "do not update").
             kwargs = {
-                "name": data["name"],
+                "name": data.get("name"),
                 "environment": data.get("environment"),
                 "project": None,
                 "project_id": project.id,
-                "action_match": data["actionMatch"],
+                "action_match": data.get("actionMatch"),
                 "filter_match": data.get("filterMatch"),
                 "conditions": conditions,
                 "actions": data["actions"],
