@@ -3,7 +3,6 @@ import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
-import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -198,7 +197,7 @@ export function CommandPaletteHotkeys() {
 
   useHotkeys([
     {
-      match: COMMAND_PALETTE_HOTKEYS,
+      match: ['mod+shift+p', 'mod+k'],
       includeInputs: true,
       callback: () => {
         if (!organization) {
