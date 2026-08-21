@@ -20,12 +20,15 @@ from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
+from sentry.sentry_apps.external_issues.types import ExternalIssueTrigger
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
+from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
+    build_external_issue_webhook,
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
@@ -2296,3 +2299,181 @@ class TestDisabledSentryAppWebhooks(TestCase):
         disable_app(self.sentry_app)
         workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
         assert safe_urlopen.called
+
+
+@patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+class TestExternalIssueWebhook(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project()
+        self.user = self.create_user()
+        self.issue = self.create_group(project=self.project)
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.external_issue_created", "issue.external_issue_linked"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app.slug
+        )
+        self.integration = self.create_integration(
+            organization=self.project.organization, provider="example", external_id="123"
+        )
+        self.external_issue = self.create_integration_external_issue(
+            group=self.issue, integration=self.integration, key="APP-123"
+        )
+
+    def run_task(
+        self,
+        event: str,
+        user_id: int | None = None,
+        triggered_by: ExternalIssueTrigger | None = None,
+        external_issue: dict | None = None,
+        external_issue_kind: str = "integration",
+    ) -> None:
+        if external_issue is None:
+            external_issue = serialize(self.external_issue)
+        build_external_issue_webhook(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type=event,
+            user_id=user_id,
+            external_issue=external_issue,
+            external_issue_kind=external_issue_kind,
+            triggered_by=triggered_by,
+        )
+
+    def test_sends_created_webhook(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_created", user_id=self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "external_issue_created"
+        assert data["data"]["issue"]["id"] == str(self.issue.id)
+        assert data["data"]["external_issue"]["key"] == "APP-123"
+        assert data["data"]["external_issue_kind"] == "integration"
+        assert kwargs["headers"]["Sentry-Hook-Resource"] == "issue"
+
+    def test_sends_linked_webhook(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_linked", user_id=self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "external_issue_linked"
+        assert data["data"]["external_issue"]["key"] == "APP-123"
+
+    def test_attributes_to_sentry_when_no_user(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_created")
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["actor"] == {
+            "type": "application",
+            "id": "sentry",
+            "name": "Sentry",
+        }
+
+    @patch.object(app_service, "get_sentry_apps_by_proxy_users")
+    def test_uses_recipient_app_for_its_own_proxy_user(
+        self, get_sentry_apps: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        self.run_task(
+            "issue.external_issue_created",
+            user_id=self.sentry_app.proxy_user_id,
+        )
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["actor"] == {
+            "type": "application",
+            "id": self.sentry_app.uuid,
+            "name": self.sentry_app.name,
+        }
+        get_sentry_apps.assert_not_called()
+
+    def test_resolves_an_originating_app_for_another_recipient(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        actor_app = self.create_sentry_app(organization=self.project.organization)
+        self.run_task(
+            "issue.external_issue_created",
+            user_id=actor_app.proxy_user_id,
+        )
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["actor"] == {
+            "type": "application",
+            "id": actor_app.uuid,
+            "name": actor_app.name,
+        }
+
+    @patch.object(app_service, "get_sentry_apps_by_proxy_users", return_value=[])
+    def test_does_not_send_an_unresolved_app_actor(
+        self, get_sentry_apps: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        actor_app = self.create_sentry_app(organization=self.project.organization)
+
+        with pytest.raises(SentryAppSentryError) as exc_info:
+            self.run_task(
+                "issue.external_issue_created",
+                user_id=actor_app.proxy_user_id,
+            )
+
+        assert exc_info.value.message == "send_webhooks.missing_sentry_app"
+        get_sentry_apps.assert_called_once_with(proxy_user_ids=[actor_app.proxy_user_id])
+        safe_urlopen.assert_not_called()
+
+    def test_includes_the_trigger_reference(self, safe_urlopen: MagicMock) -> None:
+        triggered_by = ExternalIssueTrigger(type="workflow", id="123", name="Escalating issues")
+        self.run_task("issue.external_issue_created", triggered_by=triggered_by)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["data"]["triggered_by"] == triggered_by
+
+    def test_omits_triggered_by_without_a_trigger(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_created", user_id=self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert "triggered_by" not in data["data"]
+
+    def test_sends_snapshot_after_external_issue_is_deleted(self, safe_urlopen: MagicMock) -> None:
+        external_issue = serialize(self.external_issue)
+        self.external_issue.delete()
+
+        self.run_task(
+            "issue.external_issue_created",
+            user_id=self.user.id,
+            external_issue=external_issue,
+        )
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["data"]["external_issue"]["key"] == "APP-123"
+
+    def test_sends_the_custom_integration_shape(self, safe_urlopen: MagicMock) -> None:
+        platform_issue = self.create_platform_external_issue(
+            group=self.issue,
+            service_type=self.sentry_app.slug,
+            display_name="app#123",
+            web_url="https://example.com/issues/123",
+        )
+
+        self.run_task(
+            "issue.external_issue_created",
+            user_id=self.user.id,
+            external_issue=serialize(platform_issue),
+            external_issue_kind="custom_integration",
+        )
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["data"]["external_issue_kind"] == "custom_integration"
+        assert data["data"]["external_issue"] == {
+            "id": str(platform_issue.id),
+            "issueId": str(self.issue.id),
+            "serviceType": self.sentry_app.slug,
+            "displayName": "app#123",
+            "webUrl": "https://example.com/issues/123",
+        }

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -13,6 +13,7 @@ from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, CreateExt
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
+from sentry.rules.actions.integrations.create_ticket.utils import _get_external_issue_trigger
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
@@ -51,6 +52,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
 
         self.login_as(user=self.user)
+
         responses.add(
             method=responses.POST,
             url="https://api.github.com/app/installations/1/access_tokens",
@@ -79,10 +81,41 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )[0]
 
     @responses.activate()
-    def test_ticket_rules(self) -> None:
+    def test_trigger_reference_prefers_the_legacy_issue_alert(self) -> None:
+        rule = Rule(id=789, label="Escalating issues")
+        future = RuleFuture(
+            rule=rule,
+            kwargs={"data": {"legacy_rule_id": 123, "workflow_id": 456}},
+        )
+
+        assert _get_external_issue_trigger(future) == {
+            "type": "issue_alert",
+            "id": "123",
+            "name": "Escalating issues",
+        }
+
+    @responses.activate()
+    def test_trigger_reference_uses_the_workflow_without_a_legacy_alert(self) -> None:
+        rule = Rule(id=789, label="Escalating issues")
+        future = RuleFuture(rule=rule, kwargs={"data": {"workflow_id": 456}})
+
+        assert _get_external_issue_trigger(future) == {
+            "type": "workflow",
+            "id": "456",
+            "name": "Escalating issues",
+        }
+
+    @responses.activate()
+    @patch("sentry.sentry_apps.tasks.sentry_apps.build_external_issue_webhook.delay")
+    def test_ticket_rules(self, build_external_issue_webhook: MagicMock) -> None:
         title = "sample title"
         sample_description = "sample bug report"
         html_url = f"https://github.com/foo/bar/issues/{self.issue_num}"
+
+        sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.external_issue_created"]
+        )
+        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
 
         with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
@@ -162,6 +195,17 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             provider="github",
         )
 
+        build_external_issue_webhook.assert_called_once()
+        sentry_app_call = build_external_issue_webhook.call_args
+        assert sentry_app_call.kwargs["type"] == "issue.external_issue_created"
+        assert sentry_app_call.kwargs["issue_id"] == event.group_id
+        assert sentry_app_call.kwargs["user_id"] is None
+        assert sentry_app_call.kwargs["triggered_by"] == {
+            "type": "issue_alert",
+            "id": str(rule_object.id),
+            "name": rule_object.label,
+        }
+
         # assert ticket created in DB
         key = self.get_key(event)
         assert key == f"{self.repo}#{self.issue_num}"
@@ -192,6 +236,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         self.trigger(event, rule_object)
 
         # assert new ticket NOT created in DB
+        build_external_issue_webhook.assert_called_once()
         assert ExternalIssue.objects.count() == external_issue_count
         assert (
             Activity.objects.filter(
