@@ -49,6 +49,8 @@ class InvestigationTitleGenerationSerializerResponse(TypedDict):
 class InvestigationSerializerResponse(TypedDict):
     id: str
     title: str
+    summary: str | None
+    summaryDescription: str | None
     status: str
     sourceType: str
     createdBy: str | None
@@ -57,6 +59,7 @@ class InvestigationSerializerResponse(TypedDict):
     version: int
     blockCount: int
     isFavorited: bool
+    titleGeneration: InvestigationTitleGenerationSerializerResponse
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -66,7 +69,6 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     projectIds: list[int]
     parameters: list[InvestigationParameterSerializerResponse]
     blocks: list[InvestigationBlockSerializerResponse]
-    titleGeneration: InvestigationTitleGenerationSerializerResponse
 
 
 @register(Investigation)
@@ -112,6 +114,8 @@ class InvestigationSerializer(Serializer):
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "summary": obj.summary,
+            "summaryDescription": obj.summary_description,
             "status": obj.status,
             "sourceType": obj.source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
@@ -120,6 +124,7 @@ class InvestigationSerializer(Serializer):
             "version": obj.version,
             "blockCount": attrs["block_count"],
             "isFavorited": attrs["is_favorited"],
+            "titleGeneration": {"status": obj.title_generation_status},
         }
 
 

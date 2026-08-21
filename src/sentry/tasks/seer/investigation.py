@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import logging
 
-from sentry.investigations.agent import start_execution_run
+from sentry.investigations.agent import (
+    cancel_investigation_executions_after_failure,
+    start_execution_run,
+)
 from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
@@ -40,4 +43,5 @@ def dispatch_investigation_execution(execution_id: int) -> None:
         )
     except Exception:
         logger.exception("investigations.execution.dispatch_failed")
-        mark_block_execution_dispatch_failed(execution)
+        if mark_block_execution_dispatch_failed(execution):
+            cancel_investigation_executions_after_failure(execution)
