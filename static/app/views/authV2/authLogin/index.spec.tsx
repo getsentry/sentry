@@ -441,4 +441,162 @@ describe('AuthLogin', () => {
       )
     );
   });
+
+  it('performs a full-page navigation after second-factor authentication', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        canRegister: true,
+        githubLoginLink: '/identity/login/github/',
+        googleLoginLink: '/identity/login/google/',
+        hasNewsletter: false,
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+        vstsLoginLink: '/identity/login/vsts/',
+      } satisfies AuthConfig,
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/login/',
+      method: 'POST',
+      statusCode: 202,
+      body: {mfaRequired: true, mfaMethods: [{id: 'totp'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/2fa/',
+      method: 'POST',
+      body: {nextUri: '/organizations/acme/issues/', user: UserFixture()},
+    });
+
+    render(<AuthLogin />);
+
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Email'}),
+      'user@example.com'
+    );
+    await userEvent.type(screen.getByLabelText('Password'), 'secret');
+    await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
+
+    const otpInput = await screen.findByRole('textbox', {name: 'One-time password'});
+    expect(screen.queryByRole('button', {name: 'Google'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'GitHub'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Azure'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Organization SSO'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('or')).not.toBeInTheDocument();
+
+    await userEvent.type(otpInput, '123456');
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        '/organizations/acme/issues/'
+      )
+    );
+  });
+
+  it('resumes a pending second-factor authentication', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        canRegister: true,
+        githubLoginLink: '',
+        googleLoginLink: '',
+        hasNewsletter: false,
+        pendingMfa: {mfaRequired: true, mfaMethods: [{id: 'totp'}]},
+        serverHostname: 'sentry.example.com',
+        vstsLoginLink: '',
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/',
+      body: {
+        authenticated: false,
+        userIsAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: '/join-request/acme/',
+        loginMethod: 'sso',
+        ssoRequired: true,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByRole('textbox', {name: 'One-time password'})).toBeVisible();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Acme')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'SSO'})).not.toBeInTheDocument();
+    expect(screen.queryByText('or')).not.toBeInTheDocument();
+  });
+
+  it('returns to login when auth config fails to refetch after cancellation', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        canRegister: true,
+        githubLoginLink: '',
+        googleLoginLink: '',
+        hasNewsletter: false,
+        pendingMfa: {mfaRequired: true, mfaMethods: [{id: 'totp'}]},
+        serverHostname: 'sentry.example.com',
+        vstsLoginLink: '',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/',
+      body: {
+        authenticated: false,
+        userIsAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: true,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    const cancelRequest = MockApiClient.addMockResponse({
+      url: '/auth/2fa/',
+      method: 'DELETE',
+      statusCode: 204,
+    });
+    const configRefetch = MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      statusCode: 503,
+      body: {detail: 'Config unavailable'},
+    });
+    await userEvent.click(await screen.findByRole('button', {name: 'Back to Login'}));
+    await waitFor(() => expect(cancelRequest).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('textbox', {name: 'Email'})).toBeVisible();
+    await waitFor(() => expect(configRefetch).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByRole('button', {name: 'Organization SSO'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Organization Slug'}),
+      'acme'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Locate'}));
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'SSO'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'One-time password'})
+    ).not.toBeInTheDocument();
+  });
 });
