@@ -2,6 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
@@ -9,6 +11,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
+
+const MAX_DISPLAY_BYTES = 512 * 1024; // 512 KB
 
 export function LogFileViewer(props: ViewerProps) {
   const {data, isPending, isError} = useApiQuery<string>(
@@ -29,13 +33,27 @@ export function LogFileViewer(props: ViewerProps) {
     return <LoadingIndicator />;
   }
 
-  return data ? (
+  if (!data) {
+    return null;
+  }
+
+  const isTruncated = data.length > MAX_DISPLAY_BYTES;
+  const displayData = isTruncated ? data.slice(0, MAX_DISPLAY_BYTES) : data;
+
+  return (
     <PreviewPanelItem>
+      {isTruncated && (
+        <Alert variant="warning">
+          {t(
+            'Showing first 512\u00A0KB of file. Download the full attachment to view the rest.'
+          )}
+        </Alert>
+      )}
       <CodeWrapper>
-        <SentryStyleAnsi useClasses>{data}</SentryStyleAnsi>
+        <SentryStyleAnsi useClasses>{displayData}</SentryStyleAnsi>
       </CodeWrapper>
     </PreviewPanelItem>
-  ) : null;
+  );
 }
 
 /**
