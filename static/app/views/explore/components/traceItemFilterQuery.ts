@@ -125,10 +125,6 @@ export function replaceSearchFilterInQuery(
   return filters.join(' ');
 }
 
-export function getSearchFilterAttribute(query: string): string | null {
-  return getSearchFilterDescriptor(query)?.attributeKey ?? null;
-}
-
 export function getSearchFilterDescriptor(
   query: string
 ): {attributeKey: string; operator: TermOperator; value: string} | null {

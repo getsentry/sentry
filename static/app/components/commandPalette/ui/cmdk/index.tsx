@@ -21,8 +21,8 @@ import {
 import {useCommandPaletteSlotName} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 
-export {CMDKCollection, CommandPaletteProvider} from './collection';
-export type {CMDKActionData, CMDKResourceContext} from './types';
+export {CommandPaletteProvider} from './collection';
+export type {CMDKResourceContext} from './types';
 
 interface CMDKActionRegistrationProps<TData = unknown> {
   display: DisplayProps;
@@ -243,7 +243,9 @@ function CMDKActionRegistration<TData = unknown>({
   const key = CMDKCollection.useRegisterNode(nodeData, id);
   const {query, action: navAction} = useCommandPaletteState();
   let matchingNavAction = navAction;
+  let childOfMatchingNavAction: typeof navAction = null;
   while (matchingNavAction && matchingNavAction.value.key !== key) {
+    childOfMatchingNavAction = matchingNavAction;
     matchingNavAction = matchingNavAction.previous;
   }
   // Keep resource-backed ancestors mounted while navigating their descendants.
@@ -255,7 +257,7 @@ function CMDKActionRegistration<TData = unknown>({
       : matchingNavAction
         ? navAction.value.key === key
           ? query
-          : matchingNavAction.value.query
+          : (childOfMatchingNavAction?.value.query ?? '')
         : '';
   const shouldRenderChildren = deferChildren !== true || state === 'selected';
 

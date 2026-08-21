@@ -13,11 +13,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {
-  CMDKCollection,
-  CommandPaletteProvider,
-  type CMDKActionData,
-} from 'sentry/components/commandPalette/ui/cmdk';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk/collection';
+import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk/types';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ConfigStore} from 'sentry/stores/configStore';

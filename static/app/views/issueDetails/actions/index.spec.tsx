@@ -16,11 +16,9 @@ import {
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import {
-  CMDKCollection,
-  CommandPaletteProvider,
-  type CMDKActionData,
-} from 'sentry/components/commandPalette/ui/cmdk';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk/collection';
+import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk/types';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {mockTour} from 'sentry/components/tours/testUtils';

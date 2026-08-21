@@ -2170,6 +2170,7 @@ describe('CommandPalette', () => {
 
     it('keeps an async resource mounted while navigating its descendants', async () => {
       const queryClient = makeTestQueryClient();
+      const operatorQueries: string[] = [];
 
       render(
         <QueryClientProvider client={queryClient}>
@@ -2177,13 +2178,14 @@ describe('CommandPalette', () => {
             <CMDKAction.Resource
               display={{label: 'Project'}}
               prompt="Search for operator"
-              resource={(_query, {state}) =>
-                cmdkQueryOptions({
-                  queryKey: ['test-filter-operators'],
+              resource={(query, {state}) => {
+                operatorQueries.push(query);
+                return cmdkQueryOptions({
+                  queryKey: ['test-filter-operators', query],
                   queryFn: () => [{display: {label: 'is'}, onAction: () => {}}],
                   enabled: state === 'selected',
-                })
-              }
+                });
+              }}
             >
               {() => (
                 <CMDKAction.Resource
@@ -2221,10 +2223,12 @@ describe('CommandPalette', () => {
       );
 
       await userEvent.click(await screen.findByRole('option', {name: 'Project'}));
+      await userEvent.type(screen.getByPlaceholderText('Search for operator'), 'is');
       await userEvent.click(await screen.findByRole('option', {name: 'is'}));
 
       expect(await screen.findByText('Value')).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'project-one'})).toBeInTheDocument();
+      expect(operatorQueries.at(-1)).toBe('is');
     });
   });
 

@@ -2,7 +2,6 @@ import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/pa
 import {
   addSearchFilterToQuery,
   getFilterRows,
-  getSearchFilterAttribute,
   getSearchFilterDescriptor,
   removeSearchFilterFromQuery,
   replaceSearchFilterInQuery,
@@ -162,11 +161,5 @@ describe('filter row mutations', () => {
         }
       )
     ).toBe('environment:production !gen_ai.response.model:gpt-5');
-  });
-
-  it('gets the attribute used by a filter', () => {
-    expect(getSearchFilterAttribute('gen_ai.response.model:gpt-4o')).toBe(
-      'gen_ai.response.model'
-    );
   });
 });
