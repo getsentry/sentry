@@ -49,6 +49,7 @@ import {
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {InvestigationOrchestrationWorkflow} from 'sentry/views/investigations/detail/orchestrationWorkflow';
+import {useOrchestrationCommands} from 'sentry/views/investigations/detail/useOrchestrationCommands';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
@@ -97,6 +98,9 @@ function InvestigationBootstrapPage({investigationId}: {investigationId: string}
     ...detailOptions,
     refetchInterval: query => {
       const data = query.state.data?.json;
+      if (data?.mode === 'agentic') {
+        return false;
+      }
       return shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
@@ -129,7 +133,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
   const titleGenerationSettledFor = useRef<string | null>(null);
-  const notebookRevision = useRef<{
+  const polledNotebookRevision = useRef<{
+    investigationId: string;
+    revision: number;
+  } | null>(null);
+  const [notebookClearFence, setNotebookClearFence] = useState<{
     investigationId: string;
     revision: number;
   } | null>(null);
@@ -149,6 +157,16 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         orchestration: query.state.data?.json,
       }),
   });
+  const {commandState, displayedOrchestration, hideNotebookBlocks, submitCommand} =
+    useOrchestrationCommands({
+      investigationId: investigation.id,
+      orchestration: orchestrationQuery.data,
+      organizationSlug: organization.slug,
+    });
+  const streamedAgenticTitle =
+    investigation.mode === 'agentic'
+      ? orchestrationQuery.data?.report.metadata.title
+      : null;
   const titleGenerationQuery = useQuery({
     ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
     enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
@@ -161,29 +179,114 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     isTitleGenerationActive(titleGenerationQuery.data?.status)
       ? titleGenerationQuery.data?.preview
       : null;
-  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const displayedTitle =
+    draftTitle ?? streamedAgenticTitle ?? generatedTitlePreview ?? investigation.title;
+
+  useEffect(() => {
+    if (
+      investigation.mode === 'agentic' &&
+      orchestrationQuery.data?.report.metadata.status === 'completed' &&
+      streamedAgenticTitle &&
+      draftTitle === null
+    ) {
+      persistedTitle.current = streamedAgenticTitle;
+    }
+  }, [
+    investigation.mode,
+    draftTitle,
+    orchestrationQuery.data?.report.metadata.status,
+    streamedAgenticTitle,
+  ]);
 
   useEffect(() => {
     const nextRevision = orchestrationQuery.data?.notebookRevision;
     if (nextRevision === undefined) {
       return;
     }
-    const previousRevision = notebookRevision.current;
-    notebookRevision.current = {
+    const detailRevision = investigation.orchestration?.notebookRevision;
+    const previousRevision = polledNotebookRevision.current;
+    polledNotebookRevision.current = {
       investigationId: investigation.id,
       revision: nextRevision,
     };
     if (
-      previousRevision?.investigationId === investigation.id &&
-      previousRevision.revision !== nextRevision
+      (detailRevision !== undefined && detailRevision !== nextRevision) ||
+      (detailRevision === undefined &&
+        previousRevision?.investigationId === investigation.id &&
+        previousRevision.revision !== nextRevision)
     ) {
       void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
     }
   }, [
     detailOptions.queryKey,
     investigation.id,
+    investigation.orchestration?.notebookRevision,
     orchestrationQuery.data?.notebookRevision,
     queryClient,
+  ]);
+
+  useEffect(() => {
+    if (!hideNotebookBlocks) {
+      return;
+    }
+    setNotebookClearFence(current =>
+      current?.investigationId === investigation.id
+        ? current
+        : {
+            investigationId: investigation.id,
+            revision:
+              investigation.orchestration?.notebookRevision ??
+              orchestrationQuery.data?.notebookRevision ??
+              0,
+          }
+    );
+  }, [
+    hideNotebookBlocks,
+    investigation.id,
+    investigation.orchestration?.notebookRevision,
+    orchestrationQuery.data?.notebookRevision,
+  ]);
+
+  const detailNotebookRevision = investigation.orchestration?.notebookRevision;
+  const orchestrationNotebookRevision = orchestrationQuery.data?.notebookRevision;
+  const notebookRevisionMismatch =
+    investigation.mode === 'agentic' &&
+    detailNotebookRevision !== undefined &&
+    orchestrationNotebookRevision !== undefined &&
+    detailNotebookRevision !== orchestrationNotebookRevision;
+  const notebookClearObserved =
+    notebookClearFence?.investigationId === investigation.id &&
+    ((detailNotebookRevision !== undefined &&
+      detailNotebookRevision > notebookClearFence.revision) ||
+      (detailNotebookRevision === undefined &&
+        orchestrationNotebookRevision !== undefined &&
+        orchestrationNotebookRevision > notebookClearFence.revision &&
+        (investigation.blocks ?? []).every(
+          block =>
+            !block.reportProvenance ||
+            block.reportProvenance.reportRevision ===
+              displayedOrchestration?.report.revision
+        )));
+
+  useEffect(() => {
+    if (notebookClearFence?.investigationId !== investigation.id) {
+      return;
+    }
+    const invalidationFailedBeforeClear =
+      Boolean(commandState.error) &&
+      !hideNotebookBlocks &&
+      (orchestrationNotebookRevision ?? notebookClearFence.revision) <=
+        notebookClearFence.revision;
+    if (notebookClearObserved || invalidationFailedBeforeClear) {
+      setNotebookClearFence(null);
+    }
+  }, [
+    commandState.error,
+    hideNotebookBlocks,
+    investigation.id,
+    notebookClearFence,
+    notebookClearObserved,
+    orchestrationNotebookRevision,
   ]);
 
   useEffect(() => {
@@ -221,7 +324,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       onSuccess: updated => {
         persistedTitle.current = updated.title;
       },
-      onError: () => addErrorMessage(t('Unable to rename investigation.')),
+      onError: (_error, attemptedTitle) => {
+        addErrorMessage(t('Unable to rename investigation.'));
+        setDraftTitle(current =>
+          current?.trim() === attemptedTitle ? persistedTitle.current : current
+        );
+        updateInvestigationCache(
+          queryClient,
+          organization.slug,
+          investigation.id,
+          current =>
+            current.title === attemptedTitle
+              ? {...current, title: persistedTitle.current}
+              : current
+        );
+      },
     }
   );
   const renameDebouncer = useDebouncer(
@@ -323,6 +440,23 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleNotebookCells = notebookCells.filter(block =>
     shouldDisplayInvestigationBlock(block, blocks)
   );
+  const shouldHideNotebookBlocks =
+    (investigation.mode === 'agentic' && orchestrationQuery.isPending) ||
+    notebookRevisionMismatch ||
+    hideNotebookBlocks ||
+    Boolean(
+      notebookClearFence?.investigationId === investigation.id && !notebookClearObserved
+    );
+  const agenticReport =
+    investigation.mode === 'agentic' && displayedOrchestration
+      ? {
+          commandState,
+          currentBlockKey: displayedOrchestration.report.currentBlockKey,
+          currentBlockStatus: displayedOrchestration.report.currentBlockStatus,
+          onCommand: submitCommand,
+          reportStatus: displayedOrchestration.report.status,
+        }
+      : undefined;
 
   async function handleAddBlock({
     kind,
@@ -471,10 +605,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   </Alert>
                 </InvestigationFailureAlert>
               ) : null}
-              {orchestrationQuery.data ? (
+              {displayedOrchestration ? (
                 <Container paddingBottom="xl">
                   <InvestigationOrchestrationWorkflow
-                    orchestration={orchestrationQuery.data}
+                    commandState={commandState}
+                    onCommand={submitCommand}
+                    orchestration={displayedOrchestration}
                   />
                 </Container>
               ) : orchestrationQuery.isError &&
@@ -485,31 +621,35 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   </Alert>
                 </InvestigationFailureAlert>
               ) : null}
-              <NotebookSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
+              {shouldHideNotebookBlocks ? null : (
+                <NotebookSummaryCard
+                  summary={investigation.summary}
+                  summaryDescription={investigation.summaryDescription}
+                />
+              )}
 
-              <Stack width="min(100%, 884px)" margin="0 auto">
-                {visibleSummaryBlock ? (
+              <Stack width="min(100%, 884px)" margin="0 auto" gap="0">
+                {!shouldHideNotebookBlocks && visibleSummaryBlock ? (
                   <InvestigationCell
                     block={visibleSummaryBlock}
                     canRun={investigation.status === 'active'}
                     investigation={investigation}
+                    agenticReport={agenticReport}
                   />
                 ) : null}
 
                 <Stack gap="xl">
-                  {visibleNotebookCells.map(block => (
+                  {(shouldHideNotebookBlocks ? [] : visibleNotebookCells).map(block => (
                     <InvestigationCell
                       key={block.id}
                       block={block}
                       canRun={investigation.status === 'active'}
                       investigation={investigation}
+                      agenticReport={agenticReport}
                     />
                   ))}
                 </Stack>
-                {investigation.status === 'active' ? (
+                {investigation.status === 'active' && investigation.mode !== 'agentic' ? (
                   <AddCellComposer
                     isAdding={addBlockMutation.isPending}
                     onAdd={handleAddBlock}

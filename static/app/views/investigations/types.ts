@@ -14,9 +14,17 @@ export type InvestigationListItem = {
   title: string;
   version: number;
   mode?: 'agentic' | 'manual' | 'template';
+  orchestration?: InvestigationOrchestrationSummary | null;
   titleGeneration?: {
     status: 'pending' | 'running' | 'completed' | 'failed' | null;
   };
+};
+
+export type InvestigationOrchestrationSummary = {
+  heartbeatAt: string | null;
+  notebookRevision: number;
+  phase: string;
+  status: string;
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.
@@ -40,6 +48,12 @@ export type InvestigationBlock = {
   staleAt: string | null;
   title: string;
   version: number;
+  reportProvenance?: {
+    orchestrationRunId: string;
+    producingSeerRunId: string | null;
+    reportRevision: number;
+  } | null;
+  stableAgentKey?: string | null;
 };
 
 export type InvestigationBlockKind = 'query' | 'text';
@@ -191,7 +205,15 @@ export type InvestigationOrchestrationError = {
   message: string;
   retryable: boolean;
   occurredAt?: string;
+  requestId?: string;
   source?: string | null;
+};
+
+export type InvestigationToolActivity = {
+  id: string;
+  kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'tool'>;
+  status: InvestigationOrchestrationOpenString<'running' | 'completed' | 'failed'>;
+  title: string;
 };
 
 export type InvestigationOrchestrationEvidence = {
@@ -228,6 +250,15 @@ export type InvestigationVerificationStep = {
   title: string;
 };
 
+export type InvestigationAgentVerdict = {
+  confidence: number;
+  rationale: string;
+  refutingEvidenceIds: string[];
+  remainingGaps: string[];
+  supportingEvidenceIds: string[];
+  verdict: InvestigationOrchestrationOpenString<'supported' | 'refuted' | 'inconclusive'>;
+};
+
 export type InvestigationHypothesis = {
   confidence: number | null;
   decisionSource: InvestigationOrchestrationOpenString<'none' | 'agent' | 'user'>;
@@ -240,6 +271,12 @@ export type InvestigationHypothesis = {
   statement: string;
   status: InvestigationOrchestrationWorkStatus;
   verificationSteps: InvestigationVerificationStep[];
+  agentVerdict?: InvestigationAgentVerdict | null;
+  attempt?: number;
+  automaticRetryCount?: number;
+  heartbeatAt?: string | null;
+  investigatorRunId?: number | null;
+  toolActivity?: InvestigationToolActivity[];
 };
 
 export type InvestigationOrchestrationReport = {
@@ -267,6 +304,13 @@ export type InvestigationOrchestrationReport = {
     | 'failed'
     | 'cancelled'
   >;
+  automaticRetryCount?: number;
+  currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
+  heartbeatAt?: string | null;
+  suggestedHypotheses?: Array<{
+    statement: string;
+    rationale?: string | null;
+  }>;
 };
 
 export type InvestigationOrchestration = {
@@ -274,6 +318,11 @@ export type InvestigationOrchestration = {
     error: InvestigationOrchestrationError | null;
     status: InvestigationOrchestrationWorkStatus;
     summary: string | null;
+    attempt?: number;
+    automaticRetryCount?: number;
+    heartbeatAt?: string | null;
+    runId?: number | string | null;
+    toolActivity?: InvestigationToolActivity[];
   };
   errors: InvestigationOrchestrationError[];
   generation: number;
@@ -292,6 +341,63 @@ export type InvestigationOrchestration = {
     missingFields: Array<'prompt' | 'time_range'>;
     prompt: string;
   } | null;
+  steeringIntents?: Array<{
+    createdAt: string;
+    id: string;
+    instruction: string;
+    requestId: string;
+    target: InvestigationOrchestrationOpenString<
+      'workflow' | 'hypothesis' | 'report' | 'block'
+    >;
+    targetId: string | null;
+  }>;
+};
+
+export type InvestigationOrchestrationCommand =
+  | {
+      type: 'provide_input';
+      prompt?: string;
+      timeRange?: {end: string; start: string};
+    }
+  | {
+      statement: string;
+      type: 'add_hypothesis';
+      rationale?: string | null;
+    }
+  | {
+      disposition: 'accepted' | 'rejected' | null;
+      hypothesisId: string;
+      type: 'set_hypothesis_disposition';
+    }
+  | {
+      instruction: string;
+      target: 'workflow' | 'hypothesis' | 'report' | 'block';
+      type: 'steer';
+      targetId?: string | null;
+    }
+  | {
+      target: 'run' | 'hypothesis' | 'report';
+      type: 'retry';
+      targetId?: string | null;
+    }
+  | {
+      type: 'cancel';
+      reason?: string | null;
+    };
+
+export type InvestigationOrchestrationCommandVariables = {
+  command: InvestigationOrchestrationCommand;
+  expectedWorkflowVersion: number;
+  requestId: string;
+};
+
+export type InvestigationOrchestrationCommandResponse = {
+  accepted: boolean;
+  duplicate: boolean;
+  projection: InvestigationOrchestration;
+  requestId: string;
+  runId: string | null;
+  workflowVersion: number;
 };
 
 export type MetricOpenPeriodInvestigationSource = {
@@ -305,4 +411,8 @@ export type MetricOpenPeriodInvestigationSource = {
 export type InvestigationCandidate =
   | {status: 'investigate'}
   | {status: 'unavailable'}
-  | {investigationId: string; status: 'view'};
+  | {
+      investigationId: string;
+      status: 'view';
+      orchestration?: InvestigationOrchestrationSummary | null;
+    };

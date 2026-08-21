@@ -45,6 +45,10 @@ import {
   useSetInvestigationFavoriteMutation,
 } from 'sentry/views/investigations/api';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {
+  CompactInvestigationOrchestrationStatus,
+  isInvestigationOrchestrationSummaryActive,
+} from 'sentry/views/investigations/orchestrationStatus';
 import type {InvestigationListItem} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -118,8 +122,10 @@ function InvestigationsPage() {
     ...listOptions,
     select: selectJsonWithHeaders,
     refetchInterval: queryState =>
-      queryState.state.data?.json.some(item =>
-        ['pending', 'running'].includes(item.titleGeneration?.status ?? '')
+      queryState.state.data?.json.some(
+        item =>
+          ['pending', 'running'].includes(item.titleGeneration?.status ?? '') ||
+          isInvestigationOrchestrationSummaryActive(item.orchestration)
       )
         ? 2000
         : false,
@@ -242,7 +248,13 @@ function InvestigationsPage() {
       case ColumnKey.CREATED:
         return <TimeSince date={investigation.dateCreated} />;
       case ColumnKey.STATUS:
-        return investigation.status === 'active' ? t('Active') : null;
+        return investigation.orchestration ? (
+          <CompactInvestigationOrchestrationStatus
+            orchestration={investigation.orchestration}
+          />
+        ) : investigation.status === 'active' ? (
+          t('Active')
+        ) : null;
       case ColumnKey.ACTIONS:
         return renderActions(investigation);
       default:

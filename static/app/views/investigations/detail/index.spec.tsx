@@ -48,6 +48,7 @@ const titleGenerationUrl =
   '/organizations/org-slug/investigations/investigation-1/title-generation/';
 const orchestrationUrl =
   '/organizations/org-slug/investigations/investigation-1/orchestration/';
+const orchestrationCommandsUrl = `${orchestrationUrl}commands/`;
 
 const feedbackForm = {
   appendToDom: jest.fn(),
@@ -236,7 +237,9 @@ describe('Investigation detail', () => {
     ).toBe(2000);
     expect(
       getInvestigationOrchestrationPollInterval({
-        orchestration: InvestigationOrchestrationFixture({status: 'completed'}),
+        orchestration: InvestigationOrchestrationFixture({
+          status: 'completed',
+        }),
         error: null,
         failureCount: 0,
       })
@@ -409,6 +412,585 @@ describe('Investigation detail', () => {
     });
 
     await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('hides a stale agentic notebook until the first orchestration revision is reconciled', async () => {
+    let releaseOrchestration!: () => void;
+    const orchestrationDelay = new Promise<void>(resolve => {
+      releaseOrchestration = resolve;
+    });
+    let detailCalls = 0;
+    const staleDetail = InvestigationDetailFixture({
+      mode: 'agentic',
+      orchestration: {
+        heartbeatAt: null,
+        notebookRevision: 0,
+        phase: 'reporting',
+        status: 'processing',
+      },
+      blocks: [
+        {
+          ...InvestigationDetailFixture().blocks[0]!,
+          output: {schemaVersion: 1, markdown: 'Old report text'},
+        },
+      ],
+    });
+    const freshDetail = InvestigationDetailFixture({
+      mode: 'agentic',
+      orchestration: {
+        heartbeatAt: null,
+        notebookRevision: 1,
+        phase: 'completed',
+        status: 'completed',
+      },
+      blocks: [
+        {
+          ...InvestigationDetailFixture().blocks[0]!,
+          output: {schemaVersion: 1, markdown: 'Fresh report text'},
+        },
+      ],
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: () => {
+        detailCalls += 1;
+        return detailCalls === 1 ? staleDetail : freshDetail;
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      asyncDelay: orchestrationDelay,
+      body: InvestigationOrchestrationFixture({
+        notebookRevision: 1,
+        phase: 'completed',
+        status: 'completed',
+      }),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Investigation title'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Old report text')).not.toBeInTheDocument();
+    act(() => releaseOrchestration());
+
+    expect(await screen.findByText('Fresh report text')).toBeInTheDocument();
+    expect(screen.queryByText('Old report text')).not.toBeInTheDocument();
+    expect(detailRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders agent-authored text from persisted content without legacy mutations', async () => {
+    const investigation = InvestigationDetailFixture({
+      mode: 'agentic',
+      orchestration: {
+        heartbeatAt: null,
+        notebookRevision: 1,
+        phase: 'completed',
+        status: 'completed',
+      },
+    });
+    investigation.blocks = [
+      {
+        ...investigation.blocks[0]!,
+        content: 'Persisted report content',
+        generatedContent: 'Agent-authored report content',
+        output: null,
+        outputStatus: 'running',
+        currentExecution: {
+          id: 'synthetic-report-execution',
+          status: 'running',
+          startedAt: '2026-08-20T20:00:00Z',
+          completedAt: null,
+          error: null,
+        },
+        reportProvenance: {
+          orchestrationRunId: 'orchestration-1',
+          reportRevision: 1,
+          producingSeerRunId: 'run-1',
+        },
+        stableAgentKey: null,
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const legacyExecutionRequest = MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/synthetic-report-execution/`,
+      body: {
+        id: 'synthetic-report-execution',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: 'Legacy transcript content',
+        error: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        notebookRevision: 1,
+        phase: 'completed',
+        status: 'completed',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          notebookRevision: 1,
+          revision: 1,
+          status: 'completed',
+        },
+      }),
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Agent-authored report content')).toBeInTheDocument();
+    expect(screen.queryByText('Persisted report content')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Ask Seer about Summary'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Text cell'})).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('investigation-cell-block-1')).queryByRole('button', {
+        name: 'Steer this report block',
+      })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Legacy transcript content')).not.toBeInTheDocument();
+    expect(legacyExecutionRequest).not.toHaveBeenCalled();
+  });
+
+  it('streams the agentic investigation title from orchestration progress', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        mode: 'agentic',
+        title: 'Untitled investigation',
+        orchestration: {
+          heartbeatAt: '2026-08-20T20:00:00Z',
+          notebookRevision: 1,
+          phase: 'metadata',
+          status: 'processing',
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        notebookRevision: 1,
+        phase: 'metadata',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          metadata: {
+            ...InvestigationOrchestrationFixture().report.metadata,
+            status: 'generating',
+            title: 'Checkout Failures After Deploy',
+          },
+        },
+      }),
+    });
+
+    renderView();
+
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
+        'Checkout Failures After Deploy'
+      )
+    );
+  });
+
+  it('shows orchestration-owned progress for an in-flight query snapshot', async () => {
+    const investigation = InvestigationDetailFixture({
+      mode: 'agentic',
+      orchestration: {
+        heartbeatAt: '2026-08-20T20:00:00Z',
+        notebookRevision: 1,
+        phase: 'reporting',
+        status: 'processing',
+      },
+    });
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        display: {queryCollapsed: false, type: 'table'},
+        reportProvenance: {
+          orchestrationRunId: 'orchestration-1',
+          reportRevision: 1,
+          producingSeerRunId: 'run-1',
+        },
+        stableAgentKey: 'latency-evidence',
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        notebookRevision: 1,
+        phase: 'reporting',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          currentBlockKey: 'latency-evidence',
+          currentBlockStatus: 'running',
+          notebookRevision: 1,
+          revision: 1,
+          status: 'composing',
+        },
+      }),
+    });
+
+    renderView();
+
+    const cell = await screen.findByTestId('investigation-cell-block-2');
+    expect(within(cell).getByText('Seer is building this evidence…')).toBeInTheDocument();
+    expect(
+      within(cell).queryByText('This cell has no output yet.')
+    ).not.toBeInTheDocument();
+    expect(
+      within(cell).queryByRole('button', {name: 'Rerun Latency query'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(cell).queryByRole('button', {
+        name: 'Ask Seer about Latency query',
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('optimistically accepts an active hypothesis until Seer reflects the command', async () => {
+    const queryClient = makeTestQueryClient();
+    const hypothesis = {
+      id: 'hypothesis-1',
+      order: 0,
+      statement: 'A release exhausted the database pool',
+      rationale: 'The latency began after a deploy.',
+      status: 'running' as const,
+      effectiveStatus: 'investigating' as const,
+      decisionSource: 'none' as const,
+      confidence: null,
+      verificationSteps: [],
+      evidence: [],
+      error: null,
+    };
+    const orchestration = InvestigationOrchestrationFixture({
+      phase: 'investigating',
+      hypotheses: [hypothesis],
+      broadScan: {
+        status: 'completed',
+        summary: 'A deploy is relevant.',
+        error: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({mode: 'agentic'}),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: orchestration,
+    });
+    const commandRequest = MockApiClient.addMockResponse({
+      url: orchestrationCommandsUrl,
+      method: 'POST',
+      body: {
+        runId: 'run-1',
+        requestId: 'acknowledged-request',
+        accepted: true,
+        duplicate: false,
+        workflowVersion: 2,
+        projection: {...orchestration, workflowVersion: 2},
+      },
+    });
+
+    renderView(organization, queryClient);
+    expect(await screen.findByTestId('investigation-cell-block-1')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', {name: 'Accept'}));
+
+    expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
+    expect(screen.getByText(/Seer has not verified this hypothesis/)).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-cell-block-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
+    expect(screen.getByText('Updating…')).toBeInTheDocument();
+    await waitFor(() => expect(commandRequest).toHaveBeenCalledTimes(1));
+    expect(commandRequest).toHaveBeenCalledWith(
+      orchestrationCommandsUrl,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          expectedWorkflowVersion: 1,
+          requestId: expect.any(String),
+          command: {
+            type: 'set_hypothesis_disposition',
+            hypothesisId: 'hypothesis-1',
+            disposition: 'accepted',
+          },
+        }),
+      })
+    );
+
+    const reflected = {
+      ...orchestration,
+      workflowVersion: 2,
+      hypotheses: [
+        {
+          ...hypothesis,
+          status: 'cancelled' as const,
+          effectiveStatus: 'accepted' as const,
+          decisionSource: 'user' as const,
+        },
+      ],
+    };
+    MockApiClient.addMockResponse({url: orchestrationUrl, body: reflected});
+    const orchestrationOptions = investigationOrchestrationQueryOptions(
+      organization.slug,
+      'investigation-1'
+    );
+    queryClient.setQueryData(orchestrationOptions.queryKey, {
+      headers: {},
+      json: reflected,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Undo decision'})
+    ).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Updating…')).not.toBeInTheDocument());
+  });
+
+  it('rolls back an optimistic decision and shows a stale-version conflict inline', async () => {
+    let releaseRequest!: () => void;
+    const asyncDelay = new Promise<void>(resolve => {
+      releaseRequest = resolve;
+    });
+    const orchestration = InvestigationOrchestrationFixture({
+      phase: 'investigating',
+      hypotheses: [
+        {
+          id: 'hypothesis-1',
+          order: 0,
+          statement: 'A release exhausted the database pool',
+          rationale: 'The latency began after a deploy.',
+          status: 'running',
+          effectiveStatus: 'investigating',
+          decisionSource: 'none',
+          confidence: null,
+          verificationSteps: [],
+          evidence: [],
+          error: null,
+        },
+      ],
+      broadScan: {status: 'completed', summary: null, error: null},
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({mode: 'agentic'}),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: orchestration,
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationCommandsUrl,
+      method: 'POST',
+      statusCode: 409,
+      body: {detail: 'Workflow version does not match.'},
+      asyncDelay,
+    });
+
+    renderView();
+    await userEvent.click(await screen.findByRole('button', {name: 'Reject'}));
+
+    act(() => releaseRequest());
+    expect(
+      await screen.findByText(/The investigation changed before this update was applied/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Rejected by you')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Investigating').length).toBeGreaterThan(0);
+  });
+
+  it('retries a failed command dispatch once with the same request ID', async () => {
+    const queryClient = makeTestQueryClient();
+    const hypothesis = {
+      id: 'hypothesis-1',
+      order: 0,
+      statement: 'A release exhausted the database pool',
+      rationale: 'The latency began after a deploy.',
+      status: 'running' as const,
+      effectiveStatus: 'investigating' as const,
+      decisionSource: 'none' as const,
+      confidence: null,
+      verificationSteps: [],
+      evidence: [],
+      error: null,
+    };
+    const orchestration = InvestigationOrchestrationFixture({
+      phase: 'investigating',
+      hypotheses: [hypothesis],
+      broadScan: {status: 'completed', summary: null, error: null},
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({mode: 'agentic'}),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: orchestration,
+    });
+    const requestIds: string[] = [];
+    const commandRequest = MockApiClient.addMockResponse({
+      url: orchestrationCommandsUrl,
+      method: 'POST',
+      body: (_url: string, options: {data: {requestId: string}}) => {
+        requestIds.push(options.data.requestId);
+        return {
+          runId: 'run-1',
+          requestId: options.data.requestId,
+          accepted: true,
+          duplicate: requestIds.length > 1,
+          workflowVersion: 2,
+          projection: {...orchestration, workflowVersion: 2},
+        };
+      },
+    });
+
+    renderView(organization, queryClient);
+    await userEvent.click(await screen.findByRole('button', {name: 'Accept'}));
+    await waitFor(() => expect(commandRequest).toHaveBeenCalledTimes(1));
+
+    const failedDispatch = {
+      ...orchestration,
+      workflowVersion: 2,
+      errors: [
+        {
+          code: 'seer_command_dispatch_failed',
+          message: 'Seer did not receive the update.',
+          occurredAt: '2026-08-20T20:01:00Z',
+          requestId: requestIds[0],
+          retryable: true,
+        },
+      ],
+    };
+    queryClient.setQueryData(
+      investigationOrchestrationQueryOptions(organization.slug, 'investigation-1')
+        .queryKey,
+      {headers: {}, json: failedDispatch}
+    );
+
+    await waitFor(() => expect(commandRequest).toHaveBeenCalledTimes(2));
+    expect(requestIds).toHaveLength(2);
+    expect(requestIds[1]).toBe(requestIds[0]);
+
+    queryClient.setQueryData(
+      investigationOrchestrationQueryOptions(organization.slug, 'investigation-1')
+        .queryKey,
+      {
+        headers: {},
+        json: {
+          ...orchestration,
+          workflowVersion: 2,
+          hypotheses: [
+            {
+              ...hypothesis,
+              status: 'cancelled' as const,
+              effectiveStatus: 'accepted' as const,
+              decisionSource: 'user' as const,
+            },
+          ],
+        },
+      }
+    );
+  });
+
+  it('steers one report block without refetching or resetting unrelated blocks', async () => {
+    const orchestration = InvestigationOrchestrationFixture({
+      phase: 'completed',
+      status: 'completed',
+      report: {
+        ...InvestigationOrchestrationFixture().report,
+        revision: 1,
+        status: 'completed',
+      },
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        mode: 'agentic',
+        blocks: InvestigationDetailFixture().blocks.map(block =>
+          block.id === 'block-2'
+            ? {
+                ...block,
+                reportProvenance: {
+                  orchestrationRunId: 'orchestration-1',
+                  reportRevision: 1,
+                  producingSeerRunId: 'run-1',
+                },
+                stableAgentKey: `agent-${block.id}`,
+              }
+            : block
+        ),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: orchestration,
+    });
+    const commandRequest = MockApiClient.addMockResponse({
+      url: orchestrationCommandsUrl,
+      method: 'POST',
+      body: {
+        runId: 'run-1',
+        requestId: 'acknowledged-request',
+        accepted: true,
+        duplicate: false,
+        workflowVersion: 2,
+        projection: {...orchestration, workflowVersion: 2},
+      },
+    });
+
+    renderView();
+    const queryCell = await screen.findByTestId('investigation-cell-block-2');
+    await userEvent.click(
+      await within(queryCell).findByRole('button', {
+        name: 'Steer this report block',
+      })
+    );
+    await userEvent.type(
+      within(queryCell).getByRole('textbox', {name: 'Instructions'}),
+      'Move this chart before the summary'
+    );
+    await userEvent.click(
+      within(queryCell).getByRole('button', {name: 'Send instructions'})
+    );
+
+    await waitFor(() => expect(commandRequest).toHaveBeenCalledTimes(1));
+    expect(commandRequest).toHaveBeenCalledWith(
+      orchestrationCommandsUrl,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          command: {
+            type: 'steer',
+            target: 'block',
+            targetId: 'agent-block-2',
+            instruction: 'Move this chart before the summary',
+          },
+        }),
+      })
+    );
+    expect(screen.getByTestId('investigation-cell-block-1')).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-cell-block-2')).toBeInTheDocument();
+    expect(
+      within(queryCell).queryByRole('button', {
+        name: 'Ask Seer about Latency query',
+      })
+    ).not.toBeInTheDocument();
+    expect(
+      within(queryCell).queryByRole('button', {name: 'Rerun Latency query'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Text cell'})).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('investigation-cell-block-1')).queryByRole('button', {
+        name: 'Steer this report block',
+      })
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('investigation-cell-block-1')).queryByRole('button', {
+        name: 'Ask Seer about Summary',
+      })
+    ).not.toBeInTheDocument();
+    expect(detailRequest).toHaveBeenCalledTimes(1);
   });
 
   it('renders completed investigation metadata above the first block', async () => {
@@ -1822,6 +2404,30 @@ describe('Investigation detail', () => {
       })
     ).toBeInTheDocument();
     expect(requestCount).toBeGreaterThan(1);
+  });
+
+  it('rolls back an optimistic title when persistence fails', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'PUT',
+      statusCode: 500,
+    });
+
+    renderView();
+    const titleInput = await screen.findByLabelText('Investigation title');
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, 'Unsaved title');
+
+    await waitFor(() => expect(titleInput).toHaveValue('Investigate database latency'), {
+      timeout: 1500,
+    });
+    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      'Unable to rename investigation.'
+    );
   });
 
   it('duplicates and opens the duplicate from the title menu', async () => {

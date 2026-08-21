@@ -61,6 +61,10 @@ import {
 } from 'sentry/views/investigations/api';
 import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import {
+  CompactInvestigationOrchestrationStatus,
+  isInvestigationOrchestrationSummaryActive,
+} from 'sentry/views/investigations/orchestrationStatus';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -625,6 +629,12 @@ function SeerInvestigationSection({
       select: response => response.json,
       refetchInterval: query => {
         const investigation = query.state.data?.json;
+        if (isInvestigationOrchestrationSummaryActive(investigation?.orchestration)) {
+          return 2000;
+        }
+        if (investigation?.orchestration) {
+          return false;
+        }
         if (
           !investigation ||
           (investigation.summary && investigation.summaryDescription)
@@ -663,7 +673,15 @@ function SeerInvestigationSection({
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
       queryClient.setQueryData(candidateOptions.queryKey, {
-        json: {items: [{status: 'view', investigationId: launchedInvestigation.id}]},
+        json: {
+          items: [
+            {
+              status: 'view',
+              investigationId: launchedInvestigation.id,
+              orchestration: launchedInvestigation.orchestration,
+            },
+          ],
+        },
         headers: {},
       });
       queryClient.setQueryData(
@@ -686,6 +704,9 @@ function SeerInvestigationSection({
           `/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`
         )
       : null;
+  const orchestration =
+    existingInvestigation?.orchestration ??
+    (candidate?.status === 'view' ? candidate.orchestration : null);
 
   return (
     <FoldSection
@@ -722,6 +743,11 @@ function SeerInvestigationSection({
               )}
             </Text>
           )}
+          {orchestration ? (
+            <Flex>
+              <CompactInvestigationOrchestrationStatus orchestration={orchestration} />
+            </Flex>
+          ) : null}
           <Flex>
             {investigationPath ? (
               <LinkButton size="md" variant="primary" to={investigationPath}>

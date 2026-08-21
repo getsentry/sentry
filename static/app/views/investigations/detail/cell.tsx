@@ -35,11 +35,19 @@ import {
   useStopInvestigationExecutionMutation,
   useUpdateInvestigationBlockPromptMutation,
 } from 'sentry/views/investigations/api';
+import {InvestigationBlockSteering} from 'sentry/views/investigations/detail/orchestrationWorkflow';
+import type {
+  OrchestrationCommandState,
+  OrchestrationCommandTarget,
+} from 'sentry/views/investigations/detail/useOrchestrationCommands';
 import type {
   InvestigationBlock,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationExecutionStatus,
+  InvestigationOrchestration,
+  InvestigationOrchestrationCommand,
+  InvestigationOrchestrationWorkStatus,
   InvestigationQueryOutput,
   InvestigationTranscriptBlock,
 } from 'sentry/views/investigations/types';
@@ -53,9 +61,20 @@ type InvestigationCellProps = {
   block: InvestigationBlock;
   canRun: boolean;
   investigation: InvestigationDetail;
+  agenticReport?: {
+    commandState: OrchestrationCommandState;
+    currentBlockKey: string | null;
+    currentBlockStatus: InvestigationOrchestrationWorkStatus | null | undefined;
+    onCommand: (
+      command: InvestigationOrchestrationCommand,
+      target: OrchestrationCommandTarget
+    ) => void;
+    reportStatus: InvestigationOrchestration['report']['status'];
+  };
 };
 
 export function InvestigationCell({
+  agenticReport,
   block,
   canRun,
   investigation,
@@ -73,7 +92,10 @@ export function InvestigationCell({
   const [prompt, setPrompt] = useState(() =>
     block.outputStatus === 'notRun' ? block.generationPrompt : ''
   );
-  const progressState = getCellProgressState(block, investigation.blocks ?? []);
+  const isAgentManaged = Boolean(agenticReport) || isAgentOwnedReportBlock(block);
+  const legacyProgressState = getCellProgressState(block, investigation.blocks ?? []);
+  const progressState =
+    getAgenticBlockProgressState(block, agenticReport) ?? legacyProgressState;
   const waitingForDependencies =
     progressState === 'waiting' ||
     progressState === 'blockedByFailure' ||
@@ -87,6 +109,7 @@ export function InvestigationCell({
       executionId: executionId ?? 'disabled',
     }),
     enabled:
+      !isAgentManaged &&
       block.kind === 'text' &&
       Boolean(executionId) &&
       isExecutionActive(block.currentExecution?.status),
@@ -191,7 +214,7 @@ export function InvestigationCell({
     }
   );
 
-  const cellActions = (
+  const cellActions = isAgentManaged ? null : (
     <CellActions flexShrink={0}>
       <DropdownMenu
         position="bottom-end"
@@ -256,6 +279,13 @@ export function InvestigationCell({
           {panel}
         </Fragment>
       )}
+      {isAgentOwnedReportBlock(block) && agenticReport && block.stableAgentKey ? (
+        <InvestigationBlockSteering
+          stableAgentKey={block.stableAgentKey}
+          commandState={agenticReport.commandState}
+          onCommand={agenticReport.onCommand}
+        />
+      ) : null}
     </Stack>
   );
 }
@@ -271,8 +301,15 @@ function CellResult({
   progressState: CellProgressState;
   streamedMarkdown?: string | null;
 }) {
+  const agenticMarkdown =
+    isAgentOwnedReportBlock(block) && block.outputStatus !== 'restricted'
+      ? block.generatedContent || block.content || null
+      : null;
   const markdown =
-    streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
+    streamedMarkdown ??
+    getTextOutput(block.output) ??
+    agenticMarkdown ??
+    (block.content.trim() || null);
   return (
     <CellHoverSurface
       position="relative"
@@ -389,6 +426,8 @@ type CellProgressState =
   | 'cancelled'
   | 'blockedByFailure'
   | 'blockedByCancellation'
+  | 'agenticRunning'
+  | 'agenticBlocked'
   | null;
 
 function CellExecutionAlert({block}: {block: InvestigationBlock}) {
@@ -414,6 +453,10 @@ function CellProgress({state}: {state: CellProgressState}) {
   let message = t('Cancelled because a previous cell failed.');
   if (state === 'running') {
     message = t('Seer is working on this cell…');
+  } else if (state === 'agenticRunning') {
+    message = t('Seer is building this evidence…');
+  } else if (state === 'agenticBlocked') {
+    message = t('This evidence needs attention before Seer can continue.');
   } else if (state === 'waiting') {
     message = t('Waiting for previous cells…');
   } else if (state === 'failed') {
@@ -423,15 +466,53 @@ function CellProgress({state}: {state: CellProgressState}) {
   } else if (state === 'blockedByCancellation') {
     message = t('Waiting because a previous cell was cancelled.');
   }
+  const blocked =
+    state === 'blockedByFailure' ||
+    state === 'blockedByCancellation' ||
+    state === 'agenticBlocked';
   return (
-    <Flex align="center" gap="xs" data-test-id={`cell-progress-${state}`}>
-      <IconSeer
-        size="xs"
-        animation={['running', 'waiting'].includes(state) ? 'waiting' : undefined}
-      />
+    <Flex
+      align="center"
+      gap="xs"
+      role="status"
+      aria-live="polite"
+      data-test-id={`cell-progress-${state}`}
+    >
+      <IconSeer size="xs" animation={blocked ? undefined : 'waiting'} />
       <Text variant="muted">{message}</Text>
     </Flex>
   );
+}
+
+function getAgenticBlockProgressState(
+  block: InvestigationBlock,
+  agenticReport: InvestigationCellProps['agenticReport']
+): CellProgressState {
+  if (
+    !agenticReport ||
+    !isAgentOwnedReportBlock(block) ||
+    block.stableAgentKey !== agenticReport.currentBlockKey
+  ) {
+    return null;
+  }
+  if (['reauth_required', 'stalled'].includes(agenticReport.currentBlockStatus ?? '')) {
+    return 'agenticBlocked';
+  }
+  if (
+    agenticReport.currentBlockStatus === undefined &&
+    agenticReport.reportStatus === 'composing'
+  ) {
+    return 'agenticRunning';
+  }
+  return ['not_started', 'queued', 'running', 'blocked'].includes(
+    agenticReport.currentBlockStatus ?? ''
+  )
+    ? 'agenticRunning'
+    : null;
+}
+
+function isAgentOwnedReportBlock(block: InvestigationBlock) {
+  return Boolean(block.reportProvenance);
 }
 
 function getCellProgressState(
