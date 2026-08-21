@@ -247,6 +247,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   const blocks = investigation.blocks ?? [];
+  const failedBlock = blocks.find(block => block.currentExecution?.status === 'failed');
+  const hasFailureCancellation = blocks.some(
+    block =>
+      block.currentExecution?.status === 'cancelled' &&
+      block.currentExecution.error?.code === 'investigation_execution_failed'
+  );
+  const investigationExecutionFailed = Boolean(failedBlock || hasFailureCancellation);
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
 
@@ -357,6 +364,22 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
+              {investigationExecutionFailed ? (
+                <InvestigationFailureAlert data-test-id="investigation-execution-failed">
+                  <Alert variant="danger">
+                    <strong>
+                      {failedBlock
+                        ? t('%s failed.', failedBlock.title || t('A cell'))
+                        : t('The investigation failed.')}
+                    </strong>{' '}
+                    {failedBlock?.currentExecution?.error?.message ||
+                      t('The agent run failed.')}{' '}
+                    {t(
+                      'The investigation was stopped and remaining cells were cancelled.'
+                    )}
+                  </Alert>
+                </InvestigationFailureAlert>
+              ) : null}
               <NotebookSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
@@ -532,6 +555,10 @@ const InvestigationCanvas = styled(Stack)`
 `;
 
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const InvestigationFailureAlert = styled(Alert.Container)`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
