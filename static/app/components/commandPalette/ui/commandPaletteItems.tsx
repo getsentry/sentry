@@ -50,7 +50,7 @@ export function renderSectionTitle(action: CMDKFlatItem) {
   );
 }
 
-export function makeMenuItemFromAction(
+function makeMenuItemFromAction(
   action: CMDKFlatItem,
   prefixMap: Map<string, string[]>
 ): CommandPaletteActionMenuItem {

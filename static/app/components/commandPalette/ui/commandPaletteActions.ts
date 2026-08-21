@@ -1,4 +1,4 @@
-import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
+import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdkTypes';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import type {CMDKNavStack} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {t} from 'sentry/locale';

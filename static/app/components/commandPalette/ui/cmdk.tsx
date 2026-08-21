@@ -10,112 +10,20 @@ import {
   CMDKEnclosingActionProvider,
   useCMDKChainedActionScope,
 } from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
-import type {CMDKChainedActionAnchor} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
-import {
-  CommandPaletteSlot,
-  useCommandPaletteSlotName,
-} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import type {CommandPaletteSlotName} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdkCollection';
+import type {
+  CMDKActionData,
+  CMDKActionPanel,
+  CMDKResourceContext,
+  CMDKTextInput,
+  DisplayProps,
+} from 'sentry/components/commandPalette/ui/cmdkTypes';
+import {useCommandPaletteSlotName} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
-import {makeCollection} from './collection';
-import {
-  CommandPaletteStateProvider,
-  useCommandPaletteState,
-} from './commandPaletteStateContext';
+import {useCommandPaletteState} from './commandPaletteStateContext';
 
-export interface CMDKResourceContext {
-  /** 'selected' when the user has drilled into this action, otherwise undefined. */
-  state: 'selected' | undefined;
-}
-
-interface DisplayProps {
-  label: string;
-  details?: string;
-  icon?: React.ReactNode;
-  labelSuffix?: React.ReactNode;
-  trailingItem?: React.ReactNode;
-}
-
-interface CMDKTextInput {
-  /** Accessible label for the palette input while editing. */
-  ariaLabel: string;
-  /** Called with the raw input value when Enter is pressed. */
-  onSubmit: (value: string) => void;
-  /** Content displayed below the input while editing. */
-  footer?: React.ReactNode;
-  /** Value placed in the palette input when the action is opened. */
-  initialValue?: string;
-}
-
-interface CMDKActionPanel {
-  /** Selection context in which this action is available. Hierarchical contexts match descendants. */
-  context: string;
-  label: string;
-  /** Runs a callback without changing the palette's current navigation step. */
-  execution?: 'navigate' | 'preserve-view';
-  order?: number;
-  placement?: 'palette-and-panel' | 'panel-only';
-}
-
-interface CMDKActionDataBase {
-  display: DisplayProps;
-  /** Semantic context represented by this row for the More Actions panel. */
-  actionContext?: string;
-  actionPanel?: CMDKActionPanel;
-  /** Focuses the first child when this action is opened. */
-  autoFocusFirst?: boolean;
-  disabled?: boolean;
-  keywords?: string[];
-  limit?: number;
-  order?: number;
-  slot?: CommandPaletteSlotName;
-  /** Stable key of another action whose children this row opens. */
-  targetAction?: string;
-  textInput?: CMDKTextInput;
-}
-
-interface CMDKActionDataTo extends CMDKActionDataBase {
-  to: LocationDescriptor;
-  onNavigate?: () => void;
-}
-
-interface CMDKActionDataOnAction extends CMDKActionDataBase {
-  onAction: () => void;
-  chainedActionAnchor?: CMDKChainedActionAnchor;
-  isSelected?: boolean;
-  onMultiSelect?: () => void;
-  onReorder?: (direction: 'up' | 'down') => void;
-}
-
-interface CMDKActionDataResource<TData = unknown> extends CMDKActionDataBase {
-  prompt?: string;
-  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
-}
-
-/**
- * Single data shape for all CMDK nodes. A node becomes a group by virtue of
- * having children registered under it — there is no separate group type.
- */
-export type CMDKActionData<TData = unknown> =
-  | CMDKActionDataTo
-  | CMDKActionDataOnAction
-  | CMDKActionDataResource<TData>;
-
-export const CMDKCollection = makeCollection<CMDKActionData<any>>();
-
-/**
- * Root provider for the command palette. Wrap the component tree that
- * contains CMDKAction registrations and the CommandPalette UI.
- */
-export function CommandPaletteProvider({children}: {children: React.ReactNode}) {
-  return (
-    <CommandPaletteStateProvider>
-      <CommandPaletteSlot.Provider>
-        <CMDKCollection.Provider>{children}</CMDKCollection.Provider>
-      </CommandPaletteSlot.Provider>
-    </CommandPaletteStateProvider>
-  );
-}
+export {CMDKCollection, CommandPaletteProvider} from './cmdkCollection';
+export type {CMDKActionData, CMDKResourceContext} from './cmdkTypes';
 
 interface CMDKActionRegistrationProps<TData = unknown> {
   display: DisplayProps;
