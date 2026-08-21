@@ -118,10 +118,11 @@ export type FormatterOptions = Pick<
      */
     limit?: number;
     /**
-     * Extra HTML appended to the series block, e.g. a legend for abbreviated series names.
-     * Called on each tooltip render, so it can render a React tree to a string.
+     * Extra HTML appended to the series block, e.g. a legend for abbreviated series
+     * names. Receives the names of the series in the tooltip. Called on each tooltip
+     * render, so it can render a React tree to a string.
      */
-    renderSeriesDetails?: () => string;
+    renderSeriesDetails?: (seriesNames: string[]) => string;
     /**
      * If true does not display sublabels with a value of 0.
      */
@@ -242,7 +243,9 @@ export function getFormatter({
       }
     }
 
-    const {series, total} = seriesParams.filter(getFilter).reduce(
+    const visibleSeriesParams = seriesParams.filter(getFilter);
+
+    const {series, total} = visibleSeriesParams.reduce(
       (acc, serie) => {
         const formattedLabel = nameFormatter(
           truncationFormatter(serie.seriesName ?? '', truncate),
@@ -302,7 +305,9 @@ export function getFormatter({
       }
     );
 
-    const seriesDetails = renderSeriesDetails?.() ?? '';
+    const seriesDetails =
+      renderSeriesDetails?.(visibleSeriesParams.map(serie => serie.seriesName ?? '')) ??
+      '';
 
     if (subLabels.length > 0) {
       return [

@@ -430,33 +430,38 @@ export function useMetricDetectorChart({
       grid,
       xAxis: openPeriodMarkerResult.incidentMarkerXAxis,
       tooltip: {
-        // The series name is the raw aggregate. Show the summary and the filter it
-        // runs under instead, with the labels explained underneath.
+        // The aggregate series is named after the raw aggregate. Show the summary and
+        // the filter it runs under instead, with the labels explained underneath.
+        // Threshold series share this tooltip and keep their own names.
         nameFormatter: aggregateSummary
-          ? () =>
-              renderToString(
-                <Flex as="span" display="inline-flex" gap="xs" align="baseline">
-                  <Text size="sm">{aggregateSummary.expression}</Text>
-                  {query ? (
-                    <Fragment>
-                      <Text size="sm" bold>
-                        {t('Where')}
-                      </Text>
-                      <Text size="sm">{query}</Text>
-                    </Fragment>
-                  ) : null}
-                </Flex>
-              )
+          ? (name, seriesParams) =>
+              seriesParams?.seriesName === aggregate
+                ? renderToString(
+                    <Flex as="span" display="inline-flex" gap="xs" align="baseline">
+                      <Text size="sm">{aggregateSummary.expression}</Text>
+                      {query ? (
+                        <Fragment>
+                          <Text size="sm" bold>
+                            {t('Where')}
+                          </Text>
+                          <Text size="sm">{query}</Text>
+                        </Fragment>
+                      ) : null}
+                    </Flex>
+                  )
+                : name
           : undefined,
         renderSeriesDetails: aggregateSummary
-          ? () =>
-              renderToString(
-                // The wrapper absorbs `.tooltip-series > div`, which would otherwise
-                // override the table's grid with flex.
-                <Container paddingTop="md">
-                  <AggregateSummaryTable summary={aggregateSummary} />
-                </Container>
-              )
+          ? seriesNames =>
+              seriesNames.includes(aggregate)
+                ? renderToString(
+                    // The wrapper absorbs `.tooltip-series > div`, which would otherwise
+                    // override the table's grid with flex.
+                    <Container paddingTop="md">
+                      <AggregateSummaryTable summary={aggregateSummary} />
+                    </Container>
+                  )
+                : ''
           : undefined,
         // Data points are shifted to bucket-end timestamps
         // so we need to subtract the interval to get the bucket-start time.
