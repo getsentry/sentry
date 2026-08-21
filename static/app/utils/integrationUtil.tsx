@@ -143,7 +143,9 @@ export function isDocIntegration(
  * Bitbucket, Azure DevOps, and their enterprise/server variants).
  */
 export function isScmProvider(provider: IntegrationProvider): boolean {
-  return provider.metadata.features.some(f => f.featureGate.includes('commits'));
+  return (
+    provider?.metadata?.features?.some(f => f.featureGate.includes('commits')) ?? false
+  );
 }
 
 export function isExternalActorMapping(
