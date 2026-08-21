@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -26,6 +27,27 @@ class AuthLoginEndpointTest(APITestCase):
     def test_login_valid_credentials(self) -> None:
         response = self.get_success_response(username=self.user.username, password="admin")
         assert response.data["nextUri"] == "/organizations/new/"
+
+    def test_login_valid_credentials_with_organization(self) -> None:
+        organization = self.create_organization(owner=self.user)
+
+        response = self.get_success_response(username=self.user.username, password="admin")
+
+        assert response.data["nextUri"] == f"/organizations/{organization.slug}/issues/"
+        assert self.client.session["activeorg"] == organization.slug
+
+    def test_login_requires_mfa(self) -> None:
+        TotpInterface().enroll(self.user)
+
+        response = self.get_response(username=self.user.username, password="admin")
+
+        assert response.status_code == 202
+        assert response.data == {
+            "mfaRequired": True,
+            "mfaMethods": [{"id": "totp"}],
+        }
+        assert "_auth_user_id" not in self.client.session
+        assert self.client.session["_pending_2fa"][0] == self.user.id
 
     def test_must_reactivate(self) -> None:
         self.user.update(is_active=False)
