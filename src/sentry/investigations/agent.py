@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import html
+import logging
 import re
 from datetime import datetime
 from enum import StrEnum
@@ -11,6 +12,7 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models import F
 from django.utils import timezone
+from urllib3.exceptions import HTTPError
 
 from sentry.investigations.contracts import validate_query_result, validate_text_result
 from sentry.investigations.models import (
@@ -38,6 +40,8 @@ from sentry.seer.agent.client_utils import AgentUpdateRequest, make_agent_update
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 MAX_TRANSCRIPT_BYTES = 1024 * 1024
 MAX_TOOL_CONTENT_CHARS = 100_000
@@ -70,6 +74,13 @@ SUMMARY_MIN_WORDS = 4
 SUMMARY_WORD_LIMIT = 5
 SUMMARY_DESCRIPTION_MAX_CHARS = 2000
 TITLE_PREVIEW_PATTERN = re.compile(r'"title"\s*:\s*"((?:\\.|[^"\\])*)')
+
+ACTIVE_BLOCK_EXECUTION_STATUSES = (
+    InvestigationBlockExecutionStatus.PENDING,
+    InvestigationBlockExecutionStatus.RUNNING,
+    InvestigationBlockExecutionStatus.AWAITING_INPUT,
+    InvestigationBlockExecutionStatus.STOPPING,
+)
 
 QUERY_INSTRUCTIONS = """You are answering a query block inside a Sentry investigation.
 Use Code Mode only for telemetry analysis. You may call sentry.telemetry_live_search and
@@ -157,7 +168,15 @@ def start_execution_run(
     client.enable_embeds = is_query
     client.enable_streaming = True
     client.max_iterations = 20 if is_query else 5
-    client.start_run(
+    dispatch_won: bool | None = None
+
+    def mark_dispatched(run: Any) -> None:
+        nonlocal dispatch_won
+        dispatch_won = mark_block_execution_dispatched(
+            execution, seer_run_id=run.id, dispatch_claimed_at=dispatch_claimed_at
+        )
+
+    run = client.start_run(
         build_agent_prompt(execution),
         metadata={
             "referrer": "investigation-block",
@@ -166,23 +185,10 @@ def start_execution_run(
             "execution_id": str(execution.id),
         },
         record_in_history=False,
-        on_run_created=lambda run: _mark_dispatched(
-            execution, run.id, dispatch_claimed_at=dispatch_claimed_at
-        ),
+        on_run_created=mark_dispatched,
     )
-
-
-def _mark_dispatched(
-    execution: InvestigationBlockExecution,
-    seer_run_id: int,
-    *,
-    dispatch_claimed_at: datetime | None = None,
-) -> None:
-    mark_block_execution_dispatched(
-        execution,
-        seer_run_id=seer_run_id,
-        dispatch_claimed_at=dispatch_claimed_at,
-    )
+    if dispatch_won is False and run.seer_run_state_id is not None:
+        _interrupt_execution_best_effort(organization, run.seer_run_state_id)
 
 
 def _block_policy_error(
@@ -598,6 +604,83 @@ def _result_from_final_message(state: SeerRunState, *, block_kind: str) -> dict[
     return None
 
 
+def _interrupt_execution_best_effort(organization: Organization, run_id: int) -> None:
+    try:
+        interrupt_run(organization, run_id)
+    except (HTTPError, RuntimeError):
+        logger.exception(
+            "investigations.execution.cancel_after_failure_interrupt_failed",
+            extra={"seer_run_state_id": run_id},
+        )
+
+
+def cancel_investigation_executions_after_failure(
+    failed_execution: InvestigationBlockExecution,
+) -> None:
+    database = router.db_for_write(InvestigationBlockExecution)
+    with transaction.atomic(using=database):
+        investigation = (
+            Investigation.objects.select_for_update()
+            .select_related("organization")
+            .get(id=failed_execution.block.investigation_id)
+        )
+        failed_execution = (
+            InvestigationBlockExecution.objects.select_for_update(of=("self",))
+            .select_related("block")
+            .get(id=failed_execution.id)
+        )
+        if (
+            failed_execution.status != InvestigationBlockExecutionStatus.FAILED
+            or failed_execution.block.current_execution_id != failed_execution.id
+            or failed_execution.block.version != failed_execution.block_version
+        ):
+            return
+
+        active_executions = list(
+            InvestigationBlockExecution.objects.select_for_update(of=("self",))
+            .filter(
+                block__investigation_id=investigation.id,
+                status__in=ACTIVE_BLOCK_EXECUTION_STATUSES,
+            )
+            .exclude(id=failed_execution.id)
+            .select_related("seer_run")
+            .order_by("id")
+        )
+        completed_at = timezone.now()
+        error = {
+            "code": "investigation_execution_failed",
+            "message": "Cancelled because another cell in this investigation failed.",
+        }
+        for execution in active_executions:
+            execution.status = InvestigationBlockExecutionStatus.CANCELLED
+            execution.error = error
+            execution.completed_at = completed_at
+        InvestigationBlockExecution.objects.bulk_update(
+            active_executions, ["status", "error", "completed_at"]
+        )
+
+        for execution in active_executions:
+            if execution.seer_run is None or execution.seer_run.seer_run_state_id is None:
+                continue
+            transaction.on_commit(
+                partial(
+                    _interrupt_execution_best_effort,
+                    investigation.organization,
+                    execution.seer_run.seer_run_state_id,
+                ),
+                using=database,
+            )
+
+
+def _cancel_investigation_executions_after_commit(
+    failed_execution: InvestigationBlockExecution,
+) -> None:
+    transaction.on_commit(
+        partial(cancel_investigation_executions_after_failure, failed_execution),
+        using=router.db_for_write(InvestigationBlockExecution),
+    )
+
+
 def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRunState) -> None:
     # The branches below each guard their own writes against a terminal status, except the
     # off-policy one, which acts on the Seer state alone. Without this a late off-policy run
@@ -628,20 +711,34 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             (str(block["policyError"]) for block in blocks if block.get("policyError")),
             "The agent attempted an unsupported operation.",
         )
-        if execution.seer_run and execution.seer_run.seer_run_state_id:
-            interrupt_run(
-                execution.block.investigation.organization, execution.seer_run.seer_run_state_id
+        database = router.db_for_write(InvestigationBlockExecution)
+        with transaction.atomic(using=database):
+            updated = (
+                InvestigationBlockExecution.objects.filter(id=execution.id)
+                .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
+                .update(
+                    status=InvestigationBlockExecutionStatus.FAILED,
+                    transcript=blocks,
+                    transcript_truncated=transcript_truncated,
+                    error={
+                        "code": "unsupported_tool_use",
+                        "message": policy_error,
+                    },
+                    completed_at=timezone.now(),
+                )
             )
-        execution.update(
-            status=InvestigationBlockExecutionStatus.FAILED,
-            transcript=blocks,
-            transcript_truncated=transcript_truncated,
-            error={
-                "code": "unsupported_tool_use",
-                "message": policy_error,
-            },
-            completed_at=timezone.now(),
-        )
+            if not updated:
+                return
+            _cancel_investigation_executions_after_commit(execution)
+            if execution.seer_run and execution.seer_run.seer_run_state_id:
+                transaction.on_commit(
+                    partial(
+                        _interrupt_execution_best_effort,
+                        execution.block.investigation.organization,
+                        execution.seer_run.seer_run_state_id,
+                    ),
+                    using=database,
+                )
         return
     status = {
         "processing": InvestigationBlockExecutionStatus.RUNNING,
@@ -682,6 +779,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 "message": policy_error if off_policy else "The agent run failed.",
             }
             execution.save()
+            _cancel_investigation_executions_after_commit(execution)
             return
 
         raw_result = _result_from_final_message(state, block_kind=execution.block.kind)
@@ -706,6 +804,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                     "message": "The agent returned malformed or unsupported result JSON.",
                 }
             execution.save()
+            _cancel_investigation_executions_after_commit(execution)
             return
         try:
             if execution.block.kind == InvestigationBlockKind.QUERY:
@@ -742,6 +841,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             execution.status = InvestigationBlockExecutionStatus.FAILED
             execution.error = {"code": "invalid_result", "message": str(error)[:1000]}
             execution.save()
+            _cancel_investigation_executions_after_commit(execution)
             return
 
         execution.result = result

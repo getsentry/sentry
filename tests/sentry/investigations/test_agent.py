@@ -267,6 +267,34 @@ class InvestigationAgentTest(TestCase):
             "2026-08-14T23:56:02+00:00"
         )
 
+    @patch("sentry.investigations.agent.interrupt_run")
+    def test_start_run_interrupts_seer_when_cancellation_wins_dispatch_race(
+        self, interrupt_run: MagicMock
+    ) -> None:
+        pending_execution = self.create_investigation_block_execution(
+            block=self.block,
+            executor="code_mode",
+            status=InvestigationBlockExecutionStatus.PENDING,
+            block_version=self.block.version,
+        )
+        self.block.current_execution = pending_execution
+        self.block.save(update_fields=["current_execution"])
+        pending_execution.update(status=InvestigationBlockExecutionStatus.CANCELLED)
+        client = MagicMock()
+
+        def start_run(*args: Any, **kwargs: Any) -> Any:
+            kwargs["on_run_created"](self.seer_run)
+            return self.seer_run
+
+        client.start_run.side_effect = start_run
+
+        start_execution_run(pending_execution, self.organization, self.user, client)
+
+        pending_execution.refresh_from_db()
+        assert pending_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert pending_execution.seer_run is None
+        interrupt_run.assert_called_once_with(self.organization, 42)
+
     def test_completed_query_accepts_strict_json_final_message(self) -> None:
         run_state = state(
             blocks=[
@@ -328,6 +356,101 @@ class InvestigationAgentTest(TestCase):
             "code": "invalid_result",
             "message": "The agent returned malformed or unsupported result JSON.",
         }
+
+    @patch("sentry.investigations.agent.interrupt_run")
+    def test_failed_execution_cancels_other_active_cells(self, interrupt_run: MagicMock) -> None:
+        sibling_block = self.create_investigation_block(
+            investigation=self.investigation,
+            kind="text",
+            prompt="Explain the spike",
+            position=1,
+        )
+        sibling_run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.EXPLORER,
+            seer_run_state_id=43,
+        )
+        sibling_execution = self.create_investigation_block_execution(
+            block=sibling_block,
+            seer_run=sibling_run,
+            executor="text_generation",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=sibling_block.version,
+        )
+        sibling_block.current_execution = sibling_execution
+        sibling_block.save(update_fields=["current_execution"])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            synchronize_execution(self.execution, state(status="error", blocks=[]))
+
+        self.execution.refresh_from_db()
+        sibling_execution.refresh_from_db()
+        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert sibling_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert sibling_execution.error == {
+            "code": "investigation_execution_failed",
+            "message": "Cancelled because another cell in this investigation failed.",
+        }
+        assert sibling_execution.completed_at is not None
+        interrupt_run.assert_called_once_with(self.organization, 43)
+
+    @patch("sentry.investigations.agent.interrupt_run")
+    def test_superseded_execution_failure_does_not_cancel_current_run(
+        self, interrupt_run: MagicMock
+    ) -> None:
+        current_run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.EXPLORER,
+            seer_run_state_id=43,
+        )
+        current_execution = self.create_investigation_block_execution(
+            block=self.block,
+            seer_run=current_run,
+            executor="code_mode",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=self.block.version,
+        )
+        self.block.current_execution = current_execution
+        self.block.save(update_fields=["current_execution"])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            synchronize_execution(self.execution, state(status="error", blocks=[]))
+
+        self.execution.refresh_from_db()
+        current_execution.refresh_from_db()
+        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        interrupt_run.assert_not_called()
+
+    @patch("sentry.investigations.agent.interrupt_run")
+    def test_old_block_version_failure_does_not_cancel_other_runs(
+        self, interrupt_run: MagicMock
+    ) -> None:
+        sibling_block = self.create_investigation_block(
+            investigation=self.investigation,
+            kind="text",
+            prompt="Explain the spike",
+            position=1,
+        )
+        sibling_execution = self.create_investigation_block_execution(
+            block=sibling_block,
+            executor="text_generation",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=sibling_block.version,
+        )
+        sibling_block.current_execution = sibling_execution
+        sibling_block.save(update_fields=["current_execution"])
+        self.block.version += 1
+        self.block.save(update_fields=["version"])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            synchronize_execution(self.execution, state(status="error", blocks=[]))
+
+        self.execution.refresh_from_db()
+        sibling_execution.refresh_from_db()
+        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert sibling_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        interrupt_run.assert_not_called()
 
     @patch("sentry.investigations.agent.interrupt_run")
     def test_pending_disallowed_import_waits_for_code_mode_lint(
@@ -392,11 +515,44 @@ class InvestigationAgentTest(TestCase):
         assert off_policy is True
         assert blocks[0]["toolResults"][0]["content"].startswith("[Result hidden")
 
-        synchronize_execution(self.execution, run_state)
+        with self.captureOnCommitCallbacks(execute=True):
+            synchronize_execution(self.execution, run_state)
         self.execution.refresh_from_db()
         assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once()
+
+    @patch("sentry.investigations.agent.interrupt_run", side_effect=RuntimeError("unavailable"))
+    def test_unsupported_execute_stays_failed_when_interrupt_fails(
+        self, interrupt_run: MagicMock
+    ) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="unsafe",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args='{"code":"sentry.get_issue(issue_id=1)"}',
+                            )
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            synchronize_execution(self.execution, run_state)
+
+        self.execution.refresh_from_db()
+        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert self.execution.error["code"] == "unsupported_tool_use"
+        interrupt_run.assert_called_once_with(self.organization, 42)
 
     @patch("sentry.investigations.agent.interrupt_run")
     def test_a_terminal_execution_is_never_rewritten(self, interrupt_run: MagicMock) -> None:
