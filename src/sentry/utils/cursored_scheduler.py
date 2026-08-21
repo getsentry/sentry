@@ -15,7 +15,6 @@ persists across invocations. A distributed lock prevents overlapping ticks.
 Usage:
 
     from datetime import timedelta
-from typing import Any
     from sentry.utils.cursored_scheduler import CursoredScheduler
 
     # my_module/tasks.py
