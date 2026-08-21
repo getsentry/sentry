@@ -937,16 +937,10 @@ export function CommandPalette({
         listState={treeState}
         keyDownHandler={() => true}
         overlayIsOpen
-        virtualized
-        virtualizedListPadding={0}
         size="sm"
         aria-label={t('Search results')}
-        disablePadding
-        focusRing
         selectionMode="none"
-        showSectionSeparators={false}
         shouldUseVirtualFocus
-        unstyledSectionTitles
         onMouseEnter={() => {
           mouseLeftResultsRef.current = false;
         }}
@@ -1741,18 +1735,15 @@ function renderActionItem(action: CMDKFlatItem, prefixMap: Map<string, string[]>
 
 function renderSectionTitle(action: CMDKFlatItem) {
   return (
-    <Stack width="100%" minWidth={0}>
-      <Flex align="center" width="100%" minWidth={0}>
-        <Text size="sm" variant="muted" ellipsis>
-          {action.display.label}
-        </Text>
-      </Flex>
+    <Text as="span" size="sm" variant="muted">
+      {action.display.label}
       {action.display.details ? (
-        <Text size="sm" variant="muted">
+        <Text as="span" size="sm" variant="muted">
+          <br />
           {action.display.details}
         </Text>
       ) : null}
-    </Stack>
+    </Text>
   );
 }
 

@@ -21,7 +21,6 @@ export interface ListBoxOptionProps extends AriaOptionProps {
   listState: ListState<any>;
   size: MenuListItemProps['size'];
   'data-index'?: number;
-  focusRing?: boolean;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
 }
@@ -34,7 +33,6 @@ export function ListBoxOption({
   item,
   listState,
   size,
-  focusRing,
   showDetails = true,
   ref: refProp,
   'data-index': dataIndex,
@@ -113,7 +111,6 @@ export function ListBoxOption({
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
       size={size}
-      focusRing={focusRing}
       label={renderedLabel}
       details={showDetails ? details : null}
       disabled={isDisabled}

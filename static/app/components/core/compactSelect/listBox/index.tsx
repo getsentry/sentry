@@ -45,10 +45,6 @@ interface ListBoxProps<T extends ListItemBase>
    */
   listState: ListState<T>;
   children?: CollectionChildren<T>;
-  /** Removes the default vertical padding around the list. */
-  disablePadding?: boolean;
-  /** Draws a focus ring around the focused option. */
-  focusRing?: boolean;
   /**
    * Whether the list is filtered by search query or not.
    * Used to determine whether to show the size limit message or not.
@@ -92,10 +88,6 @@ interface ListBoxProps<T extends ListItemBase>
    */
   showSectionHeaders?: boolean;
   /**
-   * When false, hides separators between sections while keeping their headings.
-   */
-  showSectionSeparators?: boolean;
-  /**
    * Size of the list box and its items.
    */
   size?: FormSize;
@@ -103,10 +95,6 @@ interface ListBoxProps<T extends ListItemBase>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
-  /**
-   * Removes CompactSelect typography from section headings rendered by the caller.
-   */
-  unstyledSectionTitles?: boolean;
 
   /**
    * If true, virtualization will be enabled for the list
@@ -143,14 +131,10 @@ export function ListBox<T extends ListItemBase>({
   label,
   hiddenOptions = EMPTY_SET,
   hasSearch,
-  focusRing = false,
   searchable,
   overlayIsOpen,
   showSectionHeaders = true,
-  showSectionSeparators = true,
   showDetails = true,
-  disablePadding = false,
-  unstyledSectionTitles = false,
   onAction,
   virtualized,
   virtualizedListPadding = listPaddingVertical,
@@ -214,27 +198,17 @@ export function ListBox<T extends ListItemBase>({
     listPadding: virtualizedListPadding,
   });
 
-  const previousFocusedKeyRef = useRef(listState.selectionManager.focusedKey);
-
   useEffect(() => {
-    const focusedKey = listState.selectionManager.focusedKey;
-    const focusedKeyChanged = previousFocusedKeyRef.current !== focusedKey;
-    previousFocusedKeyRef.current = focusedKey;
-
     if (
       !virtualized ||
-      focusedKey === null ||
-      !focusedKeyChanged ||
+      listState.selectionManager.focusedKey === null ||
       getInteractionModality() === 'pointer'
     ) {
       return;
     }
 
     const focusedIndex = listItems.findIndex(
-      item =>
-        item.key === focusedKey ||
-        (item.type === 'section' &&
-          [...item.childNodes].some(child => child.key === focusedKey))
+      item => item.key === listState.selectionManager.focusedKey
     );
     if (focusedIndex !== -1) {
       virtualizer.scrollToIndex(focusedIndex);
@@ -271,7 +245,6 @@ export function ListBox<T extends ListItemBase>({
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
             {...mergedProps}
-            disablePadding={disablePadding}
             style={{
               ...mergedProps.style,
               ...virtualizer.listWrapStyle,
@@ -296,21 +269,18 @@ export function ListBox<T extends ListItemBase>({
                       hiddenOptions={hiddenOptions}
                       size={size}
                       showSectionHeaders={showSectionHeaders}
-                      showSectionSeparators={showSectionSeparators}
                       showDetails={showDetails}
-                      unstyledSectionTitles={unstyledSectionTitles}
                     />
                   );
                 }
 
                 return (
                   <ListBoxOption
-                    {...virtualizer.itemProps(row.index)}
                     key={item.key}
+                    {...virtualizer.itemProps(row.index)}
                     item={item}
                     listState={listState}
                     size={size}
-                    focusRing={focusRing}
                     showDetails={showDetails}
                   />
                 );
@@ -360,12 +330,6 @@ function useVirtualizedItems<T extends ListItemBase>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
-      if (item?.type === 'section') {
-        // Sections render their heading and all child options inside one virtual row.
-        // Estimating only a single option collapses the scroll range until the row is
-        // measured, which makes long command-palette sections jump or fail to scroll.
-        return heightEstimation.regular * (1 + [...item.childNodes].length);
-      }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (item?.props?.details) {
         return heightEstimation.large;
