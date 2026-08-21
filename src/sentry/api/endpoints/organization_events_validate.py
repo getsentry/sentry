@@ -65,6 +65,8 @@ def serialize_type(search_type: constants.SearchType) -> str:
         return "string"
     if proto_type == constants.BOOLEAN:
         return "boolean"
+    if proto_type == constants.ARRAY:
+        return "array"
     # DOUBLE, INT, or anything else numeric
     return "number"
 
