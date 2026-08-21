@@ -346,31 +346,15 @@ def process_detectors[T](
         )
 
         for result in detector_results.values():
-            logger_extra = {
-                "detector": detector.id,
-                "detector_type": detector.type,
-                "evaluation_data": data_packet.packet,
-                "result": result,
-            }
             if result.result is not None:
-                if isinstance(result.result, IssueOccurrence):
-                    metrics.incr(
-                        "workflow_engine.process_detector.triggered",
-                        tags={"detector_type": detector.type},
-                    )
-                    logger.info(
-                        "detector_triggered",
-                        extra=logger_extra,
-                    )
-                else:
-                    metrics.incr(
-                        "workflow_engine.process_detector.resolved",
-                        tags={"detector_type": detector.type},
-                    )
-                    logger.info(
-                        "detector_resolved",
-                        extra=logger_extra,
-                    )
+                metric_label = (
+                    "triggered" if isinstance(result.result, IssueOccurrence) else "resolved"
+                )
+                metrics.incr(
+                    f"workflow_engine.process_detector.{metric_label}",
+                    tags={"detector_type": detector.type},
+                )
+
                 create_issue_platform_payload(result, detector.type)
 
         if detector_results:
