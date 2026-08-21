@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 import click
 from django.db import connections, router
+from django.db.models import Max, Min
 from django.db.models.fields import Field
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
@@ -104,6 +105,67 @@ def task_run_batch_query(
         state = None
 
     return state, events
+
+
+def iter_id_ranges(
+    queryset: QuerySet[Any],
+    range_size: int,
+    *,
+    start_after: int | None = None,
+    max_ranges: int | None = None,
+    id_field: str = "id",
+) -> Iterator[tuple[int, int]]:
+    """
+    Yield inclusive ``(first_id, last_id)`` ranges of up to ``range_size`` rows
+    matching the queryset filters, ascending by ``id_field``.
+
+    Uses keyset pagination (``id > cursor ORDER BY id LIMIT range_size``) and one
+    query per range that returns only bounds (MIN/MAX over a sliced id subquery).
+    Does not use OFFSET from 0 and does not materialize all ids.
+
+    Child-task contract:
+    Children re-query with the same filters plus ``id__gte=first_id``,
+    ``id__lte=last_id``, iterate in id order, and on timeout re-enqueue
+    ``(next_unprocessed_id, last_id)`` (same end).
+    """
+    if range_size < 1:
+        raise ValueError("range_size must be >= 1")
+
+    if queryset.query.low_mark != 0 or queryset.query.high_mark is not None:
+        raise InvalidQuerySetError("Cannot use a pre-sliced queryset")
+
+    id_col = queryset.model._meta.get_field(id_field)
+    if not isinstance(id_col, Field) or not id_col.unique:
+        raise InvalidQuerySetError(
+            f"id_field must be unique to produce stable ranges. Got {id_field!r}."
+        )
+
+    base = queryset.order_by()
+    cursor = start_after
+    ranges_yielded = 0
+
+    while True:
+        if max_ranges is not None and ranges_yielded >= max_ranges:
+            break
+
+        page = base.order_by(id_field)
+        if cursor is not None:
+            page = page.filter(**{f"{id_field}__gt": cursor})
+        page_ids = page.values(id_field)[:range_size]
+
+        bounds = (
+            queryset.model.objects.using(queryset.db)
+            .filter(**{f"{id_field}__in": page_ids})
+            .aggregate(first_id=Min(id_field), last_id=Max(id_field))
+        )
+        first_id = bounds["first_id"]
+        last_id = bounds["last_id"]
+        if first_id is None or last_id is None:
+            break
+
+        yield (first_id, last_id)
+        cursor = last_id
+        ranges_yielded += 1
 
 
 class RangeQuerySetWrapper[V]:
