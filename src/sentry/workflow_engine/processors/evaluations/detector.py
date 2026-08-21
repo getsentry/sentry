@@ -93,11 +93,6 @@ class ProcessDetectorsResult:
             "detector_type": self.detector_type,
             "project_id": self.project_id,
             "outcome": self.outcome,
-        }
-
-    def to_artifact(self) -> dict[str, object]:
-        return {
-            **self.artifact_data,
             "error": self.evaluation_error.msg if self.evaluation_error else None,
         }
 
