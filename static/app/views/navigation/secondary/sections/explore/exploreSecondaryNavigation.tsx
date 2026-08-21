@@ -99,6 +99,15 @@ export function ExploreSecondaryNavigation() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/usersessions/`}
+                analyticsItemName="explore_sessions"
+                trailingItems={<FeatureBadge type="alpha" />}
+              >
+                {t('Sessions')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
             <Feature
               features="profiling"
               overrideName="feature-disabled:profiling-sidebar-item"

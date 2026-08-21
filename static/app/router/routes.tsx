@@ -2303,6 +2303,21 @@ function buildRoutes(): RouteObject[] {
       children: errorsChildren,
     },
     {
+      path: 'usersessions/',
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/explore/usersessions')),
+        },
+        {
+          path: ':sessionId/',
+          component: make(
+            () => import('sentry/views/explore/usersessions/sessionDetail')
+          ),
+        },
+      ],
+    },
+    {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
