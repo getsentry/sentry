@@ -2,7 +2,6 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -21,7 +20,11 @@ import {captureProjectCreationFailure} from 'sentry/components/onboarding/captur
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
+import {
+  PlatformPicker,
+  type Platform,
+  toOnboardingSelectedSdk,
+} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
@@ -477,14 +480,14 @@ export function CreateProject() {
 
       setFormData(prev => ({
         ...prev,
-        platform: {...omit(value, 'id'), key: value.id},
+        platform: toOnboardingSelectedSdk(value),
         projectName: hasUserModifiedProjectName.current ? prev.projectName : value.id,
       }));
     },
     [updateFormData, organization]
   );
 
-  const platform = formData.platform?.key;
+  const platform = formData.platform?.platformId ?? formData.platform?.key;
   const defaultCategory = platform
     ? categoryList.find(({platforms}) => platforms.has(platform))?.id
     : 'popular';
@@ -567,7 +570,9 @@ export function CreateProject() {
               <FormLabel>{t('Project slug')}</FormLabel>
               <ProjectNameInputWrap>
                 <StyledPlatformIcon
-                  platform={formData.platform?.key ?? 'other'}
+                  platform={
+                    formData.platform?.platformId ?? formData.platform?.key ?? 'other'
+                  }
                   size={20}
                 />
                 <ProjectNameInput

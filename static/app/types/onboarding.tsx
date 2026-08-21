@@ -116,6 +116,8 @@ export interface OnboardingSelectedSDK extends Pick<
 > {
   category: Category;
   key: PlatformKey;
+  /** The picker entry selected by the user when it differs from the SDK key. */
+  platformId?: PlatformKey;
 }
 
 export type OnboardingRecentCreatedProject = {

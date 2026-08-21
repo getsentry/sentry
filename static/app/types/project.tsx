@@ -227,4 +227,6 @@ export type PlatformIntegration = {
   iconConfig?: {
     withLanguageIcon: boolean;
   };
+  /** The existing SDK/project platform used when this entry is a selectable alias. */
+  sdkKey?: PlatformKey;
 };
