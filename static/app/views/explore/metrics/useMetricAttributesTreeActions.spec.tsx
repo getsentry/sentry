@@ -102,13 +102,15 @@ describe('useMetricAttributesTreeActions', () => {
 
     actions.find(action => action.key === 'search-for-greater-than')?.onAction?.();
     expect(mockSetQueryParams).toHaveBeenCalledWith(
-      expect.objectContaining({query: 'value:>42'})
+      expect.objectContaining({query: 'value:>42'}),
+      undefined
     );
 
     mockSetQueryParams.mockClear();
     actions.find(action => action.key === 'search-for-less-than')?.onAction?.();
     expect(mockSetQueryParams).toHaveBeenCalledWith(
-      expect.objectContaining({query: 'value:<42'})
+      expect.objectContaining({query: 'value:<42'}),
+      undefined
     );
   });
 
