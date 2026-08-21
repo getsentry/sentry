@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from snuba_sdk import (
@@ -37,6 +38,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import naiveify_datetime
 
 
 class DiscoverQueryBuilder(BaseQueryBuilder):
@@ -421,6 +423,15 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
+                    # Convert offset timestamps to the naive UTC form expected by Snuba.
+                    normalized_values: list[Any] = []
+                    for value in values_list:
+                        if isinstance(value, str):
+                            value = datetime.fromisoformat(value)
+                        if isinstance(value, datetime):
+                            value = naiveify_datetime(value)
+                        normalized_values.append(value)
+                    values_list = normalized_values
                     if not other:
                         # timestamp fields needs special handling, creating a big OR instead
                         function, operator = Or, Op.EQ
