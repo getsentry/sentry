@@ -11,6 +11,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {PartnershipAgreementProps} from 'sentry/types/overrides';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 export default function PartnershipAgreement({
   partnerDisplayName,
@@ -26,8 +27,13 @@ export default function PartnershipAgreement({
         data,
       }),
     onSuccess: onSubmitSuccess,
-    onError: () => {
-      addErrorMessage(t('Unable to accept the partnership agreement.'));
+    onError: error => {
+      addErrorMessage(
+        getRequestErrorUserMessage(
+          error,
+          t('Unable to accept the partnership agreement.')
+        )
+      );
     },
   });
   const form = useScrapsForm({
