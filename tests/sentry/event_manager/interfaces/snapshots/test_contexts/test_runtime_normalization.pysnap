@@ -16,7 +16,7 @@ to_json:
     type: runtime
     version: 4.7.2
   trace:
-    span_id: 8a8fed0687974825
+    span_id: d718bb6c40be4ac9
     status: unknown
-    trace_id: 8a8fed0687974825b6bb42f03352c9b2
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
     type: trace

@@ -15,7 +15,7 @@ to_json:
     type: device
     version: 1.2.3
   trace:
-    span_id: 29947e76db914adb
+    span_id: d718bb6c40be4ac9
     status: unknown
-    trace_id: 29947e76db914adb85b96317cc58211e
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
     type: trace

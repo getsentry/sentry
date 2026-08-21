@@ -14,7 +14,7 @@ to_json:
     vendor_name: Apple
     version: Metal
   trace:
-    span_id: 09ee6b3068de460d
+    span_id: d718bb6c40be4ac9
     status: unknown
-    trace_id: 09ee6b3068de460da9bab52452ab01b9
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
     type: trace

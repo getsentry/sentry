@@ -17,7 +17,7 @@ to_json:
     type: os
     version: '95'
   trace:
-    span_id: e6a7e3b1db064de2
+    span_id: d718bb6c40be4ac9
     status: unknown
-    trace_id: e6a7e3b1db064de2b93b6886b8337124
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
     type: trace

@@ -14,7 +14,7 @@ to_json:
     type: browser
     version: 132.0.6834.0
   trace:
-    span_id: d913f39ae7b24a97
+    span_id: d718bb6c40be4ac9
     status: unknown
-    trace_id: d913f39ae7b24a978082b0f64951c18b
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
     type: trace

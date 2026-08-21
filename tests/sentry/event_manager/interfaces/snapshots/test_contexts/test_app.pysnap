@@ -11,7 +11,7 @@ to_json:
     device_app_hash: '5678'
     type: app
   trace:
-    span_id: 0e96d09d6c1f43e1
+    span_id: d718bb6c40be4ac9
     status: unknown
-    trace_id: 0e96d09d6c1f43e194a51a8415bf2fa1
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
     type: trace

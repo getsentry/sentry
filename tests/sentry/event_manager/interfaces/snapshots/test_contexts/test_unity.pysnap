@@ -9,9 +9,9 @@ tags:
   - 'yes'
 to_json:
   trace:
-    span_id: 07caa4bd32d941ca
+    span_id: d718bb6c40be4ac9
     status: unknown
-    trace_id: 07caa4bd32d941caba9be06cfe60e0ed
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
     type: trace
   unity:
     active_scene_name: MainScene
