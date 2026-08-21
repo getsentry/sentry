@@ -24,6 +24,7 @@ from sentry.issues.action_log.types import (
     GroupActionType,
     PullRequestClosedAction,
     PullRequestMergedAction,
+    PullRequestOrigin,
     PullRequestReopenedAction,
 )
 from sentry.issues.derived.processing import invalidate_group_derived_data
@@ -35,6 +36,7 @@ from sentry.models.pullrequest import (
     PullRequestLifecycleState,
     is_open_pull_request_state,
 )
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import activity_to_action
 
@@ -256,19 +258,34 @@ def _latest_pr_lifecycle_actions(
     return latest_actions
 
 
-def _heal_has_other_open_prs(
+def _heal_pr_lifecycle_data(
     *,
     entry: GroupActionLogEntry,
     has_other_open_prs: bool,
-) -> bool:
-    """Heal the has_other_open_prs field on any action where it is present but null."""
-    if "has_other_open_prs" not in entry.data or entry.data["has_other_open_prs"] is not None:
-        return False
+    pull_request_origin: PullRequestOrigin,
+) -> None:
+    """Reconcile lifecycle fields on previously logged actions."""
+    updated_data = dict(entry.data)
 
-    entry.data = {**entry.data, "has_other_open_prs": has_other_open_prs}
+    if "has_other_open_prs" in updated_data and updated_data["has_other_open_prs"] is None:
+        updated_data["has_other_open_prs"] = has_other_open_prs
+
+    if entry.type == GroupActionType.PULL_REQUEST_CLOSED:
+        recorded_origin = updated_data.get("pull_request_origin")
+        # Attribution can arrive after the close event. Upgrade a prior value,
+        # but never downgrade an automated origin if its Seer link disappears.
+        if recorded_origin is None or (
+            pull_request_origin == PullRequestOrigin.AUTOMATED_FIX
+            and recorded_origin != PullRequestOrigin.AUTOMATED_FIX.value
+        ):
+            updated_data["pull_request_origin"] = pull_request_origin.value
+
+    if updated_data == entry.data:
+        return
+
+    entry.data = updated_data
     entry.save(update_fields=["data", "date_updated"])
     invalidate_group_derived_data(entry.group_id, cursor=(entry.date_added, entry.id))
-    return True
 
 
 def _get_new_pr_lifecycle_action(
@@ -276,6 +293,7 @@ def _get_new_pr_lifecycle_action(
     pull_request: _PullRequestLifecycleDetails,
     latest_action_type: int | None,
     has_other_open_prs: bool,
+    pull_request_origin: PullRequestOrigin,
     group_id: int,
     project_id: int,
 ) -> (
@@ -324,6 +342,7 @@ def _get_new_pr_lifecycle_action(
                 PullRequestClosedAction(
                     pull_request=pull_request.id,
                     has_other_open_prs=has_other_open_prs,
+                    pull_request_origin=pull_request_origin,
                 ),
                 pull_request.closed_at,
             )
@@ -392,6 +411,17 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
         for pull_request in pull_requests
         if is_open_pull_request_state(pull_request.state)
     }
+    closed_pull_request_ids = {
+        pull_request.id
+        for pull_request in pull_requests
+        if pull_request.state
+        in (PullRequestLifecycleState.CLOSED, PullRequestLifecycleState.SUPERSEDED)
+    }
+    automated_fix_pull_request_ids = set(
+        SeerRunPullRequest.objects.filter(pull_request_id__in=closed_pull_request_ids).values_list(
+            "pull_request_id", flat=True
+        )
+    )
 
     latest_actions = _latest_pr_lifecycle_actions(group_id=group_id, project_id=project_id)
 
@@ -399,18 +429,25 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
     for pull_request in pull_requests:
         latest_action = latest_actions.get(pull_request.id)
         has_other_open_prs = bool(open_pull_request_ids - {pull_request.id})
+        pull_request_origin = (
+            PullRequestOrigin.AUTOMATED_FIX
+            if pull_request.id in automated_fix_pull_request_ids
+            else PullRequestOrigin.OTHER
+        )
         action_and_date = _get_new_pr_lifecycle_action(
             pull_request=pull_request,
             latest_action_type=latest_action.type if latest_action is not None else None,
             has_other_open_prs=has_other_open_prs,
+            pull_request_origin=pull_request_origin,
             group_id=group_id,
             project_id=project_id,
         )
         if action_and_date is None:
             if latest_action is not None:
-                _heal_has_other_open_prs(
+                _heal_pr_lifecycle_data(
                     entry=latest_action,
                     has_other_open_prs=has_other_open_prs,
+                    pull_request_origin=pull_request_origin,
                 )
             continue
         action, date_added = action_and_date
