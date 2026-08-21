@@ -47,7 +47,13 @@ export function SsoForm({authConfig}: Props) {
     ...defaultFormOptions,
     defaultValues: {organization: ''},
     validators: {onDynamic: schema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: async ({value}) => {
+      try {
+        await mutation.mutateAsync(value);
+      } catch {
+        // The mutation's onError callback displays the error.
+      }
+    },
   });
 
   return (
