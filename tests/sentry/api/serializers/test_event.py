@@ -204,10 +204,10 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         )
 
         result = serialize(event)
-        # Expect 3 custom tags + derived "level". The ``None``` entry is removed
+        # Expect 3 custom tags + derived "level" + derived "interface_type". The ``None``` entry is removed
         # by the serializer as it cannot be rendered. Such entries are generated
         # by Relay normalization.
-        assert len(result["tags"]) == 4
+        assert len(result["tags"]) == 5
         assert result["tags"][0]["value"] == "bar"
         assert result["tags"][1]["value"] == "foo"
         assert result["_meta"]["tags"]["0"]["key"] == {"": {"err": ["bar error"]}}
