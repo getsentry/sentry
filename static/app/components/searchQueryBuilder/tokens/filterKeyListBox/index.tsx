@@ -14,7 +14,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
-import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
+import {AskSeerSetupLoading} from 'sentry/components/searchQueryBuilder/askSeer/askSeerSetupLoading';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -251,7 +251,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <Fragment>
-      {enableAISearch ? <AskSeer /> : null}
+      {enableAISearch ? <AskSeerSetupLoading /> : null}
       {showRecentFilters ? (
         <RecentFiltersPane
           // PanelBody applies legacy textStyles to plain ul elements; opt this layout row out.

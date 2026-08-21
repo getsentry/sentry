@@ -10,7 +10,8 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-export function AskSeer() {
+
+export function AskSeerSetupLoading() {
   const organization = useOrganization();
 
   const isMutating = useIsMutating({
