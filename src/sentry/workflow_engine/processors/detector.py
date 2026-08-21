@@ -10,6 +10,8 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -21,8 +23,10 @@ from sentry.workflow_engine.defaults.detectors import (
 )
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.processors import DetectorEvaluation
+from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
+from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
 from sentry.workflow_engine.types import (
+    ConditionError,
     DetectorGroupKey,
     DetectorId,
     WorkflowEventData,
@@ -33,6 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 _DETECTOR_SENTINEL = object()
+
+
+class DetectorProcessingException(Exception):
+    pass
 
 
 def _get_all_projects_detector_cache_key(organization_id: int) -> str:
@@ -271,6 +279,23 @@ def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str
     )
 
 
+def _get_detector_organization(detector: Detector) -> Organization:
+    if detector.project_id is not None:
+        try:
+            return detector.linked_project.organization
+        except Project.DoesNotExist as error:
+            raise DetectorProcessingException("Detector project does not exist") from error
+
+    organization_id = detector.config.get("organization_id")
+    if not isinstance(organization_id, int):
+        raise DetectorProcessingException("Organization-scoped detector is missing organization_id")
+
+    try:
+        return Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist as error:
+        raise DetectorProcessingException("Detector organization does not exist") from error
+
+
 @trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
@@ -288,37 +313,48 @@ def process_detectors[T](
             tags={"detector_type": detector.type},
         )
 
+        try:
+            organization = _get_detector_organization(detector)
+        except DetectorProcessingException as error:
+            emit_detector_evaluation_logs(
+                logger,
+                organization=None,
+                result=ProcessDetectorsResult(
+                    detector_id=detector.id,
+                    detector_type=detector.type,
+                    project_id=detector.project_id,
+                    evaluations={},
+                    error=ConditionError(msg=str(error)),
+                ),
+            )
+            continue
+
         with metrics.timer(
             "workflow_engine.process_detectors.evaluate", tags={"detector_type": detector.type}
         ):
             detector_results = handler.evaluate(data_packet)
 
+        emit_detector_evaluation_logs(
+            logger,
+            organization=organization,
+            result=ProcessDetectorsResult(
+                detector_id=detector.id,
+                detector_type=detector.type,
+                project_id=detector.project_id,
+                evaluations=detector_results,
+            ),
+        )
+
         for result in detector_results.values():
-            logger_extra = {
-                "detector": detector.id,
-                "detector_type": detector.type,
-                "evaluation_data": data_packet.packet,
-                "result": result,
-            }
             if result.result is not None:
-                if isinstance(result.result, IssueOccurrence):
-                    metrics.incr(
-                        "workflow_engine.process_detector.triggered",
-                        tags={"detector_type": detector.type},
-                    )
-                    logger.info(
-                        "detector_triggered",
-                        extra=logger_extra,
-                    )
-                else:
-                    metrics.incr(
-                        "workflow_engine.process_detector.resolved",
-                        tags={"detector_type": detector.type},
-                    )
-                    logger.info(
-                        "detector_resolved",
-                        extra=logger_extra,
-                    )
+                metric_label = (
+                    "triggered" if isinstance(result.result, IssueOccurrence) else "resolved"
+                )
+                metrics.incr(
+                    f"workflow_engine.process_detector.{metric_label}",
+                    tags={"detector_type": detector.type},
+                )
+
                 create_issue_platform_payload(result, detector.type)
 
         if detector_results:
