@@ -58,6 +58,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {TraceItemFilterActions} from 'sentry/views/explore/components/traceItemFilterActions';
 import {
   addSearchFilterToQuery,
   getSearchFilterDescriptor,
@@ -65,9 +66,8 @@ import {
   removeSearchFilterFromQuery,
   replaceSearchFilterInQuery,
   type SearchFilter,
-  TraceItemFilterActions,
-  TraceItemFilterRows,
-} from 'sentry/views/explore/components/traceItemFilterActions';
+} from 'sentry/views/explore/components/traceItemFilterQuery';
+import {TraceItemFilterRows} from 'sentry/views/explore/components/traceItemFilterRows';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
