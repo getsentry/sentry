@@ -85,6 +85,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         prompt = generate_autofix_handoff_prompt(state)
 
         assert "Please fix the following issue" in prompt
+        assert "briefly explains the root cause and the solution" in prompt
         assert "Root Cause" not in prompt
         assert "Solution" not in prompt
 

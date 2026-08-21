@@ -732,6 +732,12 @@ def generate_autofix_handoff_prompt(
         else:
             parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
+    parts.append(
+        "When you open a pull request, write a description that briefly explains the root cause "
+        "and the solution at a high level, so a reviewer can understand the change without "
+        "reading the diff. Keep it to a few sentences."
+    )
+
     if instruction and instruction.strip():
         parts.append(instruction.strip())
 
