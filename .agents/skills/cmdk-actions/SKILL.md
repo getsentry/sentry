@@ -103,6 +103,9 @@ Major resource rules:
 
 - The first query after drill-in is empty; the endpoint must support it.
 - Normally defer with `enabled: context.state === 'selected'`.
+- A resource remains `state === 'selected'` while it is an ancestor of the
+  current navigation step. It must receive the query entered at its own
+  navigation level, not the query stored on the resource's own stack frame.
 - Pass the live `query` to server search and return `CommandPaletteAction[]`
   from `select`.
 - Set an intentional `staleTime` and `limit`. The default limit of 4 applies
@@ -125,7 +128,8 @@ Major resource rules:
 - Use `TextInput` for raw text editing; provide `ariaLabel`, `initialValue` when
   applicable, and `onSubmit`.
 - Use `Target` to open an expensive picker registered once under a stable `id`.
-  The target must be mounted and IDs must be unique.
+  The target must be mounted and IDs must be unique. Derive IDs from persistent
+  entity or row identity, never from an array index.
 
 For the Ctrl+Shift+Enter More Actions panel:
 
