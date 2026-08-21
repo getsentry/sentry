@@ -10,7 +10,7 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 type Params = DocsParams;
 
-const getInstallSnippet = (params: Params, defaultVersion = '0.42.0') => {
+const getInstallSnippet = (params: Params, defaultVersion = '0.49.1') => {
   const version = getPackageVersion(params, 'sentry.rust', defaultVersion);
   return params.isLogsSelected
     ? `
@@ -38,7 +38,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'code',
           language: 'rust',
-          code: getInstallSnippet(params, '0.42.0'),
+          code: getInstallSnippet(params, '0.49.1'),
         },
       ],
     },
@@ -59,14 +59,12 @@ export const logs: OnboardingConfig = {
         {
           type: 'code',
           language: 'rust',
-          code: `let _guard = sentry::init((
-    "${params.dsn.public}",
-    sentry::ClientOptions {
-        release: sentry::release_name!(),
-        enable_logs: true,
-        ..Default::default()
-    }
-));`,
+          code: `let _guard = sentry::init(
+    sentry::ClientOptions::new()
+        .dsn("${params.dsn.public}")
+        .maybe_release(sentry::release_name!())
+        .enable_logs(true),
+);`,
         },
         {
           type: 'text',
