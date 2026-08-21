@@ -307,6 +307,10 @@ class PullRequest(Model):
     repository_id = BoundedPositiveIntegerField()
 
     key = models.CharField(max_length=64)  # example, 5131 on github
+    # Provider-global PR id (GitHub ``pull_request.id``). Distinct from ``key``,
+    # which is the repo-scoped number. Nullable: only set when an SCM webhook
+    # (or a later write-back) actually saw the id.
+    external_id = BoundedBigIntegerField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
