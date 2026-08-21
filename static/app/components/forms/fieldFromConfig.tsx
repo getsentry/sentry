@@ -26,11 +26,8 @@ interface FieldFromConfigProps {
 
   disabled?: boolean | ((props: any) => boolean);
   flexibleControlStateSize?: boolean;
-  getData?: (data: any) => any;
   highlighted?: boolean;
   inline?: boolean;
-  noOptionsMessage?: () => string;
-  onBlur?: (value: any, event: any) => void;
   stacked?: boolean;
 }
 

@@ -8,7 +8,6 @@ interface RadioProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   'type' | 'size'
 > {
-  nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
   ref?: React.Ref<HTMLInputElement>;
   size?: 'xs' | 'sm' | 'md';
 }
@@ -80,14 +79,11 @@ export const Radio = styled(
     ref,
 
     // Do not forward `size` since it's used for custom styling, not as the
-    // native `size` attribute (for that, use `nativeSize` instead)
+    // native `size` attribute
     size: _size,
 
-    // Use `nativeSize` as the native `size` attribute
-    nativeSize,
-
     ...props
-  }: RadioProps) => <input type="radio" {...props} ref={ref} size={nativeSize} />,
+  }: RadioProps) => <input type="radio" {...props} ref={ref} />,
   {
     shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
   }

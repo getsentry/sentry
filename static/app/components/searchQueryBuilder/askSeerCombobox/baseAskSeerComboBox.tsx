@@ -1,6 +1,5 @@
 import {useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
@@ -77,10 +76,7 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
-export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
-  AriaComboBoxProps<unknown>,
-  'children'
-> {
+export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T) => void;
   emptyTitle: string;
   errorTitle: string;
@@ -500,8 +496,8 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                         'How can we make Seer search better for you?'
                       ),
                       tags: {
-                        ['feedback.source']: `ai_query.${analyticsArea}`,
-                        ['feedback.owner']: 'ml-ai',
+                        'feedback.source': `ai_query.${analyticsArea}`,
+                        'feedback.owner': 'ml-ai',
                       },
                     })
                   }

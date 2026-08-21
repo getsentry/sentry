@@ -16,7 +16,6 @@ type Props = {
   title: React.ReactNode;
   generateSortLink?: () => LocationDescriptorObject | undefined;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-  preventScrollReset?: boolean;
   replace?: boolean;
 };
 
@@ -28,7 +27,6 @@ export function SortLink({
   onClick,
   direction,
   replace,
-  preventScrollReset,
 }: Props) {
   const target = generateSortLink?.();
   const navigate = useNavigate();
@@ -44,18 +42,13 @@ export function SortLink({
   const handleOnClick: React.MouseEventHandler<HTMLAnchorElement> = e => {
     if (replace) {
       e.preventDefault();
-      navigate(target, {replace: true, preventScrollReset});
+      navigate(target, {replace: true});
     }
     onClick?.(e);
   };
 
   return (
-    <StyledLink
-      align={align}
-      to={target}
-      onClick={handleOnClick}
-      preventScrollReset={preventScrollReset}
-    >
+    <StyledLink align={align} to={target} onClick={handleOnClick}>
       {title} {arrow}
     </StyledLink>
   );

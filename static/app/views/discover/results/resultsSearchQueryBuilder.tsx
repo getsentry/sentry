@@ -75,7 +75,6 @@ type Props = {
   enableAISearch?: boolean;
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
-  placeholder?: string;
   portalTarget?: HTMLElement | null;
   query?: string;
   recentSearches?: SavedSearchType;
@@ -134,7 +133,6 @@ function ErrorsSearchBar({
 
 export function ResultsSearchQueryBuilder(props: Props) {
   const {
-    placeholder,
     portalTarget,
     disabled,
     omitTags,
@@ -147,9 +145,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
     enableAISearch: enableAISearchProp = false,
   } = props;
 
-  const placeholderText = useMemo(() => {
-    return placeholder ?? t('Search for events, users, tags, and more');
-  }, [placeholder]);
+  const placeholderText = t('Search for events, users, tags, and more');
 
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useResultsSearchBarDataProvider({

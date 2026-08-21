@@ -150,6 +150,10 @@ const restrictedImportPaths = [
     message: 'Please import moment-timezone instead of moment',
   },
   {
+    name: 'platformicons/build/platformIcon',
+    message: "Import {PlatformIcon} from 'platformicons' instead.",
+  },
+  {
     name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
     message:
       'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
@@ -408,6 +412,7 @@ export default typescript.config([
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
+      'no-useless-computed-key': 'error',
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],

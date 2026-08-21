@@ -28,6 +28,7 @@ PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS)
 
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
+_VERY_STALE_ENTRY_AGE_THRESHOLD_SECONDS = timedelta(hours=2).total_seconds()
 
 
 class GenerationId(NamedTuple):
@@ -61,6 +62,15 @@ class DerivedMetrics:
             tags = {"mode": self.mode.value}
             for entry in entries:
                 age_seconds = (now - entry.date_added).total_seconds()
+                if age_seconds > _VERY_STALE_ENTRY_AGE_THRESHOLD_SECONDS:
+                    logger.info(
+                        "issues.derived.incremental_processing_very_stale",
+                        extra={
+                            "group_id": entry.group_id,
+                            "log_entry_id": entry.id,
+                            "age_seconds": age_seconds,
+                        },
+                    )
                 metrics.distribution(
                     "issues.derived.incremental_processing_latency",
                     age_seconds,
