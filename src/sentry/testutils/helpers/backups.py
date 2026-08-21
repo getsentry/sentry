@@ -741,7 +741,9 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
+        trigger_workflows_action = self.create_action(
+            type=Action.Type.WEBHOOK, data="", config={"target_identifier": "webhooks"}
+        )
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )

@@ -298,7 +298,7 @@ class WebhookActionValidatorHandler(BaseActionValidatorHandler):
 
     def generate_action_form_data(self) -> dict[str, Any]:
         return {
-            "service": self.validated_data["config"]["target_identifier"],
+            "service": self.validated_data["config"].get("target_identifier"),
         }
 
     def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
