@@ -349,7 +349,8 @@
       "unrs-resolver"
     ],
     "patchedDependencies": {
-      "zod@4.3.5": "patches/zod@4.3.5.patch"
+      "zod@4.3.5": "patches/zod@4.3.5.patch",
+      "zrender@6.1.0": "patches/zrender@6.1.0.patch"
     }
   },
   "APIMethod": "stub",

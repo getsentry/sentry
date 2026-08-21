@@ -7,6 +7,7 @@ import {noQueryDataTypeParameters} from './noQueryDataTypeParameters';
 import {noRawCssInStyled} from './noRawCssInStyled';
 import {noStaticTranslations} from './noStaticTranslations';
 import {noStyledShortcut} from './noStyledShortcut';
+import {noTrustedTypesSinks} from './noTrustedTypesSinks';
 import {noUnnecessaryTypeAnnotation} from './noUnnecessaryTypeAnnotation';
 import {noUnnecessaryTypeNarrowing} from './noUnnecessaryTypeNarrowing';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback';
@@ -22,6 +23,7 @@ export const rules = {
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
+  'no-trusted-types-sinks': noTrustedTypesSinks,
   'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-unnecessary-type-annotation': noUnnecessaryTypeAnnotation,
   'no-unnecessary-type-narrowing': noUnnecessaryTypeNarrowing,

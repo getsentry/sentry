@@ -20,6 +20,7 @@ interface OnboardingCodeSnippetProps extends Omit<
  * @returns object with keys as tokens and values as array of HTMLSpanElement
  */
 export function replaceTokensWithSpan(element: HTMLElement) {
+  // eslint-disable-next-line @sentry/no-trusted-types-sinks -- TODO: removed by the CodeBlock -> usePrismTokens migration
   element.innerHTML = element.innerHTML.replace(
     /(___ORG_AUTH_TOKEN___)/g,
     '<span data-token="$1"></span>'

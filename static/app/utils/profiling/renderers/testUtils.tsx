@@ -64,6 +64,7 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
       div.style.width = `${rect.width}px`;
       div.style.height = `${rect.height}px`;
       div.style.backgroundColor = color;
+      // eslint-disable-next-line @sentry/no-trusted-types-sinks -- test-only renderer, not shipped
       div.innerHTML = frame.frame.name;
       div.setAttribute('data-test-id', 'flamegraph-frame');
       this.container.appendChild(div);

@@ -94,11 +94,13 @@ function removeChildLevel(max: number, collection: HTMLCollection, current = 0) 
       child.textContent = '/* Inline CSS */';
     }
     if (child.nodeName === 'svg') {
-      child.innerHTML = '<!-- SVG -->';
+      child.replaceChildren(document.createComment(' SVG '));
     }
     if (max <= current) {
       if (child.childElementCount > 0) {
-        child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
+        child.replaceChildren(
+          document.createComment(` ${child.childElementCount} descendents `)
+        );
       }
     } else {
       removeChildLevel(max, child.children, current + 1);
@@ -110,6 +112,7 @@ function removeNodesAtLevel(html: string, level: number): string {
   const parser = new DOMParser();
 
   try {
+    // eslint-disable-next-line @sentry/no-trusted-types-sinks -- TODO: replay HTML genuinely needs a TrustedHTML
     const doc = parser.parseFromString(html, 'text/html');
     removeChildLevel(level, doc.body.children);
     return doc.body.innerHTML;

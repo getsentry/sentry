@@ -72,12 +72,16 @@ function initDemoAnalytics() {
     mainScript.id = 'plausible-script';
     mainScript.defer = true;
     mainScript.setAttribute('data-domain', window.location.hostname);
+    // eslint-disable-next-line @sentry/no-trusted-types-sinks -- TODO: cross-origin script, needs a policy decision
     mainScript.src = 'https://plausible.io/js/script.pageview-props.tagged-events.js';
 
     const queueScript = document.createElement('script');
     queueScript.id = 'plausible-queue-script';
-    queueScript.textContent =
-      'window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }';
+    queueScript.appendChild(
+      document.createTextNode(
+        'window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }'
+      )
+    );
 
     document.head.appendChild(mainScript);
     document.head.appendChild(queueScript);

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
-import dompurify from 'dompurify';
 import type {SeriesOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
@@ -279,13 +279,14 @@ export function CategoricalSeriesWidgetVisualization(
               }
             }
 
-            // param.marker is an HTML string with a colored circle, sanitize it
-            const marker = typeof param.marker === 'string' ? param.marker : '';
-
             return (
               <div key={param.seriesIndex}>
                 <span className="tooltip-label">
-                  <span dangerouslySetInnerHTML={{__html: dompurify.sanitize(marker)}} />{' '}
+                  <SeriesMarker
+                    markerColor={
+                      typeof param.color === 'string' ? param.color : 'transparent'
+                    }
+                  />{' '}
                   <strong>{displayName}</strong>
                 </span>{' '}
                 {formattedValue}
@@ -405,3 +406,16 @@ export function CategoricalSeriesWidgetVisualization(
 
 CategoricalSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
 CategoricalSeriesWidgetVisualization.NoData = WidgetNoDataPanel;
+
+/**
+ * Mirrors the marker ECharts generates for tooltips, which we would otherwise
+ * receive as an HTML string in `param.marker`.
+ */
+const SeriesMarker = styled('span')<{markerColor: string}>`
+  display: inline-block;
+  margin-right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 10px;
+  background-color: ${p => p.markerColor};
+`;
