@@ -29,7 +29,13 @@ export default function PartnershipAgreement({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: async ({value}) => {
+      try {
+        await mutation.mutateAsync(value);
+      } catch {
+        // Prevent an unhandled rejection; the API client handles the request error.
+      }
+    },
   });
 
   const tos = (
