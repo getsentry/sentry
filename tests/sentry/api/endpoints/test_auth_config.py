@@ -3,6 +3,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry import newsletter
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.newsletter.dummy import DummyNewsletter
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
@@ -52,9 +53,38 @@ class AuthConfigEndpointTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert not response.data["canRegister"]
-        assert not response.data["hasNewsletter"]
-        assert response.data["serverHostname"] == "testserver"
+        assert response.data == {
+            "canRegister": False,
+            "hasNewsletter": False,
+            "pendingMfa": None,
+            "serverHostname": "testserver",
+        }
+
+    def test_pending_mfa_login(self) -> None:
+        TotpInterface().enroll(self.user)
+        self.client.get(self.path, {"next": "/settings/account/"})
+        login_response = self.client.post(
+            "/api/0/auth/login/",
+            data={"username": self.user.username, "password": "admin"},
+        )
+
+        response = self.client.get(self.path)
+
+        assert login_response.status_code == 202
+        assert response.status_code == 200
+        assert response.data == {
+            "canRegister": False,
+            "hasNewsletter": False,
+            "mfaMethods": [{"id": "totp"}],
+            "mfaRequired": True,
+            "pendingMfa": {
+                "mfaRequired": True,
+                "mfaMethods": [{"id": "totp"}],
+            },
+            "serverHostname": "testserver",
+        }
+        assert self.client.session["_pending_2fa"][0] == self.user.id
+        assert self.client.session["_next"] == "/settings/account/"
 
     @pytest.mark.skipif(
         settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
