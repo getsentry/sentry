@@ -40,6 +40,7 @@ from sentry.api.exceptions import (
     SuperuserRequired,
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
+from sentry.apidocs.response_validation import maybe_validate_response_contract
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -492,6 +493,8 @@ class Endpoint(APIView):
             self.add_cors_headers(request, response)
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
+
+        maybe_validate_response_contract(request._request, self.response)
 
         if settings.SENTRY_API_RESPONSE_DELAY:
             duration = time.time() - start_time

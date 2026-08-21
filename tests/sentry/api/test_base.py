@@ -113,6 +113,20 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
+    @mock.patch("sentry.api.base.maybe_validate_response_contract")
+    def test_dispatch_considers_response_contract_validation(
+        self, mock_validate_response_contract: MagicMock
+    ) -> None:
+        request = self.make_request(method="GET")
+
+        response = _dummy_endpoint(request)
+
+        assert response.status_code == 200
+        mock_validate_response_contract.assert_called_once_with(
+            request,
+            response,
+        )
+
     def test_basic_cors(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
