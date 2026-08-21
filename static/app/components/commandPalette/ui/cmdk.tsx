@@ -207,11 +207,16 @@ function CMDKActionFromData({action}: {action: CommandPaletteAction}) {
     );
   }
 
-  return 'to' in action ? (
-    <CMDKAction.Link {...action} />
-  ) : (
-    <CMDKAction.Callback {...action} />
-  );
+  if ('to' in action) {
+    return <CMDKAction.Link {...action} />;
+  }
+  if ('onMultiSelect' in action) {
+    return <CMDKAction.MultiSelect {...action} />;
+  }
+  if ('onReorder' in action) {
+    return <CMDKAction.Reorderable {...action} />;
+  }
+  return <CMDKAction.Callback {...action} />;
 }
 
 /**
@@ -417,9 +422,20 @@ interface LinkActionProps extends CommonActionProps {
 interface CallbackActionProps extends CommonActionProps {
   onAction: () => void;
   children?: React.ReactNode;
-  isSelected?: boolean;
-  onMultiSelect?: () => void;
-  onReorder?: (direction: 'up' | 'down') => void;
+}
+
+interface MultiSelectActionProps extends CommonActionProps {
+  isSelected: boolean;
+  onAction: () => void;
+  onMultiSelect: () => void;
+  children?: React.ReactNode;
+}
+
+interface ReorderableActionProps extends CommonActionProps {
+  onReorder: (direction: 'up' | 'down') => void;
+  order: number;
+  children?: React.ReactNode;
+  onAction?: () => void;
 }
 
 interface ResourceActionProps<TData = unknown> extends CommonActionProps {
@@ -454,6 +470,14 @@ function CallbackAction(props: CallbackActionProps) {
   return <CMDKActionRegistration {...props} />;
 }
 
+function MultiSelectAction(props: MultiSelectActionProps) {
+  return <CMDKActionRegistration {...props} />;
+}
+
+function ReorderableAction({onAction = () => {}, ...props}: ReorderableActionProps) {
+  return <CMDKActionRegistration {...props} onAction={onAction} />;
+}
+
 function ResourceAction<TData = unknown>(props: ResourceActionProps<TData>) {
   return <CMDKActionRegistration {...props} />;
 }
@@ -471,6 +495,8 @@ export const CMDKAction = {
   Callback: CallbackAction,
   Group: GroupAction,
   Link: LinkAction,
+  MultiSelect: MultiSelectAction,
+  Reorderable: ReorderableAction,
   Resource: ResourceAction,
   Target: TargetAction,
   TextInput: TextInputAction,

@@ -11,13 +11,15 @@ function TraceItemFilterRowsComponent({
   onDeleteFilter,
   orderStart,
   pendingRows,
+  rowIds,
   summary,
   targetAction,
 }: {
   orderStart: number;
   pendingRows: number;
+  rowIds: readonly string[];
   summary: string;
-  targetAction: string | ((filter: string, index: number) => string);
+  targetAction: string | ((filter: string, index: number, rowId: string) => string);
   onClearFilter?: (index: number) => void;
   onDeleteFilter?: (index: number) => void;
 }) {
@@ -25,13 +27,16 @@ function TraceItemFilterRowsComponent({
   const rows = [...filters, ...Array.from({length: pendingRows}, () => '')];
 
   return rows.map((filter, index) => {
-    const rowId = `trace-item-filter-${index}`;
+    const rowId = rowIds[index];
+    if (!rowId) {
+      return null;
+    }
 
     return (
       <Fragment key={rowId}>
         <CMDKAction.Target
-          id={rowId}
-          actionContext={`filter:${index}`}
+          id={`trace-item-filter-${rowId}`}
+          actionContext={`filter:${rowId}`}
           display={{
             label: t('Filter By'),
             trailingItem: <QueryValue value={filter} />,
@@ -40,14 +45,14 @@ function TraceItemFilterRowsComponent({
           order={orderStart + index}
           target={
             typeof targetAction === 'function'
-              ? targetAction(filter, index)
+              ? targetAction(filter, index, rowId)
               : targetAction
           }
         />
         {filter && onClearFilter && (
           <CMDKAction.Callback
             actionPanel={{
-              context: `filter:${index}`,
+              context: `filter:${rowId}`,
               label: t('Clear Filter'),
               placement: 'panel-only',
             }}
@@ -58,7 +63,7 @@ function TraceItemFilterRowsComponent({
         {rows.length > 1 && onDeleteFilter && (
           <CMDKAction.Callback
             actionPanel={{
-              context: `filter:${index}`,
+              context: `filter:${rowId}`,
               label: t('Delete Filter'),
               placement: 'panel-only',
             }}

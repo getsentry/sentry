@@ -51,6 +51,7 @@ import {
   canDeleteChart,
   canReorderCharts,
   clearFilterRow,
+  clearFilterRowId,
   deleteChart,
   EquationFooter,
   getEnvironmentScopeLabel,
@@ -59,6 +60,7 @@ import {
   getToggledProjectSelection,
   isProjectSelectionLimitExceeded,
   removeFilterRow,
+  removeFilterRowId,
   reorderCharts,
   SpansCommandPaletteActions,
 } from 'sentry/views/explore/spans/spansCommandPaletteActions';
@@ -719,7 +721,7 @@ describe('time range selection', () => {
     expect(PageFiltersStore.getState().selection.datetime.period).toBe('24h');
     expect(router.location.query.statsPeriod).toBe('24h');
 
-    await userEvent.keyboard('{Enter}');
+    await userEvent.click(screen.getByRole('option', {name: 'Last 14 days'}));
     expect(
       await screen.findByRole('option', {name: 'Apply Changes'})
     ).toBeInTheDocument();
@@ -1332,5 +1334,24 @@ describe('filter row draft state', () => {
         0
       )
     ).toEqual({query: 'gen_ai.response.model:gpt-4o', pendingRows: 1});
+  });
+
+  it('keeps surviving row IDs stable when deleting a row', () => {
+    expect(removeFilterRowId(['row-a', 'row-b', 'row-c'], 1, 'fallback')).toEqual([
+      'row-a',
+      'row-c',
+    ]);
+  });
+
+  it('assigns a fresh ID when deleting the final row', () => {
+    expect(removeFilterRowId(['row-a'], 0, 'row-b')).toEqual(['row-b']);
+  });
+
+  it('preserves the cleared row ID when moving it to the pending rows', () => {
+    expect(clearFilterRowId(['row-a', 'row-b', 'row-c'], 1)).toEqual([
+      'row-a',
+      'row-c',
+      'row-b',
+    ]);
   });
 });

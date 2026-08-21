@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useId, useRef, useState} from 'react';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
@@ -123,12 +123,12 @@ const QUERY_ACTION_ORDER = {
 const ADD_FILTER_ACTION_ID = 'spans-add-filter';
 const ADD_GROUP_BY_ACTION_ID = 'spans-add-group-by';
 
-function getChangeFilterValueActionId(index: number): string {
-  return `spans-change-filter-value-${index}`;
+function getChangeFilterValueActionId(rowId: string): string {
+  return `spans-change-filter-value-${rowId}`;
 }
 
-function getChangeFilterAttributeActionId(index: number): string {
-  return `spans-change-filter-attribute-${index}`;
+function getChangeFilterAttributeActionId(rowId: string): string {
+  return `spans-change-filter-attribute-${rowId}`;
 }
 
 function getChangeGroupByActionId(index: number): string {
@@ -192,6 +192,22 @@ export function clearFilterRow(
     pendingRows: filters.pendingRows + 1,
     query: removeSearchFilterFromQuery(filters.query, filterIndex),
   };
+}
+
+export function removeFilterRowId(
+  rowIds: readonly string[],
+  index: number,
+  fallbackId: string
+): string[] {
+  const nextRowIds = rowIds.filter((_, rowIndex) => rowIndex !== index);
+  return nextRowIds.length > 0 ? nextRowIds : [fallbackId];
+}
+
+export function clearFilterRowId(rowIds: readonly string[], index: number): string[] {
+  const clearedRowId = rowIds[index];
+  return clearedRowId === undefined
+    ? [...rowIds]
+    : [...rowIds.filter((_, rowIndex) => rowIndex !== index), clearedRowId];
 }
 
 export function reorderCharts<T>(
@@ -642,7 +658,6 @@ function SpansScopeActions({
                 <QueryValue value={t('Current')} />
               ) : undefined,
           }}
-          isSelected={selectedProjects.length === 0}
           onAction={() => setProjects([])}
         />
         <CMDKAction.Callback
@@ -654,7 +669,6 @@ function SpansScopeActions({
               <QueryValue value={t('Current')} />
             ) : undefined,
           }}
-          isSelected={selectedProjects.includes(ALL_ACCESS_PROJECTS)}
           onAction={() => setProjects([ALL_ACCESS_PROJECTS])}
         />
         {projects.map(project => {
@@ -665,7 +679,7 @@ function SpansScopeActions({
             projectId
           );
           return (
-            <CMDKAction.Callback
+            <CMDKAction.MultiSelect
               key={project.id}
               actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
               disabled={toggledProjects === undefined}
@@ -680,14 +694,10 @@ function SpansScopeActions({
               }}
               isSelected={isSelected}
               onAction={() => commitProject(projectId)}
-              onMultiSelect={
-                toggledProjects
-                  ? () => {
-                      lastMultiSelectedProjectRef.current = projectId;
-                      toggleProject(projectId);
-                    }
-                  : undefined
-              }
+              onMultiSelect={() => {
+                lastMultiSelectedProjectRef.current = projectId;
+                toggleProject(projectId);
+              }}
             />
           );
         })}
@@ -735,7 +745,6 @@ function SpansScopeActions({
                 <QueryValue value={t('Current')} />
               ) : undefined,
           }}
-          isSelected={selectedEnvironments.length === 0}
           onAction={() =>
             setDraftPageFilters(current => ({...current, environments: []}))
           }
@@ -758,7 +767,7 @@ function SpansScopeActions({
           };
 
           return (
-            <CMDKAction.Callback
+            <CMDKAction.MultiSelect
               key={environment}
               actionContext={
                 shouldShowEnvironmentReset ? 'environment-selection' : undefined
@@ -800,6 +809,9 @@ function SpansScopeActions({
             display={{label: t('Reset Time range'), icon: <IconRefresh />}}
             onAction={() => {
               didResetTimeRangeRef.current = true;
+              queueMicrotask(() => {
+                didResetTimeRangeRef.current = false;
+              });
               setDraftPageFilters(current => ({
                 ...current,
                 datetime: {...persistedPageFilters.datetime},
@@ -824,7 +836,6 @@ function SpansScopeActions({
                   ) : undefined,
                   icon: <IconClock />,
                 }}
-                isSelected={isSelected}
                 onAction={() => {
                   if (didResetTimeRangeRef.current) {
                     didResetTimeRangeRef.current = false;
@@ -853,6 +864,7 @@ function SpansFilterActionsComponent({
   addSearchFilter,
   actionPanel,
   filters,
+  rowIds,
   replaceSearchFilter,
 }: {
   actionPanel: {
@@ -864,6 +876,7 @@ function SpansFilterActionsComponent({
   addSearchFilter: (filter: SearchFilter) => void;
   filters: readonly string[];
   replaceSearchFilter: (filterIndex: number, filter: SearchFilter) => void;
+  rowIds: readonly string[];
 }) {
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
@@ -881,7 +894,11 @@ function SpansFilterActionsComponent({
         traceItemType={TraceItemDataset.SPANS}
       />
       {filters.map((filter, filterIndex) => {
-        const actionContext = `filter:${filterIndex}`;
+        const rowId = rowIds[filterIndex];
+        if (!rowId) {
+          return null;
+        }
+        const actionContext = `filter:${rowId}`;
         const descriptor = getSearchFilterDescriptor(filter);
         const attributeKey = descriptor?.attributeKey ?? null;
         const hasAttribute =
@@ -893,7 +910,7 @@ function SpansFilterActionsComponent({
           replaceSearchFilter(filterIndex, nextFilter);
 
         return (
-          <Fragment key={`filter-actions-${filterIndex}`}>
+          <Fragment key={`filter-actions-${rowId}`}>
             <TraceItemFilterActions
               actionPanel={{
                 context: actionContext,
@@ -912,7 +929,7 @@ function SpansFilterActionsComponent({
                   : undefined
               }
               displayLabel={t('Change Filter Attribute')}
-              id={getChangeFilterAttributeActionId(filterIndex)}
+              id={getChangeFilterAttributeActionId(rowId)}
               numberAttributes={numberAttributes}
               stringAttributes={stringAttributes}
               traceItemType={TraceItemDataset.SPANS}
@@ -927,7 +944,7 @@ function SpansFilterActionsComponent({
                 addSearchFilter={onChange}
                 booleanAttributes={booleanAttributes}
                 displayLabel={t('Change Filter Operator')}
-                id={`spans-change-filter-operator-${filterIndex}`}
+                id={`spans-change-filter-operator-${rowId}`}
                 initialAttributeKey={attributeKey}
                 numberAttributes={numberAttributes}
                 stringAttributes={stringAttributes}
@@ -944,7 +961,7 @@ function SpansFilterActionsComponent({
                 addSearchFilter={onChange}
                 booleanAttributes={booleanAttributes}
                 displayLabel={t('Change Filter Value')}
-                id={getChangeFilterValueActionId(filterIndex)}
+                id={getChangeFilterValueActionId(rowId)}
                 initialAttributeKey={descriptor.attributeKey}
                 initialOperator={descriptor.operator}
                 numberAttributes={numberAttributes}
@@ -1389,6 +1406,7 @@ function QueryClauseActions() {
 }
 
 function QueryClauseActionsEditor() {
+  const filterRowIdPrefix = useId();
   const location = useLocation();
   const organization = useOrganization();
   const {selection: pageFilterSelection} = usePageFilters();
@@ -1410,10 +1428,19 @@ function QueryClauseActionsEditor() {
       projects: [...persisted.projects],
     };
   });
-  const [draftFilters, setDraftFilters] = useState(() => ({
-    pendingRows: getFilterRows(query).length === 0 ? 1 : 0,
-    query,
-  }));
+  const [draftFilters, setDraftFilters] = useState(() => {
+    const filterCount = getFilterRows(query).length;
+    const rowCount = Math.max(1, filterCount);
+    return {
+      nextRowId: rowCount,
+      pendingRows: filterCount === 0 ? 1 : 0,
+      query,
+      rowIds: Array.from(
+        {length: rowCount},
+        (_, index) => `${filterRowIdPrefix}-${index}`
+      ),
+    };
+  });
   const [draftPageFilters, setDraftPageFilters] = useState<PageFilters>(() => ({
     ...pageFilterSelection,
     datetime: {...pageFilterSelection.datetime},
@@ -1447,6 +1474,7 @@ function QueryClauseActionsEditor() {
         return current;
       }
       return {
+        ...current,
         pendingRows: Math.max(0, current.pendingRows - 1),
         query: nextQuery,
       };
@@ -1464,9 +1492,11 @@ function QueryClauseActionsEditor() {
   const addPendingFilterRow = useCallback(() => {
     setDraftFilters(current => ({
       ...current,
+      nextRowId: current.nextRowId + 1,
       pendingRows: current.pendingRows + 1,
+      rowIds: [...current.rowIds, `${filterRowIdPrefix}-${current.nextRowId}`],
     }));
-  }, []);
+  }, [filterRowIdPrefix]);
   const replaceGroupBy = (index: number, groupBy: string) => {
     setDraftGroupByState(current => {
       if (
@@ -1518,11 +1548,28 @@ function QueryClauseActionsEditor() {
       };
     });
   };
-  const removeSearchFilter = useCallback((filterIndex: number) => {
-    setDraftFilters(current => removeFilterRow(current, filterIndex));
-  }, []);
+  const removeSearchFilter = useCallback(
+    (filterIndex: number) => {
+      setDraftFilters(current => {
+        const fallbackId = `${filterRowIdPrefix}-${current.nextRowId}`;
+        const next = removeFilterRow(current, filterIndex);
+        const needsFallback = current.rowIds.length === 1;
+        return {
+          ...current,
+          ...next,
+          nextRowId: current.nextRowId + (needsFallback ? 1 : 0),
+          rowIds: removeFilterRowId(current.rowIds, filterIndex, fallbackId),
+        };
+      });
+    },
+    [filterRowIdPrefix]
+  );
   const clearSearchFilter = useCallback((filterIndex: number) => {
-    setDraftFilters(current => clearFilterRow(current, filterIndex));
+    setDraftFilters(current => ({
+      ...current,
+      ...clearFilterRow(current, filterIndex),
+      rowIds: clearFilterRowId(current.rowIds, filterIndex),
+    }));
   }, []);
   const replaceSearchFilter = useCallback((filterIndex: number, filter: SearchFilter) => {
     setDraftFilters(current => ({
@@ -1723,6 +1770,7 @@ function QueryClauseActionsEditor() {
           }}
           filters={getFilterRows(draftQuery)}
           replaceSearchFilter={replaceSearchFilter}
+          rowIds={draftFilters.rowIds}
         />
         {canReorderCharts(draftVisualizes) && (
           <CMDKAction.Group
@@ -1740,7 +1788,7 @@ function QueryClauseActionsEditor() {
               const id = `spans-reorder-chart-${chartId}`;
 
               return (
-                <CMDKAction.Callback
+                <CMDKAction.Reorderable
                   key={id}
                   id={id}
                   display={{
@@ -1756,7 +1804,6 @@ function QueryClauseActionsEditor() {
                     ),
                   }}
                   order={index}
-                  onAction={() => {}}
                   onReorder={direction =>
                     setDraftCharts(currentCharts =>
                       reorderCharts(currentCharts, index, direction)
@@ -1864,10 +1911,11 @@ function QueryClauseActionsEditor() {
           onDeleteFilter={removeSearchFilter}
           orderStart={QUERY_ACTION_ORDER.filter}
           pendingRows={draftFilters.pendingRows}
+          rowIds={draftFilters.rowIds}
           summary={draftQuery}
-          targetAction={(filter, index) =>
+          targetAction={(filter, _index, rowId) =>
             filter && getSearchFilterDescriptor(filter)
-              ? getChangeFilterAttributeActionId(index)
+              ? getChangeFilterAttributeActionId(rowId)
               : ADD_FILTER_ACTION_ID
           }
         />

@@ -48,14 +48,16 @@ function IssueActions({issue}: Props) {
 
 ## Choose the Right Variant
 
-| Variant     | Use                                                                            |
-| ----------- | ------------------------------------------------------------------------------ |
-| `Group`     | Static drill-in children.                                                      |
-| `Link`      | Navigation. Use `onNavigate` for analytics associated with following the link. |
-| `Callback`  | An operation that does not primarily navigate.                                 |
-| `Resource`  | Large or server-filtered async children.                                       |
-| `TextInput` | A free-text editing step.                                                      |
-| `Target`    | A summary row that opens another mounted action by stable `id`.                |
+| Variant       | Use                                                                            |
+| ------------- | ------------------------------------------------------------------------------ |
+| `Group`       | Static drill-in children.                                                      |
+| `Link`        | Navigation. Use `onNavigate` for analytics associated with following the link. |
+| `Callback`    | An operation that does not primarily navigate.                                 |
+| `MultiSelect` | A callback row with controlled selection and Shift+Enter toggling.             |
+| `Reorderable` | A row with an explicit order and Shift+Arrow reordering.                       |
+| `Resource`    | Large or server-filtered async children.                                       |
+| `TextInput`   | A free-text editing step.                                                      |
+| `Target`      | A summary row that opens another mounted action by stable `id`.                |
 
 All variants require `display`. Use the variant types instead of combining
 incompatible behaviors or adding boolean mode props.
@@ -112,10 +114,11 @@ Major resource rules:
 
 ## Editing and Contextual Actions
 
-- For Shift+Enter multi-select, provide `onMultiSelect` and control the built-in
-  checkbox with `isSelected`. Do not render a separate checkbox/checkmark icon.
-- For Shift+Arrow reordering, provide `onReorder` and an explicit sibling
-  `order`.
+- For Shift+Enter multi-select, use `CMDKAction.MultiSelect`; control the built-in
+  checkbox with `isSelected` and toggle it with `onMultiSelect`. Do not render a
+  separate checkbox/checkmark icon.
+- For Shift+Arrow reordering, use `CMDKAction.Reorderable` with `onReorder` and
+  an explicit sibling `order`.
 - Wrap draft-editing actions in `CMDKChainedActionScope` so callbacks return to
   the enclosing group. Wrap only the final action in `CMDKTerminalActionScope`.
 - Use `TextInput` for raw text editing; provide `ariaLabel`, `initialValue` when

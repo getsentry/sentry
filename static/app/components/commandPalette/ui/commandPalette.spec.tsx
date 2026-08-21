@@ -486,7 +486,7 @@ describe('CommandPalette', () => {
                   }}
                 >
                   {[1, 2, 3].map(project => (
-                    <CMDKAction.Callback
+                    <CMDKAction.MultiSelect
                       key={project}
                       display={{label: `Project ${project}`}}
                       isSelected={projects.includes(project)}
@@ -672,7 +672,7 @@ describe('CommandPalette', () => {
           <CMDKChainedActionScope>
             <CMDKAction.Group display={{label: 'Group by'}}>
               <CMDKAction.Group display={{label: 'Attribute'}}>
-                <CMDKAction.Callback
+                <CMDKAction.MultiSelect
                   display={{label: 'Environment', labelSuffix: 'Current'}}
                   isSelected={isEnvironmentSelected}
                   onAction={onAction}
@@ -681,8 +681,9 @@ describe('CommandPalette', () => {
                     setIsEnvironmentSelected(selected => !selected);
                   }}
                 />
-                <CMDKAction.Callback
+                <CMDKAction.MultiSelect
                   display={{label: 'Release'}}
+                  isSelected={false}
                   onAction={() => {}}
                   onMultiSelect={() => {}}
                 />
@@ -1119,25 +1120,25 @@ describe('CommandPalette', () => {
           <CMDKChainedActionScope>
             <CMDKAction.Group display={{label: 'Group by'}}>
               <CMDKAction.Group display={{label: 'Attribute'}}>
-                <CMDKAction.Callback
+                <CMDKAction.MultiSelect
                   display={{label: 'Environment'}}
                   isSelected
                   onAction={onAction}
                   onMultiSelect={onMultiSelect}
                 >
                   <CMDKAction.Group display={{label: 'Order by'}}>
-                    <CMDKAction.Callback
+                    <CMDKAction.Reorderable
                       display={{label: 'Environment'}}
-                      onAction={() => {}}
+                      order={0}
                       onReorder={onReorder}
                     />
-                    <CMDKAction.Callback
+                    <CMDKAction.Reorderable
                       display={{label: 'Project'}}
-                      onAction={() => {}}
+                      order={1}
                       onReorder={onReorder}
                     />
                   </CMDKAction.Group>
-                </CMDKAction.Callback>
+                </CMDKAction.MultiSelect>
               </CMDKAction.Group>
             </CMDKAction.Group>
           </CMDKChainedActionScope>
@@ -2204,7 +2205,9 @@ describe('CommandPalette', () => {
                   {values => (
                     <CMDKAction.Group display={{label: 'Value'}}>
                       {values.map((value, index) =>
-                        'onAction' in value ? (
+                        'onAction' in value &&
+                        !('onMultiSelect' in value) &&
+                        !('onReorder' in value) ? (
                           <CMDKAction.Callback key={index} {...value} />
                         ) : null
                       )}

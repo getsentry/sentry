@@ -151,6 +151,12 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
     return <CMDKAction.Link key={index} {...item} />;
   }
+  if ('onMultiSelect' in item) {
+    return <CMDKAction.MultiSelect key={index} {...item} />;
+  }
+  if ('onReorder' in item) {
+    return <CMDKAction.Reorderable key={index} {...item} />;
+  }
   if ('onAction' in item) {
     return <CMDKAction.Callback key={index} {...item} />;
   }
