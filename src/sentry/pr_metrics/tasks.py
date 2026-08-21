@@ -30,6 +30,7 @@ from sentry.pr_metrics.activity_doc import (
     has_reviewer_engagement,
 )
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
+from sentry.pr_metrics.gating import is_pr_metrics_enabled
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.pr_metrics.utils import unattributed_activity_cutoff
 from sentry.silo.base import SiloMode
@@ -382,9 +383,9 @@ def detect_stale_pull_requests_task() -> None:
     ``REVIEWER_ENGAGEMENT_ACTIVITY_TYPES`` against legacy rows otherwise —
     fetched per batch since pulling every document at once isn't bounded.
 
-    Feature-gated per org by ``pr-metrics-emit`` and ``pr-metrics-activity``
-    (both required — without activity tracking we can't tell an engaged PR
-    from an untouched one).
+    Feature-gated per org by ``pr-metrics``, then by ``pr-metrics-emit`` and
+    ``pr-metrics-activity`` (both required — without activity tracking we can't
+    tell an engaged PR from an untouched one).
     """
     # Imported here to avoid a circular import: webhooks imports this module.
     from sentry.pr_metrics.webhooks import _claim_terminal_event
@@ -409,6 +410,9 @@ def detect_stale_pull_requests_task() -> None:
                     "pr_metrics.stale.org_not_found",
                     extra={"pull_request_id": pr.id, "organization_id": pr.organization_id},
                 )
+                continue
+
+            if not is_pr_metrics_enabled(org):
                 continue
 
             if not features.has("organizations:pr-metrics-emit", org):

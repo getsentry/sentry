@@ -54,7 +54,7 @@ from sentry.testutils.silo import cell_silo_test
 MODULE = "sentry.pr_metrics.webhooks"
 
 
-@with_feature("organizations:pr-metrics-attribution")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-attribution"])
 @cell_silo_test
 class HandleWebhookForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -339,6 +339,14 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
+    def test_pr_metrics_flag_off_skips_attribution(self) -> None:
+        # The pipeline-wide gate short-circuits ahead of the stage flag, which is
+        # still on here — an org excluded from pr-metrics records nothing.
+        with self.feature({"organizations:pr-metrics": False}):
+            self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+
+        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
     # --- Error handling ---
 
     def test_missing_pr_logs_unresolved_and_does_not_raise(self) -> None:
@@ -380,8 +388,14 @@ OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)  # past year avoi
 CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
-@with_feature("organizations:pr-metrics-emit")
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-emit"])
+@with_feature(
+    [
+        "organizations:pr-metrics",
+        "organizations:pr-metrics-activity",
+        "organizations:gen-ai-features",
+    ]
+)
 @cell_silo_test
 class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
@@ -561,6 +575,16 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
+    def test_does_nothing_when_pr_metrics_flag_off(self, mock_record: MagicMock) -> None:
+        # The pipeline-wide gate short-circuits ahead of the emit stage flag.
+        with self.feature({"organizations:pr-metrics": False}):
+            self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert not PullRequestMetrics.objects.filter(
+            pull_request=self.pull_request, verdict__isnull=False
+        ).exists()
+
+    @patch("sentry.analytics.record")
     def test_skips_emit_when_activity_tracking_disabled(self, mock_record: MagicMock) -> None:
         # Without activity tracking the commits-after-open signal is absent, so the
         # verdict can't be settled deterministically — defer rather than emit a
@@ -653,8 +677,14 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
 
-@with_feature("organizations:pr-metrics-emit")
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-emit"])
+@with_feature(
+    [
+        "organizations:pr-metrics",
+        "organizations:pr-metrics-activity",
+        "organizations:gen-ai-features",
+    ]
+)
 @cell_silo_test
 class HandleWebhookForPrMetricsCooldownTest(TestCase):
     """The webhook-side scheduling of deferred emission and its cooldown claim."""
@@ -805,7 +835,7 @@ class HandleWebhookForPrMetricsCooldownTest(TestCase):
         assert self._verdict() is None
 
 
-@with_feature("organizations:pr-metrics-emit")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-emit"])
 @cell_silo_test
 class HandleWebhookForPrMetricsCountersTest(TestCase):
     def setUp(self) -> None:
@@ -966,7 +996,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert metrics_row.comments_count == 7
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-activity"])
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):
     def setUp(self) -> None:
@@ -1346,7 +1376,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-activity"])
 @cell_silo_test
 class HandleCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1551,7 +1581,7 @@ class HandleCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-activity"])
 @cell_silo_test
 class HandleReviewForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1673,7 +1703,7 @@ class HandleReviewForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-activity"])
 @cell_silo_test
 class HandleReviewCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1785,7 +1815,7 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-activity"])
 @cell_silo_test
 class HandleReviewThreadForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1892,7 +1922,7 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-activity"])
 @cell_silo_test
 class HandleCheckEventsForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -2186,9 +2216,11 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-emit")
-@with_feature("organizations:pr-metrics-activity")
-@with_feature(["organizations:pr-metrics-judge", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-emit"])
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-activity"])
+@with_feature(
+    ["organizations:pr-metrics", "organizations:pr-metrics-judge", "organizations:gen-ai-features"]
+)
 @cell_silo_test
 class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
     """The needs-judge branch with pr-metrics-judge on: claim the sentinel and forward."""
@@ -2409,7 +2441,13 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 MATCH_RPC = "sentry.pr_metrics.webhooks.make_match_coding_agent_pr_request"
 
 
-@with_feature(["organizations:pr-metrics-attribution", "organizations:gen-ai-features"])
+@with_feature(
+    [
+        "organizations:pr-metrics",
+        "organizations:pr-metrics-attribution",
+        "organizations:gen-ai-features",
+    ]
+)
 @cell_silo_test
 class HandleDelegatedAgentDetectionTest(TestCase):
     def setUp(self) -> None:

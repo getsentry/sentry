@@ -295,7 +295,7 @@ class EmitAbandonedPrMetricsRowTest(TestCase):
 
 
 @cell_silo_test
-@with_feature("organizations:pr-metrics-emit")
+@with_feature(["organizations:pr-metrics", "organizations:pr-metrics-emit"])
 class DetectStalePullRequestsTaskTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(

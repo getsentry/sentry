@@ -50,6 +50,7 @@ from sentry.pr_metrics.emit import (
     select_fallback_verdict,
     select_verdict,
 )
+from sentry.pr_metrics.gating import is_pr_metrics_enabled
 from sentry.pr_metrics.utils import iso_or_none, load_activity_document, resolved_group_ids
 from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 from sentry.seer.code_review.utils import build_repo_definition
@@ -400,6 +401,20 @@ def update_pr_metrics(
         metrics.incr("pr_metrics.update.skipped", tags={"reason": "pr_not_found"})
         return UpdatePrMetricsErrorResponse(error="pull_request_not_found")
 
+    # Seer only judges PRs this pipeline forwarded, so a callback for an org without
+    # pr-metrics means the org lost it between forward and callback. Drop it rather
+    # than write a verdict and emit for an org the pipeline no longer runs for.
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning("pr_metrics.update.organization_not_found", extra=log_extra)
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "organization_not_found"})
+        return UpdatePrMetricsErrorResponse(error="organization_not_found")
+
+    if not is_pr_metrics_enabled(organization):
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "feature_disabled"})
+        return UpdatePrMetricsErrorResponse(error="feature_disabled")
+
     # Emit needs a terminal PR (closed_at + head_commit_sha). Validate it before
     # writing so a non-terminal PR is rejected up front rather than committing the
     # verdict and then failing in emit — i.e. no committed-but-errored state.
@@ -580,6 +595,14 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
         organization = Organization.objects.get(id=pull_request.organization_id)
     except Organization.DoesNotExist:
         metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "org_gone"})
+        return
+
+    if not is_pr_metrics_enabled(organization):
+        # The org lost pr-metrics while the forward was in flight. Release the claim
+        # so the row can't sit at the sentinel forever, but emit nothing for an org
+        # the pipeline no longer runs for.
+        if _release_judge_sentinel(pull_request):
+            metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "feature_disabled"})
         return
 
     outcome = select_verdict(pull_request, organization)
