@@ -17,6 +17,7 @@ import type {
   LLMContextLocation,
   LLMContextNode,
   LLMContextNodeSnapshot,
+  LLMContextOverlayNode,
   LLMContextSnapshot,
   LLMContextState,
 } from './llmContextTypes';
@@ -60,6 +61,19 @@ export const LLMNodeContext = createContext<string | undefined>(undefined);
 // so that writes from useLLMContext(data) are visible immediately even
 // before the HOC's registerNode effect has fired.
 
+/**
+ * `useLLMContext(data)` stashes an optional `priority` alongside the node's
+ * data; readers need the two split apart. Shared by the tree builder, the
+ * snapshot serializer, and the flat overlay reader.
+ */
+function extractPriorityAndData(raw: unknown): {data: unknown; priority: number} {
+  if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
+    const {priority, ...rest} = raw as Record<string, unknown>;
+    return {priority: typeof priority === 'number' ? priority : 0, data: rest};
+  }
+  return {priority: 0, data: raw};
+}
+
 function collectDescendantIds(
   nodes: Map<string, LLMContextNode>,
   nodeId: string,
@@ -83,15 +97,7 @@ function buildTree(
   for (const [id, node] of nodes) {
     if (node.parentId === parentId) {
       const raw = nodeData.has(id) ? nodeData.get(id) : {};
-      let priority = 0;
-      let data = raw;
-      if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
-        const {priority: p, ...rest} = raw as Record<string, unknown>;
-        if (typeof p === 'number') {
-          priority = p;
-        }
-        data = rest;
-      }
+      const {priority, data} = extractPriorityAndData(raw);
       children.push({
         nodeType: node.nodeType,
         priority,
@@ -168,15 +174,7 @@ function serializeState(
       return {version: state.version, nodes: [], location};
     }
     const raw = nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {};
-    let priority = 0;
-    let data = raw;
-    if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
-      const {priority: p, ...rest} = raw as Record<string, unknown>;
-      if (typeof p === 'number') {
-        priority = p;
-      }
-      data = rest;
-    }
+    const {priority, data} = extractPriorityAndData(raw);
     return {
       version: state.version,
       nodes: [
@@ -259,10 +257,29 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     stateRef.current = {...stateRef.current, version: stateRef.current.version + 1};
   }, []);
 
+  // Flat (id-keyed) view of the registry, for consumers that need to pair a
+  // node's data with its DOM anchor (e.g. Seer XRay Mode) rather than the
+  // nested, id-less shape `getSnapshot()` returns for the LLM.
+  const getOverlayNodes = useCallback((): LLMContextOverlayNode[] => {
+    const nodes: LLMContextOverlayNode[] = [];
+    for (const [nodeId, node] of stateRef.current.nodes) {
+      const raw = nodeDataRef.current.has(nodeId) ? nodeDataRef.current.get(nodeId) : {};
+      const {data} = extractPriorityAndData(raw);
+      nodes.push({nodeId, nodeType: node.nodeType, parentId: node.parentId, data});
+    }
+    return nodes;
+  }, []);
+
   // Memoize so that the context value reference is stable across re-renders.
   const value = useMemo<LLMContextInternalValue>(
-    () => ({getSnapshot, registerNode, unregisterNode, updateNodeData}),
-    [getSnapshot, registerNode, unregisterNode, updateNodeData]
+    () => ({
+      getOverlayNodes,
+      getSnapshot,
+      registerNode,
+      unregisterNode,
+      updateNodeData,
+    }),
+    [getOverlayNodes, getSnapshot, registerNode, unregisterNode, updateNodeData]
   );
 
   return (

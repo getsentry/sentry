@@ -47,14 +47,27 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export function Navigation() {
+function NavigationImpl() {
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
   const ref = useRef<HTMLUListElement | null>(null);
 
-  const {layout} = usePrimaryNavigation();
+  const {layout, activeGroup} = usePrimaryNavigation();
+
+  useLLMContext({
+    contextHint:
+      "The org's left-hand navigation sidebar — a primary icon rail (Issues, " +
+      'Explore, Dashboards, Insights, Monitors, Settings, ...) plus a secondary ' +
+      'panel for whichever group is active. Child nodes carry each active ' +
+      "secondary panel's own detail (starred views/queries/dashboards, issue " +
+      'counts, settings categories, etc).',
+    activeGroup,
+    isCollapsed: view !== 'expanded',
+  });
 
   useNavigationTourModal();
 
@@ -129,6 +142,8 @@ export function Navigation() {
     </Fragment>
   );
 }
+
+export const Navigation = registerLLMContext('navigation', NavigationImpl);
 
 interface PrimaryNavigationItemsProps {
   listRef?: RefObject<HTMLUListElement | null>;
