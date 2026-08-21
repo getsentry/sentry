@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import StrEnum
+from enum import IntFlag, StrEnum
 
 from sentry.issues.derived.framework import DateTimeCodec, EnumCodec, Feature, OptionalCodec
 from sentry.issues.progress_state import IssueProgressState
@@ -32,8 +32,20 @@ LAST_PROGRESSED_AT = Feature[datetime | None](
     "last_progressed_at", default=None, codec=OptionalCodec(DateTimeCodec())
 )
 
-# Whether the issue currently has an open PR linked to the issue.
+# Whether the issue currently has an open PR linked to the issue. Keep this as
+# the source of truth until consumers cut over to FIX_ATTEMPT_SIGNALS.
 HAS_OPEN_FIX_PR = Feature[bool]("has_open_fix_pr", default=False)
+
+
+class FixAttemptSignal(IntFlag):
+    """Facts about fix attempts being collected for a future progress cutover."""
+
+    NONE = 0
+    HAS_OPEN_PR = 1 << 0
+    HAS_FAILED_AUTOMATED_FIX = 1 << 1
+
+
+FIX_ATTEMPT_SIGNALS = Feature[int]("fix_attempt_signals", default=FixAttemptSignal.NONE.value)
 
 # Whether the issue currently has an assignee.
 IS_ASSIGNED = Feature[bool]("is_assigned", default=False)
