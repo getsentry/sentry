@@ -2040,7 +2040,7 @@ class TestGetEventDetails(
     # --- both params / neither param ---
 
     def test_raises_if_both_event_id_and_issue_id(self) -> None:
-        with pytest.raises(BadRequest):
+        with pytest.raises(ParseError):
             get_event_details(
                 organization_id=self.organization.id,
                 event_id=uuid.uuid4().hex,
@@ -2048,7 +2048,7 @@ class TestGetEventDetails(
             )
 
     def test_raises_if_neither_event_id_nor_issue_id(self) -> None:
-        with pytest.raises(BadRequest):
+        with pytest.raises(ParseError):
             get_event_details(organization_id=self.organization.id)
 
     # --- fetch by event_id ---
@@ -2179,12 +2179,11 @@ class TestGetEventDetails(
         )
         assert result is None
 
-    def test_by_event_id_invalid_uuid_raises(self) -> None:
-        with pytest.raises(ValueError):
+    def test_by_event_id_invalid_uuid_returns_actionable_error(self) -> None:
+        with pytest.raises(ParseError, match="full 32-character hexadecimal event ID"):
             get_event_details(
-                organization_id=self.organization.id,
+                organization_id=1,
                 event_id="not-a-uuid",
-                project_slug=self.project.slug,
             )
 
     def test_by_event_id_wrong_project_returns_none(self) -> None:
@@ -2531,45 +2530,37 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         return self.store_event(data=data, project_id=project_id)
 
     def test_get_recommended_event_start_clamped_to_retention(self) -> None:
-        """
-        Start is clamped to retention boundary. Spans query should also be clamped.
-        """
         project = self.create_project()
         now = datetime.now(UTC)
         start = now - timedelta(days=11)
         end = now
-
         retention_days = 5
         retention_boundary = now - timedelta(days=retention_days)
-
-        # Event right after boundary to test spans query clamping to boundary
         event = self.store_event_helper(
             dt=retention_boundary + timedelta(hours=1),
             project_id=project.id,
-            trace_id=uuid.uuid4().hex,
-            span_id="1" + uuid.uuid4().hex[:15],
         )
         assert event.group is not None
 
-        with patch(
-            "sentry.quotas.backend.get_event_retention",
-            return_value=retention_days,
+        with (
+            patch("sentry.quotas.backend.get_event_retention", return_value=retention_days),
+            patch(
+                "sentry.seer.agent.tools.get_group_recommended_event",
+                return_value=event.for_group(event.group),
+            ) as mock_get_recommended_event,
         ):
-            with patch("sentry.seer.agent.tools.execute_table_query") as mock_execute_table_query:
-                mock_execute_table_query.return_value = {"data": []}
-                result = _get_recommended_event(
-                    group=event.group,
-                    organization=project.organization,
-                    start=start,
-                    end=end,
-                )
+            result = _get_recommended_event(
+                group=event.group,
+                organization=project.organization,
+                start=start,
+                end=end,
+            )
 
-                assert isinstance(result, GroupEvent)
-                assert result.event_id == event.event_id
-
-                # spans query should use retention boundary
-                spans_start = datetime.fromisoformat(mock_execute_table_query.call_args[1]["start"])
-                assert abs(spans_start - retention_boundary) < timedelta(minutes=1)
+        assert isinstance(result, GroupEvent)
+        assert result.event_id == event.event_id
+        query_start = mock_get_recommended_event.call_args.kwargs["start"]
+        assert abs(query_start - retention_boundary) < timedelta(minutes=1)
+        mock_get_recommended_event.assert_called_once()
 
     def test_get_recommended_event_end_outside_retention(self) -> None:
         """
@@ -2624,38 +2615,28 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         assert isinstance(result, GroupEvent)
         assert result.event_id == event2.event_id
 
-    def test_get_recommended_event_fallback_if_no_events_with_spans_in_clamped_range(self) -> None:
-        """Falls back to most recent event if no events with spans in clamped range."""
+    def test_get_recommended_event_does_not_query_spans(self) -> None:
         project = self.create_project()
         now = datetime.now(UTC)
-        start = now - timedelta(days=30)
-        end = now
-        clamped_start = end - self.max_date_range
-
-        # Event before clamped start
-        event1 = self.store_event_helper(
-            dt=clamped_start - timedelta(hours=10),
+        event = self.store_event_helper(
+            dt=now - timedelta(hours=1),
             project_id=project.id,
+            trace_id=uuid.uuid4().hex,
+            span_id="1" + uuid.uuid4().hex[:15],
         )
+        assert event.group is not None
 
-        # Event with trace, but no stored spans after clamped start
-        event2 = self.store_event_helper(
-            dt=clamped_start + timedelta(hours=10),
-            project_id=project.id,
-            # trace_id=uuid.uuid4().hex,
-            # span_id="1" + uuid.uuid4().hex[:15],
-        )
-        assert event1.group is not None
-        assert event1.group == event2.group
+        with patch("sentry.seer.agent.tools.execute_table_query") as mock_execute_table_query:
+            result = _get_recommended_event(
+                group=event.group,
+                organization=project.organization,
+                start=now - timedelta(days=1),
+                end=now,
+            )
 
-        result = _get_recommended_event(
-            group=event1.group,
-            organization=project.organization,
-            start=start,
-            end=end,
-        )
         assert isinstance(result, GroupEvent)
-        assert result.event_id == event2.event_id
+        assert result.event_id == event.event_id
+        mock_execute_table_query.assert_not_called()
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):
