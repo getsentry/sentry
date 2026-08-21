@@ -52,6 +52,13 @@ class InvestigationTitleGenerationSerializerResponse(TypedDict):
     status: str | None
 
 
+class InvestigationOrchestrationSerializerResponse(TypedDict):
+    phase: str
+    status: str
+    heartbeatAt: datetime | None
+    notebookRevision: int
+
+
 class InvestigationSerializerResponse(TypedDict):
     id: str
     title: str
@@ -67,6 +74,7 @@ class InvestigationSerializerResponse(TypedDict):
     blockCount: int
     isFavorited: bool
     titleGeneration: InvestigationTitleGenerationSerializerResponse
+    orchestration: InvestigationOrchestrationSerializerResponse | None
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -111,11 +119,25 @@ class InvestigationSerializer(Serializer):
             else set()
         )
 
-        agentic_ids = set(
-            InvestigationOrchestrationRun.objects.filter(investigation__in=item_list).values_list(
-                "investigation_id", flat=True
+        orchestration_by_investigation = {
+            investigation_id: {
+                "phase": phase,
+                "status": status,
+                "heartbeatAt": heartbeat_at,
+                "notebookRevision": notebook_revision,
+            }
+            for investigation_id, phase, status, heartbeat_at, notebook_revision in (
+                InvestigationOrchestrationRun.objects.filter(
+                    investigation__in=item_list
+                ).values_list(
+                    "investigation_id",
+                    "phase",
+                    "status",
+                    "heartbeat_at",
+                    "notebook_revision",
+                )
             )
-        )
+        }
 
         return {
             investigation: {
@@ -124,11 +146,12 @@ class InvestigationSerializer(Serializer):
                 "summary_visible": investigation.id in summary_visible_ids,
                 "mode": (
                     "agentic"
-                    if investigation.id in agentic_ids
+                    if investigation.id in orchestration_by_investigation
                     else "template"
                     if investigation.template_key is not None
                     else "manual"
                 ),
+                "orchestration": orchestration_by_investigation.get(investigation.id),
             }
             for investigation in item_list
         }
@@ -158,6 +181,7 @@ class InvestigationSerializer(Serializer):
             "blockCount": attrs["block_count"],
             "isFavorited": attrs["is_favorited"],
             "titleGeneration": {"status": obj.title_generation_status},
+            "orchestration": attrs["orchestration"],
         }
 
 

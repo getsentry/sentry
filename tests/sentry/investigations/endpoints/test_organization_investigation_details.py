@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockExecutionStatus,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
     InvestigationProject,
     InvestigationSourceType,
     InvestigationStatus,
@@ -105,6 +109,54 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         assert response.data == {
             "detail": "Stop active block runs before archiving this investigation."
         }
+
+    def test_archiving_agentic_investigation_durably_queues_cancellation(self) -> None:
+        created = self.client.post(
+            self.collection_url,
+            data={"mode": "agentic", "source": {"type": "manual", "seed": {}}},
+            format="json",
+        ).data
+        investigation = Investigation.objects.get(id=created["id"])
+        run = investigation.orchestration_run
+        block = self.create_investigation_block(
+            investigation=investigation,
+            kind="text",
+            orchestration_run=run,
+            report_revision=1,
+            stable_agent_key="streaming-summary",
+        )
+        execution = self.create_investigation_block_execution(
+            block=block,
+            executor="code_mode",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=block.version,
+            input_snapshot={"projectIds": [self.project.id]},
+        )
+        investigation.version += 3
+        investigation.save(update_fields=["version", "date_updated"])
+        detail_url = self.details_url(investigation)
+
+        with mock.patch(
+            "sentry.investigations.services.orchestration.transaction.on_commit"
+        ) as schedule:
+            response = self.client.delete(
+                detail_url,
+                data={"investigationVersion": created["version"]},
+                format="json",
+            )
+
+        assert response.status_code == 204
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ARCHIVED
+        execution.refresh_from_db()
+        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        command = InvestigationOrchestrationCommand.objects.get(
+            orchestration_run__investigation=investigation
+        )
+        assert command.type == "cancel"
+        assert command.payload == {"reason": "investigation_archived"}
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        schedule.assert_called_once()
 
     def test_metadata_update_persists_and_stale_version_rolls_back(self) -> None:
         created = self.client.post(

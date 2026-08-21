@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from time import time
 from typing import Any
 from unittest.mock import patch
+from uuid import uuid4
 
 import orjson
 import pytest
@@ -1113,6 +1114,115 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         )
         assert response.status_code == 200
         assert "features" in response.data
+
+    def test_investigation_event_delivery_is_signed_scoped_and_idempotent(self) -> None:
+        org = self.create_organization(owner=self.user)
+        investigation = self.create_investigation(
+            organization=org,
+            created_by=self.user,
+            source={"type": "manual"},
+        )
+        self.create_investigation_orchestration_run(
+            investigation=investigation,
+            seer_run_id=42,
+            source={"type": "manual"},
+            projection={},
+        )
+        path = self._get_path("deliver_investigation_event")
+        event_id = str(uuid4())
+        event = {
+            "schemaVersion": 1,
+            "eventId": event_id,
+            "runId": 42,
+            "investigationId": investigation.id,
+            "sequence": 1,
+            "generation": 1,
+            "type": "workflow_updated",
+            "payload": {
+                "projection": {
+                    "runId": 42,
+                    "investigationId": str(investigation.id),
+                    "sourceType": "manual",
+                    "workflowVersion": 2,
+                    "generation": 1,
+                    "phase": "planning",
+                    "status": "processing",
+                    "broadScan": {"status": "completed"},
+                    "hypotheses": [],
+                    "report": {"revision": 0, "status": "not_started"},
+                    "pendingInput": None,
+                    "errors": [],
+                    "heartbeatAt": "2025-01-01T00:00:00+00:00",
+                }
+            },
+        }
+        data: dict[str, Any] = {"args": {"org_id": org.id, "event": event}, "meta": {}}
+        headers = {
+            "HTTP_AUTHORIZATION": self._hmac_header(path, data),
+            "HTTP_X_VIEWER_CONTEXT": self._vc_header(
+                organization_id=org.id,
+                user_id=self.user.id,
+            ),
+        }
+
+        response = self.client.post(path, data=data, **headers)
+
+        assert response.status_code == 200, response.data
+        assert response.data == {
+            "accepted": True,
+            "duplicate": False,
+            "applicationStatus": "applied",
+            "lastAppliedSequence": 1,
+            "nextExpectedSequence": 2,
+            "notebookRevision": 0,
+        }
+        duplicate = self.client.post(path, data=data, **headers)
+        assert duplicate.status_code == 200
+        assert duplicate.data["duplicate"] is True
+        assert duplicate.data["applicationStatus"] == "applied"
+
+        mismatched_data: dict[str, Any] = {
+            "args": {"org_id": self.create_organization().id, "event": event},
+            "meta": {},
+        }
+        mismatched = self.client.post(
+            path,
+            data=mismatched_data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, mismatched_data),
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(
+                organization_id=org.id,
+                user_id=self.user.id,
+            ),
+        )
+        assert mismatched.status_code == 403
+
+    def test_investigation_event_hmac_without_viewer_context_is_rejected(self) -> None:
+        org = self.create_organization(owner=self.user)
+        path = self._get_path("deliver_investigation_event")
+        data: dict[str, Any] = {
+            "args": {
+                "org_id": org.id,
+                "event": {
+                    "schemaVersion": 1,
+                    "eventId": str(uuid4()),
+                    "runId": 1,
+                    "investigationId": 1,
+                    "sequence": 1,
+                    "generation": 1,
+                    "type": "workflow_failed",
+                    "payload": {"error": {"message": "failed"}},
+                },
+            },
+            "meta": {},
+        }
+
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+        )
+
+        assert response.status_code == 403
 
     def test_org_less_viewer_context_is_rejected(self) -> None:
         # A validly-signed but org-less viewer context carries no org to enforce

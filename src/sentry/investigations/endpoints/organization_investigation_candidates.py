@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -18,6 +20,7 @@ from sentry.investigations.endpoints.validators import InvestigationCandidatesVa
 from sentry.investigations.models import (
     Investigation,
     InvestigationSourceType,
+    InvestigationOrchestrationRun,
     InvestigationStatus,
 )
 from sentry.investigations.services import (
@@ -99,8 +102,27 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
         viewable_ids = investigation_ids_with_project_access(
             existing, request.access.accessible_project_ids
         )
+        orchestration_by_investigation = {
+            investigation_id: {
+                "phase": phase,
+                "status": run_status,
+                "heartbeatAt": heartbeat_at,
+                "notebookRevision": notebook_revision,
+            }
+            for investigation_id, phase, run_status, heartbeat_at, notebook_revision in (
+                InvestigationOrchestrationRun.objects.filter(
+                    investigation_id__in=[investigation.id for investigation in existing]
+                ).values_list(
+                    "investigation_id",
+                    "phase",
+                    "status",
+                    "heartbeat_at",
+                    "notebook_revision",
+                )
+            )
+        }
         can_create = can_request_actor_create_investigation(request)
-        items: list[dict[str, str]] = []
+        items: list[dict[str, Any]] = []
         for source in resolved_sources:
             if source is None:
                 items.append({"status": "unavailable"})
@@ -110,7 +132,14 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             ) or existing_by_legacy_source_key.get(investigation_legacy_source_key(source.source))
             if investigation is not None:
                 if investigation.id in viewable_ids:
-                    items.append({"status": "view", "investigationId": str(investigation.id)})
+                    item: dict[str, Any] = {
+                        "status": "view",
+                        "investigationId": str(investigation.id),
+                    }
+                    orchestration = orchestration_by_investigation.get(investigation.id)
+                    if orchestration is not None:
+                        item["orchestration"] = orchestration
+                    items.append(item)
                 else:
                     items.append({"status": "unavailable"})
             elif can_create:

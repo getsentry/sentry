@@ -32,6 +32,12 @@ class InvestigationBlockExecutionSerializerResponse(TypedDict):
     error: Any | None
 
 
+class InvestigationBlockReportProvenanceSerializerResponse(TypedDict):
+    orchestrationRunId: str
+    reportRevision: int
+    producingSeerRunId: str | None
+
+
 class InvestigationBlockSerializerResponse(TypedDict):
     id: str
     position: int
@@ -51,6 +57,8 @@ class InvestigationBlockSerializerResponse(TypedDict):
     staleAt: datetime | None
     createdBy: str | None
     lastEditedBy: str | None
+    stableAgentKey: str | None
+    reportProvenance: InvestigationBlockReportProvenanceSerializerResponse | None
 
 
 class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerResponse]):
@@ -188,5 +196,21 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             "createdBy": str(obj.created_by_id) if obj.created_by_id is not None else None,
             "lastEditedBy": (
                 str(obj.last_edited_by_id) if obj.last_edited_by_id is not None else None
+            ),
+            "stableAgentKey": obj.stable_agent_key,
+            "reportProvenance": (
+                {
+                    "orchestrationRunId": str(obj.orchestration_run_id),
+                    "reportRevision": obj.report_revision,
+                    "producingSeerRunId": (
+                        str(obj.producing_seer_run_id)
+                        if obj.producing_seer_run_id is not None
+                        else None
+                    ),
+                }
+                if obj.orchestration_run_id is not None
+                and obj.report_revision is not None
+                and obj.stable_agent_key is not None
+                else None
             ),
         }

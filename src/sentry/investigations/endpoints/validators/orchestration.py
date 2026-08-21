@@ -6,6 +6,38 @@ from rest_framework import serializers
 
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 
+ORCHESTRATION_EVENT_TYPES = (
+    "state_snapshot",
+    "workflow_updated",
+    "report_clear",
+    "report_block_started",
+    "report_text_delta",
+    "report_block_upserted",
+    "report_block_removed",
+    "report_block_moved",
+    "report_completed",
+    "report_failed",
+    "title_delta",
+    "metadata_completed",
+    "workflow_failed",
+)
+
+
+class InvestigationOrchestrationEventValidator(StrictCamelSnakeValidator):
+    schema_version = serializers.IntegerField(min_value=1, max_value=1)
+    event_id = serializers.UUIDField()
+    run_id = serializers.IntegerField(min_value=1)
+    investigation_id = serializers.IntegerField(min_value=1)
+    sequence = serializers.IntegerField(min_value=1)
+    generation = serializers.IntegerField(min_value=1)
+    type = serializers.ChoiceField(choices=ORCHESTRATION_EVENT_TYPES)
+    payload = serializers.JSONField()
+
+    def validate_payload(self, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Must be an object.")
+        return value
+
 
 class ProvideInputCommandValidator(StrictCamelSnakeValidator):
     type = serializers.ChoiceField(choices=["provide_input"])
