@@ -10,6 +10,7 @@ export interface AttributeCollections {
   boolean: TagCollection;
   number: TagCollection;
   string: TagCollection;
+  array?: TagCollection;
 }
 
 export function getColumnFieldsForValidation({
@@ -55,6 +56,7 @@ export function getValidatedColumnData({
     boolean: {...attributes.boolean},
     number: {...attributes.number},
     string: {...attributes.string},
+    array: {...attributes.array},
   };
   const fieldTypes: Partial<Record<string, FieldValueType>> = {};
   const invalidFields = new Set<string>();
@@ -88,6 +90,10 @@ export function getValidatedColumnData({
       fieldTypes[item.name] = FieldValueType.STRING;
     }
 
+    if (item.attrType === 'array') {
+      fieldTypes[item.name] = FieldValueType.ARRAY;
+    }
+
     if (aggregateExpressions.has(item.name)) {
       continue;
     }
@@ -95,6 +101,7 @@ export function getValidatedColumnData({
     if (item.attrType === 'boolean') {
       delete validatedAttributes.number[item.name];
       delete validatedAttributes.string[item.name];
+      delete validatedAttributes.array[item.name];
       validatedAttributes.boolean[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -105,6 +112,7 @@ export function getValidatedColumnData({
     if (item.attrType === 'number') {
       delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.string[item.name];
+      delete validatedAttributes.array[item.name];
       validatedAttributes.number[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -115,10 +123,22 @@ export function getValidatedColumnData({
     if (item.attrType === 'string') {
       delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.number[item.name];
+      delete validatedAttributes.array[item.name];
       validatedAttributes.string[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
         kind: FieldKind.TAG,
+      };
+    }
+
+    if (item.attrType === 'array') {
+      delete validatedAttributes.boolean[item.name];
+      delete validatedAttributes.number[item.name];
+      delete validatedAttributes.string[item.name];
+      validatedAttributes.array[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.ARRAY,
       };
     }
   }
