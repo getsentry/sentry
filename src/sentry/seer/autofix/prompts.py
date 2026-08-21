@@ -48,9 +48,10 @@ def root_cause_prompt(
         Guidelines:
         1. Use your tools to fetch the issue details and examine the evidence
         2. Investigate the trace, replay, logs, other issues, trends, and other telemetry when available to gain a deeper understanding of the issue
-        3. Investigate the relevant code in the codebase
-        4. Ask "why" repeatedly to find the TRUE root cause (not just symptoms)
-        5. Use your todo list to track multiple hypotheses for complex bugs
+        3. If the event has a `session.id` (surfaced as `session_id` on the event details), call the `get_session_timeline` tool with it to see the full chronological timeline of the user's session — errors, logs, and spans across every page and trace. The root cause often lives in an earlier action in the same session, not in the error's own trace. Trust explicit signals in that timeline: when a logged state or config change sets a value to zero/null (e.g. a discount that makes totals $0, a feature toggle, a cleared setting), treat that as the root cause. Do NOT speculate about missing or malformed data the telemetry does not actually show.
+        4. Investigate the relevant code in the codebase
+        5. Ask "why" repeatedly to find the TRUE root cause (not just symptoms)
+        6. Use your todo list to track multiple hypotheses for complex bugs
 
         If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
 
