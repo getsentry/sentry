@@ -28,7 +28,7 @@ import {Container, Flex, Stack, Surface} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdkCollection';
+import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk/collection';
 import {
   collectPanelActions,
   filterActionPanelOnlyNodes,

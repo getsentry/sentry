@@ -6,24 +6,23 @@ import type {
   CMDKQueryOptions,
   CommandPaletteAction,
 } from 'sentry/components/commandPalette/types';
-import {
-  CMDKEnclosingActionProvider,
-  useCMDKChainedActionScope,
-} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
-import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdkCollection';
+import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk/collection';
 import type {
   CMDKActionData,
   CMDKActionPanel,
   CMDKResourceContext,
   CMDKTextInput,
   DisplayProps,
-} from 'sentry/components/commandPalette/ui/cmdkTypes';
+} from 'sentry/components/commandPalette/ui/cmdk/types';
+import {
+  CMDKEnclosingActionProvider,
+  useCMDKChainedActionScope,
+} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {useCommandPaletteSlotName} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 
-import {useCommandPaletteState} from './commandPaletteStateContext';
-
-export {CMDKCollection, CommandPaletteProvider} from './cmdkCollection';
-export type {CMDKActionData, CMDKResourceContext} from './cmdkTypes';
+export {CMDKCollection, CommandPaletteProvider} from './collection';
+export type {CMDKActionData, CMDKResourceContext} from './types';
 
 interface CMDKActionRegistrationProps<TData = unknown> {
   display: DisplayProps;

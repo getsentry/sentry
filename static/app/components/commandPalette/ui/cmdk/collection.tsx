@@ -1,8 +1,7 @@
-import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdkTypes';
+import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk/types';
+import {makeCollection} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-
-import {makeCollection} from './collection';
-import {CommandPaletteStateProvider} from './commandPaletteStateContext';
+import {CommandPaletteStateProvider} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 
 export const CMDKCollection = makeCollection<CMDKActionData<any>>();
 

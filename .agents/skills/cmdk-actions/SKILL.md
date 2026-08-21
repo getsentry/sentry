@@ -10,7 +10,8 @@ they are mounted. There is no central action registry.
 
 Before implementing a non-trivial action, read the current API in:
 
-- `static/app/components/commandPalette/ui/cmdk.tsx`
+- `static/app/components/commandPalette/ui/cmdk/index.tsx`
+- `static/app/components/commandPalette/ui/cmdk/types.ts`
 - `static/app/components/commandPalette/types.tsx`
 - `static/app/components/commandPalette/ui/commandPaletteSlot.tsx`
 
