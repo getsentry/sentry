@@ -148,9 +148,9 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
-  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
+  const hasIssueInbox = organization.features.includes('issue-inbox');
 
-  if (!hasProgressUi || !orgHasSeerAccess(organization)) {
+  if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
     return <NotFound />;
   }
 

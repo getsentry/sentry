@@ -9,7 +9,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 describe('IssuesSecondaryNavigation', () => {
   const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -69,7 +69,7 @@ describe('IssuesSecondaryNavigation', () => {
   it('does not render Inbox or request its count without Autofix access', async () => {
     const request = mockInboxCount({});
     const organizationWithoutAutofix = OrganizationFixture({
-      features: ['issue-stream-progress-ui', 'gen-ai-features'],
+      features: ['issue-inbox', 'gen-ai-features'],
     });
 
     renderNavigation(organizationWithoutAutofix);

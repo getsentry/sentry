@@ -20,8 +20,8 @@ function InboxCountBadge() {
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
-  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const hasInbox = hasProgressUi && orgHasSeerAccess(organization);
+  const hasIssueInbox = organization.features.includes('issue-inbox');
+  const hasInbox = hasIssueInbox && orgHasSeerAccess(organization);
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -87,7 +87,7 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {!hasProgressUi && (
+        {!hasIssueInbox && (
           <Fragment>
             <SecondaryNavigation.Separator />
             <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
