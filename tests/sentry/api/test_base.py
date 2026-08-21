@@ -16,6 +16,7 @@ from sentry.api.base import Endpoint, EndpointSiloLimit, StatsMixin
 from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
+from sentry.auth import access
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apikey import ApiKey
 from sentry.silo.base import FunctionSiloLimit, SiloMode
@@ -39,6 +40,25 @@ class DummyEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = ()
 
     def get(self, request):
+        return Response({"ok": True})
+
+
+class DummyDeclaredScopePermission(AllowAny):
+    scope_map = {"GET": ("org:read",), "POST": ("project:write",)}
+
+
+class DummySecondDeclaredScopePermission(AllowAny):
+    scope_map = {"GET": ("team:read",)}
+
+
+class DummyScopeCheckingEndpoint(Endpoint):
+    permission_classes = (DummyDeclaredScopePermission, DummySecondDeclaredScopePermission)
+
+    def get(self, request):
+        request.access.has_scope("org:read")
+        request.access.has_scope("team:read")
+        request.access.has_scope("project:write")
+        request.access.has_scope("project:write")
         return Response({"ok": True})
 
 
@@ -108,11 +128,84 @@ class DummyPaginationStreamingEndpoint(Endpoint):
 
 
 _dummy_endpoint = DummyEndpoint.as_view()
+_dummy_scope_checking_endpoint = DummyScopeCheckingEndpoint.as_view()
 _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 
 @all_silo_test
 class EndpointTest(APITestCase):
+    @mock.patch("sentry.auth.scope_declaration.new_scope")
+    @mock.patch("sentry.auth.scope_declaration.capture_message")
+    @mock.patch("sentry.auth.scope_declaration.logger.warning")
+    def test_warns_once_for_undeclared_scope(
+        self, warning: MagicMock, capture_message: MagicMock, new_scope: MagicMock
+    ) -> None:
+        request = self.make_request(method="GET")
+
+        with override_options({"api.permission-scope-audit.enabled": True}):
+            response = _dummy_scope_checking_endpoint(request)
+
+        assert response.status_code == 200
+        warning.assert_called_once_with(
+            "api.permission_scope.undeclared",
+            extra={
+                "endpoint": "tests.sentry.api.test_base.DummyScopeCheckingEndpoint",
+                "method": "GET",
+                "scope": "project:write",
+                "declared_scopes": ["org:read", "team:read"],
+                "permission_classes": (
+                    "tests.sentry.api.test_base.DummyDeclaredScopePermission",
+                    "tests.sentry.api.test_base.DummySecondDeclaredScopePermission",
+                ),
+            },
+        )
+        capture_message.assert_called_once_with("api.permission_scope.undeclared", level="warning")
+        event_scope = new_scope.return_value.__enter__.return_value
+        assert event_scope.fingerprint == [
+            "api.permission_scope.undeclared",
+            "tests.sentry.api.test_base.DummyScopeCheckingEndpoint",
+            "GET",
+            "project:write",
+        ]
+        event_scope.set_context.assert_called_once_with(
+            "permission_scope",
+            {
+                "endpoint": "tests.sentry.api.test_base.DummyScopeCheckingEndpoint",
+                "method": "GET",
+                "scope": "project:write",
+                "declared_scopes": ["org:read", "team:read"],
+                "permission_classes": (
+                    "tests.sentry.api.test_base.DummyDeclaredScopePermission",
+                    "tests.sentry.api.test_base.DummySecondDeclaredScopePermission",
+                ),
+            },
+        )
+
+        warning.reset_mock()
+        capture_message.reset_mock()
+        access.DEFAULT.has_scope("project:write")
+        warning.assert_not_called()
+        capture_message.assert_not_called()
+
+        with override_options({"api.permission-scope-audit.enabled": True}):
+            second_response = _dummy_scope_checking_endpoint(self.make_request(method="GET"))
+
+        assert second_response.status_code == 200
+        warning.assert_called_once()
+        capture_message.assert_called_once()
+        assert new_scope.call_count == 2
+
+    @mock.patch("sentry.auth.scope_declaration.capture_message")
+    @mock.patch("sentry.auth.scope_declaration.logger.warning")
+    def test_scope_declaration_audit_is_disabled_by_default(
+        self, warning: MagicMock, capture_message: MagicMock
+    ) -> None:
+        response = _dummy_scope_checking_endpoint(self.make_request(method="GET"))
+
+        assert response.status_code == 200
+        warning.assert_not_called()
+        capture_message.assert_not_called()
+
     def test_basic_cors(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
