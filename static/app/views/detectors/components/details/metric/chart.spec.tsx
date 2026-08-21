@@ -155,8 +155,7 @@ describe('MetricDetectorDetailsChart', () => {
     await waitFor(() => expect(AreaChart).toHaveBeenCalled());
     const {tooltip} = jest.mocked(AreaChart).mock.calls.at(-1)![0];
 
-    // The series name is the raw aggregate; the tooltip shows the summary and the
-    // filter the whole equation runs under
+    // The series name is the raw aggregate; the tooltip shows the summary instead
     let name = '';
     act(() => {
       name =
@@ -168,7 +167,6 @@ describe('MetricDetectorDetailsChart', () => {
     expect(name).toContain('env:prod');
     expect(name).not.toContain('sum_if(');
 
-    // In the app this runs from echarts' tooltip callback, outside React's render
     let details = '';
     act(() => {
       details = tooltip?.renderSeriesDetails?.() ?? '';

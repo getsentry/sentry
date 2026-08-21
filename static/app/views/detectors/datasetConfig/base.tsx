@@ -83,18 +83,15 @@ interface AggregateSummaryComponent {
 }
 
 /**
- * A human readable rendering of an aggregate, for views that display a saved detector
- * rather than edit it. Datasets name their own columns so this stays dataset agnostic.
+ * A readable rendering of an aggregate. Datasets supply their own column headers, which
+ * keeps this dataset agnostic.
  */
 export interface AggregateSummary {
   /** Each aggregate referenced by `expression`, in label order. */
   components: AggregateSummaryComponent[];
   /** The aggregate in compact form, e.g. "A + B". */
   expression: string;
-  /**
-   * Column headers for `components[].values`, in the terms the edit form uses,
-   * e.g. ['Application Metric', 'Operation', 'Filter'].
-   */
+  /** Headers for `components[].values`, e.g. ['Application Metric', 'Operation']. */
   headers: string[];
 }
 
@@ -186,14 +183,10 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   formatAggregateForTitle?: (aggregate: string) => string;
 
   /**
-   * Break the raw API aggregate down into a human readable form for read-only displays.
-   * Receives the same input as `fromApiAggregate`.
+   * Break an aggregate down for read-only views. Takes the same input as
+   * `fromApiAggregate`, and returns null when there is nothing to summarize.
    *
-   * Return `null` when the aggregate reads no better broken down, in which case callers
-   * fall back to `fromApiAggregate`.
-   *
-   * e.g. For the tracemetrics dataset, an equation of two aggregates summarizes as
-   * 'A + B' using the same reference labels shown in the detector edit form.
+   * e.g. For the tracemetrics dataset, an equation summarizes as 'A + B'.
    */
   getAggregateSummary?: (aggregate: string) => AggregateSummary | null;
 

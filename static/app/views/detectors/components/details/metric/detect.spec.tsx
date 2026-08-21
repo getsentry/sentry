@@ -81,12 +81,12 @@ describe('MetricDetectorDetailsDetect', () => {
     expect(screen.getByText('Operation')).toBeInTheDocument();
     expect(screen.getByText('Filter')).toBeInTheDocument();
 
-    // A: the conditional aggregate, with `_if` split into an operation and a filter
+    // A: `_if` split into an operation and a filter
     expect(screen.getByText('page.view')).toBeInTheDocument();
     expect(screen.getByText('sum')).toBeInTheDocument();
     expect(screen.getByText('user.id:bc')).toBeInTheDocument();
 
-    // B: unfiltered, so its filter reads as an em dash
+    // B: unfiltered, so it reads as an em dash
     expect(screen.getByText('checkout')).toBeInTheDocument();
     expect(screen.getByText('per_minute')).toBeInTheDocument();
     expect(screen.getByText('\u2014')).toBeInTheDocument();

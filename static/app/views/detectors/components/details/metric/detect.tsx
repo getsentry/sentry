@@ -189,8 +189,7 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
 
   const {aggregate} = dataSource.queryObj.snubaQuery;
   const aggregateText = datasetConfig.fromApiAggregate(aggregate);
-  // Some datasets can summarize the aggregate in a more readable form (e.g. "A + B"
-  // for trace metric equations), with each part broken out on hover.
+  // Datasets may summarize the aggregate (e.g. "A + B"), broken out on hover.
   const aggregateSummary = datasetConfig.getAggregateSummary?.(aggregate);
 
   return (

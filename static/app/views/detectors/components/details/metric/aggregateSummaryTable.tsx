@@ -6,8 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import type {AggregateSummary} from 'sentry/views/detectors/datasetConfig/base';
 
 /**
- * Breaks an equation's reference labels (A, B, …) out into the parts they were built
- * from, so the expression can stay compact without hiding what it refers to.
+ * Explains what each reference label (A, B, …) of a compact expression refers to.
  */
 export function AggregateSummaryTable({summary}: {summary: AggregateSummary}) {
   return (

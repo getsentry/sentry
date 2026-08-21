@@ -118,11 +118,8 @@ export type FormatterOptions = Pick<
      */
     limit?: number;
     /**
-     * Returns extra HTML to render inside the series block, after the series rows. Use
-     * for content that explains the series, e.g. a legend for abbreviated names.
-     *
-     * Called each time the tooltip renders, so it is safe to build the HTML by
-     * rendering a React tree.
+     * Extra HTML appended to the series block, e.g. a legend for abbreviated series names.
+     * Called on each tooltip render, so it can render a React tree to a string.
      */
     renderSeriesDetails?: () => string;
     /**

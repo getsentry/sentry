@@ -216,8 +216,7 @@ export function useMetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
-  // Some datasets can summarize the aggregate in a more readable form (e.g. "A + B" for
-  // trace metric equations), which the tooltip uses in place of the series name.
+  // Datasets may summarize the aggregate (e.g. "A + B" for a trace metric equation).
   const query = datasetConfig.toSnubaQueryString(snubaQuery);
   const aggregateSummary = useMemo(
     () => datasetConfig.getAggregateSummary?.(snubaQuery.aggregate),
@@ -431,9 +430,8 @@ export function useMetricDetectorChart({
       grid,
       xAxis: openPeriodMarkerResult.incidentMarkerXAxis,
       tooltip: {
-        // The series name is the raw aggregate, which for an equation is unreadable.
-        // Show the summarized expression, the filter it runs under, and explain the
-        // expression's labels underneath.
+        // The series name is the raw aggregate. Show the summary and the filter it
+        // runs under instead, with the labels explained underneath.
         nameFormatter: aggregateSummary
           ? () =>
               renderToString(
@@ -453,8 +451,8 @@ export function useMetricDetectorChart({
         renderSeriesDetails: aggregateSummary
           ? () =>
               renderToString(
-                // A plain wrapper so the tooltip's `.tooltip-series > div` flex rule
-                // lands here rather than on the table's own grid.
+                // The wrapper absorbs `.tooltip-series > div`, which would otherwise
+                // override the table's grid with flex.
                 <Container paddingTop="md">
                   <AggregateSummaryTable summary={aggregateSummary} />
                 </Container>
