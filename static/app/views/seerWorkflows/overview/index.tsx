@@ -16,7 +16,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -37,6 +36,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {useMilestoneAdvanceToasts} from './milestoneToast';
+import {OverviewSkeleton} from './overviewSkeleton';
 import {ProjectSetupWarning} from './projectSetupWarning';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
@@ -113,7 +113,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     isPending,
     isError,
     enrichmentPending,
-    isRefetching,
     refetch,
     enrichedSettled,
   } = useAutofixOverview({
@@ -169,9 +168,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   };
 
   let noRunsContent: React.ReactNode;
-  if (projectConfigPending) {
-    noRunsContent = <LoadingIndicator />;
-  } else if (allUnconfigured) {
+  if (allUnconfigured) {
     noRunsContent = (
       <EmptyState
         padding="3xl"
@@ -218,7 +215,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
-        {isRefetching && <LoadingIndicator mini />}
         {(data?.truncatedMilestones?.length ?? 0) > 0 && (
           <Text size="sm" variant="muted">
             {t(
@@ -232,52 +228,58 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           </Button>
         </Flex>
       </Flex>
-      {someUnconfigured && (
-        <ProjectSetupWarning
-          unconfiguredProjects={unconfiguredProjects}
-          orgSlug={organization.slug}
-        />
-      )}
       {isError ? (
         <LoadingError onRetry={refetch} />
-      ) : isPending ? (
-        <LoadingIndicator />
-      ) : allRuns.length === 0 ? (
-        noRunsContent
-      ) : assigneeRuns.length === 0 ? (
-        <EmptyState
-          padding="3xl"
-          title={t('No Autofix runs match the selected assignee.')}
-        />
+      ) : isPending || projectConfigPending ? (
+        <OverviewSkeleton />
       ) : (
         <Fragment>
-          <Tabs
-            value={view}
-            onChange={next => setQueryParam('view', next === 'all' ? undefined : next)}
-          >
-            <TabList>
-              <TabList.Item key="all">
-                {t('All Runs (%s)', assigneeRuns.length)}
-              </TabList.Item>
-              <TabList.Item key="in_progress">
-                {t('In Progress (%s)', inProgressCount)}
-              </TabList.Item>
-            </TabList>
-          </Tabs>
-          {populatedSections.length === 0 ? (
+          {someUnconfigured && (
+            <ProjectSetupWarning
+              unconfiguredProjects={unconfiguredProjects}
+              orgSlug={organization.slug}
+            />
+          )}
+          {allRuns.length === 0 ? (
+            noRunsContent
+          ) : assigneeRuns.length === 0 ? (
             <EmptyState
               padding="3xl"
-              title={t('No Autofix runs are currently in progress.')}
+              title={t('No Autofix runs match the selected assignee.')}
             />
           ) : (
-            <OverviewSectionList
-              sections={populatedSections}
-              collapsedGroups={collapsedGroups}
-              onToggle={toggleGroup}
-              orgSlug={organization.slug}
-              statsPeriod={selection.datetime.period}
-              enrichmentPending={enrichmentPending}
-            />
+            <Fragment>
+              <Tabs
+                value={view}
+                onChange={next =>
+                  setQueryParam('view', next === 'all' ? undefined : next)
+                }
+              >
+                <TabList>
+                  <TabList.Item key="all">
+                    {t('All Runs (%s)', assigneeRuns.length)}
+                  </TabList.Item>
+                  <TabList.Item key="in_progress">
+                    {t('In Progress (%s)', inProgressCount)}
+                  </TabList.Item>
+                </TabList>
+              </Tabs>
+              {populatedSections.length === 0 ? (
+                <EmptyState
+                  padding="3xl"
+                  title={t('No Autofix runs are currently in progress.')}
+                />
+              ) : (
+                <OverviewSectionList
+                  sections={populatedSections}
+                  collapsedGroups={collapsedGroups}
+                  onToggle={toggleGroup}
+                  orgSlug={organization.slug}
+                  statsPeriod={selection.datetime.period}
+                  enrichmentPending={enrichmentPending}
+                />
+              )}
+            </Fragment>
           )}
         </Fragment>
       )}

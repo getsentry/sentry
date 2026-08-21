@@ -763,7 +763,7 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps the list up with a spinner while a sort change reloads', async () => {
+  it('keeps the list up silently while a sort change reloads', async () => {
     const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
@@ -793,13 +793,15 @@ describe('AutofixOverview', () => {
     await userEvent.click(screen.getByRole('button', {name: /Sort/}));
     await userEvent.click(screen.getByRole('option', {name: 'Most events'}));
 
-    // The status poll refetches for the new sort, but the old list stays up with
-    // a spinner (keepPreviousData) while the enriched request reloads.
-    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+    // The status poll refetches for the new sort, but the old list stays up
+    // silently (keepPreviousData) while the enriched request reloads — no spinner
+    // and no skeleton.
+    await waitFor(() => expect(statusPollRequest).toHaveBeenCalledTimes(2));
     expect(
       screen.getByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(statusPollRequest).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
 
     eventsEnriched.resolve();
 
@@ -1731,7 +1733,10 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       screen.queryByText('You don’t have any Autofix runs...yet.')
     ).not.toBeInTheDocument();
@@ -1744,6 +1749,38 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByText('You don’t have any Autofix runs...yet.')
     ).not.toBeInTheDocument();
+  });
+
+  it('waits for project config before painting cards so the warning does not pop in', async () => {
+    const deferred = deferEnriched();
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      projectConfig: [
+        {id: '2', slug: 'alpha-project', hasReposConnected: true},
+        {id: '3', slug: 'beta-project', hasReposConnected: false},
+      ],
+      projectConfigAsyncDelay: deferred.promise,
+    });
+
+    renderPage();
+
+    // The skeleton holds while project config is loading; neither the cards nor
+    // the setup warning are painted yet.
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+
+    deferred.resolve();
+
+    // Once project config resolves, the warning and the cards appear together.
+    expect(await screen.findByText(/Seer isn't set up for/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
   });
 
   it('shows the subset warning banner naming only the unconfigured projects', async () => {
