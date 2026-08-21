@@ -9,7 +9,7 @@ import {
 } from 'react';
 
 type StoredNode<T> = {
-  dataRef: React.MutableRefObject<T>;
+  data: T;
   key: string;
   parent: string | null;
 };
@@ -26,7 +26,7 @@ interface CollectionStore<T> {
   subscribe: (callback: () => void) => () => void;
   tree: (rootKey?: string | null) => Array<CollectionTreeNode<T>>;
   unregister: (key: string) => void;
-  update: (key: string) => void;
+  update: (key: string, data: T) => void;
 }
 
 interface CollectionInstance<T> {
@@ -49,15 +49,20 @@ export function makeCollection<T>(): CollectionInstance<T> {
     // effect ordering: siblings register before their next sibling's subtree fires).
     const childIndex = useRef(new Map<string | null, Set<string>>());
 
-    // Snapshot ref holds a new Map instance on every structural change so that
+    // Snapshot ref holds a new Map instance on every collection change so that
     // useSyncExternalStore can detect updates via reference inequality.
     const snapshot = useRef(nodes.current);
 
     // Registered listener callbacks from useSyncExternalStore subscribers.
     const listeners = useRef(new Set<() => void>());
 
-    const store = useMemo<CollectionStore<T>>(
-      () => ({
+    const store = useMemo<CollectionStore<T>>(() => {
+      const publish = () => {
+        snapshot.current = new Map(nodes.current);
+        listeners.current.forEach(listener => listener());
+      };
+
+      return {
         subscribe(callback) {
           listeners.current.add(callback);
           return () => listeners.current.delete(callback);
@@ -71,7 +76,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
           const existing = nodes.current.get(node.key);
           if (existing) {
             if (existing.parent === node.parent) {
-              // Same parent: no structural change, data is kept current via dataRef.
+              // Same parent: no structural change. Data updates use update().
               return;
             }
             // Different parent: remove from the old parent's child set before
@@ -82,8 +87,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
           const siblings = childIndex.current.get(node.parent) ?? new Set<string>();
           siblings.add(node.key);
           childIndex.current.set(node.parent, siblings);
-          snapshot.current = new Map(nodes.current);
-          listeners.current.forEach(l => l());
+          publish();
         },
 
         unregister(key) {
@@ -94,16 +98,16 @@ export function makeCollection<T>(): CollectionInstance<T> {
           nodes.current.delete(key);
           childIndex.current.get(node.parent)?.delete(key);
           childIndex.current.delete(key);
-          snapshot.current = new Map(nodes.current);
-          listeners.current.forEach(l => l());
+          publish();
         },
 
-        update(key) {
-          if (!nodes.current.has(key)) {
+        update(key, data) {
+          const node = nodes.current.get(key);
+          if (!node) {
             return;
           }
-          snapshot.current = new Map(nodes.current);
-          listeners.current.forEach(l => l());
+          nodes.current.set(key, {...node, data});
+          publish();
         },
 
         tree(rootKey = null): Array<CollectionTreeNode<T>> {
@@ -114,13 +118,12 @@ export function makeCollection<T>(): CollectionInstance<T> {
               key: node.key,
               parent: node.parent,
               children: this.tree(key),
-              ...node.dataRef.current,
+              ...node.data,
             };
           });
         },
-      }),
-      []
-    );
+      };
+    }, []);
 
     return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
   }
@@ -130,9 +133,8 @@ export function makeCollection<T>(): CollectionInstance<T> {
     if (!store) {
       throw new Error('useStore must be called inside the matching Collection Provider');
     }
-    // Subscribe to structural changes via useSyncExternalStore. Each registration
-    // or unregistration produces a new snapshot Map instance, so this causes a
-    // re-render whenever the node tree changes.
+    // Subscribe to collection changes via useSyncExternalStore. Each change
+    // produces a new snapshot Map instance, causing consumers to re-render.
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot);
     // Return a new wrapper object on every snapshot change so that consumers
     // using the return value as a useMemo / useCallback dependency get correct
@@ -166,22 +168,21 @@ export function makeCollection<T>(): CollectionInstance<T> {
 
     const generatedKey = useId();
     const key = reservedId ?? generatedKey;
-    // Store data in a ref so tree() always reflects the latest value without
-    // needing to re-register when data changes. Structural changes (parentKey)
-    // still cause a full re-registration via the effect deps.
-    const dataRef = useRef(data);
+    // Synchronize data before registration effects run. This lets initial
+    // registration publish once, while subsequent data changes use update().
+    const latestDataRef = useRef(data);
 
     useLayoutEffect(() => {
-      store.register({key, parent: parentKey, dataRef});
+      latestDataRef.current = data;
+      store.update(key, data);
+    }, [data, key, store]);
+
+    useLayoutEffect(() => {
+      store.register({key, parent: parentKey, data: latestDataRef.current});
       return () => {
         store.unregister(key);
       };
     }, [key, parentKey, store]);
-
-    useLayoutEffect(() => {
-      dataRef.current = data;
-      store.update(key);
-    }, [data, key, store]);
 
     return key;
   }

@@ -260,6 +260,29 @@ describe('Collection', () => {
     expect(screen.getByText('updated')).toBeInTheDocument();
   });
 
+  it('publishes a data update once without re-registering the node', () => {
+    const storeRef = makeStoreRef();
+    const {rerender} = render(
+      <TestCollection.Provider>
+        <Item name="original" />
+        <StoreCapture storeRef={storeRef} />
+      </TestCollection.Provider>
+    );
+    const listener = jest.fn();
+    const unsubscribe = storeRef.current!.subscribe(listener);
+
+    rerender(
+      <TestCollection.Provider>
+        <Item name="updated" />
+        <StoreCapture storeRef={storeRef} />
+      </TestCollection.Provider>
+    );
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(storeRef.current!.tree()[0]!.name).toBe('updated');
+    unsubscribe();
+  });
+
   it('propagates parent keys correctly at 3+ levels of nesting', () => {
     const storeRef = makeStoreRef();
 
