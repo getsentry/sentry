@@ -9,7 +9,7 @@ from django.core.files.base import ContentFile
 
 from sentry.debug_files.objectstore_migration import migrate_debug_file
 from sentry.debug_files.objectstore_migration.utils import (
-    MigrationIntegrityError,
+    ObjectstoreIntegrityError,
     PostMigrationMetadata,
     commit,
 )
@@ -57,7 +57,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
                 return_value=session,
             ),
             patch("sentry.utils.retries.time.sleep"),
-            pytest.raises(MigrationIntegrityError),
+            pytest.raises(ObjectstoreIntegrityError),
         ):
             session.put.return_value = "uploaded-key"
             migrate_debug_file(self.debug_file)
