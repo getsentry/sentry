@@ -84,7 +84,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
     action_filters = serializers.ListField(
-        child=serializers.DictField(),
+        child=serializers.DictField(allow_null=False),
         required=False,
         help_text=ACTION_FILTERS_HELP_TEXT,
     )
@@ -302,6 +302,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 )
 
             for action in action_filter.get("actions", []):
+                if action is None:
+                    raise serializers.ValidationError("Action must not be null")
                 action_id = action.get("id")
                 if action_id is not None and int(action_id) not in valid_action_ids:
                     raise serializers.ValidationError(
