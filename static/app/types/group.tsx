@@ -634,6 +634,7 @@ interface GroupActivityBase {
   assignee?: string;
   issue?: Group;
   sentry_app?: AvatarSentryApp;
+  source?: null | string;
   user?: null | User;
 }
 

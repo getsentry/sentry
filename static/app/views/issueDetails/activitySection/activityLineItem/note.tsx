@@ -13,7 +13,13 @@ import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activ
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 
 import {getActivityNoteAuthor} from './activityItem';
-import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
+import {getMcpActivitySourceName} from './activitySource';
+import {
+  ActivityLineContent,
+  ActivityLineRow,
+  ActivityLineSource,
+  type ActivityLineVariant,
+} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
 type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
@@ -51,6 +57,7 @@ export function ActivityLineNote({
       <ActivityLineMarker item={activity} showProgress={showProgress} />
       <ActivityLineNoteHeadline
         title={t('%s commented', getActivityNoteAuthor(activity))}
+        source={getMcpActivitySourceName(activity.source)}
         timestamp={timestamp}
         variant={inputVariant}
         actions={
@@ -91,6 +98,7 @@ export function ActivityLineNote({
 
 function ActivityLineNoteHeadline({
   title,
+  source,
   timestamp,
   actions,
   variant,
@@ -99,6 +107,7 @@ function ActivityLineNoteHeadline({
   title: React.ReactNode;
   variant: ActivityLineVariant;
   actions?: React.ReactNode;
+  source?: null | string;
 }) {
   return (
     <ActivityLineNoteHeadlineLayout
@@ -119,7 +128,8 @@ function ActivityLineNoteHeadline({
           wordBreak="break-word"
         >
           {title}
-        </ActivityLineNoteTitle>{' '}
+        </ActivityLineNoteTitle>
+        <ActivityLineSource source={source} />{' '}
         <ActivityLineNoteMeta>
           <Text as="span" variant="muted" density="comfortable">
             &bull;
