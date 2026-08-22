@@ -2,12 +2,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
+
+jest.unmock('@tanstack/react-pacer');
 
 function renderReleasesSelect({
   handleChangeFilter,
@@ -69,6 +72,8 @@ function renderReleasesSelect({
 }
 
 describe('Dashboards > ReleasesSelectControl', () => {
+  afterEach(() => jest.useRealTimers());
+
   it('updates menu title with selection', async () => {
     renderReleasesSelect();
 
@@ -151,9 +156,15 @@ describe('Dashboards > ReleasesSelectControl', () => {
     expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('All Releases'));
-    await userEvent.type(screen.getByPlaceholderText('Search…'), 'se');
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+    await user.type(screen.getByPlaceholderText('Search…'), 'se');
 
-    await waitFor(() => expect(searchMock).toHaveBeenCalled());
+    expect(searchMock).not.toHaveBeenCalled();
+
+    await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
+
+    await waitFor(() => expect(searchMock).toHaveBeenCalledTimes(1));
   });
 
   it('resets search on close', async () => {
@@ -188,6 +199,11 @@ describe('Dashboards > ReleasesSelectControl', () => {
       ],
       match: [MockApiClient.matchQuery({query: 'se'})],
     });
+    const pendingSearchMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'sentry'})],
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -206,15 +222,25 @@ describe('Dashboards > ReleasesSelectControl', () => {
     expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('All Releases'));
-    await userEvent.type(screen.getByPlaceholderText('Search…'), 'se');
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+    const searchInput = screen.getByPlaceholderText('Search…');
+    await user.type(searchInput, 'se');
 
-    await waitFor(() => expect(searchMock).toHaveBeenCalled());
+    await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
+
+    await waitFor(() => expect(searchMock).toHaveBeenCalledTimes(1));
+
+    await user.type(searchInput, 'ntry');
+    expect(pendingSearchMock).not.toHaveBeenCalled();
 
     // Close the dropdown
-    await userEvent.click(document.body);
+    await user.click(document.body);
+    await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
 
-    // Search should be reset - initial mock should be called again
-    await waitFor(() => expect(initialMock).toHaveBeenCalledTimes(2));
+    // Closing resets to the cached initial results and cancels the pending search.
+    expect(initialMock).toHaveBeenCalledTimes(1);
+    expect(pendingSearchMock).not.toHaveBeenCalled();
   });
 
   it('triggers handleChangeFilter with the release versions', async () => {
