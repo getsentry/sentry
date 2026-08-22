@@ -1522,6 +1522,7 @@ class PullRequestEventWebhookTest(APITestCase):
         pr = prs[0]
 
         assert pr.key == "1"
+        assert pr.external_id == 34778301
         assert (
             pr.message
             == "This is a pretty simple change that we need to pull into master. Fixes BAR-7"
