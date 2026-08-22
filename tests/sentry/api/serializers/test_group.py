@@ -40,6 +40,24 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert "slug" in result["project"]
         assert "platform" in result["project"]
 
+    def test_detector_id(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+        detector = self.create_detector(project=group.project)
+        self.create_detector_group(detector=detector, group=group)
+
+        result = serialize(group, user)
+
+        assert result["detectorId"] == str(detector.id)
+
+    def test_detector_id_is_none_without_association(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+
+        result = serialize(group, user)
+
+        assert result["detectorId"] is None
+
     def test_is_ignored_with_expired_snooze(self) -> None:
         now = timezone.now()
 
