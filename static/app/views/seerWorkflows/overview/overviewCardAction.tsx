@@ -33,7 +33,7 @@ export function OverviewCardAction({
   const [menuOpened, setMenuOpened] = useState(false);
 
   const {autofix, config, isDispatched, trigger} = useNextAction({run, sectionKey});
-  const {to: openSeerTo, trackOpen} = useOpenSeerLink(run);
+  const {to: openSeerTo, trackOpen} = useOpenSeerLink(run, sectionKey);
 
   const {hasReposConnected, hasNonGithubRepo} = run.issue.project;
   const repoEligibility =
