@@ -20,7 +20,6 @@ import {
   isTransactionBased,
   IssueType,
 } from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
@@ -268,14 +267,10 @@ function formatIssueTypeMetrics(
  * issues. Returns an empty string for issues that don't expose span evidence
  * (e.g. errors).
  */
-export function formatSpanEvidenceToMarkdown(
-  event: Event,
-  organization: Organization,
-  group: Group
-): string {
+export function formatSpanEvidenceToMarkdown(event: Event, group: Group): string {
   const issueType = group.issueType;
 
-  const regressionData = getKeyValueListData(organization, issueType, event);
+  const regressionData = getKeyValueListData(issueType, event);
   if (regressionData) {
     const regressionLines = keyValueListDataToMarkdownLines(regressionData);
     if (regressionLines.length === 0) {

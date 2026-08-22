@@ -309,11 +309,9 @@ function MainThreadFunctionEvidence({
 }
 
 function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
-  const organization = useOrganization();
   const data = useMemo(
-    () =>
-      issueType ? getRegressionIssueKeyValueList(organization, issueType, event) : null,
-    [organization, event, issueType]
+    () => (issueType ? getRegressionIssueKeyValueList(issueType, event) : null),
+    [event, issueType]
   );
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
@@ -423,7 +421,6 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
   [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
-  [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: RegressionEvidence,
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,

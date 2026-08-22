@@ -1,18 +1,11 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import isFinite from 'lodash/isFinite';
 
-import {SectionHeading} from 'sentry/components/charts/styles';
 import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
-import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {t} from 'sentry/locale';
 import type {
   AggregateEventTransaction,
   EntrySpans,
-  Event,
   EventTransaction,
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -39,15 +32,7 @@ type OpStats = {
   totalInterval: number;
 };
 
-const TOP_N_SPANS = 4;
-
 type OpBreakdownType = OpStats[];
-
-type Props = {
-  event: Event | AggregateEventTransaction;
-  operationNameFilters: ActiveOperationFilter;
-  hideHeader?: boolean;
-};
 
 export function generateStats(
   transactionEvent: EventTransaction | AggregateEventTransaction,
@@ -225,85 +210,6 @@ export function generateStats(
   return breakdown;
 }
 
-export function OpsBreakdown({event, operationNameFilters, hideHeader = false}: Props) {
-  const theme = useTheme();
-  const transactionEvent =
-    event.type === 'transaction' || event.type === 'aggregateTransaction'
-      ? event
-      : undefined;
-
-  if (!transactionEvent) {
-    return null;
-  }
-
-  const breakdown = generateStats(transactionEvent, operationNameFilters, TOP_N_SPANS);
-
-  const contents = breakdown.map(currOp => {
-    const {name, percentage, totalInterval} = currOp;
-
-    const isOther = name === OtherOperation;
-    const operationName = typeof name === 'string' ? name : t('Other');
-
-    const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
-    const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-    const opsColor = pickBarColor(operationName, theme);
-
-    return (
-      <OpsLine key={operationName}>
-        <OpsNameContainer>
-          <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
-          <OpsName>{operationName}</OpsName>
-        </OpsNameContainer>
-        <OpsContent>
-          <Dur>{durLabel}ms</Dur>
-          <Pct>{pctLabel}%</Pct>
-        </OpsContent>
-      </OpsLine>
-    );
-  });
-
-  if (!hideHeader) {
-    return (
-      <StyledBreakdown>
-        <SectionHeading>
-          {t('Operation Breakdown')}
-          <QuestionTooltip
-            position="top"
-            size="sm"
-            containerDisplayMode="block"
-            title={t(
-              'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once. Percentages are calculated by dividing the summed span durations by the total of all span durations.'
-            )}
-          />
-        </SectionHeading>
-        {contents}
-      </StyledBreakdown>
-    );
-  }
-
-  return <StyledBreakdownNoHeader>{contents}</StyledBreakdownNoHeader>;
-}
-
-const StyledBreakdown = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${p => p.theme.space['3xl']};
-`;
-
-const StyledBreakdownNoHeader = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  margin: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
-`;
-
-const OpsLine = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.xs};
-
-  * + * {
-    margin-left: ${p => p.theme.space.xs};
-  }
-`;
-
 export const OpsDot = styled('div')`
   content: '';
   display: block;
@@ -312,32 +218,6 @@ export const OpsDot = styled('div')`
   height: 8px;
   margin-right: ${p => p.theme.space.md};
   border-radius: 100%;
-`;
-
-const OpsContent = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const OpsNameContainer = styled(OpsContent)`
-  overflow: hidden;
-`;
-
-const OpsName = styled('div')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const Dur = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-variant-numeric: tabular-nums;
-`;
-
-const Pct = styled('div')`
-  min-width: 40px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 `;
 
 function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
