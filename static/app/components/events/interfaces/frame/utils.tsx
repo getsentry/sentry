@@ -56,18 +56,16 @@ export function isExpandable({
   registers,
   emptySourceNotation,
   platform,
-  isOnlyFrame,
   hasScmSourceContext,
 }: {
   frame: Frame;
   registers: StacktraceType['registers'];
   emptySourceNotation?: boolean;
   hasScmSourceContext?: boolean;
-  isOnlyFrame?: boolean;
   platform?: string;
 }) {
   return !!(
-    (!isOnlyFrame && emptySourceNotation) ||
+    emptySourceNotation ||
     hasContextSource(frame) ||
     hasContextVars(frame) ||
     hasContextRegisters(registers) ||

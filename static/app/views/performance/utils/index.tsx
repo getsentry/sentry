@@ -212,13 +212,11 @@ export function trendsTargetRoute({
   organization,
   initialConditions,
   additionalQuery,
-  view,
 }: {
   location: Location;
   organization: Organization;
   additionalQuery?: Record<string, string>;
   initialConditions?: MutableSearch;
-  view?: DomainView;
 }) {
   const newQuery = {
     ...location.query,
@@ -228,23 +226,12 @@ export function trendsTargetRoute({
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
   newQuery.query = modifiedConditions.formatString();
 
-  return {pathname: getPerformanceTrendsUrl(organization, view), query: {...newQuery}};
+  return {pathname: getPerformanceTrendsUrl(organization), query: {...newQuery}};
 }
 
-export function removeTracingKeysFromSearch(
-  currentFilter: MutableSearch,
-  options: {excludeTagKeys: Set<string>} = {
-    excludeTagKeys: new Set([
-      // event type can be "transaction" but we're searching for issues
-      'event.type',
-      // the project is already determined by the transaction,
-      // and issue search does not support the project filter
-      'project',
-    ]),
-  }
-) {
+export function removeTracingKeysFromSearch(currentFilter: MutableSearch) {
   currentFilter.getFilterKeys().forEach(tagKey => {
-    if (shouldExcludeTracingKeys(tagKey, options)) {
+    if (shouldExcludeTracingKeys(tagKey)) {
       currentFilter.removeFilter(tagKey);
     }
   });

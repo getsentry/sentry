@@ -401,10 +401,10 @@ function extractFileName(filePath: string): string | undefined {
   return filePath.split('/').pop();
 }
 
-function truncateText(text: string, maxLength = 16): string {
+function truncateText(text: string): string {
   const length = text.length;
-  if (length <= maxLength) {
+  if (length <= 16) {
     return text;
   }
-  return `${text.substring(0, maxLength / 2)}\u2026${text.substring(length - maxLength / 2, length)}`;
+  return `${text.substring(0, 8)}\u2026${text.substring(length - 8, length)}`;
 }

@@ -256,10 +256,6 @@ type ClientOptions = {
    */
   baseUrl?: string;
   /**
-   * Credentials policy to apply to each request
-   */
-  credentials?: RequestCredentials;
-  /**
    * Base set of headers to apply to each request
    */
   headers?: HeadersInit;
@@ -291,7 +287,7 @@ export class Client {
     this.baseUrl = options.baseUrl ?? '/api/0';
     this.headers = options.headers ?? Client.JSON_HEADERS;
     this.activeRequests = {};
-    this.credentials = options.credentials ?? 'include';
+    this.credentials = 'include';
   }
 
   wrapCallback<T extends any[]>(

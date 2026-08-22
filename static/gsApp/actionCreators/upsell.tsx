@@ -23,7 +23,6 @@ export async function sendReplayOnboardRequest({
 }: {
   api: Client;
   currentPlan: 'am2-beta' | 'am2-non-beta' | 'am1-beta' | 'am1-non-beta';
-  data?: Record<string, any>;
   onError?: () => void;
   onSuccess?: () => void;
   orgSlug?: Organization['slug'];
@@ -55,7 +54,6 @@ export function sendUpgradeRequest({
 }: {
   api: Client;
   organization: Organization;
-  data?: Record<string, any>;
   handleSuccess?: () => void;
   type?: string;
 }) {
@@ -99,7 +97,6 @@ export function sendAddEventsRequest({
   api: Client;
   organization: Organization;
   eventTypes?: EventType[];
-  handleSuccess?: () => void;
   notificationType?: string;
 }) {
   const endpoint = `/organizations/${organization.slug}/event-limit-increase-request/`;

@@ -321,7 +321,6 @@ export function formatCategoryQuantityWithDisplayName({
   quantity,
   formattedQuantity,
   subscription,
-  planOverride,
   options,
 }: {
   dataCategory: DataCategory;
@@ -329,12 +328,11 @@ export function formatCategoryQuantityWithDisplayName({
   options: Omit<CategoryNameProps, 'category'>;
   quantity: number;
   subscription: Subscription;
-  planOverride?: Plan;
 }) {
   if (isContinuousProfiling(dataCategory)) {
     return formatWithHours(quantity, formattedQuantity, options);
   }
-  const plan = planOverride ?? subscription.planDetails;
+  const plan = subscription.planDetails;
   if (quantity === 1) {
     const displayName = getSingularCategoryName({
       plan,

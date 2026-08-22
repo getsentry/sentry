@@ -528,47 +528,25 @@ export class MutableSearch {
    * Adds the filter values separated by OR operators. This is in contrast to
    * addFilterValues, which implicitly separates each filter value with an AND operator.
    */
-  addDisjunctionFilterValues(key: string, values: string[], shouldEscape = true): this {
-    return this._addDisjunctionFilterValues(key, values, shouldEscape, 'addFilterValue');
+  addDisjunctionFilterValues(key: string, values: string[]): this {
+    return this._addDisjunctionFilterValues(key, values, true, 'addFilterValue');
   }
 
-  addDisjunctionContainsFilterValues(
-    key: string,
-    values: string[],
-    shouldEscape = true
-  ): this {
+  addDisjunctionContainsFilterValues(key: string, values: string[]): this {
+    return this._addDisjunctionFilterValues(key, values, true, 'addContainsFilterValue');
+  }
+
+  addDisjunctionStartsWithFilterValues(key: string, values: string[]): this {
     return this._addDisjunctionFilterValues(
       key,
       values,
-      shouldEscape,
-      'addContainsFilterValue'
-    );
-  }
-
-  addDisjunctionStartsWithFilterValues(
-    key: string,
-    values: string[],
-    shouldEscape = true
-  ): this {
-    return this._addDisjunctionFilterValues(
-      key,
-      values,
-      shouldEscape,
+      true,
       'addStartsWithFilterValue'
     );
   }
 
-  addDisjunctionEndsWithFilterValues(
-    key: string,
-    values: string[],
-    shouldEscape = true
-  ): this {
-    return this._addDisjunctionFilterValues(
-      key,
-      values,
-      shouldEscape,
-      'addEndsWithFilterValue'
-    );
+  addDisjunctionEndsWithFilterValues(key: string, values: string[]): this {
+    return this._addDisjunctionFilterValues(key, values, true, 'addEndsWithFilterValue');
   }
 
   private _addFilterValue(
@@ -623,27 +601,27 @@ export class MutableSearch {
     return this._addFilterValue(key, value, shouldEscape, WildcardOperators.ENDS_WITH);
   }
 
-  setFilterValues(key: string, values: string[], shouldEscape = true): this {
+  setFilterValues(key: string, values: string[]): this {
     this.removeFilter(key);
-    this.addFilterValues(key, values, shouldEscape);
+    this.addFilterValues(key, values, true);
     return this;
   }
 
-  setContainsFilterValues(key: string, values: string[], shouldEscape = true): this {
+  setContainsFilterValues(key: string, values: string[]): this {
     this.removeFilter(key);
-    this.addContainsFilterValues(key, values, shouldEscape);
+    this.addContainsFilterValues(key, values, true);
     return this;
   }
 
-  setStartsWithFilterValues(key: string, values: string[], shouldEscape = true): this {
+  setStartsWithFilterValues(key: string, values: string[]): this {
     this.removeFilter(key);
-    this.addStartsWithFilterValues(key, values, shouldEscape);
+    this.addStartsWithFilterValues(key, values, true);
     return this;
   }
 
-  setEndsWithFilterValues(key: string, values: string[], shouldEscape = true): this {
+  setEndsWithFilterValues(key: string, values: string[]): this {
     this.removeFilter(key);
-    this.addEndsWithFilterValues(key, values, shouldEscape);
+    this.addEndsWithFilterValues(key, values, true);
     return this;
   }
 
@@ -675,35 +653,20 @@ export class MutableSearch {
     return this;
   }
 
-  addFilterValueList(key: string, values: string[], shouldEscape = true): this {
-    return this._addFilterValueList(key, values, shouldEscape, '');
+  addFilterValueList(key: string, values: string[]): this {
+    return this._addFilterValueList(key, values, true, '');
   }
 
-  addContainsFilterValueList(key: string, values: string[], shouldEscape = true): this {
-    return this._addFilterValueList(
-      key,
-      values,
-      shouldEscape,
-      WildcardOperators.CONTAINS
-    );
+  addContainsFilterValueList(key: string, values: string[]): this {
+    return this._addFilterValueList(key, values, true, WildcardOperators.CONTAINS);
   }
 
-  addStartsWithFilterValueList(key: string, values: string[], shouldEscape = true): this {
-    return this._addFilterValueList(
-      key,
-      values,
-      shouldEscape,
-      WildcardOperators.STARTS_WITH
-    );
+  addStartsWithFilterValueList(key: string, values: string[]): this {
+    return this._addFilterValueList(key, values, true, WildcardOperators.STARTS_WITH);
   }
 
-  addEndsWithFilterValueList(key: string, values: string[], shouldEscape = true): this {
-    return this._addFilterValueList(
-      key,
-      values,
-      shouldEscape,
-      WildcardOperators.ENDS_WITH
-    );
+  addEndsWithFilterValueList(key: string, values: string[]): this {
+    return this._addFilterValueList(key, values, true, WildcardOperators.ENDS_WITH);
   }
 
   getFilters(): Record<string, string[]> {

@@ -41,23 +41,15 @@ export class WaterfallModel {
   focusedSpanIds: Set<string> | undefined = undefined;
   traceInfo: TraceInfo | undefined = undefined;
 
-  constructor(
-    event: Readonly<EventTransaction | AggregateEventTransaction>,
-    affectedSpanIds?: string[],
-    focusedSpanIds?: string[],
-    hiddenSpanSubTrees?: Set<string>,
-    traceInfo?: TraceInfo
-  ) {
+  constructor(event: Readonly<EventTransaction | AggregateEventTransaction>) {
     this.event = event;
-    this.traceInfo = traceInfo;
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
     this.rootSpan = new SpanTreeModel(
       rootSpan,
       this.parsedTrace.childSpans,
       this.api,
-      true,
-      traceInfo
+      true
     );
 
     // Track the trace bounds of the current transaction and the trace bounds of
@@ -68,20 +60,9 @@ export class WaterfallModel {
 
     // Set of span IDs whose sub-trees should be hidden. This is used for the
     // span tree toggling product feature.
-    this.hiddenSpanSubTrees = hiddenSpanSubTrees ?? new Set();
+    this.hiddenSpanSubTrees = new Set();
 
-    // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
-
-    this.affectedSpanIds = affectedSpanIds;
-
-    if (affectedSpanIds || focusedSpanIds) {
-      affectedSpanIds ??= [];
-      focusedSpanIds ??= [];
-      this.focusedSpanIds = new Set([...affectedSpanIds, ...focusedSpanIds]);
-    }
-
-    // If the set of span IDs is provided, this waterfall is for an embedded span tree
-    this.isEmbeddedSpanTree = !!this.focusedSpanIds;
+    this.isEmbeddedSpanTree = false;
 
     makeObservable(this, {
       parsedTrace: observable,

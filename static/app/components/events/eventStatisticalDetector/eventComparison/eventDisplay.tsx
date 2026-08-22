@@ -43,21 +43,13 @@ const BUTTON_SIZE = 'sm';
 function getSampleEventQuery({
   transaction,
   durationBaseline,
-  addUpperBound = true,
 }: {
   durationBaseline: number;
   transaction: string;
-  addUpperBound?: boolean;
 }) {
-  const baseQuery = `event.type:transaction transaction:["${transaction}"] transaction.duration:>=${
+  return `event.type:transaction transaction:["${transaction}"] transaction.duration:>=${
     durationBaseline * 0.5
-  }ms`;
-
-  if (addUpperBound) {
-    return `${baseQuery} transaction.duration:<=${durationBaseline * 1.5}ms`;
-  }
-
-  return baseQuery;
+  }ms transaction.duration:<=${durationBaseline * 1.5}ms`;
 }
 
 // A hook for getting "sample events" for a transaction

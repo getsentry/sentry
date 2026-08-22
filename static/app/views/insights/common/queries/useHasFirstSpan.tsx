@@ -33,20 +33,14 @@ const modulePropertyMap: Record<
 /**
  * Returns whether the module and current project selection has received a first insight span
  * @param module The name of the module that will be checked for a first span
- * @param projects The projects to check for the first span. If not provided, the selected projects will be used
  * @returns true if the module has a first span in the selected projects, false otherwise
  */
-export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boolean {
+export function useHasFirstSpan(module: ModuleName): boolean {
   const {projects: allProjects} = useProjects();
   const pageFilters = usePageFilters();
 
   if ((excludedModuleNames as readonly ModuleName[]).includes(module)) {
     return false;
-  }
-
-  if (projects) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return projects.some(p => p[modulePropertyMap[module]] === true);
   }
 
   let selectedProjects: Project[] = [];

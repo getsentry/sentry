@@ -12,7 +12,6 @@ export function getAlertsUrl({
   aggregate,
   organization,
   pageFilters,
-  name,
   dataset = Dataset.GENERIC_METRICS,
   eventTypes,
   referrer,
@@ -23,7 +22,6 @@ export function getAlertsUrl({
   dataset?: Dataset;
   eventTypes?: EventTypes[];
   interval?: string;
-  name?: string;
   project?: Project;
   query?: string;
   referrer?: string;
@@ -35,7 +33,6 @@ export function getAlertsUrl({
     aggregate,
     dataset,
     organization,
-    name,
     query,
     referrer,
     eventTypes,

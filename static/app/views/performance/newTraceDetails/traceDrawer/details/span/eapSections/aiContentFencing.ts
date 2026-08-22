@@ -108,16 +108,12 @@ const DETECTORS: readonly ContentDetector[] = [htmlDetector, jsonDetector];
  * Returns `text` with any detected HTML/JSON runs wrapped in fenced code
  * blocks. Content already inside fenced or inline code is left untouched.
  */
-export function fenceContent(
-  text: string,
-  detectors: readonly ContentDetector[] = DETECTORS
-): string {
+export function fenceContent(text: string): string {
   const protectedRanges = getProtectedRanges(text);
   const overlapsProtected = (start: number, end: number) =>
     protectedRanges.some(r => start < r.end && end > r.start);
 
-  const candidates = detectors
-    .flatMap(detector => detector.detect(text))
+  const candidates = DETECTORS.flatMap(detector => detector.detect(text))
     .filter(block => !overlapsProtected(block.start, block.end))
     // Earliest first; on a tie prefer the longer block.
     .sort((a, b) => a.start - b.start || b.end - a.end);

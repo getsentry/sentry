@@ -160,10 +160,7 @@ export enum ReprocessingStatus {
 }
 
 // Reprocessing Checks
-export function getGroupReprocessingStatus(
-  group: Group,
-  mostRecentActivity?: GroupActivity
-) {
+export function getGroupReprocessingStatus(group: Group) {
   const {status, count, activity: activities} = group;
   const groupCount = Number(count);
 
@@ -171,8 +168,7 @@ export function getGroupReprocessingStatus(
     case 'reprocessing':
       return ReprocessingStatus.REPROCESSING;
     case 'unresolved': {
-      const groupMostRecentActivity =
-        mostRecentActivity ?? getGroupMostRecentActivity(activities);
+      const groupMostRecentActivity = getGroupMostRecentActivity(activities);
       if (groupMostRecentActivity?.type === 'reprocess') {
         if (groupCount === 0) {
           return ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT;

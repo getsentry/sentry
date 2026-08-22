@@ -66,14 +66,6 @@ export interface Widget {
    */
   height?: number;
   /**
-   * Removes padding from the footer area
-   */
-  noFooterPadding?: boolean;
-  /**
-   * Removes padding from the header area
-   */
-  noHeaderPadding?: boolean;
-  /**
    * Removes padding from the visualization area
    */
   noVisualizationPadding?: boolean;
@@ -94,7 +86,7 @@ function WidgetLayout(props: Widget) {
       revealActions={revealActions}
       minHeight={defined(props.height) ? Math.min(props.height, MIN_HEIGHT) : MIN_HEIGHT}
     >
-      <Header noPadding={props.noHeaderPadding}>
+      <Header>
         {props.Title && <Fragment>{props.Title}</Fragment>}
         {props.TitleBadges && (
           <Flex align="center" gap="xs">
@@ -123,7 +115,7 @@ function WidgetLayout(props: Widget) {
       )}
 
       {props.Footer && (
-        <FooterWrapper noPadding={props.noFooterPadding}>
+        <FooterWrapper>
           <ErrorBoundary
             customComponent={() => <WidgetError error={RENDER_ERROR_MESSAGE} />}
           >

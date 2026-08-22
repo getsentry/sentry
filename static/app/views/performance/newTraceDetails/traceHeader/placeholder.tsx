@@ -4,7 +4,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -25,12 +24,10 @@ const traceViewFeedbackOptions = {
 
 export function PlaceHolder({
   organization,
-  project,
   traceSlug,
 }: {
   organization: Organization;
   traceSlug: string;
-  project?: Project;
 }) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
@@ -42,11 +39,7 @@ export function PlaceHolder({
       <TraceHeaderComponents.HeaderContent>
         <Flex justify="between" align="center" gap="md">
           {hasNewBreadcrumbs ? (
-            <TraceBreadcrumbs
-              organization={organization}
-              traceSlug={traceSlug}
-              project={project}
-            />
+            <TraceBreadcrumbs organization={organization} traceSlug={traceSlug} />
           ) : (
             <TopBar.Slot name="title">
               <Breadcrumbs
@@ -55,7 +48,6 @@ export function PlaceHolder({
                   location,
                   moduleURLBuilder,
                   traceSlug,
-                  project,
                   view,
                 })}
               />

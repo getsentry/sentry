@@ -9,20 +9,11 @@ interface TriggerFormTypingAnimationParams {
   speed?: number;
 }
 
-interface UseFormTypingAnimationOptions {
-  /**
-   * Typing speed in characters per second.
-   */
-  speed?: number;
-}
-
 /**
  * Animates text into a form field by repeatedly calling `setValue` with a
  * growing slice of the text. The consumer decides how to apply the value.
  */
-export function useFormTypingAnimation({
-  speed: defaultSpeed = 70,
-}: UseFormTypingAnimationOptions = {}) {
+export function useFormTypingAnimation() {
   const animationFrameRef = useRef<number | null>(null);
   const currentIndexRef = useRef(0);
   const lastUpdateTimeRef = useRef(0);
@@ -39,7 +30,7 @@ export function useFormTypingAnimation({
   useEffect(() => cancelFormTypingAnimation, [cancelFormTypingAnimation]);
 
   const triggerFormTypingAnimation = useCallback(
-    ({setValue, text, speed = defaultSpeed}: TriggerFormTypingAnimationParams) => {
+    ({setValue, text, speed = 70}: TriggerFormTypingAnimationParams) => {
       cancelFormTypingAnimation();
 
       const runId = runIdRef.current;
@@ -83,7 +74,7 @@ export function useFormTypingAnimation({
 
       animationFrameRef.current = window.requestAnimationFrame(animate);
     },
-    [cancelFormTypingAnimation, defaultSpeed]
+    [cancelFormTypingAnimation]
   );
 
   return {triggerFormTypingAnimation, cancelFormTypingAnimation};

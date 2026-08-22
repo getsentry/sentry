@@ -106,12 +106,10 @@ export function eventDetailsRouteWithEventView({
   organization,
   eventSlug,
   eventView,
-  isHomepage,
 }: {
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
-  isHomepage?: boolean;
 }) {
   const pathname = eventDetailsRoute({
     organization,
@@ -120,7 +118,7 @@ export function eventDetailsRouteWithEventView({
 
   return {
     pathname,
-    query: {...eventView.generateQueryStringObject(), homepage: isHomepage},
+    query: {...eventView.generateQueryStringObject(), homepage: undefined},
   };
 }
 
