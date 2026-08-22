@@ -1,4 +1,23 @@
-import {replaceTokensWithSpan} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {
+  OnboardingCodeSnippet,
+  replaceTokensWithSpan,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+
+describe('OnboardingCodeSnippet', () => {
+  it('beautifies JavaScript snippets', async () => {
+    render(
+      <OnboardingCodeSnippet language="javascript">
+        {'const options={enabled:true};'}
+      </OnboardingCodeSnippet>
+    );
+
+    expect(
+      await screen.findByText('const options = { enabled: true };')
+    ).toBeInTheDocument();
+  });
+});
 
 describe('replaceTokenWithSpan', () => {
   it('replaces __ORG_AUTH_TOKEN___ token', () => {

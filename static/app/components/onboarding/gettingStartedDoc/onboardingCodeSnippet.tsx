@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
-import beautify from 'js-beautify';
+import {useQuery} from '@tanstack/react-query';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
@@ -40,6 +40,13 @@ export function OnboardingCodeSnippet({
 }: OnboardingCodeSnippetProps) {
   const [authTokenNodes, setAuthTokenNodes] = useState<HTMLSpanElement[]>([]);
 
+  const {data: beautify} = useQuery({
+    queryKey: ['onboarding-code-snippet', 'js-beautify'],
+    queryFn: () => import('js-beautify').then(module => module.default),
+    enabled: language === 'javascript',
+    staleTime: Infinity,
+  });
+
   const handleAfterHighlight = useCallback((element: HTMLElement) => {
     setAuthTokenNodes(replaceTokensWithSpan(element));
   }, []);
@@ -48,6 +55,15 @@ export function OnboardingCodeSnippet({
     () => children.includes(PACKAGE_LOADING_PLACEHOLDER),
     [children]
   );
+
+  const displayedCode =
+    language === 'javascript' && beautify
+      ? beautify.js(children, {
+          indent_size: 2,
+          e4x: true,
+          brace_style: 'preserve-inline',
+        })
+      : children.trim();
 
   return (
     <Fragment>
@@ -59,14 +75,7 @@ export function OnboardingCodeSnippet({
         {...props}
         onAfterHighlight={handleAfterHighlight}
       >
-        {/* Trim whitespace from code snippets and beautify javascript code */}
-        {language === 'javascript'
-          ? beautify.js(children, {
-              indent_size: 2,
-              e4x: true,
-              brace_style: 'preserve-inline',
-            })
-          : children.trim()}
+        {displayedCode}
       </CodeBlock>
       {authTokenNodes.map(node => createPortal(<AuthTokenGenerator />, node))}
     </Fragment>
