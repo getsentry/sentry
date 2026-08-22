@@ -16,7 +16,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -33,10 +32,12 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {useMilestoneAdvanceToasts} from './milestoneToast';
+import {FilterBarSkeleton, OverviewSkeleton} from './overviewSkeleton';
 import {ProjectSetupWarning} from './projectSetupWarning';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
@@ -85,6 +86,7 @@ export default function AutofixOverview() {
 // Owns every request so a feature-disabled org mounts no query at all.
 function AutofixOverviewContent({organization}: {organization: Organization}) {
   const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const {initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
   const navigate = useNavigate();
   useOverviewSeerDrawer();
@@ -113,7 +115,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     isPending,
     isError,
     enrichmentPending,
-    isRefetching,
     refetch,
     enrichedSettled,
   } = useAutofixOverview({
@@ -169,9 +170,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   };
 
   let noRunsContent: React.ReactNode;
-  if (projectConfigPending) {
-    noRunsContent = <LoadingIndicator />;
-  } else if (allUnconfigured) {
+  if (allUnconfigured) {
     noRunsContent = (
       <EmptyState
         padding="3xl"
@@ -194,90 +193,103 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   return (
     <Stack gap="lg" padding="lg xl">
-      <Flex gap="md" align="center" wrap="wrap">
-        <PageFilterBar condensed>
-          <ProjectPageFilter />
-        </PageFilterBar>
-        <DatePageFilter
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
-          )}
-        />
-        <AssigneeFilter
-          runs={allRuns}
-          value={assignee}
-          onChange={next => setQueryParam('assignee', next ?? undefined)}
-        />
-        <CompactSelect
-          value={sort}
-          options={SORT_OPTIONS}
-          onChange={selected =>
-            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value)
-          }
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
-          )}
-        />
-        {isRefetching && <LoadingIndicator mini />}
-        {(data?.truncatedMilestones?.length ?? 0) > 0 && (
-          <Text size="sm" variant="muted">
-            {t(
-              'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+      {pageFiltersReady && projectsLoaded ? (
+        <Flex gap="md" align="center" wrap="wrap">
+          <PageFilterBar condensed>
+            <ProjectPageFilter />
+          </PageFilterBar>
+          <DatePageFilter
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
             )}
-          </Text>
-        )}
-        <Flex marginLeft="auto">
-          <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
-            {allCollapsed ? t('Expand All') : t('Collapse All')}
-          </Button>
+          />
+          <AssigneeFilter
+            runs={allRuns}
+            value={assignee}
+            onChange={next => setQueryParam('assignee', next ?? undefined)}
+            loading={isPending}
+          />
+          <CompactSelect
+            value={sort}
+            options={SORT_OPTIONS}
+            onChange={selected =>
+              setQueryParam(
+                'sort',
+                selected.value === 'seer' ? undefined : selected.value
+              )
+            }
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
+            )}
+          />
+          {(data?.truncatedMilestones?.length ?? 0) > 0 && (
+            <Text size="sm" variant="muted">
+              {t(
+                'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+              )}
+            </Text>
+          )}
+          <Flex marginLeft="auto">
+            <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
+              {allCollapsed ? t('Expand All') : t('Collapse All')}
+            </Button>
+          </Flex>
         </Flex>
-      </Flex>
-      {someUnconfigured && (
-        <ProjectSetupWarning
-          unconfiguredProjects={unconfiguredProjects}
-          orgSlug={organization.slug}
-        />
+      ) : (
+        <FilterBarSkeleton />
       )}
       {isError ? (
         <LoadingError onRetry={refetch} />
-      ) : isPending ? (
-        <LoadingIndicator />
-      ) : allRuns.length === 0 ? (
-        noRunsContent
-      ) : assigneeRuns.length === 0 ? (
-        <EmptyState
-          padding="3xl"
-          title={t('No Autofix runs match the selected assignee.')}
-        />
+      ) : isPending || projectConfigPending ? (
+        <OverviewSkeleton />
       ) : (
         <Fragment>
-          <Tabs
-            value={view}
-            onChange={next => setQueryParam('view', next === 'all' ? undefined : next)}
-          >
-            <TabList>
-              <TabList.Item key="all">
-                {t('All Runs (%s)', assigneeRuns.length)}
-              </TabList.Item>
-              <TabList.Item key="in_progress">
-                {t('In Progress (%s)', inProgressCount)}
-              </TabList.Item>
-            </TabList>
-          </Tabs>
-          {populatedSections.length === 0 ? (
+          {someUnconfigured && (
+            <ProjectSetupWarning
+              unconfiguredProjects={unconfiguredProjects}
+              orgSlug={organization.slug}
+            />
+          )}
+          {allRuns.length === 0 ? (
+            noRunsContent
+          ) : assigneeRuns.length === 0 ? (
             <EmptyState
               padding="3xl"
-              title={t('No Autofix runs are currently in progress.')}
+              title={t('No Autofix runs match the selected assignee.')}
             />
           ) : (
-            <OverviewSectionList
-              sections={populatedSections}
-              collapsedGroups={collapsedGroups}
-              onToggle={toggleGroup}
-              orgSlug={organization.slug}
-              statsPeriod={selection.datetime.period}
-              enrichmentPending={enrichmentPending}
-            />
+            <Fragment>
+              <Tabs
+                value={view}
+                onChange={next =>
+                  setQueryParam('view', next === 'all' ? undefined : next)
+                }
+              >
+                <TabList>
+                  <TabList.Item key="all">
+                    {t('All Runs (%s)', assigneeRuns.length)}
+                  </TabList.Item>
+                  <TabList.Item key="in_progress">
+                    {t('In Progress (%s)', inProgressCount)}
+                  </TabList.Item>
+                </TabList>
+              </Tabs>
+              {populatedSections.length === 0 ? (
+                <EmptyState
+                  padding="3xl"
+                  title={t('No Autofix runs are currently in progress.')}
+                />
+              ) : (
+                <OverviewSectionList
+                  sections={populatedSections}
+                  collapsedGroups={collapsedGroups}
+                  onToggle={toggleGroup}
+                  orgSlug={organization.slug}
+                  statsPeriod={selection.datetime.period}
+                  enrichmentPending={enrichmentPending}
+                />
+              )}
+            </Fragment>
           )}
         </Fragment>
       )}

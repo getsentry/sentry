@@ -208,8 +208,6 @@ export function useAutofixOverview({
     isError: statusPollQuery.isError && enrichedQuery.isError && !data,
     // Cold-load shimmer only: the poll painted but no enriched payload yet.
     enrichmentPending: Boolean(data) && !enrichedQuery.data && !enrichedQuery.isError,
-    // A later refetch keeps the list up; the caller shows a spinner meanwhile.
-    isRefetching: enrichedQuery.isFetching && Boolean(enrichedQuery.data),
     enrichedSettled: !enrichedQuery.isFetching && Boolean(enrichedQuery.data),
     refetch: () => {
       statusPollQuery.refetch();
