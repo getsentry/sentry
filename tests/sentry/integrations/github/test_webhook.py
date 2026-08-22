@@ -38,6 +38,7 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.pr_id_cache import get_cached_pr_id
 from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.activity import Activity
@@ -1375,6 +1376,20 @@ class PullRequestEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
         return integration
+
+    def test_warms_pr_id_cache(self) -> None:
+        # An `@sentry` mention arrives as an issue_comment, which carries only the
+        # PR number; warming here is what keeps that path off the REST API.
+        self._create_integration_and_repo()
+
+        self._post_pull_request_event(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+
+        assert (
+            get_cached_pr_id(
+                provider="integrations:github", repo_external_id="35129377", pr_number=1
+            )
+            == 34778301
+        )
 
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     def test_github_delivery_id_extracted_and_passed_to_processors(

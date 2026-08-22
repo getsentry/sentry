@@ -46,7 +46,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
+from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
@@ -55,6 +55,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -70,6 +71,10 @@ from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
+)
+from sentry.seer.autofix.pr_iteration.run_resolution import (
+    get_run_state_for_pr_id,
+    resolve_pr_id,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.shared_integrations.exceptions import ApiError
@@ -572,10 +577,20 @@ def trigger_pr_iteration_from_comment(
             extra={"organization_id": organization_id, "repo_id": repo_id},
         )
         return None
-    if repo.provider is None:
+
+    if repo.provider != PR_ITERATION_PROVIDER:
+        # Everything below reads the provider off the constant rather than the
+        # repo, so this is where the two are held to be the same thing. The entry
+        # point already rejects anything else, which makes reaching this a
+        # disagreement between that gate and this task rather than ordinary
+        # traffic — hence warning, and hence the provider in `extra`.
         logger.warning(
-            "autofix.pr_iteration.comment_trigger.no_provider",
-            extra={"organization_id": organization_id, "repo_id": repo.id},
+            "autofix.pr_iteration.comment_trigger.unsupported_provider",
+            extra={
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "provider": repo.provider,
+            },
         )
         return None
 
@@ -587,11 +602,20 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    client = integration.get_installation(organization_id=organization_id).get_client()
     try:
-        # Async task: the PR may be deleted, made private, or GitHub may return a
-        # transient error between webhook receipt and execution.
-        pull_request = client.get_pull_request(repo.name, str(pr_number))
+        # The issue_comment payload behind an `@sentry` mention carries only the
+        # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
+        # The mapping is immutable, so it is cached; the client is built and
+        # touched only when no webhook has warmed this PR yet.
+        pr_id = resolve_pr_id(
+            provider=PR_ITERATION_PROVIDER,
+            organization_id=organization_id,
+            integration=integration,
+            repo_external_id=repo.external_id,
+            repo_name=repo.name,
+            pr_number=pr_number,
+            caller="mention",
+        )
     except ApiError:
         logger.warning(
             "autofix.pr_iteration.comment_trigger.get_pull_request_failed",
@@ -599,11 +623,15 @@ def trigger_pr_iteration_from_comment(
             exc_info=True,
         )
         return None
-    pr_id = pull_request.get("id")
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
+    agent_state = get_run_state_for_pr_id(
+        organization_id=organization_id,
+        provider=PR_ITERATION_PROVIDER,
+        pr_id=pr_id,
+        caller="mention",
+    )
     if agent_state is None:
         # No-op: missing runs are expected on regions that don't own the session
         # when webhooks are fanned out everywhere. Do not react/comment as
@@ -629,7 +657,7 @@ def trigger_pr_iteration_from_comment(
             },
         )
         _comment_pr_iteration_ineligible(
-            client,
+            integration.get_installation(organization_id=organization_id).get_client(),
             organization_id=organization_id,
             repo_id=repo.id,
             repo_name=repo.name,
@@ -875,8 +903,15 @@ def trigger_pr_iteration_from_review(
     if repo is None:
         logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
         return None
-    if repo.provider is None:
-        logger.warning("autofix.pr_iteration.review_trigger.no_provider", extra=log_extra)
+
+    if repo.provider != PR_ITERATION_PROVIDER:
+        # See the matching guard in `trigger_pr_iteration_from_comment`: the
+        # provider read below comes from the constant, so it is held equal to the
+        # repo's here, before any external call.
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.unsupported_provider",
+            extra={**log_extra, "provider": repo.provider},
+        )
         return None
 
     integration = integration_service.get_integration(integration_id=integration_id)
@@ -884,11 +919,19 @@ def trigger_pr_iteration_from_review(
         logger.warning("autofix.pr_iteration.review_trigger.missing_integration", extra=log_extra)
         return None
 
-    client = integration.get_installation(organization_id=organization_id).get_client()
     try:
-        # Async task: the PR may be deleted, made private, or GitHub may return a
-        # transient error between webhook receipt and execution.
-        pull_request = client.get_pull_request(repo.name, str(pr_number))
+        # Same number -> id recovery as the mention path. A check_suite on this
+        # PR has almost certainly warmed the cache already, so building a client
+        # and calling it is the exception rather than the rule.
+        pr_id = resolve_pr_id(
+            provider=PR_ITERATION_PROVIDER,
+            organization_id=organization_id,
+            integration=integration,
+            repo_external_id=repo.external_id,
+            repo_name=repo.name,
+            pr_number=pr_number,
+            caller="review",
+        )
     except ApiError:
         logger.warning(
             "autofix.pr_iteration.review_trigger.get_pull_request_failed",
@@ -896,11 +939,15 @@ def trigger_pr_iteration_from_review(
             exc_info=True,
         )
         return None
-    pr_id = pull_request.get("id")
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
+    agent_state = get_run_state_for_pr_id(
+        organization_id=organization_id,
+        provider=PR_ITERATION_PROVIDER,
+        pr_id=pr_id,
+        caller="review",
+    )
     if agent_state is None or not agent_state.repo_pr_states:
         metrics.incr("autofix.pr_iteration.review_trigger.no_run")
         logger.info(

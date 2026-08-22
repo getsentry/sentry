@@ -186,7 +186,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_agent_when_authorized(
         self,
@@ -240,7 +240,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_write_access(
         self,
@@ -265,7 +265,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_agent_state(
         self,
@@ -296,7 +296,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_review_comment_hoists_file_and_line(
         self,

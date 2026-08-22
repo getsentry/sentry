@@ -25,14 +25,15 @@ from scm.types import ActionResult, GetPullRequestProtocol, ListCheckRunsForRefP
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.pr_id_cache import set_cached_pr_id
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER, REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
+from sentry.seer.autofix.pr_iteration.run_resolution import get_run_state_for_pr_id
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
@@ -87,6 +88,10 @@ class GithubCheckSuitePullRequest(BaseModel):
     # an entry is skipped, which strands nothing: `extra = "allow"` round-tripped
     # `base` through the model that predates the field, so it parses back in here.
     base: GithubCheckSuitePullRequestBase | None = None
+    # Only used to warm the PR-number -> PR-id cache; optional on the same
+    # round-tripping grounds as `base`, and an entry without it is just not
+    # cached.
+    number: int | None = None
 
     class Config:
         extra = "allow"
@@ -247,12 +252,34 @@ def resolve_check_suite_autofix_run(
     if not pull_requests:
         return None
 
+    # Warm the number -> id map for the entries we kept, while both halves are in
+    # hand. The `@sentry` mention path only ever receives the number and would
+    # otherwise spend a REST call recovering the id. `event.repository.id` is
+    # optional on the model but cannot be None here: `is_own_repo_pull_request`
+    # rejects every entry when it is, so `pull_requests` is empty and we have
+    # returned above.
+    repo_external_id = str(event.repository.id)
+    for pr in pull_requests:
+        if pr.number is not None:
+            set_cached_pr_id(
+                provider=SEER_GITHUB_PROVIDER,
+                repo_external_id=repo_external_id,
+                pr_number=pr.number,
+                pr_id=pr.id,
+            )
+
     matches: list[CheckSuiteAutofixRun] = []
     for pr_id in (pr.id for pr in pull_requests):
         for candidate in repos:
             try:
-                state = get_agent_state_from_pr_id(
-                    candidate.organization_id, SEER_GITHUB_PROVIDER, pr_id
+                # A 404 comes back as None and is remembered for a minute: one
+                # PR fans out across every candidate organization, and a push to
+                # a non-Autofix PR replays this whole loop per suite.
+                state = get_run_state_for_pr_id(
+                    organization_id=candidate.organization_id,
+                    provider=SEER_GITHUB_PROVIDER,
+                    pr_id=pr_id,
+                    caller="check_suite",
                 )
             except SeerApiError as e:
                 sentry_sdk.capture_exception(e)

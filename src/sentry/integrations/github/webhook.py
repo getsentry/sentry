@@ -43,6 +43,7 @@ from sentry.integrations.services.integration.model import (
 )
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.source_code_management.pr_id_cache import set_cached_pr_id
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import (
     ExternalActorSource,
@@ -1112,6 +1113,20 @@ class PullRequestEventWebhook(GitHubWebhook):
     ) -> None:
         pull_request = event["pull_request"]
         number = pull_request["number"]
+        # Warm the number -> id map while both are in hand. Payloads that carry
+        # only the number (issue_comment, notably) otherwise pay a REST call to
+        # recover the id. Never raises; a cache outage cannot affect the rest of
+        # this handler. GitHub Enterprise reaches this handler through the
+        # subclass in `github_enterprise.webhook`; passing `repo.provider` is
+        # what keeps its repos out of a cache that only github.com repo ids can
+        # be keyed on.
+        set_cached_pr_id(
+            provider=repo.provider,
+            repo_external_id=repo.external_id,
+            pr_number=number,
+            pr_id=pull_request["id"],
+        )
+
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]

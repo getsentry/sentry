@@ -3,6 +3,10 @@ from unittest.mock import ANY, MagicMock, patch
 
 from scm.errors import ResourceNotFound
 
+from sentry.integrations.source_code_management.pr_id_cache import (
+    get_cached_pr_id,
+    set_cached_pr_id,
+)
 from sentry.scm.types import PullRequestReviewEvent, SubscriptionEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -14,6 +18,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
 )
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
 
@@ -221,7 +226,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # exercises. The mocks are exposed as ``self.mock_*``.
         for attr, target in (
             ("mock_get_integration", "integration_service.get_integration"),
-            ("mock_get_state", "get_agent_state_from_pr_id"),
+            ("mock_get_state", "get_run_state_for_pr_id"),
             ("mock_enqueue", "try_enqueue_autofix_feedback"),
             ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
             ("mock_make_scm", "make_scm"),
@@ -351,6 +356,99 @@ class TriggerPrIterationFromReviewTest(TestCase):
             delivery_authenticated=delivery_authenticated,
         )
 
+    def test_resolves_pr_id_from_cache_without_calling_github(self) -> None:
+        # The pull_request_review payload carries only the PR number; a warmed
+        # cache is what keeps that from costing a REST round-trip per review.
+        set_cached_pr_id(
+            provider=self.repo.provider,
+            repo_external_id=self.repo.external_id,
+            pr_number=7,
+            pr_id=555,
+        )
+
+        self._run()
+
+        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_not_called()
+        self.mock_get_state.assert_called_once_with(
+            organization_id=self.organization.id,
+            provider=self.repo.provider,
+            pr_id=555,
+            caller="review",
+        )
+
+    def test_populates_pr_id_cache_on_a_miss(self) -> None:
+        self._run()
+
+        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_called_once_with("owner/repo", "7")
+        assert (
+            get_cached_pr_id(
+                provider=self.repo.provider,
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            == 555
+        )
+
+    def test_stops_on_a_repo_whose_provider_is_not_pinned(self) -> None:
+        # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
+        # instead of the repo, so a GHE repo reaching this task would key its
+        # per-instance repo id into a cache that only github.com ids are unique
+        # in — and ask Seer for a run under the wrong provider. The listener
+        # rejects GHE before dispatch; this pins that the task does not depend on
+        # it having done so.
+        self.repo.provider = "integrations:github_enterprise"
+        self.repo.save()
+
+        self._run()
+
+        self.mock_get_integration.assert_not_called()
+        self.mock_get_state.assert_not_called()
+        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_not_called()
+        assert (
+            get_cached_pr_id(
+                provider="integrations:github",
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            is None
+        )
+
+    def test_returns_when_get_pull_request_fails(self) -> None:
+        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
+        client.get_pull_request.side_effect = ApiError("boom")
+
+        self._run()
+
+        self.mock_get_state.assert_not_called()
+        self.mock_enqueue.assert_not_called()
+        assert (
+            get_cached_pr_id(
+                provider=self.repo.provider,
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            is None
+        )
+
+    def test_does_not_cache_a_missing_pr_id(self) -> None:
+        self.mock_get_integration.return_value = self._mock_integration(pr_id=None)
+
+        self._run()
+
+        self.mock_get_state.assert_not_called()
+        self.mock_enqueue.assert_not_called()
+        assert (
+            get_cached_pr_id(
+                provider=self.repo.provider,
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            is None
+        )
+
     def test_batch_review_with_inline_comments_and_body(self) -> None:
         self.mock_actions.get_review_comments.return_value = self._paginated(
             [
@@ -366,7 +464,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
             "owner/repo", "7"
         )
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            organization_id=self.organization.id,
+            provider=self.repo.provider,
+            pr_id=555,
+            caller="review",
         )
 
         # Two inline comments + one review body item.

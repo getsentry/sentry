@@ -776,7 +776,9 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
         )
         assert (
             resolve_check_suite_repositories(
-                GithubCheckSuiteEvent.parse_obj({**_check_suite_event(), "installation": {"id": 1}})
+                GithubCheckSuiteEvent.parse_obj(
+                    {**_check_suite_event(), "installation": {"id": 1}}
+                ),
             )
             == []
         )
@@ -792,7 +794,7 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
                     "installation": {"id": 1},
                     "repository": {"id": 2, "html_url": "https://github.com/owner/repo"},
                 }
-            )
+            ),
         )
 
         assert result == []
@@ -817,7 +819,7 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
                     "installation": {"id": 1},
                     "repository": {"id": 2, "html_url": "https://github.com/owner/repo"},
                 }
-            )
+            ),
         )
 
         assert [r.id for r in result] == [repo.id]
@@ -853,7 +855,7 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
                     "installation": {"id": 1},
                     "repository": {"id": 2, "html_url": "https://github.com/owner/repo"},
                 }
-            )
+            ),
         )
 
         assert {repo.id for repo in result} == {repo_a.id, repo_b.id}
