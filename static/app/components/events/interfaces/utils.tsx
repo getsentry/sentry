@@ -29,7 +29,11 @@ interface HiddenFrameIndicesProps {
   toggleFrameMap: Record<number, boolean>;
 }
 
-export function findImageForAddress({event, addrMode, address}: ImageForAddressProps) {
+export function findImageForAddress({
+  event,
+  addrMode,
+  address,
+}: ImageForAddressProps): Image | null {
   const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
 
   if (!images || !address) {
@@ -45,7 +49,7 @@ export function findImageForAddress({event, addrMode, address}: ImageForAddressP
     return addrMode === `rel:${idx}`;
   });
 
-  return image;
+  return image ?? null;
 }
 
 export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
