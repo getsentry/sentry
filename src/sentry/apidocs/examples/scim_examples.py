@@ -147,3 +147,125 @@ class SCIMExamples:
             status_codes=["201"],
         ),
     ]
+
+    SERVICE_PROVIDER_CONFIG = [
+        OpenApiExample(
+            "Retrieve the service provider configuration",
+            value={
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"],
+                "documentationUri": "https://docs.sentry.io/organization/authentication/sso/",
+                "patch": {"supported": True},
+                "bulk": {"supported": False, "maxOperations": 0, "maxPayloadSize": 0},
+                "filter": {"supported": True, "maxResults": 100},
+                "changePassword": {"supported": False},
+                "sort": {"supported": False},
+                "etag": {"supported": False},
+                "authenticationSchemes": [
+                    {
+                        "type": "oauthbearertoken",
+                        "name": "OAuth Bearer Token",
+                        "description": "Authentication scheme using the OAuth Bearer Token standard. Use the SCIM token generated for your organization.",
+                        "specUri": "https://www.rfc-editor.org/info/rfc6750",
+                        "primary": True,
+                    }
+                ],
+                "meta": {
+                    "resourceType": "ServiceProviderConfig",
+                    "location": "https://sentry.io/api/0/organizations/example-org/scim/v2/ServiceProviderConfig",
+                },
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    LIST_RESOURCE_TYPES = [
+        OpenApiExample(
+            "List the resource types",
+            value={
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+                "totalResults": 2,
+                "startIndex": 1,
+                "itemsPerPage": 2,
+                "Resources": [
+                    {
+                        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+                        "id": "User",
+                        "name": "User",
+                        "description": "SCIM User maps to Sentry Organization Member",
+                        "endpoint": "/Users",
+                        "schema": "urn:ietf:params:scim:schemas:core:2.0:User",
+                        "meta": {
+                            "resourceType": "ResourceType",
+                            "location": "https://sentry.io/api/0/organizations/example-org/scim/v2/ResourceTypes/User",
+                        },
+                    },
+                    {
+                        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+                        "id": "Group",
+                        "name": "Group",
+                        "description": "SCIM Group maps to Sentry Team",
+                        "endpoint": "/Groups",
+                        "schema": "urn:ietf:params:scim:schemas:core:2.0:Group",
+                        "meta": {
+                            "resourceType": "ResourceType",
+                            "location": "https://sentry.io/api/0/organizations/example-org/scim/v2/ResourceTypes/Group",
+                        },
+                    },
+                ],
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    RESOURCE_TYPE_DETAILS = [
+        OpenApiExample(
+            "Query an individual resource type",
+            value={
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+                "id": "User",
+                "name": "User",
+                "description": "SCIM User maps to Sentry Organization Member",
+                "endpoint": "/Users",
+                "schema": "urn:ietf:params:scim:schemas:core:2.0:User",
+                "meta": {
+                    "resourceType": "ResourceType",
+                    "location": "https://sentry.io/api/0/organizations/example-org/scim/v2/ResourceTypes/User",
+                },
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    SCHEMA_DETAILS = [
+        OpenApiExample(
+            "Query an individual schema",
+            value={
+                "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Schema"],
+                "id": "urn:ietf:params:scim:schemas:core:2.0:User",
+                "name": "User",
+                "description": "SCIM User maps to Sentry Organization Member",
+                "attributes": [
+                    {
+                        "name": "userName",
+                        "type": "string",
+                        "multiValued": False,
+                        "description": "Unique identifier for the User, which for Sentry is an email address.",
+                        "required": True,
+                        "caseExact": False,
+                        "mutability": "immutable",
+                        "returned": "default",
+                        "uniqueness": "server",
+                    }
+                ],
+                "meta": {
+                    "resourceType": "Schema",
+                    "location": "https://sentry.io/api/0/organizations/example-org/scim/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:User",
+                },
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
