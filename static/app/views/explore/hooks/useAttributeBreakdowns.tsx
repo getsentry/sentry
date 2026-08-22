@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -25,9 +25,13 @@ type AttributeBreakdowns = {
 // The /trace-items/stats/ endpoint returns a paginated response.
 export function useAttributeBreakdowns({
   cursor,
+  enabled,
+  preservePreviousData,
   substringMatch,
 }: {
   cursor: string | undefined;
+  enabled: boolean;
+  preservePreviousData: boolean;
   substringMatch: string;
 }) {
   const organization = useOrganization();
@@ -56,7 +60,7 @@ export function useAttributeBreakdowns({
 
   const {
     data: response,
-    isLoading,
+    isPending,
     error,
   } = useQuery({
     ...apiOptions.as<AttributeBreakdowns>()(
@@ -68,14 +72,15 @@ export function useAttributeBreakdowns({
       }
     ),
     select: selectJsonWithHeaders,
-    enabled: pageFiltersReady,
+    enabled: enabled && pageFiltersReady,
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
   });
 
   return {
     data:
       response?.json?.data[0]?.attributeDistributions?.data ??
       response?.json?.data[0]?.attribute_distributions?.data,
-    isLoading,
+    isPending,
     error,
     pageLinks: response?.headers.Link ?? null,
   };

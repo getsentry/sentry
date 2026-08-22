@@ -2,6 +2,8 @@ import {useQuery, skipToken} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -26,17 +28,23 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
+  const [tab] = useTab();
+  const shouldValidateColumns = tab === Tab.SPAN || tab === Mode.AGGREGATE;
 
-  const {data, isFetching, isLoading, isPlaceholderData} = useQuery({
+  const {data, error, isFetching, isLoading, isPlaceholderData} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
       traceItemType: TraceItemDataset.SPANS,
       environments: selection.environments,
-      field: getColumnFieldsForValidation({aggregateFields, fields}),
-      orderBy: [...sortBys, ...aggregateSortBys].map(sortBy =>
-        sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
-      ),
+      field: shouldValidateColumns
+        ? getColumnFieldsForValidation({aggregateFields, fields})
+        : undefined,
+      orderBy: shouldValidateColumns
+        ? [...sortBys, ...aggregateSortBys].map(sortBy =>
+            sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
+          )
+        : undefined,
       query,
       projectIds: selection.projects,
     }),
@@ -46,6 +54,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
 
   return {
     data,
+    error,
     isFetching,
     isPlaceholderData,
     isLoading,

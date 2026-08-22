@@ -24,10 +24,12 @@ type TracesExportModalButtonProps = {
   aggregatesTableResult: AggregatesTableResult;
   rawSpanCounts: RawCounts;
   spansTableResult: SpansTableResult;
+  disabled?: boolean;
 };
 
 export function TracesExportModalButton({
   aggregatesTableResult,
+  disabled,
   rawSpanCounts,
   spansTableResult,
 }: TracesExportModalButtonProps) {
@@ -103,7 +105,7 @@ export function TracesExportModalButton({
   return (
     <ExploreExportModalButton
       config={config}
-      disabled={!isExportSupported}
+      disabled={disabled || !isExportSupported}
       isDataEmpty={isExportSupported && data.length === 0}
       isDataError={isExportSupported && targetTableResult.result.error !== null}
       isDataLoading={isExportSupported && targetTableResult.result.isPending}

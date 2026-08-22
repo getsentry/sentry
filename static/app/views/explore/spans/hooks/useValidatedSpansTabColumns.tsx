@@ -8,9 +8,13 @@ export function useValidatedSpansTabColumns(tab: Mode | Tab) {
   const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
+
+  const shouldCleanupTableColumns = tab === Tab.SPAN || tab === Mode.AGGREGATE;
+
   const {data: validationData, isFetching: isValidatingColumns} = useValidateSpansTab({
-    enabled: tab === Tab.SPAN || tab === Mode.AGGREGATE,
+    enabled: shouldCleanupTableColumns,
   });
+
   const validatedColumnData = useValidatedExploreColumns({
     attributes: {
       boolean: booleanAttributes,
@@ -18,8 +22,8 @@ export function useValidatedSpansTabColumns(tab: Mode | Tab) {
       string: stringAttributes,
     },
     isValidating: isValidatingColumns,
-    shouldCleanupAggregateColumns: tab === Mode.AGGREGATE,
-    shouldCleanupColumns: tab === Tab.SPAN,
+    shouldCleanupAggregateColumns: shouldCleanupTableColumns,
+    shouldCleanupColumns: shouldCleanupTableColumns,
     validationData,
   });
 

@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -39,7 +39,13 @@ export type AttributeDistribution = Array<{
   values: Array<{label: string; value: number}>;
 }>;
 
-export function AttributeDistribution() {
+export function AttributeDistribution({
+  enabled,
+  preservePreviousData,
+}: {
+  enabled: boolean;
+  preservePreviousData: boolean;
+}) {
   const {breakdownCursor, breakdownQuery, query} = useQueryParams();
   const setQueryParams = useSetQueryParams();
   const searchQuery = breakdownQuery ?? '';
@@ -67,7 +73,7 @@ export function AttributeDistribution() {
 
   const {
     data: cohortCountResponse,
-    isLoading: isCohortCountLoading,
+    isPending: isCohortCountPending,
     error: cohortCountError,
     refetch: refetchCohortCount,
   } = useQuery({
@@ -85,28 +91,47 @@ export function AttributeDistribution() {
       }
     ),
     select: selectJsonWithHeaders,
+    enabled,
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
   });
 
-  const cohortCount = cohortCountResponse?.json?.data?.[0]?.['count()'] ?? 0;
+  const showValidatedResults = enabled || preservePreviousData;
+  const cohortCount = showValidatedResults
+    ? (cohortCountResponse?.json?.data?.[0]?.['count()'] ?? 0)
+    : 0;
 
-  const {
-    data: attributeBreakdownsData,
-    pageLinks: attributeBreakdownsPageLinks,
-    isLoading: isAttributeBreakdownsLoading,
-    error: attributeBreakdownsError,
-  } = useAttributeBreakdowns({
+  const attributeBreakdownsResult = useAttributeBreakdowns({
     cursor: breakdownCursor,
+    enabled,
+    preservePreviousData,
     substringMatch: debouncedSearchQuery,
   });
+  const attributeBreakdownsData = showValidatedResults
+    ? attributeBreakdownsResult.data
+    : undefined;
+  const attributeBreakdownsPageLinks = showValidatedResults
+    ? attributeBreakdownsResult.pageLinks
+    : null;
+  const isAttributeBreakdownsPending = showValidatedResults
+    ? attributeBreakdownsResult.isPending
+    : false;
+  const attributeBreakdownsError = showValidatedResults
+    ? attributeBreakdownsResult.error
+    : null;
 
   // Refetch the cohort count when the attributeBreakdownsData changes
   // This ensures that the population percentages are calculated correctly,
   // for none absolute date ranges.
   useEffect(() => {
-    if (!isAttributeBreakdownsLoading && attributeBreakdownsData) {
+    if (enabled && !isAttributeBreakdownsPending && attributeBreakdownsData) {
       refetchCohortCount();
     }
-  }, [attributeBreakdownsData, isAttributeBreakdownsLoading, refetchCohortCount]);
+  }, [
+    attributeBreakdownsData,
+    enabled,
+    isAttributeBreakdownsPending,
+    refetchCohortCount,
+  ]);
 
   const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 
@@ -154,7 +179,8 @@ export function AttributeDistribution() {
           />
           <AttributeBreakdownsComponent.FeedbackButton />
         </AttributeBreakdownsComponent.ControlsContainer>
-        {isAttributeBreakdownsLoading || isCohortCountLoading ? (
+        {isAttributeBreakdownsPending ||
+        (showValidatedResults && isCohortCountPending) ? (
           <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />

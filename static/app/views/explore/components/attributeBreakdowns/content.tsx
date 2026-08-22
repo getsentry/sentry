@@ -6,7 +6,13 @@ import {AttributeDistribution} from './attributeDistributionContent';
 import {useChartSelection} from './chartSelectionContext';
 import {CohortComparison} from './cohortComparisonContent';
 
-export function AttributeBreakdownsContent() {
+export function AttributeBreakdownsContent({
+  preservePreviousData,
+  queriesEnabled,
+}: {
+  preservePreviousData: boolean;
+  queriesEnabled: boolean;
+}) {
   const {chartSelection} = useChartSelection();
   const location = useLocation();
   const visualizes = useQueryParamsVisualizes();
@@ -20,6 +26,8 @@ export function AttributeBreakdownsContent() {
 
     return (
       <CohortComparison
+        enabled={queriesEnabled}
+        preservePreviousData={preservePreviousData}
         selection={chartSelection.selection}
         yAxis={yAxis}
         query={query}
@@ -29,5 +37,10 @@ export function AttributeBreakdownsContent() {
     );
   }
 
-  return <AttributeDistribution />;
+  return (
+    <AttributeDistribution
+      enabled={queriesEnabled}
+      preservePreviousData={preservePreviousData}
+    />
+  );
 }
