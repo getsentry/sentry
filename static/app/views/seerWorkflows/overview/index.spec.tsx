@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -811,6 +812,25 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByRole('link', {name: 'TypeError in checkout cart'})
     ).not.toBeInTheDocument();
+  });
+
+  it('holds the filter bar as a skeleton until projects finish loading', async () => {
+    // Reset the store so `useProjects().initiallyLoaded` is false; without this the
+    // project filter would swap "Loading…" for its label and shift the whole row.
+    ProjectsStore.reset();
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+    renderPage();
+
+    // The real filter controls are gated; a placeholder stands in for them.
+    expect(screen.queryByRole('button', {name: /Sort/})).not.toBeInTheDocument();
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+
+    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
+
+    expect(await screen.findByRole('button', {name: /Sort/})).toBeInTheDocument();
   });
 
   it('renders the changed files of an open pull request', async () => {

@@ -17,6 +17,20 @@ function CardSkeleton() {
   );
 }
 
+export function FilterBarSkeleton() {
+  return (
+    <Flex gap="md" align="center" aria-hidden>
+      <Placeholder height="36px" width="6rem" />
+      <Placeholder height="36px" width="9rem" />
+      <Placeholder height="36px" width="7rem" />
+      <Placeholder height="36px" width="5rem" />
+      <Flex marginLeft="auto">
+        <Placeholder height="36px" width="6rem" />
+      </Flex>
+    </Flex>
+  );
+}
+
 export function OverviewSkeleton() {
   return (
     <Stack gap="lg" aria-hidden>

@@ -32,11 +32,12 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {useMilestoneAdvanceToasts} from './milestoneToast';
-import {OverviewSkeleton} from './overviewSkeleton';
+import {FilterBarSkeleton, OverviewSkeleton} from './overviewSkeleton';
 import {ProjectSetupWarning} from './projectSetupWarning';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
@@ -85,6 +86,7 @@ export default function AutofixOverview() {
 // Owns every request so a feature-disabled org mounts no query at all.
 function AutofixOverviewContent({organization}: {organization: Organization}) {
   const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const {initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
   const navigate = useNavigate();
   useOverviewSeerDrawer();
@@ -191,43 +193,51 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   return (
     <Stack gap="lg" padding="lg xl">
-      <Flex gap="md" align="center" wrap="wrap">
-        <PageFilterBar condensed>
-          <ProjectPageFilter />
-        </PageFilterBar>
-        <DatePageFilter
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
-          )}
-        />
-        <AssigneeFilter
-          runs={allRuns}
-          value={assignee}
-          onChange={next => setQueryParam('assignee', next ?? undefined)}
-        />
-        <CompactSelect
-          value={sort}
-          options={SORT_OPTIONS}
-          onChange={selected =>
-            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value)
-          }
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
-          )}
-        />
-        {(data?.truncatedMilestones?.length ?? 0) > 0 && (
-          <Text size="sm" variant="muted">
-            {t(
-              'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+      {pageFiltersReady && projectsLoaded ? (
+        <Flex gap="md" align="center" wrap="wrap">
+          <PageFilterBar condensed>
+            <ProjectPageFilter />
+          </PageFilterBar>
+          <DatePageFilter
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
             )}
-          </Text>
-        )}
-        <Flex marginLeft="auto">
-          <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
-            {allCollapsed ? t('Expand All') : t('Collapse All')}
-          </Button>
+          />
+          <AssigneeFilter
+            runs={allRuns}
+            value={assignee}
+            onChange={next => setQueryParam('assignee', next ?? undefined)}
+            loading={isPending}
+          />
+          <CompactSelect
+            value={sort}
+            options={SORT_OPTIONS}
+            onChange={selected =>
+              setQueryParam(
+                'sort',
+                selected.value === 'seer' ? undefined : selected.value
+              )
+            }
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
+            )}
+          />
+          {(data?.truncatedMilestones?.length ?? 0) > 0 && (
+            <Text size="sm" variant="muted">
+              {t(
+                'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+              )}
+            </Text>
+          )}
+          <Flex marginLeft="auto">
+            <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
+              {allCollapsed ? t('Expand All') : t('Collapse All')}
+            </Button>
+          </Flex>
         </Flex>
-      </Flex>
+      ) : (
+        <FilterBarSkeleton />
+      )}
       {isError ? (
         <LoadingError onRetry={refetch} />
       ) : isPending || projectConfigPending ? (
