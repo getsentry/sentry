@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from scm.types import ReviewComment
 
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
@@ -24,6 +25,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.seer.pr_iteration import (
     UnsupportedProviderError,
     _build_review_feedback,
@@ -83,6 +85,16 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_integration = MagicMock()
         mock_integration.get_installation.return_value.get_client.return_value = mock_client
         return mock_integration
+
+    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+        pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="7",
+        )
+        if external_id is not None:
+            pr.update(external_id=external_id)
+        return pr
 
     def _call(self) -> None:
         trigger_pr_iteration_from_comment(
@@ -148,6 +160,105 @@ class TriggerPrIterationFromCommentTest(TestCase):
             comment_id=999,
             reaction="eyes",
         )
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_resolves_pr_id_from_row_without_calling_github(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # The issue_comment payload carries only the PR number; a stored
+        # ``external_id`` is what keeps that from costing a REST round-trip.
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
+        mock_get_state.return_value = None
+        self._stored_pr(external_id=555)
+
+        self._call()
+
+        client = mock_integration.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_not_called()
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 555)
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_writes_external_id_back_on_a_miss(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
+        mock_get_state.return_value = None
+        pr = self._stored_pr()
+
+        self._call()
+
+        client = mock_integration.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_called_once_with("owner/repo", "7")
+        pr.refresh_from_db()
+        assert pr.external_id == 555
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_returns_when_get_pull_request_fails(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        mock_integration = self._mock_integration()
+        client = mock_integration.get_installation.return_value.get_client.return_value
+        client.get_pull_request.side_effect = ApiError("boom")
+        mock_get_integration.return_value = mock_integration
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_does_not_store_a_missing_pr_id(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        mock_get_integration.return_value = self._mock_integration(pr_id=None)
+        mock_get_state.return_value = None
+        pr = self._stored_pr()
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        pr.refresh_from_db()
+        assert pr.external_id is None
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_stops_on_a_repo_whose_provider_is_not_pinned(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
+        # instead of the repo, so a GHE repo reaching this task would key its
+        # per-instance repo id into a cache that only github.com ids are unique
+        # in — and ask Seer for a run under the wrong provider. The entry point
+        # rejects GHE before dispatch; this pins that the task does not depend on
+        # it having done so.
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
+        self.repo.provider = "integrations:github_enterprise"
+        self.repo.save()
+
+        self._call()
+
+        mock_get_integration.assert_not_called()
+        mock_get_state.assert_not_called()
+        client = mock_integration.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_not_called()
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
 
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)

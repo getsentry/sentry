@@ -43,6 +43,7 @@ from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
@@ -55,6 +56,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -523,6 +525,20 @@ def _comment_pr_iteration_ineligible(
         pass
 
 
+def _fetch_pr_id(client: Any, repo_name: str, pr_number: int) -> int | None:
+    """Recover a PR's GitHub id from its repo-scoped number over the REST API.
+
+    The fallback behind ``PullRequest.objects.get_or_fetch_external_id``, so it
+    runs only when the row has no ``external_id`` yet. Both trigger tasks run
+    async, meaning the PR may have been deleted or made private, or GitHub may
+    return a transient error, between webhook receipt and execution —
+    ``ApiError`` propagates to the caller, which is where the drop is logged.
+    """
+    pull_request = client.get_pull_request(repo_name, str(pr_number))
+    pr_id: int | None = pull_request.get("id")
+    return pr_id
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
@@ -572,10 +588,20 @@ def trigger_pr_iteration_from_comment(
             extra={"organization_id": organization_id, "repo_id": repo_id},
         )
         return None
-    if repo.provider is None:
+
+    if repo.provider != PR_ITERATION_PROVIDER:
+        # Everything below reads the provider off the constant rather than the
+        # repo, so this is where the two are held to be the same thing. The entry
+        # point already rejects anything else, which makes reaching this a
+        # disagreement between that gate and this task rather than ordinary
+        # traffic — hence warning, and hence the provider in `extra`.
         logger.warning(
-            "autofix.pr_iteration.comment_trigger.no_provider",
-            extra={"organization_id": organization_id, "repo_id": repo.id},
+            "autofix.pr_iteration.comment_trigger.unsupported_provider",
+            extra={
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "provider": repo.provider,
+            },
         )
         return None
 
@@ -588,10 +614,18 @@ def trigger_pr_iteration_from_comment(
         return None
 
     client = integration.get_installation(organization_id=organization_id).get_client()
+
     try:
-        # Async task: the PR may be deleted, made private, or GitHub may return a
-        # transient error between webhook receipt and execution.
-        pull_request = client.get_pull_request(repo.name, str(pr_number))
+        # The issue_comment payload behind an `@sentry` mention carries only the
+        # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
+        # The mapping lives on ``PullRequest.external_id``; REST runs only when
+        # no webhook (or earlier write-back) has stored it yet.
+        pr_id = PullRequest.objects.get_or_fetch_external_id(
+            organization_id=organization_id,
+            repository_id=repo.id,
+            key=str(pr_number),
+            fetch=lambda: _fetch_pr_id(client, repo.name, pr_number),
+        )
     except ApiError:
         logger.warning(
             "autofix.pr_iteration.comment_trigger.get_pull_request_failed",
@@ -599,11 +633,10 @@ def trigger_pr_iteration_from_comment(
             exc_info=True,
         )
         return None
-    pr_id = pull_request.get("id")
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
+    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
     if agent_state is None:
         # No-op: missing runs are expected on regions that don't own the session
         # when webhooks are fanned out everywhere. Do not react/comment as
@@ -875,8 +908,15 @@ def trigger_pr_iteration_from_review(
     if repo is None:
         logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
         return None
-    if repo.provider is None:
-        logger.warning("autofix.pr_iteration.review_trigger.no_provider", extra=log_extra)
+
+    if repo.provider != PR_ITERATION_PROVIDER:
+        # See the matching guard in `trigger_pr_iteration_from_comment`: the
+        # provider read below comes from the constant, so it is held equal to the
+        # repo's here, before any external call.
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.unsupported_provider",
+            extra={**log_extra, "provider": repo.provider},
+        )
         return None
 
     integration = integration_service.get_integration(integration_id=integration_id)
@@ -885,10 +925,18 @@ def trigger_pr_iteration_from_review(
         return None
 
     client = integration.get_installation(organization_id=organization_id).get_client()
+
     try:
-        # Async task: the PR may be deleted, made private, or GitHub may return a
-        # transient error between webhook receipt and execution.
-        pull_request = client.get_pull_request(repo.name, str(pr_number))
+        # The pull_request_review payload carries only the PR number, but Seer's
+        # run lookup is keyed on GitHub's numeric PR id. A pull_request webhook
+        # on this PR has almost certainly written ``external_id`` already, so
+        # the fetch is the exception rather than the rule.
+        pr_id = PullRequest.objects.get_or_fetch_external_id(
+            organization_id=organization_id,
+            repository_id=repo.id,
+            key=str(pr_number),
+            fetch=lambda: _fetch_pr_id(client, repo.name, pr_number),
+        )
     except ApiError:
         logger.warning(
             "autofix.pr_iteration.review_trigger.get_pull_request_failed",
@@ -896,11 +944,10 @@ def trigger_pr_iteration_from_review(
             exc_info=True,
         )
         return None
-    pr_id = pull_request.get("id")
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
+    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
     if agent_state is None or not agent_state.repo_pr_states:
         metrics.incr("autofix.pr_iteration.review_trigger.no_run")
         logger.info(
