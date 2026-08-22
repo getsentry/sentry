@@ -37,6 +37,7 @@ import type {
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {OUTSIDE_RETENTION_DESCRIPTION} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
 import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
@@ -134,13 +135,14 @@ export function VisualizationWidget({
         timeseriesResultsUnits,
         tableResults,
         errorMessage,
+        isOutsideRetention,
         loading,
         confidence,
         dataScanned,
         isSampled,
         sampleCount,
       }) => {
-        if (errorMessage && onWidgetError) {
+        if (errorMessage && !isOutsideRetention && onWidgetError) {
           onWidgetError(widget, errorMessage);
         }
 
@@ -152,6 +154,7 @@ export function VisualizationWidget({
             timeseriesResultsUnits={timeseriesResultsUnits}
             tableResults={tableResults}
             errorMessage={errorMessage}
+            isOutsideRetention={isOutsideRetention}
             loading={loading}
             releases={releases}
             showReleaseAs="bubble"
@@ -183,6 +186,7 @@ interface VisualizationWidgetContentProps {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   isFullScreen?: boolean;
+  isOutsideRetention?: boolean;
   isSampled?: boolean | null;
   legendSelection?: LegendSelection;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
@@ -201,6 +205,7 @@ function VisualizationWidgetContent({
   timeseriesResultsUnits,
   tableResults,
   errorMessage,
+  isOutsideRetention,
   loading,
   releases,
   showReleaseAs,
@@ -383,6 +388,14 @@ function VisualizationWidgetContent({
 
   if (loading) {
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+  }
+
+  // The range predates retention, so there is genuinely nothing to plot. Check
+  // this before `errorMessage`, which is set for this case too.
+  if (isOutsideRetention) {
+    return (
+      <TimeSeriesWidgetVisualization.NoData description={OUTSIDE_RETENTION_DESCRIPTION} />
+    );
   }
 
   if (errorMessage) {

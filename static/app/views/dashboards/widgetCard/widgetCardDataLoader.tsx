@@ -25,6 +25,7 @@ type Results = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  isOutsideRetention?: boolean;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
@@ -210,6 +211,7 @@ export function WidgetCardDataLoader({
         tableResults,
         timeseriesResults,
         errorMessage,
+        isOutsideRetention,
         loading,
         timeseriesResultsTypes,
         timeseriesResultsUnits,
@@ -220,6 +222,7 @@ export function WidgetCardDataLoader({
             tableResults,
             timeseriesResults,
             errorMessage,
+            isOutsideRetention,
             loading,
             timeseriesResultsTypes,
             timeseriesResultsUnits,
