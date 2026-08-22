@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from re import Match
 from typing import Any, Union, cast
 
 import sentry_sdk
-from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
 from snuba_sdk import (
     AliasedExpression,
@@ -29,7 +28,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
     OperandType,
@@ -57,7 +55,6 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.utils import MetricMeta
 from sentry.snuba.query_sources import QuerySource
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start
@@ -650,7 +647,6 @@ class BaseQueryBuilder:
                     if self.builder_config.equation_config
                     else {}
                 ),
-                custom_measurements=self.get_custom_measurement_names_set(),
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(
@@ -989,53 +985,6 @@ class BaseQueryBuilder:
 
         return flattened
 
-    @cached_property
-    def custom_measurement_map(self) -> Sequence[MetricMeta]:
-        # Both projects & org are required, but might be missing for the search parser
-        if self.organization_id is None or not self.builder_config.has_metrics:
-            return []
-
-        from sentry.snuba.metrics.datasource import get_custom_measurements
-
-        should_use_user_time_range = self.params.organization is not None and features.has(
-            "organizations:performance-discover-get-custom-measurements-reduced-range",
-            self.params.organization,
-            actor=None,
-        )
-
-        start = (
-            self.params.start
-            if should_use_user_time_range
-            else datetime.today() - timedelta(days=90)
-        )
-        end = self.params.end if should_use_user_time_range else datetime.today()
-
-        try:
-            result = get_custom_measurements(
-                project_ids=self.params.project_ids,
-                organization_id=self.organization_id,
-                start=start,
-                end=end,
-            )
-        # Don't fully fail if we can't get the CM, but still capture the exception
-        except Exception as error:
-            sentry_sdk.capture_exception(error)
-            return []
-        return result
-
-    def get_custom_measurement_names_set(self) -> set[str]:
-        return {measurement["name"] for measurement in self.custom_measurement_map}
-
-    def get_measurement_by_name(self, name: str) -> MetricMeta | None:
-        # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
-        if not is_measurement(name):
-            return None
-
-        for measurement in self.custom_measurement_map:
-            if measurement["name"] == name:
-                return measurement
-        return None
-
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]
@@ -1054,20 +1003,8 @@ class BaseQueryBuilder:
         if unit := self.size_fields.get(field):
             return unit
 
-        measurement = self.get_measurement_by_name(field)
         # let the caller decide what to do
-        if measurement is None:
-            return None
-
-        unit = measurement["unit"]
-        if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
-            return unit
-        elif unit == "none":
-            return "integer"
-        elif unit in constants.PERCENT_UNITS:
-            return "percentage"
-        else:
-            return "number"
+        return None
 
     def validate_having_clause(self) -> None:
         """Validate that the functions in having are selected columns

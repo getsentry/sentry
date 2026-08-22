@@ -142,7 +142,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             patch.object(RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True),
             patch("sentry.ratelimits.concurrent.rate_limit_info") as rate_limit_info,
         ):
-            rate_limit_info.return_value = (1, False, 0)
+            rate_limit_info.return_value = (1, False)
 
             default_rate_limit_mock.return_value = RateLimit(
                 limit=0, window=100, concurrent_limit=1

@@ -15,6 +15,8 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionStatus,
     InvestigationBlockParameter,
     InvestigationParameter,
     InvestigationParameterSource,
@@ -37,6 +39,7 @@ from sentry.models.project import Project
 
 UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
 MAX_INVESTIGATION_TITLE_LENGTH = 255
+DEFAULT_INVESTIGATION_TITLE = "Untitled investigation"
 
 CREATABLE_BLOCK_FIELDS = frozenset({"kind", "title", "content", "prompt", "config", "display"})
 UPDATABLE_BLOCK_FIELDS = CREATABLE_BLOCK_FIELDS - {"kind"}
@@ -343,7 +346,7 @@ def _create_template_investigation(
             accessible_project_ids=accessible_project_ids,
         )
         project_ids = [source.project_id]
-        resolved_title = title or "Untitled investigation"
+        resolved_title = title or DEFAULT_INVESTIGATION_TITLE
         normalized_source_ref = {
             "groupId": str(source.group.id),
             "openPeriodId": str(source.open_period.id),
@@ -501,6 +504,19 @@ def archive_investigation(*, investigation: Investigation, expected_version: int
         locked = lock_investigation(investigation, expected_version)
         if locked.status == InvestigationStatus.ARCHIVED:
             return locked
+        if InvestigationBlockExecution.objects.filter(
+            block__investigation=locked,
+            block__deleted_at__isnull=True,
+            status__in=(
+                InvestigationBlockExecutionStatus.PENDING,
+                InvestigationBlockExecutionStatus.RUNNING,
+                InvestigationBlockExecutionStatus.AWAITING_INPUT,
+                InvestigationBlockExecutionStatus.STOPPING,
+            ),
+        ).exists():
+            raise InvestigationValidationError(
+                {"detail": "Stop active block runs before archiving this investigation."}
+            )
         locked.status = InvestigationStatus.ARCHIVED
         bump_investigation_version(locked)
         if locked.source_key is not None:
@@ -624,6 +640,17 @@ def delete_block(
         mark_downstream_blocks_stale(
             investigation_id=investigation.id, upstream_block_ids={locked.id}
         )
+        if locked.executions.filter(
+            status__in=(
+                InvestigationBlockExecutionStatus.PENDING,
+                InvestigationBlockExecutionStatus.RUNNING,
+                InvestigationBlockExecutionStatus.AWAITING_INPUT,
+                InvestigationBlockExecutionStatus.STOPPING,
+            )
+        ).exists():
+            raise InvestigationValidationError(
+                {"detail": "Stop the active run before deleting this block."}
+            )
         locked.deleted_at = timezone.now()
         locked.version += 1
         locked.save(update_fields=["deleted_at", "version", "date_updated"])

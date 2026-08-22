@@ -191,6 +191,11 @@ class BlockExecutionStartValidator(StrictCamelSnakeValidator):
     request_id = serializers.UUIDField(required=False)
 
 
+class BlockExecutionResumeValidator(StrictCamelSnakeValidator):
+    input_id = serializers.CharField()
+    response_data = serializers.JSONField(allow_null=True)
+
+
 class BlockOrderValidator(StrictCamelSnakeValidator):
     investigation_version = serializers.IntegerField(min_value=1)
     block_ids = serializers.ListField(child=serializers.IntegerField(min_value=1))
