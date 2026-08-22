@@ -5,10 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from scm.types import ReviewComment
 
-from sentry.integrations.source_code_management.pr_id_cache import (
-    get_cached_pr_id,
-    set_cached_pr_id,
-)
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
@@ -89,6 +86,16 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_integration.get_installation.return_value.get_client.return_value = mock_client
         return mock_integration
 
+    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+        pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="7",
+        )
+        if external_id is not None:
+            pr.update(external_id=external_id)
+        return pr
+
     def _call(self) -> None:
         trigger_pr_iteration_from_comment(
             organization_id=self.organization.id,
@@ -156,22 +163,17 @@ class TriggerPrIterationFromCommentTest(TestCase):
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_resolves_pr_id_from_cache_without_calling_github(
+    def test_resolves_pr_id_from_row_without_calling_github(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
     ) -> None:
-        # The issue_comment payload carries only the PR number; a warmed cache
-        # is what keeps that from costing a REST round-trip per mention.
+        # The issue_comment payload carries only the PR number; a stored
+        # ``external_id`` is what keeps that from costing a REST round-trip.
         mock_integration = self._mock_integration()
         mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
-        set_cached_pr_id(
-            provider=self.repo.provider,
-            repo_external_id=self.repo.external_id,
-            pr_number=7,
-            pr_id=555,
-        )
+        self._stored_pr(external_id=555)
 
         self._call()
 
@@ -181,7 +183,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_populates_pr_id_cache_on_a_miss(
+    def test_writes_external_id_back_on_a_miss(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
@@ -189,19 +191,14 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_integration = self._mock_integration()
         mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
+        pr = self._stored_pr()
 
         self._call()
 
         client = mock_integration.get_installation.return_value.get_client.return_value
         client.get_pull_request.assert_called_once_with("owner/repo", "7")
-        assert (
-            get_cached_pr_id(
-                provider=self.repo.provider,
-                repo_external_id=self.repo.external_id,
-                pr_number=7,
-            )
-            == 555
-        )
+        pr.refresh_from_db()
+        assert pr.external_id == 555
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
@@ -218,36 +215,24 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self._call()
 
         mock_get_state.assert_not_called()
-        assert (
-            get_cached_pr_id(
-                provider=self.repo.provider,
-                repo_external_id=self.repo.external_id,
-                pr_number=7,
-            )
-            is None
-        )
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_does_not_cache_a_missing_pr_id(
+    def test_does_not_store_a_missing_pr_id(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
     ) -> None:
         mock_get_integration.return_value = self._mock_integration(pr_id=None)
         mock_get_state.return_value = None
+        pr = self._stored_pr()
 
         self._call()
 
         mock_get_state.assert_not_called()
-        assert (
-            get_cached_pr_id(
-                provider=self.repo.provider,
-                repo_external_id=self.repo.external_id,
-                pr_number=7,
-            )
-            is None
-        )
+        pr.refresh_from_db()
+        assert pr.external_id is None
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
@@ -273,14 +258,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_get_state.assert_not_called()
         client = mock_integration.get_installation.return_value.get_client.return_value
         client.get_pull_request.assert_not_called()
-        assert (
-            get_cached_pr_id(
-                provider="integrations:github",
-                repo_external_id=self.repo.external_id,
-                pr_number=7,
-            )
-            is None
-        )
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
 
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)

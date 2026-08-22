@@ -39,11 +39,11 @@ from taskbroker_client.retry import Retry
 from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.source_code_management.pr_id_cache import get_or_fetch_pr_id
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
@@ -528,11 +528,11 @@ def _comment_pr_iteration_ineligible(
 def _fetch_pr_id(client: Any, repo_name: str, pr_number: int) -> int | None:
     """Recover a PR's GitHub id from its repo-scoped number over the REST API.
 
-    The fallback behind `get_or_fetch_pr_id`, so it runs only when no webhook has
-    warmed this PR into the id cache. Both trigger tasks run async, meaning the
-    PR may have been deleted or made private, or GitHub may return a transient
-    error, between webhook receipt and execution — `ApiError` propagates to the
-    caller, which is where the drop is logged.
+    The fallback behind ``PullRequest.objects.get_or_fetch_external_id``, so it
+    runs only when the row has no ``external_id`` yet. Both trigger tasks run
+    async, meaning the PR may have been deleted or made private, or GitHub may
+    return a transient error, between webhook receipt and execution —
+    ``ApiError`` propagates to the caller, which is where the drop is logged.
     """
     pull_request = client.get_pull_request(repo_name, str(pr_number))
     pr_id: int | None = pull_request.get("id")
@@ -618,12 +618,12 @@ def trigger_pr_iteration_from_comment(
     try:
         # The issue_comment payload behind an `@sentry` mention carries only the
         # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
-        # The mapping is immutable, so it is cached; the fetch runs only when no
-        # webhook has warmed this PR yet.
-        pr_id = get_or_fetch_pr_id(
-            provider=PR_ITERATION_PROVIDER,
-            repo_external_id=repo.external_id,
-            pr_number=pr_number,
+        # The mapping lives on ``PullRequest.external_id``; REST runs only when
+        # no webhook (or earlier write-back) has stored it yet.
+        pr_id = PullRequest.objects.get_or_fetch_external_id(
+            organization_id=organization_id,
+            repository_id=repo.id,
+            key=str(pr_number),
             fetch=lambda: _fetch_pr_id(client, repo.name, pr_number),
         )
     except ApiError:
@@ -928,13 +928,13 @@ def trigger_pr_iteration_from_review(
 
     try:
         # The pull_request_review payload carries only the PR number, but Seer's
-        # run lookup is keyed on GitHub's numeric PR id. A pull_request or
-        # check_suite webhook on this PR has almost certainly warmed the cache
-        # already, so the fetch is the exception rather than the rule.
-        pr_id = get_or_fetch_pr_id(
-            provider=PR_ITERATION_PROVIDER,
-            repo_external_id=repo.external_id,
-            pr_number=pr_number,
+        # run lookup is keyed on GitHub's numeric PR id. A pull_request webhook
+        # on this PR has almost certainly written ``external_id`` already, so
+        # the fetch is the exception rather than the rule.
+        pr_id = PullRequest.objects.get_or_fetch_external_id(
+            organization_id=organization_id,
+            repository_id=repo.id,
+            key=str(pr_number),
             fetch=lambda: _fetch_pr_id(client, repo.name, pr_number),
         )
     except ApiError:

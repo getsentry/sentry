@@ -3,10 +3,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 from scm.errors import ResourceNotFound
 
-from sentry.integrations.source_code_management.pr_id_cache import (
-    get_cached_pr_id,
-    set_cached_pr_id,
-)
+from sentry.models.pullrequest import PullRequest
 from sentry.scm.types import PullRequestReviewEvent, SubscriptionEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -337,6 +334,16 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
         return {"data": review, "type": "github", "raw": {}}
 
+    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+        pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="7",
+        )
+        if external_id is not None:
+            pr.update(external_id=external_id)
+        return pr
+
     def _run(
         self,
         author_username: str | None = "reviewer",
@@ -356,15 +363,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
             delivery_authenticated=delivery_authenticated,
         )
 
-    def test_resolves_pr_id_from_cache_without_calling_github(self) -> None:
-        # The pull_request_review payload carries only the PR number; a warmed
-        # cache is what keeps that from costing a REST round-trip per review.
-        set_cached_pr_id(
-            provider=self.repo.provider,
-            repo_external_id=self.repo.external_id,
-            pr_number=7,
-            pr_id=555,
-        )
+    def test_resolves_pr_id_from_row_without_calling_github(self) -> None:
+        # The pull_request_review payload carries only the PR number; a stored
+        # ``external_id`` is what keeps that from costing a REST round-trip.
+        self._stored_pr(external_id=555)
 
         self._run()
 
@@ -374,19 +376,15 @@ class TriggerPrIterationFromReviewTest(TestCase):
             self.organization.id, "integrations:github", 555
         )
 
-    def test_populates_pr_id_cache_on_a_miss(self) -> None:
+    def test_writes_external_id_back_on_a_miss(self) -> None:
+        pr = self._stored_pr()
+
         self._run()
 
         client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
         client.get_pull_request.assert_called_once_with("owner/repo", "7")
-        assert (
-            get_cached_pr_id(
-                provider=self.repo.provider,
-                repo_external_id=self.repo.external_id,
-                pr_number=7,
-            )
-            == 555
-        )
+        pr.refresh_from_db()
+        assert pr.external_id == 555
 
     def test_stops_on_a_repo_whose_provider_is_not_pinned(self) -> None:
         # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
@@ -404,14 +402,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_get_state.assert_not_called()
         client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
         client.get_pull_request.assert_not_called()
-        assert (
-            get_cached_pr_id(
-                provider="integrations:github",
-                repo_external_id=self.repo.external_id,
-                pr_number=7,
-            )
-            is None
-        )
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
 
     def test_returns_when_get_pull_request_fails(self) -> None:
         client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
@@ -421,30 +412,18 @@ class TriggerPrIterationFromReviewTest(TestCase):
 
         self.mock_get_state.assert_not_called()
         self.mock_enqueue.assert_not_called()
-        assert (
-            get_cached_pr_id(
-                provider=self.repo.provider,
-                repo_external_id=self.repo.external_id,
-                pr_number=7,
-            )
-            is None
-        )
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
 
-    def test_does_not_cache_a_missing_pr_id(self) -> None:
+    def test_does_not_store_a_missing_pr_id(self) -> None:
         self.mock_get_integration.return_value = self._mock_integration(pr_id=None)
+        pr = self._stored_pr()
 
         self._run()
 
         self.mock_get_state.assert_not_called()
         self.mock_enqueue.assert_not_called()
-        assert (
-            get_cached_pr_id(
-                provider=self.repo.provider,
-                repo_external_id=self.repo.external_id,
-                pr_number=7,
-            )
-            is None
-        )
+        pr.refresh_from_db()
+        assert pr.external_id is None
 
     def test_batch_review_with_inline_comments_and_body(self) -> None:
         self.mock_actions.get_review_comments.return_value = self._paginated(
