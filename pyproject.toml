@@ -1304,7 +1304,6 @@ module = [
     "sentry.services.organization.*",
     "sentry.shared_integrations",
     "sentry.shared_integrations.response.*",
-    "sentry.signals",
     "sentry.similarity.*",
     "sentry.snuba.functions",
     "sentry.snuba.issue_platform",
