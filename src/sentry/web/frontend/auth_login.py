@@ -229,16 +229,21 @@ class AuthLoginView(BaseView):
 
         organization: RpcOrganization | None = kwargs.pop("organization", None)
 
-        if self.can_register(request=request):
+        # Check `op == "login"` first: registration is allowed for the whole
+        # invite session (can_register), but a user on that same page can
+        # still submit the login form (e.g. via the "Already have an
+        # account? Sign in" link), and that submission must be routed to the
+        # login handler regardless of can_register.
+        if op == "login":
+            return self.handle_login_form_submit(
+                request=request, organization=organization, **kwargs
+            )
+        elif self.can_register(request=request):
             return self.handle_register_form_submit(
                 request=request, organization=organization, **kwargs
             )
         else:
-            if op != "login":
-                raise BadRequest()
-            return self.handle_login_form_submit(
-                request=request, organization=organization, **kwargs
-            )
+            raise BadRequest()
 
     def redirect_post_to_sso(self, request: HttpRequest) -> HttpResponseRedirect:
         """

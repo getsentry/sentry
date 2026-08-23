@@ -369,6 +369,23 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert "nav-tabs" not in content
         assert "Already have an account? Sign in" in content
 
+    def test_login_form_submit_works_during_invite_registration(self) -> None:
+        self.session["invite_email"] = "foo@example.com"
+        self.session["can_register"] = True
+        self.save_session()
+
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert "_auth_user_id" in self.client.session
+        assert not User.objects.filter(username="foo@example.com").exists()
+
     def test_register_without_invite_shows_tabs(self) -> None:
         with self.allow_registration():
             register_path = reverse("sentry-register")
