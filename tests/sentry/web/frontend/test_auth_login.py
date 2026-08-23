@@ -410,8 +410,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         resp = self.client.post(
             self.path,
             {
-                # A tampered/attacker-supplied email should be ignored in
-                # favor of the invite's email since the field is disabled.
                 "username": "attacker@example.com",
                 "password": "foobar",
                 "name": "Foo Bar",

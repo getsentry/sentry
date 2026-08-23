@@ -572,8 +572,6 @@ class AuthLoginView(BaseView):
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "show_partner_login_banner": request.GET.get("partner") is not None,
             "referrer": request.GET.get("referrer"),
-            # When arriving to register via an org invite, skip the Sign In /
-            # SSO tab chrome and show a single, direct registration form.
             "is_invite_registration": bool(request.session.get("invite_email")),
         }
         default_context.update(additional_context.run_callbacks(request=request))
