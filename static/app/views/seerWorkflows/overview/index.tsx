@@ -137,6 +137,16 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       {replace: true}
     );
 
+  const trackFilterChanged = (
+    filterType: 'sort' | 'assignee' | 'activity' | 'view_tab',
+    value: string
+  ) =>
+    trackAnalytics('autofix.overview.filter_changed', {
+      organization,
+      filter_type: filterType,
+      value,
+    });
+
   const {
     data,
     projectConfig,
@@ -236,11 +246,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         )}
         <DatePageFilter
           onChange={update =>
-            trackAnalytics('autofix.overview.filter_changed', {
-              organization,
-              filter_type: 'activity',
-              value: update.relative ?? 'absolute',
-            })
+            trackFilterChanged('activity', update.relative ?? 'absolute')
           }
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
@@ -250,11 +256,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           runs={allRuns}
           value={assignee}
           onChange={next => {
-            trackAnalytics('autofix.overview.filter_changed', {
-              organization,
-              filter_type: 'assignee',
-              value: bucketAssignee(next, user.id),
-            });
+            trackFilterChanged('assignee', bucketAssignee(next, user.id));
             setQueryParam('assignee', next ?? undefined);
           }}
           loading={isPending}
@@ -263,11 +265,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           value={sort}
           options={SORT_OPTIONS}
           onChange={selected => {
-            trackAnalytics('autofix.overview.filter_changed', {
-              organization,
-              filter_type: 'sort',
-              value: selected.value,
-            });
+            trackFilterChanged('sort', selected.value);
             setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value);
           }}
           trigger={triggerProps => (
@@ -314,11 +312,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
               <Tabs
                 value={view}
                 onChange={next => {
-                  trackAnalytics('autofix.overview.filter_changed', {
-                    organization,
-                    filter_type: 'view_tab',
-                    value: next,
-                  });
+                  trackFilterChanged('view_tab', next);
                   setQueryParam('view', next === 'all' ? undefined : next);
                 }}
               >

@@ -143,6 +143,15 @@ function OverviewAction({
 }) {
   const organization = useOrganization();
   const {pullRequests, status} = run;
+  const trackPrClicked = (section: 'merged' | 'review_pr', pr: OverviewPullRequest) =>
+    trackAnalytics('autofix.overview.pr_clicked', {
+      organization,
+      group_id: run.groupId,
+      run_id: run.seerRunId,
+      section,
+      checks_status: pr.checksStatus ?? undefined,
+      review_status: pr.reviewStatus ?? undefined,
+    });
   if (status === 'processing') {
     return (
       <ButtonBar>
@@ -185,16 +194,7 @@ function OverviewAction({
                     icon={<IconMerge />}
                     href={pullRequest.url}
                     external
-                    onClick={() =>
-                      trackAnalytics('autofix.overview.pr_clicked', {
-                        organization,
-                        group_id: run.groupId,
-                        run_id: run.seerRunId,
-                        section: 'merged',
-                        checks_status: pullRequest.checksStatus ?? undefined,
-                        review_status: pullRequest.reviewStatus ?? undefined,
-                      })
-                    }
+                    onClick={() => trackPrClicked('merged', pullRequest)}
                   >
                     {label}
                   </LinkButton>
@@ -241,16 +241,7 @@ function OverviewAction({
               variant="primary"
               href={reviewPullRequest.url}
               external
-              onClick={() =>
-                trackAnalytics('autofix.overview.pr_clicked', {
-                  organization,
-                  group_id: run.groupId,
-                  run_id: run.seerRunId,
-                  section: 'review_pr',
-                  checks_status: reviewPullRequest.checksStatus ?? undefined,
-                  review_status: reviewPullRequest.reviewStatus ?? undefined,
-                })
-              }
+              onClick={() => trackPrClicked('review_pr', reviewPullRequest)}
             >
               <Flex as="span" gap="xs" align="center">
                 {t('Review PR #%s', reviewPullRequest.number)}
