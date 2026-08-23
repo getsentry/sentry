@@ -305,13 +305,21 @@ class AuthLoginView(BaseView):
         Extracts the register form from a request, then formats and returns it.
         """
         op = request.POST.get("op")
-        initial_data = {"username": request.session.get("invite_email", "")}
-        return RegistrationForm(
+        invite_email = request.session.get("invite_email", "")
+        initial_data = {"username": invite_email}
+        form = RegistrationForm(
             request.POST if op == "register" else None,
             initial=initial_data,
             # Custom auto_id to avoid ID collision with AuthenticationForm.
             auto_id="id_registration_%s",
         )
+        if invite_email:
+            # The invited email is the source of truth while accepting an
+            # invite. Disabling (rather than just pre-filling) the field means
+            # Django ignores any submitted value and always uses `initial`,
+            # so the field can't be tampered with client-side.
+            form.fields["username"].disabled = True
+        return form
 
     def handle_new_user_creation(
         self,
@@ -559,6 +567,9 @@ class AuthLoginView(BaseView):
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "show_partner_login_banner": request.GET.get("partner") is not None,
             "referrer": request.GET.get("referrer"),
+            # When arriving to register via an org invite, skip the Sign In /
+            # SSO tab chrome and show a single, direct registration form.
+            "is_invite_registration": bool(request.session.get("invite_email")),
         }
         default_context.update(additional_context.run_callbacks(request=request))
         return default_context

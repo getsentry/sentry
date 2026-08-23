@@ -361,7 +361,50 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         assert resp.context["op"] == "register"
         assert resp.context["register_form"].initial["username"] == "foo@example.com"
+        assert resp.context["register_form"].fields["username"].disabled is True
+        assert resp.context["is_invite_registration"] is True
         self.assertTemplateUsed("sentry/login.html")
+        content = resp.content.decode("utf-8")
+        assert "Create your account" in content
+        assert "nav-tabs" not in content
+        assert "Already have an account? Sign in" in content
+
+    def test_register_without_invite_shows_tabs(self) -> None:
+        with self.allow_registration():
+            register_path = reverse("sentry-register")
+            resp = self.client.get(register_path)
+
+        assert resp.status_code == 200
+        assert resp.context["register_form"].fields["username"].disabled is False
+        assert resp.context["is_invite_registration"] is False
+        content = resp.content.decode("utf-8")
+        assert "nav-tabs" in content
+
+    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
+    def test_register_ignores_tampered_invite_email(self, from_session: mock.MagicMock) -> None:
+        self.session["invite_email"] = "foo@example.com"
+        self.session["can_register"] = True
+        self.save_session()
+
+        self.client.get(self.path)
+
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
+        from_session.return_value = invite_helper
+
+        resp = self.client.post(
+            self.path,
+            {
+                # A tampered/attacker-supplied email should be ignored in
+                # favor of the invite's email since the field is disabled.
+                "username": "attacker@example.com",
+                "password": "foobar",
+                "name": "Foo Bar",
+                "op": "register",
+            },
+        )
+        assert resp.status_code == 302
+        assert User.objects.filter(username="foo@example.com").exists()
+        assert not User.objects.filter(username="attacker@example.com").exists()
 
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
     def test_register_accepts_invite(self, from_session: mock.MagicMock) -> None:
