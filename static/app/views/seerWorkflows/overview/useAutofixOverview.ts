@@ -7,6 +7,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {CanonicalApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 import {
   type AutofixOverviewResponse,
@@ -118,10 +119,8 @@ export function isSameScope(previous: QueryParams, next: QueryParams): boolean {
 }
 
 function queryParamsOf(queryKey: QueryKey): QueryParams {
-  const options = queryKey[1];
-  return options && typeof options === 'object' && 'query' in options
-    ? (options.query as QueryParams)
-    : undefined;
+  const [, options] = queryKey as CanonicalApiQueryKey;
+  return options?.query;
 }
 
 export function overlayStatus(
