@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
@@ -246,7 +246,24 @@ function AcceptOrganizationInvite() {
     },
   });
 
-  if (isPending) {
+  // For the common invite case (no SSO configured on the org), skip the
+  // "create account or login" choice screen and go straight to the
+  // registration form, which is pre-filled with the invited email. Orgs
+  // with SSO configured keep the choice screen since it also surfaces the
+  // SSO option.
+  const shouldRedirectToRegister = Boolean(
+    inviteDetails?.needsAuthentication &&
+      !inviteDetails.requireSso &&
+      !inviteDetails.hasAuthProvider
+  );
+
+  useEffect(() => {
+    if (shouldRedirectToRegister) {
+      testableWindowLocation.assign('/auth/register/');
+    }
+  }, [shouldRedirectToRegister]);
+
+  if (isPending || shouldRedirectToRegister) {
     return <LoadingIndicator />;
   }
 
