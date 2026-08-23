@@ -32,7 +32,11 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
     >
       <ToastIcon type={indicator.type} />
       <Container padding="lg">
-        <TextOverflow>{indicator.message}</TextOverflow>
+        {typeof indicator.message === 'string' ? (
+          <TextOverflow>{indicator.message}</TextOverflow>
+        ) : (
+          indicator.message
+        )}
       </Container>
       {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
         <Flex align="center" justify="center" padding="0 lg">

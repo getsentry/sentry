@@ -13,7 +13,6 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {OpenSeerButton} from './openSeerButton';
 import {
   type ActionableSectionKey,
   isActionableSection,
@@ -94,7 +93,6 @@ export function MilestoneToast({
       {isActionableSection(sectionKey) && run.status !== 'processing' && (
         <NextActionButton run={run} sectionKey={sectionKey} />
       )}
-      <OpenSeerButton run={run} size="xs" />
     </Flex>
   );
 }
