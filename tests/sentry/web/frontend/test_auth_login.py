@@ -44,6 +44,11 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     def allow_registration(self):
         return self.options({"auth.allow-registration": True})
 
+    def set_invite_session(self, email: str = "foo@example.com") -> None:
+        self.session["invite_email"] = email
+        self.session["can_register"] = True
+        self.save_session()
+
     def test_renders_correct_template(self) -> None:
         resp = self.client.get(self.path)
 
@@ -351,9 +356,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             self.assertTemplateUsed("sentry/login.html")
 
     def test_register_prefills_invite_email(self) -> None:
-        self.session["invite_email"] = "foo@example.com"
-        self.session["can_register"] = True
-        self.save_session()
+        self.set_invite_session()
 
         register_path = reverse("sentry-register")
         resp = self.client.get(register_path)
@@ -370,9 +373,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert "Already have an account? Sign in" in content
 
     def test_login_form_submit_works_during_invite_registration(self) -> None:
-        self.session["invite_email"] = "foo@example.com"
-        self.session["can_register"] = True
-        self.save_session()
+        self.set_invite_session()
 
         # load it once for test cookie
         self.client.get(self.path)
@@ -399,9 +400,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
     def test_register_ignores_tampered_invite_email(self, from_session: mock.MagicMock) -> None:
-        self.session["invite_email"] = "foo@example.com"
-        self.session["can_register"] = True
-        self.save_session()
+        self.set_invite_session()
 
         self.client.get(self.path)
 
