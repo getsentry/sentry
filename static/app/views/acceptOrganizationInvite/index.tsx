@@ -259,7 +259,10 @@ function AcceptOrganizationInvite() {
 
   useEffect(() => {
     if (shouldRedirectToRegister) {
-      testableWindowLocation.assign('/auth/register/');
+      // Use `replace` (not `assign`) so this accept-invite page isn't left
+      // in browser history — otherwise pressing Back here would just
+      // redirect straight back to /auth/register/ again.
+      testableWindowLocation.replace('/auth/register/');
     }
   }, [shouldRedirectToRegister]);
 

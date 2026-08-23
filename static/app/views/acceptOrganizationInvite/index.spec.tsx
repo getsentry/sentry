@@ -141,7 +141,7 @@ describe('AcceptOrganizationInvite', () => {
     });
 
     await waitFor(() =>
-      expect(testableWindowLocation.assign).toHaveBeenCalledWith('/auth/register/')
+      expect(testableWindowLocation.replace).toHaveBeenCalledWith('/auth/register/')
     );
 
     expect(screen.queryByTestId('action-info-general')).not.toBeInTheDocument();
