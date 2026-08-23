@@ -1,5 +1,4 @@
 import {type ComponentProps, Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
@@ -23,7 +22,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -37,9 +35,15 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {useMilestoneAdvanceToasts} from './milestoneToast';
-import {FilterBarSkeleton, OverviewSkeleton} from './overviewSkeleton';
+import {OverviewSkeleton, ProjectFilterSkeleton} from './overviewSkeleton';
 import {ProjectSetupWarning} from './projectSetupWarning';
-import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
+import {
+  GroupHeader,
+  STATUS_GROUP_META,
+  StatusGroup,
+  type StatusGroupKey,
+  StatusGroupTooltip,
+} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
@@ -65,7 +69,6 @@ export default function AutofixOverview() {
       renderDisabled={() => <NoAccess />}
     >
       <PageFiltersContainer
-        skipInitializeUrlParams
         defaultSelection={{datetime: {period: '7d', start: null, end: null, utc: null}}}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
@@ -155,11 +158,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     );
   };
 
+  const resultsPending = isPending || projectConfigPending;
   const populatedKeys = populatedSections.map(section => section.key);
   const allCollapsed =
-    populatedKeys.length > 0
-      ? populatedKeys.every(key => collapsedGroups.includes(key))
-      : collapsedGroups.length > 0;
+    populatedKeys.length > 0 && populatedKeys.every(key => collapsedGroups.includes(key));
 
   const toggleAllGroups = () => {
     setCollapsedGroups(previous =>
@@ -193,54 +195,54 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   return (
     <Stack gap="lg" padding="lg xl">
-      {pageFiltersReady && projectsLoaded ? (
-        <Flex gap="md" align="center" wrap="wrap">
+      <Flex gap="md" align="center" wrap="wrap">
+        {pageFiltersReady && projectsLoaded ? (
           <PageFilterBar condensed>
             <ProjectPageFilter />
           </PageFilterBar>
-          <DatePageFilter
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
-            )}
-          />
-          <AssigneeFilter
-            runs={allRuns}
-            value={assignee}
-            onChange={next => setQueryParam('assignee', next ?? undefined)}
-            loading={isPending}
-          />
-          <CompactSelect
-            value={sort}
-            options={SORT_OPTIONS}
-            onChange={selected =>
-              setQueryParam(
-                'sort',
-                selected.value === 'seer' ? undefined : selected.value
-              )
-            }
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
-            )}
-          />
-          {(data?.truncatedMilestones?.length ?? 0) > 0 && (
-            <Text size="sm" variant="muted">
-              {t(
-                'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
-              )}
-            </Text>
+        ) : (
+          <ProjectFilterSkeleton />
+        )}
+        <DatePageFilter
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
           )}
-          <Flex marginLeft="auto">
-            <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
-              {allCollapsed ? t('Expand All') : t('Collapse All')}
-            </Button>
-          </Flex>
+        />
+        <AssigneeFilter
+          runs={allRuns}
+          value={assignee}
+          onChange={next => setQueryParam('assignee', next ?? undefined)}
+          loading={isPending}
+        />
+        <CompactSelect
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={selected =>
+            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value)
+          }
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
+          )}
+        />
+        {(data?.truncatedMilestones?.length ?? 0) > 0 && (
+          <Text size="sm" variant="muted">
+            {t(
+              'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+            )}
+          </Text>
+        )}
+        <Flex marginLeft="auto">
+          <Button
+            onClick={toggleAllGroups}
+            disabled={!resultsPending && populatedSections.length === 0}
+          >
+            {allCollapsed ? t('Expand All') : t('Collapse All')}
+          </Button>
         </Flex>
-      ) : (
-        <FilterBarSkeleton />
-      )}
+      </Flex>
       {isError ? (
         <LoadingError onRetry={refetch} />
-      ) : isPending || projectConfigPending ? (
+      ) : resultsPending ? (
         <OverviewSkeleton />
       ) : (
         <Fragment>
@@ -368,24 +370,3 @@ function NoAccess() {
     </Stack>
   );
 }
-
-// Disclosure.Content adds its own horizontal panel padding; cards align to the
-// section edge instead.
-const StatusGroup = styled(Disclosure)`
-  && > * + * {
-    padding-left: 0;
-    padding-right: 0;
-  }
-`;
-
-const GroupHeader = styled(Sticky)`
-  z-index: ${p => p.theme.zIndex.initial + 1};
-  align-self: stretch;
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: ${p => p.theme.radius.md};
-
-  &[data-stuck] {
-    border-radius: 0;
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;

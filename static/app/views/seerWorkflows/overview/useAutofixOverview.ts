@@ -1,5 +1,7 @@
 import {useEffect, useMemo} from 'react';
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {type QueryKey, useQuery} from '@tanstack/react-query';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
@@ -107,6 +109,21 @@ export function shouldRefetchEnriched(
   );
 }
 
+type QueryParams = Record<string, unknown> | undefined;
+
+const SCOPE_FREE_PARAMS = ['sort', 'expand'];
+
+export function isSameScope(previous: QueryParams, next: QueryParams): boolean {
+  return isEqual(omit(previous, SCOPE_FREE_PARAMS), omit(next, SCOPE_FREE_PARAMS));
+}
+
+function queryParamsOf(queryKey: QueryKey): QueryParams {
+  const options = queryKey[1];
+  return options && typeof options === 'object' && 'query' in options
+    ? (options.query as QueryParams)
+    : undefined;
+}
+
 export function overlayStatus(
   base: AutofixOverviewResponse,
   poll: AutofixOverviewResponse | undefined
@@ -147,8 +164,8 @@ export function useAutofixOverview({
 }) {
   const overviewQuery = (query: {
     expand?: Array<'scmInfo' | 'issueStats' | 'status' | 'projectConfig'>;
-  }) =>
-    apiOptions.as<AutofixOverviewResponse>()(
+  }) => {
+    const options = apiOptions.as<AutofixOverviewResponse>()(
       '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
       {
         path: {organizationIdOrSlug: organization.slug},
@@ -162,11 +179,25 @@ export function useAutofixOverview({
         staleTime: QUERY_STALE_TIME,
       }
     );
+    return {
+      ...options,
+      placeholderData: <T>(
+        previousData: T | undefined,
+        previousQuery: {queryKey: QueryKey} | undefined
+      ) =>
+        previousQuery &&
+        isSameScope(
+          queryParamsOf(previousQuery.queryKey),
+          queryParamsOf(options.queryKey)
+        )
+          ? previousData
+          : undefined,
+    };
+  };
 
   const enrichedQuery = useQuery({
     ...overviewQuery({expand: ['scmInfo', 'issueStats', 'status']}),
     enabled,
-    placeholderData: keepPreviousData,
     // Enrichment is progressive polish: fail fast to empty slots rather than
     // shimmering through the default retry backoff.
     retry: 1,
@@ -175,14 +206,12 @@ export function useAutofixOverview({
   const statusPollQuery = useQuery({
     ...overviewQuery({expand: ['status']}),
     enabled,
-    placeholderData: keepPreviousData,
     refetchInterval: POLL_INTERVAL,
   });
 
   const projectConfigQuery = useQuery({
     ...overviewQuery({expand: ['projectConfig']}),
     enabled,
-    placeholderData: keepPreviousData,
   });
 
   const enrichedRefetch = enrichedQuery.refetch;

@@ -71,7 +71,7 @@ export function AssigneeFilter({
       clearable
       search
       loading={loading}
-      disabled={loading ? false : undefined}
+      disabled={false}
       menuTitle={loading ? t('Assignee') : undefined}
       options={options}
       value={value ?? undefined}

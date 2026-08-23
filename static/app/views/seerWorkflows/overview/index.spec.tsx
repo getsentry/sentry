@@ -17,6 +17,7 @@ import {
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
+import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -434,7 +435,7 @@ describe('AutofixOverview', () => {
   });
 
   it('filters to only in-progress runs when the In Progress tab is selected', async () => {
-    mockOverview({
+    const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {
         autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
         autofix_solution: [solutionRun],
@@ -456,6 +457,36 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByRole('button', {name: 'Generate code changes 1'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+    expect(statusPollRequest).toHaveBeenCalledTimes(1);
+    expect(enrichedRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a pinned time window through param navigation instead of resetting it', async () => {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({datetime: {period: '30d', start: null, end: null, utc: null}})
+    );
+    setPageFiltersStorage(organization.slug, new Set(['datetime']));
+    ProjectsStore.reset();
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [{...rootCauseRun, status: 'processing'}]},
+    });
+
+    const {router} = renderPage();
+    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
+
+    await screen.findByRole('tab', {name: /All Runs/});
+    await waitFor(() => expect(router.location.query.statsPeriod).toBe('30d'));
+    const requestsBeforeClick = statusPollRequest.mock.calls.length;
+
+    await userEvent.click(screen.getByRole('tab', {name: /In Progress/}));
+
+    expect(router.location.query.view).toBe('in_progress');
+    expect(router.location.query.statsPeriod).toBe('30d');
+    expect(
+      screen.getByRole('button', {name: 'Autofix Activity 30D'})
+    ).toBeInTheDocument();
+    expect(statusPollRequest).toHaveBeenCalledTimes(requestsBeforeClick);
   });
 
   it('shows an empty state on the In Progress tab when nothing is processing', async () => {
@@ -814,7 +845,72 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('holds the filter bar as a skeleton until projects finish loading', async () => {
+  it('shows the skeleton again when the selected project changes', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const otherProject = deferEnriched();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({project: [3]})],
+      asyncDelay: otherProject.promise,
+      body: {runsByMilestone: {...emptyMilestones, autofix_solution: [solutionRun]}},
+    });
+
+    renderPage();
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+
+    act(() => PageFiltersStore.updateProjects([3], null));
+
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+
+    otherProject.resolve();
+
+    expect(
+      await screen.findByRole('link', {name: 'KeyError in proxy handler'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+  });
+
+  it('shows the skeleton again when the time window changes', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const narrower = deferEnriched();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({statsPeriod: '24h'})],
+      asyncDelay: narrower.promise,
+      body: {runsByMilestone: emptyMilestones},
+    });
+
+    renderPage();
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+
+    act(() =>
+      PageFiltersStore.updateDateTime({period: '24h', start: null, end: null, utc: null})
+    );
+
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+
+    narrower.resolve();
+
+    expect(
+      await screen.findByText('You don’t have any Autofix runs...yet.')
+    ).toBeInTheDocument();
+  });
+
+  it('holds the project filter as a placeholder until projects finish loading', async () => {
     // Reset the store so `useProjects().initiallyLoaded` is false; without this the
     // project filter would swap "Loading…" for its label and shift the whole row.
     ProjectsStore.reset();
@@ -822,15 +918,15 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    // The real filter controls are gated; a placeholder stands in for them.
-    expect(screen.queryByRole('button', {name: /Sort/})).not.toBeInTheDocument();
-    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
-      0
-    );
+    // The rest of the filter row renders for real from the first frame; only
+    // the project picker waits behind a placeholder.
+    expect(await screen.findByRole('button', {name: /Sort/})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Autofix Activity/})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'project-slug'})).not.toBeInTheDocument();
 
     act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
 
-    expect(await screen.findByRole('button', {name: /Sort/})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'project-slug'})).toBeInTheDocument();
   });
 
   it('renders the changed files of an open pull request', async () => {
@@ -1765,6 +1861,50 @@ describe('AutofixOverview', () => {
 
     expect(
       await screen.findByText('Set up Seer to start fixing issues')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('You don’t have any Autofix runs...yet.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not flash the generic empty state when switching from an unconfigured project to one with runs', async () => {
+    mockOverview({
+      base: {},
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+    });
+    const configured = deferEnriched();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({project: [3]})],
+      asyncDelay: configured.promise,
+      body: {
+        runsByMilestone: {...emptyMilestones, autofix_root_cause: [rootCauseRun]},
+        truncatedMilestones: [],
+        projectConfig: [{id: '3', slug: 'beta-project', hasReposConnected: true}],
+      },
+    });
+
+    renderPage();
+    expect(
+      await screen.findByText('Set up Seer to start fixing issues')
+    ).toBeInTheDocument();
+
+    act(() => PageFiltersStore.updateProjects([3], null));
+
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.queryByText('Set up Seer to start fixing issues')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('You don’t have any Autofix runs...yet.')
+    ).not.toBeInTheDocument();
+
+    configured.resolve();
+
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
     expect(
       screen.queryByText('You don’t have any Autofix runs...yet.')

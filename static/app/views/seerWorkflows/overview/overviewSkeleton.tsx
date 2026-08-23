@@ -1,46 +1,47 @@
+import {useTheme} from '@emotion/react';
+
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-function CardSkeleton() {
-  return (
-    <Container background="primary" border="primary" radius="md" padding="xl">
-      <Stack gap="lg">
-        <Placeholder height="1.25rem" width="60%" />
-        <Flex gap="md" wrap="wrap">
-          <Placeholder height="1rem" width="4rem" />
-          <Placeholder height="1rem" width="5rem" />
-          <Placeholder height="1rem" width="4rem" />
-        </Flex>
-      </Stack>
-    </Container>
-  );
-}
+import {OverviewCardSkeleton, TextLineSkeleton} from './issueCard';
+import {GroupHeader, StatusGroup} from './statusGroups';
 
-export function FilterBarSkeleton() {
+export function ProjectFilterSkeleton() {
+  const theme = useTheme();
   return (
-    <Flex gap="md" align="center" aria-hidden>
-      <Placeholder height="36px" width="6rem" />
-      <Placeholder height="36px" width="9rem" />
-      <Placeholder height="36px" width="7rem" />
-      <Placeholder height="36px" width="5rem" />
-      <Flex marginLeft="auto">
-        <Placeholder height="36px" width="6rem" />
-      </Flex>
+    <Flex aria-hidden>
+      <Placeholder height={theme.form.md.height} width="6rem" />
     </Flex>
   );
 }
 
 export function OverviewSkeleton() {
+  const theme = useTheme();
   return (
     <Stack gap="lg" aria-hidden>
-      {Array.from({length: 2}).map((_, section) => (
-        <Stack gap="md" key={section}>
-          <Placeholder height="1.5rem" width="10rem" />
-          {Array.from({length: 2}).map((__, card) => (
-            <CardSkeleton key={card} />
-          ))}
-        </Stack>
+      <Flex align="center" height={theme.form.md.height} marginBottom="xs">
+        {['6rem', '7rem'].map((width, tab) => (
+          <Container key={tab} padding="0 xl">
+            <TextLineSkeleton size="md" width={width} />
+          </Container>
+        ))}
+      </Flex>
+      {['8rem', '10rem'].map((width, section) => (
+        <StatusGroup key={section} size="sm" expanded>
+          <GroupHeader>
+            <Disclosure.Title>
+              <Placeholder height="1lh" width={width} />
+            </Disclosure.Title>
+          </GroupHeader>
+          <Disclosure.Content>
+            <Stack gap="md" paddingTop="sm">
+              <OverviewCardSkeleton />
+              <OverviewCardSkeleton />
+            </Stack>
+          </Disclosure.Content>
+        </StatusGroup>
       ))}
     </Stack>
   );
