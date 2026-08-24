@@ -108,7 +108,7 @@ function StartAutofixAction({
   const organization = useOrganization();
   const [isStartingAction, setIsStartingAction] = useState(false);
   const runId = autofix.runState?.run_id;
-  const isProcessing = autofix.isPolling || isStartingAction;
+  const isProcessing = autofix.isProcessing || isStartingAction;
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
       autofix,
@@ -256,8 +256,8 @@ function NextAutofixStepButton({
           },
           group,
         })}
-        busy={autofix.isPolling}
-        disabled={disabled || autofix.isPolling}
+        busy={autofix.isProcessing}
+        disabled={disabled || autofix.isProcessing}
         icon={<IconSeer />}
         onClick={onContinueInSeer}
         variant={variant}
@@ -349,7 +349,7 @@ function NextAutofixStepButton({
   }
 
   const nextStep = getAutofixNextStep({sections});
-  if (autofix.isPolling) {
+  if (autofix.isProcessing) {
     const label =
       nextStep?.action === 'solution'
         ? t('Make a Plan')
