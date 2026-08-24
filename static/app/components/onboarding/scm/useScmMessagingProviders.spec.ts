@@ -68,7 +68,9 @@ describe('useScmMessagingProviders', () => {
 
     const slack = result.current.providers.find(p => p.providerKey === 'slack');
     expect(slack?.status).toBe('connected');
-    expect(slack?.integration?.id).toBe('10');
+    expect(slack?.eligibleIntegrations).toHaveLength(1);
+    expect(slack?.eligibleIntegrations[0]?.id).toBe('10');
+    expect(slack?.permissionLimitedIntegration).toBeUndefined();
 
     result.current.providers
       .filter(p => p.providerKey !== 'slack')
@@ -112,8 +114,9 @@ describe('useScmMessagingProviders', () => {
 
     const msteams = result.current.providers.find(p => p.providerKey === 'msteams');
     expect(msteams?.status).toBe('permission-limited');
-    // The integration is still exposed so the row can show the workspace name.
-    expect(msteams?.integration?.id).toBe('12');
+    expect(msteams?.eligibleIntegrations).toHaveLength(0);
+    // The tenant integration is surfaced for workspace-name display.
+    expect(msteams?.permissionLimitedIntegration?.id).toBe('12');
   });
 
   it('marks a team-type msteams integration as connected', async () => {
@@ -150,6 +153,127 @@ describe('useScmMessagingProviders', () => {
 
     expect(result.current.isError).toBe(true);
     expect(result.current.providers).toHaveLength(0);
+  });
+
+  it('exposes all eligible integrations when a provider has multiple workspaces', async () => {
+    mockProviders();
+    mockIntegrations([
+      OrganizationIntegrationsFixture({
+        id: '20',
+        name: 'workspace-a',
+        provider: {key: 'slack'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+      }),
+      OrganizationIntegrationsFixture({
+        id: '21',
+        name: 'workspace-b',
+        provider: {key: 'slack'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+      }),
+    ]);
+
+    const {result} = renderProviders();
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    const slack = result.current.providers.find(p => p.providerKey === 'slack');
+    expect(slack?.status).toBe('connected');
+    // Both workspaces are eligible (Slack has no tenant restriction).
+    expect(slack?.eligibleIntegrations).toHaveLength(2);
+    expect(slack?.eligibleIntegrations.map(i => i.id)).toEqual(['20', '21']);
+    expect(slack?.permissionLimitedIntegration).toBeUndefined();
+  });
+
+  it('is connected when msteams has both a tenant and a team installation', async () => {
+    mockProviders();
+    mockIntegrations([
+      OrganizationIntegrationsFixture({
+        id: '30',
+        name: 'tenant',
+        provider: {key: 'msteams'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+        configData: {installationType: 'tenant'},
+      }),
+      OrganizationIntegrationsFixture({
+        id: '31',
+        name: 'team',
+        provider: {key: 'msteams'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+        configData: {installationType: 'team'},
+      }),
+    ]);
+
+    const {result} = renderProviders();
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    const msteams = result.current.providers.find(p => p.providerKey === 'msteams');
+    expect(msteams?.status).toBe('connected');
+    // Only the team installation is eligible.
+    expect(msteams?.eligibleIntegrations).toHaveLength(1);
+    expect(msteams?.eligibleIntegrations[0]?.id).toBe('31');
+    // Status is connected (not permission-limited), so this is unset.
+    expect(msteams?.permissionLimitedIntegration).toBeUndefined();
+  });
+
+  it('returns isError when a provider config query fails', async () => {
+    // discord config query fails; the other two config queries succeed.
+    ['slack', 'msteams'].forEach(key => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/config/integrations/`,
+        body: {providers: [GitHubIntegrationProviderFixture({key})]},
+        match: [MockApiClient.matchQuery({provider_key: key})],
+      });
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({provider_key: 'discord'})],
+    });
+    mockIntegrations([]);
+
+    const {result} = renderProviders();
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(result.current.isError).toBe(true);
+    expect(result.current.providers).toHaveLength(0);
+  });
+
+  it('retry() refetches provider config queries and clears the error', async () => {
+    ['slack', 'msteams'].forEach(key => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/config/integrations/`,
+        body: {providers: [GitHubIntegrationProviderFixture({key})]},
+        match: [MockApiClient.matchQuery({provider_key: key})],
+      });
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({provider_key: 'discord'})],
+    });
+    mockIntegrations([]);
+
+    const {result} = renderProviders();
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // Fix the failing endpoint and call retry() — all query sets refetch.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [GitHubIntegrationProviderFixture({key: 'discord'})]},
+      match: [MockApiClient.matchQuery({provider_key: 'discord'})],
+    });
+
+    result.current.retry();
+
+    await waitFor(() => expect(result.current.isError).toBe(false));
+    expect(result.current.providers).toHaveLength(3);
   });
 
   it('preserves provider order matching SCM_MESSAGING_PROVIDER_KEYS', async () => {
