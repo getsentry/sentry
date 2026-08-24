@@ -1179,6 +1179,26 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )
 
+    def test_multiline_feedback_title_is_single_line_in_link_label(self) -> None:
+        title = "User Feedback: the app freezes on checkout\n\nreproduced twice"
+
+        with patch(
+            "sentry.integrations.slack.message_builder.issues.build_attachment_title",
+            return_value=title,
+        ):
+            block = SlackIssuesMessageBuilder(self.feedback_issue).get_title_block(
+                self.feedback_issue,
+                has_action=False,
+                title_link="https://example.com/feedback",
+            )
+
+        rendered_title = block["text"]["text"]
+        assert "\n" not in rendered_title
+        assert (
+            "<https://example.com/feedback|*User Feedback: the app freezes on checkout  reproduced twice*>"
+            in rendered_title
+        )
+
     @freeze_time("2024-02-23")
     @patch("sentry.models.Group.get_recommended_event_for_environments")
     def test_get_context(self, mock_event: MagicMock) -> None:
