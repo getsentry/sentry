@@ -5,6 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -21,6 +22,11 @@ import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
+
+const INVITE_COLUMNS: TableColumnConfig[] = [
+  {key: 'users', width: '1fr'},
+  {key: 'platforms', width: '2fr'},
+];
 
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
@@ -70,6 +76,7 @@ export default function ConsoleSDKInvitesSettings() {
         <NoQuotaRemaining organization={organization} />
       )}
       <InvitesTable
+        columns={INVITE_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
@@ -200,5 +207,4 @@ function NoQuotaRemaining({organization}: {organization: Organization}) {
 
 const InvitesTable = styled(SimpleTable)`
   margin-top: 1em;
-  grid-template-columns: 1fr 2fr;
 `;

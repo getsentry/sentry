@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -33,6 +34,11 @@ import {
   useRevokeConsoleSdkPlatformInvite,
   type ConsoleSdkInviteUser,
 } from 'sentry/views/settings/organizationConsoleSdkInvites/hooks';
+
+const INVITE_COLUMNS: TableColumnConfig[] = [
+  {key: 'user', width: '1fr'},
+  {key: 'platforms', width: '1fr'},
+];
 
 function QuotaAlert() {
   const playstation = useFormField<boolean>('playstation');
@@ -309,6 +315,7 @@ function ToggleConsolePlatformsModal({
         </div>
 
         <SimpleTableWithColumns
+          columns={INVITE_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>User</SimpleTable.HeaderCell>
@@ -345,9 +352,7 @@ const NumberFieldFromConfig = styled(FieldFromConfig)`
   }
 `;
 
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 1fr;
-`;
+const SimpleTableWithColumns = styled(SimpleTable)``;
 
 const StyledQuotaAlert = styled(Alert)`
   margin-top: ${p => p.theme.space.xl};
