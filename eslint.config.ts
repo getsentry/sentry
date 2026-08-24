@@ -412,6 +412,7 @@ export default typescript.config([
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
+      'no-useless-computed-key': 'error',
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],

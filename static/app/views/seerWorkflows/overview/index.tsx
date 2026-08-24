@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -37,6 +37,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {useMilestoneAdvanceToasts} from './milestoneToast';
+import {ProjectSetupWarning} from './projectSetupWarning';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
@@ -107,6 +108,8 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   const {
     data,
+    projectConfig,
+    projectConfigPending,
     isPending,
     isError,
     enrichmentPending,
@@ -120,6 +123,12 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     enabled: pageFiltersReady,
   });
   useMilestoneAdvanceToasts(data, enrichedSettled);
+  const unconfiguredProjects =
+    projectConfig?.filter(project => !project.hasReposConnected) ?? [];
+  const allUnconfigured =
+    unconfiguredProjects.length > 0 &&
+    unconfiguredProjects.length === projectConfig?.length;
+  const someUnconfigured = unconfiguredProjects.length > 0 && !allUnconfigured;
   const allRuns = useMemo(
     () => Object.values(data?.runsByMilestone ?? {}).flat(),
     [data]
@@ -158,6 +167,30 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         : [...new Set([...previous, ...populatedKeys])]
     );
   };
+
+  let noRunsContent: React.ReactNode;
+  if (projectConfigPending) {
+    noRunsContent = <LoadingIndicator />;
+  } else if (allUnconfigured) {
+    noRunsContent = (
+      <EmptyState
+        padding="3xl"
+        title={t('Set up Seer to start fixing issues')}
+        description={t(
+          'None of your selected projects have a repository connected. Connect one so Seer can start working on your issues.'
+        )}
+        action={
+          <LinkButton variant="primary" to={`/settings/${organization.slug}/seer/`}>
+            {t('Set up Seer')}
+          </LinkButton>
+        }
+      />
+    );
+  } else {
+    noRunsContent = (
+      <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
+    );
+  }
 
   return (
     <Stack gap="lg" padding="lg xl">
@@ -199,12 +232,18 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           </Button>
         </Flex>
       </Flex>
+      {someUnconfigured && (
+        <ProjectSetupWarning
+          unconfiguredProjects={unconfiguredProjects}
+          orgSlug={organization.slug}
+        />
+      )}
       {isError ? (
         <LoadingError onRetry={refetch} />
       ) : isPending ? (
         <LoadingIndicator />
       ) : allRuns.length === 0 ? (
-        <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
+        noRunsContent
       ) : assigneeRuns.length === 0 ? (
         <EmptyState
           padding="3xl"

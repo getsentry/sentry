@@ -253,6 +253,16 @@ class ProjectBalancingCalculationsTest(TestCase):
         adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
         assert adjusted_factor == 2.8
 
+    def test_calculate_recalibration_factor_clamps_an_overshooting_volume(self) -> None:
+        # The two sources behind the volume disagreed, so more was stored than was seen. The
+        # rate is capped at 1.0, which leaves the factor at the target rather than scaling it
+        # down by however far the sources drifted apart.
+        org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=172)
+        assert calculate_recalibration_factor(org_volume, 1.4, 0.5) == pytest.approx(0.7)
+
+        at_the_boundary = OrganizationDataVolume(org_id=1, total=100, indexed=100)
+        assert calculate_recalibration_factor(at_the_boundary, 1.4, 0.5) == pytest.approx(0.7)
+
     def test_get_cached_recalibration_factor_reads_the_legacy_cache(self) -> None:
         org = self.create_organization()
         cache_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
@@ -296,6 +306,13 @@ class ProjectBalancingCalculationsTest(TestCase):
             get_effective_sample_rate(OrganizationDataVolume(org_id=1, total=0, indexed=10)) is None
         )
 
+    def test_get_effective_sample_rate_reports_an_overshoot_unclamped(self) -> None:
+        # Unlike the rate the factor is computed from, this one stays raw, so the comparison
+        # log keeps showing that the sources disagreed and by how much.
+        assert get_effective_sample_rate(
+            OrganizationDataVolume(org_id=1, total=100, indexed=172)
+        ) == pytest.approx(1.72)
+
     def test_compare_recalibration_factor_with_cache_logs_the_deviation(self) -> None:
         org = self.create_organization()
         config = mock_configuration(org, sample_rate=0.5)
@@ -310,6 +327,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 2.0,
                 previous_eap_factor=1.4,
                 legacy_volume=legacy_volume,
+                eap_extrapolated_total=900,
             )
 
         logger_info.assert_called_once_with(
@@ -324,6 +342,9 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "total_transactions": 772,
                 "stored_segments": 288,
                 "eap_effective_sample_rate": pytest.approx(0.3730569948186528),
+                # EAP put the total at 900 where outcomes reported 772.
+                "eap_extrapolated_total": 900,
+                "extrapolated_total_relative_deviation": pytest.approx(0.16580310880829016),
                 "generic_metrics_total": 772,
                 "generic_metrics_indexed": 386,
                 "generic_metrics_effective_sample_rate": pytest.approx(0.5),
@@ -356,6 +377,8 @@ class ProjectBalancingCalculationsTest(TestCase):
             "total_transactions": None,
             "stored_segments": None,
             "eap_effective_sample_rate": None,
+            "eap_extrapolated_total": None,
+            "extrapolated_total_relative_deviation": None,
             "generic_metrics_total": None,
             "generic_metrics_indexed": None,
             "generic_metrics_effective_sample_rate": None,

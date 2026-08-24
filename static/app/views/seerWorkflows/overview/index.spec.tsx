@@ -111,12 +111,16 @@ describe('AutofixOverview', () => {
     enrichedStatusCode,
     baseStatusCode,
     truncated,
+    projectConfig,
+    projectConfigAsyncDelay,
   }: {
     base: Partial<AutofixOverviewResponse['runsByMilestone']>;
     baseStatusCode?: number;
     enriched?: Partial<AutofixOverviewResponse['runsByMilestone']>;
     enrichedAsyncDelay?: number | Promise<void>;
     enrichedStatusCode?: number;
+    projectConfig?: AutofixOverviewResponse['projectConfig'];
+    projectConfigAsyncDelay?: number | Promise<void>;
     truncated?: AutofixOverviewResponse['truncatedMilestones'];
   }) {
     const statusPollRequest = MockApiClient.addMockResponse({
@@ -137,7 +141,17 @@ describe('AutofixOverview', () => {
         truncatedMilestones: truncated ?? [],
       },
     });
-    return {statusPollRequest, enrichedRequest};
+    const projectConfigRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({expand: ['projectConfig']})],
+      asyncDelay: projectConfigAsyncDelay,
+      body: {
+        runsByMilestone: {...emptyMilestones, ...base},
+        truncatedMilestones: truncated ?? [],
+        ...(projectConfig ? {projectConfig} : {}),
+      },
+    });
+    return {statusPollRequest, enrichedRequest, projectConfigRequest};
   }
 
   // The un-expanded call cannot reach Snuba, so it nulls out the issue stats.
@@ -1270,6 +1284,66 @@ describe('AutofixOverview', () => {
     expect(screen.getAllByText('src/sentry/foo.py')).toHaveLength(1);
   });
 
+  it('prefetches PR file diffs when the code changes section is hovered', async () => {
+    mockOverview({
+      base: {
+        has_pull_request: [
+          {
+            ...rootCauseRun,
+            pullRequests: [
+              {
+                id: '77',
+                number: 42,
+                url: 'https://github.com/getsentry/sentry/pull/42',
+                status: 'open',
+                checksStatus: null,
+                reviewStatus: null,
+                failedChecks: [],
+                files: [
+                  {
+                    path: 'src/sentry/foo.py',
+                    additions: 2,
+                    deletions: 1,
+                    changeType: 'MODIFIED',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const filesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/pull-requests/77/files/`,
+      body: {
+        files: [
+          {
+            path: 'src/sentry/foo.py',
+            patch: '@@ -1,2 +1,3 @@\n keep\n-drop\n+addedone\n+addedtwo',
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    const section = await screen.findByText('Code Changes');
+    expect(filesRequest).not.toHaveBeenCalled();
+
+    await userEvent.hover(section);
+    await waitFor(() => expect(filesRequest).toHaveBeenCalledTimes(1));
+
+    await userEvent.unhover(section);
+    await userEvent.hover(section);
+    expect(filesRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: /src\/sentry\/foo\.py/})
+    );
+    expect(await screen.findByText('addedone')).toBeInTheDocument();
+    expect(filesRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the deleted-file view when a deleted file has no patch', async () => {
     mockOverview({
       base: {
@@ -1575,6 +1649,24 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
+  it('retries the project config request from the error state', async () => {
+    const {projectConfigRequest} = mockOverview({
+      base: {},
+      baseStatusCode: 500,
+      enrichedStatusCode: 500,
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+    });
+
+    renderPage();
+
+    const retry = await screen.findByRole('button', {name: 'Retry'}, {timeout: 5000});
+    expect(projectConfigRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(retry);
+
+    await waitFor(() => expect(projectConfigRequest).toHaveBeenCalledTimes(2));
+  });
+
   it('replaces the overview content when the org is eligible for Seer but has not purchased it', () => {
     const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
@@ -1607,5 +1699,92 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: 'Create Plan 1'})
     ).toBeInTheDocument();
+  });
+
+  it('shows the setup empty state when no selected project has a repo connected', async () => {
+    mockOverview({
+      base: {},
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText('Set up Seer to start fixing issues')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('You don’t have any Autofix runs...yet.')
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Set up Seer'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/seer/'
+    );
+  });
+
+  it('does not flash the generic empty state while project config is loading', async () => {
+    const deferred = deferEnriched();
+    mockOverview({
+      base: {},
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+      projectConfigAsyncDelay: deferred.promise,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+    expect(
+      screen.queryByText('You don’t have any Autofix runs...yet.')
+    ).not.toBeInTheDocument();
+
+    deferred.resolve();
+
+    expect(
+      await screen.findByText('Set up Seer to start fixing issues')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('You don’t have any Autofix runs...yet.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the subset warning banner naming only the unconfigured projects', async () => {
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      projectConfig: [
+        {id: '2', slug: 'alpha-project', hasReposConnected: true},
+        {id: '3', slug: 'beta-project', hasReposConnected: false},
+      ],
+    });
+
+    renderPage();
+
+    const banner = await screen.findByText(/Seer isn't set up for/);
+    expect(banner).toHaveTextContent(
+      "Seer isn't set up for beta-project. Set it up here."
+    );
+    expect(banner).not.toHaveTextContent('alpha-project');
+    expect(screen.getByRole('link', {name: 'here'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/seer/'
+    );
+    expect(
+      screen.queryByText('Set up Seer to start fixing issues')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows no setup warning when every selected project is configured', async () => {
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: true}],
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Set up Seer to start fixing issues')
+    ).not.toBeInTheDocument();
   });
 });

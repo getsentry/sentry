@@ -145,7 +145,9 @@ export function useAutofixOverview({
   selection: PageFilters;
   sort: OverviewSort;
 }) {
-  const overviewQuery = (query: {expand?: Array<'scmInfo' | 'issueStats' | 'status'>}) =>
+  const overviewQuery = (query: {
+    expand?: Array<'scmInfo' | 'issueStats' | 'status' | 'projectConfig'>;
+  }) =>
     apiOptions.as<AutofixOverviewResponse>()(
       '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
       {
@@ -177,6 +179,12 @@ export function useAutofixOverview({
     refetchInterval: POLL_INTERVAL,
   });
 
+  const projectConfigQuery = useQuery({
+    ...overviewQuery({expand: ['projectConfig']}),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+
   const enrichedRefetch = enrichedQuery.refetch;
   useEffect(() => {
     if (shouldRefetchEnriched(statusPollQuery.data, enrichedQuery.data)) {
@@ -192,6 +200,8 @@ export function useAutofixOverview({
 
   return {
     data,
+    projectConfig: projectConfigQuery.data?.projectConfig,
+    projectConfigPending: projectConfigQuery.isLoading,
     isPending: !data,
     // Error only once both fail with nothing to show; the poll alone may still be
     // recovered by an in-flight enriched call.
@@ -204,6 +214,7 @@ export function useAutofixOverview({
     refetch: () => {
       statusPollQuery.refetch();
       enrichedQuery.refetch();
+      projectConfigQuery.refetch();
     },
   };
 }

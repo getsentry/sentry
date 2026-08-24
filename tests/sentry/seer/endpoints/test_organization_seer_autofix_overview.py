@@ -604,6 +604,115 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
         assert len(repo_queries) == 1
 
+    def _project_config_by_id(self, resp):
+        return {entry["id"]: entry for entry in resp.data["projectConfig"]}
+
+    def test_project_config_absent_without_expand(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+
+        resp = self.get_success_response(self.organization.slug)
+
+        assert "projectConfig" not in resp.data
+
+    def test_project_config_returned_with_expand(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+
+        resp = self.get_success_response(
+            self.organization.slug, qs_params={"expand": "projectConfig"}
+        )
+
+        config = self._project_config_by_id(resp)
+        assert config[str(self.project.id)] == {
+            "id": str(self.project.id),
+            "slug": self.project.slug,
+            "hasReposConnected": False,
+        }
+
+    def test_project_config_includes_project_without_runs(self):
+        repo = self.create_repo(self.project, provider="integrations:github")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        resp = self.get_success_response(
+            self.organization.slug, qs_params={"expand": "projectConfig"}
+        )
+
+        assert resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE] == []
+        config = self._project_config_by_id(resp)
+        assert config[str(self.project.id)]["hasReposConnected"] is True
+
+    def test_project_config_reflects_repo_connection_per_project(self):
+        connected = self.create_project(organization=self.organization)
+        repo = self.create_repo(connected, provider="integrations:github")
+        self.create_seer_project_repository(project=connected, repository=repo)
+        unconnected = self.create_project(organization=self.organization)
+
+        resp = self.get_success_response(
+            self.organization.slug, qs_params={"expand": "projectConfig"}
+        )
+
+        config = self._project_config_by_id(resp)
+        assert config[str(connected.id)]["hasReposConnected"] is True
+        assert config[str(unconnected.id)]["hasReposConnected"] is False
+
+    def test_project_config_respects_project_filter(self):
+        selected = self.create_project(organization=self.organization)
+        other = self.create_project(organization=self.organization)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            qs_params={"expand": "projectConfig", "project": selected.id},
+        )
+
+        config = self._project_config_by_id(resp)
+        assert set(config) == {str(selected.id)}
+        assert str(other.id) not in config
+
+    def test_project_config_scopes_to_member_projects_by_default(self):
+        org = self.create_organization(owner=self.create_user())
+        member = self.create_user()
+        my_team = self.create_team(organization=org)
+        self.create_member(user=member, organization=org, teams=[my_team])
+        mine = self.create_project(organization=org, teams=[my_team])
+        other_team = self.create_team(organization=org)
+        theirs = self.create_project(organization=org, teams=[other_team])
+        self.login_as(member)
+
+        resp = self.get_success_response(org.slug, qs_params={"expand": "projectConfig"})
+
+        config = self._project_config_by_id(resp)
+        assert str(mine.id) in config
+        assert str(theirs.id) not in config
+
+    def test_project_config_eligibility_is_one_query(self):
+        for _ in range(3):
+            project = self.create_project(organization=self.organization)
+            repo = self.create_repo(project, provider="integrations:github")
+            self.create_seer_project_repository(project=project, repository=repo)
+
+        with CaptureQueriesContext(connections["default"]) as ctx:
+            self.get_success_response(self.organization.slug, qs_params={"expand": "projectConfig"})
+
+        repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
+        assert len(repo_queries) == 1
+
+    def test_scm_info_and_project_config_share_one_eligibility_query(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:github")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        with CaptureQueriesContext(connections["default"]) as ctx:
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"expand": ["scmInfo", "projectConfig"]}
+            )
+
+        repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
+        assert len(repo_queries) == 1
+        assert self._issue_project(resp)["hasReposConnected"] is True
+        assert self._project_config_by_id(resp)[str(self.project.id)]["hasReposConnected"] is True
+
     @mock.patch(_INTEGRATION_SERVICE)
     def test_run_includes_pull_requests(self, mock_get_integration):
         group = self.create_group()

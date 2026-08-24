@@ -1,4 +1,5 @@
 from typing import Any, Mapping
+from unittest.mock import patch
 
 import pytest
 from jsonschema import ValidationError
@@ -180,6 +181,15 @@ class TestTaggedEventCondition(ConditionTestCase):
             }
         )
         self.assert_does_not_pass(self.dc, self.event_data)
+
+    def test_logs_processed_values(self) -> None:
+        with patch(
+            "sentry.workflow_engine.handlers.condition.tagged_event_handler.logger"
+        ) as mock_logger:
+            self.assert_passes(self.dc, self.event_data)
+
+        processed_values = mock_logger.debug.call_args.kwargs["extra"]["processed_values"]
+        assert set(processed_values) == {"sentry.example", "foo.bar"}
 
     def test_does_not_equal(self) -> None:
         self.dc.comparison.update(

@@ -47,17 +47,45 @@ jobs:
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
-        timeout-minutes: 20
+      - name: Install Playwright system deps
+        timeout-minutes: 15
+        run: |
+          echo 'Acquire::Retries "3";' | sudo tee /etc/apt/apt.conf.d/99-retries
+          echo 'Acquire::http::Timeout "30";' | sudo tee -a /etc/apt/apt.conf.d/99-retries
+          for i in 1 2 3; do
+            echo "::group::playwright install-deps (attempt $i)"
+            timeout -k 30 4m pnpm exec playwright install-deps chromium && ok=1 || ok=0
+            echo "::endgroup::"
+            [ "$ok" = 1 ] && exit 0
+            echo "Attempt $i failed; clearing apt locks and retrying in 15s..."
+            sudo pkill -9 -f apt-get 2>/dev/null || true
+            sudo rm -f /var/lib/apt/lists/lock /var/lib/dpkg/lock* /var/cache/apt/archives/lock 2>/dev/null || true
+            sudo dpkg --configure -a 2>/dev/null || true
+            sleep 15
+          done
+          echo "playwright install-deps failed after 3 attempts"
+          exit 1
+
+      - name: Playwright browser cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        id: playwrightcache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browser
+        if: steps.playwrightcache.outputs.cache-hit != 'true'
+        timeout-minutes: 15
         run: |
           for i in 1 2 3; do
-            echo "::group::playwright install (attempt $i)"
-            timeout -k 30 4m pnpm exec playwright install chromium --with-deps && exit 0
+            echo "::group::playwright install browser (attempt $i)"
+            timeout -k 30 4m pnpm exec playwright install chromium && ok=1 || ok=0
             echo "::endgroup::"
+            [ "$ok" = 1 ] && exit 0
             echo "Attempt $i failed or timed out; retrying in 15s..."
             sleep 15
           done
-          echo "playwright install failed after 3 attempts"
+          echo "playwright browser install failed after 3 attempts"
           exit 1
 
       - name: Run snapshot tests
@@ -84,7 +112,7 @@ jobs:
 
       - name: Upload snapshots
         id: upload
-        if: ${{ !cancelled() }}
+        if: ${{ success() }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
           BASE_SHA: ${{ steps.merge-base.outputs.sha }}
