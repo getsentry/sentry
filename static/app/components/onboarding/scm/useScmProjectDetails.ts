@@ -80,7 +80,7 @@ interface UseScmProjectDetailsOptions {
   /**
    * Live form state, owned by the host. Fields absent from the form derive
    * their defaults (platform-based name, first admin team, default alert
-   * config), so the host clearing the form makes the fields re-derive.
+   * config).
    */
   onProjectDetailsFormChange: (form: ProjectDetailsFormState) => void;
   projectDetailsForm: ProjectDetailsFormState | undefined;
@@ -177,7 +177,12 @@ export function useScmProjectDetails({
 
   const onProjectNameChange = useCallback(
     (value: string) => {
-      onProjectDetailsFormChange({...projectDetailsForm, projectName: slugify(value)});
+      const projectName = slugify(value);
+      onProjectDetailsFormChange({
+        ...projectDetailsForm,
+        projectName,
+        wasNameManuallyModified: projectName.length > 0,
+      });
     },
     [onProjectDetailsFormChange, projectDetailsForm]
   );
@@ -348,6 +353,7 @@ export function useScmProjectDetails({
       teamSlug: teamSlugResolved,
       alertRuleConfig,
       notificationSelection,
+      wasNameManuallyModified: projectDetailsForm?.wasNameManuallyModified ?? false,
     };
     // Mirror the legacy project_creation_page.created `issue_alert` breakdown
     // (see createProject.tsx): Custom > Default > No Rule, derived from the
@@ -449,6 +455,7 @@ export function useScmProjectDetails({
     notificationProps,
     onComplete,
     organization,
+    projectDetailsForm?.wasNameManuallyModified,
     projectNameResolved,
     selectedPlatform,
     selectedRepository,

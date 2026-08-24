@@ -152,7 +152,21 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   const handlePlatformChange = useCallback(
     (platform: OnboardingSelectedSDK | undefined) => {
-      setState(s => ({...s, selectedPlatform: platform}));
+      setState(s => {
+        const currentProjectDetailsForm = s.projectDetailsForm;
+        const wasNameManuallyModified =
+          currentProjectDetailsForm?.wasNameManuallyModified ??
+          currentProjectDetailsForm?.projectName !== undefined;
+
+        return {
+          ...s,
+          selectedPlatform: platform,
+          projectDetailsForm:
+            !currentProjectDetailsForm || wasNameManuallyModified
+              ? currentProjectDetailsForm
+              : {...currentProjectDetailsForm, projectName: undefined},
+        };
+      });
     },
     [setState]
   );
@@ -174,13 +188,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
       selectedFeatures: undefined,
       projectDetailsForm: undefined,
     }));
-  }, [setState]);
-
-  // Clear the project-details form when the platform changes, since the
-  // project name defaults from the platform key; the hook re-derives cleared
-  // fields.
-  const handleClearProjectDetailsForm = useCallback(() => {
-    setState(s => ({...s, projectDetailsForm: undefined}));
   }, [setState]);
 
   const handleProjectDetailsFormChange = useCallback(
@@ -303,7 +310,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   selectedPlatform={selectedPlatform}
                   onPlatformChange={handlePlatformChange}
                   onFeaturesChange={handleFeaturesChange}
-                  onClearProjectDetailsForm={handleClearProjectDetailsForm}
                 />
               </MotionContainer>
 

@@ -65,6 +65,11 @@ const pythonPlatform: OnboardingSelectedSDK = {
 describe('ScmCreateProject', () => {
   const organization = OrganizationFixture({features: ['performance-view']});
   const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
+  const selectedTeam = TeamFixture({
+    id: '2',
+    slug: 'selected-team',
+    access: ['team:admin'],
+  });
   const githubIntegration = OrganizationIntegrationsFixture({
     id: '1',
     name: 'getsentry',
@@ -297,6 +302,46 @@ describe('ScmCreateProject', () => {
     expect(
       await screen.findByText('Please fill out all the required fields')
     ).toBeInTheDocument();
+  });
+
+  it('updates the default name and preserves edited project details', async () => {
+    TeamStore.loadInitialData([adminTeam, selectedTeam]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/user-teams/`,
+      body: [adminTeam, selectedTeam],
+    });
+    renderGlobalModal();
+    render(<ScmCreateProject />, {organization});
+
+    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.keyboard('Python');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+
+    const projectName = screen.getByPlaceholderText('project-name');
+    await userEvent.type(screen.getByLabelText('Select a Team'), '{keyDown}');
+    await userEvent.click(await screen.findByText('#selected-team'));
+
+    await userEvent.click(screen.getByText('Python'));
+    await userEvent.keyboard('JavaScript');
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Browser JavaScript'})
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+
+    expect(projectName).toHaveValue('javascript');
+    expect(screen.getByText('#selected-team')).toBeInTheDocument();
+
+    await userEvent.clear(projectName);
+    await userEvent.type(projectName, 'javascript');
+
+    await userEvent.click(screen.getByText('Browser JavaScript'));
+    await userEvent.keyboard('Python');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+
+    expect(projectName).toHaveValue('javascript');
+    expect(screen.getByText('#selected-team')).toBeInTheDocument();
   });
 
   it('drops a persisted wizard on a fresh visit (no return from getting-started)', async () => {
