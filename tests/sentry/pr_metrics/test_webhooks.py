@@ -54,6 +54,17 @@ from sentry.testutils.silo import cell_silo_test
 MODULE = "sentry.pr_metrics.webhooks"
 
 
+def pin_to_legacy_activity_store(test: TestCase) -> None:
+    """Route this test's activity writes to the legacy ``PullRequestActivity`` rows.
+
+    A real PR takes that path only when it predates the activity-document cutover;
+    anything newer starts on the document. The classes below cover the legacy
+    writers, so they state the routing they exercise rather than inheriting it from
+    a flag default.
+    """
+    test.enterContext(patch(f"{MODULE}._use_activity_document", return_value=False))
+
+
 @with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleWebhookForPrMetricsTest(TestCase):
@@ -952,6 +963,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1319,6 +1331,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 @cell_silo_test
 class HandleCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1524,6 +1537,7 @@ class HandleCommentForPrMetricsTest(TestCase):
 @cell_silo_test
 class HandleReviewForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1646,6 +1660,7 @@ class HandleReviewForPrMetricsTest(TestCase):
 @cell_silo_test
 class HandleReviewCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1758,6 +1773,7 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
 @cell_silo_test
 class HandleReviewThreadForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1865,6 +1881,7 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
 @cell_silo_test
 class HandleCheckEventsForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
