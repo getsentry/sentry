@@ -868,6 +868,34 @@ describe('InboxPage', () => {
     expect(groupRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('renders activity while the Autofix summary is loading', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    const autofixRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
+      match: [MockApiClient.matchQuery({mode: 'explorer'})],
+      body: new Promise(() => {}),
+    });
+    const pullRequestsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
+      body: {pullRequests: []},
+    });
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+
+    expect(
+      await within(preview).findByRole('heading', {name: 'Activity'})
+    ).toBeInTheDocument();
+    expect(autofixRequest).toHaveBeenCalledTimes(1);
+    expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
     mockSuccessfulSections();
     mockIssuePreview();

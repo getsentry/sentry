@@ -235,47 +235,46 @@ function IssuePreviewContent() {
           />
         </Flex>
       </Flex>
-      {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-      {previewSeer.isLoading || linkedPullRequests.isPending ? (
-        <LoadingIndicator />
-      ) : (
-        <Dividers>
-          {linkedPullRequests.data?.pullRequests.length ? (
-            <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
-              <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
-              <IssuePreviewSection.Content>
-                <LinkedPullRequests group={group} showEmptyState={false} />
-              </IssuePreviewSection.Content>
-            </IssuePreviewSection>
-          ) : null}
-          {previewSeer.hasAutofix && (
-            <IssuePreviewSeerContent
-              key={group.id}
-              group={group}
-              project={project}
-              previewSeer={previewSeer}
-            />
-          )}
-          <Container>
-            <ErrorBoundary mini>
-              <FoldSection
-                title={
-                  <Heading as="h3" size="md">
-                    {t('Activity')}
-                  </Heading>
-                }
-                sectionKey={SectionKey.ACTIVITY}
-              >
-                <ActivitySection
-                  group={group}
-                  variant="standalone"
-                  placeholder={t('Add a comment. Tag users with @, or teams with #')}
-                />
-              </FoldSection>
-            </ErrorBoundary>
-          </Container>
-        </Dividers>
-      )}
+      <Dividers>
+        {linkedPullRequests.isPending ? (
+          <Placeholder height="78px" />
+        ) : linkedPullRequests.data?.pullRequests.length ? (
+          <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
+            <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
+            <IssuePreviewSection.Content>
+              <LinkedPullRequests group={group} showEmptyState={false} />
+            </IssuePreviewSection.Content>
+          </IssuePreviewSection>
+        ) : null}
+        {previewSeer.isLoading ? (
+          <Placeholder height="120px" />
+        ) : previewSeer.hasAutofix ? (
+          <IssuePreviewSeerContent
+            key={group.id}
+            group={group}
+            project={project}
+            previewSeer={previewSeer}
+          />
+        ) : null}
+        <Container>
+          <ErrorBoundary mini>
+            <FoldSection
+              title={
+                <Heading as="h3" size="md">
+                  {t('Activity')}
+                </Heading>
+              }
+              sectionKey={SectionKey.ACTIVITY}
+            >
+              <ActivitySection
+                group={group}
+                variant="standalone"
+                placeholder={t('Add a comment. Tag users with @, or teams with #')}
+              />
+            </FoldSection>
+          </ErrorBoundary>
+        </Container>
+      </Dividers>
     </IssueDetailsContextProvider>
   );
 }
