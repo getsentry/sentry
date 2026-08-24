@@ -55,7 +55,7 @@ export type InvestigationExecutionStatus =
   | 'failed'
   | 'cancelled';
 
-export type InvestigationBlockExecution = {
+type InvestigationBlockExecution = {
   completedAt: string | null;
   error: {code?: string; message?: string} | null;
   id: string;
@@ -97,7 +97,7 @@ export type InvestigationTranscriptBlock = {
   } | null> | null;
 };
 
-export type InvestigationPendingUserInput = {
+type InvestigationPendingUserInput = {
   data: Record<string, unknown>;
   id: string;
   input_type: 'ask_user_question';

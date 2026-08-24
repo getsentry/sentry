@@ -124,17 +124,6 @@ type UpdateBlockPromptVariables = {
   prompt: string;
 };
 
-type RenameBlockVariables = {
-  blockId: string;
-  title: string;
-};
-
-type RenameBlockResult = {
-  block: InvestigationBlock;
-  requestedBlockVersion: number;
-  requestedInvestigationVersion: number;
-};
-
 type BlockIdVariables = {
   blockId: string;
 };
@@ -460,97 +449,6 @@ export function useUpdateInvestigationBlockPromptMutation(
           : current
       );
       await options?.onSuccess?.(updatedBlock, variables, onMutateResult, context);
-    },
-    onError: async (error, variables, onMutateResult, context) => {
-      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onError?.(error, variables, onMutateResult, context);
-    },
-  });
-}
-
-export function useRenameInvestigationBlockMutation(
-  organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<RenameBlockResult, RenameBlockVariables>
-) {
-  const queryClient = useQueryClient();
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organizationSlug,
-    investigationId
-  );
-
-  return useMutation({
-    ...options,
-    scope: {id: `rename-investigation-block-${investigationId}`},
-    mutationFn: async ({blockId, title}) => {
-      const investigation = queryClient.getQueryData(detailOptions.queryKey)?.json;
-      const block = investigation?.blocks?.find(item => item.id === blockId);
-      if (!investigation || !block) {
-        throw new Error('Investigation block is not cached.');
-      }
-
-      const updated = await fetchMutation<InvestigationBlock>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/`,
-        method: 'PUT',
-        data: {
-          investigationVersion: investigation.version,
-          version: block.version,
-          title: title.trim(),
-        },
-      });
-      return {
-        block: updated,
-        requestedBlockVersion: block.version,
-        requestedInvestigationVersion: investigation.version,
-      };
-    },
-    onMutate: async variables => {
-      await queryClient.cancelQueries({queryKey: detailOptions.queryKey});
-      queryClient.setQueryData(detailOptions.queryKey, current =>
-        current
-          ? {
-              ...current,
-              json: {
-                ...current.json,
-                blocks: current.json.blocks?.map(block =>
-                  block.id === variables.blockId
-                    ? {...block, title: variables.title}
-                    : block
-                ),
-              },
-            }
-          : current
-      );
-    },
-    onSuccess: async (result, variables, onMutateResult, context) => {
-      const versionDelta = result.block.version === result.requestedBlockVersion ? 0 : 1;
-      queryClient.setQueryData(detailOptions.queryKey, current =>
-        current
-          ? {
-              ...current,
-              json: {
-                ...current.json,
-                blocks: current.json.blocks?.map(block =>
-                  block.id === result.block.id
-                    ? {
-                        ...result.block,
-                        // Keep a newer optimistic edit while this save was in flight.
-                        title:
-                          block.title === variables.title
-                            ? result.block.title
-                            : block.title,
-                      }
-                    : block
-                ),
-                version: Math.max(
-                  current.json.version,
-                  result.requestedInvestigationVersion + versionDelta
-                ),
-              },
-            }
-          : current
-      );
-      await options?.onSuccess?.(result, variables, onMutateResult, context);
     },
     onError: async (error, variables, onMutateResult, context) => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
