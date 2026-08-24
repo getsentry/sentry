@@ -373,6 +373,38 @@ describe('ScmCreateProject', () => {
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
   });
 
+  it('re-derives a restored untouched name on a platform change', async () => {
+    // A completed session stores the resolved name with the manual-edit flag;
+    // false marks it as platform-derived, so it must follow a new platform
+    // instead of sticking to the old default (the explicit-name fallback alone
+    // would wrongly preserve it).
+    persistWizardSession({
+      projectDetailsForm: {
+        projectName: 'python',
+        teamSlug: adminTeam.slug,
+        wasNameManuallyModified: false,
+      },
+    });
+    renderGlobalModal();
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    const projectName = await screen.findByPlaceholderText('project-name');
+    expect(projectName).toHaveValue('python');
+
+    await userEvent.click(screen.getByText('Python'));
+    await userEvent.keyboard('JavaScript');
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Browser JavaScript'})
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+
+    expect(projectName).toHaveValue('javascript');
+    expect(screen.getByText(`#${adminTeam.slug}`)).toBeInTheDocument();
+  });
+
   it('restores the wizard when the return params arrive after mount', async () => {
     const projectDetailsForm: ProjectDetailsFormState = {
       projectName: 'my-restored-name',
