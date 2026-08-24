@@ -29,14 +29,11 @@ ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY = "ds::per_org:orgs_with_dynamic_sampling"
 # loses its filter, short enough that an abandoned key does not outlive the pipeline.
 CACHE_TTL = timedelta(hours=24)
 REFRESH_INTERVAL = timedelta(hours=1)
-# How many organizations one feature-flag batch and one database page cover.
 CHUNK_SIZE = 10_000
 
 
 def candidate_organizations() -> QuerySet[Organization]:
     """
-    Every organization the per-org pipeline could schedule, before any feature check.
-
     The single definition of the population, so the cache is built from the same rows the
     scheduler filters. A mismatch here would silently drop organizations from the pipeline.
     """
@@ -53,9 +50,6 @@ def candidate_organizations() -> QuerySet[Organization]:
 
 def get_orgs_with_dynamic_sampling() -> list[int] | None:
     """
-    The cached organization ids that have dynamic sampling, or None when there is no
-    usable cache entry.
-
     None means "unknown", not "none of them". Callers must fall back to the unfiltered
     population, because a cold cache would otherwise stop the pipeline entirely.
     """
@@ -83,7 +77,7 @@ def _orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[i
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.per_org.refresh_orgs_with_dynamic_sampling",
+    name="sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=10 * 60,
     # A refresh still queued when the next one is due would write an older answer over a
@@ -92,11 +86,8 @@ def _orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[i
     retry=Retry(times=2, delay=30),
     silo_mode=SiloMode.CELL,
 )
-def refresh_orgs_with_dynamic_sampling() -> int:
+def cache_dynamic_sampling_feature_flags() -> int:
     """
-    Evaluate the dynamic sampling feature for every candidate organization and cache the
-    ids that have it. Returns how many were cached.
-
     An empty result leaves the previous entry in place. Every candidate losing the feature
     within one hour means the feature backend is answering wrongly, and serving that answer
     would stop the pipeline for everyone until the next successful refresh.

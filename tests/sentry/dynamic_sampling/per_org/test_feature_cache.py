@@ -6,9 +6,9 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.feature_cache import (
     ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY,
+    cache_dynamic_sampling_feature_flags,
     candidate_organizations,
     get_orgs_with_dynamic_sampling,
-    refresh_orgs_with_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.models.organization import OrganizationStatus
@@ -52,7 +52,7 @@ class FeatureCacheTest(TestCase):
         without_feature = self._org_with_project()
 
         with self.feature({FEATURE: [with_feature.slug]}):
-            assert refresh_orgs_with_dynamic_sampling() == 1
+            assert cache_dynamic_sampling_feature_flags() == 1
 
         assert get_orgs_with_dynamic_sampling() == [with_feature.id]
         assert without_feature.id not in (get_orgs_with_dynamic_sampling() or [])
@@ -61,7 +61,7 @@ class FeatureCacheTest(TestCase):
         org = self._org_with_project()
 
         with self.feature({FEATURE: [org.slug]}):
-            refresh_orgs_with_dynamic_sampling()
+            cache_dynamic_sampling_feature_flags()
 
         ttl = get_redis_client_for_ds().ttl(ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY)
         assert 0 < ttl <= 24 * 60 * 60
@@ -69,10 +69,10 @@ class FeatureCacheTest(TestCase):
     def test_an_empty_refresh_keeps_the_previous_entry(self) -> None:
         org = self._org_with_project()
         with self.feature({FEATURE: [org.slug]}):
-            refresh_orgs_with_dynamic_sampling()
+            cache_dynamic_sampling_feature_flags()
 
         with self.feature({FEATURE: []}):
-            assert refresh_orgs_with_dynamic_sampling() == 0
+            assert cache_dynamic_sampling_feature_flags() == 0
 
         assert get_orgs_with_dynamic_sampling() == [org.id]
 
@@ -83,7 +83,7 @@ class FeatureCacheTest(TestCase):
             patch("sentry.features.batch_has_for_organizations", return_value=None),
             pytest.raises(RuntimeError),
         ):
-            refresh_orgs_with_dynamic_sampling()
+            cache_dynamic_sampling_feature_flags()
 
     def test_a_missing_entry_reads_as_unknown(self) -> None:
         assert get_orgs_with_dynamic_sampling() is None

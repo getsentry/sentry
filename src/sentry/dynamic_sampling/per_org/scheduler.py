@@ -292,9 +292,8 @@ def schedule_per_org_calculations() -> None:
         return kept
 
     organizations = candidate_organizations()
-    # None means the cache has no usable entry, not that no org has the feature. Falling
-    # back to the full population keeps the pipeline running on a cold cache; the per-item
-    # check still rejects any org that does not qualify.
+    # A cold cache reads as None, and falling back to the full population keeps the
+    # pipeline running. The per-item check still rejects any org that does not qualify.
     orgs_with_dynamic_sampling = get_orgs_with_dynamic_sampling()
     if orgs_with_dynamic_sampling is not None:
         organizations = organizations.filter(id__in=orgs_with_dynamic_sampling)
