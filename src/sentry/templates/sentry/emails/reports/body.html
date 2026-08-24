@@ -227,6 +227,10 @@
 {% block content %}
 
 <div class="container">
+  {# Opaque white content card so the shared body pattern doesn't bleed through text in email clients that drop table/div backgrounds. Report-local only; avoid class="inner" because its table padding/margin rules would restyle charts. #}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color: #ffffff;">
+    <tr>
+      <td bgcolor="#ffffff" style="background-color: #ffffff;">
 
   <div class="project-breakdown">
     {% with height=110 %}
@@ -528,6 +532,9 @@
   </div>
   {% endif %}
 
+      </td>
+    </tr>
+  </table>
 </div>
 {% endblock %}
 
