@@ -1,11 +1,26 @@
+from __future__ import annotations
+
+from collections.abc import Generator
+from typing import Any
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from sentry.issue_detection.detectors.utils import (
+    get_numeric_value_from_span,
     parameterize_url_with_result,
     safer_urlparse,
     span_has_obfuscated_hostname,
 )
 from sentry.testutils.issue_detection.event_generators import create_span
+
+
+@pytest.fixture
+def mock_log_invalid_data() -> Generator[MagicMock]:
+    with patch(
+        "sentry.issue_detection.detectors.utils.log_invalid_span_data"
+    ) as mock_log_invalid_data:
+        yield mock_log_invalid_data
 
 
 class TestDetectorUtils:
@@ -107,3 +122,108 @@ class TestDetectorUtils:
             "path_params": path_params,
             "query_params": query_params,
         }
+
+
+class TestGetNumericValueFromSpan:
+    @pytest.mark.parametrize(
+        ("value", "number_type", "expected_result"),
+        [
+            # Values which are already the type we want
+            (1121, int, 1121),
+            (12.31, float, 12.31),
+            # Strings we can convert directly
+            ("1121", int, 1121),
+            ("12.31", float, 12.31),
+            # Ints are fine when we want floats - they're just missing decimals. The reverse
+            # generally isn't okay, since converting would lose data. The one exception is
+            # whole-number floats, which convert just fine.
+            (1121, float, 1121.0),
+            (1231.0, int, 1231),
+            (11.21, int, Exception),
+            # All of the above still holds if the values start out as strings
+            ("1121", float, 1121.0),
+            ("1231.0", int, 1231),
+            ("11.21", int, Exception),
+            # Bools are technically ints, but they're not what we're after
+            (True, int, Exception),
+            (True, float, Exception),
+            (False, int, Exception),
+            (False, float, Exception),
+            # Similarly, `NaN`-strings can be converted to floats, but also aren't what we want
+            ("NaN", int, Exception),
+            ("NaN", float, Exception),
+            # Values which aren't numbers at all
+            ("dogs", int, Exception),
+            ("dogs", float, Exception),
+            ("", int, Exception),
+            ("", float, Exception),
+            ({"maisey": 1231}, int, Exception),
+            ({"maisey": 1231}, float, Exception),
+            ([1231], int, Exception),
+            ([1231], float, Exception),
+        ],
+    )
+    def test_value_found(
+        self,
+        value: Any,
+        number_type: type[int] | type[float],
+        expected_result: int | float | type[Exception],
+        mock_log_invalid_data: MagicMock,
+    ) -> None:
+        span = create_span("do.dog.stuff", data={"dogs_are_great": value})
+        keys = ["dogs_are_great"]
+        default = 0 if number_type is int else 0.0
+
+        result_without_default = get_numeric_value_from_span(
+            span, keys, "dog_detector", number_type
+        )
+        result_with_default = get_numeric_value_from_span(
+            span, keys, "dog_detector", number_type, default=default
+        )
+
+        if expected_result is Exception:
+            assert result_without_default is None
+            assert result_with_default == default
+            # Invalid data logging happens even when we have a default value to return
+            assert mock_log_invalid_data.call_count == 2
+        else:
+            assert result_without_default == expected_result
+            assert isinstance(result_without_default, number_type)
+            assert result_with_default == expected_result
+            assert isinstance(result_with_default, number_type)
+            assert mock_log_invalid_data.call_count == 0
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            None,  # No span data
+            {},  # Empty span data
+            {"adopt_dont_shop": 1121},  # Span data exists but desired key doesn't
+            {"dogs_are_great": None},  # Desired key exists but has no value
+        ],
+    )
+    def test_value_not_found(
+        self, data: dict[str, Any] | None, mock_log_invalid_data: MagicMock
+    ) -> None:
+        span = create_span("do.dog.stuff", data=data)
+        keys = ["dogs_are_great"]
+
+        # Returns the default value (if given) or `None` (if not)
+        assert get_numeric_value_from_span(span, keys, "dog_detector", int) is None
+        assert get_numeric_value_from_span(span, keys, "dog_detector", int, default=1231) == 1231
+        # Either way, missing data isn't invalid data, so there's nothing to log
+        assert mock_log_invalid_data.call_count == 0
+
+    def test_uses_first_key_with_a_value(self, mock_log_invalid_data: MagicMock) -> None:
+        span = create_span("do.dog.stuff", data={"adopt_dont_shop": 1121, "dogs_are_great": 1231})
+        keys = ["dogs_are_great", "adopt_dont_shop"]
+
+        assert get_numeric_value_from_span(span, keys, "dog_detector", int) == 1231
+        assert mock_log_invalid_data.call_count == 0
+
+    def test_falls_back_to_later_keys(self, mock_log_invalid_data: MagicMock) -> None:
+        span = create_span("do.dog.stuff", data={"adopt_dont_shop": 1121})
+        keys = ["dogs_are_great", "adopt_dont_shop"]
+
+        assert get_numeric_value_from_span(span, keys, "dog_detector", int) == 1121
+        assert mock_log_invalid_data.call_count == 0
