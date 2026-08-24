@@ -59,11 +59,11 @@ class MockRateLimitProvider:
     def incr_completed_usage(self, usage_key, expiration):
         self.completed_calls.append((usage_key, expiration))
 
-    def get_accounted_usage(self, keys):
+    def get_usage_counts(self, keys):
         self.accounted_keys.extend(keys)
         if self._accounted_usage_error is not None:
             raise self._accounted_usage_error
-        return self._accounted_usage
+        return [self._accounted_usage] + [0] * (len(keys) - 1)
 
     def set_key_values(self, kvs):
         self.set_kvs.update(kvs)
@@ -145,16 +145,15 @@ class StatefulRateLimitProvider:
         expires_at = self.now() + expiration if expiration is not None else None
         self.completed_usage[usage_key] = (count + 1, expires_at)
 
-    def get_accounted_usage(self, keys):
-        total = 0
+    def get_usage_counts(self, keys):
+        counts = []
         for key in keys:
             if key in self.total_usage:
-                total += self.total_usage[key]
+                counts.append(self.total_usage[key])
                 continue
             count, expires_at = self.completed_usage.get(key, self.usage.get(key, (0, 0)))
-            if self._live(expires_at):
-                total += count
-        return total
+            counts.append(count if self._live(expires_at) else 0)
+        return counts
 
     def set_key_values(self, kvs):
         for key, (value, _) in kvs.items():

@@ -158,8 +158,12 @@ class RateLimitProvider(Protocol):
         """Increment a completed-request counter."""
         ...
 
-    def get_accounted_usage(self, keys: list[str]) -> int:
-        """Return the sum of a given set of keys."""
+    def get_usage_counts(self, keys: list[str]) -> list[int]:
+        """
+        Return the counter value for each key, with missing keys counted as zero.
+
+        Raises `IndeterminateResult` if the counters could not be read.
+        """
         ...
 
     def set_key_values(self, kvs: dict[str, tuple[int, int | None]]) -> None:
@@ -290,8 +294,7 @@ class DynamicRateLimiter:
             total_usage_key(self.provider, self.integration_id, referrer, resource),
             window_end - current_time,
         )
-        shared_completed = self._shared_completed_usage(resource)
-        reserved_completed = self._reserved_completed_usage(window_end, resource)
+        shared_completed, reserved_completed = self._completion_snapshots(window_end, resource)
 
         # The provider reports usage across every referrer, so it can only be reconciled against
         # the shared pool, and only after the quota reserved referrers have accounted for is
@@ -389,25 +392,21 @@ class DynamicRateLimiter:
             reserved_used += check.reserved_completed
         return shared_used, reserved_used
 
-    def _shared_completed_usage(self, resource: str) -> int:
-        try:
-            return self.rate_limit_provider.get_accounted_usage(
-                [
-                    completed_total_usage_key(
-                        self.provider,
-                        self.integration_id,
-                        "shared",
-                        resource,
-                    )
-                ]
-            )
-        except IndeterminateResult:
-            # Treating no requests as represented overstates usage, which is conservative.
-            return 0
+    def _completion_snapshots(self, window_end: int, resource: str) -> tuple[int, int]:
+        """
+        Return the completed shared usage and the completed reserved usage for a window.
 
-    def _reserved_completed_usage(self, window_end: int, resource: str) -> int:
-        """Return completed reserved usage represented in a provider report."""
-        keys = [
+        Both counters are fetched in a single round trip. If they cannot be read, both snapshot to
+        zero: treating no shared requests as represented and deducting no reserved usage each
+        overstate shared usage, which is the conservative direction.
+        """
+        shared_key = completed_total_usage_key(
+            self.provider,
+            self.integration_id,
+            "shared",
+            resource,
+        )
+        reserved_keys = [
             completed_usage_key(
                 self.provider,
                 self.integration_id,
@@ -417,14 +416,12 @@ class DynamicRateLimiter:
             )
             for referrer in self.referrer_allocation
         ]
-        if not keys:
-            return 0
 
         try:
-            return self.rate_limit_provider.get_accounted_usage(keys)
+            counts = self.rate_limit_provider.get_usage_counts([shared_key, *reserved_keys])
         except IndeterminateResult:
-            # Deducting nothing overstates shared usage, which is the conservative direction.
-            return 0
+            return 0, 0
+        return counts[0], sum(counts[1:])
 
     def update_rate_limit_meta(
         self,
@@ -554,8 +551,12 @@ class RedisRateLimitProvider:
             # Missing completed usage overstates shared usage, which is the conservative direction.
             return None
 
-    def get_accounted_usage(self, keys: list[str]) -> int:
-        """Return the sum of a given set of keys."""
+    def get_usage_counts(self, keys: list[str]) -> list[int]:
+        """
+        Return the counter value for each key, with missing keys counted as zero.
+
+        Raises `IndeterminateResult` if the counters could not be read.
+        """
         try:
             with self.cluster.pipeline() as pipe:
                 for key in keys:
@@ -563,8 +564,8 @@ class RedisRateLimitProvider:
 
                 values = pipe.execute(raise_on_error=True)
                 assert len(values) == len(keys)
-                return sum(int(k) for k in values if k is not None)
-        except (AssertionError, RedisError):
+                return [int(value) if value is not None else 0 for value in values]
+        except (AssertionError, RedisError, ValueError):
             raise IndeterminateResult
 
     def set_key_values(self, kvs: dict[str, tuple[int, int | None]]) -> None:

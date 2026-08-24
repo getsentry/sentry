@@ -187,7 +187,7 @@ class TestWindowStateExpiresWithTheProviderWindow(TestCase):
         assert window is None
 
 
-class TestRedisRateLimitProviderGetAccountedUsage(TestCase):
+class TestRedisRateLimitProviderGetUsageCounts(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.provider = RedisRateLimitProvider()
@@ -200,20 +200,25 @@ class TestRedisRateLimitProviderGetAccountedUsage(TestCase):
             client.delete(key)
 
     def test_returns_zero_for_missing_keys(self) -> None:
-        assert self.provider.get_accounted_usage(self.keys) == 0
+        assert self.provider.get_usage_counts(self.keys) == [0, 0]
 
-    def test_returns_zero_for_empty_keys(self) -> None:
-        assert self.provider.get_accounted_usage([]) == 0
+    def test_returns_empty_for_empty_keys(self) -> None:
+        assert self.provider.get_usage_counts([]) == []
 
-    def test_sums_existing_keys(self) -> None:
+    def test_returns_counts_per_key(self) -> None:
         client = _client()
         client.set(self.keys[0], 10)
         client.set(self.keys[1], 25)
-        assert self.provider.get_accounted_usage(self.keys) == 35
+        assert self.provider.get_usage_counts(self.keys) == [10, 25]
 
-    def test_ignores_missing_keys_in_sum(self) -> None:
+    def test_counts_missing_keys_as_zero(self) -> None:
         _client().set(self.keys[0], 7)
-        assert self.provider.get_accounted_usage(self.keys) == 7
+        assert self.provider.get_usage_counts(self.keys) == [7, 0]
+
+    def test_raises_indeterminate_result_for_unparseable_counter(self) -> None:
+        _client().set(self.keys[0], "garbage")
+        with pytest.raises(IndeterminateResult):
+            self.provider.get_usage_counts(self.keys)
 
 
 class TestRedisRateLimitProviderSetKeyValues(TestCase):
