@@ -1,8 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Container} from '@sentry/scraps/layout';
-
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
@@ -83,21 +81,18 @@ export function OrganizationFeatureFlagsAuditLogTable({
           'Verify your webhook integration(s) by checking the audit logs below for recent changes to your feature flags.'
         )}
       </TextBlock>
-      <Container minWidth={0} overflowX="auto">
-        <Container minWidth="768px">
-          <FeatureFlagsLogTable
-            columns={columns}
-            flags={flags?.data ?? []}
-            isPending={isPending}
-            error={error}
-            onRowMouseOver={handleMouseOver}
-            onRowMouseOut={handleMouseOut}
-            onResizeColumn={handleResizeColumn}
-            highlightedRowKey={activeRowKey}
-            pageLinks={pageLinks}
-          />
-        </Container>
-      </Container>
+      <FeatureFlagsLogTable
+        columns={columns}
+        flags={flags?.data ?? []}
+        isPending={isPending}
+        error={error}
+        onRowMouseOver={handleMouseOver}
+        onRowMouseOut={handleMouseOut}
+        onResizeColumn={handleResizeColumn}
+        highlightedRowKey={activeRowKey}
+        pageLinks={pageLinks}
+        scrollable
+      />
     </Fragment>
   );
 }
