@@ -29,7 +29,7 @@ export function ActivityList({activities}: Props) {
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(3, 2fr);
 
-  @container (min-width: ${p => p.theme.container['5xl']}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     grid-template-columns: 2fr repeat(2, 1fr);
   }
 `;

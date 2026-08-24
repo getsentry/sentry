@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
@@ -37,7 +36,6 @@ import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {useMedia} from 'sentry/utils/useMedia';
 import type {
   ScmInstallation,
   ScmRepoMatches,
@@ -412,9 +410,6 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onUninstall,
   } = installation;
 
-  const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
-
   return (
     <Fragment>
       {manageUrl && (
@@ -428,7 +423,9 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
           size="xs"
           icon={<IconOpen />}
         >
-          {isSmallScreen ? undefined : t('Manage repositories')}
+          <Text as="span" display={{zero: 'none', xl: 'inline'}}>
+            {t('Manage repositories')}
+          </Text>
         </LinkButton>
       )}
       {(onUninstall || onSettings || !!overflowMenuItems?.length) && (
