@@ -71,6 +71,7 @@ class PullRequestStatusResult:
     checks: AggregateChecksStatus | None = None
     review: AggregateReviewStatus | None = None
     files: tuple[PullRequestFileSummary, ...] = ()
+    failed_checks: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

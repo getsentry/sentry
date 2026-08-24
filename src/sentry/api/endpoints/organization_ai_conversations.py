@@ -211,7 +211,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.DATA_BROWSING
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):

@@ -24,6 +24,7 @@
     flex-grow: 1;
     font-size: 16px;
     font-family: Rubik;
+    white-space: pre-wrap;
   }
 
   /* Default alert banner color */
@@ -84,14 +85,10 @@
   </div>
   {% elif show_partner_login_banner %}
   <div class="alert-banner partner">
-    <div class="alert-message">
-      Complete your registration by checking your inbox for our email and following the sign-in link.
-    </div>
+    <div class="alert-message">Complete your registration by checking your inbox for our email and following the sign-in link.</div>
   </div>
   {% elif show_login_banner %}
   <div class="alert-banner default">
-    <div class="alert-message">
-      Did you know you can use Sentry to monitor your agents? Well you can, <a target="_blank" href="https://docs.sentry.io/product/agents/?utm_source=website">learn more about agent tracing now</a>.
-    </div>
+    <div class="alert-message">Did you know you can use Sentry to monitor your agents? Well you can, <a target="_blank" href="https://docs.sentry.io/product/agents/?utm_source=website">learn more about agent tracing now</a>.</div>
   </div>
 {% endif %}

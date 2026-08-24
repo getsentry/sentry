@@ -55,38 +55,6 @@ type ChartComponent =
   | React.ComponentType<AreaChartProps>
   | React.ComponentType<LineChartProps>;
 
-function resolveChartComponent({
-  chartComponent,
-  showDaily,
-  timeseriesLength,
-  forceChartType,
-  yAxis,
-}: {
-  timeseriesLength: number;
-  yAxis: string;
-  chartComponent?: ChartComponent;
-  forceChartType?: string;
-  showDaily?: boolean;
-}): ChartComponent {
-  if (defined(chartComponent)) {
-    return chartComponent;
-  }
-  if (showDaily) {
-    return BarChart;
-  }
-  if (timeseriesLength > 1) {
-    switch (forceChartType || aggregateMultiPlotType(yAxis)) {
-      case 'line':
-        return LineChart;
-      case 'area':
-        return AreaChart;
-      default:
-        throw new Error(`Unknown multi plot type for ${yAxis}`);
-    }
-  }
-  return AreaChart;
-}
-
 type ChartProps = {
   currentSeriesNames: string[];
   loading: boolean;
@@ -179,13 +147,16 @@ function Chart({
     setSeriesSelection(newSeriesSelection);
   }
 
-  const ChartComponent = resolveChartComponent({
-    chartComponent,
-    showDaily,
-    timeseriesLength: timeseriesData.length,
-    forceChartType,
-    yAxis,
-  });
+  const multiPlotType =
+    !defined(chartComponent) && !showDaily && timeseriesData.length > 1
+      ? forceChartType || aggregateMultiPlotType(yAxis)
+      : null;
+  if (multiPlotType !== null && multiPlotType !== 'line' && multiPlotType !== 'area') {
+    throw new Error(`Unknown multi plot type for ${yAxis}`);
+  }
+  const ChartComponent =
+    chartComponent ??
+    (showDaily ? BarChart : multiPlotType === 'line' ? LineChart : AreaChart);
 
   const data = [
     ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),

@@ -16,7 +16,12 @@ from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, ProfilesS
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 class TestSlackImageBlockBuilder(

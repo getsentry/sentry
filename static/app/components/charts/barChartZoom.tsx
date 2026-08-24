@@ -51,18 +51,9 @@ type Props = {
   xAxisIndex: number[];
   /**
    * This is the minimum width of the zoom. If the targeted zoom area is
-   * smaller than is specified by this parameter, the zoom will be cancelled
-   * and the `onDataZoomCancelled` callback will be called.
+   * smaller than is specified by this parameter, the zoom will be cancelled.
    */
   minZoomWidth?: number;
-  onChartReady?: EChartChartReadyHandler;
-  onDataZoom?: EChartDataZoomHandler;
-  /**
-   * This callback is called when the zoom action was cancelled. It can happen
-   * when `minZoomWidth` is specified and the user tries to zoom on an area
-   * smaller than that.
-   */
-  onDataZoomCancelled?: () => void;
   /**
    *
    */
@@ -74,9 +65,6 @@ export function BarChartZoom({
   children,
   location,
   minZoomWidth,
-  onChartReady,
-  onDataZoom,
-  onDataZoomCancelled,
   onHistoryPush,
   paramEnd,
   paramStart,
@@ -87,9 +75,7 @@ export function BarChartZoom({
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
-  const handleChartReady = (chart: ECharts) => {
-    onChartReady?.(chart);
-  };
+  const handleChartReady = (_chart: ECharts) => {};
 
   /**
    * Chart event when *any* rendering+animation finishes
@@ -98,7 +84,7 @@ export function BarChartZoom({
     activateZoomAreaSelect(chart);
   };
 
-  const handleDataZoom = (evt: any, chart: any) => {
+  const handleDataZoom = (_evt: any, chart: any) => {
     const model = chart.getModel();
     const {startValue, endValue} = model._payload.batch[0];
 
@@ -126,15 +112,11 @@ export function BarChartZoom({
       } else {
         // Dispatch the restore action here to stop ECharts from zooming
         chart.dispatchAction({type: 'restore'});
-        onDataZoomCancelled?.();
       }
     } else {
       // Dispatch the restore action here to stop ECharts from zooming
       chart.dispatchAction({type: 'restore'});
-      onDataZoomCancelled?.();
     }
-
-    onDataZoom?.(evt, chart);
   };
 
   return children({

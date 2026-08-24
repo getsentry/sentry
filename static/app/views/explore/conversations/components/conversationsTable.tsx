@@ -106,6 +106,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
     normalizeUserField(user.email) ||
     normalizeUserField(user.username) ||
     normalizeUserField(user.ip_address) ||
+    normalizeUserField(user.id) ||
     null
   );
 }

@@ -76,7 +76,6 @@ interface VisualizationWidgetProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
-  showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
   widgetInterval?: string;
 }
@@ -89,7 +88,6 @@ export function VisualizationWidget({
   onDataFetchStart,
   tableItemLimit,
   widgetInterval,
-  showReleaseAs = 'bubble',
   showConfidenceWarning,
   onZoom,
   legendSelection,
@@ -112,9 +110,7 @@ export function VisualizationWidget({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection, {
-    enabled: showReleaseAs !== 'none',
-  });
+  const {releases: releasesWithDate} = useReleaseStats(selection);
 
   const releases =
     releasesWithDate?.map(({date, version}) => ({
@@ -158,7 +154,7 @@ export function VisualizationWidget({
             errorMessage={errorMessage}
             loading={loading}
             releases={releases}
-            showReleaseAs={showReleaseAs}
+            showReleaseAs="bubble"
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}

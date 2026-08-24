@@ -4,7 +4,7 @@ import {STATIC_SEMVER_TAGS} from 'sentry/components/events/searchBarFieldConstan
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, type AggregationKey} from 'sentry/utils/fields';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -22,7 +22,7 @@ export interface UseSpanSearchQueryBuilderProps {
   searchSource: string;
   autoFocus?: boolean;
   caseInsensitive?: CaseInsensitive;
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
   disableLoadingTags?: boolean;
   disallowNegation?: boolean;

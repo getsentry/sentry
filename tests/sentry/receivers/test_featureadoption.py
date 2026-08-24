@@ -20,7 +20,6 @@ from sentry.signals import (
     user_feedback_received,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.workflow_engine.receivers.project_workflows import DEFAULT_RULE_DATA
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
@@ -526,7 +525,24 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
     def test_alert_rules(self) -> None:
         rule = Rule.objects.create(
-            project=self.project, label="Trivially modified rule", data=DEFAULT_RULE_DATA
+            project=self.project,
+            label="Trivially modified rule",
+            data={
+                "action_match": "any",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"
+                    },
+                ],
+                "actions": [
+                    {
+                        "id": "sentry.mail.actions.NotifyEmailAction",
+                        "targetType": "IssueOwners",
+                        "targetIdentifier": None,
+                        "fallthroughType": "ActiveMembers",
+                    }
+                ],
+            },
         )
 
         alert_rule_created.send(

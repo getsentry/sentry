@@ -52,7 +52,8 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
-from sentry.seer.autofix_rca.models import FEATURE_ID as AUTOFIX_RCA_FEATURE_ID
+from sentry.seer.autofix_rca.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+from sentry.seer.autofix_rca.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.entrypoints.operator import (
     SeerAutofixOperator,
     process_autofix_updates,
@@ -111,7 +112,7 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
         SeerAgentRun.objects.filter(
             run__organization_id=organization.id,
             run__seer_run_state_id=run_id,
-            source=AUTOFIX_RCA_FEATURE_ID,
+            source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
         )
         .values_list("extras__stopping_point", flat=True)
         .first()
@@ -125,7 +126,7 @@ def _group_and_referrer_from_run(
         SeerAgentRun.objects.filter(
             run__organization_id=organization.id,
             run__seer_run_state_id=run_id,
-            source=AUTOFIX_RCA_FEATURE_ID,
+            source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
         )
         .values("group_id", "extras")
         .first()
@@ -762,7 +763,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         # Get pipeline metadata from state, falling back to the Sentry-side run
-        # mirror for runs Seer started without it (the autofix_rca feature).
+        # mirror for runs Seer started without it (the autofix feature).
         raw_stopping_point = (state.metadata or {}).get(
             "stopping_point"
         ) or _stopping_point_from_run(organization, run_id)

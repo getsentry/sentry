@@ -243,7 +243,7 @@ export function useSearchTokenCombobox<T>(
       shouldSelectOnPressUp: true,
       shouldFocusOnHover: true,
       linkBehavior: 'selection' as const,
-      ['UNSTABLE_itemBehavior']: 'action',
+      UNSTABLE_itemBehavior: 'action',
     }),
   };
 }
