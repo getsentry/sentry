@@ -228,9 +228,9 @@
 
 <div class="container">
   {# Opaque white content card so the shared body pattern doesn't bleed through text in email clients that drop table/div backgrounds. Report-local only; avoid class="inner" because its table padding/margin rules would restyle charts. #}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color: #ffffff;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color: #ffffff; border: 1px solid #c7d0d4; border-radius: 4px; border-collapse: separate; border-spacing: 0;">
     <tr>
-      <td bgcolor="#ffffff" style="background-color: #ffffff;">
+      <td bgcolor="#ffffff" style="background-color: #ffffff; border-radius: 4px; padding: 20px;">
 
   <div class="project-breakdown">
     {% with height=110 %}
