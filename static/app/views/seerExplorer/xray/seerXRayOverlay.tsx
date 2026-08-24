@@ -29,9 +29,9 @@ const POLL_INTERVAL_MS = 500;
 // even when their boxes overlap almost exactly (e.g. a widget with one child chart).
 const DEPTH_COLORS = ['blue400', 'pink400', 'yellow400', 'green400'] as const;
 
-// Floor size for the data panel — big enough to read JSON comfortably —
-// but never applied past the node's own box; see the minWidth/minHeight
-// computation below.
+// Floor size for the data panel, big enough to read JSON comfortably even
+// when the selected node's own box (a small nav badge, a label chip) is
+// much smaller.
 const PANEL_MIN_WIDTH = 420;
 const PANEL_MIN_HEIGHT = 320;
 
@@ -174,12 +174,15 @@ export function SeerXRayOverlay() {
           style={{
             top: selectedNode.rect.top,
             left: selectedNode.rect.left,
-            // CSS resolves a min/max conflict by letting min win, so a
-            // static min-width/height would blow past a small node's box —
-            // clamp the min to the box itself instead of hardcoding it,
-            // which also keeps min <= max in every case.
-            minWidth: Math.min(PANEL_MIN_WIDTH, selectedNode.rect.width),
-            minHeight: Math.min(PANEL_MIN_HEIGHT, selectedNode.rect.height),
+            // A small node's box (a nav badge, a label chip) is too small to
+            // hold readable JSON, so the panel keeps a fixed, reasonable
+            // floor size and is allowed to extend past that box — CSS lets
+            // min win over a smaller max here, same as any tooltip or
+            // popover anchored to a small trigger. Large nodes still cap the
+            // panel to their own box via max-width/max-height, so it never
+            // grows arbitrarily big for a big section.
+            minWidth: PANEL_MIN_WIDTH,
+            minHeight: PANEL_MIN_HEIGHT,
             maxWidth: selectedNode.rect.width,
             maxHeight: selectedNode.rect.height,
           }}
