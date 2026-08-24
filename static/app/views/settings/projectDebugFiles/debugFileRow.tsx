@@ -62,7 +62,7 @@ export function DebugFileRow({
             <StyledFileSize bytes={size} />
             <Grid
               columns="min-content 1fr"
-              flex={2}
+              flex={1}
               align="center"
               gap="xs"
               paddingLeft="xs"
@@ -166,7 +166,6 @@ const DebugId = styled('code')`
 `;
 
 const StyledFileSize = styled(FileSize)`
-  flex: 1;
   padding-left: ${p => p.theme.space.xs};
 `;
 
