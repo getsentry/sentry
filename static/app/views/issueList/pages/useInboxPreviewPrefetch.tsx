@@ -26,28 +26,21 @@ export function useInboxPreviewPrefetch(group: Group) {
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features') &&
     getConfigForIssueType(group, group.project).autofix;
+  const queryParams = {
+    groupId: group.id,
+    organizationSlug: organization.slug,
+  };
   const prefetchDebouncer = useDebouncer(
     () => {
       void queryClient.prefetchQuery(
         groupApiOptions({
-          groupId: group.id,
-          organizationSlug: organization.slug,
+          ...queryParams,
           environments,
           expandDerivedData: organization.features.includes('issue-inbox'),
         })
       );
-      void queryClient.prefetchQuery(
-        linkedPullRequestsApiOptions({
-          groupId: group.id,
-          organizationSlug: organization.slug,
-        })
-      );
-      void queryClient.prefetchQuery(
-        autofixSetupApiOptions({
-          groupId: group.id,
-          organizationSlug: organization.slug,
-        })
-      );
+      void queryClient.prefetchQuery(linkedPullRequestsApiOptions(queryParams));
+      void queryClient.prefetchQuery(autofixSetupApiOptions(queryParams));
       if (shouldPrefetchAutofix) {
         void queryClient.prefetchQuery({
           ...explorerAutofixApiOptions(organization.slug, group.id),

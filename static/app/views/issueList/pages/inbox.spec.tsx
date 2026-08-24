@@ -852,22 +852,15 @@ describe('InboxPage', () => {
     const pullRequestsRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
       match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
-      body: {pullRequests: []},
       asyncDelay: pendingRequest,
     });
     const autofixSetupRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        billing: {hasAutofixQuota: false},
-        integration: {ok: false, reason: null},
-        seerReposLinked: false,
-      }),
       asyncDelay: pendingRequest,
     });
     const autofixRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
       match: [MockApiClient.matchQuery({mode: 'explorer', llmFormat: 'markdown'})],
-      body: ExplorerAutofixResponseFixture({autofix: null}),
       asyncDelay: pendingRequest,
     });
 
