@@ -888,12 +888,14 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         return remove_optional_nodes(flatten(children[0]))
 
     def visit_boolean_operator(self, node: Node, children: tuple[QueryOp]) -> QueryOp:
+        self._validate_boolean_support()
+        return children[0]
+
+    def _validate_boolean_support(self) -> None:
         if not self.config.allow_boolean:
             raise InvalidSearchQuery(
                 'Boolean statements containing "OR" or "AND" are not supported in this search'
             )
-
-        return children[0]
 
     def visit_free_text_unquoted(self, node: Node, children: object) -> str | None:
         return node.text.strip(" ") or None
@@ -1855,16 +1857,21 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node,
             list[SearchKey],
         ],
-    ) -> ParenExpression:
+    ) -> SearchFilter | ParenExpression:
         (negation, _, _, _, search_keys) = children
         search_keys = self._validate_has_search_keys(negation, search_keys)
 
         operator = "=" if is_negated(negation) else "!="
-        joining_operator: QueryOp = "AND" if is_negated(negation) else "OR"
         search_value = SearchValue("")
         all_filters = [
             SearchFilter(search_key, operator, search_value) for search_key in search_keys
         ]
+        if not self.config.allow_boolean:
+            if len(all_filters) > 1:
+                self._validate_boolean_support()
+            return all_filters[0]
+
+        joining_operator: QueryOp = "AND" if is_negated(negation) else "OR"
         tokens: list[QueryToken] = []
         for index, search_filter in enumerate(all_filters):
             tokens.append(search_filter)
