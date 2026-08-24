@@ -247,15 +247,16 @@ class DynamicRateLimiter:
         elapsed = int(current_time % window_seconds)
         return current_time - elapsed + window_seconds
 
-    def is_rate_limited(self, referrer: str, resource: str) -> bool:
-        return self.check_rate_limit(referrer, resource).is_limited
-
     def normalize_referrer(self, referrer: str) -> str:
         return referrer if referrer in self.referrer_allocation else "shared"
 
     def check_rate_limit(self, referrer: str, resource: str) -> RateLimitCheck:
         """
         Return the rate-limit decision and the cumulative local count for this request.
+
+        Every call increments the cumulative issued counter, so callers must pair it with a
+        `record_completed_request` call once the request settles; unpaired calls permanently
+        inflate the in-flight estimate.
 
         This check is best-effort and is not guaranteed to prevent a rate-limit error response from
         a service-provider.
