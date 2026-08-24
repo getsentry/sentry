@@ -1,9 +1,11 @@
 from unittest import mock
 
+import pytest
 from django.conf import settings
 
 from sentry.scm.private.rate_limit import (
     CUMULATIVE_USAGE_TTL_SECONDS,
+    IndeterminateResult,
     RedisRateLimitProvider,
     WindowState,
     completed_usage_key,
@@ -49,6 +51,11 @@ class TestRedisRateLimitProviderGetRateLimitState(TestCase):
         _client().set(self.window_key, "garbage")
         _, window = self.provider.get_rate_limit_state(self.total_key, self.window_key)
         assert window is None
+
+    def test_raises_indeterminate_result_for_unparseable_capacity(self) -> None:
+        _client().set(self.total_key, "garbage")
+        with pytest.raises(IndeterminateResult):
+            self.provider.get_rate_limit_state(self.total_key, self.window_key)
 
 
 class TestRedisRateLimitProviderIncrUsage(TestCase):

@@ -133,6 +133,8 @@ class RateLimitProvider(Protocol):
         """
         Get the request limit and the service-provider's own view of the current window.
 
+        Raises `IndeterminateResult` if the state could not be read.
+
         :param total_key: The location of the request limit.
         :param window_key: The location of the reported window state.
         """
@@ -266,16 +268,21 @@ class DynamicRateLimiter:
 
         current_time = self.get_time_in_seconds()
 
-        service_capacity, window = self.rate_limit_provider.get_rate_limit_state(
-            total_limit_key(self.provider, self.integration_id, resource),
-            window_state_key(self.provider, self.integration_id, resource),
-        )
-
-        # We can cache this value to skip the service_capacity set operation. It saves us from
-        # writing the same capacity value over and over again. The cached capacity is preserved
-        # across multiple callers meaning this caching, though local to the dynamic rate limiter,
-        # enjoys global population semantics.
-        self.recorded_capacity[resource] = service_capacity
+        try:
+            service_capacity, window = self.rate_limit_provider.get_rate_limit_state(
+                total_limit_key(self.provider, self.integration_id, resource),
+                window_state_key(self.provider, self.integration_id, resource),
+            )
+            # We can cache this value to skip the service_capacity set operation. It saves us from
+            # writing the same capacity value over and over again. The cached capacity is preserved
+            # across multiple callers meaning this caching, though local to the dynamic rate
+            # limiter, enjoys global population semantics.
+            self.recorded_capacity[resource] = service_capacity
+        except IndeterminateResult:
+            # The read failed; fail open. A failed read says nothing about what Redis holds, so
+            # the capacity cache is left alone -- clobbering it would force a redundant capacity
+            # rewrite on the next response.
+            service_capacity, window = None, None
 
         window_end = self.window_end(current_time, window, resource)
         quota_used, local_used = self.rate_limit_provider.incr_usage(
@@ -479,6 +486,8 @@ class RedisRateLimitProvider:
         """
         Get the request limit and the service-provider's own view of the current window.
 
+        Raises `IndeterminateResult` if the state could not be read.
+
         :param total_key: The location of the request limit.
         :param window_key: The location of the reported window state.
         """
@@ -493,9 +502,9 @@ class RedisRateLimitProvider:
                     decode_window_state(window),
                 )
         except (RedisError, IndexError, ValueError):
-            # Fail open if we could not read our own state. The limit is treated as unknown, which
+            # The caller fails open on an unreadable state. The limit is treated as unknown, which
             # lets the request through, and the response will repopulate it.
-            return (None, None)
+            raise IndeterminateResult
 
     def incr_usage(self, usage_key: str, total_usage_key: str, expiration: int) -> tuple[int, int]:
         """

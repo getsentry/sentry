@@ -27,6 +27,7 @@ class MockRateLimitProvider:
         total_usage: int | None = None,
         accounted_usage: int = 0,
         accounted_usage_error: Exception | None = None,
+        state_error: Exception | None = None,
     ):
         self._capacity = capacity
         self._window = window
@@ -34,6 +35,7 @@ class MockRateLimitProvider:
         self._total_usage = usage if total_usage is None else total_usage
         self._accounted_usage = accounted_usage
         self._accounted_usage_error = accounted_usage_error
+        self._state_error = state_error
         self.accounted_keys: list[str] = []
         self.set_kvs: dict = {}
         self.state_calls: list[tuple[str, str]] = []
@@ -43,6 +45,8 @@ class MockRateLimitProvider:
 
     def get_rate_limit_state(self, total_key, window_key):
         self.state_calls.append((total_key, window_key))
+        if self._state_error is not None:
+            raise self._state_error
         return (self._capacity, self._window)
 
     def incr_usage(self, usage_key, total_usage_key, expiration):
@@ -72,6 +76,7 @@ def make_limiter(
     total_usage: int | None = None,
     accounted_usage: int = 0,
     accounted_usage_error: Exception | None = None,
+    state_error: Exception | None = None,
     referrer_allocation: dict | None = None,
     get_time_in_seconds: Callable[[], int] = lambda: 73,
     resource_windows: dict[str, int] | None = None,
@@ -83,6 +88,7 @@ def make_limiter(
         total_usage=total_usage,
         accounted_usage=accounted_usage,
         accounted_usage_error=accounted_usage_error,
+        state_error=state_error,
     )
     limiter = DynamicRateLimiter(
         get_time_in_seconds=get_time_in_seconds,
@@ -614,6 +620,38 @@ class TestUsageKeyBucketing:
         usage_key, _, expiration = provider.incr_calls[0]
         assert usage_key == "rl:scm:github:1:default:shared:7200"
         assert expiration == 3525
+
+
+class TestStateReadFailure:
+    def test_fails_open_when_state_cannot_be_read(self) -> None:
+        limiter, _ = make_limiter(state_error=IndeterminateResult())
+        assert is_rate_limited(limiter, "shared", "default") is False
+
+    def test_failed_read_does_not_clobber_the_capacity_cache(self) -> None:
+        """
+        A failed read says nothing about what the store holds. Forgetting a known capacity would
+        force a redundant capacity rewrite on the next response.
+        """
+        limiter, provider = make_limiter(capacity=5000)
+        limiter.set_total_capacity(5000, "default")
+        provider.set_kvs.clear()
+
+        provider._state_error = IndeterminateResult()
+        is_rate_limited(limiter, "shared", "default")
+
+        limiter.set_total_capacity(5000, "default")
+        assert provider.set_kvs == {}
+
+    def test_successful_read_still_refreshes_the_capacity_cache(self) -> None:
+        """A read that finds no capacity must clear the cache so the next response rewrites it."""
+        limiter, provider = make_limiter(capacity=None)
+        limiter.set_total_capacity(5000, "default")
+        provider.set_kvs.clear()
+
+        is_rate_limited(limiter, "shared", "default")
+
+        limiter.set_total_capacity(5000, "default")
+        assert provider.set_kvs == {"limit:scm:github:1:default": (5000, None)}
 
 
 class TestSetTotalCapacity:
