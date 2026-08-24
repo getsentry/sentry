@@ -12,7 +12,9 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
+from sentry.seer.agent.client_models import PendingUserInput
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentCachePayload,
@@ -618,6 +620,33 @@ class SlackAgentEntrypointTest(TestCase):
         assert payload["thread"]["thread_ts"] == self.thread_ts
         assert payload["thread"]["channel_id"] == self.channel_id
 
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_send_write_approval_caches_input_id(self, mock_send_threaded_message):
+        ep = self._get_entrypoint()
+        data = SeerAgentResponse(
+            run_id=12345,
+            organization_id=self.organization.id,
+            summary="Seer needs your approval before it can make this change.",
+            write_approval_input_id="approval-1",
+            write_approval_scopes=["org:write"],
+        )
+
+        send_thread_update(install=ep.install, thread=ep.thread, data=data)
+
+        mock_send_threaded_message.assert_called_once()
+        assert SlackSeerAgentMessageCache.get(
+            integration_id=self.integration.id,
+            channel_id=self.channel_id,
+            message_ts="1234567890.000100",
+        ) == {
+            "thread_ts": self.thread_ts,
+            "run_id": 12345,
+            "input_id": "approval-1",
+        }
+
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
@@ -660,6 +689,47 @@ class SlackAgentEntrypointTest(TestCase):
         call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
         assert isinstance(call_data, SeerAgentError)
         assert call_data.error_message == "Seer was unable to generate a response."
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_agent_update_with_write_approval(self, mock_schedule_all_thread_updates):
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_agent_cache_payload()
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=cache_payload,
+            summary=None,
+            run_id=12345,
+            pending_user_input=PendingUserInput(
+                id="approval-1",
+                input_type="agent_write_approval",
+                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            ),
+        )
+
+        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentResponse)
+        assert call_data.write_approval_input_id == "approval-1"
+        assert call_data.write_approval_scopes == ["org:write"]
+        assert call_data.write_approval_status is None
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_agent_update_rejects_invalid_write_approval(self, mock_schedule_all_thread_updates):
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_agent_cache_payload()
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=cache_payload,
+            summary=None,
+            run_id=12345,
+            pending_user_input=PendingUserInput(
+                id="approval-1",
+                input_type="agent_write_approval",
+                data={"required_scopes": ["org:write"]},
+            ),
+        )
+
+        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentError)
 
     def test_on_agent_update_skips_clear_when_integration_not_found(self) -> None:
         ep = self._get_entrypoint()

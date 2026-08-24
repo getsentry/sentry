@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
@@ -16,7 +16,12 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.agent.client_models import PendingUserInput
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.endpoints.agent_request import (
+    AgentApprovalRequestData,
+    AgentApprovalRequestSerializer,
+)
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
@@ -88,6 +93,26 @@ class SlackPendingMentionPayload(TypedDict):
     message_ts: str
     event_type: str
     message_text: str
+
+
+def _agent_write_approval(
+    pending_user_input: PendingUserInput | None,
+) -> tuple[str, list[str]] | None:
+    if not pending_user_input or pending_user_input.input_type != "agent_write_approval":
+        return None
+    approval = AgentApprovalRequestSerializer(
+        data={
+            "sessionId": pending_user_input.data.get("session_id"),
+            "scopes": pending_user_input.data.get("required_scopes"),
+        }
+    )
+    if not pending_user_input.id or not approval.is_valid():
+        return None
+    validated_data = cast(AgentApprovalRequestData, approval.validated_data)
+    scopes = validated_data["scopes"]
+    if not scopes:
+        return None
+    return pending_user_input.id, scopes
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
@@ -533,15 +558,25 @@ class SlackAgentEntrypoint(
         cache_payload: SlackAgentCachePayload,
         summary: str | None,
         run_id: int,
+        pending_user_input: PendingUserInput | None = None,
     ) -> None:
         organization_id = cache_payload["organization_id"]
         integration_id = cache_payload["integration_id"]
         thread = cache_payload["thread"]
+        approval = _agent_write_approval(pending_user_input)
+        data: SeerAgentError | SeerAgentResponse
 
-        if not summary:
-            data: SeerAgentError | SeerAgentResponse = SeerAgentError(
-                error_message="Seer was unable to generate a response."
+        if approval:
+            input_id, scopes = approval
+            data = SeerAgentResponse(
+                run_id=run_id,
+                organization_id=organization_id,
+                summary="Seer needs your approval before it can make this change.",
+                write_approval_input_id=input_id,
+                write_approval_scopes=scopes,
             )
+        elif not summary:
+            data = SeerAgentError(error_message="Seer was unable to generate a response.")
         else:
             missing_scope_url = _get_missing_scope_settings_url(
                 integration_id=integration_id,

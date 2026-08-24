@@ -57,6 +57,30 @@ HANDOFF_TARGET_LABELS: dict[CodingAgentProviderType, str] = {
     CodingAgentProviderType.GITHUB_COPILOT_AGENT: "Copilot",
 }
 
+AGENT_WRITE_SCOPE_DETAILS = {
+    "alerts:read": ("Alerts", "read"),
+    "alerts:write": ("Alerts", "readWrite"),
+    "event:admin": ("Issues & Events", "admin"),
+    "event:read": ("Issues & Events", "read"),
+    "event:write": ("Issues & Events", "readWrite"),
+    "member:admin": ("Members", "admin"),
+    "member:read": ("Members", "read"),
+    "member:write": ("Members", "readWrite"),
+    "org:admin": ("Organization", "admin"),
+    "org:ci": ("CI Workflows", "manage"),
+    "org:integrations": ("Integrations", "admin"),
+    "org:read": ("Organization", "read"),
+    "org:write": ("Organization", "readWrite"),
+    "project:admin": ("Projects", "admin"),
+    "project:distribution": ("App Distribution", "manage"),
+    "project:read": ("Projects", "read"),
+    "project:releases": ("Releases", "admin"),
+    "project:write": ("Projects", "readWrite"),
+    "team:admin": ("Teams", "admin"),
+    "team:read": ("Teams", "read"),
+    "team:write": ("Teams", "readWrite"),
+}
+
 AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
@@ -256,7 +280,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.models.organization import Organization
         from sentry.seer.endpoints.utils import get_seer_run
 
-        blocks: list[Block] = [MarkdownBlock(text=data.summary)]
+        blocks: list[Block]
+        if data.write_approval_scopes:
+            blocks = cls._render_agent_write_approval(data)
+        else:
+            blocks = [MarkdownBlock(text=data.summary)]
         try:
             organization = Organization.objects.get_from_cache(id=data.organization_id)
         except Organization.DoesNotExist:
@@ -281,7 +309,75 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.missing_scope_settings_url:
             blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
 
-        return SlackRenderable(blocks=blocks, text="Seer Agent has finished")
+        if data.write_approval_status == "approved":
+            fallback_text = "Seer write access approved"
+        elif data.write_approval_status == "rejected":
+            fallback_text = "Seer write access not approved"
+        elif data.write_approval_scopes:
+            fallback_text = "Seer needs approval to make a change"
+        else:
+            fallback_text = "Seer Agent has finished"
+        return SlackRenderable(blocks=blocks, text=fallback_text)
+
+    @classmethod
+    def _render_agent_write_approval(cls, data: SeerAgentResponse) -> list[Block]:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
+
+        scopes = data.write_approval_scopes or []
+        if data.write_approval_status:
+            scope_access = ", ".join(cls._get_agent_write_scope_access(scope) for scope in scopes)
+            if data.write_approval_status == "approved":
+                return [MarkdownBlock(text=f":white_check_mark: Access granted for {scope_access}")]
+            return [MarkdownBlock(text=f":x: Access not granted for {scope_access}")]
+        if not data.write_approval_input_id:
+            raise ValueError("Pending agent write approval is missing its input ID")
+
+        scope_lines = "\n".join(
+            f"• {AGENT_WRITE_SCOPE_DETAILS.get(scope, ('Sentry Permission', ''))[0]}, `{scope}`"
+            for scope in scopes
+        )
+        blocks: list[Block] = [
+            MarkdownBlock(text="**Allow Seer to make changes?**"),
+            MarkdownBlock(text=f"**Requested scopes:**\n{scope_lines}"),
+            # `link_clicked` lets old pods safely no-op these actions during a rolling deploy.
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="Reject",
+                        value="link_clicked",
+                        action_id=encode_action_id(
+                            action=SlackAction.SEER_AGENT_WRITE_REJECT.value,
+                            organization_id=data.organization_id,
+                            project_id=None,
+                        ),
+                    ),
+                    ButtonElement(
+                        text="Approve",
+                        style="primary",
+                        value="link_clicked",
+                        action_id=encode_action_id(
+                            action=SlackAction.SEER_AGENT_WRITE_APPROVE.value,
+                            organization_id=data.organization_id,
+                            project_id=None,
+                        ),
+                    ),
+                ]
+            ),
+        ]
+        return blocks
+
+    @staticmethod
+    def _get_agent_write_scope_access(scope: str) -> str:
+        details = AGENT_WRITE_SCOPE_DETAILS.get(scope)
+        if not details:
+            return f"using the {scope} scope"
+        resource, access = details
+        action = {
+            "read": "reading",
+            "readWrite": "reading and writing",
+        }.get(access, "managing")
+        return f"{action} {resource}"
 
     @classmethod
     def _render_link_button(

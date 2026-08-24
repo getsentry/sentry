@@ -385,6 +385,76 @@ class SeerSlackRendererAgentTest(TestCase):
         for block in renderable["blocks"]:
             assert block.type != "context"
 
+    def test_render_agent_write_approval(self) -> None:
+        data = SeerAgentResponse(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            summary="Seer needs your approval before it can make this change.",
+            write_approval_input_id="approval-1",
+            write_approval_scopes=["org:write"],
+        )
+
+        renderable = SeerSlackRenderer._render_agent_response(data)
+
+        assert renderable["text"] == "Seer needs approval to make a change"
+        blocks = renderable["blocks"]
+        assert isinstance(blocks[0], MarkdownBlock)
+        assert blocks[0].text == "**Allow Seer to make changes?**"
+        assert blocks[0].block_id is None
+        assert isinstance(blocks[1], MarkdownBlock)
+        assert "**Requested scopes:**" in blocks[1].text
+        assert "Organization" in blocks[1].text
+        assert "`org:write`" in blocks[1].text
+        assert isinstance(blocks[2], ActionsBlock)
+        reject_button, approve_button = blocks[2].elements
+        assert isinstance(reject_button, ButtonElement)
+        assert reject_button.text is not None
+        assert reject_button.text.text == "Reject"
+        assert reject_button.value == "link_clicked"
+        assert reject_button.action_id == f"seer_agent_write_reject::{self.organization.id}"
+        assert isinstance(approve_button, ButtonElement)
+        assert approve_button.text is not None
+        assert approve_button.text.text == "Approve"
+        assert approve_button.style == "primary"
+        assert approve_button.value == "link_clicked"
+        assert approve_button.action_id == f"seer_agent_write_approve::{self.organization.id}"
+
+    def test_render_agent_write_approval_result(self) -> None:
+        data = SeerAgentResponse(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            summary="",
+            write_approval_scopes=["org:write"],
+            write_approval_status="approved",
+        )
+
+        renderable = SeerSlackRenderer._render_agent_response(data)
+
+        assert renderable["text"] == "Seer write access approved"
+        blocks = renderable["blocks"]
+        assert len(blocks) == 1
+        assert isinstance(blocks[0], MarkdownBlock)
+        assert blocks[0].text == (
+            ":white_check_mark: Access granted for reading and writing Organization"
+        )
+
+    def test_render_agent_write_approval_rejected(self) -> None:
+        data = SeerAgentResponse(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            summary="",
+            write_approval_scopes=["org:write"],
+            write_approval_status="rejected",
+        )
+
+        renderable = SeerSlackRenderer._render_agent_response(data)
+
+        assert renderable["text"] == "Seer write access not approved"
+        blocks = renderable["blocks"]
+        assert len(blocks) == 1
+        assert isinstance(blocks[0], MarkdownBlock)
+        assert blocks[0].text == (":x: Access not granted for reading and writing Organization")
+
     def test_render_dispatches_to_agent_response(self) -> None:
         data = self._create_agent_response(summary="Test")
         from sentry.notifications.platform.types import NotificationRenderedTemplate

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from pydantic import Field
 
@@ -195,6 +195,9 @@ class SeerAgentResponse(NotificationData):
     organization_id: int
     summary: str
     missing_scope_settings_url: str | None = None
+    write_approval_input_id: str | None = None
+    write_approval_scopes: list[str] | None = None
+    write_approval_status: Literal["approved", "rejected"] | None = None
     source: NotificationSource = NotificationSource.SEER_AGENT_RESPONSE
 
 
