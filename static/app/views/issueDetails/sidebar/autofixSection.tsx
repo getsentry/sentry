@@ -115,6 +115,7 @@ export const AutofixQuotaContent = registerLLMContext(
 export function AutofixContent({aiConfig, group, project}: AutofixContentProps) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea() || 'seer';
+  const setupAnalyticsEventKey = `${analyticsArea}.seer_setup_clicked`;
   const autofix = useExplorerAutofix(group);
   const {data: setupCheck, isPending} = useQuery(
     getSeerOnboardingCheckQueryOptions({organization})
@@ -221,7 +222,7 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/seer/onboarding/`}
                 icon={<IconSeer />}
-                analyticsEventKey={`${analyticsArea}.setup_clicked`}
+                analyticsEventKey={setupAnalyticsEventKey}
                 analyticsEventName={
                   analyticsArea === 'issue_inbox'
                     ? 'Issue Inbox: Seer Setup Clicked'
@@ -235,7 +236,7 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 icon={<IconSeer />}
-                analyticsEventKey={`${analyticsArea}.setup_clicked`}
+                analyticsEventKey={setupAnalyticsEventKey}
                 analyticsEventName={
                   analyticsArea === 'issue_inbox'
                     ? 'Issue Inbox: Seer Setup Clicked'

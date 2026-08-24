@@ -332,6 +332,11 @@ def login(
     Optionally `after_2fa` can be set to a URL which will be used to override
     the regular session redirect target directly after the 2fa flow.
 
+    `organization_id` identifies the organization whose SSO authentication is
+    being completed. It is preserved through 2FA and marks SSO complete for the
+    organization after login. It must not be used only to select a post-login
+    organization or redirect destination.
+
     Returns boolean indicating if the user was logged in.
     """
     if getattr(user, "is_suspended", False):

@@ -23,7 +23,7 @@ export function useIssuePreviewSeer(group: Group, project: Project) {
       (aiConfig.hasGithubIntegration && !aiConfig.seerReposLinked)
     ) {
       state = 'configure';
-    } else if (!autofix.runState) {
+    } else if (!autofix.runState && !autofix.isWaitingForRun) {
       state = 'start';
     }
   }
@@ -34,7 +34,8 @@ export function useIssuePreviewSeer(group: Group, project: Project) {
     hasAutofix: aiConfig.hasAutofix,
     isLoading:
       aiConfig.hasAutofix &&
-      (aiConfig.isAutofixSetupLoading || (state !== 'configure' && autofix.isLoading)),
+      (aiConfig.isAutofixSetupLoading ||
+        (state !== 'configure' && autofix.isLoading && !autofix.isWaitingForRun)),
     shouldShowSeerActions:
       aiConfig.hasAutofix && (state === 'start' || state === 'summary'),
     state,

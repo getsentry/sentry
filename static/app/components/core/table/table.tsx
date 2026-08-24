@@ -263,7 +263,6 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
    */
   columnIndex?: number;
   onSort?: () => void;
-  overlays?: ReactNode;
   sort?: SortDirection;
 }
 
@@ -272,7 +271,6 @@ function HeadCell({
   column,
   columnIndex,
   onSort,
-  overlays,
   sort,
   ...props
 }: HeadCellProps) {
@@ -287,7 +285,7 @@ function HeadCell({
     index !== context.lastColumnIndex &&
     context.resizableByIndex[index] === true;
 
-  const sortable = !!onSort || !!sort || !!overlays;
+  const sortable = !!onSort || !!sort;
 
   const cellRef = useRef<HTMLTableCellElement>(null);
   const {max, width} = useObservedColumnSize(cellRef);
@@ -303,7 +301,7 @@ function HeadCell({
       role="columnheader"
     >
       {sortable ? (
-        <SortableHeaderCell direction={sort} onSort={onSort} overlays={overlays}>
+        <SortableHeaderCell direction={sort} onSort={onSort}>
           {children}
         </SortableHeaderCell>
       ) : (

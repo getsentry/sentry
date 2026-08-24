@@ -145,6 +145,10 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: {},
+    });
   });
 
   afterEach(() => {
@@ -316,10 +320,7 @@ describe('InboxPage', () => {
     const assignedSection = screen.getByRole('region', {name: 'Assigned'});
 
     await userEvent.click(
-      within(assignedSection).getByRole('button', {name: 'Assigned'})
-    );
-    await userEvent.click(
-      within(assignedSection).getByRole('link', {name: /Assigned issue/})
+      await within(assignedSection).findByRole('link', {name: /Assigned issue/})
     );
 
     return screen.getByRole('complementary', {name: 'Issue preview'});
@@ -338,7 +339,7 @@ describe('InboxPage', () => {
     expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
     const assignedIssue = await screen.findByText('Assigned issue');
-    expect(assignedIssue).not.toBeVisible();
+    expect(assignedIssue).toBeVisible();
     expect(screen.getByRole('heading', {name: 'Inbox', level: 1})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
@@ -568,15 +569,34 @@ describe('InboxPage', () => {
     // Identified should be visible on the default "Me" tab
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', {name: 'My Teams'}));
+    await userEvent.click(screen.getByRole('radio', {name: /^My Teams/}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedMyTeamsRequest).toHaveBeenCalledTimes(1));
 
-    await userEvent.click(screen.getByRole('radio', {name: 'All'}));
+    await userEvent.click(screen.getByRole('radio', {name: /^All/}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedAllRequest).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows the total issue count for each assignee tab', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: {
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 10,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 49,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 100,
+      },
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    expect(await screen.findByRole('radio', {name: 'Me 10'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'My Teams 49'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'All 99+'})).toBeInTheDocument();
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
@@ -606,31 +626,31 @@ describe('InboxPage', () => {
     expect(await within(fixSection).findByText('1000+')).toBeInTheDocument();
   });
 
-  it('expands and collapses progress sections', async () => {
+  it('expands non-empty progress sections and collapses empty sections', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
 
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
+    const fixProposedIssue = await screen.findByText('Fix proposed issue');
+    const identifiedEmptyMessage = await screen.findByText('No identified issues');
     const fixProposedButton = screen.getByRole('button', {
       name: 'Fix Proposed',
     });
-    const assignedButton = screen.getByRole('button', {name: 'Assigned'});
-    const fixProposedIssue = await screen.findByText('Fix proposed issue');
-    const assignedIssue = screen.getByText('Assigned issue');
+    const identifiedButton = screen.getByRole('button', {name: 'Identified'});
 
     expect(fixProposedButton).toHaveAttribute('aria-expanded', 'true');
     expect(fixProposedIssue).toBeVisible();
-    expect(assignedButton).toHaveAttribute('aria-expanded', 'false');
-    expect(assignedIssue).not.toBeVisible();
+    expect(identifiedButton).toHaveAttribute('aria-expanded', 'false');
+    expect(identifiedEmptyMessage).not.toBeVisible();
 
     await userEvent.click(fixProposedButton);
-    await userEvent.click(assignedButton);
+    await userEvent.click(identifiedButton);
 
     expect(fixProposedButton).toHaveAttribute('aria-expanded', 'false');
     expect(fixProposedIssue).not.toBeVisible();
-    expect(assignedButton).toHaveAttribute('aria-expanded', 'true');
-    expect(assignedIssue).toBeVisible();
+    expect(identifiedButton).toHaveAttribute('aria-expanded', 'true');
+    expect(identifiedEmptyMessage).toBeVisible();
   });
 
   it('filters sections by the selected assignee', async () => {
@@ -671,9 +691,9 @@ describe('InboxPage', () => {
       initialRouterConfig,
     });
 
-    const meFilter = screen.getByRole('radio', {name: 'Me'});
-    const myTeamsFilter = screen.getByRole('radio', {name: 'My Teams'});
-    const allFilter = screen.getByRole('radio', {name: 'All'});
+    const meFilter = screen.getByRole('radio', {name: /^Me/});
+    const myTeamsFilter = screen.getByRole('radio', {name: /^My Teams/});
+    const allFilter = screen.getByRole('radio', {name: /^All/});
     expect(meFilter).toBeChecked();
     expect(myTeamsFilter).not.toBeChecked();
     expect(allFilter).not.toBeChecked();
@@ -919,6 +939,7 @@ describe('InboxPage', () => {
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     expect(within(preview).getByRole('button', {name: 'Find Root Cause'})).toBeDisabled();
+    expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
     await waitFor(() =>
       expect(startAutofixRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -941,6 +962,34 @@ describe('InboxPage', () => {
     expect(
       within(preview).getByRole('button', {name: 'Find Root Cause'})
     ).toBeInTheDocument();
+  });
+
+  it('shows root cause generation after starting Autofix for an assigned issue', async () => {
+    mockAssignedPreview(AutofixSetupFixture({}));
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    const startAutofixRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+    await userEvent.click(
+      await within(preview).findByRole('button', {name: 'Find Root Cause'})
+    );
+
+    expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
+    await waitFor(() => expect(startAutofixRequest).toHaveBeenCalledTimes(1));
+
+    // Immediately sets "find root cause" button to busy state.
+    const startButton = within(preview).getByRole('button', {name: 'Find Root Cause'});
+    expect(startButton).toBeDisabled();
+    expect(startButton).toHaveAttribute('aria-busy', 'true');
   });
 
   it('waits for Seer setup before showing assigned issue actions', async () => {
@@ -1239,6 +1288,20 @@ describe('InboxPage', () => {
         })
       ).toHaveAttribute('aria-current', 'true');
       unmount();
+    });
+
+    it('shows an empty state when every section is empty', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+
+      render(<InboxPage />, {
+        organization: seerOrganization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
     });
 
     it('follows section order even when a later section resolves first', async () => {
