@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
@@ -96,7 +97,11 @@ function renderBodyCell(
 ) {
   switch (column.key) {
     case 'flag':
-      return <code>{dataRow.flag}</code>;
+      return (
+        <Text monospace ellipsis>
+          {dataRow.flag}
+        </Text>
+      );
     case 'provider':
       return dataRow.provider || t('unknown');
     case 'createdAt':
