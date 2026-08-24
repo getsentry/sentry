@@ -8,7 +8,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -123,10 +123,18 @@ describe('IssuePreview', () => {
 
     render(<IssuePreview groupId={group.id} />, {organization});
 
-    expect(
-      await screen.findByRole('button', {name: 'Add context & retry'})
-    ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Create PR'})).not.toBeInTheDocument();
+
+    // The CTA opens the proposal section's own prompt rather than navigating away.
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Add context & retry'})
+    );
+
+    expect(
+      screen.getByPlaceholderText(
+        'Give Seer additional context to improve these code changes.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('offers to restart Autofix after PR creation when the linked PR is closed', async () => {

@@ -5,9 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  collectPatches,
-  getAutofixArtifactFromSection,
-  isCodeChangesArtifact,
+  getCodeChangePatches,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -16,7 +14,10 @@ import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewe
 
 import {CopySectionMarkdown} from './copySectionMarkdown';
 import {IssuePreviewSection} from './issuePreviewSection';
-import {RetryableAutofixSection} from './retryableAutofixSection';
+import {
+  RetryableAutofixSection,
+  useOptionalRetryableAutofixSection,
+} from './retryableAutofixSection';
 import {WorkingIndicator} from './workingIndicator';
 
 export function IssuePreviewAutofixProposalSection({
@@ -28,10 +29,10 @@ export function IssuePreviewAutofixProposalSection({
   defaultExpanded: boolean;
   section: AutofixSection;
 }) {
-  const patchesByRepo = useMemo(() => {
-    const artifact = getAutofixArtifactFromSection(section);
-    return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []);
-  }, [section]);
+  // `IssuePreview` hoists this section's retry state so its action row can open
+  // the prompt below. Own it when rendered without that enclosing provider.
+  const hoistedRetry = useOptionalRetryableAutofixSection();
+  const patchesByRepo = useMemo(() => getCodeChangePatches(section), [section]);
 
   const filesChanged = [...patchesByRepo.values()].reduce(
     (count, patches) => count + patches.length,
@@ -43,56 +44,61 @@ export function IssuePreviewAutofixProposalSection({
       ? tn('%s file changed in 1 repo', '%s files changed in 1 repo', filesChanged)
       : t('%s files changed in %s repos', filesChanged, patchesByRepo.size);
 
+  const content = (
+    <IssuePreviewSection aria-label={t('Code Changes')} defaultExpanded={defaultExpanded}>
+      <IssuePreviewSection.Title
+        trailingItems={
+          <Fragment>
+            <RetryableAutofixSection.Button />
+            <CopySectionMarkdown section={section} />
+          </Fragment>
+        }
+      >
+        {t('Code Changes')}
+      </IssuePreviewSection.Title>
+      <IssuePreviewSection.Summary>
+        <RetryableAutofixSection.Prompt
+          placeholder={t('Give Seer additional context to improve these code changes.')}
+          prompt={t('How can this code change be improved?')}
+        />
+        {section.status === 'processing' ? (
+          <WorkingIndicator>{t('Generating code changes...')}</WorkingIndicator>
+        ) : patchesByRepo.size > 0 ? (
+          <Text>{proposalSummary}</Text>
+        ) : (
+          <Text variant="muted">{t('No code changes were proposed.')}</Text>
+        )}
+      </IssuePreviewSection.Summary>
+      <IssuePreviewSection.Content>
+        <Stack gap="lg">
+          {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
+            <Stack key={repoName} gap="md">
+              <Text bold>{repoName}</Text>
+              <FileDiffList gap="0">
+                {patches.map(patch => (
+                  <FileDiffViewer
+                    key={patch.patch.path}
+                    patch={patch.patch}
+                    repoName={repoName}
+                    showBorder
+                    collapsible
+                  />
+                ))}
+              </FileDiffList>
+            </Stack>
+          ))}
+        </Stack>
+      </IssuePreviewSection.Content>
+    </IssuePreviewSection>
+  );
+
+  if (hoistedRetry) {
+    return content;
+  }
+
   return (
     <RetryableAutofixSection autofix={autofix} section={section} step="code_changes">
-      <IssuePreviewSection
-        aria-label={t('Code Changes')}
-        defaultExpanded={defaultExpanded}
-      >
-        <IssuePreviewSection.Title
-          trailingItems={
-            <Fragment>
-              <RetryableAutofixSection.Button />
-              <CopySectionMarkdown section={section} />
-            </Fragment>
-          }
-        >
-          {t('Code Changes')}
-        </IssuePreviewSection.Title>
-        <IssuePreviewSection.Summary>
-          <RetryableAutofixSection.Prompt
-            placeholder={t('Give Seer additional context to improve these code changes.')}
-            prompt={t('How can this code change be improved?')}
-          />
-          {section.status === 'processing' ? (
-            <WorkingIndicator>{t('Generating code changes...')}</WorkingIndicator>
-          ) : patchesByRepo.size > 0 ? (
-            <Text>{proposalSummary}</Text>
-          ) : (
-            <Text variant="muted">{t('No code changes were proposed.')}</Text>
-          )}
-        </IssuePreviewSection.Summary>
-        <IssuePreviewSection.Content>
-          <Stack gap="lg">
-            {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
-              <Stack key={repoName} gap="md">
-                <Text bold>{repoName}</Text>
-                <FileDiffList gap="0">
-                  {patches.map(patch => (
-                    <FileDiffViewer
-                      key={patch.patch.path}
-                      patch={patch.patch}
-                      repoName={repoName}
-                      showBorder
-                      collapsible
-                    />
-                  ))}
-                </FileDiffList>
-              </Stack>
-            ))}
-          </Stack>
-        </IssuePreviewSection.Content>
-      </IssuePreviewSection>
+      {content}
     </RetryableAutofixSection>
   );
 }

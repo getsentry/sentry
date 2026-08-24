@@ -10,11 +10,8 @@ import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNex
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
-  collectPatches,
-  getAutofixArtifactFromSection,
+  getCodeChangePatches,
   getOrderedAutofixSections,
-  isCodeChangesArtifact,
-  type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
@@ -33,13 +30,9 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOptionalRetryableAutofixSection} from 'sentry/views/issueDetails/issuePreview/retryableAutofixSection';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
-
-function hasCodeChanges(section: AutofixSection): boolean {
-  const artifact = getAutofixArtifactFromSection(section);
-  return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
-}
 
 interface IssuePreviewActionsProps {
   autofix: ExplorerAutofix;
@@ -231,6 +224,7 @@ function NextAutofixStepButton({
   variant?: 'primary' | 'secondary';
 }) {
   const {runState, isWaitingForRun} = autofix;
+  const codeChangesRetry = useOptionalRetryableAutofixSection();
   const sections = getOrderedAutofixSections(runState);
 
   if (!runState) {
@@ -383,21 +377,30 @@ function NextAutofixStepButton({
     );
   }
 
-  // Seer can finish the code changes step without producing a diff. The autofix
-  // panel offers a retry instead of a PR in that case, so match its CTA here.
-  if (nextStep?.action === 'create_pr' && !hasCodeChanges(nextStep.section)) {
+  // Seer can finish the code changes step without producing a diff, leaving
+  // nothing to open a PR from. The proposal section renders a reset prompt for
+  // exactly this state, so point the CTA at it instead of offering a PR.
+  if (
+    nextStep?.action === 'create_pr' &&
+    getCodeChangePatches(nextStep.section).size === 0
+  ) {
     return (
       <Button
         {...getAutofixActionProps({
-          analyticsAction: 'view_autofix',
-          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-          analyticsEventName: 'Issue Inbox: Continue in Seer Clicked',
-          analyticsParams: {destination: 'seer', reason: 'no_code_changes'},
+          analyticsAction: 'retry_code_changes',
+          analyticsEventKey: 'issue_inbox.retry_code_changes_clicked',
+          analyticsEventName: 'Issue Inbox: Retry Code Changes Clicked',
           group,
         })}
         disabled={disabled}
         icon={<IconRefresh />}
-        onClick={onContinueInSeer}
+        onClick={() => {
+          if (codeChangesRetry) {
+            codeChangesRetry.setShouldShowReset(true);
+            return;
+          }
+          onContinueInSeer();
+        }}
         variant={variant}
       >
         {t('Add context & retry')}

@@ -39,7 +39,12 @@ export function IssuePreviewAutofixSummary({
         autofix={autofix}
         defaultExpanded
         groupId={groupId}
-        section={{artifacts: [], blocks: [], status: 'processing', step: 'root_cause'}}
+        section={{
+          artifacts: [],
+          blocks: [],
+          status: 'processing',
+          step: 'root_cause',
+        }}
       />
     );
   }

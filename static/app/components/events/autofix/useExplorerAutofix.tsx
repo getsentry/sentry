@@ -1045,6 +1045,17 @@ export function collectPatches(
   return patchesByRepo;
 }
 
+/**
+ * The file patches a code changes section produced, keyed by repo. Empty when
+ * the step finished without proposing a change.
+ */
+export function getCodeChangePatches(
+  section: AutofixSection
+): Map<string, ExplorerFilePatch[]> {
+  const artifact = getAutofixArtifactFromSection(section);
+  return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []);
+}
+
 function cleanPatches(patches: ExplorerFilePatch[]): ExplorerFilePatch[] {
   const cleanedPatches: ExplorerFilePatch[] = [];
 
