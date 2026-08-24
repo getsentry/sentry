@@ -20,11 +20,10 @@ export default function PartnershipAgreement({
   organizationSlug,
 }: PartnershipAgreementProps) {
   const mutation = useMutation({
-    mutationFn: (data: Record<string, never>) =>
+    mutationFn: () =>
       fetchMutation({
         url: `/organizations/${organizationSlug}/partnership-agreements/`,
         method: 'POST',
-        data,
       }),
     onSuccess: onSubmitSuccess,
     onError: error => {
@@ -39,12 +38,8 @@ export default function PartnershipAgreement({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {},
-    onSubmit: async ({value}) => {
-      try {
-        await mutation.mutateAsync(value);
-      } catch {
-        // Prevent an unhandled rejection; the mutation displays the request error.
-      }
+    onSubmit: () => {
+      return mutation.mutateAsync().catch(() => {});
     },
   });
 
