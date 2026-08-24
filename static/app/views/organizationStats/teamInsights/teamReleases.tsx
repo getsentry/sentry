@@ -1,10 +1,10 @@
-import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -13,8 +13,8 @@ import {markLine} from 'sentry/components/charts/components/markLine';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -24,7 +24,7 @@ import {toArray} from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
-import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
 
 interface TeamReleasesProps extends DateTimeObject {
@@ -239,61 +239,78 @@ export function TeamReleases({
           }}
         />
       </ChartWrapper>
-      <StyledPanelTable
-        isEmpty={projects.length === 0}
-        emptyMessage={t('No releases were setup for this team’s projects')}
-        emptyAction={
-          <LinkButton
-            size="sm"
-            external
-            href="https://docs.sentry.io/product/releases/setup/"
-          >
-            {t('Learn More')}
-          </LinkButton>
+      <StyledSimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Releases Per Project')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <RightAligned>{tct('Last [period] Average', {period})}</RightAligned>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <RightAligned>{t('Last 7 Days')}</RightAligned>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <RightAligned>{t('Difference')}</RightAligned>
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
         }
-        headers={[
-          t('Releases Per Project'),
-          <RightAligned key="last">
-            {tct('Last [period] Average', {period})}
-          </RightAligned>,
-          <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
-          <RightAligned key="diff">{t('Difference')}</RightAligned>,
-        ]}
       >
-        {groupedProjects.map(({project}) => (
-          <Fragment key={project.id}>
-            <ProjectBadgeContainer>
-              <ProjectBadge
-                avatarSize={18}
-                project={project}
-                to={{
-                  pathname: makeReleasesPathname({
-                    organization,
-                    path: '/',
-                  }),
-                  query: {project: project.id},
-                }}
-              />
-            </ProjectBadgeContainer>
-
-            <ScoreWrapper>{renderReleaseCount(project.id, 'period')}</ScoreWrapper>
-            <ScoreWrapper>
-              <Link
-                to={{
-                  pathname: makeReleasesPathname({
-                    organization,
-                    path: '/',
-                  }),
-                  query: {project: project.id, statsPeriod: '7d'},
-                }}
-              >
-                {renderReleaseCount(project.id, 'week')}
-              </Link>
-            </ScoreWrapper>
-            <ScoreWrapper>{renderTrend(project.id)}</ScoreWrapper>
-          </Fragment>
-        ))}
-      </StyledPanelTable>
+        {projects.length === 0 ? (
+          <SimpleTable.Empty>
+            <EmptyState
+              title={t('No releases were setup for this team’s projects')}
+              action={
+                <LinkButton
+                  size="sm"
+                  external
+                  href="https://docs.sentry.io/product/releases/setup/"
+                >
+                  {t('Learn More')}
+                </LinkButton>
+              }
+            />
+          </SimpleTable.Empty>
+        ) : (
+          groupedProjects.map(({project}) => (
+            <SimpleTable.Row key={project.id}>
+              <SimpleTable.RowCell>
+                <ProjectBadgeContainer>
+                  <ProjectBadge
+                    avatarSize={18}
+                    project={project}
+                    to={{
+                      pathname: makeReleasesPathname({
+                        organization,
+                        path: '/',
+                      }),
+                      query: {project: project.id},
+                    }}
+                  />
+                </ProjectBadgeContainer>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="end">
+                {renderReleaseCount(project.id, 'period')}
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="end">
+                <Link
+                  to={{
+                    pathname: makeReleasesPathname({
+                      organization,
+                      path: '/',
+                    }),
+                    query: {project: project.id, statsPeriod: '7d'},
+                  }}
+                >
+                  {renderReleaseCount(project.id, 'week')}
+                </Link>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="end">
+                {renderTrend(project.id)}
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))
+        )}
+      </StyledSimpleTable>
     </div>
   );
 }
@@ -303,35 +320,11 @@ const ChartWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
+const StyledSimpleTable = styled(TeamInsightsTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  font-size: ${p => p.theme.font.size.md};
-  box-shadow: unset;
-
-  & > div {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
-
-  ${p =>
-    p.isEmpty &&
-    css`
-      & > div:last-child {
-        padding: 48px ${p.theme.space.xl};
-      }
-    `}
 `;
 
 const RightAligned = styled('span')`
-  text-align: right;
-`;
-
-const ScoreWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
   text-align: right;
 `;
 

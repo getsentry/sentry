@@ -107,17 +107,20 @@ export function ConnectedAutomationsList({
 
   return (
     <Container containerType="inline-size" {...props}>
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="last-triggered">
-            {t('Last Triggered')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="action-filters">
-            {t('Actions')}
-          </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
-        </SimpleTable.Header>
+      <SimpleTableWithColumns
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="last-triggered">
+              {t('Last Triggered')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="action-filters">
+              {t('Actions')}
+            </SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && (
           <Skeletons
             canEdit={canEdit}

@@ -1,5 +1,4 @@
 import {type ComponentProps, Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
@@ -16,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -24,7 +22,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,12 +30,20 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {useMilestoneAdvanceToasts} from './milestoneToast';
+import {OverviewSkeleton, ProjectFilterSkeleton} from './overviewSkeleton';
 import {ProjectSetupWarning} from './projectSetupWarning';
-import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
+import {
+  GroupHeader,
+  STATUS_GROUP_META,
+  StatusGroup,
+  type StatusGroupKey,
+  StatusGroupTooltip,
+} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
@@ -64,8 +69,9 @@ export default function AutofixOverview() {
       renderDisabled={() => <NoAccess />}
     >
       <PageFiltersContainer
-        skipInitializeUrlParams
-        defaultSelection={{datetime: {period: '7d', start: null, end: null, utc: null}}}
+        defaultSelection={{
+          datetime: {period: '7d', start: null, end: null, utc: null},
+        }}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Layout.Title>{t('Autofix Overview')}</Layout.Title>
@@ -85,6 +91,7 @@ export default function AutofixOverview() {
 // Owns every request so a feature-disabled org mounts no query at all.
 function AutofixOverviewContent({organization}: {organization: Organization}) {
   const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const {initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
   const navigate = useNavigate();
   useOverviewSeerDrawer();
@@ -102,7 +109,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   const setQueryParam = (key: string, value: string | undefined) =>
     navigate(
-      {pathname: location.pathname, query: {...location.query, [key]: value}},
+      {
+        pathname: location.pathname,
+        query: {...location.query, [key]: value},
+      },
       {replace: true}
     );
 
@@ -113,7 +123,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     isPending,
     isError,
     enrichmentPending,
-    isRefetching,
     refetch,
     enrichedSettled,
   } = useAutofixOverview({
@@ -154,11 +163,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     );
   };
 
+  const resultsPending = isPending || projectConfigPending;
   const populatedKeys = populatedSections.map(section => section.key);
   const allCollapsed =
-    populatedKeys.length > 0
-      ? populatedKeys.every(key => collapsedGroups.includes(key))
-      : collapsedGroups.length > 0;
+    populatedKeys.length > 0 && populatedKeys.every(key => collapsedGroups.includes(key));
 
   const toggleAllGroups = () => {
     setCollapsedGroups(previous =>
@@ -169,9 +177,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   };
 
   let noRunsContent: React.ReactNode;
-  if (projectConfigPending) {
-    noRunsContent = <LoadingIndicator />;
-  } else if (allUnconfigured) {
+  if (allUnconfigured) {
     noRunsContent = (
       <EmptyState
         padding="3xl"
@@ -187,17 +193,19 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       />
     );
   } else {
-    noRunsContent = (
-      <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
-    );
+    noRunsContent = <EmptyState padding="3xl" title={t('No Autofix runs')} />;
   }
 
   return (
     <Stack gap="lg" padding="lg xl">
       <Flex gap="md" align="center" wrap="wrap">
-        <PageFilterBar condensed>
-          <ProjectPageFilter />
-        </PageFilterBar>
+        {pageFiltersReady && projectsLoaded ? (
+          <PageFilterBar condensed>
+            <ProjectPageFilter />
+          </PageFilterBar>
+        ) : (
+          <ProjectFilterSkeleton />
+        )}
         <DatePageFilter
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
@@ -207,6 +215,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           runs={allRuns}
           value={assignee}
           onChange={next => setQueryParam('assignee', next ?? undefined)}
+          loading={isPending}
         />
         <CompactSelect
           value={sort}
@@ -218,7 +227,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
-        {isRefetching && <LoadingIndicator mini />}
         {(data?.truncatedMilestones?.length ?? 0) > 0 && (
           <Text size="sm" variant="muted">
             {t(
@@ -227,57 +235,66 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           </Text>
         )}
         <Flex marginLeft="auto">
-          <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
+          <Button
+            onClick={toggleAllGroups}
+            disabled={!resultsPending && populatedSections.length === 0}
+          >
             {allCollapsed ? t('Expand All') : t('Collapse All')}
           </Button>
         </Flex>
       </Flex>
-      {someUnconfigured && (
-        <ProjectSetupWarning
-          unconfiguredProjects={unconfiguredProjects}
-          orgSlug={organization.slug}
-        />
-      )}
       {isError ? (
         <LoadingError onRetry={refetch} />
-      ) : isPending ? (
-        <LoadingIndicator />
-      ) : allRuns.length === 0 ? (
-        noRunsContent
-      ) : assigneeRuns.length === 0 ? (
-        <EmptyState
-          padding="3xl"
-          title={t('No Autofix runs match the selected assignee.')}
-        />
+      ) : resultsPending ? (
+        <OverviewSkeleton />
       ) : (
         <Fragment>
-          <Tabs
-            value={view}
-            onChange={next => setQueryParam('view', next === 'all' ? undefined : next)}
-          >
-            <TabList>
-              <TabList.Item key="all">
-                {t('All Runs (%s)', assigneeRuns.length)}
-              </TabList.Item>
-              <TabList.Item key="in_progress">
-                {t('In Progress (%s)', inProgressCount)}
-              </TabList.Item>
-            </TabList>
-          </Tabs>
-          {populatedSections.length === 0 ? (
+          {someUnconfigured && (
+            <ProjectSetupWarning
+              unconfiguredProjects={unconfiguredProjects}
+              orgSlug={organization.slug}
+            />
+          )}
+          {allRuns.length === 0 ? (
+            noRunsContent
+          ) : assigneeRuns.length === 0 ? (
             <EmptyState
               padding="3xl"
-              title={t('No Autofix runs are currently in progress.')}
+              title={t('No Autofix runs match the selected assignee.')}
             />
           ) : (
-            <OverviewSectionList
-              sections={populatedSections}
-              collapsedGroups={collapsedGroups}
-              onToggle={toggleGroup}
-              orgSlug={organization.slug}
-              statsPeriod={selection.datetime.period}
-              enrichmentPending={enrichmentPending}
-            />
+            <Fragment>
+              <Tabs
+                value={view}
+                onChange={next =>
+                  setQueryParam('view', next === 'all' ? undefined : next)
+                }
+              >
+                <TabList>
+                  <TabList.Item key="all">
+                    {t('All Runs (%s)', assigneeRuns.length)}
+                  </TabList.Item>
+                  <TabList.Item key="in_progress">
+                    {t('In Progress (%s)', inProgressCount)}
+                  </TabList.Item>
+                </TabList>
+              </Tabs>
+              {populatedSections.length === 0 ? (
+                <EmptyState
+                  padding="3xl"
+                  title={t('No Autofix runs are currently in progress.')}
+                />
+              ) : (
+                <OverviewSectionList
+                  sections={populatedSections}
+                  collapsedGroups={collapsedGroups}
+                  onToggle={toggleGroup}
+                  orgSlug={organization.slug}
+                  statsPeriod={selection.datetime.period}
+                  enrichmentPending={enrichmentPending}
+                />
+              )}
+            </Fragment>
           )}
         </Fragment>
       )}
@@ -356,24 +373,3 @@ function NoAccess() {
     </Stack>
   );
 }
-
-// Disclosure.Content adds its own horizontal panel padding; cards align to the
-// section edge instead.
-const StatusGroup = styled(Disclosure)`
-  && > * + * {
-    padding-left: 0;
-    padding-right: 0;
-  }
-`;
-
-const GroupHeader = styled(Sticky)`
-  z-index: ${p => p.theme.zIndex.initial + 1};
-  align-self: stretch;
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: ${p => p.theme.radius.md};
-
-  &[data-stuck] {
-    border-radius: 0;
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;

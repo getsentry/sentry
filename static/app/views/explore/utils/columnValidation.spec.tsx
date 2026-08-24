@@ -85,4 +85,76 @@ describe('getValidatedColumnData', () => {
       )
     ).toEqual(['custom.user', 'avg(custom.duration)']);
   });
+
+  it('types array attributes and moves them into the array collection', () => {
+    const validationData: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [{attrType: 'array', error: null, name: 'custom.tags', valid: true}],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: true,
+    };
+
+    const result = getValidatedColumnData({
+      aggregateFields: [],
+      // The attribute arrives typed as a string; validation should reclassify it.
+      attributes: {
+        boolean: {},
+        number: {},
+        string: {
+          'custom.tags': {key: 'custom.tags', name: 'custom.tags', kind: FieldKind.TAG},
+        },
+        array: {},
+      },
+      fields: ['custom.tags'],
+      validationData,
+    });
+
+    // The array column persists through cleanup.
+    expect(result.fields).toEqual(['custom.tags']);
+    expect(result.fieldTypes).toEqual({'custom.tags': FieldValueType.ARRAY});
+    expect(result.attributes.array['custom.tags']?.kind).toBe(FieldKind.ARRAY);
+    // ...and is removed from the string collection it was misclassified under.
+    expect(result.attributes.string['custom.tags']).toBeUndefined();
+  });
+
+  it('keeps known array attributes as arrays even if validation reports a scalar type', () => {
+    // Before the backend validate change ships, the endpoint maps array search
+    // types to "number". The attributes endpoint still identifies the attribute
+    // as an array, so it must win and the column must not be downgraded.
+    const validationData: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [{attrType: 'number', error: null, name: 'custom.tags', valid: true}],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: true,
+    };
+
+    const result = getValidatedColumnData({
+      aggregateFields: [],
+      attributes: {
+        boolean: {},
+        number: {},
+        string: {},
+        array: {
+          'custom.tags': {
+            key: 'custom.tags',
+            name: 'custom.tags',
+            kind: FieldKind.ARRAY,
+          },
+        },
+      },
+      fields: ['custom.tags'],
+      validationData,
+    });
+
+    expect(result.fields).toEqual(['custom.tags']);
+    expect(result.fieldTypes).toEqual({'custom.tags': FieldValueType.ARRAY});
+    expect(result.attributes.array['custom.tags']?.kind).toBe(FieldKind.ARRAY);
+    expect(result.attributes.number['custom.tags']).toBeUndefined();
+  });
 });

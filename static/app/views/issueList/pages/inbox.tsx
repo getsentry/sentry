@@ -134,7 +134,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:identified is:unresolved',
     emptyMessage: t('No identified issues'),
     progress: ProgressState.IDENTIFIED,
-    hidden: ({hasSeer}) => !hasSeer,
+    hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter === 'all',
   },
   {
     analyticsKey: 'num_fix_applied',
@@ -148,9 +148,9 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
-  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
+  const hasIssueInbox = organization.features.includes('issue-inbox');
 
-  if (!hasProgressUi || !orgHasSeerAccess(organization)) {
+  if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
     return <NotFound />;
   }
 
