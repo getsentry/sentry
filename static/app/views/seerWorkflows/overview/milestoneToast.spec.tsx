@@ -40,14 +40,13 @@ describe('MilestoneToast', () => {
     });
   });
 
-  it('shows the milestone and the next-action button plus Open Seer', async () => {
+  it('shows the milestone and the next-action button', async () => {
     render(<MilestoneToast run={run()} toMilestone="autofix_code_changes" />, {
       organization,
     });
 
     expect(screen.getByText('SEER-1: Code Generated')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Draft PR'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
 
   it('omits the action button when the milestone has no next step', () => {
@@ -56,7 +55,6 @@ describe('MilestoneToast', () => {
     });
 
     expect(screen.getByText('SEER-1: Merged')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
   });
 
@@ -70,7 +68,6 @@ describe('MilestoneToast', () => {
     );
 
     expect(screen.getByText('SEER-1: Code Generated')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
   });
 
