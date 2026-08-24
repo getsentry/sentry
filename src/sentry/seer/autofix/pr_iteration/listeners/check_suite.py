@@ -32,7 +32,6 @@ from sentry.seer.autofix.pr_iteration.queue import (
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +50,6 @@ def _retrigger_deferred_iteration(resolved: ResolvedGreenCheckSuite) -> None:
     ``should_consume`` drops items whose head no longer matches the run.
     """
     if is_github_rate_limit_sensitive(resolved.organization.slug):
-        metrics.incr(
-            "autofix.pr_iteration.green_check_suite.deferred_iteration",
-            tags={"outcome": "rate_limit_sensitive"},
-        )
         return
 
     run_id = resolved.autofix_run.run_state.run_id
@@ -70,27 +65,15 @@ def _retrigger_deferred_iteration(resolved: ResolvedGreenCheckSuite) -> None:
         None,
     )
     if parked is None:
-        metrics.incr(
-            "autofix.pr_iteration.green_check_suite.deferred_iteration",
-            tags={"outcome": "no_parked"},
-        )
         return
 
     run_state = resolved.autofix_run.run_state
     task = parked.feedback.source.should_trigger(run_state)
     if task is not ConsumeTask.Now:
-        metrics.incr(
-            "autofix.pr_iteration.green_check_suite.deferred_iteration",
-            tags={"outcome": "later" if task is not None else "skip"},
-        )
         return
 
     from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 
-    metrics.incr(
-        "autofix.pr_iteration.green_check_suite.deferred_iteration",
-        tags={"outcome": "now"},
-    )
     trigger_consume_pr_iteration_feedback(
         run_id=run_id,
         organization_id=resolved.organization.id,

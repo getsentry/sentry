@@ -9,6 +9,7 @@ from scm.types import (
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
@@ -239,6 +240,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             kwargs={
                 "run_id": 67890,
                 "organization_id": self.organization.id,
+                "trigger_source": ConsumeTriggerSource.FEEDBACK,
             },
             countdown=None,
         )

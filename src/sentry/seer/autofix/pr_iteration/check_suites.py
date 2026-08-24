@@ -484,11 +484,7 @@ def inspect_check_suite_head(
         _skip("stale_head", {**resolved.log_extra, "head_sha": head_match.head_sha})
         return None
 
-    sweep = sweep_check_runs(
-        scm,
-        head_match.head_sha,
-        log_extra={**resolved.log_extra, "caller": "inspect_check_suite_head"},
-    )
+    sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=resolved.log_extra)
     if sweep is None:
         _skip("sweep_failed", resolved.log_extra)
         return None
