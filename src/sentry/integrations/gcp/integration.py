@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
@@ -154,7 +154,8 @@ class GcpIntegration(IntegrationInstallation):
                     "Your customer SA must grant this account the "
                     "roles/iam.serviceAccountTokenCreator role."
                 ),
-                "readonly": True,
+                "disabled": True,
+                "disabledReason": _("Managed by Sentry"),
             },
             {
                 "name": "customer_sa_email",
@@ -164,14 +165,16 @@ class GcpIntegration(IntegrationInstallation):
                     "Your GCP service account that the Sentry SA impersonates. "
                     "It must have viewer roles on the configured projects."
                 ),
-                "readonly": True,
+                "disabled": True,
+                "disabledReason": _("To update, uninstall and re-install the integration."),
             },
             {
                 "name": "projects",
                 "type": "string",
                 "label": _("GCP Project IDs"),
-                "help": _("To update, uninstall and re-install the integration."),
-                "readonly": True,
+                "help": _("Comma-separated list of GCP project IDs."),
+                "disabled": True,
+                "disabledReason": _("To update, uninstall and re-install the integration."),
             },
         ]
 
@@ -184,6 +187,9 @@ class GcpIntegration(IntegrationInstallation):
             "customer_sa_email": config.get("customer_sa_email", ""),
             "projects": ", ".join(config.get("projects", [])),
         }
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        pass
 
     def get_client(self) -> Any:
         raise NotImplementedError
