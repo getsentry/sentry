@@ -630,7 +630,7 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('opens the context prompt from the explanation state', async () => {
+    it('opens the context prompt initially when requested', () => {
       render(
         <CodeChangesCard
           groupId="1"
@@ -641,10 +641,16 @@ describe('ArtifactCard', () => {
             [],
             [makeAssistantBlock('The relevant files are not in the connected repo.')]
           )}
-        />
+        />,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {seerDrawerAction: 'retry_code_changes'},
+            },
+          },
+        }
       );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
 
       expect(
         screen.getByText('What additional context should Seer use?')

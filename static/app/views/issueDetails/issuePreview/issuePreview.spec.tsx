@@ -132,7 +132,10 @@ describe('IssuePreview', () => {
     expect(router.location.pathname).toBe(
       `/organizations/${organization.slug}/issues/${group.id}/`
     );
-    expect(router.location.query).toEqual({seerDrawer: 'true'});
+    expect(router.location.query).toEqual({
+      seerDrawer: 'true',
+      seerDrawerAction: 'retry_code_changes',
+    });
   });
 
   it('offers to restart Autofix after PR creation when the linked PR is closed', async () => {

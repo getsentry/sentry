@@ -144,6 +144,13 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
+  function openSeerDrawer(seerDrawerAction?: string) {
+    navigate({
+      pathname: issueDetailsUrl,
+      query: {seerDrawer: 'true', seerDrawerAction},
+    });
+  }
+
   return (
     <IssueDetailsContextProvider>
       <Container paddingBottom="sm">
@@ -213,9 +220,8 @@ function IssuePreviewContent() {
             autofix={previewSeer.autofix}
             group={group}
             disabled={disableActions}
-            onContinueInSeer={() => {
-              navigate({pathname: issueDetailsUrl, query: {seerDrawer: 'true'}});
-            }}
+            onContinueInSeer={() => openSeerDrawer()}
+            onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
           />
         ) : (
           <GroupActions

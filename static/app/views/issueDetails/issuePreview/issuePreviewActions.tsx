@@ -45,6 +45,7 @@ interface IssuePreviewActionsProps {
   autofix: ExplorerAutofix;
   group: Group;
   onContinueInSeer: () => void;
+  onRetryCodeChanges: () => void;
   disabled?: boolean;
 }
 
@@ -53,6 +54,7 @@ interface AutofixActionProps {
   group: Group;
   linkedPullRequestsData: ReturnType<typeof useLinkedPullRequests>['data'];
   onContinueInSeer: () => void;
+  onRetryCodeChanges: () => void;
   disabled?: boolean;
 }
 
@@ -222,6 +224,7 @@ function NextAutofixStepButton({
   disabled,
   group,
   onContinueInSeer,
+  onRetryCodeChanges,
   variant = 'primary',
 }: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   autofix: ExplorerAutofix;
@@ -397,7 +400,7 @@ function NextAutofixStepButton({
         })}
         disabled={disabled}
         icon={<IconRefresh />}
-        onClick={onContinueInSeer}
+        onClick={onRetryCodeChanges}
         variant={variant}
       >
         {t('Add context & retry')}
@@ -481,6 +484,7 @@ function ActionButtons({
   group,
   linkedPullRequestsData,
   onContinueInSeer,
+  onRetryCodeChanges,
 }: AutofixActionProps) {
   const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
     .filter(
@@ -514,6 +518,7 @@ function ActionButtons({
           disabled={disabled}
           group={group}
           onContinueInSeer={onContinueInSeer}
+          onRetryCodeChanges={onRetryCodeChanges}
           variant="secondary"
         />
       </Fragment>
@@ -526,6 +531,7 @@ function ActionButtons({
       disabled={disabled}
       group={group}
       onContinueInSeer={onContinueInSeer}
+      onRetryCodeChanges={onRetryCodeChanges}
     />
   );
 }
@@ -535,6 +541,7 @@ export function IssuePreviewActions({
   disabled,
   group,
   onContinueInSeer,
+  onRetryCodeChanges,
 }: IssuePreviewActionsProps) {
   const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
     useLinkedPullRequests({group});
@@ -551,6 +558,7 @@ export function IssuePreviewActions({
         group={group}
         linkedPullRequestsData={linkedPullRequestsData}
         onContinueInSeer={onContinueInSeer}
+        onRetryCodeChanges={onRetryCodeChanges}
       />{' '}
     </Flex>
   );
