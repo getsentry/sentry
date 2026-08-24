@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry import deletions
 from sentry.constants import ObjectStatus
 from sentry.deletions.defaults.organizationintegration import OrganizationIntegrationDeletionTask
@@ -14,6 +16,7 @@ from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -159,7 +162,11 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         organization_integration.update(status=ObjectStatus.DELETION_IN_PROGRESS)
 
-        assert integration.add_organization(org, self.user) is None
+        with pytest.raises(IntegrationDeletionInProgressError) as excinfo:
+            integration.add_organization(org, self.user)
+
+        # The message has to tell the user this is transient, not a hard failure.
+        assert "try installing it again" in str(excinfo.value)
         assert (
             OrganizationIntegration.objects.get(id=organization_integration.id).status
             == ObjectStatus.DELETION_IN_PROGRESS

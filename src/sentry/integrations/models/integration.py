@@ -20,6 +20,7 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressError
 from sentry.signals import integration_added
 from sentry.types.cell import find_cells_for_orgs
 
@@ -152,7 +153,10 @@ class Integration(DefaultFieldsModelExisting):
                                 "organization_integration_id": org_integration.id,
                             },
                         )
-                        return None
+                        # Raise rather than return None: this is transient and
+                        # retryable, and callers that discard the return value
+                        # would otherwise report success having linked nothing.
+                        raise IntegrationDeletionInProgressError
 
                     # We've locked the row so, technically, we can rescue the row
                     # from deletion without risking a concurrent delete. This is in
