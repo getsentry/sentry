@@ -6,13 +6,17 @@ export function ActivityNoteInput(
   props: React.ComponentProps<typeof NoteInputWithStorage>
 ) {
   return (
-    <ActivityInputFrame data-test-id="activity-input-frame">
+    <ActivityInputFrame>
       <NoteInputWithStorage {...props} />
     </ActivityInputFrame>
   );
 }
 
-const ActivityInputFrame = styled('div')`
+export function ActivityInputFrame({children}: React.PropsWithChildren) {
+  return <Frame data-test-id="activity-input-frame">{children}</Frame>;
+}
+
+const Frame = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   container-type: inline-size;
   min-width: 0;

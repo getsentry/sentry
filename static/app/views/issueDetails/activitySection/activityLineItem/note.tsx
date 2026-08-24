@@ -13,6 +13,7 @@ import type {NoteType} from 'sentry/types/alerts';
 import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ActivityInputFrame} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 
@@ -120,13 +121,15 @@ function ActivityNoteEditor({
     [activity.id, group.activity, mutators, onCancel, onCommentEdited, organization]
   );
   return (
-    <MentionEditor
-      initialValue={activity.data.text}
-      minHeight={96}
-      onCancel={onCancel}
-      onSubmit={handleUpdate}
-      variant={inputVariant}
-    />
+    <ActivityInputFrame>
+      <MentionEditor
+        initialValue={activity.data.text}
+        minHeight={96}
+        onCancel={onCancel}
+        onSubmit={handleUpdate}
+        variant={inputVariant}
+      />
+    </ActivityInputFrame>
   );
 }
 
