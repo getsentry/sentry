@@ -561,6 +561,70 @@ describe('PageFiltersContainer', () => {
       );
     });
 
+    describe('when the account timezone differs from the browser timezone', () => {
+      const accountTimezone = moment().tz();
+
+      beforeEach(() => {
+        moment.tz.setDefault('Pacific/Auckland');
+      });
+
+      afterEach(() => {
+        moment.tz.setDefault(accountTimezone);
+      });
+
+      it('keeps an absolute range that starts inside the window', async () => {
+        const start = moment()
+          .utc()
+          .subtract(30, 'days')
+          .add(6, 'hours')
+          .format('YYYY-MM-DDTHH:mm:ss');
+        const end = moment().utc().subtract(29, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {start, end},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+      });
+
+      it('keeps a relative period equal to maxPickableDays', async () => {
+        render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {statsPeriod: '30d'},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: '30d',
+            utc: null,
+            start: null,
+            end: null,
+          })
+        );
+      });
+    });
+
     it('applies maxPickableDays when mounted route changes to absolute params in the past', async () => {
       const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
         organization,
