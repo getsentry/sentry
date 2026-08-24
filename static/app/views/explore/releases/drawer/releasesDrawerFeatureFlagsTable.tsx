@@ -19,7 +19,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},
   {key: 'flag', name: t('Feature Flag'), width: 390},
   {key: 'action', name: t('Action')},
-  {key: 'createdAt', name: t('Date')},
+  {key: 'createdAt', name: t('Date'), width: 200},
 ];
 
 interface Props {
