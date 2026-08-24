@@ -9,7 +9,7 @@ import {t, tn} from 'sentry/locale';
 
 import {ChangedFileRow, type FileChangeTag} from './changedFileRow';
 
-const COLLAPSED_FILE_COUNT = 3;
+const COLLAPSED_FILE_COUNT = 5;
 
 interface ChangedFile {
   additions: number;

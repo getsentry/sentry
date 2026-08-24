@@ -27,35 +27,35 @@ function Wrapper({group}: {group: RepoFileGroup}) {
 }
 
 describe('ChangedFilesSection', () => {
-  it('renders every file without a toggle when there are 3 or fewer', () => {
-    render(<Wrapper group={groupFixture(3)} />);
-
-    expect(screen.getByText('src/file-0.py')).toBeInTheDocument();
-    expect(screen.getByText('src/file-2.py')).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: /more file/i})).not.toBeInTheDocument();
-  });
-
-  it('shows only the first 3 files and a toggle when there are more', () => {
+  it('renders every file without a toggle when there are 5 or fewer', () => {
     render(<Wrapper group={groupFixture(5)} />);
 
     expect(screen.getByText('src/file-0.py')).toBeInTheDocument();
-    expect(screen.getByText('src/file-2.py')).toBeInTheDocument();
-    expect(screen.queryByText('src/file-3.py')).not.toBeInTheDocument();
-    expect(screen.queryByText('src/file-4.py')).not.toBeInTheDocument();
+    expect(screen.getByText('src/file-4.py')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /more file/i})).not.toBeInTheDocument();
+  });
+
+  it('shows only the first 5 files and a toggle when there are more', () => {
+    render(<Wrapper group={groupFixture(7)} />);
+
+    expect(screen.getByText('src/file-0.py')).toBeInTheDocument();
+    expect(screen.getByText('src/file-4.py')).toBeInTheDocument();
+    expect(screen.queryByText('src/file-5.py')).not.toBeInTheDocument();
+    expect(screen.queryByText('src/file-6.py')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: /show 2 more files/i})).toBeInTheDocument();
   });
 
   it('reveals the remaining files and flips the label when toggled', async () => {
-    render(<Wrapper group={groupFixture(5)} />);
+    render(<Wrapper group={groupFixture(7)} />);
 
     await userEvent.click(screen.getByRole('button', {name: /show 2 more files/i}));
 
-    expect(screen.getByText('src/file-3.py')).toBeInTheDocument();
-    expect(screen.getByText('src/file-4.py')).toBeInTheDocument();
+    expect(screen.getByText('src/file-5.py')).toBeInTheDocument();
+    expect(screen.getByText('src/file-6.py')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: /show fewer/i})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: /show fewer/i}));
 
-    expect(screen.queryByText('src/file-3.py')).not.toBeInTheDocument();
+    expect(screen.queryByText('src/file-5.py')).not.toBeInTheDocument();
   });
 });
