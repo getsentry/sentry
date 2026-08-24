@@ -42,7 +42,6 @@ const WaitingNotice = styled('div')`
   grid-template-columns: max-content 1fr;
   align-items: center;
   gap: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  margin-top: ${p => p.theme.space.xl};
   color: ${p => p.theme.colors.pink500};
 `;
 
