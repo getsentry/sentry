@@ -1,5 +1,8 @@
+from typing import TypedDict
+
 from django.http import HttpRequest
 from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,6 +17,7 @@ from sentry.api.serializers.models.auth import (
     AuthSuccessSerializer,
     serialize_auth_mfa_required,
 )
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.organization import Organization
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
@@ -21,6 +25,16 @@ from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import OrganizationMixin, determine_active_organization
+
+
+class AuthLoginRequest(TypedDict):
+    username: str
+    password: str
+
+
+class AuthLoginRequestSerializer(CamelSnakeSerializer[AuthLoginRequest]):
+    username = serializers.CharField(allow_blank=True)
+    password = serializers.CharField(allow_blank=True, trim_whitespace=False)
 
 
 @extend_schema(tags=["Users"])
@@ -39,6 +53,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
     @extend_schema(
         operation_id="Log in with a username and password",
+        request=AuthLoginRequestSerializer,
         responses={200: AuthSuccessSerializer, 202: AuthMfaRequiredSerializer},
     )
     def post(
@@ -48,12 +63,16 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         Process a login request via username/password. SSO login is handled
         elsewhere.
         """
-        login_form = AuthenticationForm(request, request.data)
+        serializer = AuthLoginRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        login_form = AuthenticationForm(request, serializer.validated_data)
 
         # Rate limit logins
         is_limited = ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
-                md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
+                md5_text(
+                    login_form.clean_username(serializer.validated_data.get("username"))
+                ).hexdigest()
             ),
             limit=10,
             window=60,  # 10 per minute should be enough for anyone
