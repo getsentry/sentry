@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -369,6 +370,36 @@ def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list
     return created
 
 
+def assert_drain_skips_failed_message(drain: Callable[[int], None], provider: str) -> None:
+    """
+    Drain a 5 message mailbox where the second delivery fails.
+
+    Asserts the provider is allowlisted in
+    `hybridcloud.webhookpayload.skip_on_failure_providers`: every message is
+    attempted and only the failed one is left behind for a later retry. The
+    provider string is used verbatim for `WebhookPayload.provider`, so a value
+    that doesn't match the registered default fails here instead of silently
+    behaving as a non-allowlisted provider.
+    """
+    url = f"http://us.testserver/extensions/{provider}/webhook/"
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=500, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    records = create_payloads(5, f"{provider}:123", provider=provider)
+
+    drain(records[0].id)
+
+    assert len(responses.calls) == 5
+    assert WebhookPayload.objects.count() == 1
+
+    remaining = WebhookPayload.objects.get()
+    assert remaining.provider == provider
+    assert remaining.attempts == 1
+    assert remaining.schedule_for > timezone.now()
+
+
 @control_silo_test
 class DrainMailboxTest(TestCase):
     @responses.activate
@@ -472,6 +503,26 @@ class DrainMailboxTest(TestCase):
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_github_enterprise(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "github_enterprise")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "bitbucket")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket_server(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "bitbucket_server")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_gitlab(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "gitlab")
 
     @responses.activate
     @override_cells(cell_config)
@@ -853,6 +904,26 @@ class DrainMailboxParallelTest(TestCase):
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_github_enterprise(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "github_enterprise")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "bitbucket")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket_server(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "bitbucket_server")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_gitlab(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "gitlab")
 
     @responses.activate
     @override_cells(cell_config)

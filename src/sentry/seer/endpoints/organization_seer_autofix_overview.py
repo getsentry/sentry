@@ -151,7 +151,10 @@ def _serialize_pull_request(
             }
             for file in checks_and_review.files
         ],
-        "failedChecks": list(checks_and_review.failed_checks),
+        "failedChecks": [check.name for check in checks_and_review.failed_checks],
+        "failedCheckDetails": [
+            {"name": check.name, "url": check.url} for check in checks_and_review.failed_checks
+        ],
     }
 
 
@@ -347,7 +350,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSeerAutofixOverviewPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
-        projects = self.get_projects(request, organization, include_all_accessible=True)
+        projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 
         start, end = get_date_range_from_stats_period(request.GET)

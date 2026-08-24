@@ -56,7 +56,6 @@ type GridEditableProps<
   error?: unknown | null;
 
   fit?: 'max-content';
-  getRowAriaLabel?: (row: DataRow) => string | undefined;
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
@@ -70,7 +69,6 @@ type GridEditableProps<
   isLoading?: boolean;
 
   isRowClickable?: (row: DataRow) => boolean;
-  minimumColWidth?: number;
   onRowClick?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   onRowMouseOut?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
@@ -106,14 +104,12 @@ export function GridEditable<
     data,
     error,
     fit,
-    getRowAriaLabel,
     grid,
     headerButtons,
     height,
     highlightedRowKey,
     isLoading,
     isRowClickable,
-    minimumColWidth = COL_WIDTH_MINIMUM,
     onRowClick,
     onRowMouseOut,
     onRowMouseOver,
@@ -214,7 +210,6 @@ export function GridEditable<
         onClick={event => onRowClick?.(dataRow, row, event)}
         data-test-id="grid-body-row"
         isClickable={isRowClickable?.(dataRow)}
-        aria-label={getRowAriaLabel?.(dataRow)}
       >
         <InteractionStateLayer
           isHovered={row === highlightedRowKey}
@@ -257,7 +252,7 @@ export function GridEditable<
             data-test-id="grid-editable"
             fit={fit}
             height={height}
-            minimumColumnWidth={minimumColWidth}
+            minimumColumnWidth={COL_WIDTH_MINIMUM}
             onColumnResize={grid.onResizeColumn ? onColumnResize : undefined}
             prependColumnWidths={grid.prependColumnWidths}
             scrollable={scrollable}

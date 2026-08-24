@@ -29,17 +29,12 @@ export type SeerAnalyticsEventsParameters = {
     type: 'positive' | 'negative';
   };
   'ai_query.interface': {
-    action: 'opened' | 'closed' | 'consent_accepted';
+    action: 'opened' | 'closed';
     area: string;
   };
   'ai_query.regenerated': {
     area: string;
     natural_language_query: string;
-  };
-  'ai_query.rejected': {
-    area: string;
-    natural_language_query: string;
-    num_queries_returned: number;
   };
   'ai_query.submitted': {
     area: string;
@@ -200,7 +195,6 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'ai_query.error': 'AI Query: Error',
   'ai_query.interface': 'AI Query: Interface',
   'ai_query.regenerated': 'AI Query: Regenerated',
-  'ai_query.rejected': 'AI Query: Rejected',
   'ai_query.submitted': 'AI Query: Submitted',
   'ai_query.feedback': 'AI Query: Feedback',
   'autofix.coding_agent.launch': 'Autofix: Coding Agent Launch',

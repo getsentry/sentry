@@ -3,14 +3,17 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 describe('SimpleTable component', () => {
-  it('renders headers andcells', () => {
+  it('renders headers and cells', () => {
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>B</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>C</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>B</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>C</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         <SimpleTable.Row data-test-id="row-1">
           <SimpleTable.RowCell>0</SimpleTable.RowCell>
           <SimpleTable.RowCell>1</SimpleTable.RowCell>
@@ -41,14 +44,16 @@ describe('SimpleTable component', () => {
 
   it('announces the sort direction when a column is sorted', () => {
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell sort="asc" handleSortClick={jest.fn()}>
-            A
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell handleSortClick={jest.fn()}>B</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-      </SimpleTable>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell sort="asc" handleSortClick={jest.fn()}>
+              A
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell handleSortClick={jest.fn()}>B</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
     );
 
     expect(screen.getByRole('columnheader', {name: 'A'})).toHaveAttribute(
@@ -60,34 +65,112 @@ describe('SimpleTable component', () => {
     );
   });
 
-  it('keeps the interaction state layer a direct child of the header cell when sortable', () => {
+  it('keeps the interaction state layer a direct child of the sort button when sortable', () => {
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-      </SimpleTable>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
     );
 
-    const header = screen.getByRole('columnheader', {name: 'A'});
+    const button = screen.getByRole('button', {name: 'A'});
 
-    expect(within(header).getByRole('presentation').parentElement).toBe(header);
+    expect(within(button).getByRole('presentation').parentElement).toBe(button);
   });
 
   it('sorts when a sortable header is clicked', async () => {
     const handleSortClick = jest.fn();
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell handleSortClick={handleSortClick}>
-            A
-          </SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell handleSortClick={handleSortClick}>
+              A
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'A'}));
+
+    expect(handleSortClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a sortable header as a button inside a real column header', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    const header = screen.getByRole('columnheader', {name: 'A'});
+
+    expect(header.tagName).toBe('TH');
+    expect(within(header).getByRole('button', {name: 'A'})).toBeInTheDocument();
+  });
+
+  it('renders a single spanning cell when given a full width row', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>B</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.FullWidthRow data-test-id="banner">Banner</SimpleTable.FullWidthRow>
       </SimpleTable>
     );
 
-    await userEvent.click(screen.getByRole('columnheader', {name: 'A'}));
+    const row = screen.getByTestId('banner');
 
-    expect(handleSortClick).toHaveBeenCalledTimes(1);
+    expect(within(row).getAllByRole('cell')).toHaveLength(1);
+    expect(within(row).getByRole('cell', {name: 'Banner'})).toBeInTheDocument();
+  });
+
+  it('renders a loading indicator in a spanning cell when loading', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Loading />
+      </SimpleTable>
+    );
+
+    const cell = screen.getByRole('cell');
+
+    expect(within(cell).getByTestId('loading-indicator')).toBeInTheDocument();
+  });
+
+  it('renders the empty state as a cell when there are no rows', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Empty>No results</SimpleTable.Empty>
+      </SimpleTable>
+    );
+
+    expect(screen.getByRole('cell', {name: 'No results'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', {name: 'No results'})
+    ).not.toBeInTheDocument();
   });
 });

@@ -38,6 +38,11 @@ export type MetricsAnalyticsEventParameters = {
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
+  'metrics.export_modal': {
+    action: 'cancel' | 'open';
+    organization: Organization;
+    close_reason?: 'backdrop_click' | 'cancel_button' | 'close_button' | 'escape_key';
+  };
   'metrics.issue_details.drawer_opened': {
     organization: Organization;
   };
@@ -72,6 +77,7 @@ type MetricsAnalyticsEventKey = keyof MetricsAnalyticsEventParameters;
 export const metricsAnalyticsEventMap: Record<MetricsAnalyticsEventKey, string | null> = {
   'metrics.explorer.metadata': 'Metric Explorer Pageload Metadata',
   'metrics.explorer.panel.metadata': 'Metric Explorer Panel Metadata',
+  'metrics.export_modal': 'Metrics Export Modal',
   'metrics.issue_details.drawer_opened': 'Metrics Issue Details Drawer Opened',
   'metrics.explorer.setup_button_clicked': 'Metrics Setup Button Clicked',
   'metrics.nav.rendered': 'Metrics Nav Rendered',

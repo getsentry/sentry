@@ -45,7 +45,7 @@ describe('MilestoneToast', () => {
       organization,
     });
 
-    expect(screen.getByText('SEER-1 reached Code Changes')).toBeInTheDocument();
+    expect(screen.getByText('SEER-1: Code Generated')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Draft PR'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
@@ -55,7 +55,7 @@ describe('MilestoneToast', () => {
       organization,
     });
 
-    expect(screen.getByText('SEER-1 reached Merged')).toBeInTheDocument();
+    expect(screen.getByText('SEER-1: Merged')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
   });
@@ -69,7 +69,7 @@ describe('MilestoneToast', () => {
       {organization}
     );
 
-    expect(screen.getByText('SEER-1 reached Code Changes')).toBeInTheDocument();
+    expect(screen.getByText('SEER-1: Code Generated')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
   });

@@ -1259,9 +1259,21 @@ class GitHubApiClientTest(TestCase):
 
         status_only_key = self.github_client._get_pull_request_status_cache_key(status_only)
         assert status_only_key == self.github_client.get_cache_key(
-            "/graphql/pull-request-status", "", previous_cache_data
+            "/graphql/pull-request-status/v2", "", previous_cache_data
         )
         assert status_only_key != self.github_client._get_pull_request_status_cache_key(with_files)
+
+    def test_pull_request_status_cache_key_versions_the_result_shape(self) -> None:
+        # failed_checks changed shape (str -> FailedCheck), so the key must not
+        # collide with entries cached under the previous shape; otherwise the
+        # overview serializer reads stale bare strings and 500s just after deploy.
+        request = PullRequestStatusRequest(repo=self.repo.name, pull_number="45")
+        pre_version_key = self.github_client.get_cache_key(
+            "/graphql/pull-request-status",
+            "",
+            orjson.dumps({"repo": self.repo.name, "pull_number": "45"}).decode(),
+        )
+        assert self.github_client._get_pull_request_status_cache_key(request) != pre_version_key
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

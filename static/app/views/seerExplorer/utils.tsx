@@ -753,13 +753,13 @@ export function getExplorerFeedbackOptions(
     formTitle: 'Seer Agent Feedback',
     messagePlaceholder: 'How can we make Seer better for you?',
     tags: {
-      ['feedback.source']: 'seer_explorer',
-      ['feedback.owner']: 'ml-ai',
-      ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
-      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+      'feedback.source': 'seer_explorer',
+      'feedback.owner': 'ml-ai',
+      ...(runId === null ? {} : {'seer.run_id': runId.toString()}),
+      ...(runId === null ? {} : {explorer_url: getExplorerUrl(runId)}),
       ...(runId === null
         ? {}
-        : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),
+        : {conversations_url: getConversationsUrlForExternalUse('sentry', runId)}),
     },
   };
 }

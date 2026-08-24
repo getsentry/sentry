@@ -306,60 +306,64 @@ def evaluate_workflows_action_filters(
     }
     filter_evals_by_workflow: dict[Workflow, list[DataConditionGroupEvaluation]] = defaultdict(list)
     for action_condition_group, workflow in action_conditions_to_workflow.items():
-        env = env_by_id.get(workflow.environment_id) if workflow.environment_id else None
-        workflow_event_data = replace(event_data, workflow_env=env)
-        group_evaluation, slow_conditions = process_data_condition_group(
-            action_condition_group,
-            workflow_event_data,
-            data_conditions_by_dcg_id.get(action_condition_group.id),
-        )
-        filter_evals_by_workflow[workflow].append(group_evaluation)
+        with log_context.new_context(
+            workflow_id=workflow.id,
+            action_condition_group_id=action_condition_group.id,
+        ):
+            env = env_by_id.get(workflow.environment_id) if workflow.environment_id else None
+            workflow_event_data = replace(event_data, workflow_env=env)
+            group_evaluation, slow_conditions = process_data_condition_group(
+                action_condition_group,
+                workflow_event_data,
+                data_conditions_by_dcg_id.get(action_condition_group.id),
+            )
+            filter_evals_by_workflow[workflow].append(group_evaluation)
 
-        if slow_conditions:
-            # If there are remaining conditions for the action filter to evaluate,
-            # then return the list of conditions to enqueue.
+            if slow_conditions:
+                # If there are remaining conditions for the action filter to evaluate,
+                # then return the list of conditions to enqueue.
 
-            if isinstance(event_data.event, GroupEvent):
-                if delayed_workflow_item := queue_items_by_workflow.get(workflow):
-                    delayed_workflow_item.delayed_if_group_ids.append(action_condition_group.id)
+                if isinstance(event_data.event, GroupEvent):
+                    if delayed_workflow_item := queue_items_by_workflow.get(workflow):
+                        delayed_workflow_item.delayed_if_group_ids.append(action_condition_group.id)
+                    else:
+                        queue_items_by_workflow[workflow] = DelayedWorkflowItem(
+                            workflow=workflow,
+                            delayed_when_group_id=None,
+                            delayed_if_group_ids=[action_condition_group.id],
+                            event=event_data.event,
+                            passing_if_group_ids=[],
+                            timestamp=event_start_time,
+                        )
                 else:
-                    queue_items_by_workflow[workflow] = DelayedWorkflowItem(
-                        workflow=workflow,
-                        delayed_when_group_id=None,
-                        delayed_if_group_ids=[action_condition_group.id],
-                        event=event_data.event,
-                        passing_if_group_ids=[],
-                        timestamp=event_start_time,
+                    # We should not include activity updates in delayed conditions,
+                    # this is because the actions should always be triggered if this condition is met.
+                    # The original snuba queries would have to be over threshold to create this event
+                    metrics_incr("process_workflows.enqueue_workflow.activity")
+                    logger.debug(
+                        "workflow_engine.process_workflows.enqueue_workflow.activity",
+                        extra={
+                            "event_id": event_data.event.id,
+                        },
                     )
             else:
-                # We should not include activity updates in delayed conditions,
-                # this is because the actions should always be triggered if this condition is met.
-                # The original snuba queries would have to be over threshold to create this event
-                metrics_incr("process_workflows.enqueue_workflow.activity")
-                logger.debug(
-                    "workflow_engine.process_workflows.enqueue_workflow.activity",
-                    extra={
-                        "event_id": event_data.event.id,
-                        "action_condition_id": action_condition_group.id,
-                        "workflow_id": workflow.id,
-                    },
-                )
-        else:
-            # Only accumulate taint for triggered workflows (not those with slow WHEN conditions)
-            if workflow.id in workflow_to_result:
-                workflow_to_result[workflow.id] = DataConditionGroupEvaluation.choose_tainted(
-                    workflow_to_result[workflow.id],
-                    group_evaluation,
-                )
+                # Only accumulate taint for triggered workflows (not those with slow WHEN conditions)
+                if workflow.id in workflow_to_result:
+                    workflow_to_result[workflow.id] = DataConditionGroupEvaluation.choose_tainted(
+                        workflow_to_result[workflow.id],
+                        group_evaluation,
+                    )
 
-            if group_evaluation.triggered:
-                if delayed_workflow_item := queue_items_by_workflow.get(workflow):
-                    if delayed_workflow_item.delayed_when_group_id:
-                        # If there are already delayed when conditions,
-                        # we need to evaluate them before firing the action group
-                        delayed_workflow_item.passing_if_group_ids.append(action_condition_group.id)
-                else:
-                    filtered_action_groups.add(action_condition_group)
+                if group_evaluation.triggered:
+                    if delayed_workflow_item := queue_items_by_workflow.get(workflow):
+                        if delayed_workflow_item.delayed_when_group_id:
+                            # If there are already delayed when conditions,
+                            # we need to evaluate them before firing the action group
+                            delayed_workflow_item.passing_if_group_ids.append(
+                                action_condition_group.id
+                            )
+                    else:
+                        filtered_action_groups.add(action_condition_group)
 
     # Count tainted/untainted only for fully-evaluated workflows (not delayed)
     fully_evaluated_workflows = triggered_workflows.keys() - queue_items_by_workflow.keys()
@@ -585,6 +589,10 @@ def process_workflows(
         log_context.set_verbose(True)
 
     workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    debug_workflow_ids = options.get("workflow_engine.process_workflows_debug_workflow_ids")
+    if any(workflow.id in debug_workflow_ids for workflow in workflows):
+        log_context.set_verbose(True)
+
     wrong_org_workflows = {wf for wf in workflows if wf.organization_id != organization.id}
     if wrong_org_workflows:
         logger.warning(
