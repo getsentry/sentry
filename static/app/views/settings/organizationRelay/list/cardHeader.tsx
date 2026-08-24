@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
@@ -45,7 +45,7 @@ export function CardHeader({
     <Grid
       columns={{zero: '1fr', md: '1fr max-content'}}
       rows={{zero: 'repeat(3, max-content)', md: 'repeat(2, max-content)'}}
-      gap="2xs"
+      gap={{zero: 'md', md: '2xs'}}
       marginBottom="md"
     >
       <KeyName>
@@ -55,7 +55,14 @@ export function CardHeader({
       <DateCreated>
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
-      <Grid flow="column" align="center" gap="md" row={{zero: '3', md: '1 / 3'}}>
+      <Flex
+        align="center"
+        gap="md"
+        wrap="wrap"
+        row={{zero: '3', md: '1 / 3'}}
+        column={{zero: '1 / -1', md: '2'}}
+        justify={{zero: 'start', md: 'end'}}
+      >
         <Button
           size="sm"
           icon={<IconCopyId />}
@@ -87,7 +94,7 @@ export function CardHeader({
           </ConfirmDelete>
         )}
         {extraAction}
-      </Grid>
+      </Flex>
     </Grid>
   );
 }
