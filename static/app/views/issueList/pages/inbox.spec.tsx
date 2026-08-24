@@ -931,6 +931,7 @@ describe('InboxPage', () => {
     const seerButton = await within(preview).findByRole('button', {
       name: 'Find Root Cause',
     });
+    expect(within(seerButton).getByTestId('autofix-root-cause-icon')).toBeVisible();
     await userEvent.click(seerButton);
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
@@ -1071,6 +1072,9 @@ describe('InboxPage', () => {
 
     const preview = await openFixProposedPreview();
     await within(preview).findByRole('button', {name: 'Make a Plan'});
+    await waitFor(() =>
+      expect(within(preview).getByTestId('autofix-plan-icon')).toBeVisible()
+    );
 
     // After starting the step, the refetch will see a processing state
     mockAutofixResponse(
@@ -1097,9 +1101,52 @@ describe('InboxPage', () => {
     );
   });
 
-  it('offers to create a PR when code changes are complete', async () => {
+  it('uses action-specific icons from code changes through PR creation', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          blocks: [
+            ExplorerAutofixBlockFixture(),
+            ExplorerAutofixBlockFixture({
+              id: 'solution',
+              message: {
+                content: 'Plan complete',
+                metadata: {step: 'solution'},
+                role: 'assistant',
+              },
+            }),
+          ],
+        }),
+      })
+    );
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {integrations: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/repos/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    await within(preview).findByRole('button', {name: 'Write a Code Fix'});
+    await waitFor(() =>
+      expect(within(preview).getByTestId('autofix-code-changes-icon')).toBeVisible()
+    );
+
+    // After starting the step, the refetch will see completed code changes.
     mockAutofixResponse(
       ExplorerAutofixResponseFixture({
         autofix: ExplorerAutofixStateFixture({
@@ -1116,15 +1163,16 @@ describe('InboxPage', () => {
       })
     );
 
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
+    await userEvent.click(
+      within(preview).getByRole('button', {name: 'Write a Code Fix'})
+    );
 
-    const preview = await openFixProposedPreview();
+    const createPullRequestButton = await within(preview).findByRole('button', {
+      name: 'Create PR',
+    });
     expect(
-      await within(preview).findByRole('button', {name: 'Create PR'})
-    ).toBeInTheDocument();
+      within(createPullRequestButton).getByTestId('autofix-pull-request-icon')
+    ).toBeVisible();
   });
 
   it('labels a coding agent pull request like a Seer one', async () => {
