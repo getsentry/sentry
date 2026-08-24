@@ -41,6 +41,12 @@ def completed_usage_key(
     return f"completed:scm:{provider}:{integration_id}:{resource}:{referrer}:{window_end}"
 
 
+def completed_total_usage_key(
+    provider: str, integration_id: int, referrer: str, resource: str
+) -> str:
+    return f"completed-total:scm:{provider}:{integration_id}:{resource}:{referrer}"
+
+
 @dataclass(frozen=True)
 class WindowState:
     """
@@ -48,7 +54,7 @@ class WindowState:
 
     :param used: Quota the provider says has been consumed in this window, across all referrers.
     :param reset: The epoch second at which the provider's window rolls over.
-    :param local_used: Our cumulative request count when the provider reported this state.
+    :param local_used: Shared requests known to be represented by this provider report.
     :param reserved_used: Completed reserved requests represented by this provider report.
     """
 
@@ -62,6 +68,10 @@ class WindowState:
 class RateLimitCheck:
     is_limited: bool
     local_used: int
+    referrer: str = "shared"
+    window_end: int = 0
+    shared_completed: int = 0
+    reserved_completed: int = 0
 
 
 def encode_window_state(state: WindowState) -> str:
@@ -133,8 +143,8 @@ class RateLimitProvider(Protocol):
         """Record the service-provider's reported window state."""
         ...
 
-    def incr_completed_usage(self, usage_key: str, expiration: int) -> None:
-        """Increment the completed-request counter for a reserved referrer."""
+    def incr_completed_usage(self, usage_key: str, expiration: int | None) -> None:
+        """Increment a completed-request counter."""
         ...
 
     def get_accounted_usage(self, keys: list[str]) -> int:
@@ -155,9 +165,10 @@ class DynamicRateLimiter:
 
     Two sources of truth are combined. The service-provider's reported usage, recorded by
     `update_rate_limit_meta` from response metadata, is authoritative for everything it has
-    answered. A cumulative local counter records which request produced that report, so requests
-    issued after it can be added without double-counting the local requests already represented by
-    the provider. The window counter remains a conservative fallback if either source is missing.
+    answered. Completion snapshots captured before a request identify local work guaranteed to be
+    represented by its eventual report. Requests not completed at that point are added without
+    assuming provider responses arrive in issuance order. The window counter remains a conservative
+    fallback if either source is missing.
 
     Windows are identified by the instant the provider's window resets rather than by a locally
     computed boundary. A provider's window rarely aligns to our clock -- GitHub's resets at a
@@ -262,6 +273,8 @@ class DynamicRateLimiter:
             total_usage_key(self.provider, self.integration_id, referrer, resource),
             window_end - current_time,
         )
+        shared_completed = self._shared_completed_usage(resource)
+        reserved_completed = self._reserved_completed_usage(window_end, resource)
 
         # The provider reports usage across every referrer, so it can only be reconciled against
         # the shared pool, and only after the quota reserved referrers have accounted for is
@@ -280,7 +293,14 @@ class DynamicRateLimiter:
         # If no limit could be found we fail open. We'll populate the limit on the other-side of the
         # HTTP request.
         if service_capacity is None:
-            return RateLimitCheck(is_limited=False, local_used=local_used)
+            return RateLimitCheck(
+                is_limited=False,
+                local_used=local_used,
+                referrer=referrer,
+                window_end=window_end,
+                shared_completed=shared_completed,
+                reserved_completed=reserved_completed,
+            )
 
         # If the referrer exists in the allocation pool then we compute its capacity otherwise we
         # need to compute the total unallocated "shared" capacity.
@@ -294,12 +314,30 @@ class DynamicRateLimiter:
         return RateLimitCheck(
             is_limited=quota_used > referrer_capacity,
             local_used=local_used,
+            referrer=referrer,
+            window_end=window_end,
+            shared_completed=shared_completed,
+            reserved_completed=reserved_completed,
         )
 
-    def record_completed_request(self, referrer: str, resource: str, window_end: int) -> None:
-        """Record a reserved request known to be represented by a provider response."""
+    def record_completed_request(
+        self, referrer: str, resource: str, window_end: int | None
+    ) -> None:
+        """Record that a local request is no longer in flight."""
         referrer = self.normalize_referrer(referrer)
         if referrer == "shared":
+            self.rate_limit_provider.incr_completed_usage(
+                completed_total_usage_key(
+                    self.provider,
+                    self.integration_id,
+                    referrer,
+                    resource,
+                ),
+                None,
+            )
+            return None
+
+        if window_end is None:
             return None
 
         current_time = self.get_time_in_seconds()
@@ -318,6 +356,30 @@ class DynamicRateLimiter:
             window_end - current_time,
         )
         return None
+
+    def report_usage_snapshots(self, check: RateLimitCheck, window_end: int) -> tuple[int, int]:
+        """Return local usage known to be represented by this request's provider report."""
+        shared_used = check.shared_completed + int(check.referrer == "shared")
+        reserved_used = int(check.referrer != "shared")
+        if check.window_end == window_end:
+            reserved_used += check.reserved_completed
+        return shared_used, reserved_used
+
+    def _shared_completed_usage(self, resource: str) -> int:
+        try:
+            return self.rate_limit_provider.get_accounted_usage(
+                [
+                    completed_total_usage_key(
+                        self.provider,
+                        self.integration_id,
+                        "shared",
+                        resource,
+                    )
+                ]
+            )
+        except IndeterminateResult:
+            # Treating no requests as represented overstates usage, which is conservative.
+            return 0
 
     def _reserved_completed_usage(self, window_end: int, resource: str) -> int:
         """Return completed reserved usage represented in a provider report."""
@@ -347,11 +409,11 @@ class DynamicRateLimiter:
         next_window_start: int,
         resource: str,
         local_used: int | None = None,
-        referrer: str = "shared",
+        reserved_used: int | None = None,
     ) -> None:
         """Update the store with select rate-limit metadata."""
         self.set_total_capacity(capacity, resource)
-        self.set_window_state(consumed, next_window_start, resource, local_used, referrer)
+        self.set_window_state(consumed, next_window_start, resource, local_used, reserved_used)
 
     def set_total_capacity(self, capacity: int, resource: str) -> None:
         """Set the service capacity if it does not match what already exists."""
@@ -367,7 +429,7 @@ class DynamicRateLimiter:
         next_window_start: int,
         resource: str,
         local_used: int | None = None,
-        referrer: str = "shared",
+        reserved_used: int | None = None,
     ) -> None:
         """Record the service-provider's own accounting of the current window."""
         current_time = self.get_time_in_seconds()
@@ -376,20 +438,6 @@ class DynamicRateLimiter:
             # A closed or implausibly distant window tells us nothing about current consumption.
             return None
 
-        referrer = self.normalize_referrer(referrer)
-        if referrer != "shared":
-            try:
-                local_used = self.rate_limit_provider.get_accounted_usage(
-                    [total_usage_key(self.provider, self.integration_id, "shared", resource)]
-                )
-            except IndeterminateResult:
-                local_used = None
-
-        reserved_used = (
-            self._reserved_completed_usage(next_window_start, resource)
-            if self.referrer_allocation
-            else None
-        )
         state = WindowState(
             used=consumed,
             reset=next_window_start,
@@ -479,12 +527,13 @@ class RedisRateLimitProvider:
                 return None
         return None
 
-    def incr_completed_usage(self, usage_key: str, expiration: int) -> None:
-        """Increment the completed-request counter for a reserved referrer."""
+    def incr_completed_usage(self, usage_key: str, expiration: int | None) -> None:
+        """Increment a completed-request counter."""
         try:
             with self.cluster.pipeline() as pipe:
                 pipe.incr(usage_key)
-                pipe.expire(usage_key, expiration)
+                if expiration is not None:
+                    pipe.expire(usage_key, expiration)
                 pipe.execute()
         except RedisError:
             # Missing completed usage overstates shared usage, which is the conservative direction.

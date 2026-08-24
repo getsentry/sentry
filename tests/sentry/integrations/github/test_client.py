@@ -271,7 +271,7 @@ class GitHubApiClientTest(TestCase):
             consumed=1234,
             next_window_start=1372700873,
             local_used=1,
-            referrer="shared",
+            reserved_used=0,
             resource="core",
         )
         mock_record_completed.assert_called_once_with("shared", "core", 1372700873)
