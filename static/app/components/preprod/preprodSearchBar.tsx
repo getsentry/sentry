@@ -153,10 +153,6 @@ export function PreprodSearchBar({
     [allowedKeys, rawBooleanSecondaryAliases]
   );
 
-  // Array attributes filter by membership (`[*]`), so they don't participate in
-  // the freeform-value handling; only the allowlist filter applies. The fetch is
-  // already gated on organizations:trace-item-array-query-support, so these are
-  // empty when the flag is off.
   const arrayAttributes = useMemo(
     () =>
       allowedKeys

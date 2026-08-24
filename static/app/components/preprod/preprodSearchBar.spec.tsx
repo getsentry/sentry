@@ -4,8 +4,6 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 
-// Expose the attribute collections the builder receives so we can assert the
-// array attributes are threaded through.
 jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
   const actual = jest.requireActual(
     'sentry/views/explore/components/traceItemSearchQueryBuilder'
@@ -59,8 +57,6 @@ describe('PreprodSearchBar', () => {
   });
 
   it('surfaces no array attributes when none are returned', async () => {
-    // With the flag off, the shared fetch drops the array type and the backend
-    // returns no array attributes.
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [{key: 'app.name', name: 'app.name', attributeType: 'string'}],
