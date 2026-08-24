@@ -134,7 +134,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:identified is:unresolved',
     emptyMessage: t('No identified issues'),
     progress: ProgressState.IDENTIFIED,
-    hidden: ({hasSeer}) => !hasSeer,
+    hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter === 'all',
   },
   {
     analyticsKey: 'num_fix_applied',
