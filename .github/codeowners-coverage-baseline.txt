@@ -2316,7 +2316,6 @@ tests/sentry/tasks/test_auth.py
 tests/sentry/tasks/test_auto_enable_codecov.py
 tests/sentry/tasks/test_base.py
 tests/sentry/tasks/test_beacon.py
-tests/sentry/tasks/test_check_am2_compatibility.py
 tests/sentry/tasks/test_check_auth.py
 tests/sentry/tasks/test_collect_project_platforms.py
 tests/sentry/tasks/test_commits.py

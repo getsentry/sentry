@@ -1,10 +1,9 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,20 +17,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
-
-const enum EventNavOptions {
-  RECOMMENDED = 'recommended',
-  LATEST = 'latest',
-  OLDEST = 'oldest',
-  CUSTOM = 'custom',
-}
-
-const EventNavOrder = [
-  EventNavOptions.OLDEST,
-  EventNavOptions.LATEST,
-  EventNavOptions.RECOMMENDED,
-  EventNavOptions.CUSTOM,
-];
 
 interface IssueDetailsEventNavigationProps {
   event: Event | undefined;
@@ -78,36 +63,33 @@ export function IssueDetailsEventNavigation({
     []
   );
 
-  const selectedOption = useMemo(() => {
-    switch (params.eventId) {
-      case EventNavOptions.RECOMMENDED:
-      case EventNavOptions.LATEST:
-      case EventNavOptions.OLDEST:
-        return params.eventId;
-      case undefined:
-        return defaultIssueEvent;
-      default:
-        return EventNavOptions.CUSTOM;
+  const eventNavPresets = [
+    {
+      key: 'oldest',
+      label: t('First'),
+      tooltip: t('Earliest event matching filters'),
+    },
+    {
+      key: 'latest',
+      label: t('Latest'),
+      tooltip: t('Newest event matching filters'),
+    },
+    {
+      key: 'recommended',
+      label: isSmallNav ? t('Rec.') : t('Recommended'),
+      tooltip: t('Recent event with richer content'),
+    },
+  ] as const;
+  const currentEventKey = params.eventId ?? defaultIssueEvent;
+
+  const onTabChange = (tabKey: string) => {
+    const preset = eventNavPresets.find(({key}) => key === tabKey);
+    if (!preset) {
+      return;
     }
-  }, [params.eventId, defaultIssueEvent]);
-
-  const EventNavLabels = {
-    [EventNavOptions.RECOMMENDED]: isSmallNav ? t('Rec.') : t('Recommended'),
-    [EventNavOptions.OLDEST]: t('First'),
-    [EventNavOptions.LATEST]: t('Latest'),
-    [EventNavOptions.CUSTOM]: t('Custom'),
-  };
-
-  const EventNavTooltips = {
-    [EventNavOptions.RECOMMENDED]: t('Recent event with richer content'),
-    [EventNavOptions.OLDEST]: t('Earliest event matching filters'),
-    [EventNavOptions.LATEST]: t('Newest event matching filters'),
-  };
-
-  const onTabChange = (tabKey: typeof selectedOption) => {
     trackAnalytics('issue_details.event_navigation_selected', {
       organization,
-      content: EventNavLabels[tabKey as keyof typeof EventNavLabels],
+      content: preset.label,
     });
   };
 
@@ -167,29 +149,24 @@ export function IssueDetailsEventNavigation({
           }}
         />
       </Navigation>
-      <Tabs value={selectedOption} disableOverflow onChange={onTabChange} size="xs">
+      <Tabs value={currentEventKey} disableOverflow onChange={onTabChange} size="xs">
         <TabList variant="floating">
-          {EventNavOrder.map(label => {
+          {eventNavPresets.map(({key, label, tooltip}) => {
             const eventPath =
-              label === selectedOption
+              key === currentEventKey
                 ? undefined
                 : {
-                    pathname: normalizeUrl(baseEventsPath + label + '/'),
-                    query: {...location.query, referrer: `${label}-event`},
+                    pathname: normalizeUrl(baseEventsPath + key + '/'),
+                    query: {...location.query, referrer: `${key}-event`},
                   };
             return (
               <TabList.Item
                 to={eventPath}
-                key={label}
-                hidden={label === EventNavOptions.CUSTOM}
-                textValue={EventNavLabels[label as keyof typeof EventNavLabels]}
+                key={key}
+                textValue={label}
+                tooltip={{title: tooltip}}
               >
-                <Tooltip
-                  title={EventNavTooltips[label as keyof typeof EventNavTooltips]}
-                  skipWrapper
-                >
-                  {EventNavLabels[label as keyof typeof EventNavLabels]}
-                </Tooltip>
+                {label}
               </TabList.Item>
             );
           })}

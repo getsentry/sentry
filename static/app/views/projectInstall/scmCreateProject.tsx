@@ -3,7 +3,7 @@ import {LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -31,6 +31,7 @@ import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -77,6 +78,13 @@ export function ScmCreateProject() {
   // `variant` and to `referrer=getting-started` autofill — back-from-docs
   // must not reclassify an org-activation visit as existing_org.
   useRouteAnalyticsParams({variant: 'scm', origin: useProjectCreationPageOrigin()});
+
+  // Above the keyed wizard so the per-mount sampling decision survives the
+  // restore remount below.
+  useReplayForCriticalFlow({
+    flowName: 'scm_project_creation',
+    sampleRate: 0.5,
+  });
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a
@@ -236,9 +244,10 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
       <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
         <Stack padding="3xl" gap="2xl" align="center">
           <LayoutGroup>
+            {/* Keep spacing inside each animated section so it collapses with it. */}
             <MotionStack
               flexGrow={1}
-              gap="2xl"
+              gap="0"
               padding="2xl"
               maxWidth={CREATE_PROJECT_MAX_WIDTH}
               width="100%"
@@ -248,7 +257,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
             >
               <Layout.Title>{t('Create a new project')}</Layout.Title>
 
-              <MotionStack gap="md" layout="position">
+              <MotionStack gap="md" paddingBottom="2xl" layout="position">
                 <Heading as="h1">{t('Create a project')}</Heading>
                 <Text variant="secondary" density="comfortable">
                   {tct(
@@ -262,7 +271,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 </Text>
               </MotionStack>
 
-              <MotionStack gap="md" layout="position">
+              <MotionStack gap="md" paddingBottom="2xl" layout="position">
                 <Flex justify="between" align="center">
                   <Stack gap="sm">
                     <Heading as="h4">{t('Repository')}</Heading>
@@ -287,7 +296,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 />
               </MotionStack>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <ScmPlatformFeaturesCore
                   analyticsFlow="project-creation"
                   selectedRepository={selectedRepository}
@@ -296,11 +305,11 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onFeaturesChange={handleFeaturesChange}
                   onClearProjectDetailsForm={handleClearProjectDetailsForm}
                 />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <Separator orientation="horizontal" />
-              </motion.div>
+              </MotionContainer>
 
               <ScmFeatureSelectionPanel
                 analyticsFlow="project-creation"
@@ -309,13 +318,13 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 selectedFeatures={selectedFeatures}
                 onFeaturesChange={handleFeaturesChange}
                 trailing={
-                  <motion.div layout="position">
+                  <MotionContainer layout="position" paddingTop="2xl" paddingBottom="2xl">
                     <Separator orientation="horizontal" />
-                  </motion.div>
+                  </MotionContainer>
                 }
               />
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <ScmProjectDetailsCore
                   projectName={form.projectName}
                   onProjectNameChange={form.onProjectNameChange}
@@ -324,20 +333,20 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onTeamChange={form.onTeamChange}
                   isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
                 />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <Separator orientation="horizontal" />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position">
                 <ScmAlertFrequencySection
                   analyticsFlow="project-creation"
                   alertRuleConfig={form.alertRuleConfig}
                   notificationProps={form.notificationProps}
                   onAlertChange={form.onAlertChange}
                 />
-              </motion.div>
+              </MotionContainer>
             </MotionStack>
             {/* Page-level CTA: disabled until a platform and project details are
               ready. */}
@@ -370,3 +379,4 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 }
 
 const MotionStack = motion.create(Stack);
+const MotionContainer = motion.create(Container);

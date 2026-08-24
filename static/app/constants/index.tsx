@@ -206,8 +206,6 @@ export const DEFAULT_DEBOUNCE_DURATION = 300;
 // sentry.io project ID for seer-agents.
 export const SEER_AGENTS_PROJECT_ID = 6178942;
 
-export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
-
 export const SLOW_TOOLTIP_DELAY = 1000;
 
 export const MAX_PICKABLE_DAYS = 90;

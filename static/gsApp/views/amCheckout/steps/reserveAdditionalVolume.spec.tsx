@@ -112,10 +112,6 @@ describe('ReserveAdditionalVolume', () => {
     });
 
     it('renders with event volumes and pricing warning', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-        method: 'POST',
-      });
       render(<ReserveAdditionalVolume {...stepProps} />);
 
       expect(await screen.findByText(/Reserve additional volume/)).toBeInTheDocument();
@@ -241,10 +237,6 @@ describe('ReserveAdditionalVolume', () => {
     });
 
     it('renders with event volumes and pricing warning', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-        method: 'POST',
-      });
       render(<ReserveAdditionalVolume {...stepProps} />);
 
       expect(await screen.findByText(/Reserve additional volume/)).toBeInTheDocument();

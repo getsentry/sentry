@@ -12,6 +12,12 @@ from sentry.stacktraces.functions import (
 @pytest.mark.parametrize(
     "input,output",
     [
+        ["function", "function"],
+        ["namespace::Class::function", "namespace::Class::function"],
+        [" const ", " const "],
+        [" namespace::const ", "namespace::"],
+        ["namespace::function::h9de5fbebc1652d47", "namespace::function"],
+        ["?A0xc3a0617d::crash", "`anonymous namespace'::crash"],
         [
             "Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)",
             "Scaleform::GFx::AS3::IMEManager::DispatchEvent",
@@ -208,6 +214,7 @@ def test_enclosed_string_simple(input, start, end, replacement, output) -> None:
 @pytest.mark.parametrize(
     "input,output",
     [
+        ["namespace::Class::function", ["namespace::Class::function"]],
         ["foo bar baz", ["foo", "bar", "baz"]],
         ["foo bar (enclosed baz)", ["foo", "bar", "(enclosed baz)"]],
         ["foo (enclosed bar) baz", ["foo", "(enclosed bar)", "baz"]],

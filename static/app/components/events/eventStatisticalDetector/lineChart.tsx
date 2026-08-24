@@ -8,12 +8,12 @@ import {
   type BreakpointEvidenceData,
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 interface ChartProps {
   chartType: ChartType;
-  datetime: PageFilters['datetime'];
+  datetime: PageFilterDatetime;
   evidenceData: BreakpointEvidenceData;
   percentileData: EventBreakpointChartData['percentileData'];
 }

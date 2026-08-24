@@ -1,10 +1,9 @@
-import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {IconFile, IconUser} from 'sentry/icons';
-import {tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -26,16 +25,27 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
   const userLabel = tn('%s affected user', '%s affected users', userCount);
 
   return (
-    <Flex align="center" gap="xs">
+    <Flex align="center" gap="sm">
       <Tooltip title={userLabel} skipWrapper>
-        <Tag variant="muted" icon={<IconUser />} aria-label={userLabel}>
-          <Count value={userCount} />
-        </Tag>
+        <Flex as="span" align="center" gap="xs" padding="sm 0" aria-label={userLabel}>
+          <Text size="md" bold tabular>
+            <Count value={userCount} />
+          </Text>
+          <Text size="sm" variant="muted">
+            {t('Users')}
+          </Text>
+        </Flex>
       </Tooltip>
+      <Container aria-hidden borderLeft="muted" height="16px" />
       <Tooltip title={eventLabel} skipWrapper>
-        <Tag variant="muted" icon={<IconFile />} aria-label={eventLabel}>
-          <Count value={eventCount} />
-        </Tag>
+        <Flex as="span" align="center" gap="xs" padding="sm 0" aria-label={eventLabel}>
+          <Text size="md" bold tabular>
+            <Count value={eventCount} />
+          </Text>
+          <Text size="sm" variant="muted">
+            {t('Events')}
+          </Text>
+        </Flex>
       </Tooltip>
     </Flex>
   );

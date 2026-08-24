@@ -960,21 +960,20 @@ describe('ExploreToolbar', () => {
 
     await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
     await userEvent.hover(
-      within(section).getByRole('menuitemradio', {name: 'Alert for'})
+      within(section).getByRole('menuitemradio', {name: 'Monitor for'})
     );
     await userEvent.click(
       await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
     );
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/issues/alerts/new/metric/'
+      '/organizations/org-slug/monitors/new/settings'
     );
     expect(router.location.query).toEqual({
       aggregate: 'count(span.duration)',
-      dataset: 'events_analytics_platform',
-      interval: '1h',
-      project: 'proj-slug',
+      dataset: 'spans',
+      detectorType: 'metric_issue',
+      project: '1',
       query: '',
-      statsPeriod: '7d',
     });
   });
 
@@ -1003,7 +1002,7 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
 
     expect(
-      within(section).getByRole('menuitemradio', {name: 'Alert for'})
+      within(section).getByRole('menuitemradio', {name: 'Monitor for'})
     ).toHaveAttribute('aria-disabled', 'true');
   });
 

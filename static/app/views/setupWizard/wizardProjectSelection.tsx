@@ -167,7 +167,7 @@ export function WizardProjectSelection({
         .map(platform => ({
           value: platform.id,
           label: platform.name,
-          leadingItems: <PlatformIcon platform={platform.id} size={16} />,
+          leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
           searchKey: platform.name,
         })),
     []
@@ -282,7 +282,7 @@ export function WizardProjectSelection({
             {...triggerProps}
             icon={
               newProjectPlatform ? (
-                <PlatformIcon platform={newProjectPlatform} size={16} />
+                <PlatformIcon platform={newProjectPlatform} size={16} alt="" />
               ) : null
             }
           >

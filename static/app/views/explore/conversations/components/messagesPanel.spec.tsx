@@ -31,11 +31,20 @@ function createMockNode(overrides: {
 function createMockToolNode(overrides: {
   id: string;
   toolName: string;
+  endTimestamp?: number;
   hasError?: boolean;
+  output?: string;
   startTimestamp?: number;
 }) {
-  const {id, toolName, startTimestamp = 1000, hasError = false} = overrides;
-  const end = startTimestamp + 100;
+  const {
+    id,
+    toolName,
+    startTimestamp = 1000,
+    hasError = false,
+    output,
+    endTimestamp,
+  } = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
     type: 'span' as const,
@@ -47,6 +56,46 @@ function createMockToolNode(overrides: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
       ...(hasError ? {[SpanFields.SPAN_STATUS]: 'internal_error'} : {}),
+      ...(output === undefined ? {} : {'gen_ai.tool.call.result': output}),
+    },
+    errors: new Set(),
+  };
+}
+
+// Mirrors the node `useConversation` produces for an embeddings span: the op
+// type stays "ai_client" (the ingestion-computed gen_ai.operation.type has no
+// embeddings bucket) and it's recognized by its span op. `input` may be absent
+// on older deploys, in which case the row falls back to the model.
+function createMockEmbeddingNode(overrides: {
+  id: string;
+  endTimestamp?: number;
+  input?: string;
+  model?: string;
+  startTimestamp?: number;
+  tokens?: number;
+}) {
+  const {
+    id,
+    input = 'search query',
+    model = 'text-embedding-005',
+    startTimestamp = 1000,
+    endTimestamp,
+    tokens,
+  } = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.embeddings',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.SPAN_OP]: 'gen_ai.embeddings',
+      [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
+      [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
+      ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
     },
     errors: new Set(),
   };
@@ -309,6 +358,50 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('2 errors')).toBeInTheDocument();
   });
 
+  it('summarizes the combined output size and time in the tool call summary', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'Question?'}]);
+    const firstGeneration = createMockNode({
+      id: 'span-1',
+      startTimestamp: 1000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me check',
+      },
+    });
+    // Five calls, each 30 bytes of output over 0.1s, so the summary totals
+    // 150 B across 500.00ms — distinct from every per-row "30 B" / "100.00ms".
+    const toolNodes = Array.from({length: 5}, (_, index) => {
+      const start = 1500 + index * 100;
+      return createMockToolNode({
+        id: `tool-${index}`,
+        toolName: `t${index}`,
+        startTimestamp: start,
+        endTimestamp: start + 0.1,
+        output: 'x'.repeat(30),
+      });
+    });
+    const secondGeneration = createMockNode({
+      id: 'span-2',
+      startTimestamp: 3000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here is the answer',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[firstGeneration, ...toolNodes, secondGeneration] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('5 tool calls')).toBeInTheDocument();
+    expect(screen.getByText('150 B')).toBeInTheDocument();
+    expect(screen.getByText('500.00ms')).toBeInTheDocument();
+  });
+
   it('expands the tool call group when one of its calls is selected', () => {
     render(
       <MessagesPanel
@@ -387,5 +480,131 @@ describe('MessagesPanel', () => {
     const details = matches[0]!.closest('details');
     expect(details).not.toBeNull();
     expect(details).not.toHaveAttribute('open');
+  });
+
+  it('renders an embeddings-only conversation instead of the no-inference-spans notice', () => {
+    const embeddingNode = createMockEmbeddingNode({id: 'embed-1', input: 'find docs'});
+
+    render(
+      <MessagesPanel
+        nodes={[embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(
+      screen.queryByText("This conversation doesn't include any inference spans")
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Creating embedding...')).toBeInTheDocument();
+  });
+
+  it('shows no preview in the toggle and reveals the input only when expanded', async () => {
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: 'a very specific search query',
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    // The toggle label carries no preview of the input — the input lives in the
+    // collapsible body (kept in the DOM by the native <details>), not the summary.
+    const toggle = screen.getByText('Creating embedding...');
+    const summary = toggle.closest('summary');
+    expect(summary).not.toBeNull();
+    const details = toggle.closest('details');
+    expect(details).not.toHaveAttribute('open');
+
+    const inputEl = screen.getByText('a very specific search query');
+    expect(summary).not.toContainElement(inputEl);
+
+    await userEvent.click(toggle);
+    expect(details).toHaveAttribute('open');
+    expect(inputEl).toBeInTheDocument();
+  });
+
+  it('does not render an embedding row when the input is unavailable', () => {
+    // The dev-ui/older-deploy shape: an embeddings span with no
+    // gen_ai.embeddings.input in the bulk response. Without the input there's
+    // nothing worth showing, so the row is dropped entirely.
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: '',
+      model: 'text-embedding-005',
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.queryByText('Creating embedding...')).not.toBeInTheDocument();
+  });
+
+  it('shows the token count in the embedding meta when available', () => {
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: 'find docs',
+      tokens: 6,
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('tokens')).toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
+  });
+
+  it('positions the embedding row between the user and assistant turns around it', () => {
+    // A wide generation span (1000 -> 1200) so the embedding's own timestamp
+    // (1150) falls between the user turn's timestamp (the span's start, 1000)
+    // and the assistant turn's timestamp (the span's end, 1200).
+    const node = createMockNode({
+      id: 'span-1',
+      startTimestamp: 1000,
+      endTimestamp: 1200,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Find the docs'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here they are',
+      },
+    });
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: 'find docs embedding',
+      startTimestamp: 1050,
+      endTimestamp: 1150,
+    });
+
+    const {container} = render(
+      <MessagesPanel
+        nodes={[node, embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const text = container.textContent ?? '';
+    expect(text.indexOf('Find the docs')).toBeLessThan(
+      text.indexOf('Creating embedding...')
+    );
+    expect(text.indexOf('Creating embedding...')).toBeLessThan(
+      text.indexOf('Here they are')
+    );
   });
 });

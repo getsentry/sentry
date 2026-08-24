@@ -36,7 +36,7 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
 @extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
 class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     id: str
-    projectId: str
+    projectId: str | None
     name: str
     type: str
     workflowIds: list[str] | None
@@ -195,7 +195,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
-            "projectId": str(obj.project_id),
+            "projectId": str(obj.project_id) if obj.project_id is not None else None,
             "name": obj.name,
             "description": obj.description,
             "type": obj.type,

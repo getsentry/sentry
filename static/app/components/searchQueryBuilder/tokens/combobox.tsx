@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  type FocusEvent,
   type MouseEventHandler,
   type ReactNode,
 } from 'react';
@@ -22,9 +23,11 @@ import {
   ListBox,
 } from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
+import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
@@ -55,9 +58,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   items: T[];
   /**
    * Called when the input is blurred.
-   * Passes the current input value.
+   * Passes the current input value and blur event.
    */
-  onCustomValueBlurred: (value: string) => void;
+  onCustomValueBlurred: (value: string, event?: FocusEvent<HTMLInputElement>) => void;
   /**
    * Called when the user commits a value with the enter key.
    * Passes the current input value.
@@ -410,7 +413,7 @@ export function SearchQueryBuilderCombobox<
   isLoading: incomingIsLoading,
   isOpen: incomingIsOpen,
   keepVisibleRef,
-  ['data-test-id']: dataTestId,
+  'data-test-id': dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
@@ -431,7 +434,7 @@ export function SearchQueryBuilderCombobox<
     showAskSeerOption: enableAISearch,
   });
 
-  const onSelectionChange = useCallback(
+  const onValueChange = useCallback(
     (key: Key | null) => {
       if (!key) {
         return;
@@ -449,8 +452,8 @@ export function SearchQueryBuilderCombobox<
     items,
     autoFocus,
     inputValue: filterValue,
-    selectedKey: null,
-    onSelectionChange,
+    value: null,
+    onChange: onValueChange,
     allowsCustomValue: true,
     disabledKeys,
     isDisabled: disabled,
@@ -475,6 +478,8 @@ export function SearchQueryBuilderCombobox<
       inputRef,
       popoverRef,
       tabTargetRef: askSeerButtonRef,
+      // This component supplies a custom ariaHideOutside allowlist below.
+      shouldHideOutside: false,
       shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
@@ -486,10 +491,17 @@ export function SearchQueryBuilderCombobox<
         if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
           return;
         }
-        onCustomValueBlurred(inputValue);
+        onCustomValueBlurred(inputValue, e);
         state.close();
       },
       onKeyDown: e => {
+        // React Aria's selectable collection stops key events from bubbling out of
+        // an open combobox. Let the global command palette shortcut through.
+        if (matchesHotkey(COMMAND_PALETTE_HOTKEYS, e.nativeEvent)) {
+          e.continuePropagation();
+          return;
+        }
+
         onKeyDown?.(e, {state});
 
         if (e.key === 'Escape') {

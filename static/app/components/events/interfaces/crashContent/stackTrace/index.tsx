@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -18,9 +16,7 @@ type Props = {
   stackView: StackView;
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
-  inlined?: boolean;
   lockAddress?: string;
-  maxDepth?: number;
   meta?: Record<any, any>;
   threadId?: number;
 };
@@ -32,9 +28,7 @@ export function StackTraceContent({
   newestFirst,
   platform,
   groupingCurrentLevel,
-  maxDepth,
   meta,
-  inlined,
   threadId,
   lockAddress,
 }: Props) {
@@ -51,7 +45,7 @@ export function StackTraceContent({
   if (isNativePlatform(platform)) {
     return (
       <ErrorBoundary mini>
-        <StyledNativeContent
+        <NativeContent
           data={stacktrace}
           includeSystemFrames={stackView === StackView.FULL}
           platform={platform}
@@ -59,8 +53,6 @@ export function StackTraceContent({
           newestFirst={newestFirst}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
-          inlined={inlined}
-          maxDepth={maxDepth}
         />
       </ErrorBoundary>
     );
@@ -68,7 +60,7 @@ export function StackTraceContent({
 
   return (
     <ErrorBoundary mini>
-      <StyledContent
+      <Content
         data={stacktrace}
         className="no-exception"
         includeSystemFrames={stackView === StackView.FULL}
@@ -76,25 +68,9 @@ export function StackTraceContent({
         event={event}
         newestFirst={newestFirst}
         meta={meta}
-        inlined={inlined}
-        maxDepth={maxDepth}
         threadId={threadId}
         lockAddress={lockAddress}
       />
     </ErrorBoundary>
   );
 }
-
-const inlinedStyles = `
-  border-radius: 0;
-  border-left: 0;
-  border-right: 0;
-`;
-
-const StyledNativeContent = styled(NativeContent)<{inlined?: boolean}>`
-  ${p => p.inlined && inlinedStyles}
-`;
-
-const StyledContent = styled(Content)<{inlined?: boolean}>`
-  ${p => p.inlined && inlinedStyles}
-`;

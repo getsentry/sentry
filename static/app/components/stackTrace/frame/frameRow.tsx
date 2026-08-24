@@ -22,7 +22,7 @@ interface StackTraceFrameRowProps {
   row: FrameRow;
 }
 
-const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
+const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRootImpl({
   row,
   children,
 }: StackTraceFrameRowProps) {

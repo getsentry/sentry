@@ -17,7 +17,13 @@ export function ManualInstrumentationNote({docsLink}: {docsLink: React.ReactNode
   );
 }
 
-export function CopyLLMPromptButton() {
+export function CopyLLMPromptButton({
+  platform = 'unknown',
+  product,
+}: {
+  product: 'conversations' | 'agents';
+  platform?: string;
+}) {
   const {copy} = useCopyToClipboard();
   const organization = useOrganization();
 
@@ -26,8 +32,11 @@ export function CopyLLMPromptButton() {
       size="sm"
       icon={<IconCopy />}
       onClick={() => {
-        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+        trackAnalytics('onboarding.ai_prompt_copied', {
           organization,
+          platform,
+          product,
+          source: 'prompt',
         });
         copy(LLM_ONBOARDING_COPY_MARKDOWN, {
           successMessage: t('Copied instrumentation prompt to clipboard'),

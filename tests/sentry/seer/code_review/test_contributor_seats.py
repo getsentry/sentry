@@ -90,9 +90,9 @@ class ShouldIncrementContributorSeatTest(TestCase):
             provider="integrations:github",
             integration_id=self.integration.id,
         )
-        self.contributor = OrganizationContributors.objects.create(
+        self.contributor = self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="12345",
             alias="testuser",
         )
@@ -159,6 +159,22 @@ class ShouldIncrementContributorSeatTest(TestCase):
                 self.organization, self.repo, self.contributor
             )
             assert result is False
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
+    def test_returns_false_for_free_cohort_organization(self, mock_quota: MagicMock) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.organization.update_option("agentic-triage-free-cohort", True)
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            result = should_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
+            )
+
+        assert result is False
+        mock_quota.assert_not_called()
 
     @patch(
         "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
@@ -241,7 +257,6 @@ class TrackContributorSeatTest(TestCase):
 
         contributor = OrganizationContributors.objects.get(
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
             external_identifier="999",
         )
         assert contributor.alias == "newuser"
@@ -266,7 +281,6 @@ class TrackContributorSeatTest(TestCase):
             organization=self.organization,
             integration=self.integration,
             external_identifier="12345",
-            provider=self.integration.provider,
             alias="testuser",
             num_actions=5,
         )
@@ -298,7 +312,6 @@ class TrackContributorSeatTest(TestCase):
 
         assert not OrganizationContributors.objects.filter(
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
             external_identifier="999",
         ).exists()
         mock_capture.assert_called_once()
@@ -321,7 +334,6 @@ class RecordContributorActionTest(TestCase):
     def _contributor(self) -> OrganizationContributors:
         return OrganizationContributors.objects.get(
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
             external_identifier="123",
         )
 
@@ -417,7 +429,6 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             integration=self.integration,
             external_identifier="123",
-            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
         )
@@ -440,7 +451,6 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             integration=self.integration,
             external_identifier="123",
-            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
         )
@@ -463,7 +473,6 @@ class RecordContributorActionTest(TestCase):
 
         assert not OrganizationContributors.objects.filter(
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
             external_identifier="123",
         ).exists()
         assert self._action_count() == 0

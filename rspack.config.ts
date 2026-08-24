@@ -1,4 +1,3 @@
-/* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
@@ -119,6 +118,10 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
+const typeLoaderPath = path.resolve(
+  import.meta.dirname,
+  'static/app/stories/typeLoader.ts'
+);
 
 // Locale compilation and optimizations.
 //
@@ -291,8 +294,10 @@ const appConfig: Configuration = {
   incremental: DEV_MODE,
   watchOptions: {
     // StoryManifestPlugin owns these watches so it can update the virtual
-    // manifest before invalidating changed and removed story dependencies.
-    ignored: ['**/*.stories.tsx', '**/*.mdx'],
+    // manifest before invalidating changed and removed story dependencies. Its
+    // virtual module must also be ignored so the filesystem watcher does not
+    // repeatedly report the intentionally nonexistent file as removed.
+    ignored: ['**/*.stories.tsx', '**/*.mdx', `**/${StoryManifestPlugin.modulePath}`],
   },
   experiments: {
     futureDefaults: true,
@@ -307,7 +312,7 @@ const appConfig: Configuration = {
     // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
     test(module) {
       if ('request' in module && typeof module.request === 'string') {
-        if (module.request.includes('type-loader')) {
+        if (module.request.includes(typeLoaderPath)) {
           return true;
         }
       }
@@ -387,7 +392,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|mp4)$/,
         type: 'asset',
       },
     ],
@@ -488,10 +493,7 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': path.resolve(
-        import.meta.dirname,
-        'static/app/stories/typeLoader.ts'
-      ),
+      'type-loader': typeLoaderPath,
     },
   },
 

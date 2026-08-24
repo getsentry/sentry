@@ -118,7 +118,7 @@ export async function promptsCheck(
   return null;
 }
 
-export const makePromptsCheckQueryKey = ({
+const makePromptsCheckQueryKey = ({
   feature,
   organization,
   projectId,
@@ -129,7 +129,7 @@ export const makePromptsCheckQueryKey = ({
   return [url, {query: {feature, project_id: projectId}}];
 };
 
-export function usePromptsCheck(
+function usePromptsCheck(
   {feature, organization, projectId}: PromptCheckHookParams,
   {enabled = true, ...options}: Partial<UseApiQueryOptions<PromptResponse>> = {}
 ) {

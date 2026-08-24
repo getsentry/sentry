@@ -192,9 +192,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
-    def test_sort_by_progress_requires_feature_flag(self) -> None:
+    def test_sort_by_progress(self) -> None:
         # group_1 has the newer event (wins last_seen / default sort); group_2 is older but
-        # diagnosed, so it wins the progress sort once the flag is on.
+        # diagnosed, so it wins the progress sort.
         group_1 = self.store_event(
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -206,13 +206,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.create_group_derived_data(group=group_2, progress="diagnosed")
         self.login_as(user=self.user)
 
-        # Without the flag, the sort falls back to the default (date) order.
         response = self.get_success_response(sort="progress", query="is:unresolved")
-        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
-
-        # With the flag, the diagnosed group is promoted above the more recently seen one.
-        with self.feature("organizations:issue-stream-progress-sort"):
-            response = self.get_success_response(sort="progress", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 
     def test_sort_by_progress_over_cap_uses_native_ordering(self) -> None:
@@ -231,10 +225,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.create_group_derived_data(group=group_2, progress="fix_applied")
         self.login_as(user=self.user)
 
-        with (
-            self.options({"snuba.search.max-pre-snuba-candidates": 0}),
-            self.feature("organizations:issue-stream-progress-sort"),
-        ):
+        with self.options({"snuba.search.max-pre-snuba-candidates": 0}):
             response = self.get_success_response(sort="progress", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 
@@ -1027,22 +1018,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 HTTP_AUTHORIZATION=f"Bearer {token.token}",
             )
 
-        # With the flag on, API (bearer token) requests get the api-specific referrer...
-        with self.feature("organizations:search-group-index-api-referrer"):
-            response = api_request()
-            assert response.status_code == 200, response.content
-            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX_API
+        # API (bearer token) requests get the api-specific referrer...
+        response = api_request()
+        assert response.status_code == 200, response.content
+        assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX_API
 
-            # ...while UI (browser session) requests keep the historical referrer.
-            self.login_as(user=self.user)
-            self.get_success_response(query="is:unresolved")
-            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
-
-        # With the flag off, API requests also keep the historical referrer.
-        with self.feature({"organizations:search-group-index-api-referrer": False}):
-            response = api_request()
-            assert response.status_code == 200, response.content
-            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
+        # ...while UI (browser session) requests keep the historical referrer.
+        self.login_as(user=self.user)
+        self.get_success_response(query="is:unresolved")
+        assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
 
     def test_date_range(self) -> None:
         with self.options({"system.event-retention-days": 2}):
@@ -2279,17 +2263,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ]
         assert len(platform_issue_queries) == 1
 
-    @with_feature(
-        {
-            "organizations:event-attachments": True,
-            "organizations:issue-stream-batched-latest-event-attachments": False,
-        }
-    )
-    @patch("sentry.api.serializers.models.group_stream.metrics")
-    @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids")
-    def test_expand_latest_event_has_attachments(
-        self, mock_bulk_get_latest_event_ids: MagicMock, mock_metrics: MagicMock
-    ) -> None:
+    @with_feature("organizations:event-attachments")
+    def test_expand_latest_event_has_attachments(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2326,24 +2301,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.status_code == 200
         assert response.data[0]["latestEventHasAttachments"] is True
-        mock_bulk_get_latest_event_ids.assert_not_called()
-        assert mock_metrics.timer.call_args_list == [
-            call(
-                "group_stream.get_attrs.latest_event_attachments.duration",
-                tags={"strategy": "n_plus_one"},
-            ),
-            call(
-                "group_stream.get_attrs.latest_event_attachments.duration",
-                tags={"strategy": "n_plus_one"},
-            ),
-        ]
 
-    @with_feature(
-        [
-            "organizations:event-attachments",
-            "organizations:issue-stream-batched-latest-event-attachments",
-        ]
-    )
+    @with_feature("organizations:event-attachments")
     @patch("sentry.api.serializers.models.group_stream.metrics")
     @patch("sentry.models.Group.get_latest_event")
     def test_expand_latest_event_has_attachments_is_batched(
@@ -2395,12 +2354,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             tags={"strategy": "bulk"},
         )
 
-    @with_feature(
-        [
-            "organizations:event-attachments",
-            "organizations:issue-stream-batched-latest-event-attachments",
-        ]
-    )
+    @with_feature("organizations:event-attachments")
     def test_expand_latest_event_attachments_match_project_and_event(self) -> None:
         other_project = self.create_project(organization=self.organization, teams=[self.team])
         shared_event_id = "b" * 32
@@ -2454,12 +2408,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             second_project_event.group.id: False,
         }
 
-    @with_feature(
-        [
-            "organizations:event-attachments",
-            "organizations:issue-stream-batched-latest-event-attachments",
-        ]
-    )
+    @with_feature("organizations:event-attachments")
     @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids", return_value={})
     def test_expand_no_latest_event_has_no_attachments(self, mock_latest_events: MagicMock) -> None:
         self.store_event(
@@ -2475,37 +2424,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         # Expand should not execute since there is no latest event
         assert "latestEventHasAttachments" not in response.data[0]
-
-    @with_feature(
-        {
-            "organizations:event-attachments": True,
-            "organizations:issue-stream-batched-latest-event-attachments": False,
-        }
-    )
-    @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids")
-    @patch("sentry.models.Group.get_latest_event", return_value=None)
-    def test_expand_no_latest_event_has_no_attachments_legacy(
-        self,
-        mock_get_latest_event: MagicMock,
-        mock_bulk_get_latest_event_ids: MagicMock,
-    ) -> None:
-        self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        self.login_as(user=self.user)
-
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            query="status:unresolved",
-            expand=["latestEventHasAttachments"],
-        )
-
-        assert response.status_code == 200
-        assert "latestEventHasAttachments" not in response.data[0]
-        mock_get_latest_event.assert_called_once_with()
-        mock_bulk_get_latest_event_ids.assert_not_called()
 
     def test_expand_owners(self) -> None:
         event = self.store_event(

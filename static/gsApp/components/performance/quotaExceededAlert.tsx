@@ -6,7 +6,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {tct} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -19,7 +19,7 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 // Returns the beggining of statsPeriod formatted like "Jan 1, 2022"
 // or absolute date range formatted like "Jan 1, 2022 - Jan 2, 2022"
-function getFormattedDateTime(dateTime: PageFilters['datetime']): string | null {
+function getFormattedDateTime(dateTime: PageFilterDatetime): string | null {
   const {start, end, period} = dateTime;
   const format = getFormat({dateOnly: true, year: true});
 

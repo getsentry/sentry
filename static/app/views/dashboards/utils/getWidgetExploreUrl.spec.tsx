@@ -537,7 +537,7 @@ function expectUrl(url: string | null) {
         return a[1].localeCompare(b[1]);
       }
       expect([...urlParams.entries()].sort(compareFn)).toEqual(
-        [...params].sort(compareFn)
+        params.toSorted(compareFn)
       );
     },
   };

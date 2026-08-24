@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from tempfile import NamedTemporaryFile
-from typing import IO
+from typing import IO, Any
 
 import orjson
 from objectstore_client import RequestError, Session
@@ -114,7 +114,11 @@ def _upload_archive_multipart(session: Session, key: str, tmp: IO[bytes]) -> Non
     processing_deadline_duration=900,
 )
 def build_snapshot_images_zip(
-    org_id: int, project_id: int, artifact_id: int, user_id: int | None = None
+    org_id: int,
+    project_id: int,
+    artifact_id: int,
+    user_id: int | None = None,
+    **kwargs: Any,
 ) -> None:
     logger.info(
         "preprod_snapshot_zip.build_started",
@@ -162,17 +166,24 @@ def build_snapshot_images_zip(
                 extra={"preprod_artifact_id": artifact_id, "key": key},
             )
         else:
-            manifest = _load_manifest(session, manifest_key)
+            manifest, manifest_bytes = _load_manifest(session, manifest_key)
+            manifest_size_bytes = len(manifest_bytes)
             logger.info(
                 "preprod_snapshot_zip.manifest_loaded",
                 extra={
                     "preprod_artifact_id": artifact_id,
                     "image_count": len(manifest.images),
+                    "manifest_size_bytes": manifest_size_bytes,
                 },
             )
             with NamedTemporaryFile() as tmp:
                 build_snapshot_zip(
-                    manifest, session, f"{org_id}/{project_id}", tmp, artifact_id=artifact_id
+                    manifest,
+                    session,
+                    f"{org_id}/{project_id}",
+                    tmp,
+                    artifact_id=artifact_id,
+                    manifest_bytes=manifest_bytes,
                 )
                 tmp.flush()
                 tmp.seek(0)
@@ -221,12 +232,14 @@ def build_snapshot_images_zip(
     _send_archive_email(organization, user_id, artifact_id, ready=True)
 
 
-def _load_manifest(session: Session, manifest_key: str) -> SnapshotManifest:
+def _load_manifest(session: Session, manifest_key: str) -> tuple[SnapshotManifest, bytes]:
+    """Return the validated manifest and its original objectstore payload bytes."""
     response = session.get(manifest_key)
     if response is None:
         raise FileNotFoundError("Manifest does not exist in objectstore")
     try:
-        manifest_data = orjson.loads(response.payload.read())
+        manifest_bytes = response.payload.read()
+        manifest_data = orjson.loads(manifest_bytes)
     finally:
         response.payload.close()
-    return SnapshotManifest(**manifest_data)
+    return SnapshotManifest(**manifest_data), manifest_bytes

@@ -11,11 +11,13 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconOpen, IconUser} from 'sentry/icons';
+import {IconFire, IconOpen, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -48,6 +50,8 @@ interface ConversationSummaryProps {
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
+  /** Project the conversation belongs to; rendered beneath the title. */
+  project?: AvatarProject;
   /** Conversation title when Sentry has one; falls back to the id when null. */
   title?: string | null;
 }
@@ -58,6 +62,7 @@ export function ConversationSummary({
   nodes,
   conversationId,
   title,
+  project,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
@@ -138,6 +143,12 @@ export function ConversationSummary({
         <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
           {isLoading ? (
             <Fragment>
+              {project && (
+                <Flex align="center" gap="xs">
+                  <Placeholder width="16px" height="16px" />
+                  <Placeholder width="80px" height="14px" />
+                </Flex>
+              )}
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
                 <Placeholder width="120px" height="14px" />
@@ -153,6 +164,7 @@ export function ConversationSummary({
             </Fragment>
           ) : (
             <Fragment>
+              {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
                 {userDisplayName ? (
@@ -235,6 +247,15 @@ export function ConversationSummary({
         <Stat
           label={t('Errors')}
           value={<Count value={aggregates.errorCount} />}
+          icon={
+            aggregates.errorCount > 0 ? (
+              <IconFire
+                size="sm"
+                variant="danger"
+                data-test-id="conversation-error-icon"
+              />
+            ) : undefined
+          }
           to={aggregates.errorCount > 0 ? errorsUrl : undefined}
           onClick={
             aggregates.errorCount > 0
@@ -271,14 +292,30 @@ function Stat({
   isLoading,
   to,
   onClick,
+  icon,
 }: {
   label: string;
   value: React.ReactNode;
+  icon?: React.ReactNode;
   isLoading?: boolean;
   onClick?: () => void;
   to?: string;
 }) {
   const isInteractive = !!to && !isLoading;
+
+  const valueContent = (
+    <Flex align="center" gap="xs">
+      <Text
+        size="xl"
+        tabular
+        variant={isInteractive ? 'danger' : undefined}
+        wrap="nowrap"
+      >
+        {value}
+      </Text>
+      {icon}
+    </Flex>
+  );
 
   return (
     <Stack gap="xs" flexShrink={0}>
@@ -289,14 +326,10 @@ function Stat({
         <Placeholder width="32px" height="24px" />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
-          <Text size="xl" tabular variant="danger" wrap="nowrap">
-            {value}
-          </Text>
+          {valueContent}
         </Link>
       ) : (
-        <Text size="xl" tabular wrap="nowrap">
-          {value}
-        </Text>
+        valueContent
       )}
     </Stack>
   );
@@ -417,8 +450,9 @@ export function ConversationAggregatesBar({
     query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
   });
 
+  // minHeight matches the tool Tag height so the row stays the same height whether or not tools render
   return (
-    <Flex align="center" gap="lg" minWidth={0}>
+    <Flex align="center" gap="lg" minWidth={0} minHeight="20px">
       <AggregateItem
         label={t('LLM Calls')}
         value={<Count value={aggregates.llmCalls} />}

@@ -24,29 +24,21 @@ interface SaveAsAlertActionOptions extends SaveAsAlertMenuItemBaseOptions {
 
 type SaveAsAlertMenuItemOptions = SaveAsAlertSubmenuOptions | SaveAsAlertActionOptions;
 
-function isMonitorOrg(organization: Organization): boolean {
-  return organization.features.includes('workflow-engine-ui');
-}
-
 export function getMetricAlertsUpsellTooltip(
   organization: Organization
 ): string | undefined {
   if (hasMetricAlerts(organization)) {
     return undefined;
   }
-  return isMonitorOrg(organization)
-    ? t('Monitors are not available on your current plan.')
-    : t('Alerts are not available on your current plan.');
+  return t('Monitors are not available on your current plan.');
 }
 
-export function getCreateAlertLabel(organization: Organization): string {
-  return isMonitorOrg(organization) ? t('Create a Monitor') : t('Create an Alert');
+export function getCreateAlertLabel(): string {
+  return t('Create a Monitor');
 }
 
-export function getCreateAlertForLabel(organization: Organization): string {
-  return isMonitorOrg(organization)
-    ? t('Create a Monitor for')
-    : t('Create an Alert for');
+export function getCreateAlertForLabel(): string {
+  return t('Create a Monitor for');
 }
 
 export function getSaveAsAlertMenuItem(
@@ -58,8 +50,7 @@ export function getSaveAsAlertMenuItem(
 
   if (options.submenu) {
     const {alertsUrls} = options;
-    const label =
-      options.label ?? (isMonitorOrg(organization) ? t('Monitor for') : t('Alert for'));
+    const label = options.label ?? t('Monitor for');
 
     return {
       key: 'create-alert',
@@ -72,7 +63,7 @@ export function getSaveAsAlertMenuItem(
     };
   }
 
-  const label = getCreateAlertLabel(organization);
+  const label = getCreateAlertLabel();
 
   return {
     key: 'create-alert',
