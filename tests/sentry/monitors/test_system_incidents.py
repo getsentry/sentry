@@ -7,10 +7,12 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.monitors.system_incidents import (
+    MONITOR_TICK_DECISION,
     MONITOR_TICK_METRIC,
     MONITOR_VOLUME_DECISION_STEP,
     MONITOR_VOLUME_HISTORY,
     MONITOR_VOLUME_RETENTION,
+    MONITR_LAST_SYSTEM_INCIDENT_TS,
     AnomalyTransition,
     DecisionResult,
     TickAnomalyDecision,
@@ -22,6 +24,7 @@ from sentry.monitors.system_incidents import (
     process_clock_tick_for_system_incidents,
     prune_incident_check_in_volume,
     record_clock_tick_volume_metric,
+    record_last_incident_ts,
     update_check_in_volume,
 )
 from sentry.testutils.helpers.options import override_options
@@ -170,6 +173,13 @@ def test_process_clock_tick_for_system_incident(
         ts,
         ts + timedelta(minutes=5),
     )
+
+
+def test_record_last_incident_ts_expires() -> None:
+    record_last_incident_ts(timezone.now().replace(second=0, microsecond=0))
+
+    ttl = redis_client.ttl(MONITR_LAST_SYSTEM_INCIDENT_TS)
+    assert 0 < ttl <= MONITOR_VOLUME_RETENTION.total_seconds()
 
 
 @mock.patch("sentry.monitors.system_incidents.logger")
@@ -456,9 +466,13 @@ def test_tick_decision_anomaly_recovery() -> None:
         assert result.transition == AnomalyTransition.ABNORMALITY_RECOVERED
         assert result.ts == ts
 
-    # The last 6 ABNORMAL ticks transitioned to NORMAL
+    # The last 6 ABNORMAL ticks transitioned to NORMAL, keeping their expiry
     for i in range(1, 7):
-        assert get_clock_tick_decision(ts - timedelta(minutes=i)) == TickAnomalyDecision.NORMAL
+        backfilled_ts = ts - timedelta(minutes=i)
+        assert get_clock_tick_decision(backfilled_ts) == TickAnomalyDecision.NORMAL
+
+        key = MONITOR_TICK_DECISION.format(ts=_make_reference_ts(backfilled_ts))
+        assert 0 < redis_client.ttl(key) <= MONITOR_VOLUME_RETENTION.total_seconds()
 
 
 @django_db_all
