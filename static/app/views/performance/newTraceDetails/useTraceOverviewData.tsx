@@ -14,9 +14,9 @@ import {
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {
   getTraceMetaLogsCount,
-  getTraceMetaMetricsCount,
   type TraceMetaQueryResults,
 } from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {getTraceMetricsSearch} from 'sentry/views/performance/newTraceDetails/traceMetricsSearch';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceViewQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -59,13 +59,15 @@ function getProjectIds(result: TraceProjectResult | undefined): string[] {
   );
 }
 
-function getDateTimeQuery(queryParams: TraceViewQueryParams) {
+function getDateTimeQuery(
+  queryParams: TraceViewQueryParams,
+  timestampBufferMs = 24 * 60 * 60 * 1000
+) {
   if (queryParams.timestamp) {
     const timestampMs = queryParams.timestamp * 1000;
-    const oneDayMs = 24 * 60 * 60 * 1000;
     return {
-      start: new Date(timestampMs - oneDayMs).toISOString(),
-      end: new Date(timestampMs + oneDayMs).toISOString(),
+      start: new Date(timestampMs - timestampBufferMs).toISOString(),
+      end: new Date(timestampMs + timestampBufferMs).toISOString(),
     };
   }
 
@@ -125,12 +127,11 @@ export function useTraceOverviewData({
 }): TraceOverviewData {
   const organization = useOrganization();
   const logsMetaCount = getTraceMetaLogsCount(meta);
-  const metricsMetaCount = getTraceMetaMetricsCount(meta);
   const shouldFetchLogsCount =
     logsEnabled && meta !== undefined && logsMetaCount === undefined;
-  const shouldFetchMetricsCount =
-    metricsEnabled && meta !== undefined && metricsMetaCount === undefined;
+  const shouldFetchMetricsCount = metricsEnabled;
   const dateTimeQuery = getDateTimeQuery(queryParams);
+  const metricsDateTimeQuery = getDateTimeQuery(queryParams, 3 * 60 * 60 * 1000);
   const projectQuery = {project: [String(ALL_ACCESS_PROJECTS)]};
   const traceSearch = new MutableSearch('');
   traceSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceSlug);
@@ -151,8 +152,7 @@ export function useTraceOverviewData({
     })
   );
 
-  const metricsSearch = new MutableSearch('');
-  metricsSearch.addFilterValue(TraceMetricKnownFieldKey.TRACE, traceSlug);
+  const metricsSearch = getTraceMetricsSearch(traceSlug);
   const metricsCountResult = useQuery(
     apiOptions.as<TraceCountResult>()('/organizations/$organizationIdOrSlug/events/', {
       path: shouldFetchMetricsCount
@@ -165,7 +165,7 @@ export function useTraceOverviewData({
         query: metricsSearch.formatString(),
         referrer: 'api.trace-details.overview-metrics-count',
         ...projectQuery,
-        ...dateTimeQuery,
+        ...metricsDateTimeQuery,
       },
       staleTime: STALE_TIME,
     })
@@ -183,14 +183,14 @@ export function useTraceOverviewData({
   });
   const metricsAvailability = getAvailability({
     enabled: metricsEnabled,
-    metaCount: metricsMetaCount,
+    metaCount: undefined,
     shouldFetchSupplementalData: shouldFetchMetricsCount,
     supplementalCount: metricsSupplementalCount,
     supplementalStatus: metricsCountResult.status,
   });
 
   const logsCount = logsMetaCount ?? logsSupplementalCount;
-  const metricsCount = metricsMetaCount ?? metricsSupplementalCount;
+  const metricsCount = metricsSupplementalCount;
   const shouldFetchLogProjects =
     tree.type === 'empty' && logsAvailability === 'present' && (logsCount ?? 0) > 1;
   const logProjectsResult = useQuery(
@@ -225,7 +225,7 @@ export function useTraceOverviewData({
         per_page: 100,
         referrer: 'api.trace-details.overview-metric-projects',
         ...projectQuery,
-        ...dateTimeQuery,
+        ...metricsDateTimeQuery,
       },
       staleTime: STALE_TIME,
     })

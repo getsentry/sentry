@@ -51,13 +51,23 @@ function makeEapMeta(overrides: Partial<EAPTraceMeta> = {}): EAPTraceMeta {
   };
 }
 
+function mockMetricsCount(organizationSlug: string, count: number) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/events/`,
+    match: [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        field: ['count(metric.name)'],
+      }),
+    ],
+    body: {data: [{'count(metric.name)': count}]},
+  });
+}
+
 describe('useTraceOverviewData', () => {
-  it('uses EAP metadata without supplemental requests', () => {
+  it('uses a filtered metric count instead of EAP metric metadata', async () => {
     const organization = OrganizationFixture();
-    const eventsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: []},
-    });
+    const metricsCountRequest = mockMetricsCount(organization.slug, 2);
     const traceLogsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
       body: {data: []},
@@ -69,12 +79,18 @@ describe('useTraceOverviewData', () => {
           logsEnabled: true,
           meta: makeEapMeta({logsCount: 2, metricsCount: 3}),
           metricsEnabled: true,
-          queryParams: QUERY_PARAMS,
+          queryParams: {...QUERY_PARAMS, statsPeriod: undefined, timestamp: 1700000000},
           traceSlug: TRACE_SLUG,
           tree: makeTraceTree(),
         }),
       {organization}
     );
+
+    expect(result.current.isTabLoading).toBe(true);
+
+    await waitFor(() => {
+      expect(result.current.isTabLoading).toBe(false);
+    });
 
     expect(result.current).toEqual({
       isProjectsLoading: false,
@@ -88,15 +104,25 @@ describe('useTraceOverviewData', () => {
       },
       metrics: {
         availability: 'present',
-        count: 3,
+        count: 2,
       },
     });
-    expect(eventsRequest).not.toHaveBeenCalled();
+    expect(metricsCountRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: '2023-11-14T19:13:20.000Z',
+          end: '2023-11-15T01:13:20.000Z',
+          query: `( !has:sentry.metric.source OR !sentry.metric.source:span ) trace:${TRACE_SLUG}`,
+        }),
+      })
+    );
     expect(traceLogsRequest).not.toHaveBeenCalled();
   });
 
   it('loads project ids and one representative log for an EAP log-only trace', async () => {
     const organization = OrganizationFixture();
+    mockMetricsCount(organization.slug, 0);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       match: [
@@ -158,6 +184,7 @@ describe('useTraceOverviewData', () => {
 
   it('loads project ids for an EAP metric-only trace', async () => {
     const organization = OrganizationFixture();
+    mockMetricsCount(organization.slug, 2);
     const metricProjectsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       match: [
@@ -208,6 +235,7 @@ describe('useTraceOverviewData', () => {
         field: ['project.id', 'count(metric.name)'],
         per_page: 100,
         project: ['-1'],
+        query: `( !has:sentry.metric.source OR !sentry.metric.source:span ) trace:${TRACE_SLUG}`,
       })
     );
     expect(traceLogsRequest).not.toHaveBeenCalled();
@@ -215,6 +243,7 @@ describe('useTraceOverviewData', () => {
 
   it('combines log and metric project ids for an EAP trace', async () => {
     const organization = OrganizationFixture();
+    mockMetricsCount(organization.slug, 2);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       match: [

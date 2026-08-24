@@ -490,7 +490,10 @@ describe('TraceMetaDataHeader', () => {
 
       const props = {
         ...baseProps,
-        metrics: {count: 5},
+        overview: {
+          ...baseProps.overview!,
+          metrics: {availability: 'present' as const, count: 5},
+        },
         metaResults: {
           ...baseProps.metaResults,
           data: {
@@ -521,7 +524,10 @@ describe('TraceMetaDataHeader', () => {
 
       const props = {
         ...baseProps,
-        metrics: {count: 5},
+        overview: {
+          ...baseProps.overview!,
+          metrics: {availability: 'present' as const, count: 5},
+        },
         metaResults: {
           ...baseProps.metaResults,
           data: {
@@ -540,6 +546,43 @@ describe('TraceMetaDataHeader', () => {
       render(<TraceMetaDataHeader {...props} organization={organization} />);
 
       expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    });
+
+    it('does not fall back to the unfiltered meta count', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const metricsOrganization = OrganizationFixture({
+        features: ['tracemetrics-enabled'],
+      });
+
+      const props = {
+        ...baseProps,
+        overview: {
+          ...baseProps.overview!,
+          metrics: {availability: 'unknown' as const, count: undefined},
+        },
+        metaResults: {
+          ...baseProps.metaResults,
+          data: {
+            errorsCount: 0,
+            logsCount: 0,
+            metricsCount: 5,
+            performanceIssuesCount: 0,
+            spansCount: 0,
+            spansCountMap: {},
+            transactionChildCountMap: {},
+            uptimeCount: 0,
+          },
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={metricsOrganization} />);
+
+      expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+      expect(screen.queryByText('5')).not.toBeInTheDocument();
     });
 
     it('should render meta with different spans count', async () => {

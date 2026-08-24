@@ -7,7 +7,6 @@ import {
   getTraceMetaAiSpanCount,
   getTraceMetaErrorCount,
   getTraceMetaLogsCount,
-  getTraceMetaMetricsCount,
   getTraceMetaPerformanceIssueCount,
   getTraceMetaSpanCount,
   getTraceMetaTransactionCount,
@@ -49,10 +48,7 @@ export function useTraceContextSections({
     );
   const hasMetrics =
     metricsEnabled &&
-    hasCount(
-      getTraceMetaMetricsCount(meta),
-      metricsCount === undefined ? !!(metrics && metrics.count > 0) : metricsCount > 0
-    );
+    (metricsCount === undefined ? !!(metrics && metrics.count > 0) : metricsCount > 0);
   const hasOnlyNonTraceData = tree.type === 'empty' && (hasLogs || hasMetrics);
 
   const allowedVitals = Object.keys(VITAL_DETAILS);
