@@ -601,8 +601,9 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_judge_needed_pr_never_emits_on_redelivery(self, mock_record: MagicMock) -> None:
-        # With pr-metrics-judge off, a judge-needed PR writes no verdict, so every
-        # redelivery re-evaluates to "needs judge" and skips — never emitting here.
+        # A judge-needed PR forwards to the judge and parks on the judge_in_progress
+        # claim; the row is emitted later from the judge's callback, never from this
+        # path. The redelivery then finds the claim taken and drops.
         self._add_synchronize()
         self._call(merged=True)
         self._call(merged=True)

@@ -1823,9 +1823,10 @@ class MultiOrgEmissionDedupeTest(TestCase):
     def test_emit_disabled_canonical_does_not_suppress_enabled_sibling(
         self, mock_record: Any
     ) -> None:
-        # Mid-rollout: the run's-org row (canonical via its link) has pr-metrics-emit
-        # off, the sibling has it on. The sibling must still emit rather than defer to
-        # a canonical that its own emit gate will never let through.
+        # Orgs diverge on pr-metrics permanently (single tenants are excluded), so the
+        # run's-org row (canonical via its link) can have it off while the sibling has
+        # it on. The sibling must still emit rather than defer to a canonical that its
+        # own gate will never let through.
         with patch(
             "sentry.pr_metrics.emit.features.has",
             side_effect=lambda name, org, **kw: not (
@@ -1837,8 +1838,8 @@ class MultiOrgEmissionDedupeTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_emit_disabled_row_defers_rather_than_duplicating(self, mock_record: Any) -> None:
-        # The mirror of the above: the run's-org row that lost pr-metrics-emit after
-        # its cooldown was claimed must defer to the enabled sibling, not emit a
+        # The mirror of the above: the run's-org row that lost pr-metrics after its
+        # cooldown was claimed must defer to the enabled sibling, not emit a
         # duplicate alongside it.
         with patch(
             "sentry.pr_metrics.emit.features.has",
