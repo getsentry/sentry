@@ -340,8 +340,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
     def test_pr_metrics_flag_off_skips_attribution(self) -> None:
-        # The pipeline-wide gate short-circuits ahead of the stage flag, which is
-        # still on here — an org excluded from pr-metrics records nothing.
+        # The gate short-circuits ahead of the stage flag, which is still on here.
         with self.feature({"organizations:pr-metrics": False}):
             self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 

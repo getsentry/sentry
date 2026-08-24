@@ -402,8 +402,8 @@ def update_pr_metrics(
         return UpdatePrMetricsErrorResponse(error="pull_request_not_found")
 
     # Seer only judges PRs this pipeline forwarded, so a callback for an org without
-    # pr-metrics means the org lost it between forward and callback. Drop it rather
-    # than write a verdict and emit for an org the pipeline no longer runs for.
+    # pr-metrics means the org lost it in between. Don't write a verdict and emit
+    # for a pipeline that no longer runs.
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
@@ -598,9 +598,8 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
         return
 
     if not is_pr_metrics_enabled(organization):
-        # The org lost pr-metrics while the forward was in flight. Release the claim
-        # so the row can't sit at the sentinel forever, but emit nothing for an org
-        # the pipeline no longer runs for.
+        # Org lost pr-metrics mid-forward: release the claim so the row can't sit
+        # at the sentinel forever, but settle nothing for a pipeline that no longer runs.
         if _release_judge_sentinel(pull_request):
             metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "feature_disabled"})
         return

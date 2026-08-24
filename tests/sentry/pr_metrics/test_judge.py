@@ -371,8 +371,8 @@ class UpdatePrMetricsTest(TestCase):
     @patch("sentry.analytics.record")
     def test_rejects_callback_when_pr_metrics_disabled(self, mock_record: Any) -> None:
         self._track()
-        # The org lost pr-metrics between the forward and Seer's callback. Drop the
-        # verdict rather than write and emit for an org the pipeline no longer runs for.
+        # The org lost pr-metrics between the forward and Seer's callback — the
+        # verdict is dropped rather than written and emitted.
         with self.feature({"organizations:pr-metrics": False}):
             result = self._call(verdict="merged_unchanged")
 

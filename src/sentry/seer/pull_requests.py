@@ -185,11 +185,11 @@ def record_seer_created_pull_requests(
 ) -> None:
     """Record attribution + a run link for the PRs Seer directly created.
 
-    Attribution is gated on ``organizations:pr-metrics`` and then
-    ``organizations:pr-metrics-attribution``; linking is gated only on its own
-    killswitch (checked inside ``link_seer_run_pull_requests``) and always attempted —
-    it is a Seer feature in its own right, not part of the metrics pipeline. Both sides
-    are best-effort: any failure is logged and swallowed so the caller's flow is never
+    Attribution is gated on ``organizations:pr-metrics``, then
+    ``organizations:pr-metrics-attribution``. Linking is a Seer feature in its own
+    right, not part of this pipeline: it is gated only on its own killswitch (checked
+    inside ``link_seer_run_pull_requests``) and always attempted. Both sides are
+    best-effort: any failure is logged and swallowed so the caller's flow is never
     interrupted.
     """
     log_context = {
