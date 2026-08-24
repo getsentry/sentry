@@ -106,7 +106,7 @@ Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (
 
 Cloud agent VMs are Linux. The dashboard install script (`devenv --nocoderoot sync`) needs `uv` on `PATH` before sync — devenv no longer installs it, and `brew install uv` is macOS-only. CI uses `astral-sh/setup-uv`; cloud install should do the equivalent.
 
-Cursor sets local `core.hooksPath` to its agent hooks. Do not `git config --unset` that. `devenv sync` prepares prek hook environments without installing git hooks when `core.hooksPath` is already set.
+Cursor sets local `core.hooksPath` to a dispatcher that runs `.git/hooks` first, then Cursor's `*.cursor` hooks (secrets scan, co-author). Do not leave that `hooksPath` unset. `devenv sync` briefly unsets it only so `prek install` can write into `.git/hooks`, then restores Cursor's dispatcher so both hook sets run.
 
 ## Viewer/Organization Context
 

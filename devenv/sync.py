@@ -176,25 +176,64 @@ exec {binroot}/node-env/bin/pnpm "$@"
     )
 
 
-def git_core_hooks_path(reporoot: str) -> str | None:
+def git_config_get(reporoot: str, key: str) -> str | None:
     try:
-        path = subprocess.check_output(
-            ("git", "config", "--get", "core.hooksPath"),
+        value = subprocess.check_output(
+            ("git", "config", "--get", key),
             cwd=reporoot,
             text=True,
             stderr=subprocess.DEVNULL,
         ).strip()
     except subprocess.CalledProcessError:
         return None
-    return path or None
+    return value or None
 
 
-def prek_sync_cmd(reporoot: str) -> tuple[str, ...]:
-    # Cursor Cloud (and similar) own core.hooksPath. `prek install` refuses
-    # to overwrite that; still prepare hook environments so `prek run` works.
-    if git_core_hooks_path(reporoot):
-        return ("prek", "prepare-hooks")
-    return ("prek", "install", "--prepare-hooks", "-f")
+def cursor_agent_hooks_path(reporoot: str) -> str | None:
+    """Return Cursor's core.hooksPath when its dispatcher is installed.
+
+    Cursor Cloud sets core.hooksPath to a dispatcher that runs the original
+    hooks at `.cursor-original-hooks-path` (normally .git/hooks) and then
+    Cursor's own `*.cursor` hooks. We should install prek into .git/hooks so
+    both run — not skip prek install, and not leave core.hooksPath unset.
+    """
+    hooks_path = git_config_get(reporoot, "core.hooksPath")
+    if hooks_path is None:
+        return None
+    original_ptr = os.path.join(hooks_path, ".cursor-original-hooks-path")
+    dispatcher = os.path.join(hooks_path, ".dispatcher")
+    if os.path.isfile(original_ptr) and os.path.isfile(dispatcher):
+        return hooks_path
+    return None
+
+
+class _install_prek_without_cursor_hooks_path:
+    """Temporarily clear local core.hooksPath so `prek install` can write to .git/hooks."""
+
+    def __init__(self, reporoot: str) -> None:
+        self.reporoot = reporoot
+        self._cursor_hooks_path: str | None = None
+
+    def __enter__(self) -> None:
+        self._cursor_hooks_path = cursor_agent_hooks_path(self.reporoot)
+        if self._cursor_hooks_path is None:
+            return
+        print(
+            "Cursor agent hooks detected; installing prek into .git/hooks "
+            "(Cursor's dispatcher will run those, then its own hooks)."
+        )
+        subprocess.check_call(
+            ("git", "config", "--local", "--unset-all", "core.hooksPath"),
+            cwd=self.reporoot,
+        )
+
+    def __exit__(self, *exc: object) -> None:
+        if self._cursor_hooks_path is None:
+            return
+        subprocess.check_call(
+            ("git", "config", "--local", "core.hooksPath", self._cursor_hooks_path),
+            cwd=self.reporoot,
+        )
 
 
 def main(context: dict[str, str]) -> int:
@@ -318,17 +357,18 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            ("prek dependencies", prek_sync_cmd(reporoot), {}),
-            ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
-        ),
-        verbose,
-    ):
-        return 1
+    with _install_prek_without_cursor_hooks_path(reporoot):
+        if not run_procs(
+            repo,
+            reporoot,
+            venv_dir,
+            (
+                ("prek dependencies", ("prek", "install", "--prepare-hooks", "-f"), {}),
+                ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
+            ),
+            verbose,
+        ):
+            return 1
 
     # Agent skills are non-fatal — private skill repos may not be accessible in CI
     if os.path.exists(f"{reporoot}/agents.toml") and shutil.which(
