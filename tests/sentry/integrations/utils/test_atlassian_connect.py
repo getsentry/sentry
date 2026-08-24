@@ -18,6 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
+from tests.sentry.utils.test_jwt import FUTURE_EXPIRATION
 
 
 class AtlassianConnectTest(TestCase):
@@ -87,6 +88,21 @@ class AtlassianConnectTest(TestCase):
         with pytest.raises(AtlassianConnectValidationError, match="Invalid algorithm"):
             get_integration_from_jwt(
                 token=self.none_alg_jwt,
+                path=self.path,
+                provider=self.provider,
+                query_params=self.query_params,
+                method=self.method,
+            )
+
+    def test_get_integration_from_jwt_requires_expiration(self) -> None:
+        token = jwt.encode(
+            {"iss": self.integration.external_id, "qsh": self.query_hash},
+            self.integration.metadata["shared_secret"],
+        )
+
+        with pytest.raises(AtlassianConnectValidationError, match="Required claim is missing"):
+            get_integration_from_jwt(
+                token=token,
                 path=self.path,
                 provider=self.provider,
                 query_params=self.query_params,
@@ -175,7 +191,11 @@ class AuthenticateAsymmetricJwtTest(TestCase):
             .public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
             .decode("utf-8")
         )
-        self.payload = {"aud": absolute_uri(), "iss": "connect:123"}
+        self.payload = {
+            "aud": absolute_uri(),
+            "iss": "connect:123",
+            "exp": FUTURE_EXPIRATION,
+        }
 
     def test_rejects_non_rs256_algorithm(self) -> None:
         """
