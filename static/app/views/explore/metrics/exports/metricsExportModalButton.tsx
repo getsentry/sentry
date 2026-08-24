@@ -1,20 +1,16 @@
-import {downloadRows} from 'sentry/components/exports/downloadRows';
+import {downloadRows, type ExportableRow} from 'sentry/components/exports/downloadRows';
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
+import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
-import type {
-  OurLogsAggregateResponseItem,
-  OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-export interface LogsQueryInfo {
-  dataset: 'logs';
+export interface MetricsQueryInfo {
+  dataset: TraceItemDataset.TRACEMETRICS;
   field: string[];
   project: number[];
   query: string;
@@ -22,63 +18,68 @@ export interface LogsQueryInfo {
   end?: string;
   environment?: string[];
   start?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | StatsPeriodRange;
 }
 
-type LogsExportModalButtonProps = {
+type MetricsExportModalButtonProps = {
   estimatedRowCount: number;
+  isError: boolean;
   isLoading: boolean;
-  queryInfo: LogsQueryInfo;
-  supportsAllColumns: boolean;
-  tableData: Array<OurLogsResponseItem | OurLogsAggregateResponseItem>;
+  queryInfo: MetricsQueryInfo;
+  tableData: ExportableRow[];
   title: string;
-  error?: Error | null;
 };
 
-export function useLogsQueryInfo({
+export function useMetricsQueryInfo({
   field,
+  query,
   sort,
+  statsPeriodRange,
 }: {
   field: string[];
+  query: string;
   sort: string[];
-}): LogsQueryInfo {
+  statsPeriodRange?: StatsPeriodRange;
+}): MetricsQueryInfo {
   const {selection} = usePageFilters();
-  const logsSearch = useQueryParamsSearch();
   const {start, end, period: statsPeriod} = selection.datetime;
   const {environments, projects} = selection;
 
   return {
-    dataset: 'logs',
+    dataset: TraceItemDataset.TRACEMETRICS,
     field,
-    query: logsSearch.formatString(),
+    query,
     project: projects,
     sort,
-    start: start ? new Date(start).toISOString() : undefined,
-    end: end ? new Date(end).toISOString() : undefined,
-    statsPeriod: statsPeriod || undefined,
     environment: environments,
+    ...(statsPeriodRange
+      ? {statsPeriod: statsPeriodRange}
+      : {
+          start: start ? new Date(start).toISOString() : undefined,
+          end: end ? new Date(end).toISOString() : undefined,
+          statsPeriod: statsPeriod || undefined,
+        }),
   };
 }
 
-export function LogsExportModalButton({
-  error,
+export function MetricsExportModalButton({
   estimatedRowCount,
+  isError,
   isLoading,
   queryInfo,
-  supportsAllColumns,
   tableData,
   title,
-}: LogsExportModalButtonProps) {
+}: MetricsExportModalButtonProps) {
   const organization = useOrganization();
 
-  const filenameBase = 'logs';
+  const filenameBase = 'metrics';
 
   const config: ExploreExportConfig = {
     title,
     filenameBase,
-    queryInfo: {...queryInfo, dataset: TraceItemDataset.LOGS},
+    queryInfo,
     asyncQueryType: ExportQueryType.EXPLORE,
-    supportsAllColumns,
+    supportsAllColumns: false,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount,
     localRowCount: tableData.length,
@@ -93,7 +94,7 @@ export function LogsExportModalButton({
       trackExploreTableExported({
         ...args,
         organization,
-        traceItemDataset: TraceItemDataset.LOGS,
+        traceItemDataset: TraceItemDataset.TRACEMETRICS,
         queryInfo,
       }),
   };
@@ -101,12 +102,14 @@ export function LogsExportModalButton({
   return (
     <ExploreExportModalButton
       config={config}
-      isDataEmpty={!tableData?.length}
-      isDataError={error !== null}
+      isDataEmpty={!tableData.length}
+      isDataError={isError}
       isDataLoading={isLoading}
-      onOpen={() => trackAnalytics('logs.export_modal', {organization, action: 'open'})}
+      onOpen={() =>
+        trackAnalytics('metrics.export_modal', {organization, action: 'open'})
+      }
       onClose={reason =>
-        trackAnalytics('logs.export_modal', {
+        trackAnalytics('metrics.export_modal', {
           organization,
           action: 'cancel',
           close_reason: reason,
