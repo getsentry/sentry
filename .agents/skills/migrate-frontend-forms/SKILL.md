@@ -17,10 +17,10 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 | `disabledReason`     | `disabled="reason"` | String shows tooltip                                 |
 | `extraHelp`          | JSX in layout       | Render `<Text>` below field                          |
 | `getData`            | `mutationFn`        | Transform data in mutation function                  |
-| `mapFormErrors`      | `setFieldErrors`    | Transform API errors in catch block                  |
+| `mapFormErrors`      | `toFieldErrors`     | Return the validation error from `onSubmit`          |
 | `saveMessage`        | `onSuccess`         | Show toast in mutation onSuccess callback            |
 | `formatMessageValue` | `onSuccess`         | Control toast content in onSuccess callback          |
-| `resetOnError`       | `onError`           | Call form.reset() in mutation onError                |
+| `resetOnError`       | `catch`             | Call form.reset() when the mutation rejects          |
 | `saveOnBlur: false`  | `useScrapsForm`     | Use regular form with explicit Save button           |
 | (automatic)          | `form.reset()`      | Call after successful mutation if form stays on page |
 | `help`               | `hintText`          | On layout components                                 |
@@ -167,7 +167,7 @@ The `getData` function transformed field data before sending to the API. In the 
 >
   {field => (
     <field.Layout.Row label="Use default ignored sources">
-      <field.Switch checked={field.state.value} onChange={field.handleChange} />
+      <field.Switch checked={field.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
 </AutoSaveForm>
@@ -256,9 +256,9 @@ mutationOptions({
 })
 ```
 
-### mapFormErrors → `setFieldErrors`
+### mapFormErrors → `toFieldErrors`
 
-The `mapFormErrors` function transformed API error responses into field-specific errors. In the new system, handle this in the catch block using `setFieldErrors`.
+The `mapFormErrors` function transformed API error responses into field-specific errors. In the new system, validation errors are **returned** from `onSubmit` rather than set imperatively. Build them with `toFieldErrors` (which reads `RequestError.responseJSON` for you) or with `createValidationError` when you need a custom mapping.
 
 **Old:**
 
@@ -282,57 +282,55 @@ function mapMonitorFormErrors(responseJson?: any) {
 **New:**
 
 ```tsx
-import {setFieldErrors} from '@sentry/scraps/form';
-
 const form = useScrapsForm({
-  ...defaultFormOptions,
   defaultValues: {...},
-  validators: {onDynamic: schema},
-  onSubmit: async ({value, formApi}) => {
+  validators: defaultFormValidators(schema),
+  onSubmit: async ({value, createValidationError}) => {
     try {
       await mutation.mutateAsync(value);
     } catch (error) {
-      // Transform API errors and set on fields (equivalent to mapFormErrors)
-      const responseJson = error.responseJSON;
-      if (responseJson?.config) {
-        // Flatten nested errors to dot notation
-        const {config, ...rest} = responseJson;
-        const errors: Record<string, {message: string}> = {};
-
-        for (const [key, value] of Object.entries(rest)) {
-          errors[key] = {message: Array.isArray(value) ? value[0] : String(value)};
-        }
-        for (const [key, value] of Object.entries(config)) {
-          errors[`config.${key}`] = {message: Array.isArray(value) ? value[0] : String(value)};
-        }
-
-        setFieldErrors(formApi, errors);
+      if (!(error instanceof RequestError)) {
+        throw error;
       }
+      // Transform API errors into a field map (equivalent to mapFormErrors)
+      const {config, ...rest} = error.responseJSON ?? {};
+      const fields: Record<string, {message: string}> = {};
+
+      for (const [key, val] of Object.entries(rest)) {
+        fields[key] = {message: Array.isArray(val) ? val[0] : String(val)};
+      }
+      for (const [key, val] of Object.entries(config ?? {})) {
+        fields[`config.${key}`] = {message: Array.isArray(val) ? val[0] : String(val)};
+      }
+
+      return createValidationError({fields});
     }
   },
 });
 ```
 
-**Simpler pattern** - For flat error responses:
+**Simpler pattern** - For flat error responses, let `toFieldErrors` do the extraction. It keeps only keys that exist on the form and returns `undefined` when nothing matched:
 
 ```tsx
-onSubmit: async ({value, formApi}) => {
+import {toFieldErrors} from '@sentry/scraps/form';
+
+onSubmit: async ({value, createValidationError}) => {
   try {
     await mutation.mutateAsync(value);
   } catch (error) {
     // API returns {email: ['Already taken'], username: ['Invalid']}
-    const errors = error.responseJSON;
-    if (errors) {
-      setFieldErrors(formApi, {
-        email: {message: errors.email?.[0]},
-        username: {message: errors.username?.[0]},
-      });
+    const fieldErrors = toFieldErrors({value, createValidationError}, error);
+    if (fieldErrors) {
+      return fieldErrors;
     }
+    throw error;
   }
 },
 ```
 
-> **Note**: `setFieldErrors` supports nested paths with dot notation: `'config.schedule': {message: 'Invalid schedule'}`
+> **Note**: Field paths support dot notation: `'config.schedule': {message: 'Invalid schedule'}`
+
+> **Important**: Validation failures are **returned** from `onSubmit`. Thrown or rejected errors are submit failures. Keep transient network errors in the query layer and only return validation errors for things the user can fix in the form.
 
 ### saveMessage → `onSuccess`
 
@@ -399,9 +397,9 @@ onSuccess: (data) => {
 },
 ```
 
-### resetOnError → `onError`
+### resetOnError → reset in the `catch`
 
-The `resetOnError` option reverted fields to their previous value when a save failed. In the new system, call `form.reset()` in the mutation's `onError` callback.
+The `resetOnError` option reverted fields to their previous value when a save failed. In the new system, reset when the mutation rejects.
 
 **Old:**
 
@@ -417,9 +415,8 @@ The `resetOnError` option reverted fields to their previous value when a save fa
 
 ```tsx
 const form = useScrapsForm({
-  ...defaultFormOptions,
   defaultValues: {password: ''},
-  validators: {onDynamic: schema},
+  validators: defaultFormValidators(schema),
   onSubmit: async ({value}) => {
     try {
       await mutation.mutateAsync(value);
@@ -432,7 +429,20 @@ const form = useScrapsForm({
 });
 ```
 
+> **Important**: `form.reset()` cancels the submission that is still in flight, which discards any validation error you return from the same `onSubmit`. Reset _or_ return field errors — not both. If you need the value restored **and** the error shown, restore just that field instead:
+>
+> ```tsx
+> form.setFieldValue(name, form.defaultValues[name], {
+>   causeValidation: false,
+>   markAsDirty: false,
+>   markAsTouched: false,
+> });
+> return createValidationError({fields: {[name]: {message}}});
+> ```
+
 **New (with AutoSaveForm):**
+
+`AutoSaveForm` already does this for immediate-commit controls — `field.Switch` and `field.Radio` revert to the previous value when the save fails, and the field shows the error inline. You do not need an `onError` callback for that.
 
 ```tsx
 <AutoSaveForm
@@ -441,15 +451,9 @@ const form = useScrapsForm({
   initialValue={settings.enabled}
   mutationOptions={{
     mutationFn: data => fetchMutation({...}),
-    onError: () => {
-      // The field automatically shows error state via TanStack Query
-      // If you need to reset the value, you can pass a reset callback
-    },
   }}
 >
 ```
-
-> **Note**: AutoSaveForm with TanStack Query already handles error states gracefully - the mutation's `isError` state is reflected in the UI. Manual reset is typically only needed for specific UX requirements like password fields.
 
 ### Resetting After Save
 
@@ -488,7 +492,7 @@ In the new system, use a regular form with `useScrapsForm` and an explicit Save 
 ```tsx
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 const slugSchema = z.object({
   slug: z.string().min(1, 'Slug is required'),
@@ -501,21 +505,20 @@ function SlugForm({project}: {project: Project}) {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {slug: project.slug},
-    validators: {onDynamic: slugSchema},
+    validators: defaultFormValidators(slugSchema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="slug">
+    <ScrapsForm form={form}>
+      <form.Field name="slug">
         {field => (
           <field.Layout.Stack label="Project Slug">
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Stack>
         )}
-      </form.AppField>
+      </form.Field>
 
       {/* Warning shown before saving (equivalent to saveMessage) */}
       <Alert variant="warning">
@@ -526,7 +529,7 @@ function SlugForm({project}: {project: Project}) {
         <form.ResetButton>Reset</form.ResetButton>
         <form.SubmitButton>Save</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 ```
@@ -537,22 +540,21 @@ function SlugForm({project}: {project: Project}) {
 - Large multiline text fields where you want to finish editing before saving (fingerprint rules, filters)
 - Any field where auto-save doesn't make sense
 
-**Submit through the form, not around it.** Follow the `SlugForm` pattern above — the mutation runs in `onSubmit` and the Save button is `<form.SubmitButton>`. Don't render `<form.AppForm>` without an `onSubmit` and trigger the mutation from a standalone `<Button onClick>`:
+**Submit through the form, not around it.** Follow the `SlugForm` pattern above — the mutation runs in `onSubmit` and the Save button is `<form.SubmitButton>`. Don't render `<ScrapsForm>` without an `onSubmit` and trigger the mutation from a standalone `<Button onClick>`:
 
 ```tsx
 // ❌ Form is never submitted; mutation fires from a separate button
 const form = useScrapsForm({
-  ...defaultFormOptions,
   defaultValues,
-  validators: {onDynamic: schema},
+  validators: defaultFormValidators(schema),
   // no onSubmit
 });
 
 return (
-  <form.AppForm form={form}>
-    <form.AppField name="codeMappingId">{...}</form.AppField>
+  <ScrapsForm form={form}>
+    <form.Field name="codeMappingId">{...}</form.Field>
     <Button onClick={() => mutation.mutate(...)}>Save</Button>
-  </form.AppForm>
+  </ScrapsForm>
 );
 ```
 
@@ -567,14 +569,14 @@ Sentry's SettingsSearch allows users to search for individual settings fields. W
 `FormSearch` is a **build-time marker component** — it has zero runtime behavior and simply renders its children unchanged. Its `route` prop is read by a static extraction script to associate form fields with their navigation route, enabling them to appear in SettingsSearch results.
 
 ```tsx
-import {FormSearch} from 'sentry/components/core/form';
+import {FormSearch} from '@sentry/scraps/form';
 
 <FormSearch route="/settings/account/details/">
   <FieldGroup title={t('Account Details')}>
     <AutoSaveForm name="name" schema={schema} initialValue={user.name} mutationOptions={...}>
       {field => (
         <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
-          <field.Input />
+          <field.Input value={field.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
     </AutoSaveForm>
@@ -593,7 +595,7 @@ import {FormSearch} from 'sentry/components/core/form';
 
 - The `route` must match the settings page URL exactly (including trailing slash).
 - Wrap the **entire form section** with a single `FormSearch`, not individual fields.
-- Every `<AutoSaveForm>` or `<form.AppField>` inside a `FormSearch` will be indexed. Make sure `label` and `hintText` are plain string literals or `t()` calls — computed/dynamic strings will be skipped by the extractor.
+- Every `<AutoSaveForm>`, `<form.Field>` or `<form.ArrayField>` inside a `FormSearch` will be indexed. Make sure `label` and `hintText` are plain string literals or `t()` calls — computed/dynamic strings will be skipped by the extractor.
 
 ### The Form Field Registry
 
@@ -603,7 +605,7 @@ After adding or updating `FormSearch` wrappers, regenerate the field registry so
 pnpm run extract-form-fields
 ```
 
-This script (`scripts/extractFormFields.ts`) scans all TSX files, finds `<FormSearch>` components, extracts field metadata (`name`, `label`, `hintText`, `route`), and writes the generated registry to `static/app/components/core/form/generatedFieldRegistry.ts`. **Commit this generated file** alongside your migration PR — it is part of the source tree.
+This script (`scripts/extractFormFields.ts`) scans all TSX files, finds `<FormSearch>` wrappers and the form fields inside them, extracts field metadata (`name`, `label`, `hintText`, `route`), and writes the generated registry to `static/app/components/core/form/generatedFieldRegistry.ts`. **Commit this generated file** alongside your migration PR — it is part of the source tree.
 
 > Run the command after **any** change to forms inside a `FormSearch` wrapper (adds, removals, label changes). The generated file is checked in and should not be edited manually.
 
@@ -642,9 +644,8 @@ const defaultValues: z.input<typeof schema> = {
 };
 
 const form = useScrapsForm({
-  ...defaultFormOptions,
   defaultValues,
-  validators: {onDynamic: schema},
+  validators: defaultFormValidators(schema),
   onSubmit: ({value}) => {
     // schema.parse narrows null away — mutation receives z.output
     return mutation.mutateAsync(schema.parse(value)).catch(() => {});
@@ -662,17 +663,18 @@ This pattern is necessary whenever a required field has no meaningful initial va
 
 ## Migration Checklist
 
-- [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
+- [ ] Replace JsonForm/FormModel with `useScrapsForm` (wrapped in `<ScrapsForm form={form}>`) or `AutoSaveForm`
+- [ ] Set `validators: defaultFormValidators(schema)` — validators are an array, not an event-keyed object
 - [ ] No generics on `useMutation` — type the `mutationFn` payload and use `fetchMutation<T>` for the return type
 - [ ] When using `useScrapsForm` with a Save button: mutation runs in `onSubmit`, triggered by `<form.SubmitButton>` (no form that's never submitted)
-- [ ] Convert field config objects to JSX AppField components
+- [ ] Convert field config objects to JSX `<form.Field>` components (`<form.ArrayField>` for lists)
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`
 - [ ] Replace `disabledReason` → `disabled="reason string"`
 - [ ] Replace `extraHelp` → additional JSX in layout
 - [ ] Convert `confirm` object to function: `(value) => message | undefined`
 - [ ] Handle `getData` in mutationFn
-- [ ] Handle `mapFormErrors` with setFieldErrors in catch
+- [ ] Return `toFieldErrors({value, createValidationError}, error)` from `onSubmit` for backend errors
 - [ ] Handle `saveMessage` in onSuccess callback
 - [ ] Convert `saveOnBlur: false` fields to regular forms with Save button
 - [ ] Call `form.reset()` after successful mutation (for forms that stay on page)
