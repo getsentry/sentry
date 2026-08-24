@@ -350,21 +350,15 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
-      const prefix = data[field] < 0 ? '-' : '';
       return (
         <NumberContainer>
           {unit &&
           SIZE_UNITS[unit as keyof typeof SIZE_UNITS] &&
           typeof data[field] === 'number' ? (
-            <Fragment>
-              {prefix}
-              <FileSize
-                bytes={
-                  Math.abs(data[field]) * SIZE_UNITS[unit as keyof typeof SIZE_UNITS]
-                }
-                base={ABYTE_UNITS.includes(unit) ? 10 : 2}
-              />
-            </Fragment>
+            <FileSize
+              bytes={data[field] * SIZE_UNITS[unit as keyof typeof SIZE_UNITS]}
+              base={ABYTE_UNITS.includes(unit) ? 10 : 2}
+            />
           ) : (
             emptyValue
           )}

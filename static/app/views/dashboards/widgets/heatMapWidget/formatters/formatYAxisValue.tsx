@@ -67,13 +67,12 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
     case 'size': {
       const sizeUnit = isASizeUnit(unit) ? unit : SizeUnit.BYTE;
       const sizeInBytes = convertSize(value, sizeUnit, SizeUnit.BYTE);
-      const prefix = sizeInBytes < 0 ? '-' : '';
-      const bytesAbsValue = Math.abs(sizeInBytes);
+
       const formatter = ABYTE_UNITS.includes(unit ?? 'byte')
         ? formatBytesBase10
         : formatBytesBase2;
 
-      return `${prefix}${formatter(bytesAbsValue)}`;
+      return formatter(sizeInBytes);
     }
     case 'rate': {
       // Always show rate in the original dataset's unit. If the unit is not
