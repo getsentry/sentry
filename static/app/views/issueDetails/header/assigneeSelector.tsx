@@ -34,6 +34,7 @@ interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
   group: Group;
   project: Project;
+  avatarOnly?: boolean;
   /**
    * Show the assignee name next to the avatar. Defaults to true.
    */
@@ -101,6 +102,7 @@ export function GroupHeaderAssigneeSelector({
   group,
   project,
   event,
+  avatarOnly,
   showLabel = true,
 }: GroupHeaderAssigneeSelectorProps) {
   const theme = useTheme();
@@ -134,6 +136,7 @@ export function GroupHeaderAssigneeSelector({
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
+      avatarOnly={avatarOnly}
       showLabel={showLabel}
       useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={

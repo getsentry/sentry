@@ -22,6 +22,7 @@ import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 type GroupDetailsPriorityProps = {
   group: Group;
   onChange?: (priority: PriorityLevel) => void;
+  triggerVariant?: 'badge' | 'button';
 };
 
 const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
@@ -83,7 +84,11 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
   };
 }
 
-export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
+export function GroupPriority({
+  group,
+  onChange,
+  triggerVariant,
+}: GroupDetailsPriorityProps) {
   const onChangePriority = useChangePriority(group, onChange);
 
   // We can assume that when there is not `priorityLockedAt`, there were no
@@ -97,6 +102,7 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
       onChange={onChangePriority}
       value={group.priority ?? PriorityLevel.MEDIUM}
       lastEditedBy={lastEditedBy}
+      triggerVariant={triggerVariant}
     />
   );
 }

@@ -94,6 +94,12 @@ describe('IssuePreview', () => {
       await screen.findByRole('button', {name: 'View example/repo-name#10'})
     ).toHaveAttribute('href', 'https://github.com/example/repo-name/pull/10');
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Modify issue priority'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
   });
 
   it('offers to restart Autofix after PR creation when the linked PR is closed', async () => {

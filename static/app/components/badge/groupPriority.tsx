@@ -32,6 +32,7 @@ type GroupPriorityDropdownProps = {
   value: PriorityLevel;
   disabled?: boolean;
   lastEditedBy?: 'system' | AvatarUser;
+  triggerVariant?: 'badge' | 'button';
 };
 
 type GroupPriorityBadgeProps = {
@@ -47,6 +48,10 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 };
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
+
+function getPriorityBars(priority: PriorityLevel): 1 | 2 | 3 {
+  return priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+}
 
 function useLastEditedBy({
   groupId,
@@ -101,12 +106,10 @@ export function GroupPriorityBadge({
   showLabel = true,
   children,
 }: GroupPriorityBadgeProps) {
-  const bars =
-    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
-    <StyledTag variant="muted" icon={<IconCellSignal bars={bars} />}>
+    <StyledTag variant="muted" icon={<IconCellSignal bars={getPriorityBars(priority)} />}>
       {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
@@ -191,6 +194,7 @@ export function GroupPriorityDropdown({
   onChange,
   lastEditedBy,
   disabled = false,
+  triggerVariant = 'badge',
 }: GroupPriorityDropdownProps) {
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
@@ -206,23 +210,33 @@ export function GroupPriorityDropdown({
         </Flex>
       }
       minMenuWidth={230}
-      trigger={(triggerProps, isOpen) => (
-        <DropdownButton
-          {...triggerProps}
-          aria-label={t('Modify issue priority')}
-          size="zero"
-          disabled={disabled}
-          tooltipProps={{
+      trigger={(triggerProps, isOpen) => {
+        const commonProps = {
+          ...triggerProps,
+          'aria-label': t('Modify issue priority'),
+          disabled,
+          tooltipProps: {
             title: disabled
               ? t('You cannot manually update the priority of a metric issue.')
               : t('Update the priority of this issue.'),
-          }}
-        >
-          <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
-          </GroupPriorityBadge>
-        </DropdownButton>
-      )}
+          },
+        };
+
+        return triggerVariant === 'button' ? (
+          <Button
+            {...commonProps}
+            icon={<IconCellSignal bars={getPriorityBars(value)} />}
+            size="xs"
+            variant="secondary"
+          />
+        ) : (
+          <DropdownButton {...commonProps} size="zero">
+            <GroupPriorityBadge showLabel={false} priority={value}>
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
+            </GroupPriorityBadge>
+          </DropdownButton>
+        );
+      }}
       items={options}
       menuFooter={
         <Fragment>

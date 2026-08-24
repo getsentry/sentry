@@ -35,6 +35,7 @@ interface AssigneeSelectorProps {
   ) => void;
   additionalMenuFooterItems?: React.ReactNode;
   assignmentDetails?: AssignmentDetails;
+  avatarOnly?: boolean;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   showLabel?: boolean;
@@ -120,6 +121,7 @@ export function AssigneeSelector({
   owners,
   additionalMenuFooterItems,
   assignmentDetails,
+  avatarOnly = false,
   showLabel = false,
   useOwnerAssignmentDetails = true,
 }: AssigneeSelectorProps) {
@@ -158,6 +160,7 @@ export function AssigneeSelector({
             assignedTo={group.assignedTo ?? undefined}
             assignedUser={assignedUser}
             assignmentDetails={currentAssignmentDetails}
+            avatarOnly={avatarOnly}
             loading={assigneeLoading}
             showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}

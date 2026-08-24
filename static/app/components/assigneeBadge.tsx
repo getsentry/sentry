@@ -34,23 +34,30 @@ type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignedUser?: User | undefined;
   assignmentDetails?: AssignmentDetails;
+  avatarOnly?: boolean;
   chevronDirection?: 'up' | 'down';
   loading?: boolean;
   showLabel?: boolean;
 };
 
 const AVATAR_SIZE = 16;
+const AVATAR_ONLY_SIZE = 24;
 const ASSIGNED_TOOLTIP_MAX_WIDTH = 300;
 
 export function AssigneeBadge({
   assignedTo,
   assignedUser,
   assignmentDetails,
+  avatarOnly = false,
   showLabel = false,
   chevronDirection = 'down',
   loading = false,
 }: AssigneeBadgeProps) {
   if (loading) {
+    if (avatarOnly) {
+      return <StyledLoadingIndicator mini relative size={AVATAR_ONLY_SIZE} />;
+    }
+
     return (
       <StyledTag
         icon={<LoadingIcon showLabel={showLabel} chevronDirection={chevronDirection} />}
@@ -60,6 +67,16 @@ export function AssigneeBadge({
   }
 
   if (assignedTo) {
+    const assignedIcon = (
+      <AssignedIcon
+        assignedTo={assignedTo}
+        assignedUser={assignedUser}
+        avatarOnly={avatarOnly}
+        chevronDirection={chevronDirection}
+        showLabel={showLabel}
+      />
+    );
+
     return (
       <Tooltip
         isHoverable
@@ -72,29 +89,26 @@ export function AssigneeBadge({
         }
         skipWrapper
       >
-        <StyledTag
-          icon={
-            <AssignedIcon
-              assignedTo={assignedTo}
-              assignedUser={assignedUser}
-              chevronDirection={chevronDirection}
-              showLabel={showLabel}
-            />
-          }
-          variant="muted"
-        />
+        {avatarOnly ? assignedIcon : <StyledTag icon={assignedIcon} variant="muted" />}
       </Tooltip>
     );
   }
 
+  const unassignedIcon = (
+    <UnassignedIcon
+      avatarOnly={avatarOnly}
+      showLabel={showLabel}
+      chevronDirection={chevronDirection}
+    />
+  );
+
   return (
     <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper>
-      <UnassignedTag
-        icon={
-          <UnassignedIcon showLabel={showLabel} chevronDirection={chevronDirection} />
-        }
-        variant="muted"
-      />
+      {avatarOnly ? (
+        unassignedIcon
+      ) : (
+        <UnassignedTag icon={unassignedIcon} variant="muted" />
+      )}
     </Tooltip>
   );
 }
@@ -139,10 +153,12 @@ function LoadingIcon({
 function AssignedIcon({
   assignedTo,
   assignedUser,
+  avatarOnly,
   chevronDirection,
   showLabel,
 }: {
   assignedTo: Actor;
+  avatarOnly: boolean;
   chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
   showLabel: boolean;
   assignedUser?: User;
@@ -154,7 +170,7 @@ function AssignedIcon({
       <UserAvatar
         user={assignedUser ?? assignedTo}
         className="avatar"
-        size={AVATAR_SIZE}
+        size={avatarOnly ? AVATAR_ONLY_SIZE : AVATAR_SIZE}
         hasTooltip={false}
         data-test-id="assigned-avatar"
       />
@@ -162,18 +178,24 @@ function AssignedIcon({
       <ActorAvatar
         actor={assignedTo}
         className="avatar"
-        size={AVATAR_SIZE}
+        size={avatarOnly ? AVATAR_ONLY_SIZE : AVATAR_SIZE}
         hasTooltip={false}
         data-test-id="assigned-avatar"
-        style={{marginLeft: theme.space.xs}}
+        style={avatarOnly ? undefined : {marginLeft: theme.space.xs}}
       />
     );
 
   return (
     <Fragment>
       {avatar}
-      {showLabel && <AssigneeLabel ellipsis>{getActorLabel(assignedTo)}</AssigneeLabel>}
-      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+      {!avatarOnly && (
+        <Fragment>
+          {showLabel && (
+            <AssigneeLabel ellipsis>{getActorLabel(assignedTo)}</AssigneeLabel>
+          )}
+          <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+        </Fragment>
+      )}
     </Fragment>
   );
 }
@@ -218,9 +240,11 @@ function AssignedTooltip({
 }
 
 function UnassignedIcon({
+  avatarOnly,
   showLabel,
   chevronDirection,
 }: {
+  avatarOnly: boolean;
   chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
   showLabel: boolean;
 }) {
@@ -229,11 +253,15 @@ function UnassignedIcon({
       <Placeholder
         shape="circle"
         testId="unassigned-avatar"
-        width={`${AVATAR_SIZE}px`}
-        height={`${AVATAR_SIZE}px`}
+        width={`${avatarOnly ? AVATAR_ONLY_SIZE : AVATAR_SIZE}px`}
+        height={`${avatarOnly ? AVATAR_ONLY_SIZE : AVATAR_SIZE}px`}
       />
-      {showLabel && <Fragment>Unassigned</Fragment>}
-      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+      {!avatarOnly && (
+        <Fragment>
+          {showLabel && <Fragment>Unassigned</Fragment>}
+          <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+        </Fragment>
+      )}
     </Fragment>
   );
 }

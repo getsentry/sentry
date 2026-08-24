@@ -226,8 +226,9 @@ function IssuePreviewContent() {
           />
         )}
         <Flex align="center" wrap="wrap" gap="lg">
-          <GroupPriority group={group} />
+          <GroupPriority group={group} triggerVariant="button" />
           <GroupHeaderAssigneeSelector
+            avatarOnly
             group={group}
             project={project}
             event={null}

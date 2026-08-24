@@ -6,6 +6,33 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 
 describe('AssigneeSelector', () => {
+  it('uses the avatar directly as an interactive trigger', async () => {
+    const assignedUser = UserFixture({
+      id: '91',
+      email: 'frodo@example.com',
+      name: 'Frodo',
+    });
+    const group = GroupFixture({
+      assignedTo: {id: assignedUser.id, name: assignedUser.name, type: 'user'},
+    });
+
+    render(
+      <AssigneeSelector
+        avatarOnly
+        group={group}
+        memberList={[assignedUser]}
+        assigneeLoading={false}
+        handleAssigneeChange={jest.fn()}
+      />
+    );
+
+    const trigger = screen.getByRole('button', {name: 'Modify issue assignee'});
+    expect(screen.getByTestId('assigned-avatar')).toBeInTheDocument();
+
+    await userEvent.click(trigger);
+    expect(await screen.findByRole('button', {name: 'Clear'})).toBeInTheDocument();
+  });
+
   it('uses the assigned owner source as fallback tooltip details', async () => {
     const assignedUser = UserFixture({
       id: '91',
