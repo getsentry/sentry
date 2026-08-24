@@ -78,4 +78,33 @@ describe('IssuesSecondaryNavigation', () => {
     expect(screen.queryByRole('link', {name: /Inbox/})).not.toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
+
+  it('renders the Autofix Overview link when the org has seer-night-shift-ui', async () => {
+    mockInboxCount({});
+    const organizationWithOverview = OrganizationFixture({
+      features: [
+        'issue-stream-progress-ui',
+        'gen-ai-features',
+        'seat-based-seer-enabled',
+        'seer-night-shift-ui',
+      ],
+    });
+
+    renderNavigation(organizationWithOverview);
+
+    const overviewLink = await screen.findByRole('link', {name: /Overview/});
+    expect(overviewLink).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/autofix/overview/'
+    );
+  });
+
+  it('does not render the Autofix Overview link without seer-night-shift-ui', async () => {
+    mockInboxCount({});
+
+    renderNavigation();
+
+    expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Overview/})).not.toBeInTheDocument();
+  });
 });
