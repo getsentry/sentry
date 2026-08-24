@@ -117,9 +117,12 @@ function MetricsSectionContent() {
   const [visibleQuery, setVisibleQuery] = useState('');
   const placeholder = t('Search application metrics for this trace');
   useEffect(() => {
+    if (isQueryInitialized) {
+      return;
+    }
     setMetricsQuery(EXCLUDE_SPAN_METRICS_QUERY);
     setIsQueryInitialized(true);
-  }, [setMetricsQuery]);
+  }, [isQueryInitialized, setMetricsQuery]);
   const attributeQuery = useMemo(() => {
     const search = frozenSearch?.copy();
     if (!search) {

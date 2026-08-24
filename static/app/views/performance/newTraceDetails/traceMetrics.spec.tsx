@@ -9,10 +9,17 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
+import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {
   TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
+
+function CurrentMetricsQuery() {
+  const query = useQueryParamsQuery();
+
+  return <output aria-label="Current metrics query">{query}</output>;
+}
 
 describe('TraceViewMetricsSection', () => {
   const organization = OrganizationFixture();
@@ -127,6 +134,7 @@ describe('TraceViewMetricsSection', () => {
     render(
       <TraceViewMetricsProviderWrapper traceSlug={traceId}>
         <TraceViewMetricsSection />
+        <CurrentMetricsQuery />
       </TraceViewMetricsProviderWrapper>,
       {organization}
     );
@@ -143,6 +151,7 @@ describe('TraceViewMetricsSection', () => {
       );
     }
     expect(eventsRequest.mock.calls.at(-1)?.[1]?.query?.query).toContain('duration');
+    expect(screen.getByLabelText('Current metrics query')).toHaveTextContent('duration');
   });
 
   it('scopes attribute and value autocomplete requests to the trace', async () => {
