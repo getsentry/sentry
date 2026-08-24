@@ -44,7 +44,7 @@ type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps<HTMLInputElement> & {
 
 const DEBOUNCE_MS = 250;
 
-export function SelectAsyncField<TData, TValue>({
+function SelectAsyncField<TData, TValue>({
   queryOptions,
   ...props
 }: SelectAsyncFieldProps<TData, TValue>) {
