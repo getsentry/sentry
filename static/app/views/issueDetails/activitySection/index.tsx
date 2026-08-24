@@ -173,9 +173,6 @@ export function ActivitySection({
   const displayedActivities = buildActivityFeedItems({
     activities,
     filterComments,
-    showSeerActivities: organization.features.includes(
-      'display-seer-actions-as-issue-activities'
-    ),
     showStatusFlappingRollups: organization.features.includes(
       'issue-activity-status-flapping-rollup'
     ),
