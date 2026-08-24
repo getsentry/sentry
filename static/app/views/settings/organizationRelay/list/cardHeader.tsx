@@ -62,6 +62,7 @@ export function CardHeader({
         row={{zero: '3', md: '1 / 3'}}
         column={{zero: '1 / -1', md: '2'}}
         justify={{zero: 'start', md: 'end'}}
+        paddingTop={{zero: 'md', md: '0'}}
       >
         <Button
           size="sm"
