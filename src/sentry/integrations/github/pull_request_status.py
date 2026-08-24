@@ -10,6 +10,7 @@ from sentry.integrations.source_code_management.status_check import (
     PullRequestFileSummary,
     PullRequestStatusRequest,
     PullRequestStatusResult,
+    http_url_or_none,
 )
 from sentry.utils.safe import get_path
 
@@ -188,8 +189,7 @@ def _extract_failed_checks(pull_request: Any) -> tuple[FailedCheck, ...]:
         else:
             continue
         if failing and isinstance(name, str):
-            # FailedCheck drops any non-http(s) url.
-            failed.append(FailedCheck(name=name, url=url))
+            failed.append(FailedCheck(name=name, url=http_url_or_none(url)))
     return tuple(failed)
 
 

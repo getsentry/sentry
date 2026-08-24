@@ -151,8 +151,6 @@ def _serialize_pull_request(
             }
             for file in checks_and_review.files
         ],
-        # failedChecks stays a name list for the deployed frontend; drop it once the
-        # frontend reads failedCheckDetails (name + run link) instead.
         "failedChecks": [check.name for check in checks_and_review.failed_checks],
         "failedCheckDetails": [
             {"name": check.name, "url": check.url} for check in checks_and_review.failed_checks

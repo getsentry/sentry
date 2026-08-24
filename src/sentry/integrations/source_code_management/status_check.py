@@ -6,7 +6,9 @@ from typing import Any
 from urllib.parse import urlparse
 
 
-def _http_url_or_none(value: object) -> str | None:
+def http_url_or_none(value: object) -> str | None:
+    """The value only if it is an http(s) URL, else None. Guards attacker-set
+    check URLs (e.g. javascript:) from reaching a rendered anchor href."""
     if not isinstance(value, str):
         return None
     try:
@@ -77,15 +79,12 @@ class PullRequestFileSummary:
 
 @dataclass(frozen=True)
 class FailedCheck:
-    """A failing check on a pull request, with a link to its run when the provider gives one."""
+    """A failing check on a pull request, with a link to its run when the provider gives one.
+
+    url must be sanitized with http_url_or_none by the caller before construction."""
 
     name: str
     url: str | None = None
-
-    def __post_init__(self) -> None:
-        # url is provider/CI-controlled; drop non-http(s) schemes so a javascript:
-        # link can never reach a rendered anchor href.
-        object.__setattr__(self, "url", _http_url_or_none(self.url))
 
 
 @dataclass(frozen=True)
