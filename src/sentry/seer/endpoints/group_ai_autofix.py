@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -38,6 +38,8 @@ from sentry.issues.action_log import (
 )
 from sentry.issues.action_log.types import GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
+from sentry.issues.formatting.autofix import format_autofix
+from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
@@ -184,11 +186,12 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
-class GroupAutofixEndpoint(GroupAiEndpoint):
+class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
     }
+    formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
@@ -435,6 +438,22 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             status=status.HTTP_409_CONFLICT,
                         )
 
+                if is_autofix_kickoff:
+                    actor = resolve_action_actor(request)
+                    with action_context_scope(
+                        source=resolve_action_source(request),
+                        actor=actor,
+                    ):
+                        Activity.objects.create_group_activity(
+                            group,
+                            ActivityType.TRIGGER_AUTOFIX,
+                            user_id=(
+                                actor.actor_id if actor.actor_type == GroupActorType.USER else None
+                            ),
+                            data={"referrer": referrer.value},
+                            send_notification=False,
+                        )
+
                 try:
                     run = trigger_autofix_agent(
                         group=group,
@@ -461,20 +480,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 run_id = run.seer_run_state_id
 
                 if is_autofix_kickoff:
-                    actor = resolve_action_actor(request)
-                    with action_context_scope(
-                        source=resolve_action_source(request),
-                        actor=actor,
-                    ):
-                        Activity.objects.create_group_activity(
-                            group,
-                            ActivityType.TRIGGER_AUTOFIX,
-                            user_id=(
-                                actor.actor_id if actor.actor_type == GroupActorType.USER else None
-                            ),
-                            data={"referrer": referrer.value},
-                            send_notification=False,
-                        )
                     sentry_run_id = str(run.uuid)
                 else:
                     sentry_run_id = resolved_sentry_run_id
@@ -492,6 +497,17 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
+            OpenApiParameter(
+                name="llmFormat",
+                location=OpenApiParameter.QUERY,
+                required=False,
+                type=str,
+                enum=list(VALID_FORMATS),
+                description=(
+                    "If set, adds a `formatted` field to the response with the autofix rendered "
+                    "as the requested format for LLM consumption."
+                ),
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer("AutofixStateResponse", AutofixStateResponse),

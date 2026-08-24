@@ -142,6 +142,11 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-issue-sync": FlagpoleFeature(default=True, api_expose=True),
         # Signals that the organization supports the on demand metrics prefill.
         "organizations:on-demand-metrics-prefill": FlagpoleFeature(default=False, api_expose=True),
+        # Track PR lifecycle activity and emit PR Merge Live Metrics. Permanent
+        # rather than a rollout flag: customer single-tenants run a noop analytics
+        # backend, so emission has nowhere to land and the pipeline stays excluded
+        # there indefinitely. Default off keeps self-hosted on today's behavior.
+        "organizations:pr-metrics": FlagpoleFeature(default=False),
     }
 
     # Permanent project features that are controlled via flagpole. These are
@@ -163,6 +168,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
     permanent_system_features = {
         # Enables user registration.
         "auth:register": True,
+        # Require email verification during SSO signup.
+        "auth:email-verification-at-sso-signup": False,
         # Enable support for multiple regions, and org slug subdomains (customer-domains).
         "system:multi-region": False,
     }

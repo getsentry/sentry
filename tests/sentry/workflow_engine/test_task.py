@@ -12,7 +12,10 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionGroupEvaluation,
+    WorkflowEvaluationOutcome,
+)
 from sentry.workflow_engine.processors.workflow import EvaluationStats
 from sentry.workflow_engine.tasks.utils import fetch_event
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
@@ -66,26 +69,15 @@ class TestProcessWorkflowActivity(TestCase):
             # Short-circuit evaluation, no workflows associated
             assert mock_evaluate.call_count == 0
 
-            mock_logger.info.assert_called_once_with(
-                "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
-                extra={
-                    "workflow_ids": None,
-                    "detection_type": self.detector.type,
-                    "event_id": None,
-                    "group_id": self.activity.group.id,
-                    "action_filter_group_ids": [],
-                    "triggered_action_ids": [],
-                    "triggered_workflow_ids": [],
-                    "delayed_conditions": None,
-                    "debug_msg": "No workflows are associated with the detector in the event",
-                },
+            mock_logger.info.assert_called_once()
+            assert mock_logger.info.call_args.args == (
+                "workflow_engine.process_workflows.evaluation",
             )
+            artifact = mock_logger.info.call_args.kwargs["extra"]
+            assert artifact["outcome"] == WorkflowEvaluationOutcome.NO_WORKFLOWS
 
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
-    @mock.patch(
-        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
-        return_value=({}, {}, EvaluationStats(), {}),
-    )
+    @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
         return_value=(set(), {}, EvaluationStats(), {}),
@@ -102,6 +94,12 @@ class TestProcessWorkflowActivity(TestCase):
             detector=self.detector,
             workflow=self.workflow,
         )
+        trigger_eval = DataConditionGroupEvaluation(
+            result=False,
+            triggered=False,
+            data={"condition_evaluations": [], "logic_type": "any"},
+        )
+        mock_evaluate.return_value = ({}, {}, EvaluationStats(), {self.workflow: trigger_eval})
 
         process_workflow_activity(
             activity_id=self.activity.id,
@@ -117,19 +115,13 @@ class TestProcessWorkflowActivity(TestCase):
         mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
         assert mock_eval_actions.call_count == 0
 
-        mock_logger.info.assert_called_once_with(
-            "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
-            extra={
-                "workflow_ids": [self.workflow.id],
-                "detection_type": self.detector.type,
-                "group_id": self.activity.group.id,
-                "event_id": None,
-                "action_filter_group_ids": [],
-                "triggered_action_ids": [],
-                "triggered_workflow_ids": [],
-                "delayed_conditions": None,
-                "debug_msg": "No items were triggered or queued for slow evaluation",
-            },
+        mock_logger.info.assert_called_once()
+        (log_name,) = mock_logger.info.call_args.args
+        assert log_name == "workflow_engine.process_workflows.evaluation"
+        assert mock_logger.info.call_args.kwargs["extra"]["workflow_id"] == self.workflow.id
+        assert (
+            mock_logger.info.call_args.kwargs["extra"]["outcome"]
+            == WorkflowEvaluationOutcome.NOT_TRIGGERED
         )
 
     @mock.patch(
@@ -211,20 +203,13 @@ class TestProcessWorkflowActivity(TestCase):
             detector_id=self.detector.id,
         )
 
-        mock_logger.info.assert_called_once_with(
-            "workflow_engine.process_workflows.evaluation.actions.triggered",
-            extra={
-                "workflow_ids": [self.workflow.id],
-                "detection_type": self.detector.type,
-                "group_id": self.activity.group.id,
-                "event_id": None,
-                "action_filter_group_ids": [self.action_group.id],
-                "triggered_action_ids": [self.action.id],
-                "triggered_workflow_ids": [self.workflow.id],
-                "delayed_conditions": None,
-                "debug_msg": None,
-            },
-        )
+        mock_logger.info.assert_called_once()
+        (log_name,) = mock_logger.info.call_args.args
+        assert log_name == "workflow_engine.process_workflows.evaluation"
+        artifact = mock_logger.info.call_args.kwargs["extra"]
+        assert artifact["workflow_id"] == self.workflow.id
+        assert artifact["triggered_action_ids"] == [self.action.id]
+        assert artifact["outcome"] == WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
 
     @mock.patch(
         "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"

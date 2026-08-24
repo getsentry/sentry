@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 const schema = z.object({
   defaultAutofixAutomationTuning: z.boolean(),
@@ -46,13 +47,7 @@ export function ProjectDefaultsForm({organization}: Props) {
 
   return (
     <Stack gap="lg">
-      {canWrite ? null : (
-        <Alert variant="warning">
-          {t(
-            'These settings can only be edited by users with the organization owner or manager role.'
-          )}
-        </Alert>
-      )}
+      {canWrite ? null : <OrganizationPermissionAlert />}
       <FieldGroup>
         <AutoSaveForm
           name="defaultAutofixAutomationTuning"

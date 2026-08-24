@@ -41,7 +41,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
@@ -96,10 +95,8 @@ type Props = {
   applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
   customColumns?: Array<'attachments' | 'minidump'>;
-  domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
   hidePagination?: boolean;
-  isEventLoading?: boolean;
   isRegressionIssue?: boolean;
   issueId?: string;
   projectSlug?: string;
@@ -122,10 +119,8 @@ export function EventsTable({
   applyEnvironmentFilter,
   columnTitles: initialColumnTitles,
   customColumns,
-  domainViewFilters,
   excludedTags,
   hidePagination,
-  isEventLoading,
   isRegressionIssue,
   issueId,
   projectSlug,
@@ -245,14 +240,9 @@ export function EventsTable({
             location,
             organization,
             source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-            view: domainViewFilters?.view,
           });
         } else if (dataRow.trace) {
-          target = generateTraceLink(transactionName, domainViewFilters?.view)(
-            organization,
-            dataRow,
-            location
-          );
+          target = generateTraceLink(transactionName)(organization, dataRow, location);
         }
 
         return (
@@ -372,7 +362,6 @@ export function EventsTable({
       transactionName,
       issueId,
       isRegressionIssue,
-      domainViewFilters,
       replayLinkGenerator,
       handleCellAction,
     ]
@@ -609,8 +598,7 @@ export function EventsTable({
                         isLoading={
                           isTotalEventsLoading ||
                           isDiscoverQueryLoading ||
-                          shouldFetchAttachments ||
-                          isEventLoading
+                          shouldFetchAttachments
                         }
                         data={tableData?.data ?? []}
                         columnOrder={columnOrder}

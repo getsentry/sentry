@@ -152,6 +152,23 @@ export function ExploreSecondaryNavigation() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
+            {organization.openMembership && (
+              <Feature features="organizations:investigations">
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/investigations/`}
+                    activeTo={[
+                      `${baseUrl}/investigations/`,
+                      `/organizations/${organization.slug}/seer/investigation/`,
+                    ]}
+                    analyticsItemName="explore_investigations"
+                    trailingItems={<FeatureBadge type="beta" />}
+                  >
+                    {t('Investigations')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </Feature>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>

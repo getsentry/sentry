@@ -164,8 +164,6 @@ x-sentry-service-config:
       description: Kafka consumer for processing metrics data
     ingest-generic-metrics:
       description: Kafka consumer for processing generic metrics
-    billing-metrics-consumer:
-      description: Kafka consumer for billing metrics processing
     # Post-processing forwarders
     post-process-forwarder-errors:
       description: Post-process forwarder for error events
@@ -220,7 +218,6 @@ x-sentry-service-config:
         ingest-transactions,
         ingest-metrics,
         ingest-generic-metrics,
-        billing-metrics-consumer,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
@@ -347,7 +344,6 @@ x-sentry-service-config:
       ]
     ingest-all:
       [
-        billing-metrics-consumer,
         ingest-attachments,
         ingest-events,
         ingest-feedback-events,
@@ -398,7 +394,6 @@ x-sentry-service-config:
         process-segments,
         ingest-metrics,
         ingest-generic-metrics,
-        billing-metrics-consumer,
         uptime-checker,
         uptime-results,
         post-process-forwarder-errors,
@@ -446,8 +441,6 @@ x-programs:
     command: sentry run consumer ingest-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   ingest-generic-metrics:
     command: sentry run consumer ingest-generic-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
-  billing-metrics-consumer:
-    command: sentry run consumer billing-metrics-consumer --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   post-process-forwarder-errors:
     command: sentry run consumer post-process-forwarder-errors --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   post-process-forwarder-transactions:

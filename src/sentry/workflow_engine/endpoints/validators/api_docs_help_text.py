@@ -367,7 +367,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             {
                 "type": "latest_adopted_release",
                 "comparison": {
-                    "environment": "12345",
+                    "environment": "production",
                     "ageComparison": "older",
                     "releaseAgeType": "oldest"
                 },

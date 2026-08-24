@@ -2,15 +2,11 @@ import round from 'lodash/round';
 
 import type {Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
-import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
-import type {Incident} from 'sentry/views/alerts/types';
-import {AlertRuleStatus} from 'sentry/views/alerts/types';
 
 export function hasMetricAlerts(organization: Organization): boolean {
   return organization.features.includes('incidents');
@@ -59,44 +55,4 @@ export function shouldScaleAlertChart(aggregate: string) {
   // We want crash free rate charts to be scaled because they are usually too
   // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
   return isSessionAggregate(aggregate);
-}
-
-export function alertDetailsLink(organization: Organization, incident: Incident) {
-  return makeAlertsPathname({
-    path: `/rules/details/${
-      incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-      incident.alertRule.originalAlertRuleId
-        ? incident.alertRule.originalAlertRuleId
-        : incident.alertRule.id
-    }/`,
-    organization,
-  });
-}
-
-/**
- * Noramlizes a status string
- */
-export function getQueryStatus(status: string | string[]): string {
-  if (Array.isArray(status) || status === '') {
-    return 'all';
-  }
-
-  return ['open', 'closed'].includes(status) ? status : 'all';
-}
-
-const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
-
-/**
- * Noramlize a team slug from the query
- */
-export function getTeamParams(team?: string | string[]): string[] {
-  if (team === undefined) {
-    return ALERT_LIST_QUERY_DEFAULT_TEAMS;
-  }
-
-  if (team === '') {
-    return [];
-  }
-
-  return toArray(team);
 }

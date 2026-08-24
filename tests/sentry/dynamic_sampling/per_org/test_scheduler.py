@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import DEFAULT, Mock, patch
 
+import pytest
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.constants import ObjectStatus
@@ -25,7 +26,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
-    LEGACY_GET_FACTOR,
     SET_FACTOR,
     make_project_volume,
     patch_configuration,
@@ -41,6 +41,8 @@ CACHED_PROJECT_RATES = f"{SCHEDULER}.get_cached_rebalanced_project_sample_rates"
 COMPARE_PROJECTS = f"{SCHEDULER}.compare_rebalanced_projects_with_cache"
 RECALIBRATION_VOLUME = f"{SCHEDULER}.get_recalibration_organization_volume"
 CACHED_FACTOR = f"{SCHEDULER}.get_cached_recalibration_factor"
+PREVIOUS_EAP_FACTOR = f"{SCHEDULER}.get_cached_per_org_recalibration_factor"
+LEGACY_VOLUME = f"{SCHEDULER}.get_organization_volume"
 COMPARE_FACTOR = f"{SCHEDULER}.compare_recalibration_factor_with_cache"
 
 
@@ -67,13 +69,13 @@ class PerOrgRecalibrationCacheTest(TestCase):
         assert legacy_key != per_org_key
 
         redis.set(legacy_key, 2.5)
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 2.5
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert legacy_recalibration_cache.get_adjusted_factor(org.id, source="task") == 2.5
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
 
         redis.delete(legacy_key)
         redis.set(per_org_key, 3.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 3.5
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 3.5
+        assert legacy_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
 
     def test_per_org_cache_sets_and_deletes_adjusted_factor(self) -> None:
         org = self.create_organization()
@@ -83,10 +85,10 @@ class PerOrgRecalibrationCacheTest(TestCase):
         redis.delete(cache_key)
 
         per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 2.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 2.5
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 2.5
 
         per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 1.0)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
@@ -133,6 +135,39 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert org_with_project.id in org_ids
         assert org_without_projects.id not in org_ids
         assert org_with_inactive_project.id not in org_ids
+
+    def _prevalidated_org_ids(self) -> set[int]:
+        """Run the real prevalidate_batch callback over every org in the queryset."""
+        with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
+            MockScheduler.return_value.tick.return_value = False
+            schedule_per_org_calculations()
+
+            kwargs = MockScheduler.call_args.kwargs
+            return set(kwargs["prevalidate_batch"](list(kwargs["queryset"])))
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_skips_orgs_without_dynamic_sampling(self) -> None:
+        with_dynamic_sampling = self.create_organization()
+        self.create_project(organization=with_dynamic_sampling)
+        without_dynamic_sampling = self.create_organization()
+        self.create_project(organization=without_dynamic_sampling)
+
+        with self.feature({"organizations:dynamic-sampling": [with_dynamic_sampling.slug]}):
+            org_ids = self._prevalidated_org_ids()
+
+        assert with_dynamic_sampling.id in org_ids
+        assert without_dynamic_sampling.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_raises_when_the_feature_cannot_be_evaluated(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+
+        with (
+            patch("sentry.features.batch_has_for_organizations", return_value=None),
+            pytest.raises(RuntimeError),
+        ):
+            self._prevalidated_org_ids()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_org_in_rollout_is_dispatched(self) -> None:
@@ -353,7 +388,8 @@ class RunCalculationsPerOrgTest(TestCase):
                     TRANSACTION_VOLUMES: transaction_volumes,
                     TRANSACTION_BALANCING: {},
                     RECALIBRATION_VOLUME: recalibration_volume,
-                    LEGACY_GET_FACTOR: 1.0,
+                    CACHED_FACTOR: 1.0,
+                    LEGACY_VOLUME: None,
                     SET_FACTOR: DEFAULT,
                 }
             ) as mocks,
@@ -409,6 +445,7 @@ class RunCalculationsPerOrgTest(TestCase):
         project = self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         recalibration_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        legacy_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=50)
         project_volumes = [make_project_volume(project.id)]
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
@@ -431,7 +468,9 @@ class RunCalculationsPerOrgTest(TestCase):
                 TRANSACTION_VOLUMES: transaction_volumes,
                 TRANSACTION_BALANCING: {},
                 RECALIBRATION_VOLUME: recalibration_volume,
-                LEGACY_GET_FACTOR: 1.0,
+                CACHED_FACTOR: 1.0,
+                PREVIOUS_EAP_FACTOR: 1.0,
+                LEGACY_VOLUME: legacy_volume,
                 SET_FACTOR: DEFAULT,
                 COMPARE_FACTOR: DEFAULT,
             }
@@ -461,7 +500,13 @@ class RunCalculationsPerOrgTest(TestCase):
         assert project_config.organization_recalibration_factor == 4.0
         mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
         mocks[COMPARE_FACTOR].assert_called_once_with(
-            project_config, recalibration_volume, 4.0, 1.0
+            project_config,
+            recalibration_volume,
+            4.0,
+            1.0,
+            previous_eap_factor=1.0,
+            legacy_volume=legacy_volume,
+            eap_extrapolated_total=100,
         )
 
     @override_options(
@@ -496,7 +541,9 @@ class RunCalculationsPerOrgTest(TestCase):
                 TRANSACTION_VOLUMES: transaction_volumes,
                 TRANSACTION_BALANCING: {},
                 RECALIBRATION_VOLUME: None,
-                LEGACY_GET_FACTOR: 1.0,
+                CACHED_FACTOR: 1.0,
+                PREVIOUS_EAP_FACTOR: 1.0,
+                LEGACY_VOLUME: None,
                 SET_FACTOR: DEFAULT,
                 COMPARE_FACTOR: DEFAULT,
             }
@@ -509,7 +556,15 @@ class RunCalculationsPerOrgTest(TestCase):
         assert project_config.organization_recalibration_factor is None
         mocks[SET_FACTOR].assert_not_called()
         # The comparison still runs, so the legacy factor is reported next to no EAP factor.
-        mocks[COMPARE_FACTOR].assert_called_once_with(project_config, None, None, 1.0)
+        mocks[COMPARE_FACTOR].assert_called_once_with(
+            project_config,
+            None,
+            None,
+            1.0,
+            previous_eap_factor=1.0,
+            legacy_volume=None,
+            eap_extrapolated_total=100,
+        )
 
     @override_options(
         {

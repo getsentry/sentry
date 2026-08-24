@@ -1053,6 +1053,33 @@ class TestEventDetectorsAllProject(TestCase):
 
         assert get_all_projects_detector(self.organization.id) == detector
 
+    @patch("sentry.utils.metrics.timer")
+    def test_metrics_all_projects_cache(self, mock_timer: MagicMock) -> None:
+        cache.clear()
+        mock_tags: MagicMock = mock_timer.return_value.__enter__.return_value
+
+        get_all_projects_detector(self.organization.id)
+        assert mock.call("cache_hit", "false") in mock_tags.__setitem__.call_args_list
+        assert mock.call("detector_found", "true") in mock_tags.__setitem__.call_args_list
+        mock_tags.reset_mock()
+
+        get_all_projects_detector(self.organization.id)
+        assert mock.call("cache_hit", "true") in mock_tags.__setitem__.call_args_list
+        assert mock.call("detector_found", "true") in mock_tags.__setitem__.call_args_list
+        mock_tags.reset_mock()
+
+        other_org = self.create_organization()
+        result = get_all_projects_detector(other_org.id)
+        assert result is None
+        assert mock.call("cache_hit", "false") in mock_tags.__setitem__.call_args_list
+        assert mock.call("detector_found", "false") in mock_tags.__setitem__.call_args_list
+        mock_tags.reset_mock()
+
+        result = get_all_projects_detector(other_org.id)
+        assert result is None
+        assert mock.call("cache_hit", "true") in mock_tags.__setitem__.call_args_list
+        assert mock.call("detector_found", "false") in mock_tags.__setitem__.call_args_list
+
 
 class TestGetDetectorsForEventAllProject(TestCase):
     def setUp(self) -> None:

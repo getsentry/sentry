@@ -190,7 +190,7 @@ export default UsageTableWithHooks;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(7, auto);
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr repeat(6, minmax(0, auto));
   }
 `;

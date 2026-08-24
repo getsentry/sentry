@@ -1,6 +1,6 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import {useDebouncer} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
@@ -23,8 +23,6 @@ import {EventTitleError} from './eventTitleError';
 interface GroupHeaderRowProps {
   data: Group;
   eventId?: string;
-  hideIcons?: boolean;
-  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
   query?: string;
   source?: string;
 }
@@ -39,27 +37,24 @@ function usePreloadGroupOnHover({
   organization: Organization;
 }) {
   const queryClient = useQueryClient();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {selection} = usePageFilters();
+  const preloadDebouncer = useDebouncer(
+    () => {
+      void queryClient.prefetchQuery(
+        groupApiOptions({
+          groupId,
+          organizationSlug: organization.slug,
+          environments: selection.environments,
+          expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+        })
+      );
+    },
+    {wait: 300}
+  );
 
   const {hoverProps} = useHover({
-    onHoverStart: () => {
-      timeoutRef.current = setTimeout(() => {
-        queryClient.prefetchQuery(
-          groupApiOptions({
-            groupId,
-            organizationSlug: organization.slug,
-            environments: selection.environments,
-            expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
-          })
-        );
-      }, 300);
-    },
-    onHoverEnd: () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    },
+    onHoverStart: () => preloadDebouncer.maybeExecute(),
+    onHoverEnd: () => preloadDebouncer.cancel(),
     isDisabled: disabled,
   });
 
@@ -69,14 +64,7 @@ function usePreloadGroupOnHover({
 /**
  * Displays a group/issue title row (i.e. in Stream)
  */
-export function GroupHeaderRow({
-  data,
-  query,
-  onClick,
-  hideIcons,
-  eventId,
-  source,
-}: GroupHeaderRowProps) {
+export function GroupHeaderRow({data, query, eventId, source}: GroupHeaderRowProps) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -102,10 +90,9 @@ export function GroupHeaderRow({
           data-test-id={data.status === 'resolved' ? 'resolved-issue' : undefined}
           {...preloadHoverProps}
           to={to}
-          onClick={onClick}
           data-issue-title-link
         >
-          {!hideIcons && data.isBookmarked && (
+          {data.isBookmarked && (
             <IconWrapper>
               <IconStar isSolid variant="warning" />
             </IconWrapper>

@@ -81,11 +81,6 @@ interface TableWidgetVisualizationProps {
    */
   columns?: TabularColumn[];
   /**
-   * If provided, forces the table to overflow scroll horizontally without requiring column resizing
-   * - `max-content`: makes the table expand horizontally to fit the largest content
-   */
-  fit?: 'max-content';
-  /**
    * If true, removes the borders of the sides and bottom of the table
    */
   frameless?: boolean;
@@ -155,7 +150,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     makeBaggage: makeBaggage,
     columns,
     scrollable,
-    fit,
     aliases,
     onChangeSort,
     sort,
@@ -363,7 +357,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       scrollable={scrollable}
       height={scrollable ? '100%' : undefined}
       bodyStyle={frameless ? FRAMELESS_STYLES : {}}
-      fit={fit}
       resizable={resizable}
     />
   );

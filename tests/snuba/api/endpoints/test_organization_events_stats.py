@@ -245,11 +245,11 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             assert response.status_code == 200, response.content
             assert [attrs for _time, attrs in response.data["count()"]["data"]] == [
                 [{"count": 1}],
-                [{"count": 0}],
+                [{"count": 1}],
             ]
             assert [attrs for _time, attrs in response.data["count_unique(user)"]["data"]] == [
                 [{"count": 1}],
-                [{"count": 0}],
+                [{"count": 1}],
             ]
 
     def test_errors_dataset_with_environment(self) -> None:
