@@ -299,10 +299,13 @@ function QueryResult({
           data-test-id="query-cell-result"
           data-cell-variant="bordered"
         >
-          <QueryResultHeader
+          <Flex
             align="start"
             justify="between"
             gap="md"
+            padding="md lg"
+            background="secondary"
+            borderBottom="primary"
             data-test-id="query-cell-header"
           >
             <Stack gap="2xs" minWidth={0} flex={1}>
@@ -316,25 +319,31 @@ function QueryResult({
               ) : null}
             </Stack>
             {actions}
-          </QueryResultHeader>
-          <QueryResultBody $withPadding={Boolean(chart)}>
+          </Flex>
+          <Container width="100%" overflow="hidden" padding={chart ? 'md lg' : '0'}>
             {chart ? (
               <ChartContent data={chart} showHeader={false} />
             ) : output?.tableMarkdown ? (
               <SeerMarkdown raw={output.tableMarkdown} components={{Table: FlushTable}} />
             ) : (
-              <QueryCellProgress>
+              <Container padding="md lg">
                 <CellProgress state={progressState} />
-              </QueryCellProgress>
+              </Container>
             )}
-          </QueryResultBody>
+          </Container>
         </Stack>
       ) : null}
     </Stack>
   );
 }
 
-type CellProgressState = 'running' | 'waiting' | 'blocked' | null;
+type CellProgressState =
+  | 'running'
+  | 'waiting'
+  | 'blocked'
+  | 'failed'
+  | 'cancelled'
+  | null;
 
 function CellProgress({state}: {state: CellProgressState}) {
   if (!state) {
@@ -345,10 +354,17 @@ function CellProgress({state}: {state: CellProgressState}) {
     message = t('Seer is working on this cell…');
   } else if (state === 'waiting') {
     message = t('Waiting for previous cells…');
+  } else if (state === 'failed') {
+    message = t('This cell failed to run.');
+  } else if (state === 'cancelled') {
+    message = t('This cell run was cancelled.');
   }
   return (
     <Flex align="center" gap="xs" data-test-id={`cell-progress-${state}`}>
-      <IconSeer size="xs" animation={state === 'blocked' ? undefined : 'waiting'} />
+      <IconSeer
+        size="xs"
+        animation={['running', 'waiting'].includes(state) ? 'waiting' : undefined}
+      />
       <Text variant="muted">{message}</Text>
     </Flex>
   );
@@ -360,6 +376,12 @@ function getCellProgressState(
 ): CellProgressState {
   if (isExecutionActive(block.currentExecution?.status)) {
     return 'running';
+  }
+  if (block.currentExecution?.status === 'failed') {
+    return 'failed';
+  }
+  if (block.currentExecution?.status === 'cancelled') {
+    return 'cancelled';
   }
   if (
     block.currentExecution ||
@@ -380,6 +402,14 @@ function getCellProgressState(
     return 'blocked';
   }
   return 'waiting';
+}
+
+export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
+  return blocks.some(
+    block =>
+      isExecutionActive(block.outputStatus) ||
+      getCellProgressState(block, blocks) === 'waiting'
+  );
 }
 
 function FlushTable({children}: {children: React.ReactNode}) {
@@ -506,7 +536,7 @@ function RefinementPanel({
 
   if (showPrompt) {
     return (
-      <RefinementComposer>
+      <Stack width="100%" marginTop="lg" gap="md">
         <Flex align="center" justify="between" gap="sm">
           <Flex align="center" gap="sm">
             <IconSeer size="xs" />
@@ -551,7 +581,7 @@ function RefinementPanel({
             </Button>
           </Flex>
         </Stack>
-      </RefinementComposer>
+      </Stack>
     );
   }
 
@@ -975,23 +1005,6 @@ const QueryDisclosureButton = styled(Button)`
   text-align: left;
 `;
 
-const QueryResultHeader = styled(Flex)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  background: ${p => p.theme.tokens.background.secondary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const QueryResultBody = styled('div')<{$withPadding: boolean}>`
-  box-sizing: border-box;
-  width: 100%;
-  overflow: hidden;
-  padding: ${p => (p.$withPadding ? `${p.theme.space.md} ${p.theme.space.lg}` : 0)};
-`;
-
-const QueryCellProgress = styled('div')`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-`;
-
 const QueryTable = styled('table')`
   min-width: 100%;
   border-collapse: collapse;
@@ -1000,12 +1013,6 @@ const QueryTable = styled('table')`
 const RefinementDisclosure = styled(Disclosure)`
   width: 100%;
   margin-top: ${p => p.theme.space.lg};
-`;
-
-const RefinementComposer = styled(Stack)`
-  width: 100%;
-  margin-top: ${p => p.theme.space.lg};
-  gap: ${p => p.theme.space.md};
 `;
 
 const RefinementPrompt = styled('div')`

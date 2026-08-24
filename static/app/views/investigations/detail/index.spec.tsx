@@ -193,6 +193,58 @@ describe('Investigation detail', () => {
     expect(screen.getByRole('button', {name: 'Ask Seer about Synthesis'})).toBeDisabled();
   });
 
+  it('keeps polling while an auto-run cell is waiting to start', async () => {
+    const investigation = InvestigationDetailFixture({
+      template: {key: 'breached_metric', version: 1},
+    });
+    investigation.blocks = [
+      {
+        ...investigation.blocks[0]!,
+        outputStatus: 'completed',
+        currentExecution: {
+          id: 'execution-completed',
+          status: 'completed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: null,
+        },
+      },
+      {
+        ...investigation.blocks[1]!,
+        config: {autoRun: true},
+        dependencies: ['block-1'],
+      },
+    ];
+    const request = MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('Waiting for previous cells…')).toBeInTheDocument();
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {timeout: 3000});
+  });
+
+  it('shows a failed state when a cell has no output', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        outputStatus: 'failed',
+        currentExecution: {
+          id: 'execution-failed',
+          status: 'failed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: {message: 'Query failed'},
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('This cell failed to run.')).toBeInTheDocument();
+  });
+
   it('keeps the refinement composer expanded while editing', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -965,6 +1017,62 @@ describe('Investigation detail', () => {
     );
   });
 
+  it('preserves newer block state when a rename completes', async () => {
+    const queryClient = makeTestQueryClient();
+    const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
+    const investigation = InvestigationDetailFixture();
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'PUT',
+      body: () => {
+        queryClient.setQueryData(options.queryKey, current =>
+          current
+            ? {
+                ...current,
+                json: {
+                  ...current.json,
+                  blocks: current.json.blocks?.map(block =>
+                    block.id === 'block-1'
+                      ? {
+                          ...block,
+                          outputStatus: 'running' as const,
+                          currentExecution: {
+                            id: 'execution-running',
+                            status: 'running' as const,
+                            startedAt: '2026-08-17T10:00:00Z',
+                            completedAt: null,
+                            error: null,
+                          },
+                        }
+                      : block
+                  ),
+                  version: 3,
+                },
+              }
+            : current
+        );
+        return InvestigationDetailFixture({
+          title: 'Renamed investigation',
+          version: 2,
+        });
+      },
+    });
+
+    renderView(organization, queryClient);
+    const titleInput = await screen.findByLabelText('Investigation title');
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, 'Renamed investigation');
+    fireEvent.blur(titleInput);
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData(options.queryKey)?.json.blocks?.[0]?.currentExecution?.id
+      ).toBe('execution-running')
+    );
+    expect(queryClient.getQueryData(options.queryKey)?.json.version).toBe(3);
+  });
+
   it('flushes a pending title change when the page unmounts', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -1080,8 +1188,17 @@ describe('Investigation detail', () => {
       url: detailUrl,
       method: 'DELETE',
     });
+    const renameRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'PUT',
+      body: InvestigationDetailFixture({title: 'Pending rename', version: 2}),
+    });
 
     const {router} = renderView();
+    fireEvent.change(await screen.findByLabelText('Investigation title'), {
+      target: {value: 'Pending rename'},
+    });
+    expect(renameRequest).not.toHaveBeenCalled();
     await userEvent.click(await screen.findByLabelText('Investigation actions'));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
     expect(deleteRequest).not.toHaveBeenCalled();
@@ -1097,6 +1214,8 @@ describe('Investigation detail', () => {
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/explore/investigations/'
     );
+    await act(async () => new Promise(resolve => setTimeout(resolve, 600)));
+    expect(renameRequest).not.toHaveBeenCalled();
   });
 
   it('renders the initial load error', async () => {

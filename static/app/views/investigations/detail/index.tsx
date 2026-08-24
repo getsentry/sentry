@@ -7,7 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -36,7 +36,10 @@ import {
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {InvestigationCell} from 'sentry/views/investigations/detail/cell';
+import {
+  InvestigationCell,
+  shouldPollInvestigationBlocks,
+} from 'sentry/views/investigations/detail/cell';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import type {
   InvestigationBlockKind,
@@ -82,7 +85,7 @@ function InvestigationBootstrapPage({investigationId}: {investigationId: string}
     ...detailOptions,
     refetchInterval: query => {
       const data = query.state.data?.json;
-      return data?.blocks?.some(block => isExecutionActive(block.outputStatus)) ||
+      return shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
@@ -157,6 +160,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
   });
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
+    onMutate: () => renameDebouncer.cancel(),
     onSuccess: () => {
       queryClient.removeQueries({
         queryKey: detailOptions.queryKey,
@@ -284,7 +288,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <NotebookHeader>
+        <Container as="header" width="100%" padding="xl" borderBottom="primary">
           <Grid
             columns="minmax(0, 1fr) auto"
             align="start"
@@ -319,7 +323,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               <IconSeer size="sm" />
             </Flex>
           </Grid>
-        </NotebookHeader>
+        </Container>
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
@@ -445,10 +449,6 @@ function AddCellComposer({
   );
 }
 
-function isExecutionActive(status: string) {
-  return ['pending', 'running', 'awaiting_input', 'stopping'].includes(status);
-}
-
 function isTitleGenerationActive(status: string | null | undefined) {
   return status === 'pending' || status === 'running';
 }
@@ -524,12 +524,6 @@ const HeaderInvestigationTitle = styled('span')`
   text-decoration-color: ${p => p.theme.tokens.border.primary};
   text-underline-offset: 5px;
   text-overflow: ellipsis;
-`;
-
-const NotebookHeader = styled('header')`
-  width: 100%;
-  padding: ${p => p.theme.space.xl};
-  border-bottom: 1px solid #f8f8fa;
 `;
 
 const NotebookTitleInput = styled(Input)`

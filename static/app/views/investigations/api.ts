@@ -234,6 +234,10 @@ export function useRenameInvestigationMutation(
           headers: current.headers,
           json: {
             ...updated,
+            // Preserve newer optimistic block state while the rename was in flight.
+            blocks: current.json.blocks,
+            blockCount: current.json.blockCount,
+            version: Math.max(current.json.version, updated.version),
             // Keep a newer optimistic title while this save was in flight.
             title: current.json.title === savedTitle ? updated.title : current.json.title,
           },
