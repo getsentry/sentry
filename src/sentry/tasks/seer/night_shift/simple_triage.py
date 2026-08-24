@@ -56,6 +56,38 @@ class ScoredCandidate(TriageResult):
     action: TriageAction = TriageAction.AUTOFIX
 
 
+def _groups_with_recent_in_app_frame(
+    group_ids: Sequence[int], project_ids: Sequence[int], organization_id: int
+) -> set[int]:
+    if not group_ids:
+        return set()
+
+    now = timezone.now()
+    query = Query(
+        match=Entity("events"),
+        select=[Column("group_id")],
+        where=[
+            Condition(Column("group_id"), Op.IN, list(group_ids)),
+            Condition(Column("project_id"), Op.IN, list(project_ids)),
+            Condition(Column("timestamp"), Op.GTE, now - NIGHT_SHIFT_OCCURRENCE_LOOKBACK),
+            Condition(Column("timestamp"), Op.LT, now),
+            Condition(Column("exception_frames.in_app"), Op.EQ, 1),
+        ],
+        groupby=[Column("group_id")],
+        limit=Limit(len(group_ids)),
+    )
+    request = Request(
+        dataset=Dataset.Events.value,
+        app_id="night_shift",
+        query=query,
+        tenant_ids={"organization_id": organization_id},
+    )
+    rows = raw_snql_query(
+        request, referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value
+    )["data"]
+    return {row["group_id"] for row in rows}
+
+
 def fixability_score_strategy(
     projects: Sequence[Project],
     max_candidates: int,
@@ -234,6 +266,7 @@ def _fetch_and_score(
         SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
         SearchFilter(SearchKey("issue.type"), "=", SearchValue(type_ids)),
         SearchFilter(SearchKey("last_seen"), ">=", SearchValue(occurrence_cutoff)),
+        SearchFilter(SearchKey("stack.in_app"), "=", SearchValue(1.0)),
     ]
 
     scored: list[ScoredCandidate] = []
@@ -350,6 +383,13 @@ def _fetch_and_score_agentic(
         if len(candidates) >= fetch_limit:
             break
 
+    in_app_group_ids = _groups_with_recent_in_app_frame(
+        [group.id for group in candidates],
+        [project.id for project in projects],
+        projects[0].organization_id,
+    )
+    candidates = [group for group in candidates if group.id in in_app_group_ids]
+
     logger.info(
         "night_shift.agentic_search_results",
         extra={
@@ -366,9 +406,8 @@ def _fetch_and_score_agentic(
     project_ids = [p.id for p in projects]
     factors = _agentic_triage_snuba_factors(group_ids, project_ids, projects[0].organization_id)
 
-    # Step 3: Only score groups that got Snuba results. Non-error types
-    # (issue-platform) won't have rows in the events entity — append them
-    # after scored groups so they don't distort min-max normalization.
+    # Step 3: Append groups whose in-app occurrence falls outside the shorter
+    # scoring lookback after groups with scoring data.
     with_data = [g for g in candidates if g.id in factors]
     without_data = [g for g in candidates if g.id not in factors]
     scores = _agentic_triage_score([g.id for g in with_data], factors)

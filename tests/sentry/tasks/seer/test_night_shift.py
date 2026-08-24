@@ -85,9 +85,34 @@ class NightShiftFixtures(Fixtures):
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
         return project
 
-    def _store_event_and_update_group(self, project, fingerprint, *, timestamp=None, **group_attrs):
+    def _store_event_and_update_group(
+        self,
+        project,
+        fingerprint,
+        *,
+        timestamp=None,
+        in_app=True,
+        **group_attrs,
+    ):
         event = self.store_event(
             data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": fingerprint,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "app.py",
+                                        "function": "main",
+                                        "in_app": in_app,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
                 "fingerprint": [fingerprint],
                 "timestamp": (timestamp or before_now(hours=1)).isoformat(),
                 "environment": "production",
@@ -1378,6 +1403,25 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
         assert [candidate.group.id for candidate in result] == [recent.id]
 
+    def test_requires_in_app_frame(self) -> None:
+        project = self.create_project()
+        in_app = self._store_event_and_update_group(project, "in-app")
+        self._store_event_and_update_group(project, "not-in-app", in_app=False)
+
+        result = fixability_score_strategy([project], max_candidates=10)
+
+        assert [candidate.group.id for candidate in result] == [in_app.id]
+
+    def test_agentic_search_requires_in_app_frame(self) -> None:
+        project = self.create_project()
+        in_app = self._store_event_and_update_group(project, "agentic-in-app")
+        self._store_event_and_update_group(project, "agentic-not-in-app", in_app=False)
+
+        with self.feature({"organizations:agentic-triage-sort": True}):
+            result = fixability_score_strategy([project], max_candidates=10)
+
+        assert [candidate.group.id for candidate in result] == [in_app.id]
+
     def test_search_passes_fourteen_day_occurrence_window(self) -> None:
         project = self.create_project()
 
@@ -1396,6 +1440,7 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         }
         assert filters["last_seen"].operator == ">="
         assert filters["last_seen"].value.raw_value == expected_cutoff
+        assert filters["stack.in_app"].value.raw_value == 1.0
 
     def test_includes_low_value_span_issues_in_search(self) -> None:
         project = self.create_project()
