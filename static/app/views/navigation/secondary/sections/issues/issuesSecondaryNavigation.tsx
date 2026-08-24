@@ -20,8 +20,8 @@ function InboxCountBadge() {
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
-  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const hasInbox = hasProgressUi && orgHasSeerAccess(organization);
+  const hasIssueInbox = organization.features.includes('issue-inbox');
+  const hasInbox = hasIssueInbox && orgHasSeerAccess(organization);
   const hasSeerNightShift = organization.features.includes('seer-night-shift-ui');
   return (
     <Fragment>
@@ -88,7 +88,7 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {(hasSeerNightShift || !hasProgressUi) && (
+        {(hasSeerNightShift || !hasIssueInbox) && (
           <Fragment>
             <SecondaryNavigation.Separator />
             <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
@@ -105,7 +105,7 @@ export function IssuesSecondaryNavigation() {
                     </SecondaryNavigation.Link>
                   </SecondaryNavigation.ListItem>
                 )}
-                {!hasProgressUi && (
+                {!hasIssueInbox && (
                   <SecondaryNavigation.ListItem>
                     <SecondaryNavigation.Link
                       to={`${baseUrl}/autofix/recent/`}
