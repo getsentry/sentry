@@ -741,7 +741,6 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
                 "reviewStatus": None,
                 "repoName": "getsentry/sentry",
                 "files": [],
-                "failedChecks": [],
                 "failedCheckDetails": [],
             }
         ]
@@ -809,7 +808,6 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
 
         assert pull_requests[0]["checksStatus"] == "success"
         assert pull_requests[0]["reviewStatus"] == "approved"
-        assert pull_requests[0]["failedChecks"] == []
         assert pull_requests[0]["failedCheckDetails"] == []
         assert client.requested_keys == ["123"]
 
@@ -839,8 +837,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["checksStatus"] == "failure"
-        # failedChecks stays a plain name list for the currently-deployed frontend.
-        assert pull_requests[0]["failedChecks"] == ["build (3.12)", "mypy"]
+        assert "failedChecks" not in pull_requests[0]
         assert pull_requests[0]["failedCheckDetails"] == [
             {"name": "build (3.12)", "url": "https://github.com/getsentry/sentry/runs/1"},
             {"name": "mypy", "url": None},

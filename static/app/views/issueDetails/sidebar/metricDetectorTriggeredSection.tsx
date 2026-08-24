@@ -56,7 +56,7 @@ import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {
   investigationCandidatesQueryOptions,
-  investigationDetailQueryOptions,
+  getInvestigationDetailQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
@@ -627,7 +627,7 @@ function SeerInvestigationSection({
         headers: {},
       });
       queryClient.setQueryData(
-        investigationDetailQueryOptions(organization.slug, launchedInvestigation.id)
+        getInvestigationDetailQueryOptions(organization.slug, launchedInvestigation.id)
           .queryKey,
         {json: launchedInvestigation, headers: {}}
       );
