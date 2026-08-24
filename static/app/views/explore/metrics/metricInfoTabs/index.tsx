@@ -19,17 +19,10 @@ import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 interface MetricInfoTabsProps {
   traceMetric: TraceMetric;
-  additionalActions?: React.ReactNode;
-  contentsHidden?: boolean;
   isMetricOptionsEmpty?: boolean;
 }
 
-export function MetricInfoTabs({
-  traceMetric,
-  additionalActions,
-  contentsHidden,
-  isMetricOptionsEmpty,
-}: MetricInfoTabsProps) {
+export function MetricInfoTabs({traceMetric, isMetricOptionsEmpty}: MetricInfoTabsProps) {
   const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
@@ -49,7 +42,7 @@ export function MetricInfoTabs({
               <TabList variant="floating">
                 <TabList.Item
                   key={Mode.SAMPLES}
-                  disabled={contentsHidden || isVisualizeEquation(visualize)}
+                  disabled={isVisualizeEquation(visualize)}
                   tooltip={{
                     title: isVisualizeEquation(visualize)
                       ? t('Samples are not available for equations')
@@ -58,15 +51,12 @@ export function MetricInfoTabs({
                 >
                   {t('Samples')}
                 </TabList.Item>
-                <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
-                  {t('Aggregates')}
-                </TabList.Item>
+                <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
               </TabList>
             </TabListWrapper>
-            {additionalActions}
           </Flex>
         ) : null}
-        {visualize.visible && !contentsHidden ? (
+        {visualize.visible ? (
           <Container height="312px">
             <StyledTabPanels>
               <TabPanels.Item key={Mode.AGGREGATE}>

@@ -46,6 +46,7 @@ from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
     IssuePayload,
     IssueProjectPayload,
     OverviewResponse,
+    ProjectConfigPayload,
     ProposedFixPayload,
     PullRequestPayload,
     RootCausePayload,
@@ -346,7 +347,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSeerAutofixOverviewPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
-        projects = self.get_projects(request, organization, include_all_accessible=True)
+        projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 
         start, end = get_date_range_from_stats_period(request.GET)
@@ -354,6 +355,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         include_scm_info = "scmInfo" in expand
         include_issue_stats = "issueStats" in expand
         include_status = "status" in expand
+        include_project_config = "projectConfig" in expand
         environments = self.get_environments(request, organization)
 
         sort = request.GET.get("sort")
@@ -422,11 +424,31 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             [run.seer_run.id for _, run in capped], include_scm_info=include_scm_info
         )
 
-        repo_eligibility_by_project: dict[int, _RepoEligibility] | None = None
-        if include_scm_info:
+        repo_eligibility_by_project: dict[int, _RepoEligibility] = {}
+        if include_project_config:
+            eligibility_project_ids: Collection[int] = project_ids
+        elif include_scm_info:
+            eligibility_project_ids = {group.project_id for group in groups.values()}
+        else:
+            eligibility_project_ids = ()
+        if eligibility_project_ids:
             repo_eligibility_by_project = _coding_agent_repo_eligibility(
-                organization, {group.project_id for group in groups.values()}
+                organization, eligibility_project_ids
             )
+        issue_repo_eligibility = repo_eligibility_by_project if include_scm_info else None
+
+        project_config: list[ProjectConfigPayload] = []
+        if include_project_config:
+            project_config = [
+                {
+                    "id": str(project.id),
+                    "slug": project.slug,
+                    "hasReposConnected": repo_eligibility_by_project[
+                        project.id
+                    ].has_repos_connected,
+                }
+                for project in projects
+            ]
 
         status_by_state_id: dict[int, str] = {}
         if include_status:
@@ -450,7 +472,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                         serialized_by_id[str(group_id)],
                         pull_requests_by_seer_run_id.get(run.seer_run.id, []),
                         status_by_state_id.get(run.seer_run.seer_run_state_id),
-                        repo_eligibility_by_project,
+                        issue_repo_eligibility,
                     )
                 )
 
@@ -458,6 +480,8 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             "runsByMilestone": runs_by_milestone,
             "truncatedMilestones": truncated_milestones,
         }
+        if include_project_config:
+            response["projectConfig"] = project_config
         return Response(response)
 
     def _latest_run_per_group(

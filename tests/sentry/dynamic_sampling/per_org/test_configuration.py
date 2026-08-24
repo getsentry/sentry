@@ -182,7 +182,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.organization_recalibration_factor == 0.7
-        mocks[GET_FACTOR].assert_called_once_with(org.id)
+        mocks[GET_FACTOR].assert_called_once_with(org.id, source="task")
         mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5)
         mocks[SET_FACTOR].assert_called_once_with(org.id, 0.7)
 

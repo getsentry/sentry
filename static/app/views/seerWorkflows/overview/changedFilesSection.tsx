@@ -41,13 +41,15 @@ export function ChangedFilesSection({
   groups,
   expandedKeys,
   onToggle,
+  onMouseEnter,
 }: {
   expandedKeys: Set<string>;
   groups: RepoFileGroup[];
   onToggle: (key: string, expanded: boolean) => void;
+  onMouseEnter?: () => void;
 }) {
   return (
-    <Stack gap="md">
+    <Stack gap="md" onMouseEnter={onMouseEnter}>
       <Flex gap="xs" align="center">
         <IconCode size="xs" variant="secondary" aria-hidden />
         <Text size="xs" bold variant="secondary">

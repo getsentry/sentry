@@ -20,16 +20,6 @@ type PanelTableProps = {
   children?: React.ReactNode | (() => React.ReactNode);
   className?: string;
   /**
-   * If true, disables the border-bottom on the header
-   */
-  disableHeaderBorderBottom?: boolean;
-  /**
-   * If true, disables the headers.
-   * Pass in headers as an array of `undefined` so that the
-   * columns still display appropriately.
-   */
-  disableHeaders?: boolean;
-  /**
    * Renders without predefined padding on the header and body cells
    */
   disablePadding?: boolean;
@@ -87,8 +77,6 @@ function PanelTable({
   emptyAction,
   loader,
   stickyHeaders = false,
-  disableHeaderBorderBottom = false,
-  disableHeaders,
   ...props
 }: PanelTableProps) {
   const shouldShowLoading = isLoading === true;
@@ -102,15 +90,13 @@ function PanelTable({
       disablePadding={disablePadding}
       className={className}
       hasRows={shouldShowContent}
-      disableHeaderBorderBottom={disableHeaderBorderBottom}
       {...props}
     >
-      {!disableHeaders &&
-        headers.map((header, i) => (
-          <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
-            {header}
-          </PanelTableHeader>
-        ))}
+      {headers.map((header, i) => (
+        <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
+          {header}
+        </PanelTableHeader>
+      ))}
 
       {shouldShowLoading && (
         <LoadingWrapper>{loader || <LoadingIndicator />}</LoadingWrapper>
@@ -141,7 +127,6 @@ type WrapperProps = {
    * The number of columns the table will have, this is derived from the headers list
    */
   columns: number;
-  disableHeaderBorderBottom: boolean;
   disablePadding: PanelTableProps['disablePadding'];
   hasRows: boolean;
 };
@@ -158,14 +143,11 @@ const Wrapper = styled(Panel, {
 
   > * {
     padding: ${p => (p.disablePadding ? '0' : p.theme.space.xl)};
-    ${p =>
-      p.disableHeaderBorderBottom
-        ? ''
-        : css`
-            &:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
-              border-bottom: 1px solid ${p.theme.tokens.border.primary};
-            }
-          `}
+    ${p => css`
+      &:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
+        border-bottom: 1px solid ${p.theme.tokens.border.primary};
+      }
+    `}
   }
 
   > ${TableEmptyStateWarning}, > ${LoadingWrapper} {
