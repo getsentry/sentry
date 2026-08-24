@@ -14,7 +14,7 @@ function groupFixture(fileCount: number): RepoFileGroup {
       deletions: 1,
       path: `src/file-${i}.py`,
       changeTag: null,
-      renderDiff: () => null,
+      renderDiff: () => <div>{`diff-${i}`}</div>,
     })),
   };
 }
@@ -57,5 +57,19 @@ describe('ChangedFilesSection', () => {
     await userEvent.click(screen.getByRole('button', {name: /show fewer/i}));
 
     expect(screen.queryByText('src/file-5.py')).not.toBeInTheDocument();
+  });
+
+  it('collapses an expanded diff when its file is hidden and re-revealed', async () => {
+    render(<Wrapper group={groupFixture(7)} />);
+
+    await userEvent.click(screen.getByRole('button', {name: /show 2 more files/i}));
+    await userEvent.click(screen.getByRole('button', {name: /src\/file-6\.py/}));
+    expect(screen.getByText('diff-6')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: /show fewer/i}));
+    await userEvent.click(screen.getByRole('button', {name: /show 2 more files/i}));
+
+    expect(screen.getByText('src/file-6.py')).toBeInTheDocument();
+    expect(screen.queryByText('diff-6')).not.toBeInTheDocument();
   });
 });

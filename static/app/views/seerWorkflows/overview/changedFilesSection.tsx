@@ -57,6 +57,18 @@ function RepoGroup({
       ? group.files
       : group.files.slice(0, COLLAPSED_FILE_COUNT);
 
+  const fileKey = (path: string) => JSON.stringify([group.repoName, path]);
+
+  const toggleShowAll = () => {
+    if (showAll) {
+      // Collapsing: forget expanded diffs for files about to be hidden.
+      group.files
+        .slice(COLLAPSED_FILE_COUNT)
+        .forEach(file => onToggle(fileKey(file.path), false));
+    }
+    setShowAll(prev => !prev);
+  };
+
   return (
     <Fragment>
       <Flex
@@ -79,7 +91,7 @@ function RepoGroup({
         )}
       </Flex>
       {visibleFiles.map(file => {
-        const key = JSON.stringify([group.repoName, file.path]);
+        const key = fileKey(file.path);
         const isExpanded = expandedKeys.has(key);
         return (
           <ChangedFileRow
@@ -101,7 +113,7 @@ function RepoGroup({
             size="sm"
             variant="transparent"
             aria-expanded={showAll}
-            onClick={() => setShowAll(prev => !prev)}
+            onClick={toggleShowAll}
           >
             <Text size="sm" variant="muted">
               {showAll
