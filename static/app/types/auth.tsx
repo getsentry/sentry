@@ -142,6 +142,7 @@ export type AuthConfig = {
   githubLoginLink: string;
   googleLoginLink: string;
   hasNewsletter: boolean;
+  inviteEmail?: string;
   serverHostname: string;
   vstsLoginLink: string;
 };

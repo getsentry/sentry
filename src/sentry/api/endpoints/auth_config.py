@@ -88,6 +88,11 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
             "hasNewsletter": newsletter.backend.is_enabled(),
         }
 
+        invite_email = request.session.get("invite_email")
+        if invite_email:
+            context["inviteEmail"] = invite_email
+
+
         if "session_expired" in request.COOKIES:
             context["warning"] = WARN_SESSION_EXPIRED
 

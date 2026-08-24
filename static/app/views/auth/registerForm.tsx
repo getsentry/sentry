@@ -18,7 +18,7 @@ type Props = {
 };
 
 export function RegisterForm({authConfig}: Props) {
-  const {hasNewsletter} = authConfig;
+  const {hasNewsletter, inviteEmail} = authConfig;
   const navigate = useNavigate();
 
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export function RegisterForm({authConfig}: Props) {
     <Form
       apiMethod="POST"
       apiEndpoint="/auth/register/"
-      initialData={{subscribe: true}}
+      initialData={{subscribe: true, ...(inviteEmail ? {username: inviteEmail} : {})}}
       submitLabel={t('Continue')}
       onSubmitSuccess={response => {
         ConfigStore.set('user', response.user);
