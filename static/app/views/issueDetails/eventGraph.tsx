@@ -9,7 +9,7 @@ import {Flex, Grid, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
-import {Legend} from 'sentry/components/charts/components/legend';
+import {legend} from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
@@ -247,8 +247,8 @@ export function EventGraph({
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
-      ['Feature Flags']: true,
-      ['Releases']: false,
+      'Feature Flags': true,
+      Releases: false,
     }
   );
 
@@ -440,7 +440,7 @@ export function EventGraph({
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
 
-  const legend = Legend({
+  const legendConfig = legend({
     theme,
     orient: 'horizontal',
     align: 'left',
@@ -517,7 +517,7 @@ export function EventGraph({
           height={100}
           series={series}
           additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
-          legend={legend}
+          legend={legendConfig}
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
           grid={{

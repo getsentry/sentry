@@ -529,15 +529,35 @@ class GetOrCreateFromReferenceTest(TestCase):
         """Duplicate rows sharing a provider are ambiguous by name, and no provider value
         can separate them -- only the external id can."""
         duplicate = self.create_repo(
-            self.project, name="getsentry/sentry", provider="integrations:github"
+            self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="99",
         )
-        duplicate.update(external_id="99")
+        # create_repo get_or_creates: without a distinguishing field it returns the setUp
+        # row, and the duplicate this test is named for never exists.
+        assert duplicate.id != self.repo.id
+        assert self._resolve().repo_resolution == "ambiguous"
 
         resolved = self._resolve(repo_external_id="99")
 
         assert resolved.resolved_by == "external_id"
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == duplicate.id
+
+    def test_treats_an_empty_external_id_as_absent(self) -> None:
+        """A reporter with no id for the repo sends ``""``. Querying it would match a row
+        that also has none, attaching the PR to an unrelated repository."""
+        self.create_repo(
+            self.project, name="unrelated/repo", provider="integrations:github", external_id=""
+        )
+
+        resolved = self._resolve(repo_external_id="")
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.resolved_by == "name"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
 
     def test_falls_back_to_name_when_external_id_is_stale(self) -> None:
         """A repo re-added under a new external id must be no worse off than before."""

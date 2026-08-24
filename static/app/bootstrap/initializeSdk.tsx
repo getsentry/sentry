@@ -74,7 +74,7 @@ function getSentryIntegrations() {
     ...(NODE_ENV === 'production' ? [Sentry.browserProfilingIntegration()] : []),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],
-      behaviour: 'apply-tag-if-contains-third-party-frames',
+      behaviour: 'drop-error-if-contains-third-party-frames',
     }),
     Sentry.featureFlagsIntegration(),
     Sentry.consoleLoggingIntegration(),

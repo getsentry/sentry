@@ -131,7 +131,7 @@ class BaseDynamicSamplingConfiguration(ABC):
 
         adjusted_factor = calculate_recalibration_factor(
             org_volume,
-            per_org_recalibration_cache.get_adjusted_factor(self.organization.id),
+            per_org_recalibration_cache.get_adjusted_factor(self.organization.id, source="task"),
             self.get_sample_rate(),
         )
         if adjusted_factor is None:

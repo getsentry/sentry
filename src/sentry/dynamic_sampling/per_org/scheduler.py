@@ -199,6 +199,9 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
                 legacy_volume=get_organization_volume(
                     config.organization.id, time_interval=timedelta(minutes=5)
                 ),
+                # get_recalibration_organization_volume swaps this total for the outcomes
+                # one, so pass the original along to compare the two denominators.
+                eap_extrapolated_total=org_volume_5m.total,
             )
         except Exception as exc:
             sentry_sdk.capture_exception(exc)

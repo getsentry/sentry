@@ -1,10 +1,14 @@
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
+from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test
+
+SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 
 @control_silo_test
@@ -224,3 +228,31 @@ class ApiTokenDetailsImpersonationTest(APITestCase):
         with simulate_impersonation(self.impersonator):
             response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
+
+
+@control_silo_test
+@override_settings(SEER_API_SHARED_SECRET=SECRET)
+class ApiTokenDetailsAgentTokenTest(APITestCase):
+    def test_agent_token_cannot_manage_personal_tokens(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        bearer, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=organization.id,
+            scopes=["org:read", "org:write"],
+            session_id="api-token-details",
+        )
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            for method in ("get", "put", "delete"):
+                with self.subTest(method=method):
+                    personal_token = ApiToken.objects.create(user=self.user, name="personal token")
+                    url = reverse("sentry-api-0-api-token-details", args=[personal_token.id])
+                    response = getattr(self.client, method)(
+                        url,
+                        data={"name": "renamed"},
+                        format="json",
+                        HTTP_AUTHORIZATION=f"Bearer {bearer}",
+                    )
+
+                    assert response.status_code == status.HTTP_403_FORBIDDEN
+                    assert ApiToken.objects.filter(id=personal_token.id).exists()

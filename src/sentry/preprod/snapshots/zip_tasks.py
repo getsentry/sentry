@@ -118,7 +118,6 @@ def build_snapshot_images_zip(
     project_id: int,
     artifact_id: int,
     user_id: int | None = None,
-    include_manifest: bool = False,
     **kwargs: Any,
 ) -> None:
     logger.info(
@@ -128,7 +127,6 @@ def build_snapshot_images_zip(
             "organization_id": org_id,
             "project_id": project_id,
             "user_id": user_id,
-            "include_manifest": include_manifest,
         },
     )
     try:
@@ -141,7 +139,6 @@ def build_snapshot_images_zip(
                 "organization_id": org_id,
                 "project_id": project_id,
                 "user_id": user_id,
-                "include_manifest": include_manifest,
             },
         )
         return
@@ -186,7 +183,7 @@ def build_snapshot_images_zip(
                     f"{org_id}/{project_id}",
                     tmp,
                     artifact_id=artifact_id,
-                    manifest_bytes=manifest_bytes if include_manifest else None,
+                    manifest_bytes=manifest_bytes,
                 )
                 tmp.flush()
                 tmp.seek(0)
@@ -230,7 +227,6 @@ def build_snapshot_images_zip(
             "organization_id": org_id,
             "project_id": project_id,
             "user_id": user_id,
-            "include_manifest": include_manifest,
         },
     )
     _send_archive_email(organization, user_id, artifact_id, ready=True)

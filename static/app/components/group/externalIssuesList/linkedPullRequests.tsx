@@ -94,6 +94,7 @@ function LinkedPullRequestRow({
 
   return (
     <Tooltip
+      disabled={variant !== 'compact'}
       title={
         <Text as="span" align="left" wordBreak="break-word">
           {title}
