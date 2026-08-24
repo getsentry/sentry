@@ -30,6 +30,16 @@ import {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
+export function isProjectNameManuallyModified(
+  projectDetailsForm: ProjectDetailsFormState | undefined
+): boolean {
+  // Sessions stored before this flag existed contain an explicit project name.
+  return (
+    projectDetailsForm?.wasNameManuallyModified ??
+    projectDetailsForm?.projectName !== undefined
+  );
+}
+
 export function getSubmitTooltipText({
   platform,
   projectName,
@@ -353,7 +363,7 @@ export function useScmProjectDetails({
       teamSlug: teamSlugResolved,
       alertRuleConfig,
       notificationSelection,
-      wasNameManuallyModified: projectDetailsForm?.wasNameManuallyModified ?? false,
+      wasNameManuallyModified: isProjectNameManuallyModified(projectDetailsForm),
     };
     // Mirror the legacy project_creation_page.created `issue_alert` breakdown
     // (see createProject.tsx): Custom > Default > No Rule, derived from the
@@ -455,7 +465,7 @@ export function useScmProjectDetails({
     notificationProps,
     onComplete,
     organization,
-    projectDetailsForm?.wasNameManuallyModified,
+    projectDetailsForm,
     projectNameResolved,
     selectedPlatform,
     selectedRepository,

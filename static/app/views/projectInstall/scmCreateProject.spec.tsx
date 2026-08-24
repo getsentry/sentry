@@ -561,6 +561,10 @@ describe('ScmCreateProject', () => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
     expect(createRequest).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(window.sessionStorage.getItem(WIZARD_KEY)!).projectDetailsForm
+        .wasNameManuallyModified
+    ).toBe(true);
   });
 
   it('creates from fresh manual selections and persists the completed state', async () => {

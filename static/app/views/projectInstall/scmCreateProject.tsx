@@ -21,6 +21,7 @@ import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProject
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {
+  isProjectNameManuallyModified,
   type ScmProjectDetailsCompletion,
   useScmProjectDetails,
 } from 'sentry/components/onboarding/scm/useScmProjectDetails';
@@ -154,15 +155,13 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     (platform: OnboardingSelectedSDK | undefined) => {
       setState(s => {
         const currentProjectDetailsForm = s.projectDetailsForm;
-        const wasNameManuallyModified =
-          currentProjectDetailsForm?.wasNameManuallyModified ??
-          currentProjectDetailsForm?.projectName !== undefined;
 
         return {
           ...s,
           selectedPlatform: platform,
           projectDetailsForm:
-            !currentProjectDetailsForm || wasNameManuallyModified
+            !currentProjectDetailsForm ||
+            isProjectNameManuallyModified(currentProjectDetailsForm)
               ? currentProjectDetailsForm
               : {...currentProjectDetailsForm, projectName: undefined},
         };
