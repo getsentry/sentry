@@ -41,7 +41,7 @@ from sentry.integrations.source_code_management.status_check import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
-from sentry.scm.private.rate_limit import DynamicRateLimiter
+from sentry.scm.private.rate_limit import DynamicRateLimiter, RateLimitCheck
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
@@ -147,7 +147,7 @@ class GitHubApiClientTest(TestCase):
         )
 
         with (
-            mock.patch.object(DynamicRateLimiter, "is_rate_limited") as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "check_rate_limit") as mock_is_rate_limited,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
         ):
@@ -171,7 +171,9 @@ class GitHubApiClientTest(TestCase):
 
         with (
             mock.patch.object(
-                DynamicRateLimiter, "is_rate_limited", return_value=False
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
             ) as mock_is_rate_limited,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
@@ -197,7 +199,9 @@ class GitHubApiClientTest(TestCase):
 
         with (
             mock.patch.object(
-                DynamicRateLimiter, "is_rate_limited", return_value=False
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
             ) as mock_is_rate_limited,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
@@ -218,7 +222,9 @@ class GitHubApiClientTest(TestCase):
 
         with (
             mock.patch.object(
-                DynamicRateLimiter, "is_rate_limited", return_value=False
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
             ) as mock_is_rate_limited,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
@@ -247,14 +253,22 @@ class GitHubApiClientTest(TestCase):
         )
 
         with (
-            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
+            ),
             mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
         ):
             self.github_client.get_commits(self.repo.name)
 
         mock_update_meta.assert_called_once_with(
-            capacity=5000, consumed=1234, next_window_start=1372700873, resource="core"
+            capacity=5000,
+            consumed=1234,
+            next_window_start=1372700873,
+            local_used=1,
+            resource="core",
         )
 
     @responses.activate
@@ -268,7 +282,11 @@ class GitHubApiClientTest(TestCase):
         )
 
         with (
-            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
+            ),
             mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
@@ -291,7 +309,11 @@ class GitHubApiClientTest(TestCase):
         )
 
         with (
-            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
+            ),
             mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
@@ -314,7 +336,11 @@ class GitHubApiClientTest(TestCase):
         )
 
         with (
-            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
+            ),
             mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
@@ -335,7 +361,11 @@ class GitHubApiClientTest(TestCase):
         )
 
         with (
-            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
+            ),
             mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
@@ -362,7 +392,11 @@ class GitHubApiClientTest(TestCase):
         )
 
         with (
-            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
+            ),
             mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
             mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),

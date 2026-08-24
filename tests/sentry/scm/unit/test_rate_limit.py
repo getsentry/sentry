@@ -15,27 +15,29 @@ class MockRateLimitProvider:
         capacity: int | None = None,
         window: WindowState | None = None,
         usage: int = 0,
+        total_usage: int | None = None,
         accounted_usage: int = 0,
         accounted_usage_error: Exception | None = None,
     ):
         self._capacity = capacity
         self._window = window
         self._usage = usage
+        self._total_usage = usage if total_usage is None else total_usage
         self._accounted_usage = accounted_usage
         self._accounted_usage_error = accounted_usage_error
         self.accounted_keys: list[str] = []
         self.set_kvs: dict = {}
         self.state_calls: list[tuple[str, str]] = []
-        self.incr_calls: list[tuple[str, int]] = []
+        self.incr_calls: list[tuple[str, str, int]] = []
         self.window_writes: list[tuple[str, WindowState, int]] = []
 
     def get_rate_limit_state(self, total_key, window_key):
         self.state_calls.append((total_key, window_key))
         return (self._capacity, self._window)
 
-    def incr_usage(self, usage_key, expiration):
-        self.incr_calls.append((usage_key, expiration))
-        return self._usage
+    def incr_usage(self, usage_key, total_usage_key, expiration):
+        self.incr_calls.append((usage_key, total_usage_key, expiration))
+        return self._usage, self._total_usage
 
     def set_window_state(self, window_key, state, expiration):
         self.window_writes.append((window_key, state, expiration))
@@ -54,6 +56,7 @@ def make_limiter(
     capacity: int | None = None,
     window: WindowState | None = None,
     usage: int = 0,
+    total_usage: int | None = None,
     accounted_usage: int = 0,
     accounted_usage_error: Exception | None = None,
     referrer_allocation: dict | None = None,
@@ -61,7 +64,12 @@ def make_limiter(
     resource_windows: dict[str, int] | None = None,
 ) -> tuple[DynamicRateLimiter, MockRateLimitProvider]:
     provider = MockRateLimitProvider(
-        capacity, window, usage, accounted_usage, accounted_usage_error
+        capacity=capacity,
+        window=window,
+        usage=usage,
+        total_usage=total_usage,
+        accounted_usage=accounted_usage,
+        accounted_usage_error=accounted_usage_error,
     )
     limiter = DynamicRateLimiter(
         get_time_in_seconds=get_time_in_seconds,
@@ -85,6 +93,7 @@ class StatefulRateLimitProvider:
         self.now = now
         self.capacities: dict[str, int] = {}
         self.usage: dict[str, tuple[int, int]] = {}
+        self.total_usage: dict[str, int] = {}
         self.windows: dict[str, tuple[WindowState, int]] = {}
 
     def _live(self, expires_at: int) -> bool:
@@ -96,13 +105,15 @@ class StatefulRateLimitProvider:
             window = None
         return (self.capacities.get(total_key), window[0] if window is not None else None)
 
-    def incr_usage(self, usage_key, expiration):
+    def incr_usage(self, usage_key, total_usage_key, expiration):
         count, expires_at = self.usage.get(usage_key, (0, 0))
         if not self._live(expires_at):
             count = 0
         count += 1
         self.usage[usage_key] = (count, self.now() + expiration)
-        return count
+        total = self.total_usage.get(total_usage_key, 0) + 1
+        self.total_usage[total_usage_key] = total
+        return count, total
 
     def set_window_state(self, window_key, state, expiration):
         self.windows[window_key] = (state, self.now() + expiration)
@@ -208,7 +219,7 @@ class TestResourceScoping:
         limiter.is_rate_limited("shared", resource="search")
 
         total_key, window_key = provider.state_calls[0]
-        usage_key, _ = provider.incr_calls[0]
+        usage_key, _, _ = provider.incr_calls[0]
         assert total_key == "limit:scm:github:1:search"
         assert window_key == "window:scm:github:1:search"
         assert usage_key.startswith("rl:scm:github:1:search:shared:")
@@ -287,7 +298,7 @@ class TestResourceScoping:
         )
         limiter.is_rate_limited("shared", resource="search")
 
-        usage_key, expires_in = provider.incr_calls[0]
+        usage_key, _, expires_in = provider.incr_calls[0]
         assert usage_key.endswith(":3720")
         assert expires_in == 45
 
@@ -300,7 +311,7 @@ class TestResourceScoping:
         )
         limiter.is_rate_limited("shared", resource="core")
 
-        usage_key, expires_in = provider.incr_calls[0]
+        usage_key, _, expires_in = provider.incr_calls[0]
         assert usage_key.endswith(":7200")
         assert expires_in == 3525
 
@@ -312,9 +323,9 @@ class TestResourceScoping:
 
 class TestReportedUsageReconciliation:
     """
-    The provider's reported usage is authoritative for requests it has already answered. Our own
-    counter is the only accounting available for requests still in flight, so the greater of the
-    two is used.
+    The provider's reported usage is authoritative for requests it has already answered. The
+    cumulative counter identifies requests issued after that report, so provider-only usage and
+    later local requests are both retained.
     """
 
     def test_reported_usage_raises_the_effective_count(self) -> None:
@@ -332,6 +343,16 @@ class TestReportedUsageReconciliation:
             capacity=100,
             usage=101,
             window=WindowState(used=1, reset=4000),
+        )
+        assert limiter.is_rate_limited("shared", "default") is True
+
+    def test_local_usage_since_the_report_is_added_to_reported_usage(self) -> None:
+        """Retries in the report and requests issued afterward must both be charged."""
+        limiter, _ = make_limiter(
+            capacity=100,
+            usage=91,
+            total_usage=91,
+            window=WindowState(used=90, reset=4000, local_used=80),
         )
         assert limiter.is_rate_limited("shared", "default") is True
 
@@ -482,7 +503,7 @@ class TestUsageKeyBucketing:
             capacity=100, window=WindowState(used=1, reset=4000), get_time_in_seconds=lambda: 3900
         )
         limiter.is_rate_limited("shared", "default")
-        usage_key, expiration = provider.incr_calls[0]
+        usage_key, _, expiration = provider.incr_calls[0]
         assert usage_key == "rl:scm:github:1:default:shared:4000"
         assert expiration == 100
 
@@ -508,12 +529,12 @@ class TestUsageKeyBucketing:
             capacity=100, window=WindowState(used=1, reset=4000), get_time_in_seconds=lambda: 3000
         )
         limiter.is_rate_limited("shared", "default")
-        assert provider.incr_calls[0][1] == 1000
+        assert provider.incr_calls[0][2] == 1000
 
     def test_counter_uses_the_local_boundary_without_reported_state(self) -> None:
         limiter, provider = make_limiter(capacity=100, get_time_in_seconds=lambda: 3675)
         limiter.is_rate_limited("shared", "default")
-        usage_key, expiration = provider.incr_calls[0]
+        usage_key, _, expiration = provider.incr_calls[0]
         assert usage_key == "rl:scm:github:1:default:shared:7200"
         assert expiration == 3525
 
@@ -613,8 +634,11 @@ class TestUpdateRateLimitMeta:
 
 class TestWindowStateCodec:
     def test_round_trips(self) -> None:
-        state = WindowState(used=42, reset=1600)
+        state = WindowState(used=42, reset=1600, local_used=37)
         assert decode_window_state(encode_window_state(state)) == state
+
+    def test_decodes_legacy_state_without_local_usage(self) -> None:
+        assert decode_window_state("42:1600") == WindowState(used=42, reset=1600)
 
     def test_decodes_none(self) -> None:
         assert decode_window_state(None) is None
@@ -723,8 +747,15 @@ class TestWindowAlignmentScenario:
             limiter.is_rate_limited("shared", "core")
 
         limiter.update_rate_limit_meta(
-            capacity=100, consumed=101, next_window_start=1500, resource="core"
+            capacity=100,
+            consumed=90,
+            next_window_start=1500,
+            resource="core",
+            local_used=80,
         )
+
+        for _ in range(10):
+            assert limiter.is_rate_limited("shared", "core") is False
         assert limiter.is_rate_limited("shared", "core") is True
 
 

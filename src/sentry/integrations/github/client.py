@@ -1485,8 +1485,13 @@ class GitHubApiClient(GitHubBaseClient):
         resource = resolve_rate_limit_resource(path)
 
         is_rate_limited = False
+        local_used: int | None = None
         try:
-            if self.__rate_limiter.is_rate_limited(self.__referrer, resource=resource):
+            rate_limit_check = self.__rate_limiter.check_rate_limit(
+                self.__referrer, resource=resource
+            )
+            local_used = rate_limit_check.local_used
+            if rate_limit_check.is_limited:
                 # For now do nothing. We'll eventually use this once we understand its behavior better.
                 # raise RateLimitExceed
                 is_rate_limited = True
@@ -1515,6 +1520,7 @@ class GitHubApiClient(GitHubBaseClient):
                     capacity=capacity,
                     consumed=used,
                     next_window_start=reset,
+                    local_used=local_used,
                     resource=resource,
                 )
         except Exception as e:

@@ -4,6 +4,7 @@ from sentry.scm.private.rate_limit import (
     RedisRateLimitProvider,
     WindowState,
     total_limit_key,
+    total_usage_key,
     usage_count_key,
     window_state_key,
 )
@@ -51,18 +52,25 @@ class TestRedisRateLimitProviderIncrUsage(TestCase):
         super().setUp()
         self.provider = RedisRateLimitProvider()
         self.usage_key = usage_count_key("github", self.organization.id, 1000, "shared", "default")
-        _client().delete(self.usage_key)
+        self.total_usage_key = total_usage_key("github", self.organization.id, "shared", "default")
+        _client().delete(self.usage_key, self.total_usage_key)
 
     def test_returns_one_on_first_call(self) -> None:
-        assert self.provider.incr_usage(self.usage_key, expiration=60) == 1
+        assert self.provider.incr_usage(self.usage_key, self.total_usage_key, expiration=60) == (
+            1,
+            1,
+        )
 
     def test_increments_usage_on_each_call(self) -> None:
-        self.provider.incr_usage(self.usage_key, expiration=60)
-        self.provider.incr_usage(self.usage_key, expiration=60)
-        assert self.provider.incr_usage(self.usage_key, expiration=60) == 3
+        self.provider.incr_usage(self.usage_key, self.total_usage_key, expiration=60)
+        self.provider.incr_usage(self.usage_key, self.total_usage_key, expiration=60)
+        assert self.provider.incr_usage(self.usage_key, self.total_usage_key, expiration=60) == (
+            3,
+            3,
+        )
 
     def test_usage_key_has_ttl_set(self) -> None:
-        self.provider.incr_usage(self.usage_key, expiration=60)
+        self.provider.incr_usage(self.usage_key, self.total_usage_key, expiration=60)
         ttl = _client().ttl(self.usage_key)
         assert 0 < ttl <= 60
 
@@ -75,8 +83,10 @@ class TestRedisRateLimitProviderSetWindowState(TestCase):
         _client().delete(self.window_key)
 
     def test_writes_window_state_with_ttl(self) -> None:
-        self.provider.set_window_state(self.window_key, WindowState(used=42, reset=1600), 600)
-        assert _client().get(self.window_key) == "42:1600"
+        self.provider.set_window_state(
+            self.window_key, WindowState(used=42, reset=1600, local_used=37), 600
+        )
+        assert _client().get(self.window_key) == "42:1600:37"
         assert 0 < _client().ttl(self.window_key) <= 600
 
     def test_overwrites_existing_window_state(self) -> None:
@@ -198,6 +208,12 @@ class TestResourceKeyScoping(TestCase):
         self.search_usage_key = usage_count_key(
             "github", self.organization.id, 1000, "shared", "search"
         )
+        self.core_total_usage_key = total_usage_key(
+            "github", self.organization.id, "shared", "core"
+        )
+        self.search_total_usage_key = total_usage_key(
+            "github", self.organization.id, "shared", "search"
+        )
         client = _client()
         for key in (
             self.core_limit_key,
@@ -206,6 +222,8 @@ class TestResourceKeyScoping(TestCase):
             self.search_window_key,
             self.core_usage_key,
             self.search_usage_key,
+            self.core_total_usage_key,
+            self.search_total_usage_key,
         ):
             client.delete(key)
 
@@ -242,6 +260,10 @@ class TestResourceKeyScoping(TestCase):
 
     def test_usage_counters_do_not_collide(self) -> None:
         for _ in range(5):
-            self.provider.incr_usage(self.core_usage_key, expiration=3600)
+            self.provider.incr_usage(
+                self.core_usage_key, self.core_total_usage_key, expiration=3600
+            )
 
-        assert self.provider.incr_usage(self.search_usage_key, expiration=60) == 1
+        assert self.provider.incr_usage(
+            self.search_usage_key, self.search_total_usage_key, expiration=60
+        ) == (1, 1)
