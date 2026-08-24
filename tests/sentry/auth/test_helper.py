@@ -42,8 +42,8 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.redis import clusters
