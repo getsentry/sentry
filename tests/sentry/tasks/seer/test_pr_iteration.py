@@ -11,6 +11,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     is_multi_repo_run,
+    log_multi_repo_rejection,
     serialize_feedback,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
@@ -1135,6 +1136,30 @@ class MultiRepoRejectionTest(TestCase):
 
     def test_two_repos_is_multi_repo(self) -> None:
         assert is_multi_repo_run(self._state(["owner/a", "owner/b"])) is True
+
+    @patch("sentry.seer.autofix.pr_iteration.feedback.logger")
+    def test_rejection_log_uses_pr_ids_not_repo_slugs(self, mock_logger: MagicMock) -> None:
+        state = SeerRunState(
+            run_id=67890,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/a": RepoPRState(repo_name="owner/a", pr_id=222),
+                "owner/b": RepoPRState(repo_name="owner/b", pr_id=111),
+            },
+        )
+
+        log_multi_repo_rejection(state, source="consume", organization_id=self.organization.id)
+
+        mock_logger.info.assert_called_once()
+        extra = mock_logger.info.call_args.kwargs["extra"]
+        assert extra["pr_ids"] == [111, 222]
+        assert extra["repo_count"] == 2
+        # Repo slugs must never reach durable logs (wrdn-pii).
+        assert "repo_names" not in extra
+        assert "owner/a" not in repr(extra)
+        assert "owner/b" not in repr(extra)
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

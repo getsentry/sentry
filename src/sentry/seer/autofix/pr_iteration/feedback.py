@@ -115,9 +115,10 @@ def log_multi_repo_rejection(
 ) -> None:
     """Record a rejected multi-repo PR-iteration trigger.
 
-    ``run_id``/repo names stay in the log rather than metric tags: the metrics
-    middleware denylists keys ending in ``_id`` and rejects unbounded values.
-    The metric carries only the bounded ``source`` tag.
+    Identifiers (``run_id``, ``pr_id``s) stay in the log rather than metric tags:
+    the metrics middleware denylists keys ending in ``_id`` and rejects unbounded
+    values. The metric carries only the bounded ``source`` tag. Repo *slugs* are
+    deliberately kept out of the log — only numeric identifiers are recorded.
     """
     logger.info(
         "autofix.pr_iteration.multi_repo_rejected",
@@ -125,7 +126,11 @@ def log_multi_repo_rejection(
             "run_id": run_state.run_id,
             "organization_id": organization_id,
             "repo_count": len(run_state.repo_pr_states),
-            "repo_names": sorted(run_state.repo_pr_states),
+            "pr_ids": sorted(
+                state.pr_id
+                for state in run_state.repo_pr_states.values()
+                if state.pr_id is not None
+            ),
             "source": source,
             "pr_id": pr_id,
         },
