@@ -178,6 +178,10 @@ export function isMetaFrame(frame: RecordingFrame) {
   return frame.type === EventType.Meta;
 }
 
+export function isFullSnapshotFrame(frame: RecordingFrame) {
+  return frame.type === EventType.FullSnapshot;
+}
+
 export function isBreadcrumbFrameEvent(
   attachment: Record<string, any>
 ): attachment is BreadcrumbFrameEvent {

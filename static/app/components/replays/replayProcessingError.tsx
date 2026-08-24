@@ -15,6 +15,7 @@ interface Props {
 export function ReplayProcessingError({className}: Props) {
   const replay = useReplayReader();
   const {sdk} = replay?.getReplay() || {};
+  const processingErrors = replay?.processingErrors();
 
   useEffect(() => {
     Sentry.withScope(scope => {
@@ -23,8 +24,10 @@ export function ReplayProcessingError({className}: Props) {
       if (sdk) {
         scope.setTag('sdk.version', sdk.version);
       }
+      scope.setExtra('processingErrors', processingErrors);
+      Sentry.captureMessage('Replay processing error');
     });
-  }, [sdk]);
+  }, [processingErrors, sdk]);
 
   return (
     <StyledAlert variant="info" className={className}>

@@ -16,6 +16,7 @@ import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighligh
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {clamp} from 'sentry/utils/number/clamp';
+import {createReplayerLogger} from 'sentry/utils/replays/createReplayerLogger';
 import type {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {useTouchEventsCheck} from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
@@ -363,6 +364,7 @@ export function Provider({
         plugins: [canvasReplayerPlugin(events)],
         skipInactive: initialPrefsRef.current.isSkippingInactive,
         speed: initialPrefsRef.current.playbackSpeed,
+        logger: createReplayerLogger(),
       });
 
       // @ts-expect-error TS(2345): Argument of type '(dimension: Dimensions) => void'... Remove this comment to see the full error message

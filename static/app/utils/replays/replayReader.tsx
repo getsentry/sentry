@@ -46,6 +46,7 @@ import {
   isConsoleFrame,
   isDeadClick,
   isDeadRageClick,
+  isFullSnapshotFrame,
   isMetaFrame,
   isPaintFrame,
   isSlowClickFrame,
@@ -463,9 +464,12 @@ export class ReplayReader {
       this.getRRWebFrames().length < 2
         ? `Replay has ${this.getRRWebFrames().length} frames`
         : null,
-      this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
+      this.getRRWebFrames().some(isMetaFrame) ? null : 'Missing Meta Frame',
+      // Video replays synthesize their snapshots from meta frames in
+      // `getRRWebFramesWithSnapshots`, so they never carry a real one.
+      this.isVideoReplay() || this.getRRWebFrames().some(isFullSnapshotFrame)
         ? null
-        : 'Missing Meta Frame',
+        : 'Missing Full Snapshot Frame',
     ].filter(defined);
   });
   hasProcessingErrors = () => {
