@@ -597,9 +597,6 @@ class OrganizationAgentTokenTest(APITestCase):
         assert write.status_code == 403
 
     @pytest.mark.seer_agent_token_matrix
-    @pytest.mark.seer_matrix_resource_boundary
-    @pytest.mark.seer_matrix_agent_token
-    @pytest.mark.seer_matrix_minted_token
     def test_agent_token_cannot_create_an_organization(self) -> None:
         self.login_as(self.owner)
 
@@ -817,8 +814,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
     Endpoint-specific tests remain responsible for response payload semantics; this
     matrix is the source of truth for authentication and permission outcomes.
 
-    Run the complete matrix with ``-m seer_agent_token_matrix`` or select one
-    authentication mode with its ``seer_matrix_*`` marker.
+    Run the complete matrix with ``-m seer_agent_token_matrix``. Use normal pytest
+    name filtering for focused iteration (for example, ``-k private_helper``).
     """
 
     def setUp(self) -> None:
@@ -1330,9 +1327,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {int(item["organization"]["id"]) for item in response.data}
         return {int(item["id"]) for item in response.data}
 
-    @pytest.mark.seer_matrix_resource_boundary
-    @pytest.mark.seer_matrix_agent_token
-    @pytest.mark.seer_matrix_minted_token
     def test_agent_organization_index_is_bound_to_minted_organization(self) -> None:
         """An identity-compatible agent must not turn an org-bound token into a user list.
 
@@ -1359,9 +1353,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                         assert listed_ids == {self.org.id}
                         assert other_org.id not in listed_ids
 
-    @pytest.mark.seer_matrix_resource_boundary
-    @pytest.mark.seer_matrix_agent_token
-    @pytest.mark.seer_matrix_minted_token
     def test_revoked_member_invalidates_minted_token(self) -> None:
         with self.feature(FLAG):
             bearer = self._mint_agent_token()
@@ -1377,9 +1368,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
 
                     assert response.status_code == 401, response.content
 
-    @pytest.mark.seer_matrix_resource_boundary
-    @pytest.mark.seer_matrix_agent_token
-    @pytest.mark.seer_matrix_minted_token
     def test_agent_project_indexes_retain_org_and_member_project_bounds(self) -> None:
         """List endpoints must intersect compatibility identity with credential authority."""
         self.org.flags.allow_joinleave = False
@@ -1489,15 +1477,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         assert int(team_response.data["id"]) == unjoined_team.id
         assert cross_org_response.status_code == 403, cross_org_response.content
 
-    @pytest.mark.seer_matrix_resource_boundary
-    @pytest.mark.seer_matrix_agent_token
-    @pytest.mark.seer_matrix_minted_token
     def test_manager_agent_inherits_org_wide_resource_access(self) -> None:
         self._assert_global_role_agent_resource_breadth("manager")
 
-    @pytest.mark.seer_matrix_resource_boundary
-    @pytest.mark.seer_matrix_agent_token
-    @pytest.mark.seer_matrix_minted_token
     def test_owner_agent_inherits_org_wide_resource_access(self) -> None:
         self._assert_global_role_agent_resource_breadth("owner")
 
@@ -2260,14 +2242,6 @@ def _install_public_get_matrix_tests() -> None:
         test_matrix_cell.__name__ = (
             f"test_public_get_{index:03d}_{endpoint.test_id}_{authentication.value}"
         )
-        test_matrix_cell = getattr(pytest.mark, f"seer_matrix_{authentication.value}")(
-            test_matrix_cell
-        )
-        if authentication in {
-            MatrixAuthentication.AGENT_TOKEN,
-            MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-        }:
-            test_matrix_cell = pytest.mark.seer_matrix_minted_token(test_matrix_cell)
         setattr(AgentTokenPublicGetMatrixTest, test_matrix_cell.__name__, test_matrix_cell)
 
 
@@ -2287,15 +2261,6 @@ def _install_public_mutation_matrix_tests() -> None:
         test_matrix_cell.__name__ = (
             f"test_public_mutation_{index:03d}_{endpoint.test_id}_{authentication.value}"
         )
-        test_matrix_cell = getattr(pytest.mark, f"seer_matrix_{authentication.value}")(
-            test_matrix_cell
-        )
-        if authentication in {
-            MatrixAuthentication.AGENT_TOKEN,
-            MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-            MatrixAuthentication.APPROVED_AGENT_TOKEN,
-        }:
-            test_matrix_cell = pytest.mark.seer_matrix_minted_token(test_matrix_cell)
         setattr(AgentTokenPublicGetMatrixTest, test_matrix_cell.__name__, test_matrix_cell)
 
 
@@ -2319,15 +2284,6 @@ def _install_private_helper_matrix_tests() -> None:
         test_get_matrix_cell.__name__ = (
             f"test_private_helper_get_{index:03d}_{get_endpoint.test_id}_{get_authentication.value}"
         )
-        test_get_matrix_cell = pytest.mark.seer_matrix_private_helper(test_get_matrix_cell)
-        test_get_matrix_cell = getattr(pytest.mark, f"seer_matrix_{get_authentication.value}")(
-            test_get_matrix_cell
-        )
-        if get_authentication in {
-            MatrixAuthentication.AGENT_TOKEN,
-            MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-        }:
-            test_get_matrix_cell = pytest.mark.seer_matrix_minted_token(test_get_matrix_cell)
         setattr(AgentTokenPublicGetMatrixTest, test_get_matrix_cell.__name__, test_get_matrix_cell)
 
     for index, (mutation_endpoint, mutation_authentication) in enumerate(
@@ -2348,20 +2304,6 @@ def _install_private_helper_matrix_tests() -> None:
             "test_private_helper_mutation_"
             f"{index:03d}_{mutation_endpoint.test_id}_{mutation_authentication.value}"
         )
-        test_mutation_matrix_cell = pytest.mark.seer_matrix_private_helper(
-            test_mutation_matrix_cell
-        )
-        test_mutation_matrix_cell = getattr(
-            pytest.mark, f"seer_matrix_{mutation_authentication.value}"
-        )(test_mutation_matrix_cell)
-        if mutation_authentication in {
-            MatrixAuthentication.AGENT_TOKEN,
-            MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-            MatrixAuthentication.APPROVED_AGENT_TOKEN,
-        }:
-            test_mutation_matrix_cell = pytest.mark.seer_matrix_minted_token(
-                test_mutation_matrix_cell
-            )
         setattr(
             AgentTokenPublicGetMatrixTest,
             test_mutation_matrix_cell.__name__,
@@ -2387,11 +2329,6 @@ def _install_disallowed_agent_token_boundary_matrix_tests() -> None:
 
         test_matrix_cell.__name__ = f"test_disallowed_agent_token_workflows_{authentication.value}"
         test_matrix_cell = pytest.mark.seer_agent_token_matrix(test_matrix_cell)
-        test_matrix_cell = pytest.mark.seer_matrix_resource_boundary(test_matrix_cell)
-        test_matrix_cell = getattr(pytest.mark, f"seer_matrix_{authentication.value}")(
-            test_matrix_cell
-        )
-        test_matrix_cell = pytest.mark.seer_matrix_minted_token(test_matrix_cell)
         setattr(OrganizationAgentTokenTest, test_matrix_cell.__name__, test_matrix_cell)
 
 
@@ -2411,9 +2348,6 @@ def _install_user_global_boundary_matrix_tests() -> None:
             f"test_user_global_get_{index:03d}_{endpoint.test_id}_agent_token"
         )
         test_matrix_cell = pytest.mark.seer_agent_token_matrix(test_matrix_cell)
-        test_matrix_cell = pytest.mark.seer_matrix_agent_token(test_matrix_cell)
-        test_matrix_cell = pytest.mark.seer_matrix_minted_token(test_matrix_cell)
-        test_matrix_cell = pytest.mark.seer_matrix_user_global_boundary(test_matrix_cell)
         setattr(OrganizationAgentTokenTest, test_matrix_cell.__name__, test_matrix_cell)
 
 
