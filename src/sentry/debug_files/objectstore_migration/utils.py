@@ -198,7 +198,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
 
     content_type = file.headers.get("Content-Type", "application/octet-stream")
     date_created = file.timestamp
-    recorded_checksum = file.checksum
+    recorded_checksum = file.checksum or None
     recorded_size = file.size
     file_format = KNOWN_DIF_FORMATS.get(content_type.lower(), "unknown")
     filename = (
@@ -206,7 +206,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
         f"{_dif_file_extension(file_format, debug_file.file_type)}"
     )
 
-    if not recorded_checksum:
+    if recorded_checksum is None:
         logger.warning(
             "debug_files.objectstore_migration.checksum_missing",
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
@@ -233,7 +233,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
         return None
 
     try:
-        expected_checksum = recorded_checksum or local_checksum
+        expected_checksum = recorded_checksum if recorded_checksum is not None else local_checksum
         expected_size = recorded_size if recorded_size is not None else local_size
         storage_path = session.put(
             tmp,
