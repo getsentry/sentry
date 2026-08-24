@@ -1,21 +1,18 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
-import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityInputFrame} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
-import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 
 import {getActivityNoteAuthor} from './activityItem';
 import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
@@ -25,10 +22,9 @@ type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
 
 interface ActivityLineNoteProps {
   activity: GroupActivityNote;
-  group: Group;
   inputVariant: ActivityLineVariant;
   onDelete: () => Promise<void>;
-  onCommentEdited?: (activity: GroupActivity[]) => void;
+  onUpdate: (data: NoteType) => Promise<void>;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -38,10 +34,9 @@ export function isActivityNote(activity: GroupActivity): activity is GroupActivi
 
 export function ActivityLineNote({
   activity,
-  group,
   inputVariant,
   onDelete,
-  onCommentEdited,
+  onUpdate,
   timestampUnitStyle,
 }: ActivityLineNoteProps) {
   const [editing, setEditing] = useState(false);
@@ -69,13 +64,19 @@ export function ActivityLineNote({
       />
       <ActivityLineContent>
         {editing ? (
-          <ActivityNoteEditor
-            activity={activity}
-            group={group}
-            inputVariant={inputVariant}
-            onCancel={() => setEditing(false)}
-            onCommentEdited={onCommentEdited}
-          />
+          <ActivityInputFrame>
+            <MentionComposer
+              initialValue={activity.data.text}
+              minHeight={96}
+              mode="edit"
+              onCancel={() => setEditing(false)}
+              onSubmit={async data => {
+                await onUpdate(data);
+                setEditing(false);
+              }}
+              variant={inputVariant}
+            />
+          </ActivityInputFrame>
         ) : (
           <ActivityNoteBubble>
             <NoteBody text={activity.data.text} />
@@ -83,54 +84,6 @@ export function ActivityLineNote({
         )}
       </ActivityLineContent>
     </ActivityLineRow>
-  );
-}
-
-function ActivityNoteEditor({
-  activity,
-  group,
-  inputVariant,
-  onCancel,
-  onCommentEdited,
-}: {
-  activity: GroupActivityNote;
-  group: Group;
-  inputVariant: ActivityLineVariant;
-  onCancel: () => void;
-  onCommentEdited?: (activity: GroupActivity[]) => void;
-}) {
-  const organization = useOrganization();
-  const mutators = useMutateActivity({organization, group});
-  const handleUpdate = useCallback(
-    async (data: NoteType) => {
-      const result = await mutators.handleUpdate(data, activity.id, {
-        onSuccess: () => {
-          addSuccessMessage(t('Comment updated'));
-        },
-        onError: () => {
-          addErrorMessage(t('Unable to update comment'));
-        },
-      });
-
-      trackAnalytics('issue_details.comment_updated', {organization});
-      onCommentEdited?.(
-        group.activity.map(item => (item.id === result.id ? result : item))
-      );
-      onCancel();
-    },
-    [activity.id, group.activity, mutators, onCancel, onCommentEdited, organization]
-  );
-  return (
-    <ActivityInputFrame>
-      <MentionComposer
-        initialValue={activity.data.text}
-        minHeight={96}
-        mode="edit"
-        onCancel={onCancel}
-        onSubmit={handleUpdate}
-        variant={inputVariant}
-      />
-    </ActivityInputFrame>
   );
 }
 

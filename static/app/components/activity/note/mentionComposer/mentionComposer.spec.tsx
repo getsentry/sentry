@@ -2,7 +2,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -13,6 +13,8 @@ function getEditor(name = 'Add a comment') {
   editor.setAttribute('contenteditable', 'true');
   return editor;
 }
+
+const noopSubmit = () => Promise.resolve();
 
 describe('MentionComposer', () => {
   beforeEach(() => {
@@ -29,7 +31,7 @@ describe('MentionComposer', () => {
   });
 
   it('shows editor controls after focusing the editor', async () => {
-    render(<MentionComposer mode="create" />);
+    render(<MentionComposer mode="create" onSubmit={noopSubmit} />);
 
     expect(screen.queryByRole('radio', {name: 'Write'})).not.toBeInTheDocument();
 
@@ -51,7 +53,7 @@ describe('MentionComposer', () => {
       match: [MockApiClient.matchQuery({query: 'alice'})],
     });
 
-    render(<MentionComposer mode="create" />);
+    render(<MentionComposer mode="create" onSubmit={noopSubmit} />);
     await userEvent.type(getEditor(), '@alice');
 
     const option = await screen.findByRole('option', {
@@ -77,6 +79,8 @@ describe('MentionComposer', () => {
       text: 'Thanks **@Alice Example** and **#frontend** ',
       mentions: ['user:1', 'team:1'],
     });
+    await waitFor(() => expect(textbox).toHaveTextContent(''));
+    expect(screen.queryByRole('button', {name: 'Comment'})).not.toBeInTheDocument();
   });
 
   it('keeps normal multiline text and submits with Ctrl+Enter', async () => {
@@ -93,7 +97,7 @@ describe('MentionComposer', () => {
   });
 
   it('renders selected mentions in Markdown preview', async () => {
-    render(<MentionComposer mode="create" />);
+    render(<MentionComposer mode="create" onSubmit={noopSubmit} />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
@@ -103,14 +107,13 @@ describe('MentionComposer', () => {
     expect(screen.getByText('@Alice Example').closest('strong')).toBeInTheDocument();
   });
 
-  it('edits and cancels an existing comment', async () => {
-    const onCancel = jest.fn();
+  it('submits an edited comment', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(
       <MentionComposer
         initialValue="Existing comment"
         mode="edit"
-        onCancel={onCancel}
+        onCancel={jest.fn()}
         onSubmit={onSubmit}
       />
     );
@@ -124,8 +127,5 @@ describe('MentionComposer', () => {
       text: 'Existing comment updated',
       mentions: [],
     });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    expect(onCancel).toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -22,9 +22,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
 interface CreateComposerProps {
+  onSubmit: (data: NoteType) => Promise<void>;
   initialValue?: string;
   minHeight?: number;
-  onSubmit?: (data: NoteType) => Promise<void>;
   onValueChange?: (value: string) => void;
   placeholder?: string;
   variant?: 'compact' | 'full';
@@ -180,28 +180,32 @@ export function MentionComposer(props: MentionComposerProps) {
   const initialEditorValue: MentionInputValue = {text: initialValue, mentions: []};
   const isCompact = variant === 'compact';
 
-  const submitNote = useCallback(
-    async (value: MentionInputValue) => {
-      const validMentionIds = value.mentions.flatMap(mention =>
-        value.text.slice(mention.start, mention.end) === mention.text ? mention.id : []
-      );
-      const uniqueMentionIds = [...new Set(validMentionIds)];
-      const data = {
-        text: serializeNoteMentions(value),
-        mentions: uniqueMentionIds,
-      };
-
-      await onSubmit?.(data);
-    },
-    [onSubmit]
-  );
-
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
       value: initialEditorValue,
     },
-    onSubmit: ({value}) => submitNote(value.value),
+    onSubmit: async ({value}) => {
+      const editorValue = value.value;
+      const validMentionIds = editorValue.mentions.flatMap(mention =>
+        editorValue.text.slice(mention.start, mention.end) === mention.text
+          ? mention.id
+          : []
+      );
+      const uniqueMentionIds = [...new Set(validMentionIds)];
+      const data = {
+        text: serializeNoteMentions(editorValue),
+        mentions: uniqueMentionIds,
+      };
+
+      await onSubmit(data);
+
+      if (props.mode === 'create') {
+        form.reset({value: {text: '', mentions: []}});
+        setEditorMode('write');
+        setHasFocusedEditor(false);
+      }
+    },
   });
 
   return (
