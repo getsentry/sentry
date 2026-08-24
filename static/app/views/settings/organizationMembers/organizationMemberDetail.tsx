@@ -286,9 +286,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
             >
               <div>
                 <DetailLabel>{t('Email')}</DetailLabel>
-                <div>
-                  <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
-                </div>
+                <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
               </div>
               <div>
                 <DetailLabel>{t('Status')}</DetailLabel>
@@ -298,9 +296,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
               </div>
               <div>
                 <DetailLabel>{t('Added')}</DetailLabel>
-                <div>
-                  <DateTime dateOnly date={member.dateCreated} />
-                </div>
+                <DateTime dateOnly date={member.dateCreated} />
               </div>
             </Grid>
           </PanelItem>
