@@ -101,7 +101,9 @@ describe('ScmMessaging', () => {
 
     renderMessaging(onMessagingSetupChange);
 
-    expect(await screen.findByText('Destination selected')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
     // channelName is now required at selection time, so the hook has nothing
     // to propagate back via onMessagingSetupChange once validation passes.
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
@@ -122,7 +124,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
   });
 
   it('clears an inactive integration with an explanation', async () => {
@@ -137,7 +139,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
   });
 
   it('clears the stale channel warning once a refetch resolves the channel', async () => {
@@ -163,7 +165,9 @@ describe('ScmMessaging', () => {
     mockChannelValidate(true);
     await queryClient.invalidateQueries();
 
-    expect(await screen.findByText('Destination selected')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
     expect(screen.queryByText(warning)).not.toBeInTheDocument();
   });
 
@@ -184,7 +188,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
-    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
   });
 
   it('uses channel ID as the channel-validate param for Discord', async () => {
@@ -211,7 +215,9 @@ describe('ScmMessaging', () => {
 
     renderMessaging(jest.fn(), discordSetup);
 
-    expect(await screen.findByText('Destination selected')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
   });
 
   it('does not trust a cached destination while revalidating it', async () => {
@@ -258,7 +264,7 @@ describe('ScmMessaging', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
     expect(
       await screen.findByText(
@@ -458,7 +464,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 });
