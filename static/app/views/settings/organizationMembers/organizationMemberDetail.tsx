@@ -279,8 +279,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         <PanelBody>
           <PanelItem>
             <Grid
-              columns={{zero: 'auto', '2xl': '2fr 1fr 1fr'}}
-              flow={{zero: 'row', '2xl': 'column'}}
+              columns={{zero: 'auto', xl: '2fr 1fr 1fr'}}
+              flow={{zero: 'row', xl: 'column'}}
               gap="xl"
               width="100%"
             >
