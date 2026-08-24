@@ -174,7 +174,7 @@ function FilterBar(props: FilterBarProps) {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
-    <Grid gap="xl" marginBottom="xl" columns={{'screen:sm': 'auto 1fr auto auto'}}>
+    <Grid gap="xl" marginBottom="xl" columns={{zero: '1fr', xl: 'auto 1fr auto auto'}}>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />
