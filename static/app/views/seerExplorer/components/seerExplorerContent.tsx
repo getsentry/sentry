@@ -14,8 +14,9 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -345,13 +346,12 @@ export function SeerExplorerContent({
     }
   }, [conversationsUrl]);
 
-  const openFeedbackForm = useFeedbackForm();
+  const {feedback} = useFeedbackSDKIntegration();
+  const feedbackButtonWrapperRef = useRef<HTMLDivElement>(null);
+  const feedbackOptions = useMemo(() => getExplorerFeedbackOptions(runId), [runId]);
   const handleFeedback = useCallback(() => {
-    if (openFeedbackForm) {
-      const feedbackOptions = getExplorerFeedbackOptions(runId);
-      openFeedbackForm(feedbackOptions);
-    }
-  }, [openFeedbackForm, runId]);
+    feedbackButtonWrapperRef.current?.querySelector('button')?.click();
+  }, []);
 
   // - Pop-up menu component --------------------------------------------------
 
@@ -377,7 +377,7 @@ export function SeerExplorerContent({
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
-      onFeedback: openFeedbackForm ? handleFeedback : undefined,
+      onFeedback: feedback ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
         ? setOverrideBashModeEnabled
@@ -667,6 +667,11 @@ export function SeerExplorerContent({
             : undefined
         }
       />
+      {feedback && (
+        <div ref={feedbackButtonWrapperRef} style={{display: 'none'}}>
+          <FeedbackButton feedbackOptions={feedbackOptions} />
+        </div>
+      )}
     </Stack>
   );
 }
