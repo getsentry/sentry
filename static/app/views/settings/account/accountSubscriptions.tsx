@@ -146,7 +146,7 @@ function AccountSubscriptions() {
                       mutationOptions={subMutationOptions}
                     >
                       {field => {
-                        const isSubscribed = field.state.value;
+                        const isSubscribed = field.value;
                         const statusText = isSubscribed
                           ? subscription.subscribedDate
                             ? `${subscription.email} on ${moment(subscription.subscribedDate).format('ll')}`
@@ -168,7 +168,7 @@ function AccountSubscriptions() {
                             hintText={hintText}
                           >
                             <field.Switch
-                              checked={field.state.value}
+                              checked={field.value}
                               onChange={field.handleChange}
                             />
                           </field.Layout.Row>

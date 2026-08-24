@@ -1,7 +1,6 @@
-import {useEffect} from 'react';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,6 +11,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const apiKeySchema = z.object({
   apiKey: z.string().min(1, t('API key is required')),
@@ -19,50 +19,46 @@ const apiKeySchema = z.object({
 
 function ClaudeCodeApiKeyStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<Record<string, never>, {apiKey: string}>) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {apiKey: ''},
-    validators: {onDynamic: apiKeySchema},
-    onSubmit: ({value}) => {
-      advance({apiKey: value.apiKey});
-    },
+    validators: [{run: apiKeySchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
+      advance({apiKey: value.apiKey}).catch(error => {
+        if (error instanceof RequestError) {
+          return toFieldErrors({value, createValidationError}, error);
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, advanceError);
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t('Enter your Anthropic API key to connect Claude Agent with Sentry.')}
         </Text>
-        <form.AppField name="apiKey">
+        <form.Field name="apiKey">
           {field => (
             <field.Layout.Stack label={t('Anthropic API Key')} required>
               <field.Input
                 type="password"
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="sk-ant-..."
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
             {t('Continue')}
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

@@ -2,10 +2,10 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {
-  defaultFormOptions,
   FieldGroup,
   FormSearch,
-  setFieldErrors,
+  ScrapsForm,
+  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -36,10 +36,11 @@ function FingerprintRulesForm({
   const updateProject = useUpdateProject(project);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {fingerprintingRules: project.fingerprintingRules ?? ''},
-    validators: {onDynamic: z.object({fingerprintingRules: z.string()})},
-    onSubmit: ({value, formApi}) =>
+    validators: [
+      {run: z.object({fingerprintingRules: z.string()}), triggers: ['change']},
+    ],
+    onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync(value)
         .then(() => {
@@ -48,18 +49,22 @@ function FingerprintRulesForm({
         })
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
-          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
-            return;
+          if (error instanceof RequestError) {
+            const fieldErrors = toFieldErrors({value, createValidationError}, error);
+            if (fieldErrors) {
+              return fieldErrors;
+            }
           }
           addErrorMessage(t('Unable to save changes.'));
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/issue-grouping/">
         <FieldGroup title={t('Fingerprint Rules')}>
-          <form.AppField name="fingerprintingRules">
+          <form.Field name="fingerprintingRules">
             {field => (
               <field.Layout.Stack label={t('Fingerprint Rules')}>
                 <Stack gap="md">
@@ -83,7 +88,7 @@ stack.function:malloc -> memory-allocation-error`}
                     </Text>
                   </Container>
                   <field.TextArea
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     disabled={!hasAccess}
                     monospace
@@ -97,7 +102,7 @@ stack.function:malloc -> memory-allocation-error`}
                 </Stack>
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
           {hasAccess && (
             <Stack gap="lg">
@@ -120,7 +125,7 @@ stack.function:malloc -> memory-allocation-error`}
           )}
         </FieldGroup>
       </FormSearch>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -134,10 +139,11 @@ function StackTraceRulesForm({
   const updateProject = useUpdateProject(project);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {groupingEnhancements: project.groupingEnhancements ?? ''},
-    validators: {onDynamic: z.object({groupingEnhancements: z.string()})},
-    onSubmit: ({value, formApi}) =>
+    validators: [
+      {run: z.object({groupingEnhancements: z.string()}), triggers: ['change']},
+    ],
+    onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync(value)
         .then(() => {
@@ -146,18 +152,22 @@ function StackTraceRulesForm({
         })
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
-          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
-            return;
+          if (error instanceof RequestError) {
+            const fieldErrors = toFieldErrors({value, createValidationError}, error);
+            if (fieldErrors) {
+              return fieldErrors;
+            }
           }
           addErrorMessage(t('Unable to save changes.'));
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/issue-grouping/">
         <FieldGroup title={t('Stack Trace Rules')}>
-          <form.AppField name="groupingEnhancements">
+          <form.Field name="groupingEnhancements">
             {field => (
               <field.Layout.Stack label={t('Stack Trace Rules')}>
                 <Stack gap="md">
@@ -181,7 +191,7 @@ stack.function:mylibrary_* +app`}
                     </Text>
                   </Container>
                   <field.TextArea
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     disabled={!hasAccess}
                     monospace
@@ -195,7 +205,7 @@ stack.function:mylibrary_* +app`}
                 </Stack>
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
           {hasAccess && (
             <Stack gap="lg">
@@ -218,7 +228,7 @@ stack.function:mylibrary_* +app`}
           )}
         </FieldGroup>
       </FormSearch>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -70,10 +70,9 @@ function CreateReleaseIntegrationModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {name: defaultName},
-    validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) =>
+    validators: [{run: schema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
       mutation
         .mutateAsync(value)
         .then(integration => {
@@ -82,21 +81,24 @@ function CreateReleaseIntegrationModal({
           closeModal();
         })
         .catch(error => {
-          const handled =
-            error instanceof RequestError ? setFieldErrors(formApi, error) : false;
-          if (!handled) {
-            addErrorMessage(t('Something went wrong!'));
+          if (error instanceof RequestError) {
+            const fieldErrors = toFieldErrors({value, createValidationError}, error);
+            if (fieldErrors) {
+              return fieldErrors;
+            }
           }
+          addErrorMessage(t('Something went wrong!'));
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <h3>{t('Create a Release Integration')}</h3>
       </Header>
       <Body>
-        <form.AppField name="name">
+        <form.Field name="name">
           {field => (
             <field.Layout.Row
               label={t('Name')}
@@ -104,13 +106,13 @@ function CreateReleaseIntegrationModal({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={defaultName}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
       </Body>
       <Footer>
         <Flex gap="md" justify="end">
@@ -125,7 +127,7 @@ function CreateReleaseIntegrationModal({
           <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

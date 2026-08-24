@@ -7,7 +7,7 @@ import sentryAvatar from 'sentry-images/sentry-avatar.png';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -291,9 +291,8 @@ function NotificationConfigurator() {
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: DEFAULT_VALUES,
-    validators: {onDynamic: notificationSchema},
+    validators: [{run: notificationSchema, triggers: ['change']}],
     onSubmit: async ({value}) => {
       const message = buildPayload(value, imageSourcesRef.current);
       try {
@@ -313,27 +312,27 @@ function NotificationConfigurator() {
     label: string,
     hintText: string
   ) => (
-    <form.AppField name={sourceName}>
+    <form.Field name={sourceName}>
       {field => (
         <field.Layout.Row label={label} hintText={hintText}>
           <Flex gap="md" align="center" wrap="wrap" flex={1}>
             <field.Select
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={imageSourceOptions}
             />
             <form.Subscribe selector={state => state.values[sourceName] === 'custom'}>
               {isCustom =>
                 isCustom ? (
-                  <form.AppField name={customName}>
+                  <form.Field name={customName}>
                     {customField => (
                       <customField.Input
-                        value={customField.state.value}
+                        value={customField.value}
                         onChange={customField.handleChange}
                         placeholder="https://example.com/image.png"
                       />
                     )}
-                  </form.AppField>
+                  </form.Field>
                 ) : null
               }
             </form.Subscribe>
@@ -351,7 +350,7 @@ function NotificationConfigurator() {
           </Flex>
         </field.Layout.Row>
       )}
-    </form.AppField>
+    </form.Field>
   );
 
   return (
@@ -373,9 +372,9 @@ function NotificationConfigurator() {
         />
       </Flex>
 
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <form.FieldGroup title="Notification">
-          <form.AppField name="title">
+          <form.Field name="title">
             {field => (
               <field.Layout.Row
                 label="title"
@@ -383,23 +382,23 @@ function NotificationConfigurator() {
                 required
               >
                 <Flex gap="sm" align="center" wrap="wrap" flex={1}>
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                   <PresetMenu examples={TITLE_EXAMPLES} onPick={field.handleChange} />
                 </Flex>
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="body">
+          <form.Field name="body">
             {field => (
               <field.Layout.Row label="body" hintText="Main text. Leave blank to omit.">
                 <Flex gap="sm" align="center" wrap="wrap" flex={1}>
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                   <PresetMenu examples={BODY_EXAMPLES} onPick={field.handleChange} />
                 </Flex>
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
           {renderImageField(
             'iconSource',
@@ -420,115 +419,115 @@ function NotificationConfigurator() {
             'Large hero image (Chrome).'
           )}
 
-          <form.AppField name="tag">
+          <form.Field name="tag">
             {field => (
               <field.Layout.Row
                 label="tag"
                 hintText="Notifications sharing a tag replace each other. Leave blank to omit."
               >
                 <Flex gap="sm" align="center" wrap="wrap" flex={1}>
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                   <PresetMenu examples={TAG_EXAMPLES} onPick={field.handleChange} />
                 </Flex>
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="dir">
+          <form.Field name="dir">
             {field => (
               <field.Layout.Row label="dir" hintText="Text direction.">
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={DIR_OPTIONS}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="lang">
+          <form.Field name="lang">
             {field => (
               <field.Layout.Row
                 label="lang"
                 hintText="BCP 47 language tag. Leave blank to omit."
               >
                 <Flex gap="sm" align="center" wrap="wrap" flex={1}>
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                   <PresetMenu examples={LANG_EXAMPLES} onPick={field.handleChange} />
                 </Flex>
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="requireInteraction">
+          <form.Field name="requireInteraction">
             {field => (
               <field.Layout.Row
                 label="requireInteraction"
                 hintText="Keep the notification visible until dismissed."
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={TRISTATE_OPTIONS}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="renotify">
+          <form.Field name="renotify">
             {field => (
               <field.Layout.Row
                 label="renotify"
                 hintText="Re-alert when replacing a notification (requires tag)."
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={TRISTATE_OPTIONS}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="silent">
+          <form.Field name="silent">
             {field => (
               <field.Layout.Row label="silent" hintText="Suppress sound and vibration.">
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={TRISTATE_OPTIONS}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="dataType">
+          <form.Field name="dataType">
             {field => (
               <field.Layout.Row
                 label="data.type"
                 hintText="Custom payload for the click handler. Leave blank to omit."
               >
                 <Flex gap="sm" align="center" wrap="wrap" flex={1}>
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                   <PresetMenu examples={DATA_TYPE_EXAMPLES} onPick={field.handleChange} />
                 </Flex>
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="dataUrl">
+          <form.Field name="dataUrl">
             {field => (
               <field.Layout.Row
                 label="data.url"
                 hintText="URL to open when clicked. Leave blank to omit."
               >
                 <Flex gap="sm" align="center" wrap="wrap" flex={1}>
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                   <PresetMenu examples={URL_EXAMPLES} onPick={field.handleChange} />
                 </Flex>
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
         </form.FieldGroup>
 
         <Flex gap="md" align="center">
@@ -542,7 +541,7 @@ function NotificationConfigurator() {
             </Button>
           ) : null}
         </Flex>
-      </form.AppForm>
+      </ScrapsForm>
 
       <Grid columns={{zero: '1fr', md: '1fr 1fr'}} gap="lg">
         <Stack gap="xs">

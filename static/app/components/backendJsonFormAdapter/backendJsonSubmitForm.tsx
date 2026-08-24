@@ -10,7 +10,7 @@ import {queryOptions, type UseQueryOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import type {ButtonProps} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -230,11 +230,8 @@ export function BackendJsonSubmitForm({
   const validationSchema = useMemo(() => buildValidationSchema(fields), [fields]);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onSubmit: validationSchema,
-    },
+    validators: [{run: validationSchema, triggers: []}],
     onSubmit: async ({value}) => {
       try {
         await onSubmit(getSubmitValues(fields, value));
@@ -308,14 +305,14 @@ export function BackendJsonSubmitForm({
   );
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       {isLoading && <LoadingIndicator />}
       {!isLoading && (
         <Stack gap="xl">
           {fields
             .filter(field => field.type !== 'blank')
             .map(field => (
-              <form.AppField key={field.name} name={field.name}>
+              <form.Field key={field.name} name={field.name}>
                 {fieldApi => {
                   const disabledProp = getDisabledProp(field, disabled);
                   const handleChange = (value: unknown) => {
@@ -335,7 +332,7 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.Switch
-                            checked={fieldApi.state.value as boolean}
+                            checked={fieldApi.value as boolean}
                             onChange={handleChange}
                             disabled={disabledProp}
                           />
@@ -351,7 +348,7 @@ export function BackendJsonSubmitForm({
                           <fieldApi.TextArea
                             autosize={field.autosize ?? true}
                             maxRows={field.maxRows}
-                            value={(fieldApi.state.value as string) ?? ''}
+                            value={(fieldApi.value as string) ?? ''}
                             onChange={handleChange}
                             placeholder={field.placeholder}
                             disabled={disabledProp}
@@ -366,7 +363,7 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.Number
-                            value={fieldApi.state.value as number}
+                            value={fieldApi.value as number}
                             onChange={handleChange}
                             placeholder={field.placeholder}
                             disabled={disabledProp}
@@ -423,9 +420,7 @@ export function BackendJsonSubmitForm({
                             >
                               <fieldApi.SelectAsync
                                 multiple
-                                value={
-                                  (fieldApi.state.value as Array<string | number>) ?? []
-                                }
+                                value={(fieldApi.value as Array<string | number>) ?? []}
                                 onChange={(value: Array<string | number>) =>
                                   handleChange(value)
                                 }
@@ -443,7 +438,7 @@ export function BackendJsonSubmitForm({
                           >
                             {field.required ? (
                               <fieldApi.SelectAsync
-                                value={(fieldApi.state.value ?? null) as string | null}
+                                value={(fieldApi.value ?? null) as string | null}
                                 onChange={(value: string) => handleChange(value)}
                                 disabled={disabledProp}
                                 queryOptions={asyncQueryOptions}
@@ -451,7 +446,7 @@ export function BackendJsonSubmitForm({
                             ) : (
                               <fieldApi.SelectAsync
                                 clearable
-                                value={(fieldApi.state.value ?? null) as string | null}
+                                value={(fieldApi.value ?? null) as string | null}
                                 onChange={(value: string | null) => handleChange(value)}
                                 disabled={disabledProp}
                                 queryOptions={asyncQueryOptions}
@@ -469,7 +464,7 @@ export function BackendJsonSubmitForm({
                           >
                             <fieldApi.Select
                               multiple
-                              value={(fieldApi.state.value as string[]) ?? []}
+                              value={(fieldApi.value as string[]) ?? []}
                               onChange={(value: string[]) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={disabledProp}
@@ -485,7 +480,7 @@ export function BackendJsonSubmitForm({
                         >
                           {field.required ? (
                             <fieldApi.Select
-                              value={(fieldApi.state.value ?? null) as string | null}
+                              value={(fieldApi.value ?? null) as string | null}
                               onChange={(value: string) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={disabledProp}
@@ -493,7 +488,7 @@ export function BackendJsonSubmitForm({
                           ) : (
                             <fieldApi.Select
                               clearable
-                              value={(fieldApi.state.value ?? null) as string | null}
+                              value={(fieldApi.value ?? null) as string | null}
                               onChange={(value: string | null) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={disabledProp}
@@ -510,7 +505,7 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.Password
-                            value={(fieldApi.state.value as string) ?? ''}
+                            value={(fieldApi.value as string) ?? ''}
                             onChange={handleChange}
                             placeholder={field.placeholder}
                             disabled={disabledProp}
@@ -528,7 +523,7 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.Input
-                            value={(fieldApi.state.value as string) ?? ''}
+                            value={(fieldApi.value as string) ?? ''}
                             onChange={handleChange}
                             placeholder={field.placeholder}
                             disabled={disabledProp}
@@ -541,9 +536,7 @@ export function BackendJsonSubmitForm({
                         </fieldApi.Layout.Stack>
                       );
                     case 'table': {
-                      const tableValue = fieldApi.state.value as Array<
-                        Record<string, unknown>
-                      >;
+                      const tableValue = fieldApi.value as Array<Record<string, unknown>>;
                       return (
                         <Stack flexGrow={1} gap="xl">
                           <fieldApi.Layout.Row label={field.label} hintText={field.help}>
@@ -565,7 +558,7 @@ export function BackendJsonSubmitForm({
                       );
                     }
                     case 'project_mapper': {
-                      const mapperValue = fieldApi.state.value as Array<[number, string]>;
+                      const mapperValue = fieldApi.value as Array<[number, string]>;
                       return (
                         <Stack flexGrow={1} gap="xl">
                           <ProjectMapperTable
@@ -584,7 +577,7 @@ export function BackendJsonSubmitForm({
                       );
                     }
                     case 'choice_mapper': {
-                      const choiceValue = fieldApi.state.value as Record<
+                      const choiceValue = fieldApi.value as Record<
                         string,
                         Record<string, unknown>
                       >;
@@ -624,11 +617,11 @@ export function BackendJsonSubmitForm({
                       return null;
                   }
                 }}
-              </form.AppField>
+              </form.Field>
             ))}
         </Stack>
       )}
       {submitButton}
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

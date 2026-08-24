@@ -221,7 +221,7 @@ export default Storybook.story('SeerProjectSettings', story => {
                 >
                   <field.Select
                     multiple={false}
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={agentSelectOptions}
                   />
@@ -248,7 +248,7 @@ export default Storybook.story('SeerProjectSettings', story => {
                   )}
                 >
                   <field.Select
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={stoppingPointOptions}
                   />

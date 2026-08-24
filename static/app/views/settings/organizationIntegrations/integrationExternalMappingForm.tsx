@@ -5,8 +5,8 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {
   AutoSaveForm,
-  defaultFormOptions,
-  setFieldErrors,
+  ScrapsForm,
+  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -201,7 +201,7 @@ function InlineMappingForm({
         {field =>
           type === 'team' ? (
             <field.SelectAsync
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry Team')}
@@ -209,7 +209,7 @@ function InlineMappingForm({
             />
           ) : (
             <field.SelectAsync
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry User')}
@@ -287,47 +287,47 @@ function ModalMappingForm({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       externalName: mapping?.externalName ?? '',
       sentryId: initialSentryId!,
     },
-    validators: {onDynamic: modalSchema},
-    onSubmit: ({value, formApi}) =>
+    validators: [{run: modalSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
       mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
+          return toFieldErrors({value, createValidationError}, error);
         }
+        return;
       }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         {tct('Configure External [type] Mapping', {type: capitalize(type)})}
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="externalName">
+          <form.Field name="externalName">
             {field => (
               <field.Layout.Stack
                 label={tct('External [type]', {type: capitalize(type)})}
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={type === 'user' ? t('@username') : t('@org/teamname')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="sentryId">
+          </form.Field>
+          <form.Field name="sentryId">
             {field =>
               type === 'team' ? (
                 <field.Layout.Stack label={t('Sentry Team')} required>
                   <field.SelectAsync
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     isValueEqual={(a, b) => a.id === b.id}
                     placeholder={t('Select Sentry Team')}
@@ -341,7 +341,7 @@ function ModalMappingForm({
               ) : (
                 <field.Layout.Stack label={t('Sentry User')} required>
                   <field.SelectAsync
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     isValueEqual={(a, b) => a.id === b.id}
                     placeholder={t('Select Sentry User')}
@@ -354,7 +354,7 @@ function ModalMappingForm({
                 </field.Layout.Stack>
               )
             }
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -363,7 +363,7 @@ function ModalMappingForm({
           <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

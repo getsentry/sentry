@@ -2,12 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {
-  defaultFormOptions,
-  FormSearch,
-  setFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {FormSearch, ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -113,22 +108,25 @@ export function NewProviderForm({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) => {
+    validators: [{run: schema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) => {
       return mutation.mutateAsync(schema.parse(value)).catch(error => {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
+          const fieldErrors = toFieldErrors({value, createValidationError}, error);
+          if (fieldErrors) {
+            return fieldErrors;
+          }
         }
+        return;
       });
     },
   });
 
   return (
     <FormSearch route="/settings/feature-flags/change-tracking/new-provider/">
-      <form.AppForm form={form}>
-        <form.AppField name="provider">
+      <ScrapsForm form={form}>
+        <form.Field name="provider">
           {field => (
             <div>
               <field.Layout.Row
@@ -140,7 +138,7 @@ export function NewProviderForm({
                 required
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => {
                     field.handleChange(value);
                     setSelectedProvider(value);
@@ -153,13 +151,13 @@ export function NewProviderForm({
                 />
               </field.Layout.Row>
               <WebhookUrlField
-                provider={field.state.value ?? ''}
+                provider={field.value ?? ''}
                 organizationSlug={organization.slug}
               />
             </div>
           )}
-        </form.AppField>
-        <form.AppField name="secret">
+        </form.Field>
+        <form.Field name="secret">
           {field => (
             <field.Layout.Row
               padding="xl"
@@ -170,20 +168,20 @@ export function NewProviderForm({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 maxLength={100}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex justify="end" gap="md" padding="xl">
           <Button onClick={handleGoBack}>{t('Cancel')}</Button>
           <form.SubmitButton disabled={!canSaveSecret}>
             {existingSecret ? t('Update Provider') : t('Add Provider')}
           </form.SubmitButton>
         </Flex>
-      </form.AppForm>
+      </ScrapsForm>
     </FormSearch>
   );
 }

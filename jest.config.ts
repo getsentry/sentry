@@ -242,6 +242,9 @@ if (
  * transformed.
  */
 const ESM_NODE_MODULES = [
+  '@tanstack\\+form-core',
+  '@tanstack\\+react-form',
+  '@tanstack\\+react-store',
   'screenfull',
   'cbor2',
   'nuqs',

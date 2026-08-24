@@ -7,10 +7,10 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {
   AutoSaveForm,
-  defaultFormOptions,
   FieldGroup,
   FormSearch,
-  setFieldErrors,
+  ScrapsForm,
+  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -130,8 +130,8 @@ export function ReplayAccessMembersField({
                     ).map(member => ({value: member.id, label: member.name})),
                 })
               }
-              value={field.state.value}
-              onChange={next => {
+              value={field.value}
+              onChange={(next: string[]) => {
                 setSelectedIds(next);
                 field.handleChange(next);
               }}
@@ -183,7 +183,7 @@ function OrganizationMembershipSettingsBase({
             >
               <field.Select
                 options={roleOptions}
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgAdmin}
               />
@@ -212,7 +212,7 @@ function OrganizationMembershipSettingsBase({
               hintText={t('Allow organization members to freely join any team')}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -241,7 +241,7 @@ function OrganizationMembershipSettingsBase({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -270,7 +270,7 @@ function OrganizationMembershipSettingsBase({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -299,7 +299,7 @@ function OrganizationMembershipSettingsBase({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -328,7 +328,7 @@ function OrganizationMembershipSettingsBase({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -352,7 +352,7 @@ function OrganizationMembershipSettingsBase({
               >
                 <field.Select
                   options={roleOptions}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={!hasOrgWrite}
                 />
@@ -376,7 +376,7 @@ function OrganizationMembershipSettingsBase({
             >
               <field.Select
                 options={roleOptions}
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -405,7 +405,7 @@ function OrganizationMembershipSettingsBase({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -451,16 +451,16 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
 
   // Slug form — uses explicit Save button instead of auto-save
   const slugForm = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {slug: initialData.slug},
-    validators: {onDynamic: slugSchema},
-    onSubmit: ({value, formApi}) =>
+    validators: [{run: slugSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError, formApi}) =>
       updateSlug({slug: value.slug})
-        .then(() => slugForm.reset())
+        .then(() => formApi.reset())
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            return toFieldErrors({value, createValidationError}, error);
           }
+          return;
         }),
   });
 
@@ -469,8 +469,8 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
       <FormSearch route="/settings/organization/">
         <FieldGroup title={t('General')}>
           {/* Slug — explicit save with warning */}
-          <slugForm.AppForm form={slugForm}>
-            <slugForm.AppField name="slug">
+          <ScrapsForm form={slugForm}>
+            <slugForm.Field name="slug">
               {field => (
                 <field.Layout.Row
                   label={t('Organization Slug')}
@@ -478,13 +478,13 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                   required
                 >
                   <field.Input
-                    value={field.state.value}
+                    value={field.value}
                     onChange={value => field.handleChange(slugify(value))}
                     disabled={!hasWriteAccess}
                   />
                 </field.Layout.Row>
               )}
-            </slugForm.AppField>
+            </slugForm.Field>
             <slugForm.Subscribe
               selector={state => state.values.slug !== initialData.slug}
             >
@@ -513,7 +513,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 )
               }
             </slugForm.Subscribe>
-          </slugForm.AppForm>
+          </ScrapsForm>
 
           {/* Display Name */}
           <AutoSaveForm
@@ -529,7 +529,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={!hasWriteAccess}
                 />
@@ -551,11 +551,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                   'The unique identifier for this organization. It cannot be modified.'
                 )}
               >
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled
-                />
+                <field.Input value={field.value} onChange={field.handleChange} disabled />
               </field.Layout.Row>
             )}
           </AutoSaveForm>
@@ -598,7 +594,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                   )}
                 >
                   <field.Switch
-                    checked={field.state.value ?? false}
+                    checked={field.value ?? false}
                     onChange={field.handleChange}
                     disabled={!hasWriteAccess}
                   />
@@ -641,7 +637,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 )}
               >
                 <field.Switch
-                  checked={field.state.value ?? false}
+                  checked={field.value ?? false}
                   onChange={field.handleChange}
                   disabled={!hasGenAiFeatureFlag || !hasWriteAccess}
                 />

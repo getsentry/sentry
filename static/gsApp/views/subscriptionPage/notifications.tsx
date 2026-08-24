@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
-import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {FieldGroup, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -127,9 +127,8 @@ function ThresholdsForm({
   const onDemandEnabled = subscription.planDetails.allowOnDemand;
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: backendThresholds,
-    validators: {onDynamic: getThresholdsSchema(onDemandEnabled)},
+    validators: [{run: getThresholdsSchema(onDemandEnabled), triggers: ['change']}],
     onSubmit: async ({value}) => {
       try {
         await fetchMutation({
@@ -147,9 +146,9 @@ function ThresholdsForm({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldGroup title={t('Notification Thresholds')}>
-        <form.AppField name="reservedPercent">
+        <form.Field name="reservedPercent">
           {field => (
             <field.Layout.Row
               label={t('Subscription consumption')}
@@ -158,15 +157,15 @@ function ThresholdsForm({
               <field.Select
                 multiple
                 clearable
-                value={field.state.value}
+                value={field.value}
                 options={THRESHOLD_OPTIONS}
                 onChange={field.handleChange}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
         {onDemandEnabled && (
-          <form.AppField name="perProductOndemandPercent">
+          <form.Field name="perProductOndemandPercent">
             {field => (
               <field.Layout.Row
                 label={t(
@@ -184,20 +183,20 @@ function ThresholdsForm({
                 <field.Select
                   multiple
                   clearable
-                  value={field.state.value}
+                  value={field.value}
                   options={THRESHOLD_OPTIONS}
                   onChange={field.handleChange}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
         )}
         <Flex gap="md" justify="end">
           <form.ResetButton>{t('Reset')}</form.ResetButton>
           <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
         </Flex>
       </FieldGroup>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

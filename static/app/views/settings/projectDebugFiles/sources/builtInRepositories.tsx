@@ -117,7 +117,7 @@ export function BuiltInRepositories({
             <field.Select
               multiple
               name="builtinSymbolSources"
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={options}
               placeholder={t('Select built-in repository')}

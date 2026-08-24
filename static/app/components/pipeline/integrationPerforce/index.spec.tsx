@@ -20,7 +20,7 @@ describe('PerforceInstallationConfigStep', () => {
   });
 
   it('calls advance with form data on submit', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <PerforceInstallationConfigStep {...makeStepProps({stepData: {}, advance})} />
     );
@@ -55,7 +55,7 @@ describe('PerforceInstallationConfigStep', () => {
   });
 
   it('requires sslFingerprint when p4port is ssl', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <PerforceInstallationConfigStep {...makeStepProps({stepData: {}, advance})} />
     );
@@ -78,7 +78,7 @@ describe('PerforceInstallationConfigStep', () => {
   });
 
   it('includes optional fields when provided', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <PerforceInstallationConfigStep {...makeStepProps({stepData: {}, advance})} />
     );

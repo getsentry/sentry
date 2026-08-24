@@ -3,7 +3,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -107,9 +107,8 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {name: token.name},
-    validators: {onDynamic: schema},
+    validators: [{run: schema, triggers: ['change']}],
     onSubmit: ({value}) => {
       addLoadingMessage();
       return mutation.mutateAsync(value).catch(() => {});
@@ -117,18 +116,18 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Personal Token Details')}>
-        <form.AppField name="name">
+        <form.Field name="name">
           {field => (
             <field.Layout.Row
               label={t('Name')}
               hintText={t('A name to help you identify this token.')}
             >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         <FieldGroup
           label={t('Token')}
@@ -149,7 +148,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
         <Button onClick={handleGoBack}>{t('Cancel')}</Button>
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

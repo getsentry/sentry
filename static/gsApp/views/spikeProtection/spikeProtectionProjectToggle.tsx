@@ -111,7 +111,7 @@ function SpikeProtectionProjectToggle({
             <field.Layout.Row label={label} hintText={help}>
               <field.Switch
                 data-test-id={testId}
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={disabled}
               />
@@ -119,7 +119,7 @@ function SpikeProtectionProjectToggle({
           ) : (
             <field.Switch
               data-test-id={testId}
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={disabled}
             />

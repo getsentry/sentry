@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -141,29 +141,33 @@ function PathMappingEdit({
   onChange,
 }: PathMappingEditProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {stackRoot, sourceRoot, branch},
-    validators: {onDynamic: schema},
-    listeners: {
-      onChange: ({formApi}) => {
-        const values = formApi.state.values;
-        onChange({...values, branch: resolveBranch(values.branch)});
+    validators: [{run: schema, triggers: ['change']}],
+    listeners: [
+      {
+        run: ({formApi}) => {
+          const values = formApi.state.values;
+          onChange({...values, branch: resolveBranch(values.branch)});
+        },
+        triggers: ['change'],
       },
-    },
+    ],
     onSubmit: () => {},
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Container padding="xl">
         <Stack gap="xl">
           <Grid columns="1fr 1fr" gap="xl">
-            <form.AppField
+            <form.Field
               name="stackRoot"
-              listeners={{
-                onBlur: ({value}) =>
-                  form.setFieldValue('stackRoot', normalizeRoot(value)),
-              }}
+              listeners={[
+                {
+                  run: ({value}) => form.setFieldValue('stackRoot', normalizeRoot(value)),
+                  triggers: ['blur'],
+                },
+              ]}
             >
               {field => (
                 <field.Layout.Stack
@@ -173,17 +177,20 @@ function PathMappingEdit({
                     'Any stack trace starting with this file prefix is mapped with this rule. An empty prefix matches any stack trace path.'
                   )}
                 >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
 
-            <form.AppField
+            <form.Field
               name="sourceRoot"
-              listeners={{
-                onBlur: ({value}) =>
-                  form.setFieldValue('sourceRoot', normalizeRoot(value)),
-              }}
+              listeners={[
+                {
+                  run: ({value}) =>
+                    form.setFieldValue('sourceRoot', normalizeRoot(value)),
+                  triggers: ['blur'],
+                },
+              ]}
             >
               {field => (
                 <field.Layout.Stack
@@ -193,13 +200,13 @@ function PathMappingEdit({
                     'When a stack trace prefix matches, it is replaced with this path to resolve the file path in your repository. Leaving it empty replaces the prefix with an empty string.'
                   )}
                 >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           </Grid>
 
-          <form.AppField name="branch">
+          <form.Field name="branch">
             {field => (
               <field.Layout.Stack
                 label={t('Branch')}
@@ -213,7 +220,7 @@ function PathMappingEdit({
                       </InputGroup.LeadingItems>
                       <InputGroup.Input
                         {...baseProps}
-                        value={field.state.value}
+                        value={field.value}
                         placeholder={DEFAULT_BRANCH}
                         onChange={e => field.handleChange(sanitizeBranch(e.target.value))}
                       />
@@ -223,7 +230,7 @@ function PathMappingEdit({
                 </field.Base>
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
           <Stack gap="md">
             <Text bold>{t('Preview example')}</Text>
@@ -248,7 +255,7 @@ function PathMappingEdit({
           </Stack>
         </Stack>
       </Container>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

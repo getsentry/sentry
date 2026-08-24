@@ -9,7 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -29,27 +29,26 @@ function TestForm({
   validator,
 }: TestFormProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       enabled: defaultValue,
     },
-    validators: validator ? {onBlur: validator} : undefined,
+    validators: validator ? [{run: validator, triggers: ['blur']}] : undefined,
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="enabled">
+    <ScrapsForm form={form}>
+      <form.Field name="enabled">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 
@@ -79,7 +78,7 @@ function AutoSaveTestForm({
     >
       {field => (
         <field.Layout.Row label={label}>
-          <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          <field.Switch checked={field.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
     </AutoSaveForm>
@@ -336,7 +335,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -368,7 +367,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -400,7 +399,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -434,7 +433,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -470,7 +469,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -515,7 +514,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -554,7 +553,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -587,7 +586,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -617,7 +616,7 @@ describe('SwitchField with confirm', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -645,7 +644,7 @@ describe('SwitchField resetOnError', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -676,7 +675,7 @@ describe('SwitchField resetOnError', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -709,7 +708,7 @@ describe('SwitchField failed to save error', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -738,7 +737,7 @@ describe('SwitchField failed to save error', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -772,7 +771,7 @@ describe('SwitchField failed to save error', () => {
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>

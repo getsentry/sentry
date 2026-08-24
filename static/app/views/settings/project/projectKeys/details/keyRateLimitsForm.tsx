@@ -3,7 +3,7 @@ import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {FieldGroup, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -97,12 +97,11 @@ export function KeyRateLimitsForm({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       count: data.rateLimit?.count ?? null,
       window: data.rateLimit?.window ?? 0,
     },
-    validators: {onDynamic: rateLimitSchema},
+    validators: [{run: rateLimitSchema, triggers: ['change']}],
     onSubmit: ({value}) => {
       const rateLimit =
         (value.count === null || value.count === 0) && value.window === 0
@@ -133,7 +132,7 @@ export function KeyRateLimitsForm({
       {({hasFeature, features, renderDisabled}) => {
         const fieldDisabled = disabled || !hasFeature;
         return (
-          <form.AppForm form={form}>
+          <ScrapsForm form={form}>
             <FieldGroup title={t('Rate Limits')}>
               <Alert variant="info" system>
                 {t(
@@ -155,7 +154,7 @@ export function KeyRateLimitsForm({
                   children: null,
                 })}
 
-              <form.AppField name="count">
+              <form.Field name="count">
                 {field => (
                   <field.Layout.Row
                     label={t('Count')}
@@ -164,17 +163,17 @@ export function KeyRateLimitsForm({
                     )}
                   >
                     <field.Number
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       disabled={fieldDisabled}
                       min={0}
                     />
                   </field.Layout.Row>
                 )}
-              </form.AppField>
-              <form.AppField name="window">
+              </form.Field>
+              <form.Field name="window">
                 {field => {
-                  const windowValue = field.state.value;
+                  const windowValue = field.value;
                   const allowedValues = getAllowedRateLimitValues(windowValue);
                   const windowIndex = Math.max(0, allowedValues.indexOf(windowValue));
                   const windowLabel =
@@ -205,7 +204,7 @@ export function KeyRateLimitsForm({
                     </field.Layout.Row>
                   );
                 }}
-              </form.AppField>
+              </form.Field>
               <Flex gap="sm" justify="end">
                 <form.ResetButton disabled={fieldDisabled}>{t('Reset')}</form.ResetButton>
                 <form.SubmitButton disabled={fieldDisabled}>
@@ -213,7 +212,7 @@ export function KeyRateLimitsForm({
                 </form.SubmitButton>
               </Flex>
             </FieldGroup>
-          </form.AppForm>
+          </ScrapsForm>
         );
       }}
     </Feature>

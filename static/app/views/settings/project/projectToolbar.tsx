@@ -101,7 +101,7 @@ export default function ProjectToolbarSettings() {
                 }
               >
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={!hasAccess}
                   autosize

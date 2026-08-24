@@ -3,19 +3,14 @@
  *
  * Extracted into a .tsx file because prettier's MDX parser flattens JSX
  * indentation inside exported functions when dotted component names are used
- * (e.g. form.AppForm, field.Layout.Row).
+ * (e.g. form.Field, field.Layout.Row).
  */
 
 import {useState} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {
-  AutoSaveForm,
-  defaultFormOptions,
-  FieldGroup,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {ScrapsForm, AutoSaveForm, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -29,14 +24,11 @@ const quickStartSchema = z.object({
 
 export function QuickStartDemo() {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       email: '',
       name: '',
     },
-    validators: {
-      onDynamic: quickStartSchema,
-    },
+    validators: [{run: quickStartSchema, triggers: ['change']}],
     onSubmit: async ({value}) => {
       await sleep(1000);
       // eslint-disable-next-line no-alert
@@ -45,93 +37,92 @@ export function QuickStartDemo() {
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Quick Start')}>
-        <form.AppField name="name">
+        <form.Field name="name">
           {field => (
             <field.Layout.Row label={t('Name')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('Enter your name')}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
-        <form.AppField name="email">
+        </form.Field>
+        <form.Field name="email">
           {field => (
             <field.Layout.Row label={t('Email')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('you@example.com')}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
       </form.FieldGroup>
       <Flex gap="md" justify="end">
         <form.SubmitButton>Submit</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
 export function CompactDemo() {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {field1: '', field2: '', field3: '', field4: ''},
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldGroup title={t('Row Layout')}>
-        <form.AppField name="field1">
+        <form.Field name="field1">
           {field => (
             <field.Layout.Row
               label={t('Default Variant')}
               hintText={t('This hint text appears below the label')}
             >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Row>
           )}
-        </form.AppField>
-        <form.AppField name="field2">
+        </form.Field>
+        <form.Field name="field2">
           {field => (
             <field.Layout.Row
               label={t('Compact Variant')}
               hintText={t('This hint text appears in a tooltip when hovering the label')}
               variant="compact"
             >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
       </FieldGroup>
       <FieldGroup title={t('Stack Layout')}>
-        <form.AppField name="field3">
+        <form.Field name="field3">
           {field => (
             <field.Layout.Stack
               label={t('Default Variant')}
               hintText={t('This hint text appears below the input')}
             >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="field4">
+        </form.Field>
+        <form.Field name="field4">
           {field => (
             <field.Layout.Stack
               label={t('Compact Variant')}
               hintText={t('This hint text appears in a tooltip when hovering the label')}
               variant="compact"
             >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </FieldGroup>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -142,9 +133,8 @@ const conditionalSchema = z.object({
 
 export function ConditionalDemo() {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {plan: 'free', billingEmail: ''},
-    validators: {onDynamic: conditionalSchema},
+    validators: [{run: conditionalSchema, triggers: ['change']}],
     onSubmit: ({value}) => {
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value, null, 2));
@@ -152,13 +142,13 @@ export function ConditionalDemo() {
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Conditional Fields')}>
-        <form.AppField name="plan">
+        <form.Field name="plan">
           {field => (
             <field.Layout.Row label={t('Plan')}>
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={[
                   {value: 'free', label: 'Free'},
@@ -167,25 +157,28 @@ export function ConditionalDemo() {
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
         <form.Subscribe selector={state => state.values.plan === 'enterprise'}>
           {showBilling =>
             showBilling ? (
-              <form.AppField
+              <form.Field
                 name="billingEmail"
-                validators={{
-                  onDynamic: z.email(t('Please enter a valid email')),
-                }}
+                validators={[
+                  {
+                    run: z.email(t('Please enter a valid email')),
+                    triggers: ['change'],
+                  },
+                ]}
               >
                 {field => (
                   <field.Layout.Row label={t('Billing Email')} required>
                     <field.Input
-                      value={field.state.value ?? ''}
+                      value={field.value ?? ''}
                       onChange={field.handleChange}
                     />
                   </field.Layout.Row>
                 )}
-              </form.AppField>
+              </form.Field>
             ) : null
           }
         </form.Subscribe>
@@ -193,7 +186,7 @@ export function ConditionalDemo() {
       <Flex gap="md" justify="end">
         <form.SubmitButton>Submit</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -201,13 +194,15 @@ export function ConditionalDemo() {
 
 export function BaseFieldDemo() {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {color: '#3c74dd'},
-    validators: {
-      onDynamic: z.object({
-        color: z.string().min(1, 'Please select a color'),
-      }),
-    },
+    validators: [
+      {
+        run: z.object({
+          color: z.string().min(1, 'Please select a color'),
+        }),
+        triggers: ['change'],
+      },
+    ],
     onSubmit: ({value}) => {
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value, null, 2));
@@ -215,9 +210,9 @@ export function BaseFieldDemo() {
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Custom Field')}>
-        <form.AppField name="color">
+        <form.Field name="color">
           {field => (
             <field.Layout.Stack label={t('Brand Color:')}>
               <field.Base<HTMLInputElement>>
@@ -226,7 +221,7 @@ export function BaseFieldDemo() {
                     <input
                       {...baseProps}
                       type="color"
-                      value={field.state.value}
+                      value={field.value}
                       onChange={e => field.handleChange(e.target.value)}
                     />
                     {indicator}
@@ -235,12 +230,12 @@ export function BaseFieldDemo() {
               </field.Base>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </form.FieldGroup>
       <Flex gap="md" justify="end">
         <form.SubmitButton>Submit</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -276,7 +271,7 @@ export function BasicAutoSaveDemo() {
       >
         {field => (
           <field.Layout.Row label={t('Display Name')}>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -317,7 +312,7 @@ export function FullAutoSaveDemo() {
       >
         {field => (
           <field.Layout.Row label={t('Full Name')} required>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -335,10 +330,7 @@ export function FullAutoSaveDemo() {
       >
         {field => (
           <field.Layout.Row label={t('Email Notifications')}>
-            <field.Switch
-              checked={field.state.value ?? false}
-              onChange={field.handleChange}
-            />
+            <field.Switch checked={field.value ?? false} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -353,7 +345,7 @@ export function FullAutoSaveDemo() {
           <field.Layout.Row label={t('Tags')} hintText={t('Select multiple tags')}>
             <field.Select
               multiple
-              value={field.state.value ?? []}
+              value={field.value ?? []}
               onChange={field.handleChange}
               options={TAG_OPTIONS}
             />
@@ -368,10 +360,7 @@ export function FullAutoSaveDemo() {
         mutationOptions={fullMutationOptions}
       >
         {field => (
-          <field.Radio.Group
-            value={field.state.value ?? ''}
-            onChange={field.handleChange}
-          >
+          <field.Radio.Group value={field.value ?? ''} onChange={field.handleChange}>
             <field.Layout.Row label={t('Priority')} hintText={t('Select issue priority')}>
               <Flex gap="lg">
                 <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
@@ -391,10 +380,7 @@ export function FullAutoSaveDemo() {
       >
         {field => (
           <field.Layout.Row label={t('Bio')} hintText={t('Tell us about yourself')}>
-            <field.TextArea
-              value={field.state.value ?? ''}
-              onChange={field.handleChange}
-            />
+            <field.TextArea value={field.value ?? ''} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -408,7 +394,7 @@ export function FullAutoSaveDemo() {
         {field => (
           <field.Layout.Row label={t('Volume')}>
             <field.Range
-              value={field.state.value ?? 50}
+              value={field.value ?? 50}
               onChange={field.handleChange}
               min={0}
               max={100}

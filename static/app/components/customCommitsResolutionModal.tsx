@@ -2,7 +2,7 @@ import {queryOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -47,11 +47,8 @@ export function CustomCommitsResolutionModal({
   Footer,
 }: CustomCommitsResolutionModalProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onDynamic: commitSchema,
-    },
+    validators: [{run: commitSchema, triggers: ['change']}],
     onSubmit: ({value}) => {
       onSelected({
         inCommit: {
@@ -64,16 +61,16 @@ export function CustomCommitsResolutionModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <h4>{t('Resolved In')}</h4>
       </Header>
       <Body>
-        <form.AppField name="commit">
+        <form.Field name="commit">
           {field => (
             <field.Layout.Stack label={t('Commit')} required>
               <field.SelectAsync
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 queryOptions={debouncedInput => {
                   return queryOptions({
@@ -105,7 +102,7 @@ export function CustomCommitsResolutionModal({
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </Body>
       <Footer>
         <Flex gap="sm" justify="end">
@@ -113,6 +110,6 @@ export function CustomCommitsResolutionModal({
           <form.SubmitButton>{t('Resolve')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

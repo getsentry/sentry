@@ -1,8 +1,8 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -15,6 +15,7 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const GCP_PROJECT_ID_RE = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const MAX_PROJECTS = 20;
@@ -89,7 +90,6 @@ const gcpCustomerConfigSchema = z.object({
 
 function GcpCustomerConfigStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<
@@ -97,60 +97,57 @@ function GcpCustomerConfigStep({
   {customerSaEmail: string; projects: string[]}
 >) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {customerSaEmail: '', projects: ['']},
-    validators: {onDynamic: gcpCustomerConfigSchema},
-    onSubmit: ({value}) => {
+    validators: [{run: gcpCustomerConfigSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
       advance({
         customerSaEmail: value.customerSaEmail,
         projects: value.projects.map(s => s.trim()).filter(Boolean),
-      });
-    },
+      }).catch(error => {
+        if (error instanceof RequestError) {
+          return toFieldErrors({value, createValidationError}, error);
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, advanceError);
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t(
             'Enter your GCP service account email and the project IDs you want to connect to Seer.'
           )}
         </Text>
-        <form.AppField name="customerSaEmail">
+        <form.Field name="customerSaEmail">
           {field => (
             <field.Layout.Stack label={t('Service Account Email')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="gcp-sentry@your-project.iam.gserviceaccount.com"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="projects" mode="array">
+        </form.Field>
+        <form.ArrayField name="projects">
           {field => (
             <Fragment>
               <Text bold>{t('GCP Project IDs')}</Text>
               <Stack gap="sm">
-                {field.state.value.map((_, i) => (
+                {field.value.map((_, i) => (
                   <Flex key={i} gap="sm" align="center">
-                    <form.AppField name={`projects[${i}]`}>
+                    <form.Field name={`projects[${i}]`}>
                       {subField => (
                         <subField.Input
-                          value={subField.state.value}
+                          value={subField.value}
                           onChange={subField.handleChange}
                           placeholder="my-gcp-project"
                           style={{flex: 1}}
                         />
                       )}
-                    </form.AppField>
-                    {field.state.value.length > 1 && (
+                    </form.Field>
+                    {field.value.length > 1 && (
                       <Button
                         aria-label={t('Remove project')}
                         size="sm"
@@ -161,7 +158,7 @@ function GcpCustomerConfigStep({
                     )}
                   </Flex>
                 ))}
-                {field.state.value.length < MAX_PROJECTS && (
+                {field.value.length < MAX_PROJECTS && (
                   <Flex>
                     <Button
                       size="sm"
@@ -172,18 +169,20 @@ function GcpCustomerConfigStep({
                     </Button>
                   </Flex>
                 )}
-                <field.Meta.Status />
+                <form.Field name="projects">
+                  {projectsField => <projectsField.Meta.Status />}
+                </form.Field>
               </Stack>
             </Fragment>
           )}
-        </form.AppField>
+        </form.ArrayField>
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
             {t('Continue')}
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

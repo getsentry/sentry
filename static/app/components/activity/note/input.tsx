@@ -6,7 +6,7 @@ import {AnimatePresence, motion, useReducedMotion} from 'framer-motion';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -111,9 +111,8 @@ export function NoteInput({
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {text: text ?? ''},
-    validators: {onDynamic: noteInputSchema},
+    validators: [{run: noteInputSchema, triggers: ['change']}],
     onSubmit: ({value}) => submitNote(value.text),
   });
 
@@ -156,9 +155,9 @@ export function NoteInput({
       };
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <EditorSurface>
-        <form.AppField name="text">
+        <form.Field name="text">
           {field => (
             <div>
               {editorMode === 'write' ? (
@@ -181,13 +180,13 @@ export function NoteInput({
                         if (
                           e.key === 'Enter' &&
                           (e.metaKey || e.ctrlKey) &&
-                          field.state.value.trim() !== ''
+                          field.value.trim() !== ''
                         ) {
                           e.preventDefault();
                           form.handleSubmit();
                         }
                       }}
-                      value={field.state.value}
+                      value={field.value}
                       required
                       autoFocus={existingItem}
                     >
@@ -212,12 +211,12 @@ export function NoteInput({
                 </field.Base>
               ) : (
                 <NotePreview style={{minHeight}}>
-                  <Markdown raw={getCleanMarkdown(field.state.value)} />
+                  <Markdown raw={getCleanMarkdown(field.value)} />
                 </NotePreview>
               )}
             </div>
           )}
-        </form.AppField>
+        </form.Field>
       </EditorSurface>
       <AnimatePresence initial={false}>
         {areControlsVisible && (
@@ -275,7 +274,7 @@ export function NoteInput({
           </MotionControls>
         )}
       </AnimatePresence>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

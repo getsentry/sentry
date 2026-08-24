@@ -1,7 +1,6 @@
-import {useEffect} from 'react';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,6 +11,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const AUTH_TYPE_CHOICES = [
   {value: 'password', label: t('Password')},
@@ -52,12 +52,10 @@ const installationConfigSchema = z
 
 function PerforceInstallationConfigStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<Record<string, unknown>, InstallationConfigAdvanceData>) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       p4port: '',
       user: '',
@@ -68,8 +66,8 @@ function PerforceInstallationConfigStep({
       webUrl: '',
       unicodeServer: false,
     },
-    validators: {onDynamic: installationConfigSchema},
-    onSubmit: ({value}) => {
+    validators: [{run: installationConfigSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
       advance({
         p4port: value.p4port,
         user: value.user,
@@ -81,25 +79,23 @@ function PerforceInstallationConfigStep({
         // Backend stores charset as a string enum (Charset.NONE / Charset.UTF8)
         // so it can grow to other encodings without an API contract change.
         charset: value.unicodeServer ? 'utf8' : 'none',
-      });
-    },
+      }).catch(error => {
+        if (error instanceof RequestError) {
+          return toFieldErrors({value, createValidationError}, error);
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, advanceError);
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t(
             'Configure your Perforce server connection to enable stacktrace linking and commit tracking.'
           )}
         </Text>
-        <form.AppField name="p4port">
+        <form.Field name="p4port">
           {field => (
             <field.Layout.Stack
               label={t('P4PORT (Server Address)')}
@@ -109,36 +105,36 @@ function PerforceInstallationConfigStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="ssl:perforce.company.com:1666"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="user">
+        </form.Field>
+        <form.Field name="user">
           {field => (
             <field.Layout.Stack label={t('Perforce Username')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="sentry-bot"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="authType">
+        </form.Field>
+        <form.Field name="authType">
           {field => (
             <field.Layout.Stack label={t('Authentication Type')} required>
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={AUTH_TYPE_CHOICES}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="unicodeServer">
+        </form.Field>
+        <form.Field name="unicodeServer">
           {field => (
             <field.Layout.Stack
               label={t('Unicode Server (UTF-8)')}
@@ -146,62 +142,62 @@ function PerforceInstallationConfigStep({
                 'Enable this if your Perforce server was initialized in Unicode mode (p4d -xi). Unicode servers reject clients that do not declare a charset on connect.'
               )}
             >
-              <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              <field.Switch checked={field.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="password">
+        </form.Field>
+        <form.Field name="password">
           {field => (
             <field.Layout.Stack label={t('Password / Ticket')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('Password or P4 ticket')}
                 type="password"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="client">
+        </form.Field>
+        <form.Field name="client">
           {field => (
             <field.Layout.Stack label={t('Perforce Client/Workspace')}>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="sentry-workspace"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="sslFingerprint">
+        </form.Field>
+        <form.Field name="sslFingerprint">
           {field => (
             <field.Layout.Stack label={t('SSL Fingerprint')}>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="AB:CD:EF:..."
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="webUrl">
+        </form.Field>
+        <form.Field name="webUrl">
           {field => (
             <field.Layout.Stack label={t('P4 Code Review URL')}>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="https://swarm.company.com"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
             {t('Connect')}
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

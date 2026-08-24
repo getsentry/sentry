@@ -1,16 +1,20 @@
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch, type SwitchProps} from '@sentry/scraps/switch';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
 export function SwitchField({
+  field,
   onChange,
   disabled,
   ref,
   ...props
-}: BaseFieldProps<HTMLInputElement> &
-  Omit<SwitchProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
+}: BaseFieldProps<HTMLInputElement> & {field: AnyFieldApi} & Omit<
+    SwitchProps,
+    'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id'
+  > & {
     checked: boolean;
     onChange: (value: boolean) => void;
     disabled?: boolean | string;
@@ -18,7 +22,7 @@ export function SwitchField({
   const autoSaveContext = useAutoSaveContext();
 
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (
         <Flex gap="sm" align="center" justify="between" flexGrow={1}>
           <Switch
@@ -38,6 +42,6 @@ export function SwitchField({
           {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
         </Flex>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }

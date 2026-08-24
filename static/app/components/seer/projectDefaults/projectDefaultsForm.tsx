@@ -71,7 +71,7 @@ export function ProjectDefaultsForm({organization}: Props) {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!canWrite}
               />
@@ -117,9 +117,7 @@ export function ProjectDefaultsForm({organization}: Props) {
               }
             >
               <field.Switch
-                checked={
-                  organization.enableSeerCoding === false ? false : field.state.value
-                }
+                checked={organization.enableSeerCoding === false ? false : field.value}
                 onChange={field.handleChange}
                 disabled={
                   organization.enableSeerCoding === false

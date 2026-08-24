@@ -1,11 +1,13 @@
 import {createElement, Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
+import type {CreateValidationErrorFn} from '@tanstack/react-form';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -305,9 +307,9 @@ function useSaveSentryApp({
 
   const [scopeErrors, setScopeErrors] = useState<ScopeErrors>({permissions: {}});
 
-  const handleSaveError = (
+  const handleSaveError = <TValue,>(
     error: unknown,
-    formApi: Parameters<typeof setFieldErrors>[0]
+    context: {createValidationError: CreateValidationErrorFn<TValue>; value: TValue}
   ) => {
     if (!(error instanceof RequestError)) {
       addErrorMessage(t('Unknown Error'));
@@ -321,16 +323,16 @@ function useSaveSentryApp({
       Object.keys(mappedScopeErrors.permissions).length > 0 ||
       mappedScopeErrors.continuousIntegration !== undefined;
 
-    // setFieldErrors targets the scopes/events fields too, but nothing renders
-    // them inline — the toasts below cover what the form can't show.
-    const fieldErrorsApplied = setFieldErrors(formApi, error);
+    // Scope and event errors also have dedicated UI below. Other field errors
+    // are returned to TanStack Form so they render inline.
+    const fieldErrors = toFieldErrors(context, error);
 
     if (
       Array.isArray(responseJSON.events) &&
       typeof responseJSON.events[0] === 'string'
     ) {
       addErrorMessage(responseJSON.events[0]);
-      return;
+      return fieldErrors;
     }
 
     // Unmapped scope errors have no inline UI — surface the first one as a toast.
@@ -343,13 +345,14 @@ function useSaveSentryApp({
       return;
     }
 
-    if (hadScopeErrors || fieldErrorsApplied) {
-      return;
+    if (hadScopeErrors || fieldErrors) {
+      return fieldErrors;
     }
 
     const detail =
       typeof responseJSON.detail === 'string' ? responseJSON.detail : t('Unknown Error');
     addErrorMessage(detail);
+    return;
   };
 
   const saveSentryAppMutation = useMutation({
@@ -438,7 +441,6 @@ function ClaudeRoutineTemplateForm() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       ...emptySentryAppValues(organization.slug, true),
       name: 'Claude Routine',
@@ -447,10 +449,8 @@ function ClaudeRoutineTemplateForm() {
       events: CLAUDE_ROUTINE_EVENTS,
       isAlertable: true,
     },
-    validators: {
-      onDynamic: claudeRoutineSchema,
-    },
-    onSubmit: ({value, formApi}) => {
+    validators: [{run: claudeRoutineSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) => {
       const payload = buildSentryAppPayload(value);
       payload.webhookHeaders = [
         `Authorization: Bearer ${value.token.trim()}`,
@@ -458,12 +458,12 @@ function ClaudeRoutineTemplateForm() {
       ];
       return saveSentryAppMutation
         .mutateAsync(payload)
-        .catch(error => handleSaveError(error, formApi));
+        .catch(error => handleSaveError(error, {value, createValidationError}));
     },
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Internal Integration Details')}>
         <NameField form={form} fields={{name: 'name'}} />
 
@@ -493,7 +493,7 @@ function ClaudeRoutineTemplateForm() {
           required
         />
 
-        <form.AppField name="token">
+        <form.Field name="token">
           {field => (
             <field.Layout.Row
               label={t('Routine Token')}
@@ -501,13 +501,13 @@ function ClaudeRoutineTemplateForm() {
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="sk-ant-oat01-..."
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
       </form.FieldGroup>
 
       <PermissionsObserver
@@ -525,7 +525,7 @@ function ClaudeRoutineTemplateForm() {
       <Flex justify="end" paddingTop="xl">
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -649,19 +649,16 @@ function InternalSentryAppCreationForm() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: emptySentryAppValues(organization.slug, true),
-    validators: {
-      onDynamic: internalSentryAppSchema,
-    },
-    onSubmit: ({value, formApi}) =>
+    validators: [{run: internalSentryAppSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))
-        .catch(error => handleSaveError(error, formApi)),
+        .catch(error => handleSaveError(error, {value, createValidationError})),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Internal Integration Details')}>
         <NameField form={form} fields={{name: 'name'}} />
 
@@ -704,7 +701,7 @@ function InternalSentryAppCreationForm() {
       <Flex justify="end" paddingTop="xl">
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -716,19 +713,16 @@ function PublicSentryAppCreationForm() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: emptySentryAppValues(organization.slug, false),
-    validators: {
-      onDynamic: publicSentryAppSchema,
-    },
-    onSubmit: ({value, formApi}) =>
+    validators: [{run: publicSentryAppSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))
-        .catch(error => handleSaveError(error, formApi)),
+        .catch(error => handleSaveError(error, {value, createValidationError})),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Public Integration Details')}>
         <NameField form={form} fields={{name: 'name'}} />
 
@@ -768,7 +762,7 @@ function PublicSentryAppCreationForm() {
       <Flex justify="end" paddingTop="xl">
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -967,19 +961,21 @@ function SentryAppEditForm({
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onDynamic: isInternal ? internalSentryAppSchema : publicSentryAppSchema,
-    },
-    onSubmit: ({value, formApi}) =>
+    validators: [
+      {
+        run: isInternal ? internalSentryAppSchema : publicSentryAppSchema,
+        triggers: ['change'],
+      },
+    ],
+    onSubmit: ({value, createValidationError}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))
-        .catch(error => handleSaveError(error, formApi)),
+        .catch(error => handleSaveError(error, {value, createValidationError})),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup
         title={
           isInternal ? t('Internal Integration Details') : t('Public Integration Details')
@@ -1121,7 +1117,7 @@ function SentryAppEditForm({
       <Flex justify="end" paddingTop="xl">
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

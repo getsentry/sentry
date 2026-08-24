@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -48,14 +48,13 @@ export function RenameIssueViewModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {name: view.name},
-    validators: {onDynamic: schema},
+    validators: [{run: schema, triggers: ['change']}],
     onSubmit: ({value}) => updateIssueView({...view, name: value.name}).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <h4>{t('Rename Issue View')}</h4>
       </Header>
@@ -68,18 +67,18 @@ export function RenameIssueViewModal({
             </Alert>
           </Alert.Container>
         )}
-        <form.AppField name="name">
+        <form.Field name="name">
           {field => (
             <field.Layout.Stack label={t('Name')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="e.g. My Search Results"
                 autoFocus
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </Body>
 
       <Footer>
@@ -88,6 +87,6 @@ export function RenameIssueViewModal({
           <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

@@ -2,9 +2,9 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
-  defaultFormOptions,
   FieldGroup as FormPanel,
-  setFieldErrors,
+  ScrapsForm,
+  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -76,25 +76,29 @@ export function U2fEnrollForm({
   const {mutateAsync: enrollAuthenticator} = useEnrollAuthenticator(authenticator.id);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       deviceName: getServerFieldDefault(authenticator.form, 'deviceName'),
       enrollment: {challenge: '', response: ''},
     },
-    validators: {
-      onDynamic: z.object({
-        deviceName: z.string().max(60, t('Device name must be 60 characters or fewer.')),
-        enrollment: z
-          .object({
-            challenge: z.string(),
-            response: z.string(),
-          })
-          .refine(value => Boolean(value.challenge), {
-            message: t('Enroll your device before continuing.'),
-          }),
-      }),
-    },
-    onSubmit: async ({value, formApi}) => {
+    validators: [
+      {
+        run: z.object({
+          deviceName: z
+            .string()
+            .max(60, t('Device name must be 60 characters or fewer.')),
+          enrollment: z
+            .object({
+              challenge: z.string(),
+              response: z.string(),
+            })
+            .refine(value => Boolean(value.challenge), {
+              message: t('Enroll your device before continuing.'),
+            }),
+        }),
+        triggers: ['change'],
+      },
+    ],
+    onSubmit: async ({value, createValidationError, formApi}) => {
       try {
         await enrollAuthenticator({
           ...value.enrollment,
@@ -107,8 +111,7 @@ export function U2fEnrollForm({
             if (fieldErrors.enrollment) {
               formApi.setFieldValue('enrollment', {challenge: '', response: ''});
             }
-            setFieldErrors(formApi, fieldErrors);
-            return;
+            return toFieldErrors({value, createValidationError}, fieldErrors);
           }
         }
 
@@ -122,6 +125,7 @@ export function U2fEnrollForm({
       }
 
       await onEnrollmentComplete();
+      return;
     },
   });
 
@@ -147,9 +151,9 @@ export function U2fEnrollForm({
   const isWebAuthnSupported = Boolean(window.PublicKeyCredential);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormPanel title={t('Configuration')}>
-        <form.AppField name="enrollment">
+        <form.Field name="enrollment">
           {field => (
             <field.Layout.Row
               label={t('Enroll Device')}
@@ -163,11 +167,9 @@ export function U2fEnrollForm({
                   <Button
                     type="button"
                     onClick={() => triggerEnroll(field.handleChange)}
-                    disabled={
-                      !isWebAuthnSupported || Boolean(field.state.value.challenge)
-                    }
+                    disabled={!isWebAuthnSupported || Boolean(field.value.challenge)}
                   >
-                    {field.state.value.challenge ? t('Enrolled!') : t('Start Enrollment')}
+                    {field.value.challenge ? t('Enrolled!') : t('Start Enrollment')}
                   </Button>
                   {!isWebAuthnSupported && (
                     <Text variant="danger" size="sm">
@@ -181,26 +183,26 @@ export function U2fEnrollForm({
               </Flex>
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="deviceName">
+        <form.Field name="deviceName">
           {field => (
             <field.Layout.Row
               label={getServerFieldLabel(authenticator.form, 'deviceName')}
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 autoComplete="off"
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         <Flex justify="end">
           <form.SubmitButton>{t('Confirm')}</form.SubmitButton>
         </Flex>
       </FormPanel>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

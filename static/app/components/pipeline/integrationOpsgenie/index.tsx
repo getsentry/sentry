@@ -1,7 +1,6 @@
-import {useEffect} from 'react';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,6 +11,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 interface BaseUrlChoice {
   label: string;
@@ -37,55 +37,51 @@ const installationConfigSchema = z.object({
 function OpsgenieInstallationConfigStep({
   stepData,
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<InstallationConfigStepData, InstallationConfigAdvanceData>) {
   const choices = stepData?.baseUrlChoices ?? [];
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       baseUrl: choices[0]?.value ?? '',
       provider: '',
       apiKey: '',
     },
-    validators: {onDynamic: installationConfigSchema},
-    onSubmit: ({value}) => {
+    validators: [{run: installationConfigSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
       advance({
         baseUrl: value.baseUrl,
         provider: value.provider,
         apiKey: value.apiKey || undefined,
-      });
-    },
+      }).catch(error => {
+        if (error instanceof RequestError) {
+          return toFieldErrors({value, createValidationError}, error);
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, advanceError);
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t(
             'Configure your Opsgenie integration to start receiving Sentry alerts in Opsgenie.'
           )}
         </Text>
-        <form.AppField name="baseUrl">
+        <form.Field name="baseUrl">
           {field => (
             <field.Layout.Stack label={t('Base URL')} required>
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={choices.map(c => ({value: c.value, label: c.label}))}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="provider">
+        </form.Field>
+        <form.Field name="provider">
           {field => (
             <field.Layout.Stack
               label={t('Account Name')}
@@ -93,14 +89,14 @@ function OpsgenieInstallationConfigStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('your-account-name')}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="apiKey">
+        </form.Field>
+        <form.Field name="apiKey">
           {field => (
             <field.Layout.Stack
               label={t('Opsgenie Integration Key')}
@@ -109,20 +105,20 @@ function OpsgenieInstallationConfigStep({
               )}
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('Integration key (optional)')}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
             {t('Continue')}
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
+import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -9,8 +10,12 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type BaseFieldProps} from './baseField';
 import {SelectField, type SelectFieldProps} from './selectField';
 
-type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps<HTMLInputElement> &
-  DistributedOmit<SelectFieldProps<TValue>, 'options' | 'isLoading' | 'onInputChange'> & {
+type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps<HTMLInputElement> & {
+  field: AnyFieldApi;
+} & DistributedOmit<
+    SelectFieldProps<TValue>,
+    'options' | 'isLoading' | 'onInputChange'
+  > & {
     /**
      * Query configuration - function receives debounced input, returns query options.
      * Use `select` to transform API data to options with full object as value.
@@ -63,3 +68,12 @@ export function SelectAsyncField<TData, TValue>({
     />
   );
 }
+
+type SelectAsyncFieldWithFieldComponent = <TData, TValue>(
+  props: Omit<SelectAsyncFieldProps<TData, TValue>, 'field'>
+) => React.ReactNode;
+
+export const SelectAsyncFieldWithField = fieldComponent.loose(
+  SelectAsyncField,
+  'field'
+) as SelectAsyncFieldWithFieldComponent;

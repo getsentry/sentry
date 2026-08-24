@@ -1,8 +1,8 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback} from 'react';
 import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -17,6 +17,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const installationConfigSchema = z
   .object({
@@ -53,7 +54,6 @@ interface InstallationConfigAdvanceData {
 function InstallationConfigStep({
   stepData,
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<InstallationConfigStepData, InstallationConfigAdvanceData>) {
@@ -61,7 +61,6 @@ function InstallationConfigStep({
   const setupValues = stepData?.setupValues ?? [];
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       selfHosted: false,
       url: '',
@@ -71,8 +70,8 @@ function InstallationConfigStep({
       clientId: '',
       clientSecret: '',
     },
-    validators: {onDynamic: installationConfigSchema},
-    onSubmit: ({value}) => {
+    validators: [{run: installationConfigSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
       advance({
         url: value.selfHosted ? value.url.replace(/\/+$/, '') : undefined,
         verify_ssl: value.selfHosted ? value.verifySsl : undefined,
@@ -80,43 +79,41 @@ function InstallationConfigStep({
         include_subgroups: value.group ? value.includeSubgroups : undefined,
         client_id: value.clientId,
         client_secret: value.clientSecret,
-      });
-    },
+      }).catch(error => {
+        if (error instanceof RequestError) {
+          return toFieldErrors({value, createValidationError}, error);
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, advanceError);
-    }
-  }, [advanceError, form]);
-
   const configForm = (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
-        <form.AppField name="clientId">
+        <form.Field name="clientId">
           {field => (
             <field.Layout.Stack label={t('GitLab Application ID')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('Application ID from your GitLab OAuth application')}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="clientSecret">
+        </form.Field>
+        <form.Field name="clientSecret">
           {field => (
             <field.Layout.Stack label={t('GitLab Application Secret')} required>
               <field.Input
                 type="password"
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('Application Secret from your GitLab OAuth application')}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="group">
+        </form.Field>
+        <form.Field name="group">
           {field => (
             <field.Layout.Stack
               label={t('GitLab Group Path')}
@@ -125,33 +122,30 @@ function InstallationConfigStep({
               )}
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="my-group/my-subgroup"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <form.Subscribe selector={state => state.values.group}>
           {group =>
             group ? (
-              <form.AppField name="includeSubgroups">
+              <form.Field name="includeSubgroups">
                 {field => (
                   <field.Layout.Stack
                     label={t('Include Subgroups')}
                     hintText={t('Include projects in subgroups of the GitLab group.')}
                   >
-                    <field.Switch
-                      checked={field.state.value}
-                      onChange={field.handleChange}
-                    />
+                    <field.Switch checked={field.value} onChange={field.handleChange} />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
+              </form.Field>
             ) : null
           }
         </form.Subscribe>
-        <form.AppField name="selfHosted">
+        <form.Field name="selfHosted">
           {field => (
             <field.Layout.Stack
               label={t('Self-Hosted Instance')}
@@ -159,15 +153,15 @@ function InstallationConfigStep({
                 'Enable this if you are connecting to a self-hosted GitLab instance instead of gitlab.com.'
               )}
             >
-              <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              <field.Switch checked={field.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <form.Subscribe selector={state => state.values.selfHosted}>
           {isSelfHosted =>
             isSelfHosted ? (
               <Stack gap="lg">
-                <form.AppField name="url">
+                <form.Field name="url">
                   {field => (
                     <field.Layout.Stack
                       label={t('GitLab URL')}
@@ -177,14 +171,14 @@ function InstallationConfigStep({
                       required
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="https://gitlab.example.com"
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
-                <form.AppField name="verifySsl">
+                </form.Field>
+                <form.Field name="verifySsl">
                   {field => (
                     <field.Layout.Stack
                       label={t('Verify SSL')}
@@ -192,13 +186,10 @@ function InstallationConfigStep({
                         'Verify SSL certificates when communicating with your GitLab instance.'
                       )}
                     >
-                      <field.Switch
-                        checked={field.state.value}
-                        onChange={field.handleChange}
-                      />
+                      <field.Switch checked={field.value} onChange={field.handleChange} />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               </Stack>
             ) : null
           }
@@ -209,7 +200,7 @@ function InstallationConfigStep({
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 
   return (

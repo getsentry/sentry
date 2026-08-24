@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -184,7 +184,6 @@ function Composer({
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       value: initialEditorValue,
     },
@@ -192,8 +191,8 @@ function Composer({
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="value">
+    <ScrapsForm form={form}>
+      <form.Field name="value">
         {field =>
           editorMode === 'write' || isCompact ? (
             <field.Base<HTMLDivElement>>
@@ -213,13 +212,13 @@ function Composer({
                     if (
                       event.key === 'Enter' &&
                       (event.metaKey || event.ctrlKey) &&
-                      field.state.value.text.trim() !== ''
+                      field.value.text.trim() !== ''
                     ) {
                       event.preventDefault();
                       form.handleSubmit();
                     }
                   }}
-                  value={field.state.value}
+                  value={field.value}
                   minHeight={isCompact ? undefined : minHeight}
                   size={isCompact ? 'sm' : undefined}
                 />
@@ -236,11 +235,11 @@ function Composer({
               minHeight={`${minHeight}px`}
               overflow="auto"
             >
-              <Markdown raw={serializeNoteMentions(field.state.value)} />
+              <Markdown raw={serializeNoteMentions(field.value)} />
             </Container>
           )
         }
-      </form.AppField>
+      </form.Field>
       {hasFocusedEditor && (
         <Flex
           align="center"
@@ -264,7 +263,7 @@ function Composer({
           </form.Subscribe>
         </Flex>
       )}
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

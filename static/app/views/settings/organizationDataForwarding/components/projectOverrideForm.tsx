@@ -4,7 +4,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -79,12 +79,11 @@ export function ProjectOverrideForm({
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       ...emptyDefaults,
       ...projectConfig?.overrides,
     },
-    validators: {onDynamic: dataForwarderOverrideSchema},
+    validators: [{run: dataForwarderOverrideSchema, triggers: ['change']}],
     onSubmit: ({value}) => {
       const {is_enabled, ...allOverrides} = value;
       // Only include non-empty overrides for the current provider to avoid
@@ -127,8 +126,8 @@ export function ProjectOverrideForm({
       </Disclosure.Title>
       <Disclosure.Content>
         <Stack borderTop="primary">
-          <form.AppForm form={form}>
-            <form.AppField name="is_enabled">
+          <ScrapsForm form={form}>
+            <form.Field name="is_enabled">
               {field => (
                 <field.Layout.Row
                   padding="md"
@@ -136,17 +135,17 @@ export function ProjectOverrideForm({
                   hintText={t('Control forwarding for this project.')}
                 >
                   <field.Switch
-                    checked={field.state.value}
+                    checked={field.value}
                     onChange={field.handleChange}
                     disabled={disabled}
                   />
                 </field.Layout.Row>
               )}
-            </form.AppField>
+            </form.Field>
 
             {provider === DataForwarderProviderSlug.SQS && (
               <Fragment>
-                <form.AppField name="queue_url">
+                <form.Field name="queue_url">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -154,15 +153,15 @@ export function ProjectOverrideForm({
                       hintText={t('The URL of the SQS queue to forward events to.')}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. https://sqs.us-east-1.amazonaws.com/12345678/myqueue"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
-                <form.AppField name="region">
+                </form.Field>
+                <form.Field name="region">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -170,15 +169,15 @@ export function ProjectOverrideForm({
                       hintText={t('The region of the SQS queue to forward events to.')}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. us-east-1"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
-                <form.AppField name="access_key">
+                </form.Field>
+                <form.Field name="access_key">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -188,15 +187,15 @@ export function ProjectOverrideForm({
                       )}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. AKIAIOSFODNN7EXAMPLE"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
-                <form.AppField name="secret_key">
+                </form.Field>
+                <form.Field name="secret_key">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -204,15 +203,15 @@ export function ProjectOverrideForm({
                       hintText={t('Only visible once when the access key is created.')}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. wJalrXUtnFEMI1K7MDENGSbPxRfiCYEXAMPLEKEY"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
-                <form.AppField name="message_group_id">
+                </form.Field>
+                <form.Field name="message_group_id">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -222,15 +221,15 @@ export function ProjectOverrideForm({
                       )}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. my-message-group-id"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
-                <form.AppField name="s3_bucket">
+                </form.Field>
+                <form.Field name="s3_bucket">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -240,19 +239,19 @@ export function ProjectOverrideForm({
                       )}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. my-s3-bucket"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
+                </form.Field>
               </Fragment>
             )}
 
             {provider === DataForwarderProviderSlug.SEGMENT && (
-              <form.AppField name="write_key">
+              <form.Field name="write_key">
                 {field => (
                   <field.Layout.Row
                     padding="md"
@@ -262,19 +261,19 @@ export function ProjectOverrideForm({
                     )}
                   >
                     <field.Input
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       placeholder="e.g. itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"
                       disabled={disabled}
                     />
                   </field.Layout.Row>
                 )}
-              </form.AppField>
+              </form.Field>
             )}
 
             {provider === DataForwarderProviderSlug.SPLUNK && (
               <Fragment>
-                <form.AppField name="instance_url">
+                <form.Field name="instance_url">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -284,15 +283,15 @@ export function ProjectOverrideForm({
                       )}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. https://input-foo.cloud.splunk.com:8088"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
-                <form.AppField name="token">
+                </form.Field>
+                <form.Field name="token">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -300,15 +299,15 @@ export function ProjectOverrideForm({
                       hintText={t('The token generated for your HTTP Event Collector.')}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
-                <form.AppField name="index">
+                </form.Field>
+                <form.Field name="index">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -316,15 +315,15 @@ export function ProjectOverrideForm({
                       hintText={t('The index to use for the events.')}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. main"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
-                <form.AppField name="source">
+                </form.Field>
+                <form.Field name="source">
                   {field => (
                     <field.Layout.Row
                       padding="md"
@@ -332,14 +331,14 @@ export function ProjectOverrideForm({
                       hintText={t('The source to use for the events.')}
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="e.g. sentry"
                         disabled={disabled}
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
+                </form.Field>
               </Fragment>
             )}
 
@@ -366,7 +365,7 @@ export function ProjectOverrideForm({
                 {t('Save Override')}
               </form.SubmitButton>
             </Flex>
-          </form.AppForm>
+          </ScrapsForm>
         </Stack>
       </Disclosure.Content>
     </Disclosure>

@@ -99,7 +99,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
             >
               <Container flexGrow={1}>
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={!canWrite}
                 />
@@ -124,7 +124,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
               <Container flexGrow={1}>
                 <field.Select
                   multiple
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={!canWrite}
                   options={[

@@ -4,7 +4,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm, useSelector} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -144,9 +144,8 @@ function ApplyCodeMappings({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: [{run: schema, triggers: ['change']}],
     onSubmit: ({value}) => {
       if (!value.codeMappingId || !codeownersFile) {
         return;
@@ -162,19 +161,19 @@ function ApplyCodeMappings({
     },
   });
 
-  const codeMappingId = useStore(form.store, state => state.values.codeMappingId);
+  const codeMappingId = useSelector(form.atom, state => state.values.codeMappingId);
   const {data: codeownersFile} = useCodeownersFile(organization, codeMappingId);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>{t('Add Code Owner File')}</Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="codeMappingId">
+          <form.Field name="codeMappingId">
             {field => (
               <field.Layout.Stack label={t('Apply an existing code mapping')} required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={codeMappings.map(cm => ({
                     value: cm.id,
@@ -183,7 +182,7 @@ function ApplyCodeMappings({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
           <CodeownersFileStatus
             codeMappingId={codeMappingId}
@@ -198,7 +197,7 @@ function ApplyCodeMappings({
       <Footer>
         <form.SubmitButton disabled={!codeownersFile}>{t('Add File')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

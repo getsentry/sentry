@@ -377,7 +377,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
           {fieldApi => (
             <fieldApi.Layout.Row label={field.label} hintText={field.help}>
               <fieldApi.Select
-                value={fieldApi.state.value}
+                value={fieldApi.value}
                 onChange={fieldApi.handleChange}
                 options={choicesToOptions(field.choices)}
               />
@@ -409,7 +409,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
         {field => (
           <field.Layout.Row label={fieldDef.label} hintText={help}>
             <field.Select
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={choicesToOptions(fieldDef.choices)}
             />
@@ -445,11 +445,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
           >
             {field => (
               <Fragment>
-                {(field.state.value ?? initialProviders).includes('slack') &&
+                {(field.value ?? initialProviders).includes('slack') &&
                 unlinkedSlackOrgs.length > 0 ? (
                   <UnlinkedAlert organizations={unlinkedSlackOrgs} />
                 ) : null}
-                {(field.state.value ?? initialProviders).includes('slack_staging') &&
+                {(field.value ?? initialProviders).includes('slack_staging') &&
                 unlinkedSlackStagingOrgs.length > 0 ? (
                   <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
                 ) : null}
@@ -459,7 +459,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
                 >
                   <field.Select
                     multiple
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={providerChoices}
                   />

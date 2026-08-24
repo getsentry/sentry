@@ -2,7 +2,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -72,14 +72,13 @@ export function RequestIntegrationModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {message: ''},
-    validators: {onDynamic: schema},
+    validators: [{run: schema, triggers: ['change']}],
     onSubmit: ({value}) => sendRequestMutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <h4>{t('Request %s Installation', name)}</h4>
         <CloseButton />
@@ -98,15 +97,15 @@ export function RequestIntegrationModal({
               name
             )}
           </Text>
-          <form.AppField name="message">
+          <form.Field name="message">
             {field => (
               <field.TextArea
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('Optional message…')}
               />
             )}
-          </form.AppField>
+          </form.Field>
           <Text as="p">
             {t(
               'When you click “Send Request”, we’ll email your request to your organization’s owners. So just keep that in mind.'
@@ -117,6 +116,6 @@ export function RequestIntegrationModal({
       <Footer>
         <form.SubmitButton>{t('Send Request')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

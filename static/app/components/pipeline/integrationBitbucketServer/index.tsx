@@ -1,8 +1,8 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -15,6 +15,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const installationConfigSchema = z.object({
   url: z
@@ -39,32 +40,28 @@ interface InstallationConfigAdvanceData {
 
 function InstallationConfigStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<Record<string, never>, InstallationConfigAdvanceData>) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       url: '',
       consumerKey: '',
       privateKey: '',
       verifySsl: true,
     },
-    validators: {onDynamic: installationConfigSchema},
-    onSubmit: ({value}) => {
-      advance(installationConfigSchema.parse(value));
-    },
+    validators: [{run: installationConfigSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
+      advance(installationConfigSchema.parse(value)).catch(error => {
+        if (error instanceof RequestError) {
+          return toFieldErrors({value, createValidationError}, error);
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, advanceError);
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {tct(
@@ -77,7 +74,7 @@ function InstallationConfigStep({
           )}
         </Text>
 
-        <form.AppField name="url">
+        <form.Field name="url">
           {field => (
             <field.Layout.Stack
               label={t('Bitbucket URL')}
@@ -87,15 +84,15 @@ function InstallationConfigStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="https://bitbucket.example.com"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="consumerKey">
+        <form.Field name="consumerKey">
           {field => (
             <field.Layout.Stack
               label={t('Bitbucket Consumer Key')}
@@ -103,15 +100,15 @@ function InstallationConfigStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="sentry-consumer-key"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="privateKey">
+        <form.Field name="privateKey">
           {field => (
             <field.Layout.Stack
               label={t('Bitbucket Consumer Private Key')}
@@ -119,7 +116,7 @@ function InstallationConfigStep({
               required
             >
               <field.TextArea
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 rows={3}
                 placeholder={
@@ -128,9 +125,9 @@ function InstallationConfigStep({
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="verifySsl">
+        <form.Field name="verifySsl">
           {field => (
             <field.Layout.Stack
               label={t('Verify SSL')}
@@ -138,10 +135,10 @@ function InstallationConfigStep({
                 'Verify SSL certificates when making requests to your Bitbucket instance.'
               )}
             >
-              <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              <field.Switch checked={field.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
@@ -149,7 +146,7 @@ function InstallationConfigStep({
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

@@ -2,13 +2,7 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {
@@ -359,12 +353,8 @@ describe('ConfigureIntegration mapping removals', () => {
 
     await userEvent.click(await screen.findByText('Add Project'));
     await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));
-    const form = screen.getByTestId(/sync_status_forward.*auto-save/);
-    await selectEvent.select(within(form).getByText('Select resolved status'), 'Open');
-    await selectEvent.select(
-      within(form).getByText('Select unresolved status'),
-      'Closed'
-    );
+    await selectEvent.select(screen.getByText('Select resolved status'), 'Open');
+    await selectEvent.select(screen.getByText('Select unresolved status'), 'Closed');
 
     await waitFor(() =>
       expect(postRequest).toHaveBeenCalledWith(

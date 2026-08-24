@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {z} from 'zod';
@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -23,6 +23,7 @@ import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -34,7 +35,6 @@ interface ProjectSelectAdvanceData {
 
 function ProjectSelectStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<Record<string, never>, ProjectSelectAdvanceData>) {
@@ -52,33 +52,30 @@ function ProjectSelectStep({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       projectId: autoSelectedProjectId,
     },
-    validators: {onDynamic: projectSchema},
-    onSubmit: ({value}) => {
-      advance({projectId: Number(value.projectId)});
-    },
+    validators: [{run: projectSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
+      advance({projectId: Number(value.projectId)}).catch(error => {
+        if (error instanceof RequestError) {
+          return toFieldErrors({value, createValidationError}, error);
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, advanceError);
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t('Select a Sentry project to associate with your AWS Lambda functions.')}
         </Text>
-        <form.AppField name="projectId">
+        <form.Field name="projectId">
           {field => (
             <field.Select
               aria-label={t('Project')}
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder={t('Select a project')}
               options={sortedProjects.map(project => ({
@@ -95,7 +92,7 @@ function ProjectSelectStep({
               }))}
             />
           )}
-        </form.AppField>
+        </form.Field>
         <Text variant="muted" size="sm">
           {t('Currently only supports Node and Python Lambda functions.')}
         </Text>
@@ -105,7 +102,7 @@ function ProjectSelectStep({
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -148,7 +145,6 @@ const cloudFormationSchema = z.object({
 function CloudFormationStep({
   stepData,
   advance,
-  advanceError,
   isAdvancing,
 }: PipelineStepProps<CloudFormationStepData, CloudFormationAdvanceData>) {
   const organization = useOrganization();
@@ -156,21 +152,20 @@ function CloudFormationStep({
   const [defaultExternalId] = useState<string>(() => crypto.randomUUID());
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       accountNumber: '',
       region: '',
       awsExternalId: defaultExternalId,
     },
-    validators: {onDynamic: cloudFormationSchema},
-    onSubmit: ({value}) => advance(value),
+    validators: [{run: cloudFormationSchema, triggers: ['change']}],
+    onSubmit: ({value, createValidationError}) =>
+      advance(value).catch(error => {
+        if (error instanceof RequestError) {
+          return toFieldErrors({value, createValidationError}, error);
+        }
+        throw error;
+      }),
   });
-
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, advanceError);
-    }
-  }, [advanceError, form]);
 
   if (stepData === null) {
     return null;
@@ -194,7 +189,7 @@ function CloudFormationStep({
   };
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="xl">
         <Stack gap="md">
           <Heading as="h4">{t("Add Sentry's CloudFormation Stack")}</Heading>
@@ -220,7 +215,7 @@ function CloudFormationStep({
           {t('Once added enter your AWS account details to connect your account.')}
         </Text>
         <Flex gap="md">
-          <form.AppField name="accountNumber">
+          <form.Field name="accountNumber">
             {field => (
               <field.Layout.Stack
                 label={t('AWS Account Number')}
@@ -231,7 +226,7 @@ function CloudFormationStep({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => {
                     field.handleChange(value);
                     debouncedTrackInputChange('accountNumber', organization);
@@ -240,8 +235,8 @@ function CloudFormationStep({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="region">
+          </form.Field>
+          <form.Field name="region">
             {field => (
               <field.Layout.Stack
                 label={t('AWS Region')}
@@ -252,7 +247,7 @@ function CloudFormationStep({
                 required
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => {
                     field.handleChange(value);
                     debouncedTrackInputChange('region', organization);
@@ -262,10 +257,10 @@ function CloudFormationStep({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Flex>
         {showExternalId ? (
-          <form.AppField name="awsExternalId">
+          <form.Field name="awsExternalId">
             {field => (
               <field.Layout.Stack
                 label={t('External ID')}
@@ -274,7 +269,7 @@ function CloudFormationStep({
                 )}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => {
                     field.handleChange(value);
                     debouncedTrackInputChange('awsExternalId', organization);
@@ -282,7 +277,7 @@ function CloudFormationStep({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         ) : (
           <div>
             <Button size="xs" variant="link" onClick={() => setShowExternalId(true)}>
@@ -294,7 +289,7 @@ function CloudFormationStep({
           <form.SubmitButton busy={isAdvancing}>{t('Continue')}</form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

@@ -1,16 +1,17 @@
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {useFieldId, useHintTextId, useLabelId} from '@sentry/scraps/form/field/baseField';
 import {useGroupContext} from '@sentry/scraps/form/field/groupContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {RequiredIndicator, Warning} from '@sentry/scraps/form/icons';
 import {DisabledTip, InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-function HintText(props: {children: React.ReactNode}) {
-  const id = useHintTextId();
+import {getFieldId, getHintTextId, getLabelId} from './baseField';
+
+function HintText(props: {children: React.ReactNode; field: AnyFieldApi}) {
+  const id = getHintTextId(props.field);
 
   return (
     <Container width="fit-content">
@@ -25,12 +26,13 @@ function HintText(props: {children: React.ReactNode}) {
 
 function Label(props: {
   children: React.ReactNode;
+  field: AnyFieldApi;
   description?: React.ReactNode;
   required?: boolean;
 }) {
-  const fieldId = useFieldId();
-  const hintTextId = useHintTextId();
-  const labelId = useLabelId();
+  const fieldId = getFieldId(props.field);
+  const hintTextId = getHintTextId(props.field);
+  const labelId = getLabelId(props.field);
   const isGroup = useGroupContext();
 
   const labelContent = props.description ? (
@@ -68,14 +70,18 @@ function Label(props: {
   );
 }
 
-function FieldStatus({disabled, error}: {disabled?: boolean | string; error?: string}) {
-  const field = useFieldContext();
-
+function FieldStatus({
+  disabled,
+  error,
+  field,
+}: {
+  field: AnyFieldApi;
+  disabled?: boolean | string;
+  error?: string;
+}) {
   const errorMessage =
     error ??
-    (field.state.meta.isValid
-      ? undefined
-      : field.state.meta.errors.map((e: Error | undefined) => e?.message).join(','));
+    (field.meta.isValid ? undefined : field.errors.map(e => e.message).join(','));
 
   if (errorMessage) {
     return (
@@ -98,6 +104,6 @@ export function FieldMeta() {
   return null;
 }
 
-FieldMeta.Label = Label;
-FieldMeta.HintText = HintText;
-FieldMeta.Status = FieldStatus;
+FieldMeta.Label = fieldComponent.loose(Label, 'field');
+FieldMeta.HintText = fieldComponent.loose(HintText, 'field');
+FieldMeta.Status = fieldComponent.loose(FieldStatus, 'field');
