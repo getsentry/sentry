@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 from django.core.cache import cache
@@ -2022,7 +2022,7 @@ class TestGetEventDetails(
         return self.store_event(data=data, project_id=self.project.id)
 
     def _assert_event_response_shape(
-        self, result, expected_event_id: str | None, expected_trace_id: str | None = None
+        self, result, expected_event_id: str | None, expected_trace_id: Any = ANY
     ):
         assert result is not None
         assert result["project_id"] == self.project.id
@@ -2063,7 +2063,9 @@ class TestGetEventDetails(
             project_slug=self.project.slug,
         )
 
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     def test_format_returns_shared_formatter_output(self) -> None:
         event = self._make_error_event()
@@ -2169,7 +2171,9 @@ class TestGetEventDetails(
             event_id=event.event_id,
         )
 
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     def test_by_event_id_not_found_returns_none(self) -> None:
         result = get_event_details(
@@ -2244,7 +2248,9 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert args[2] is None  # no start
         assert args[3] is None  # no end
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_qualified_short_id(self, mock_recommended):
@@ -2264,7 +2270,9 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert args[2] is None  # no start
         assert args[3] is None  # no end
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_with_time_range(self, mock_recommended):

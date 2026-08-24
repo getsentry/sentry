@@ -654,6 +654,7 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
+            force_ce=False,
         )
         run_id = run.seer_run_state_id
 

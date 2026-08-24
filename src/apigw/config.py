@@ -2,6 +2,14 @@ import os
 
 from emmett55 import App
 
+# fmt: off
+PROXY_LATENCY_BUCKETS = [
+    50, 100, 250, 350, 500, 700, 1000,
+    1500, 2000, 3000, 4000, 5000, 6000, 7000, 10000,
+    15000, 20000, 30000, 60000, 120000,
+]
+# fmt: on
+
 
 # NOTE: this is ugly, but necessary to use django settings and models
 def _patch_sentry_init() -> None:
@@ -56,7 +64,7 @@ def load_config(app: App) -> None:
     app.config.proxy.max_concurrency = int(os.environ.get("APIGW_PROXY_MAX_CONCURRENCY", 512))
     app.config.proxy.max_failures = int(os.environ.get("APIGW_PROXY_MAX_FAILURES", 16))
     app.config.proxy.failure_window = int(os.environ.get("APIGW_PROXY_FAILURE_WINDOW", 60))
-    app.config.proxy.latency_buckets = [50, 100, 250, 1000, 10000, 60000]
+    app.config.proxy.latency_buckets = PROXY_LATENCY_BUCKETS
 
     app.config.proxy.client_max_connections = None
     app.config.proxy.client_keepalive_max_connections = None

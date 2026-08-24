@@ -794,12 +794,16 @@ def should_create_group(
     grouphash: str,
     project: Project,
 ) -> bool:
-    key = f"grouphash:{grouphash}:{project.id}"
-    times_seen = client.incr(key)
     noise_config = grouptype.noise_config
 
     if not noise_config:
         return True
+
+    key = f"grouphash:{grouphash}:{project.id}"
+    pipe = client.pipeline()
+    pipe.incr(key)
+    pipe.expire(key, noise_config.expiry_seconds)
+    times_seen = pipe.execute()[0]
 
     over_threshold = times_seen >= noise_config.ignore_limit
 
@@ -816,7 +820,6 @@ def should_create_group(
         client.delete(key)
         return True
     else:
-        client.expire(key, noise_config.expiry_seconds)
         return False
 
 
