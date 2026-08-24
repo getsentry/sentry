@@ -30,13 +30,7 @@ export function ArtifactCard({
   ref,
 }: ArtifactCardProps) {
   return (
-    <Container
-      ref={ref}
-      border="primary"
-      radius="md"
-      padding="lg"
-      background="primary"
-    >
+    <Container ref={ref} border="primary" radius="md" padding="lg" background="primary">
       <Disclosure defaultExpanded>
         <Disclosure.Title
           trailingItems={

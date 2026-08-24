@@ -45,7 +45,11 @@ function getWorkflowFailureReason(
   return null;
 }
 
-export function WorkflowFileWarning({runState}: {runState?: ExplorerAutofixState | null}) {
+export function WorkflowFileWarning({
+  runState,
+}: {
+  runState?: ExplorerAutofixState | null;
+}) {
   const retryStep = useRetryStep();
   const reason = getWorkflowFailureReason(runState);
 
