@@ -124,8 +124,9 @@ type UpdateBlockPromptVariables = {
   prompt: string;
 };
 
-type BlockIdVariables = {
-  blockId: string;
+type DeleteBlockVariables = {
+  block: InvestigationBlock;
+  investigationVersion: number;
 };
 
 type StopExecutionVariables = {
@@ -300,7 +301,7 @@ export function useAddInvestigationBlockMutation(
 export function useDeleteInvestigationBlockMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<void, BlockIdVariables>
+  options?: MutationOptions<void, DeleteBlockVariables>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -310,18 +311,12 @@ export function useDeleteInvestigationBlockMutation(
 
   return useMutation({
     ...options,
-    mutationFn: ({blockId}) => {
-      const investigation = queryClient.getQueryData(detailOptions.queryKey)?.json;
-      const block = investigation?.blocks?.find(item => item.id === blockId);
-      if (!investigation || !block) {
-        throw new Error('Investigation block is not cached.');
-      }
-
+    mutationFn: ({block, investigationVersion}) => {
       return fetchMutation<void>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/`,
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${block.id}/`,
         method: 'DELETE',
         data: {
-          investigationVersion: investigation.version,
+          investigationVersion,
           version: block.version,
         },
       });
@@ -335,7 +330,7 @@ export function useDeleteInvestigationBlockMutation(
                 ...current.json,
                 blockCount: Math.max(0, current.json.blockCount - 1),
                 blocks: current.json.blocks?.filter(
-                  block => block.id !== variables.blockId
+                  block => block.id !== variables.block.id
                 ),
                 version: current.json.version + 1,
               },

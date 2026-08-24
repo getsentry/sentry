@@ -512,20 +512,32 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('deletes a query cell from its actions menu after confirmation', async () => {
+  it('deletes a query cell when it is no longer present in the cache', async () => {
     const investigation = InvestigationDetailFixture();
     const block = investigation.blocks[1]!;
+    const queryClient = makeTestQueryClient();
+    const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
     const deleteRequest = MockApiClient.addMockResponse({
       url: `${detailUrl}blocks/${block.id}/`,
       method: 'DELETE',
     });
 
-    renderView();
+    renderView(organization, queryClient);
     await userEvent.click(await screen.findByLabelText('Cell actions for Latency query'));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
     expect(deleteRequest).not.toHaveBeenCalled();
     renderGlobalModal();
+    act(() => {
+      queryClient.setQueryData(options.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {...current.json, blocks: undefined, version: 2},
+            }
+          : current
+      );
+    });
     await userEvent.click(await screen.findByTestId('confirm-button'));
 
     await waitFor(() =>

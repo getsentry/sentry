@@ -167,7 +167,11 @@ export function InvestigationCell({
                 message: t('Are you sure you want to delete this cell?'),
                 priority: 'danger',
                 confirmText: t('Delete'),
-                onConfirm: () => deleteMutation.mutate({blockId: block.id}),
+                onConfirm: () =>
+                  deleteMutation.mutate({
+                    block,
+                    investigationVersion: investigation.version,
+                  }),
               }),
           },
         ]}
