@@ -194,11 +194,11 @@ export function SelectField<TValue>({
   );
 }
 
-type SelectFieldWithFieldComponent = <TValue>(
+type SelectLooseField = <TValue>(
   props: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue>
 ) => React.ReactNode;
 
-export const SelectFieldWithField = fieldComponent.loose(
+export const SelectLooseField = fieldComponent.loose(
   SelectField,
   'field'
-) as SelectFieldWithFieldComponent;
+) as SelectLooseField;

@@ -69,11 +69,11 @@ function SelectAsyncField<TData, TValue>({
   );
 }
 
-type SelectAsyncFieldWithFieldComponent = <TData, TValue>(
+type SelectAsyncLooseField = <TData, TValue>(
   props: Omit<SelectAsyncFieldProps<TData, TValue>, 'field'>
 ) => React.ReactNode;
 
-export const SelectAsyncFieldWithField = fieldComponent.loose(
+export const SelectAsyncLooseField = fieldComponent.loose(
   SelectAsyncField,
   'field'
-) as SelectAsyncFieldWithFieldComponent;
+) as SelectAsyncLooseField;

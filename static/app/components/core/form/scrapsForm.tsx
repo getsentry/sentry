@@ -21,8 +21,8 @@ import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
 import {RadioField} from './field/radioField';
 import {RangeField} from './field/rangeField';
-import {SelectAsyncFieldWithField} from './field/selectAsyncField';
-import {SelectFieldWithField} from './field/selectField';
+import {SelectAsyncLooseField} from './field/selectAsyncField';
+import {SelectLooseField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
 import {FormElementContext, useIsInsideFormElement} from './formContext';
@@ -93,8 +93,8 @@ const fieldComponents = {
   Password: fieldComponent.loose(PasswordField, 'field'),
   Radio: RadioField,
   Range: fieldComponent.loose(RangeField, 'field'),
-  Select: SelectFieldWithField,
-  SelectAsync: SelectAsyncFieldWithField,
+  Select: SelectLooseField,
+  SelectAsync: SelectAsyncLooseField,
   Switch: fieldComponent.loose(SwitchField, 'field'),
   TextArea: fieldComponent.loose(TextAreaField, 'field'),
   Meta: FieldMeta,
