@@ -1,7 +1,8 @@
 /**
- * Bodies in the webhook request buffer are currently double-encoded (`json.dumps()`
- * applied to a string that was already JSON) and truncated after encoding, with no
- * flag recording that it happened.
+ * Bodies written before #122361 were double-encoded
+ *
+ * TODO(integrations): Remove this compatibility shim after 2026-09-24, when entries
+ * written before #122361 have expired, and use jsonrepair for truncated JSON.
  */
 export interface DecodedWebhookBody {
   maybeTruncated: boolean;
