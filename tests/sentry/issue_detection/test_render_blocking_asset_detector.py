@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -193,6 +194,62 @@ class RenderBlockingAssetDetectorTest(TestCase):
             span["data"]["resource.render_blocking_status"] = "non-blocking"
 
         assert self.find_problems(event) == []
+
+    def test_handles_valid_string_encoded_body_size(self) -> None:
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        event["spans"][0]["data"]["http.response_content_length"] = "1200000"
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1004-ba43281143a88ba902029356cb543dd0bff8f41c",
+                op="resource.script",
+                desc="https://example.com/a.js",
+                type=PerformanceRenderBlockingAssetSpanGroupType,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
+            )
+        ]
+
+    @patch("sentry.issue_detection.detectors.utils.logger.warning")
+    def test_handles_invalid_encoded_body_size_values(self, mock_logger_warning: MagicMock) -> None:
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        span = event["spans"][0]
+        span["project_id"] = self.project.id
+        span["organization_id"] = self.project.organization.id
+
+        for invalid_value, expected_description in [
+            (12.31, "non_integer_float"),
+            ("NaN", "non_number_float"),
+            ("[Filtered]", "non_number_string"),
+            ("dogs are great", "non_number_string"),
+        ]:
+            span["data"] = {"http.response_content_length": invalid_value}
+
+            assert self.find_problems(event) == []  # No problem found, but also no crash
+            mock_logger_warning.assert_called_with(
+                "issue_detectors.invalid_data",
+                extra={
+                    "detector": "render_blocking_asset",
+                    "span_id": span["span_id"],
+                    "trace_id": span["trace_id"],
+                    "project_id": span["project_id"],
+                    "org_id": span["organization_id"],
+                    "key": "http.response_content_length",
+                    "value": invalid_value,
+                    "error": (
+                        f"ValueError(\"Couldn't convert <{expected_description}> to <int>. "
+                        + f'Invalid value: {invalid_value}")'
+                    ),
+                },
+            )
 
 
 @pytest.mark.django_db
