@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContextRegistry} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextOverlayNode} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
@@ -94,7 +95,17 @@ function measureAllNodes(nodes: LLMContextOverlayNode[]): MeasuredNode[] {
 }
 
 export function SeerXRayOverlay() {
-  const enabled = useXRayModeEnabled();
+  const persistedEnabled = useXRayModeEnabled();
+  // Mounted at the app root, before any route is guaranteed to have loaded
+  // an organization — allowNull instead of the throwing default.
+  const organization = useOrganization({allowNull: true});
+  // The cmd+k toggle is the only UI for turning this off, and it's already
+  // hidden without the flag — so a stale `'1'` left over in localStorage
+  // (e.g. from before the org lost access) must not keep the overlay live
+  // with no way to disable it. The flag is the hard gate; localStorage only
+  // toggles within that.
+  const enabled =
+    persistedEnabled && (organization?.features.includes('seer-xray') ?? false);
   const {getOverlayNodes} = useLLMContextRegistry();
   const [measured, setMeasured] = useState<MeasuredNode[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);

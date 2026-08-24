@@ -1,4 +1,5 @@
 import {act} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -16,6 +17,8 @@ function DummyWidget({title}: {title: string}) {
   return <div>{title}</div>;
 }
 const ContextWidget = registerLLMContext('widget', DummyWidget);
+
+const organization = OrganizationFixture({features: ['seer-xray']});
 
 function rect(overrides: Partial<DOMRect> = {}): DOMRect {
   return {
@@ -59,9 +62,27 @@ describe('SeerXRayOverlay', () => {
       <LLMContextProvider>
         <ContextWidget title="Error Rate" />
         <SeerXRayOverlay />
-      </LLMContextProvider>
+      </LLMContextProvider>,
+      {organization}
     );
 
+    expect(screen.queryByText('widget')).not.toBeInTheDocument();
+  });
+
+  it('stays off without the seer-xray feature, even if localStorage says enabled', () => {
+    setXRayModeEnabled(true);
+    const organizationWithoutFlag = OrganizationFixture({features: []});
+    render(
+      <LLMContextProvider>
+        <ContextWidget title="Error Rate" />
+        <SeerXRayOverlay />
+      </LLMContextProvider>,
+      {organization: organizationWithoutFlag}
+    );
+
+    // The cmd+k toggle is the only UI for turning this off, and it's hidden
+    // without the flag — so a stale localStorage value must not leave the
+    // overlay running with no way to disable it.
     expect(screen.queryByText('widget')).not.toBeInTheDocument();
   });
 
@@ -71,7 +92,8 @@ describe('SeerXRayOverlay', () => {
       <LLMContextProvider>
         <ContextWidget title="Error Rate" />
         <SeerXRayOverlay />
-      </LLMContextProvider>
+      </LLMContextProvider>,
+      {organization}
     );
 
     await waitFor(() => {
@@ -85,7 +107,8 @@ describe('SeerXRayOverlay', () => {
       <LLMContextProvider>
         <ContextWidget title="Error Rate" />
         <SeerXRayOverlay />
-      </LLMContextProvider>
+      </LLMContextProvider>,
+      {organization}
     );
 
     const label = await screen.findByText('widget');
@@ -102,7 +125,8 @@ describe('SeerXRayOverlay', () => {
       <LLMContextProvider>
         <ContextWidget title="Error Rate" />
         <SeerXRayOverlay />
-      </LLMContextProvider>
+      </LLMContextProvider>,
+      {organization}
     );
 
     const label = await screen.findByText('widget');
@@ -129,7 +153,8 @@ describe('SeerXRayOverlay', () => {
       <LLMContextProvider>
         <ContextWidget title="Error Rate" />
         <SeerXRayOverlay />
-      </LLMContextProvider>
+      </LLMContextProvider>,
+      {organization}
     );
 
     expect(screen.queryByText('widget')).not.toBeInTheDocument();

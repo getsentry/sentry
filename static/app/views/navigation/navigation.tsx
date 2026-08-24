@@ -58,6 +58,13 @@ function NavigationImpl() {
 
   const {layout, activeGroup} = usePrimaryNavigation();
 
+  useNavigationTourModal();
+
+  const {currentStepId} = useNavigationTour();
+  // The tour forces the sidebar open regardless of `view`, so this — not
+  // `view !== 'expanded'` alone — is the actual collapsed state on screen.
+  const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
+
   useLLMContext({
     contextHint:
       "The org's left-hand navigation sidebar — a primary icon rail (Issues, " +
@@ -66,13 +73,8 @@ function NavigationImpl() {
       "secondary panel's own detail (starred views/queries/dashboards, issue " +
       'counts, settings categories, etc).',
     activeGroup,
-    isCollapsed: view !== 'expanded',
+    isCollapsed,
   });
-
-  useNavigationTourModal();
-
-  const {currentStepId} = useNavigationTour();
-  const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
 
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
