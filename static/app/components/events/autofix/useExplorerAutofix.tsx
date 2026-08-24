@@ -299,16 +299,16 @@ const isActivelyProcessing = (
       codingAgent.status === CodingAgentStatus.RUNNING
   );
 
-  const hasQueuedFeedback = (autofixState.queued_feedback ?? []).length > 0;
-
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
     anyPRCreating ||
-    anyCodingAgentsRunning ||
-    hasQueuedFeedback
+    anyCodingAgentsRunning
   );
 };
+
+const hasQueuedFeedback = (autofixState: ExplorerAutofixState | null): boolean =>
+  (autofixState?.queued_feedback ?? []).length > 0;
 
 const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boolean =>
   Object.values(autofixState?.repo_pr_states ?? {}).some(
@@ -328,7 +328,8 @@ export const getPollInterval = ({
   pollPR?: boolean;
 }): number | false => {
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
-  const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
+  const shouldPollProcessing =
+    isActivelyProcessing(autofixState, runStarted) || hasQueuedFeedback(autofixState);
 
   if (shouldPollProcessing) {
     return ACTIVE_POLL_INTERVAL;
@@ -991,6 +992,13 @@ export function useExplorerAutofix(
      * Whether we're actively processing (used for UI indicators).
      */
     isPolling:
+      isActivelyProcessing(runState, waitingForResponse) ||
+      hasQueuedFeedback(runState) ||
+      waitingForCodingAgent,
+    /**
+     * Whether a user-initiated action is actively processing.
+     */
+    isProcessing:
       isActivelyProcessing(runState, waitingForResponse) || waitingForCodingAgent,
     /**
      * Start or continue an autofix step.

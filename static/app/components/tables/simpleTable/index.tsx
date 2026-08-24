@@ -13,6 +13,7 @@ import {
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   HeaderCellContent,
   type SortDirection,
@@ -46,8 +47,16 @@ export function SimpleTable({children, columns, header, ...props}: TableProps) {
   );
 }
 
-function HeaderRow({children, ...props}: HTMLAttributes<HTMLTableRowElement>) {
-  return <StyledHeaderRow {...props}>{children}</StyledHeaderRow>;
+function HeaderRow({
+  children,
+  sticky,
+  ...props
+}: HTMLAttributes<HTMLTableRowElement> & {sticky?: boolean}) {
+  return (
+    <StyledHeaderRow sticky={sticky} {...props}>
+      {children}
+    </StyledHeaderRow>
+  );
 }
 
 function HeaderCell({
@@ -114,7 +123,9 @@ const StyledTable = styled(Table)`
   overflow: hidden;
 `;
 
-const StyledHeaderRow = styled(Table.Row)`
+const StyledHeaderRow = styled(Table.Row, {
+  shouldForwardProp: prop => prop !== 'sticky',
+})<{sticky?: boolean}>`
   background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
@@ -124,6 +135,14 @@ const StyledHeaderRow = styled(Table.Row)`
   padding: 0;
   min-height: 40px;
   align-items: center;
+
+  ${p =>
+    p.sticky &&
+    css`
+      position: sticky;
+      top: 0;
+      z-index: ${p.theme.zIndex.initial};
+    `}
 `;
 
 const StyledRow = styled(Table.Row, {
@@ -237,11 +256,20 @@ const Empty = styled(Table.Status)`
   ${emptyCellStyle}
 `;
 
+function Loading(props: ComponentProps<typeof Empty>) {
+  return (
+    <Empty {...props}>
+      <LoadingIndicator />
+    </Empty>
+  );
+}
+
 SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
 SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = Empty;
+SimpleTable.Loading = Loading;
 SimpleTable.FullWidthCell = FullWidthCell;
 SimpleTable.FullWidthRow = FullWidthRow;
