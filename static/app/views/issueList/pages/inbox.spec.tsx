@@ -529,7 +529,7 @@ describe('InboxPage', () => {
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('shows the Identified section on all assignee tabs', async () => {
+  it('hides the Identified section on the All assignee tab', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
     mockSection(
@@ -555,10 +555,6 @@ describe('InboxPage', () => {
     mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]);
     mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]);
     mockSection('issue.progress:assigned is:unresolved', [assignedGroup]);
-    const identifiedAllRequest = mockSection(
-      'issue.progress:identified is:unresolved',
-      []
-    );
     mockSection('issue.progress:fix_applied is:unresolved', []);
 
     render(<InboxPage />, {
@@ -574,10 +570,11 @@ describe('InboxPage', () => {
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedMyTeamsRequest).toHaveBeenCalledTimes(1));
 
-    await userEvent.click(screen.getByRole('radio', {name: /^All/}));
+    const allFilter = screen.getByRole('radio', {name: /^All/});
+    await userEvent.click(allFilter);
 
-    expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
-    await waitFor(() => expect(identifiedAllRequest).toHaveBeenCalledTimes(1));
+    expect(allFilter).toBeChecked();
+    expect(screen.queryByRole('region', {name: 'Identified'})).not.toBeInTheDocument();
   });
 
   it('shows the total issue count for each assignee tab', async () => {
@@ -682,7 +679,6 @@ describe('InboxPage', () => {
       mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]),
       mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]),
       mockSection('issue.progress:assigned is:unresolved', [assignedGroup]),
-      mockSection('issue.progress:identified is:unresolved', []),
       mockSection('issue.progress:fix_applied is:unresolved', []),
     ];
 
