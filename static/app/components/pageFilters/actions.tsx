@@ -4,7 +4,7 @@ import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import type {PageFilterAdjustment} from 'sentry/components/pageFilters/adjustments';
+import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
 import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
 import {
   ALL_ACCESS_PROJECTS,
@@ -111,23 +111,6 @@ function mergeDatetime(base: PageFilterDatetime, fallback?: Partial<PageFilterDa
   return datetime;
 }
 
-/**
- * A filter can be adjusted more than once during initialization (e.g. invalid
- * projects are dropped, then the empty selection falls back to All Projects).
- * Only the last adjustment describes the value we ended up with, so earlier
- * ones would read as contradictory reasons for the same change.
- */
-function lastAdjustmentPerFilter(
-  adjustments: PageFilterAdjustment[]
-): PageFilterAdjustment[] {
-  return adjustments.filter(
-    (adjustment, index) =>
-      !adjustments.some(
-        (other, otherIndex) => other.filter === adjustment.filter && otherIndex > index
-      )
-  );
-}
-
 export type InitializeUrlStateParams = {
   location: Location;
   memberProjects: Project[];
@@ -225,7 +208,7 @@ export function initializeUrlState({
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
 
-  let adjustments: PageFilterAdjustment[] = [];
+  const adjustments: PageFilterAdjustments = {};
 
   /**
    * Check to make sure that the project ID exists in the projects list. Invalid project
@@ -259,17 +242,13 @@ export function initializeUrlState({
     pageFilters.environments = parsed.environment?.filter(validateEnvironment) || [];
 
     if (pageFilters.projects.length < (parsed.project?.length ?? 0)) {
-      adjustments.push({
-        filter: 'projects',
-        reason: PageFilterAdjustmentReason.INVALID_PROJECTS,
-      });
+      adjustments.projects = {reason: PageFilterAdjustmentReason.INVALID_PROJECTS};
     }
 
     if (pageFilters.environments.length < (parsed.environment?.length ?? 0)) {
-      adjustments.push({
-        filter: 'environments',
+      adjustments.environments = {
         reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
-      });
+      };
     }
   }
 
@@ -290,10 +269,7 @@ export function initializeUrlState({
 
       if (pageFilters.projects.length < (storedState.project?.length ?? 0)) {
         shouldUpdateLocalStorage = true; // update storage to remove invalid projects
-        adjustments.push({
-          filter: 'projects',
-          reason: PageFilterAdjustmentReason.INVALID_PROJECTS,
-        });
+        adjustments.projects = {reason: PageFilterAdjustmentReason.INVALID_PROJECTS};
       }
     }
 
@@ -307,10 +283,9 @@ export function initializeUrlState({
 
       if (pageFilters.environments.length < (storedState.environment?.length ?? 0)) {
         shouldUpdateLocalStorage = true; // update storage to remove invalid environments
-        adjustments.push({
-          filter: 'environments',
+        adjustments.environments = {
           reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
-        });
+        };
       }
     }
 
@@ -329,11 +304,10 @@ export function initializeUrlState({
     const onlyProject = memberProjects[0] ?? nonMemberProjects[0];
     if (onlyProject) {
       pageFilters.projects = [getProjectIdFromProject(onlyProject)];
-      adjustments.push({
-        filter: 'projects',
+      adjustments.projects = {
         reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
         projectSlug: onlyProject.slug,
-      });
+      };
     }
   }
 
@@ -348,10 +322,7 @@ export function initializeUrlState({
     // The user has no projects they are a member of, but they could look at "all projects".
     // We can attempt to be helpful and redirect them to the all projects view.
     pageFilters.projects = [ALL_ACCESS_PROJECTS];
-    adjustments.push({
-      filter: 'projects',
-      reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS,
-    });
+    adjustments.projects = {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS};
   }
 
   const {projects, environments: environment, datetime} = pageFilters;
@@ -372,7 +343,7 @@ export function initializeUrlState({
 
     // The forced project replaces whatever the branches above picked, so any
     // explanation of how they picked it no longer describes the selection.
-    adjustments = adjustments.filter(adjustment => adjustment.filter !== 'projects');
+    delete adjustments.projects;
   }
 
   let shouldUseMaxPickableDays = false;
@@ -405,11 +376,10 @@ export function initializeUrlState({
             end: null,
             utc: datetime.utc,
           };
-          adjustments.push({
-            filter: 'datetime',
+          adjustments.datetime = {
             reason: PageFilterAdjustmentReason.MAX_DATE_RANGE,
             days: maxDateRange,
-          });
+          };
         }
       } else {
         if (periodStart.getTime() < maxStart.getTime()) {
@@ -420,21 +390,16 @@ export function initializeUrlState({
             end: null,
             utc: datetime.utc,
           };
-          adjustments.push({
-            filter: 'datetime',
+          adjustments.datetime = {
             reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
             days: maxPickableDays,
-          });
+          };
         }
       }
     }
   }
 
-  PageFiltersStore.onInitializeUrlState(
-    pageFilters,
-    shouldPersist,
-    lastAdjustmentPerFilter(adjustments)
-  );
+  PageFiltersStore.onInitializeUrlState(pageFilters, shouldPersist, adjustments);
   if (shouldUpdateLocalStorage) {
     setPageFiltersStorage(
       organization.slug,

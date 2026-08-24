@@ -1,9 +1,17 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Text} from '@sentry/scraps/text';
 
+import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
 import {getPageFilterAdjustmentMessage} from 'sentry/components/pageFilters/adjustments';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
+
+const FILTER_ORDER: Array<keyof PageFilterAdjustments> = [
+  'projects',
+  'environments',
+  'datetime',
+];
 
 interface AdjustedFiltersAlertProps {
   hasUnsavedChanges: boolean;
@@ -19,11 +27,13 @@ interface AdjustedFiltersAlertProps {
 export function AdjustedFiltersAlert({hasUnsavedChanges}: AdjustedFiltersAlertProps) {
   const {adjustments} = usePageFilters();
 
-  if (adjustments.length === 0) {
+  const sentences = FILTER_ORDER.map(filter => adjustments[filter])
+    .filter(defined)
+    .map(getPageFilterAdjustmentMessage);
+
+  if (sentences.length === 0) {
     return null;
   }
-
-  const sentences = adjustments.map(getPageFilterAdjustmentMessage);
 
   if (hasUnsavedChanges) {
     sentences.push(t('Save this dashboard to keep the new selection.'));

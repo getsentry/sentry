@@ -82,7 +82,7 @@ describe('PageFilters ActionCreators', () => {
           projects: [1],
         }),
         true,
-        []
+        {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -134,7 +134,7 @@ describe('PageFilters ActionCreators', () => {
           projects: [],
         }),
         false,
-        []
+        {}
       );
 
       // `onInitializeUrlState` is being spied on, so PageFiltersStore wasn't actually
@@ -172,7 +172,7 @@ describe('PageFilters ActionCreators', () => {
           },
         }),
         true,
-        []
+        {}
       );
     });
 
@@ -202,7 +202,7 @@ describe('PageFilters ActionCreators', () => {
           },
         }),
         true,
-        []
+        {}
       );
     });
 
@@ -232,7 +232,7 @@ describe('PageFilters ActionCreators', () => {
           projects: [1],
         }),
         true,
-        []
+        {}
       );
     });
 
@@ -265,7 +265,7 @@ describe('PageFilters ActionCreators', () => {
           projects: [1],
         }),
         true,
-        []
+        {}
       );
     });
 
@@ -290,7 +290,7 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
         },
         true,
-        []
+        {}
       );
     });
 
@@ -314,7 +314,7 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
         },
         true,
-        []
+        {}
       );
     });
 
@@ -364,13 +364,12 @@ describe('PageFilters ActionCreators', () => {
           projects: [parseInt(nonMemberProject.id, 10)],
         }),
         true,
-        [
-          {
-            filter: 'projects',
+        {
+          projects: {
             reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
             projectSlug: nonMemberProject.slug,
           },
-        ]
+        }
       );
     });
 
@@ -390,7 +389,7 @@ describe('PageFilters ActionCreators', () => {
           projects: [-1],
         }),
         true,
-        [{filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}]
+        {projects: {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}}
       );
     });
 
@@ -414,13 +413,12 @@ describe('PageFilters ActionCreators', () => {
           projects: [parseInt(nonMemberProject.id, 10)],
         }),
         true,
-        [
-          {
-            filter: 'projects',
+        {
+          projects: {
             reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
             projectSlug: nonMemberProject.slug,
           },
-        ]
+        }
       );
     });
 
@@ -439,13 +437,12 @@ describe('PageFilters ActionCreators', () => {
           projects: [42],
         }),
         true,
-        [
-          {
-            filter: 'projects',
+        {
+          projects: {
             reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
             projectSlug: singleProject.slug,
           },
-        ]
+        }
       );
     });
 
@@ -461,7 +458,7 @@ describe('PageFilters ActionCreators', () => {
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({projects: [1]}),
         true,
-        [{filter: 'projects', reason: PageFilterAdjustmentReason.INVALID_PROJECTS}]
+        {projects: {reason: PageFilterAdjustmentReason.INVALID_PROJECTS}}
       );
     });
 
@@ -482,7 +479,7 @@ describe('PageFilters ActionCreators', () => {
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({projects: [-1]}),
         true,
-        [{filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}]
+        {projects: {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}}
       );
     });
 
@@ -505,7 +502,7 @@ describe('PageFilters ActionCreators', () => {
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({projects: [7]}),
         true,
-        []
+        {}
       );
     });
 
@@ -524,12 +521,9 @@ describe('PageFilters ActionCreators', () => {
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({environments: ['prod']}),
         true,
-        [
-          {
-            filter: 'environments',
-            reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
-          },
-        ]
+        {
+          environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS},
+        }
       );
     });
 
@@ -548,13 +542,9 @@ describe('PageFilters ActionCreators', () => {
           datetime: expect.objectContaining({period: '30d'}),
         }),
         true,
-        [
-          {
-            filter: 'datetime',
-            reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
-            days: 30,
-          },
-        ]
+        {
+          datetime: {reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS, days: 30},
+        }
       );
     });
 
@@ -574,13 +564,9 @@ describe('PageFilters ActionCreators', () => {
           datetime: expect.objectContaining({period: '7d'}),
         }),
         true,
-        [
-          {
-            filter: 'datetime',
-            reason: PageFilterAdjustmentReason.MAX_DATE_RANGE,
-            days: 7,
-          },
-        ]
+        {
+          datetime: {reason: PageFilterAdjustmentReason.MAX_DATE_RANGE, days: 7},
+        }
       );
     });
 
@@ -598,7 +584,7 @@ describe('PageFilters ActionCreators', () => {
           projects: [],
         }),
         true,
-        []
+        {}
       );
     });
 
@@ -683,7 +669,7 @@ describe('PageFilters ActionCreators', () => {
           },
         }),
         true,
-        []
+        {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -750,7 +736,7 @@ describe('PageFilters ActionCreators', () => {
           },
         }),
         true,
-        []
+        {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -791,7 +777,7 @@ describe('PageFilters ActionCreators', () => {
           projects: [1],
         }),
         true,
-        []
+        {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -119,7 +119,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        adjustments: [],
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -151,7 +151,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        adjustments: [],
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -186,7 +186,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        adjustments: [],
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -232,7 +232,7 @@ describe('PageFiltersContainer', () => {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
-      adjustments: [],
+      adjustments: {},
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       shouldPersist: true,
       selection: {
@@ -479,14 +479,14 @@ describe('PageFiltersContainer', () => {
       });
 
       await waitFor(() => expect(PageFiltersStore.getState().isReady).toBe(true));
-      expect(PageFiltersStore.getState().adjustments).toEqual([]);
+      expect(PageFiltersStore.getState().adjustments).toEqual({});
 
       rerender(<PageFiltersContainer maxPickableDays={7} />);
 
       await waitFor(() =>
-        expect(PageFiltersStore.getState().adjustments).toEqual([
-          {filter: 'datetime', reason: 'max_pickable_days', days: 7},
-        ])
+        expect(PageFiltersStore.getState().adjustments).toEqual({
+          datetime: {reason: 'max_pickable_days', days: 7},
+        })
       );
     });
 

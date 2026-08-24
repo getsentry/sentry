@@ -29,7 +29,7 @@ describe('PageFiltersStore', () => {
       isReady: false,
       shouldPersist: true,
       pinnedFilters: new Set(),
-      adjustments: [],
+      adjustments: {},
       selection: {
         projects: [],
         environments: [],
@@ -155,48 +155,50 @@ describe('PageFiltersStore', () => {
 
   describe('adjustments', () => {
     const projectAdjustment = {
-      filter: 'projects',
       reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS,
     } as const;
+    const environmentAdjustment = {
+      reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
+    } as const;
     const datetimeAdjustment = {
-      filter: 'datetime',
       reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
       days: 30,
     } as const;
 
     function initializeWithAdjustments() {
-      PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, [
-        projectAdjustment,
-        datetimeAdjustment,
-      ]);
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, {
+        projects: projectAdjustment,
+        datetime: datetimeAdjustment,
+      });
     }
 
     it('stores adjustments passed to onInitializeUrlState()', () => {
       initializeWithAdjustments();
-      expect(PageFiltersStore.getState().adjustments).toEqual([
-        projectAdjustment,
-        datetimeAdjustment,
-      ]);
+      expect(PageFiltersStore.getState().adjustments).toEqual({
+        projects: projectAdjustment,
+        datetime: datetimeAdjustment,
+      });
     });
 
     it('clears only the project adjustment when projects change', async () => {
       initializeWithAdjustments();
       PageFiltersStore.updateProjects([1], null);
       await tick();
-      expect(PageFiltersStore.getState().adjustments).toEqual([datetimeAdjustment]);
+      expect(PageFiltersStore.getState().adjustments).toEqual({
+        datetime: datetimeAdjustment,
+      });
     });
 
     it('clears the environment adjustment when projects change with environments', async () => {
-      PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, [
-        {
-          filter: 'environments',
-          reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
-        },
-        datetimeAdjustment,
-      ]);
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, {
+        environments: environmentAdjustment,
+        datetime: datetimeAdjustment,
+      });
       PageFiltersStore.updateProjects([1], ['prod']);
       await tick();
-      expect(PageFiltersStore.getState().adjustments).toEqual([datetimeAdjustment]);
+      expect(PageFiltersStore.getState().adjustments).toEqual({
+        datetime: datetimeAdjustment,
+      });
     });
 
     it('clears only the datetime adjustment when the date changes', async () => {
@@ -208,43 +210,42 @@ describe('PageFiltersStore', () => {
         utc: null,
       });
       await tick();
-      expect(PageFiltersStore.getState().adjustments).toEqual([projectAdjustment]);
+      expect(PageFiltersStore.getState().adjustments).toEqual({
+        projects: projectAdjustment,
+      });
     });
 
     it('clears only the environment adjustment when environments change', async () => {
-      PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, [
-        {
-          filter: 'environments',
-          reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
-        },
-        projectAdjustment,
-      ]);
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, {
+        environments: environmentAdjustment,
+        projects: projectAdjustment,
+      });
       PageFiltersStore.updateEnvironments(['prod']);
       await tick();
-      expect(PageFiltersStore.getState().adjustments).toEqual([projectAdjustment]);
+      expect(PageFiltersStore.getState().adjustments).toEqual({
+        projects: projectAdjustment,
+      });
     });
 
     it('addAdjustment() records an adjustment made after initialization', async () => {
-      PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, []);
-      PageFiltersStore.addAdjustment(datetimeAdjustment);
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, {});
+      PageFiltersStore.addAdjustment('datetime', datetimeAdjustment);
       await tick();
-      expect(PageFiltersStore.getState().adjustments).toEqual([datetimeAdjustment]);
+      expect(PageFiltersStore.getState().adjustments).toEqual({
+        datetime: datetimeAdjustment,
+      });
     });
 
-    it('addAdjustment() ignores a duplicate of an existing adjustment', async () => {
+    it('addAdjustment() ignores a repeat of the adjustment already recorded', async () => {
       initializeWithAdjustments();
       await tick();
 
       const stateBefore = PageFiltersStore.getState();
-      PageFiltersStore.addAdjustment(datetimeAdjustment);
+      PageFiltersStore.addAdjustment('datetime', datetimeAdjustment);
       await tick();
 
-      // The duplicate is dropped, leaving the state reference untouched.
+      // The repeat is dropped, leaving the state reference untouched.
       expect(Object.is(stateBefore, PageFiltersStore.getState())).toBe(true);
-      expect(PageFiltersStore.getState().adjustments).toEqual([
-        projectAdjustment,
-        datetimeAdjustment,
-      ]);
     });
   });
 });

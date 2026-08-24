@@ -192,8 +192,7 @@ export function PageFiltersContainer({
     updateDateTime(newDateState, location, navigate);
 
     // Recorded after the update, which clears any prior datetime adjustment.
-    PageFiltersStore.addAdjustment({
-      filter: 'datetime',
+    PageFiltersStore.addAdjustment('datetime', {
       reason: maxDateRange
         ? PageFilterAdjustmentReason.MAX_DATE_RANGE
         : PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,

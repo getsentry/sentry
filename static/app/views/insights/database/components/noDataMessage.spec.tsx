@@ -31,7 +31,7 @@ describe('NoDataMessage', () => {
       selection: PageFiltersFixture({projects: [2]}),
       isReady: true,
       shouldPersist: true,
-      adjustments: [],
+      adjustments: {},
       pinnedFilters: new Set(),
     }));
   });

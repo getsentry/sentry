@@ -1,5 +1,4 @@
 import {t, tn} from 'sentry/locale';
-import type {PinnedPageFilter} from 'sentry/types/core';
 import {unreachable} from 'sentry/utils/unreachable';
 
 /**
@@ -14,21 +13,44 @@ export enum PageFilterAdjustmentReason {
   MAX_DATE_RANGE = 'max_date_range',
 }
 
-export interface PageFilterAdjustment {
-  /**
-   * Which filter was adjusted, so the adjustment can be cleared once the user
-   * changes that filter themselves.
-   */
-  filter: PinnedPageFilter;
-  reason: PageFilterAdjustmentReason;
-  days?: number;
-  projectSlug?: string;
+export type ProjectsAdjustment =
+  | {reason: PageFilterAdjustmentReason.INVALID_PROJECTS}
+  | {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}
+  | {
+      projectSlug: string;
+      reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED;
+    };
+
+export type EnvironmentsAdjustment = {
+  reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS;
+};
+
+export type DatetimeAdjustment = {
+  days: number;
+  reason:
+    | PageFilterAdjustmentReason.MAX_PICKABLE_DAYS
+    | PageFilterAdjustmentReason.MAX_DATE_RANGE;
+};
+
+export type PageFilterAdjustment =
+  | ProjectsAdjustment
+  | EnvironmentsAdjustment
+  | DatetimeAdjustment;
+
+/**
+ * Adjustments keyed by the filter they apply to. A filter can only be adjusted
+ * for one reason — the reason describes the value we ended up with — and the
+ * key is what lets the adjustment be cleared once the user changes that filter
+ * themselves.
+ */
+export interface PageFilterAdjustments {
+  datetime?: DatetimeAdjustment;
+  environments?: EnvironmentsAdjustment;
+  projects?: ProjectsAdjustment;
 }
 
 export function getPageFilterAdjustmentMessage(adjustment: PageFilterAdjustment): string {
-  const {reason, days, projectSlug} = adjustment;
-
-  switch (reason) {
+  switch (adjustment.reason) {
     case PageFilterAdjustmentReason.INVALID_PROJECTS:
       return t(
         "Your project selection changed because it included projects you don't have access to."
@@ -38,34 +60,28 @@ export function getPageFilterAdjustmentMessage(adjustment: PageFilterAdjustment)
         "Your environment selection changed because it included environments that don't exist."
       );
     case PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED:
-      return projectSlug
-        ? t(
-            'Your project selection changed to %s, the only project in this organization.',
-            projectSlug
-          )
-        : t('Your project selection changed to the only project in this organization.');
+      return t(
+        'Your project selection changed to %s, the only project in this organization.',
+        adjustment.projectSlug
+      );
     case PageFilterAdjustmentReason.NO_MEMBER_PROJECTS:
       return t(
         "Your project selection changed to All Projects because you're not a member of any project in this organization."
       );
     case PageFilterAdjustmentReason.MAX_PICKABLE_DAYS:
-      return days
-        ? tn(
-            'Your date range changed to %s day, the longest range your organization can query.',
-            'Your date range changed to %s days, the longest range your organization can query.',
-            days
-          )
-        : t('Your date range changed to the longest range your organization can query.');
+      return tn(
+        'Your date range changed to %s day, the longest range your organization can query.',
+        'Your date range changed to %s days, the longest range your organization can query.',
+        adjustment.days
+      );
     case PageFilterAdjustmentReason.MAX_DATE_RANGE:
-      return days
-        ? tn(
-            'Your date range changed to %s day, the longest range this page can query.',
-            'Your date range changed to %s days, the longest range this page can query.',
-            days
-          )
-        : t('Your date range changed to the longest range this page can query.');
+      return tn(
+        'Your date range changed to %s day, the longest range this page can query.',
+        'Your date range changed to %s days, the longest range this page can query.',
+        adjustment.days
+      );
     default:
-      unreachable(reason);
+      unreachable(adjustment);
       return '';
   }
 }

@@ -41,7 +41,7 @@ export function PageFilterStateFixture(
     pinnedFilters: new Set<PinnedPageFilter>(),
     shouldPersist: true,
     selection: PageFiltersFixture(),
-    adjustments: [],
+    adjustments: {},
     ...params,
   };
 }

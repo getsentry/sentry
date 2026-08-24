@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import type {PageFilterAdjustment} from 'sentry/components/pageFilters/adjustments';
+import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {PageFilters, PinnedPageFilter, PageFilterDatetime} from 'sentry/types/core';
@@ -41,16 +41,19 @@ function datetimeHasSameValue(a: PageFilterDatetime, b: PageFilterDatetime): boo
  * Drops adjustments for filters the user has since changed themselves.
  */
 function clearAdjustments(
-  adjustments: PageFilterAdjustment[],
-  filters: PinnedPageFilter[]
-): PageFilterAdjustment[] {
-  if (adjustments.length === 0) {
+  adjustments: PageFilterAdjustments,
+  filters: Array<keyof PageFilterAdjustments>
+): PageFilterAdjustments {
+  if (!filters.some(filter => adjustments[filter])) {
     return adjustments;
   }
 
-  const cleared = adjustments.filter(adjustment => !filters.includes(adjustment.filter));
+  const cleared = {...adjustments};
+  for (const filter of filters) {
+    delete cleared[filter];
+  }
 
-  return cleared.length === adjustments.length ? adjustments : cleared;
+  return cleared;
 }
 
 export interface PageFiltersState {
@@ -58,7 +61,7 @@ export interface PageFiltersState {
    * Adjustments made to the requested selection during initialization, so pages
    * can explain why the selection isn't what the user asked for.
    */
-  adjustments: PageFilterAdjustment[];
+  adjustments: PageFilterAdjustments;
   /**
    * Are page filters ready?
    */
@@ -84,11 +87,14 @@ interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersSt
    * Call this *after* the update that caused the adjustment, since updating a
    * filter clears its adjustments.
    */
-  addAdjustment(adjustment: PageFilterAdjustment): void;
+  addAdjustment<F extends keyof PageFilterAdjustments>(
+    filter: F,
+    adjustment: NonNullable<PageFilterAdjustments[F]>
+  ): void;
   onInitializeUrlState(
     newSelection: PageFilters,
     persist?: boolean,
-    adjustments?: PageFilterAdjustment[]
+    adjustments?: PageFilterAdjustments
   ): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
@@ -105,7 +111,7 @@ const storeConfig: PageFiltersStoreDefinition = {
     selection: getDefaultPageFilterSelection(),
     pinnedFilters: new Set(),
     shouldPersist: true,
-    adjustments: [],
+    adjustments: {},
   },
 
   init() {
@@ -121,14 +127,14 @@ const storeConfig: PageFiltersStoreDefinition = {
       isReady: false,
       selection: selection || getDefaultPageFilterSelection(),
       pinnedFilters: new Set(),
-      adjustments: [],
+      adjustments: {},
     };
   },
 
   /**
    * Initializes the page filters store data
    */
-  onInitializeUrlState(newSelection, persist = true, adjustments = []) {
+  onInitializeUrlState(newSelection, persist = true, adjustments = {}) {
     this.state = {
       ...this.state,
       isReady: true,
@@ -154,17 +160,15 @@ const storeConfig: PageFiltersStoreDefinition = {
     this.trigger(this.getState());
   },
 
-  addAdjustment(adjustment) {
-    const alreadyRecorded = this.state.adjustments.some(
-      existing =>
-        existing.reason === adjustment.reason && existing.filter === adjustment.filter
-    );
-
-    if (alreadyRecorded) {
+  addAdjustment(filter, adjustment) {
+    if (valueIsEqual(this.state.adjustments[filter], adjustment, true)) {
       return;
     }
 
-    this.state = {...this.state, adjustments: [...this.state.adjustments, adjustment]};
+    this.state = {
+      ...this.state,
+      adjustments: {...this.state.adjustments, [filter]: adjustment},
+    };
     this.trigger(this.getState());
   },
 

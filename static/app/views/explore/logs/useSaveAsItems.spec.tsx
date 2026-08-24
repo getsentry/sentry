@@ -85,7 +85,7 @@ describe('useSaveAsItems', () => {
       isReady: true,
       pinnedFilters: new Set(),
       shouldPersist: true,
-      adjustments: [],
+      adjustments: {},
       selection: PageFiltersFixture({
         projects: [1],
         environments: ['production'],
