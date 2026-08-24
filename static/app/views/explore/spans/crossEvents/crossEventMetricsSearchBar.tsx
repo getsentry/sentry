@@ -65,6 +65,12 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
         'boolean',
         HiddenTraceMetricSearchFields
       );
+    const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+      useTraceMetricItemAttributes(
+        attributeOptions,
+        'array',
+        HiddenTraceMetricSearchFields
+      );
 
     const onMetricChange = useCallback(
       (newMetric: TraceMetric) => {
@@ -115,6 +121,7 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
             : undefined,
         supportedAggregates:
           mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+        arrayAttributes,
         booleanAttributes,
         numberAttributes,
         stringAttributes,
@@ -122,6 +129,7 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
           {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
           {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
         ],
+        arraySecondaryAliases,
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
@@ -132,6 +140,8 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
       }),
       [
+        arrayAttributes,
+        arraySecondaryAliases,
         booleanAttributes,
         booleanSecondaryAliases,
         crossEvents,

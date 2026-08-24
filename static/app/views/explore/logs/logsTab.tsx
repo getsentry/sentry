@@ -145,14 +145,18 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
     useLogItemAttributes({}, 'number', HiddenLogSearchFields);
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes({}, 'array', HiddenLogSearchFields);
 
   const {data: validatedSearchQueryData} = useValidateLogsTab();
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
+      arrayAttributes,
       booleanAttributes,
       numberAttributes,
       stringAttributes,
+      arraySecondaryAliases,
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,

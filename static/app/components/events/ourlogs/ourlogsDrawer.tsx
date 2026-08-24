@@ -62,15 +62,19 @@ export function OurlogsDrawer({
     useLogItemAttributes({}, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean');
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes({}, 'array');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
     onSearch: (query: string) => setLogsQuery(query),
+    arrayAttributes,
     booleanAttributes,
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS,
+    arraySecondaryAliases,
     booleanSecondaryAliases,
     numberSecondaryAliases,
     stringSecondaryAliases,

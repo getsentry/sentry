@@ -86,6 +86,8 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
     useLogItemAttributes({query: replayAttributeFilter}, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({query: replayAttributeFilter}, 'boolean');
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes({query: replayAttributeFilter}, 'array');
 
   const {currentTime, setCurrentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -118,9 +120,11 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
       attributeQuery: replayAttributeFilter,
+      arrayAttributes,
       stringAttributes,
       numberAttributes,
       booleanAttributes,
+      arraySecondaryAliases,
       stringSecondaryAliases,
       numberSecondaryAliases,
       booleanSecondaryAliases,

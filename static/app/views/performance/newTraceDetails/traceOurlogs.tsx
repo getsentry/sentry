@@ -92,11 +92,15 @@ function LogsSectionContent({
     useLogItemAttributes({}, 'number', HiddenLogSearchFields);
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes({}, 'array', HiddenLogSearchFields);
 
   const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
+    arrayAttributes,
     booleanAttributes,
     numberAttributes,
     stringAttributes,
+    arraySecondaryAliases,
     booleanSecondaryAliases,
     numberSecondaryAliases,
     stringSecondaryAliases,
