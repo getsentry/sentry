@@ -98,7 +98,7 @@ function renderBodyCell(
   switch (column.key) {
     case 'flag':
       return (
-        <Text monospace ellipsis>
+        <Text monospace wordBreak="break-word">
           {dataRow.flag}
         </Text>
       );
