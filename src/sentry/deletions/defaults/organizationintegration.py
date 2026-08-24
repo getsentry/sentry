@@ -1,3 +1,5 @@
+from django.db.models import Q
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -8,6 +10,9 @@ from sentry.types.cell import CellMappingNotFound
 class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegration]):
     def should_proceed(self, instance: OrganizationIntegration) -> bool:
         return instance.status in {ObjectStatus.DELETION_IN_PROGRESS, ObjectStatus.PENDING_DELETION}
+
+    def get_query_filter(self) -> Q:
+        return Q(status__in=[ObjectStatus.DELETION_IN_PROGRESS, ObjectStatus.PENDING_DELETION])
 
     def get_child_relations(self, instance: OrganizationIntegration) -> list[BaseRelation]:
         from sentry.users.models.identity import Identity
