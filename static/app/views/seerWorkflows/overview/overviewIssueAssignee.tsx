@@ -5,7 +5,6 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -20,7 +19,6 @@ interface OverviewIssueAssigneeProps {
   projectSlug: string;
   assignedTo?: Group['assignedTo'];
   memberList?: User[];
-  memberListLoading?: boolean;
   owners?: Group['owners'];
 }
 
@@ -49,7 +47,6 @@ export function OverviewIssueAssignee({
   projectSlug,
   assignedTo,
   memberList,
-  memberListLoading = false,
   owners,
 }: OverviewIssueAssigneeProps) {
   const organization = useOrganization();
@@ -97,10 +94,6 @@ export function OverviewIssueAssignee({
     organization,
     onSuccess: handleSuccess,
   });
-
-  if (memberListLoading) {
-    return <LoadingIndicator mini relative size={24} />;
-  }
 
   return (
     <AssigneeSelector

@@ -210,6 +210,17 @@ export function fetchDashboard(
   return promise;
 }
 
+// The backend rejects a save whose payload references widgets or queries that
+// are no longer on the dashboard. This happens when the dashboard changed after
+// this page loaded — a save from another tab, a Seer edit, or a restored
+// revision deletes the existing rows and recreates them with new ids, leaving
+// this page holding ids that no longer exist. The raw messages read like a
+// permissions problem and don't tell the user that reloading fixes it.
+const STALE_DASHBOARD_ERRORS = [
+  'You cannot update widgets that are not part of this dashboard.',
+  'You cannot use a query not owned by this widget',
+];
+
 export function updateDashboard(
   orgId: string,
   dashboard: DashboardDetails,
@@ -257,7 +268,14 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      const error = errors[Object.keys(errors)[0]!] as string;
+      addErrorMessage(
+        STALE_DASHBOARD_ERRORS.includes(error)
+          ? t(
+              'This dashboard may have been updated somewhere else. Refresh the page and try again.'
+            )
+          : error
+      );
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }

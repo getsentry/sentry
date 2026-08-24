@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
@@ -8,6 +9,7 @@ from django.db.models import Exists, F, OuterRef
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.calculations import (
@@ -54,6 +56,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
+from sentry.dynamic_sampling.utils import DYNAMIC_SAMPLING_FEATURE
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -199,6 +202,9 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
                 legacy_volume=get_organization_volume(
                     config.organization.id, time_interval=timedelta(minutes=5)
                 ),
+                # get_recalibration_organization_volume swaps this total for the outcomes
+                # one, so pass the original along to compare the two denominators.
+                eap_extrapolated_total=org_volume_5m.total,
             )
         except Exception as exc:
             sentry_sdk.capture_exception(exc)
@@ -271,6 +277,20 @@ def schedule_per_org_calculations() -> None:
         dispatched += 1
         return True
 
+    def keep_orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
+        # A None result means the check failed, which would otherwise read as "none of them".
+        results = features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, organizations)
+        if results is None:
+            raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
+
+        kept = [org.id for org in organizations if results.get(f"organization:{org.id}", False)]
+        emit_status(
+            SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+            DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING,
+            amount=len(organizations) - len(kept),
+        )
+        return kept
+
     scheduler = CursoredScheduler(
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
@@ -288,6 +308,7 @@ def schedule_per_org_calculations() -> None:
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
+        prevalidate_batch=keep_orgs_with_dynamic_sampling,
         preserve_queryset_order=True,
     )
     scheduler.tick()

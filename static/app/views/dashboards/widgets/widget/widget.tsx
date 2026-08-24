@@ -25,8 +25,8 @@ function FeedbackAction() {
       feedbackOptions={{
         messagePlaceholder: t('What were you doing when this widget broke?'),
         tags: {
-          ['feedback.source']: 'dashboards-widget-render-error',
-          ['feedback.owner']: 'dashboards',
+          'feedback.source': 'dashboards-widget-render-error',
+          'feedback.owner': 'dashboards',
         },
       }}
     >

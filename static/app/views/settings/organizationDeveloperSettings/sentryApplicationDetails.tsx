@@ -9,6 +9,7 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -24,14 +25,13 @@ import {
 } from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {FormField} from 'sentry/components/forms/formField';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {
   ALLOWED_SCOPES,
@@ -122,6 +122,13 @@ const sentryAppBaseSchema = z.object({
 });
 
 type SentryAppFormValues = z.infer<typeof sentryAppBaseSchema>;
+
+const APP_TOKEN_COLUMNS: TableColumnConfig[] = [
+  {key: 'token', width: 'auto'},
+  {key: 'created', width: 'auto'},
+  {key: 'scopes', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 function requireField(ctx: z.RefinementCtx, value: string, field: string) {
   if (!value.trim()) {
@@ -515,7 +522,7 @@ function ClaudeRoutineTemplateForm() {
         scopes={CLAUDE_ROUTINE_SCOPES}
         events={CLAUDE_ROUTINE_EVENTS}
         newApp
-        collapsePermissions
+        collapsePanels
         permissionErrors={scopeErrors.permissions}
         continuousIntegrationError={scopeErrors.continuousIntegration}
         onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
@@ -873,12 +880,18 @@ function SentryAppEditForm({
   const renderTokens = () => {
     if (!hasTokenAccess()) {
       return (
-        <EmptyMessage>{t('You do not have access to view these tokens.')}</EmptyMessage>
+        <SimpleTable.Empty>
+          {t('You do not have access to view these tokens.')}
+        </SimpleTable.Empty>
       );
     }
 
     if (tokens.length < 1 && newTokens.length < 1) {
-      return <EmptyMessage>{t('No tokens created yet.')}</EmptyMessage>;
+      return (
+        <SimpleTable.Empty>
+          {t("You haven't created any authentication tokens yet.")}
+        </SimpleTable.Empty>
+      );
     }
 
     return tokens.map(token => (
@@ -1038,35 +1051,38 @@ function SentryAppEditForm({
       />
 
       {isInternal && (
-        <PanelTable
-          headers={[
-            t('Token'),
-            t('Created On'),
-            t('Scopes'),
-            <AddTokenHeader key="token-add">
-              <Tooltip
-                disabled={hasTokenAccess()}
-                title={t(
-                  'You must be a Manager or Owner to create authentication tokens.'
-                )}
-              >
-                <Button
-                  size="xs"
-                  icon={<IconAdd />}
-                  onClick={onAddToken}
-                  disabled={!hasTokenAccess()}
-                  data-test-id="token-add"
-                >
-                  {t('New Token')}
-                </Button>
-              </Tooltip>
-            </AddTokenHeader>,
-          ]}
-          isEmpty={tokens.length === 0}
-          emptyMessage={t("You haven't created any authentication tokens yet.")}
+        <SimpleTable
+          columns={APP_TOKEN_COLUMNS}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>
+                <AddTokenHeader>
+                  <Tooltip
+                    disabled={hasTokenAccess()}
+                    title={t(
+                      'You must be a Manager or Owner to create authentication tokens.'
+                    )}
+                  >
+                    <Button
+                      size="xs"
+                      icon={<IconAdd />}
+                      onClick={onAddToken}
+                      disabled={!hasTokenAccess()}
+                      data-test-id="token-add"
+                    >
+                      {t('New Token')}
+                    </Button>
+                  </Tooltip>
+                </AddTokenHeader>
+              </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
         >
           {renderTokens()}
-        </PanelTable>
+        </SimpleTable>
       )}
 
       <Panel>

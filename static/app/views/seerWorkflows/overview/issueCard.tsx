@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {keyframes} from '@emotion/react';
+import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -487,6 +487,84 @@ export function OverviewCard({
   const changedFiles = reviewPullRequest?.files ?? [];
 
   return (
+    <CardFrame
+      aside={
+        <Fragment>
+          <OverviewAction
+            sectionKey={sectionKey}
+            run={run}
+            reviewPullRequest={reviewPullRequest}
+            issueUrl={issueUrl}
+            enrichmentPending={enrichmentPending}
+          />
+          <PriorityAndAssignee run={run} />
+        </Fragment>
+      }
+    >
+      {/* Grid, not flex: items stretch by default, so the level bar spans
+          every wrapped title line and the text cell can't escape the row */}
+      <Grid columns="max-content minmax(0, 1fr)" gap="sm">
+        <LevelBar level={run.issue.level ?? undefined} />
+        <Stack minWidth="0" gap="xs">
+          <Text bold display="block" textWrap="pretty" wordBreak="break-word" size="lg">
+            <TitleLink to={issueUrl}>{run.title}</TitleLink>
+          </Text>
+          <Flex wrap="wrap" gap="md" align="center">
+            <Flex gap="xs" align="center">
+              <ProjectAvatar
+                project={run.issue.project}
+                size={12}
+                hasTooltip
+                tooltip={run.issue.project.slug}
+              />
+              <Text size="sm" monospace variant="muted">
+                {run.shortId}
+              </Text>
+            </Flex>
+            <IssueVitals
+              run={run}
+              statsPeriod={statsPeriod}
+              enrichmentPending={enrichmentPending}
+            />
+          </Flex>
+        </Stack>
+      </Grid>
+      {rootCause && (
+        <NarrativeBlock
+          icon={<IconBug size="xs" variant="secondary" aria-hidden />}
+          label={t('Root Cause')}
+        >
+          {rootCause}
+        </NarrativeBlock>
+      )}
+      {proposedFix && (
+        <NarrativeBlock
+          icon={<IconCommit size="xs" variant="secondary" aria-hidden />}
+          label={t('Plan')}
+        >
+          {proposedFix}
+        </NarrativeBlock>
+      )}
+      {sectionKey === 'code_changes_ready' && run.codeChanges?.length ? (
+        <CodeChanges codeChanges={run.codeChanges} />
+      ) : null}
+      {enrichmentPending && reviewPullRequest?.url ? (
+        <Placeholder height="3rem" />
+      ) : reviewPullRequest && changedFiles.length > 0 ? (
+        <PullRequestFiles orgSlug={orgSlug} pullRequest={reviewPullRequest} />
+      ) : null}
+    </CardFrame>
+  );
+}
+
+function CardFrame({
+  aside,
+  children,
+}: {
+  aside: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
     <Container background="primary" border="primary" radius="md" padding="xl">
       <Stack gap="xl">
         <Flex
@@ -496,80 +574,66 @@ export function OverviewCard({
           direction={{xs: 'column-reverse', sm: 'row'}}
         >
           <Stack gap="lg" minWidth="0" flex="1">
-            {/* Grid, not flex: items stretch by default, so the level bar spans
-                every wrapped title line and the text cell can't escape the row */}
-            <Grid columns="max-content minmax(0, 1fr)" gap="sm">
-              <LevelBar level={run.issue.level ?? undefined} />
-              <Stack minWidth="0" gap="xs">
-                <Text
-                  bold
-                  display="block"
-                  textWrap="pretty"
-                  wordBreak="break-word"
-                  size="lg"
-                >
-                  <TitleLink to={issueUrl}>{run.title}</TitleLink>
-                </Text>
-                <Flex wrap="wrap" gap="md" align="center">
-                  <Flex gap="xs" align="center">
-                    <ProjectAvatar
-                      project={run.issue.project}
-                      size={12}
-                      hasTooltip
-                      tooltip={run.issue.project.slug}
-                    />
-                    <Text size="sm" monospace variant="muted">
-                      {run.shortId}
-                    </Text>
-                  </Flex>
-                  <IssueVitals
-                    run={run}
-                    statsPeriod={statsPeriod}
-                    enrichmentPending={enrichmentPending}
-                  />
-                </Flex>
-              </Stack>
-            </Grid>
-            {rootCause && (
-              <NarrativeBlock
-                icon={<IconBug size="xs" variant="secondary" aria-hidden />}
-                label={t('Root Cause')}
-              >
-                {rootCause}
-              </NarrativeBlock>
-            )}
-            {proposedFix && (
-              <NarrativeBlock
-                icon={<IconCommit size="xs" variant="secondary" aria-hidden />}
-                label={t('Plan')}
-              >
-                {proposedFix}
-              </NarrativeBlock>
-            )}
-            {sectionKey === 'code_changes_ready' && run.codeChanges?.length ? (
-              <CodeChanges codeChanges={run.codeChanges} />
-            ) : null}
-            {enrichmentPending && reviewPullRequest?.url ? (
-              <Placeholder height="3rem" />
-            ) : reviewPullRequest && changedFiles.length > 0 ? (
-              <PullRequestFiles orgSlug={orgSlug} pullRequest={reviewPullRequest} />
-            ) : null}
+            {children}
           </Stack>
 
           {/* justify=between + parent align=stretch pins the action to the top
               and the priority/assignee controls to the bottom-right */}
           <Stack gap="lg" align="end" justify="between" flexShrink={0} minWidth="0">
-            <OverviewAction
-              sectionKey={sectionKey}
-              run={run}
-              reviewPullRequest={reviewPullRequest}
-              issueUrl={issueUrl}
-              enrichmentPending={enrichmentPending}
-            />
-            <PriorityAndAssignee run={run} />
+            {aside}
           </Stack>
         </Flex>
       </Stack>
     </Container>
+  );
+}
+
+export function TextLineSkeleton({
+  size,
+  width,
+}: {
+  size: 'xs' | 'sm' | 'md' | 'lg';
+  width: string;
+}) {
+  return (
+    <Text as="div" size={size}>
+      <Placeholder height="1lh" width={width} />
+    </Text>
+  );
+}
+
+export function OverviewCardSkeleton() {
+  const theme = useTheme();
+  return (
+    <CardFrame
+      aside={
+        <Fragment>
+          <Placeholder height={theme.form.sm.height} width="9rem" />
+          <Flex gap="xs">
+            <Placeholder height={theme.form.xs.height} width={theme.form.xs.height} />
+            <Placeholder height={theme.form.xs.height} width={theme.form.xs.height} />
+          </Flex>
+        </Fragment>
+      }
+    >
+      <Grid columns="max-content minmax(0, 1fr)" gap="sm">
+        <LevelBar />
+        <Stack minWidth="0" gap="xs">
+          <TextLineSkeleton size="lg" width="70%" />
+          <Flex wrap="wrap" gap="md" align="center">
+            {['4.5rem', '4rem', '5rem', '5rem'].map((width, index) => (
+              <TextLineSkeleton key={index} size="sm" width={width} />
+            ))}
+          </Flex>
+        </Stack>
+      </Grid>
+      {['90%', '75%'].map((width, index) => (
+        <Stack key={index} gap="xs">
+          <TextLineSkeleton size="xs" width="4rem" />
+          <TextLineSkeleton size="sm" width={width} />
+        </Stack>
+      ))}
+      <Placeholder />
+    </CardFrame>
   );
 }

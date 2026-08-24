@@ -16,9 +16,7 @@ import {displayPrice} from 'getsentry/views/amCheckout/utils';
 type ResultGridProps = React.ComponentProps<typeof ResultGrid>;
 
 type Props = Omit<Partial<ResultGridProps>, 'endpoint'> &
-  Pick<ResultGridProps, 'endpoint'> & {
-    modifyOrgMembershipbutton?: React.ReactNode;
-  };
+  Pick<ResultGridProps, 'endpoint'>;
 
 const getRow = (row: Subscription) => [
   <td key="customer">
@@ -196,7 +194,6 @@ export function CustomerGrid(props: Props) {
         // ['ondemand.spend', 'OnDemand (Spend)'],
       ]}
       defaultSort="members"
-      buttonGroup={props.modifyOrgMembershipbutton}
       {...props}
     />
   );

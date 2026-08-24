@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -16,6 +17,7 @@ import {
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
+import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -111,12 +113,16 @@ describe('AutofixOverview', () => {
     enrichedStatusCode,
     baseStatusCode,
     truncated,
+    projectConfig,
+    projectConfigAsyncDelay,
   }: {
     base: Partial<AutofixOverviewResponse['runsByMilestone']>;
     baseStatusCode?: number;
     enriched?: Partial<AutofixOverviewResponse['runsByMilestone']>;
     enrichedAsyncDelay?: number | Promise<void>;
     enrichedStatusCode?: number;
+    projectConfig?: AutofixOverviewResponse['projectConfig'];
+    projectConfigAsyncDelay?: number | Promise<void>;
     truncated?: AutofixOverviewResponse['truncatedMilestones'];
   }) {
     const statusPollRequest = MockApiClient.addMockResponse({
@@ -137,7 +143,17 @@ describe('AutofixOverview', () => {
         truncatedMilestones: truncated ?? [],
       },
     });
-    return {statusPollRequest, enrichedRequest};
+    const projectConfigRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({expand: ['projectConfig']})],
+      asyncDelay: projectConfigAsyncDelay,
+      body: {
+        runsByMilestone: {...emptyMilestones, ...base},
+        truncatedMilestones: truncated ?? [],
+        ...(projectConfig ? {projectConfig} : {}),
+      },
+    });
+    return {statusPollRequest, enrichedRequest, projectConfigRequest};
   }
 
   // The un-expanded call cannot reach Snuba, so it nulls out the issue stats.
@@ -419,7 +435,7 @@ describe('AutofixOverview', () => {
   });
 
   it('filters to only in-progress runs when the In Progress tab is selected', async () => {
-    mockOverview({
+    const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {
         autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
         autofix_solution: [solutionRun],
@@ -441,6 +457,36 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByRole('button', {name: 'Generate code changes 1'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+    expect(statusPollRequest).toHaveBeenCalledTimes(1);
+    expect(enrichedRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a pinned time window through param navigation instead of resetting it', async () => {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({datetime: {period: '30d', start: null, end: null, utc: null}})
+    );
+    setPageFiltersStorage(organization.slug, new Set(['datetime']));
+    ProjectsStore.reset();
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [{...rootCauseRun, status: 'processing'}]},
+    });
+
+    const {router} = renderPage();
+    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
+
+    await screen.findByRole('tab', {name: /All Runs/});
+    await waitFor(() => expect(router.location.query.statsPeriod).toBe('30d'));
+    const requestsBeforeClick = statusPollRequest.mock.calls.length;
+
+    await userEvent.click(screen.getByRole('tab', {name: /In Progress/}));
+
+    expect(router.location.query.view).toBe('in_progress');
+    expect(router.location.query.statsPeriod).toBe('30d');
+    expect(
+      screen.getByRole('button', {name: 'Autofix Activity 30D'})
+    ).toBeInTheDocument();
+    expect(statusPollRequest).toHaveBeenCalledTimes(requestsBeforeClick);
   });
 
   it('shows an empty state on the In Progress tab when nothing is processing', async () => {
@@ -503,9 +549,7 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    expect(
-      await screen.findByText('You don’t have any Autofix runs...yet.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('No Autofix runs')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Autofix Activity 7D'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: /Sort/})).toBeInTheDocument();
@@ -749,7 +793,7 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps the list up with a spinner while a sort change reloads', async () => {
+  it('keeps the list up silently while a sort change reloads', async () => {
     const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
@@ -779,13 +823,15 @@ describe('AutofixOverview', () => {
     await userEvent.click(screen.getByRole('button', {name: /Sort/}));
     await userEvent.click(screen.getByRole('option', {name: 'Most events'}));
 
-    // The status poll refetches for the new sort, but the old list stays up with
-    // a spinner (keepPreviousData) while the enriched request reloads.
-    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+    // The status poll refetches for the new sort, but the old list stays up
+    // silently (keepPreviousData) while the enriched request reloads — no spinner
+    // and no skeleton.
+    await waitFor(() => expect(statusPollRequest).toHaveBeenCalledTimes(2));
     expect(
       screen.getByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(statusPollRequest).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
 
     eventsEnriched.resolve();
 
@@ -795,6 +841,88 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByRole('link', {name: 'TypeError in checkout cart'})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the skeleton again when the selected project changes', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const otherProject = deferEnriched();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({project: [3]})],
+      asyncDelay: otherProject.promise,
+      body: {runsByMilestone: {...emptyMilestones, autofix_solution: [solutionRun]}},
+    });
+
+    renderPage();
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+
+    act(() => PageFiltersStore.updateProjects([3], null));
+
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+
+    otherProject.resolve();
+
+    expect(
+      await screen.findByRole('link', {name: 'KeyError in proxy handler'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+  });
+
+  it('shows the skeleton again when the time window changes', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const narrower = deferEnriched();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({statsPeriod: '24h'})],
+      asyncDelay: narrower.promise,
+      body: {runsByMilestone: emptyMilestones},
+    });
+
+    renderPage();
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+
+    act(() =>
+      PageFiltersStore.updateDateTime({period: '24h', start: null, end: null, utc: null})
+    );
+
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+
+    narrower.resolve();
+
+    expect(await screen.findByText('No Autofix runs')).toBeInTheDocument();
+  });
+
+  it('holds the project filter as a placeholder until projects finish loading', async () => {
+    // Reset the store so `useProjects().initiallyLoaded` is false; without this the
+    // project filter would swap "Loading…" for its label and shift the whole row.
+    ProjectsStore.reset();
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+    renderPage();
+
+    // The rest of the filter row renders for real from the first frame; only
+    // the project picker waits behind a placeholder.
+    expect(await screen.findByRole('button', {name: /Sort/})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Autofix Activity/})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'project-slug'})).not.toBeInTheDocument();
+
+    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
+
+    expect(await screen.findByRole('button', {name: 'project-slug'})).toBeInTheDocument();
   });
 
   it('renders the changed files of an open pull request', async () => {
@@ -1270,6 +1398,66 @@ describe('AutofixOverview', () => {
     expect(screen.getAllByText('src/sentry/foo.py')).toHaveLength(1);
   });
 
+  it('prefetches PR file diffs when the code changes section is hovered', async () => {
+    mockOverview({
+      base: {
+        has_pull_request: [
+          {
+            ...rootCauseRun,
+            pullRequests: [
+              {
+                id: '77',
+                number: 42,
+                url: 'https://github.com/getsentry/sentry/pull/42',
+                status: 'open',
+                checksStatus: null,
+                reviewStatus: null,
+                failedChecks: [],
+                files: [
+                  {
+                    path: 'src/sentry/foo.py',
+                    additions: 2,
+                    deletions: 1,
+                    changeType: 'MODIFIED',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const filesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/pull-requests/77/files/`,
+      body: {
+        files: [
+          {
+            path: 'src/sentry/foo.py',
+            patch: '@@ -1,2 +1,3 @@\n keep\n-drop\n+addedone\n+addedtwo',
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    const section = await screen.findByText('Code Changes');
+    expect(filesRequest).not.toHaveBeenCalled();
+
+    await userEvent.hover(section);
+    await waitFor(() => expect(filesRequest).toHaveBeenCalledTimes(1));
+
+    await userEvent.unhover(section);
+    await userEvent.hover(section);
+    expect(filesRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: /src\/sentry\/foo\.py/})
+    );
+    expect(await screen.findByText('addedone')).toBeInTheDocument();
+    expect(filesRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the deleted-file view when a deleted file has no patch', async () => {
     mockOverview({
       base: {
@@ -1468,9 +1656,7 @@ describe('AutofixOverview', () => {
       expect(
         await screen.findByText('No Autofix runs match the selected assignee.')
       ).toBeInTheDocument();
-      expect(
-        screen.queryByText('You don’t have any Autofix runs...yet.')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
       // No tabs above the message when the filter matches nothing to switch between.
       expect(screen.queryByRole('tab', {name: /All Runs/})).not.toBeInTheDocument();
     });
@@ -1575,6 +1761,24 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
+  it('retries the project config request from the error state', async () => {
+    const {projectConfigRequest} = mockOverview({
+      base: {},
+      baseStatusCode: 500,
+      enrichedStatusCode: 500,
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+    });
+
+    renderPage();
+
+    const retry = await screen.findByRole('button', {name: 'Retry'}, {timeout: 5000});
+    expect(projectConfigRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(retry);
+
+    await waitFor(() => expect(projectConfigRequest).toHaveBeenCalledTimes(2));
+  });
+
   it('replaces the overview content when the org is eligible for Seer but has not purchased it', () => {
     const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
@@ -1607,5 +1811,161 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: 'Create Plan 1'})
     ).toBeInTheDocument();
+  });
+
+  it('shows the setup empty state when no selected project has a repo connected', async () => {
+    mockOverview({
+      base: {},
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText('Set up Seer to start fixing issues')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Set up Seer'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/seer/'
+    );
+  });
+
+  it('does not flash the generic empty state while project config is loading', async () => {
+    const deferred = deferEnriched();
+    mockOverview({
+      base: {},
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+      projectConfigAsyncDelay: deferred.promise,
+    });
+
+    renderPage();
+
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
+
+    deferred.resolve();
+
+    expect(
+      await screen.findByText('Set up Seer to start fixing issues')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
+  });
+
+  it('does not flash the generic empty state when switching from an unconfigured project to one with runs', async () => {
+    mockOverview({
+      base: {},
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+    });
+    const configured = deferEnriched();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({project: [3]})],
+      asyncDelay: configured.promise,
+      body: {
+        runsByMilestone: {...emptyMilestones, autofix_root_cause: [rootCauseRun]},
+        truncatedMilestones: [],
+        projectConfig: [{id: '3', slug: 'beta-project', hasReposConnected: true}],
+      },
+    });
+
+    renderPage();
+    expect(
+      await screen.findByText('Set up Seer to start fixing issues')
+    ).toBeInTheDocument();
+
+    act(() => PageFiltersStore.updateProjects([3], null));
+
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.queryByText('Set up Seer to start fixing issues')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
+
+    configured.resolve();
+
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
+  });
+
+  it('waits for project config before painting cards so the warning does not pop in', async () => {
+    const deferred = deferEnriched();
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      projectConfig: [
+        {id: '2', slug: 'alpha-project', hasReposConnected: true},
+        {id: '3', slug: 'beta-project', hasReposConnected: false},
+      ],
+      projectConfigAsyncDelay: deferred.promise,
+    });
+
+    renderPage();
+
+    // The skeleton holds while project config is loading; neither the cards nor
+    // the setup warning are painted yet.
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+
+    deferred.resolve();
+
+    // Once project config resolves, the warning and the cards appear together.
+    expect(await screen.findByText(/Seer isn't set up for/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows the subset warning banner naming only the unconfigured projects', async () => {
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      projectConfig: [
+        {id: '2', slug: 'alpha-project', hasReposConnected: true},
+        {id: '3', slug: 'beta-project', hasReposConnected: false},
+      ],
+    });
+
+    renderPage();
+
+    const banner = await screen.findByText(/Seer isn't set up for/);
+    expect(banner).toHaveTextContent(
+      "Seer isn't set up for beta-project. Set it up here."
+    );
+    expect(banner).not.toHaveTextContent('alpha-project');
+    expect(screen.getByRole('link', {name: 'here'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/seer/'
+    );
+    expect(
+      screen.queryByText('Set up Seer to start fixing issues')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows no setup warning when every selected project is configured', async () => {
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: true}],
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Set up Seer to start fixing issues')
+    ).not.toBeInTheDocument();
   });
 });
