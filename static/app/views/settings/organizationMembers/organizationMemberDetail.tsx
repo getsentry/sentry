@@ -5,7 +5,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -95,6 +95,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const [orgRole, setOrgRole] = useState(member.orgRole);
   const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
+  const isNarrow = useResponsivePropValue({zero: true, xl: false});
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -308,8 +309,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
           <PanelHeader>{t('Authentication')}</PanelHeader>
           <PanelBody>
             <FieldGroup
-              alignRight
+              alignRight={!isNarrow}
               flexibleControlStateSize
+              inline={!isNarrow}
               label={t('Reset two-factor authentication')}
               help={t(
                 'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
