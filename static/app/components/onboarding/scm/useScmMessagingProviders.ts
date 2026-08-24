@@ -5,7 +5,10 @@ import {
   SCM_MESSAGING_PROVIDER_KEYS,
   type ScmMessagingProviderKey,
 } from 'sentry/components/onboarding/scm/messagingProviders';
-import {isIntegrationActive} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
+import {
+  isEligibleForIssueAlerts,
+  isIntegrationActive,
+} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -23,45 +26,31 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  * - `connected`          An active, eligible integration is present and ready to
  *                        have a destination configured.
  */
-export type ScmMessagingProviderStatus =
-  | 'installable'
-  | 'permission-limited'
-  | 'connected';
+type ScmMessagingProviderStatus = 'installable' | 'permission-limited' | 'connected';
 
 export type ScmMessagingProviderViewModel = {
-  /** Defined when status is `connected` or `permission-limited`. */
-  integration: OrganizationIntegration | undefined;
+  /**
+   * Active integrations that can receive Issue Alert actions.
+   * Non-empty iff `status === 'connected'`.
+   */
+  eligibleIntegrations: OrganizationIntegration[];
+  /**
+   * The ineligible active integration shown in the `permission-limited` state
+   * so the row can display its workspace name. `undefined` for other statuses.
+   */
+  permissionLimitedIntegration: OrganizationIntegration | undefined;
   provider: IntegrationProvider;
   providerKey: ScmMessagingProviderKey;
   status: ScmMessagingProviderStatus;
 };
 
-/**
- * Returns true when the integration can receive Issue Alert actions.
- * MS Teams "tenant" installations route notifications differently and
- * cannot be used as an issue-alert destination.
- */
-function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
-  if (integration.provider.key !== 'msteams') {
-    return true;
-  }
-  return integration.configData?.installationType !== 'tenant';
-}
-
-function toStatus(
-  integration: OrganizationIntegration | undefined
-): ScmMessagingProviderStatus {
-  if (!integration) {
-    return 'installable';
-  }
-  return isEligibleForIssueAlerts(integration) ? 'connected' : 'permission-limited';
-}
-
 export function useScmMessagingProviders(): {
   isError: boolean;
   isPending: boolean;
+  isRefetchingIntegrations: boolean;
   providers: ScmMessagingProviderViewModel[];
   refetchIntegrations: () => void;
+  retry: () => void;
 } {
   const organization = useOrganization();
 
@@ -94,6 +83,7 @@ export function useScmMessagingProviders(): {
       ) as Partial<Record<ScmMessagingProviderKey, IntegrationProvider>>,
       isPending: results.some(r => r.isPending),
       isError: results.some(r => r.isError),
+      refetch: () => results.forEach(r => r.refetch()),
     }),
   });
 
@@ -113,18 +103,24 @@ export function useScmMessagingProviders(): {
         return [];
       }
 
-      // Find the first active integration for this provider. Inactive
-      // integrations are treated the same as no integration.
-      const integration = integrations.find(
+      const active = integrations.filter(
         i => i.provider.key === providerKey && isIntegrationActive(i)
       );
+      const eligible = active.filter(isEligibleForIssueAlerts);
+      const status = eligible.length
+        ? 'connected'
+        : active.length
+          ? 'permission-limited'
+          : 'installable';
 
       return [
         {
           providerKey,
           provider,
-          status: toStatus(integration),
-          integration,
+          status,
+          eligibleIntegrations: eligible,
+          permissionLimitedIntegration:
+            status === 'permission-limited' ? active[0] : undefined,
         },
       ];
     });
@@ -134,6 +130,11 @@ export function useScmMessagingProviders(): {
     providers,
     isPending,
     isError,
+    isRefetchingIntegrations: integrationsQuery.isRefetching,
     refetchIntegrations: () => integrationsQuery.refetch(),
+    retry: () => {
+      integrationsQuery.refetch();
+      providerQueries.refetch();
+    },
   };
 }
