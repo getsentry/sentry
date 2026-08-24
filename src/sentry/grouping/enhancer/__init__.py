@@ -403,7 +403,8 @@ class EnhancementsConfig:
         self.id = id
         self.rules = rules
         self.version = version or DEFAULT_ENHANCEMENTS_VERSION
-        self.bases = bases or []
+        # To be safe, filter out invalid base ids (shouldn't ever happen in practice, though)
+        self.bases = [base_id for base_id in (bases or []) if base_id in ENHANCEMENT_BASES]
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
