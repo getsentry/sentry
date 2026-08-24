@@ -376,6 +376,7 @@ class InvestigationExecutionServiceTest(TestCase):
             seer_run_id=seer_run.id,
             dispatch_claimed_at=second_claim,
         )
+        assert mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=second_claim)
 
     def test_notebook_context_query_count_is_constant(self) -> None:
         one_query_count = self._snapshot_query_count(1)

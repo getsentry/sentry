@@ -476,7 +476,7 @@ def mark_block_execution_dispatched(
     updated = candidates.update(
         seer_run_id=seer_run_id,
         status=InvestigationBlockExecutionStatus.RUNNING,
-        started_at=timezone.now(),
+        started_at=dispatch_claimed_at or timezone.now(),
     )
     return updated == 1
 
@@ -561,7 +561,6 @@ def mark_block_execution_dispatch_failed(
     else:
         candidates = candidates.filter(
             status=InvestigationBlockExecutionStatus.RUNNING,
-            seer_run_id__isnull=True,
             started_at=dispatch_claimed_at,
         )
     updated = candidates.update(
