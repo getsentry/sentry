@@ -77,6 +77,7 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="(a OR b)" />);
 
     expect(screen.getByText('OR')).toBeInTheDocument();
+    expect(screen.getByLabelText('OR')).toBeInTheDocument();
     expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
   });
 

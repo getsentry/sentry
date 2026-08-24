@@ -40,16 +40,23 @@ def _get_all_projects_detector_cache_key(organization_id: int) -> str:
 
 
 def get_all_projects_detector(organization_id: int) -> Detector | None:
-    cache_key = _get_all_projects_detector_cache_key(organization_id)
-    cached = cache.get(cache_key, default=_DETECTOR_SENTINEL)
-    if cached is not _DETECTOR_SENTINEL:
-        return cached
-    result = Detector.objects.filter(
-        project__isnull=True,
-        type=IssueStreamGroupType.slug,
-        config__organization_id=organization_id,
-    ).first()
-    cache.set(cache_key, result, Detector.CACHE_TTL)
+    with metrics.timer("workflow_engine.cache.all_projects_detector") as metrics_tags:
+        cache_key = _get_all_projects_detector_cache_key(organization_id)
+        cached = cache.get(cache_key, default=_DETECTOR_SENTINEL)
+        if cached is not _DETECTOR_SENTINEL:
+            metrics_tags["cache_hit"] = "true"
+            metrics_tags["detector_found"] = "true" if cached is not None else "false"
+            return cached
+
+        result = Detector.objects.filter(
+            project__isnull=True,
+            type=IssueStreamGroupType.slug,
+            config__organization_id=organization_id,
+        ).first()
+        metrics_tags["cache_hit"] = "false"
+        metrics_tags["detector_found"] = "true" if result is not None else "false"
+        cache.set(cache_key, result, Detector.CACHE_TTL)
+
     return result
 
 

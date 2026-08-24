@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
 from typing import Any
 
+import pytest
+
 from sentry.issues.formatting.adapter import event_response_to_model
+from sentry.issues.formatting.sections import EVENT_SECTIONS_WITH_USER, format_issue
 
 
 def _serialized_event() -> dict[str, Any]:
@@ -211,6 +214,46 @@ def test_minimal_event() -> None:
     assert m.user is None
 
 
+def test_maps_csp_entry() -> None:
+    data = {
+        "title": "t",
+        "entries": [
+            {
+                "type": "csp",
+                "data": {
+                    "effective_directive": "img-src",
+                    "blocked_uri": "blob",
+                    "document_uri": "https://x.com",
+                    "original_policy": "default-src 'none'",  # dropped as noise
+                },
+            }
+        ],
+    }
+    m = event_response_to_model(data)
+    assert m.csp is not None
+    assert m.csp.effective_directive == "img-src"
+    assert m.csp.blocked_uri == "blob"
+    assert m.csp.document_uri == "https://x.com"
+
+
+def test_maps_occurrence_evidence() -> None:
+    data = {
+        "title": "t",
+        "occurrence": {
+            "evidenceDisplay": [
+                {"name": "Regression", "value": "duration increased", "important": True},
+                {"name": "Transaction", "value": "POST /oauth/token"},
+                {"name": "", "value": "skip"},  # missing name/value pairs are skipped
+            ]
+        },
+    }
+    m = event_response_to_model(data)
+    assert m.evidence == [
+        ("Regression", "duration increased"),
+        ("Transaction", "POST /oauth/token"),
+    ]
+
+
 def test_maps_detector_troubleshooting_context() -> None:
     # the Seer RPC adds these camelCase keys to the serialized event
     data = _serialized_event()
@@ -241,3 +284,59 @@ def test_maps_bare_stacktrace_entry() -> None:
 
 def test_bare_stacktrace_absent_by_default() -> None:
     assert event_response_to_model(_serialized_event()).stacktrace is None
+
+
+def test_evidence_drops_reporter_identifiers() -> None:
+    # feedback issues put contact_email/name in evidenceDisplay; those are user identifiers,
+    # so they follow the same opt-in rule as user_section. The message is content, not an
+    # identifier, so it survives.
+    data = {
+        "title": "t",
+        "occurrence": {
+            "evidenceDisplay": [
+                {"name": "contact_email", "value": "someone@example.com", "important": False},
+                {"name": "name", "value": "A Reporter", "important": False},
+                {"name": "message", "value": "the button is broken", "important": True},
+            ]
+        },
+    }
+    m = event_response_to_model(data)
+    assert m.evidence == [("message", "the button is broken")]
+
+
+def test_feedback_context_drops_reporter_identifiers() -> None:
+    # contexts.feedback carries the same contact details as evidenceDisplay, so it follows the
+    # same rule -- but only there: `name` is real data on browser/os/runtime contexts
+    data = {
+        "title": "t",
+        "contexts": {
+            "feedback": {
+                "name": "A Reporter",
+                "contact_email": "someone@example.com",
+                "message": "the button is broken",
+                "associated_event_id": "abc123",
+            },
+            "browser": {"name": "Firefox", "version": "121.0"},
+        },
+    }
+    m = event_response_to_model(data)
+    assert m.contexts["feedback"] == {
+        "message": "the button is broken",
+        "associated_event_id": "abc123",
+    }
+    assert m.contexts["browser"] == {"name": "Firefox", "version": "121.0"}
+
+
+@pytest.mark.parametrize("value", [None, "oops", 5, []])
+def test_non_mapping_context_is_dropped_without_sinking_the_render(value: Any) -> None:
+    # a context key holding anything but a mapping has nothing to render, and letting it reach
+    # EventObject would fail dict[str, dict] validation inside the adapter -- which format_issue
+    # absorbs by returning "", losing the whole event, not just this one context
+    data = {
+        "title": "t",
+        "message": "boom",
+        "contexts": {"feedback": value, "browser": {"name": "Firefox"}},
+    }
+    m = event_response_to_model(data)
+    assert m.contexts == {"browser": {"name": "Firefox"}}
+    assert "boom" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)

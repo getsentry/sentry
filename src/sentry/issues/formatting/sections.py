@@ -7,10 +7,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import UTC
-from typing import Any, Literal
+from typing import Any
 
 from sentry.issues.formatting.adapter import event_response_to_model
-from sentry.issues.formatting.formatter import Formatter, MarkdownFormatter, SectionFn, XmlFormatter
+from sentry.issues.formatting.formatter import Format, Formatter, SectionFn, get_formatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import EventObject, Frame, Stacktrace, contains_filtered
 
@@ -213,6 +213,21 @@ def request_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     return fmt.block("Request", "\n".join(parts))
 
 
+def csp_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+    csp = model.csp
+    if not csp:
+        return ""
+    fields = {
+        "Blocked": csp.blocked_uri,
+        "Directive": csp.effective_directive,
+        "Document": csp.document_uri,
+    }
+    present = [fmt.field(k, v) for k, v in fields.items() if v]
+    if not present:
+        return ""
+    return fmt.block("CSP", "\n".join(present))
+
+
 def tags_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     # ingest derives a `sentry:user` tag from the EventUser and the serializer exposes it as
     # plain `user` ("email:someone@example.com"), so leaving it here would put an identifier in
@@ -278,12 +293,31 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     return fmt.block("Span Evidence", _truncate("\n".join(lines), limits.max_spans_chars))
 
 
-Format = Literal["markdown", "xml"]
+def evidence_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+    if not model.evidence:
+        return ""
+    # occurrence.evidenceDisplay is an arbitrary-length list of arbitrary-length pairs, so it
+    # needs the same cap the other open-ended sections get.
+    # Cap each value before marking it up -- _truncate_items always keeps the first piece, so a
+    # single oversized value would otherwise carry the whole section past the cap.
+    rendered = [
+        fmt.field(name, _truncate(value, limits.max_evidence_chars))
+        for name, value in model.evidence
+    ]
+    return fmt.block("Evidence", _truncate_items(rendered, "\n", limits.max_evidence_chars))
 
-_FORMATTERS: dict[Format, type[Formatter]] = {
-    "markdown": MarkdownFormatter,
-    "xml": XmlFormatter,
-}
+
+def contexts_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+    groups: list[str] = []
+    for name, data in model.contexts.items():
+        # drop the redundant "type" key each context echoes (e.g. browser -> type: "browser")
+        fields = [f"{key}: {value}" for key, value in data.items() if key != "type"]
+        if fields:
+            groups.append("\n".join([name, *fields]))
+    if not groups:
+        return ""
+    return fmt.block("Contexts", _truncate("\n\n".join(groups), limits.max_contexts_chars))
+
 
 # every section in render order, including the user identifiers that ``EVENT_SECTIONS`` holds
 # back. Pass this only from a surface that already exposes those fields to its caller.
@@ -294,17 +328,27 @@ EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
     troubleshooting_hint_section,
     exceptions_section,
     stacktrace_section,
+    csp_section,
     threads_section,
     spans_section,
+    evidence_section,
     breadcrumbs_section,
     request_section,
     tags_section,
     user_section,
+    contexts_section,
 ]
 
-# the default: no email, IP, username or ID. Rendered output is bound for an LLM, so user
-# identifiers are opt-in -- a caller that doesn't think about it can't leak them into a prompt.
-EVENT_SECTIONS: list[SectionFn] = [s for s in EVENT_SECTIONS_WITH_USER if s is not user_section]
+# sections that render a user identifier: ``user_section``'s email/IP/username/ID, and the device
+# and session ids that ride along in contexts (device_unique_identifier, replay.replay_id, and
+# whatever a custom context defines -- there is no safe key list for an open-ended mapping).
+_USER_IDENTIFYING_SECTIONS = frozenset({user_section, contexts_section})
+
+# the default. Rendered output is bound for an LLM, so user identifiers are opt-in -- a caller
+# that doesn't think about it can't leak them into a prompt.
+EVENT_SECTIONS: list[SectionFn] = [
+    s for s in EVENT_SECTIONS_WITH_USER if s not in _USER_IDENTIFYING_SECTIONS
+]
 
 
 def format_issue(
@@ -319,14 +363,10 @@ def format_issue(
     Returns "" when the payload can't be adapted, matching how ``Formatter.render`` absorbs
     per-section failures, so a malformed event never takes down the caller.
     """
-    try:
-        formatter_cls = _FORMATTERS[format]
-    except KeyError:
-        raise ValueError(f"unsupported format: {format!r}") from None
-
+    formatter = get_formatter(format)
     try:
         model = event_response_to_model(data)
     except Exception:
         logger.exception("formatter.adapter_failed")
         return ""
-    return formatter_cls().render(model, sections, limits)
+    return formatter.render(model, sections, limits)

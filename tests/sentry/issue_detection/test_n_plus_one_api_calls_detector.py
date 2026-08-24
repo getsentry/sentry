@@ -210,6 +210,39 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         assert query_params == ["id: 0, 1, 2, 3, 4, 5"]
         assert problem.fingerprint == f"1-{self.type_id}-8bf177290e2d78550fef5a1f6e9ddf115e4b0614"
 
+    def test_does_detect_problem_with_previously_parameterized_urls(self) -> None:
+        event = self.create_event(lambda i: "GET /dogs/[number]/records/[date]/?sort=[bool]")
+        [problem] = self.find_problems(event)
+
+        assert problem.desc == "/dogs/*/records/*/?sort=*"
+        assert problem.evidence_data is not None
+        assert problem.evidence_data["path_parameters"] == ["[number], [date]"]
+        assert problem.evidence_data["parameters"] == [
+            "sort: [bool], [bool], [bool], [bool], [bool], [bool]"
+        ]
+
+    def test_does_detect_problem_with_scrubbed_host(self) -> None:
+        event = self.create_event(lambda i: f"GET https://[Filtered]/dogs/{i}")
+        [problem] = self.find_problems(event)
+
+        assert problem.desc == "https://[Filtered]/dogs/*"
+        assert problem.evidence_data["common_url"] == "https://[Filtered]/dogs/*"
+
+    def test_treats_bracketed_path_values_as_parameters(self) -> None:
+        parameterized_url_event = self.create_event(lambda i: "GET /dogs/[number]")
+        normal_event = self.create_event(lambda i: f"GET /dogs/{i}")
+
+        [parameterized_url_problem] = self.find_problems(parameterized_url_event)
+        [normal_problem] = self.find_problems(normal_event)
+
+        assert parameterized_url_problem.fingerprint == normal_problem.fingerprint
+        assert parameterized_url_problem.desc == normal_problem.desc == "/dogs/*"
+        assert (
+            parameterized_url_problem.evidence_data["common_url"]
+            == normal_problem.evidence_data["common_url"]
+            == "/dogs/*"
+        )
+
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self) -> None:
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
         assert self.find_problems(event) == []
@@ -409,6 +442,36 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         (
             "/item/defaced12-abba/details",  # false short hash 2
             "/item/defaced12-abba/details",
+        ),
+        # Placeholders stand in for a value which has already been removed, so they parameterize
+        # the same way a hardcoded value does.
+        (
+            "https://dogs.are.great/dogs/1231",
+            "https://dogs.are.great/dogs/*",
+        ),
+        (
+            "https://dogs.are.great/dogs/[Filtered]",
+            "https://dogs.are.great/dogs/*",
+        ),
+        (
+            "https://dogs.are.great/dogs/[REDACTED]",
+            "https://dogs.are.great/dogs/*",
+        ),
+        (
+            "https://dogs.are.great/dogs/[Filtered UUID]",
+            "https://dogs.are.great/dogs/*",
+        ),
+        (
+            "https://dogs.are.great/dogs/[redacted-ip]",
+            "https://dogs.are.great/dogs/*",
+        ),
+        (
+            "https://dogs.are.great/dogs/[id]",
+            "https://dogs.are.great/dogs/*",
+        ),
+        (
+            "https://dogs.are.great/dogs/[number]",
+            "https://dogs.are.great/dogs/*",
         ),
     ],
 )

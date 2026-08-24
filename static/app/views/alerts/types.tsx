@@ -26,15 +26,6 @@ export type Incident = {
   activities?: ActivityType[];
 };
 
-/** @internal exported for tests */
-export type IncidentStats = {
-  eventStats: {
-    data: Data;
-  };
-  totalEvents: number;
-  uniqueUsers: number;
-};
-
 type ActivityTypeDraft = {
   comment: null | string;
   dateCreated: string;
@@ -65,16 +56,10 @@ export enum IncidentStatus {
   CRITICAL = 20,
 }
 
-export enum IncidentStatusMethod {
+enum IncidentStatusMethod {
   MANUAL = 1,
   RULE_UPDATED = 2,
   RULE_TRIGGERED = 3,
-}
-
-export enum AlertRuleStatus {
-  PENDING = 0,
-  SNAPSHOT = 4,
-  DISABLED = 5,
 }
 
 export enum CombinedAlertType {

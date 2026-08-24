@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,7 +15,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {
@@ -1106,29 +1105,37 @@ export function ReleaseComparisonChart({
         </ErrorBoundary>
       </ChartPanel>
       <ChartTable
-        headers={getTableHeaders(withExpanders)}
         data-test-id="release-comparison-table"
         withExpanders={withExpanders}
+        header={
+          <SimpleTable.HeaderRow>
+            {getTableHeaders(withExpanders).map((header, i) => (
+              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+            ))}
+          </SimpleTable.HeaderRow>
+        }
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
         {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
         {additionalCharts.length > 0 && (
-          <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
-            <ShowMoreTitle>
-              <IconList size="xs" />
-              {isOtherExpanded
-                ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
-                : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
-            </ShowMoreTitle>
-            <Flex justify="end" align="center" column="2 / -1">
+          <ShowMoreRow onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
+            <SimpleTable.RowCell>
+              <ShowMoreTitle>
+                <IconList size="xs" />
+                {isOtherExpanded
+                  ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
+                  : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
+              </ShowMoreTitle>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell justify="end" column="2 / -1">
               <Button
                 variant="transparent"
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
                 aria-label={t('Toggle additional charts')}
               />
-            </Flex>
-          </ShowMoreWrapper>
+            </SimpleTable.RowCell>
+          </ShowMoreRow>
         )}
       </ChartTable>
     </Fragment>
@@ -1161,19 +1168,28 @@ const Change = styled('div')<{color?: string}>`
   ${p => p.color && `color: ${p.color}`}
 `;
 
-const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
+const ChartTable = styled(SimpleTable, {
+  shouldForwardProp: prop => prop !== 'withExpanders',
+})<{withExpanders: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  grid-template-columns: minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${p =>
-      p.withExpanders ? '75px' : ''};
+
+  && {
+    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
+        p.withExpanders ? '75px' : ''};
+  }
+
+  @container (min-width: ${p => p.theme.container['4xl']}) {
+    && {
+      grid-template-columns: minmax(400px, auto) repeat(
+          3,
+          minmax(min-content, 1fr)
+        ) ${p => (p.withExpanders ? '75px' : '')};
+    }
+  }
 
   > * {
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
-        p.withExpanders ? '75px' : ''};
   }
 `;
 
@@ -1181,12 +1197,12 @@ const StyledNotAvailable = styled(NotAvailable)`
   display: inline-block;
 `;
 
-const ShowMoreWrapper = styled('div')`
-  display: contents;
+const ShowMoreRow = styled(SimpleTable.Row)`
   &:hover {
     cursor: pointer;
   }
-  > * {
+
+  [role='cell'] {
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 `;

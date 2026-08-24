@@ -1,9 +1,8 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
@@ -118,7 +117,7 @@ function LegacyDashboardControls({
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
-      <LegacyButtonBar key="edit-controls">
+      <Fragment key="edit-controls">
         {renderCancelButton()}
         <Confirm
           priority="danger"
@@ -140,13 +139,13 @@ function LegacyDashboardControls({
         >
           {t('Save and Finish')}
         </Button>
-      </LegacyButtonBar>
+      </Fragment>
     );
   }
 
   if (dashboardState === DashboardState.CREATE) {
     return (
-      <LegacyButtonBar key="create-controls">
+      <Fragment key="create-controls">
         {renderCancelButton()}
         <Button
           data-test-id="dashboard-commit"
@@ -159,13 +158,13 @@ function LegacyDashboardControls({
         >
           {t('Save and Finish')}
         </Button>
-      </LegacyButtonBar>
+      </Fragment>
     );
   }
 
   if (dashboardState === DashboardState.PREVIEW) {
     return (
-      <LegacyButtonBar key="preview-controls">
+      <Fragment key="preview-controls">
         {renderCancelButton(t('Go Back'))}
 
         <DashboardCreateLimitWrapper>
@@ -192,7 +191,7 @@ function LegacyDashboardControls({
             </Button>
           )}
         </DashboardCreateLimitWrapper>
-      </LegacyButtonBar>
+      </Fragment>
     );
   }
 
@@ -205,7 +204,7 @@ function LegacyDashboardControls({
   );
 
   return (
-    <LegacyButtonBar key="controls">
+    <Fragment key="controls">
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
@@ -356,7 +355,7 @@ function LegacyDashboardControls({
           </Fragment>
         )}
       </DashboardEditFeature>
-    </LegacyButtonBar>
+    </Fragment>
   );
 }
 
@@ -578,13 +577,3 @@ function DashboardEditFeature({
     </Feature>
   );
 }
-
-const LegacyButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-auto-flow: row;
-    grid-row-gap: ${p => p.theme.space.md};
-    width: 100%;
-  }
-`;

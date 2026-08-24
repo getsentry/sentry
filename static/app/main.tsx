@@ -1,10 +1,6 @@
-import {useEffect, useState} from 'react';
+import {lazy, Suspense, useEffect, useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
-import {TanStackDevtools} from '@tanstack/react-devtools';
-import {formDevtoolsPlugin} from '@tanstack/react-form-devtools';
-import {pacerDevtoolsPlugin} from '@tanstack/react-pacer-devtools';
-import {ReactQueryDevtoolsPanel} from '@tanstack/react-query-devtools';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {setApiNavigate} from 'sentry/api';
@@ -19,7 +15,19 @@ import {preload} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
 import {ServiceWorkerProvider} from 'sentry/serviceWorker/client/serviceWorkerContext';
+import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
+
+// Keep the production check at the import site so DefinePlugin can remove the
+// dynamic import from Rspack's production module graph.
+const SentryTanStackDevtools =
+  process.env.NODE_ENV !== 'production' && USE_TANSTACK_DEVTOOL
+    ? lazy(() =>
+        import('sentry/components/tanstackDevtools').then(module => ({
+          default: module.SentryTanStackDevtools,
+        }))
+      )
+    : null;
 
 function buildRouter() {
   const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
@@ -31,6 +39,7 @@ function buildRouter() {
 
 export function Main() {
   const [router] = useState(buildRouter);
+  useColorscheme();
 
   useEffect(() => {
     preload(router.routes, window.location.pathname);
@@ -49,19 +58,11 @@ export function Main() {
                   </RouteConfigProvider>
                 </CommandPaletteProvider>
               </NuqsAdapter>
-              {USE_TANSTACK_DEVTOOL && (
-                <TanStackDevtools
-                  config={{position: 'bottom-right'}}
-                  plugins={[
-                    {
-                      name: 'TanStack Query',
-                      render: <ReactQueryDevtoolsPanel />,
-                    },
-                    formDevtoolsPlugin(),
-                    pacerDevtoolsPlugin(),
-                  ]}
-                />
-              )}
+              {SentryTanStackDevtools ? (
+                <Suspense fallback={null}>
+                  <SentryTanStackDevtools />
+                </Suspense>
+              ) : null}
             </ThemeAndStyleProvider>
           </ServiceWorkerProvider>
         </FrontendVersionProvider>

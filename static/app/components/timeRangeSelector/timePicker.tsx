@@ -6,8 +6,6 @@ type Props = {
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
-  // Should inputs be disabled
-  disabled?: boolean;
   // Takes string in 24 hour format
   end?: string;
   hasEndErrors?: boolean;
@@ -51,7 +49,6 @@ export const TimePicker = styled(
         className,
         start,
         end,
-        disabled,
         onChangeStart,
         onChangeEnd,
         hasStartErrors,
@@ -68,7 +65,6 @@ export const TimePicker = styled(
               className="rdrDateDisplayItem"
               data-test-id="startTime"
               aria-invalid={hasStartErrors}
-              disabled={disabled}
               onFocus={this.handleFocus}
               onBlur={this.handleBlur}
               onChange={onChangeStart}
@@ -82,7 +78,6 @@ export const TimePicker = styled(
               key={end}
               className="rdrDateDisplayItem"
               data-test-id="endTime"
-              disabled={disabled}
               aria-invalid={hasEndErrors}
               onFocus={this.handleFocus}
               onBlur={this.handleBlur}

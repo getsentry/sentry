@@ -744,6 +744,43 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.issue_stream_detector.name,
         }
 
+    def test_query_by_assignee_negation_multiple_values(self) -> None:
+        user = self.create_user(email="exclude@example.com")
+        self.create_member(organization=self.organization, user=user)
+        team = self.create_team(organization=self.organization, slug="exclude-team")
+        self.project.add_team(team)
+
+        self.create_detector(
+            project=self.project,
+            name="User Assigned",
+            type=MetricIssue.slug,
+            owner_user_id=user.id,
+        )
+        self.create_detector(
+            project=self.project,
+            name="Team Assigned",
+            type=MetricIssue.slug,
+            owner_team_id=team.id,
+        )
+        included_detector = self.create_detector(
+            project=self.project,
+            name="Included Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "query": f"!assignee:[{user.email}, #{team.slug}]",
+            },
+        )
+        assert {d["name"] for d in response.data} == {
+            included_detector.name,
+            self.error_detector.name,
+            self.issue_stream_detector.name,
+        }
+
     def test_query_by_assignee_invalid_user(self) -> None:
         self.create_detector(
             project=self.project,
@@ -954,7 +991,8 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
                 snuba_query=disallowed_sq,
             )
 
-            # PerformanceMetrics dataset — requires on-demand-metrics-extraction
+            # PerformanceMetrics dataset — requires on-demand-metrics-extraction.
+            # Persist the subscription without building a generic s/g/d query.
             allowed_sq = create_snuba_query(
                 query_type=SnubaQuery.Type.PERFORMANCE,
                 dataset=Dataset.PerformanceMetrics,
@@ -965,12 +1003,12 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
                 environment=self.environment,
                 event_types=(),
             )
-            allowed_sub = create_snuba_subscription(
+            allowed_sub = QuerySubscription.objects.create(
                 project=self.project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 snuba_query=allowed_sq,
+                status=QuerySubscription.Status.ACTIVE.value,
             )
-
         disallowed_ds = self.create_data_source(
             organization=self.organization, source_id=disallowed_sub.id
         )

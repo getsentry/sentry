@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import partition from 'lodash/partition';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';
@@ -52,6 +52,9 @@ export function TeamFilter({
   hideOtherTeams = false,
 }: Props) {
   const {teams, onSearch, fetching} = useTeams();
+  const handleSearch = useDebouncedCallback((value: string) => void onSearch(value), {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
 
   const [myTeams, otherTeams] = partition(teams, team => team.isMember);
   const myTeamOptions = myTeams.map(makeTeamOption);
@@ -82,7 +85,7 @@ export function TeamFilter({
     <CompactSelect
       multiple
       clearable
-      search={{onChange: debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}}
+      search={{onChange: handleSearch}}
       disabled={isDemoModeActive()}
       loading={fetching}
       menuTitle={t('Filter teams')}

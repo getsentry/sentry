@@ -13,7 +13,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import * as indicators from 'sentry/actionCreators/indicator';
+import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -195,6 +198,29 @@ describe('SearchQueryBuilder', () => {
     label: 'Query Builder',
     searchSource: '',
   };
+
+  it.each([
+    ['Ctrl+K', '{Control>}k{/Control}'],
+    ['Ctrl+Shift+P', '{Control>}{Shift>}p{/Shift}{/Control}'],
+  ])(
+    'opens the command palette from an open suggestions menu with %s',
+    async (_label, keys) => {
+      render(
+        <Fragment>
+          <CommandPaletteHotkeys />
+          <GlobalModal />
+          <SearchQueryBuilder {...defaultProps} />
+        </Fragment>
+      );
+
+      await userEvent.click(getLastInput());
+      await screen.findByRole('listbox');
+
+      await userEvent.keyboard(keys);
+
+      expect(await screen.findByRole('textbox', {name: 'Search commands'})).toHaveFocus();
+    }
+  );
 
   it('displays a placeholder when empty', async () => {
     render(<SearchQueryBuilder {...defaultProps} placeholder="foo" />);

@@ -230,6 +230,7 @@ export function FiltersBar({
     <Flex
       align={hasNewBreadcrumbs ? {zero: 'stretch', xl: 'start'} : 'start'}
       direction={hasNewBreadcrumbs ? {zero: 'column', xl: 'row'} : 'row'}
+      wrap="wrap"
       gap="lg"
       marginBottom={hasNewBreadcrumbs ? '0' : 'xl'}
       padding={hasNewBreadcrumbs ? 'lg xl xl' : 'lg xl'}
@@ -413,12 +414,16 @@ const parseReleaseSort = createParser({
   serialize: (value: ReleasesSortOption): string => value,
 }).withDefault(DEFAULT_RELEASES_SORT);
 
+// Filters row starts wrapping siblings at this width.
+const FILTERS_ROW_FLEX_BASIS_PX = 480;
+
 const FiltersRow = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
-  flex: 1;
+  flex: 1 1 ${FILTERS_ROW_FLEX_BASIS_PX}px;
+  min-width: 0;
 
   & button[aria-haspopup] {
     height: 100%;

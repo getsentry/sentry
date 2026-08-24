@@ -308,7 +308,13 @@ class OffsetPaginator(PaginatorLike):
         else:
             hits = None
 
-        return CursorResult(results=results, next=next_cursor, prev=prev_cursor, hits=hits)
+        return CursorResult(
+            results=results,
+            next=next_cursor,
+            prev=prev_cursor,
+            hits=hits,
+            max_hits=max_hits if count_hits else None,
+        )
 
     def count_hits(self, max_hits: int) -> int:
         return count_hits(self.queryset, max_hits)

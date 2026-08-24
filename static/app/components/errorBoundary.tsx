@@ -31,9 +31,6 @@ type Props = DefaultProps & {
   className?: string;
   customComponent?: ((props: CustomComponentRenderProps) => React.ReactNode) | null;
 
-  // To add context for better error reporting
-  errorTag?: Record<string, string>;
-
   message?: React.ReactNode;
 };
 
@@ -68,16 +65,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(_error: Error | string, errorInfo: React.ErrorInfo) {
-    const {errorTag} = this.props;
-
     const error = typeof _error === 'string' ? new Error(_error) : _error;
 
     this.setState({error});
     Sentry.withScope(scope => {
-      if (errorTag) {
-        Object.keys(errorTag).forEach(tag => scope.setTag(tag, errorTag[tag]));
-      }
-
       try {
         // Based on https://github.com/getsentry/sentry-javascript/blob/6f4ad562c469f546f1098136b65583309d03487b/packages/react/src/errorboundary.tsx#L75-L85
         const errorBoundaryError = new Error(error.message);

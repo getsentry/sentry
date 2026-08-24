@@ -1,7 +1,14 @@
-import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'react';
+import {
+  type ComponentProps,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import orderBy from 'lodash/orderBy';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -23,9 +30,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
+import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import type {Actor} from 'sentry/types/core';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
@@ -33,6 +42,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {parseActorString} from 'sentry/utils/parseActorString';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -40,8 +50,11 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {useUser} from 'sentry/utils/useUser';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -57,6 +70,7 @@ const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
+const ASSIGNMENT_BADGE_WIDTH = '27px';
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
@@ -64,6 +78,8 @@ const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
+const ASSIGNMENT_COUNT_QUERY =
+  'issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved';
 interface InboxSectionContext {
   assignmentFilter: AssignmentFilter;
   hasSeer: boolean;
@@ -76,7 +92,6 @@ interface InboxSectionConfig {
     | 'num_assigned'
     | 'num_identified'
     | 'num_fix_applied';
-  defaultExpanded: boolean;
   emptyMessage: string;
   key: string;
   label: string;
@@ -93,7 +108,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:fix_proposed is:unresolved',
     emptyMessage: t('No issues with a proposed fix'),
     progress: ProgressState.FIX_PROPOSED,
-    defaultExpanded: true,
   },
   {
     analyticsKey: 'num_diagnosed',
@@ -102,7 +116,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
-    defaultExpanded: true,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -112,7 +125,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:assigned is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
-    defaultExpanded: false,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -122,7 +134,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:identified is:unresolved',
     emptyMessage: t('No identified issues'),
     progress: ProgressState.IDENTIFIED,
-    defaultExpanded: false,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -132,15 +143,14 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:fix_applied is:unresolved',
     emptyMessage: t('No issues with an applied fix'),
     progress: ProgressState.FIX_APPLIED,
-    defaultExpanded: false,
   },
 ];
 
 export default function InboxPage() {
   const organization = useOrganization();
-  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
+  const hasIssueInbox = organization.features.includes('issue-inbox');
 
-  if (!hasProgressUi || !orgHasSeerAccess(organization)) {
+  if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
     return <NotFound />;
   }
 
@@ -198,6 +208,95 @@ function useSelectFirstLoadedIssue({
   };
 }
 
+// Fetch counts for the assignment filter tabs (my/my teams/all)
+function useAssignmentCounts() {
+  const organization = useOrganization();
+  const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const allQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.all}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+
+  const {data} = useQuery({
+    ...apiOptions.as<Record<string, number>>()(
+      '/organizations/$organizationIdOrSlug/issues-count/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {query: [meQuery, myTeamsQuery, allQuery]},
+        staleTime: 180_000,
+      }
+    ),
+  });
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    me: data[meQuery] ?? 0,
+    my_teams: data[myTeamsQuery] ?? 0,
+    all: data[allQuery] ?? 0,
+  };
+}
+
+function AssignmentTabs({
+  assignmentFilter,
+  setAssignmentFilter,
+}: {
+  assignmentFilter: AssignmentFilter;
+  setAssignmentFilter: (filter: AssignmentFilter) => void;
+}) {
+  const organization = useOrganization();
+  const assignmentCounts = useAssignmentCounts();
+
+  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    trackAnalytics('issue_inbox.assignment_filter_changed', {
+      organization,
+      assignment_filter: filter,
+    });
+    setAssignmentFilter(filter);
+  };
+
+  useRouteAnalyticsParams(
+    assignmentCounts
+      ? {
+          assignment_filter: assignmentFilter,
+          count_me: assignmentCounts.me,
+          count_my_teams: assignmentCounts.my_teams,
+          count_all: assignmentCounts.all,
+        }
+      : {
+          assignment_filter: assignmentFilter,
+        }
+  );
+
+  return (
+    <SegmentedControl
+      aria-label={t('Issue assignee')}
+      size="xs"
+      value={assignmentFilter}
+      onChange={handleAssignmentFilterChange}
+    >
+      <SegmentedControl.Item key="me" textValue={t('Me')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('Me')}
+          <AssignmentCountBadge count={assignmentCounts?.me} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="my_teams" textValue={t('My Teams')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('My Teams')}
+          <AssignmentCountBadge count={assignmentCounts?.my_teams} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="all" textValue={t('All')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('All')}
+          <AssignmentCountBadge count={assignmentCounts?.all} />
+        </Flex>
+      </SegmentedControl.Item>
+    </SegmentedControl>
+  );
+}
+
 function InboxContent() {
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
@@ -216,9 +315,11 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(
     section => !section.hidden?.({assignmentFilter, hasSeer})
   );
+  const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
     INBOX_DEFAULT_SIZE
@@ -237,14 +338,6 @@ function InboxContent() {
     resetKey: assignmentFilter,
     sections,
   });
-
-  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
-    trackAnalytics('issue_inbox.assignment_filter_changed', {
-      organization,
-      assignment_filter: filter,
-    });
-    setAssignmentFilter(filter);
-  };
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -278,23 +371,15 @@ function InboxContent() {
             <Heading as="h2" size="md">
               {t('Issues')}
             </Heading>
-            <SegmentedControl
-              aria-label={t('Issue assignee')}
-              size="xs"
-              value={assignmentFilter}
-              onChange={handleAssignmentFilterChange}
-            >
-              <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="my_teams">
-                {t('My Teams')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
-            </SegmentedControl>
+            <AssignmentTabs
+              assignmentFilter={assignmentFilter}
+              setAssignmentFilter={setAssignmentFilter}
+            />
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {sections.map(section => (
               <InboxSection
-                key={section.key}
+                key={`${assignmentFilter}:${section.key}`}
                 section={section}
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
@@ -348,9 +433,27 @@ function InboxContent() {
             </Container>
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+          {!selectedIssueId && isInboxEmpty && (
+            <InboxEmptyState assignmentFilter={assignmentFilter} />
+          )}
         </Stack>
       </Grid>
     </Stack>
+  );
+}
+
+// To avoid pop-in we ensure that the badge has the same width (which is enough to contain 99+)
+function AssignmentCountBadge({count}: {count: number | undefined}) {
+  return (
+    <Flex as="span" width={ASSIGNMENT_BADGE_WIDTH} justify="end" align="center">
+      {count === undefined ? (
+        <Placeholder width={ASSIGNMENT_BADGE_WIDTH} height="16px" />
+      ) : (
+        <AssignmentBadge variant="muted">
+          <QueryCount count={count} max={99} hideIfEmpty={false} hideParens />
+        </AssignmentBadge>
+      )}
+    </Flex>
   );
 }
 
@@ -372,22 +475,26 @@ function InboxSection({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        project: [-1],
         query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
-        expand: ['derivedData'],
+        expand: ['derivedData', 'owners'],
       },
       staleTime: 0,
     }),
     refetchOnWindowFocus: true,
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
+  const hasIssues = groups.length > 0;
+  const [expanded, setExpanded] = useState<boolean>();
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   useRouteAnalyticsParams({[section.analyticsKey]: count});
-  const {data: members = []} = useMembers();
+  const memberIds = groups.flatMap(group =>
+    group.assignedTo?.type === 'user' ? [group.assignedTo.id] : []
+  );
+  const {data: members = []} = useMembers({ids: memberIds});
   const membersById = new Map(members.map(member => [member.id, member]));
   const hasReportedInitialResult = useRef(false);
   const reportInitialResult = useEffectEvent(() => {
@@ -405,7 +512,8 @@ function InboxSection({
     <Disclosure
       as="section"
       aria-label={section.label}
-      defaultExpanded={section.defaultExpanded}
+      expanded={expanded ?? (!queryResult.isSuccess || hasIssues)}
+      onExpandedChange={setExpanded}
       size="sm"
     >
       <StickySectionHeader
@@ -499,6 +607,47 @@ function InboxSection({
   );
 }
 
+function useIssueSuggestedAssignees(group: Group): Actor[] {
+  const ownerActors = (group.owners ?? [])
+    .map(({owner}) => parseActorString(owner))
+    .filter(owner => owner !== undefined);
+  const ownerUserIds = ownerActors
+    .filter(owner => owner.type === 'user')
+    .map(owner => owner.id);
+  const ownerTeamIds = ownerActors
+    .filter(owner => owner.type === 'team')
+    .map(owner => owner.id);
+  const {data: ownerUsers = []} = useMembers({ids: ownerUserIds});
+  const {teams: matchedTeams} = useTeamsById({ids: ownerTeamIds});
+  const ownerTeams = matchedTeams.filter(team => ownerTeamIds.includes(team.id));
+  const user = useUser();
+  const memberTeamIds = new Set(
+    ownerTeams.filter(team => team.isMember).map(team => team.id)
+  );
+  return orderBy(
+    [
+      ...ownerUsers.map<Actor>(owner => ({
+        id: owner.id,
+        name: owner.name,
+        email: owner.email,
+        type: 'user',
+      })),
+      ...ownerTeams.map<Actor>(team => ({
+        id: team.id,
+        name: team.name,
+        type: 'team',
+      })),
+    ],
+    [
+      // If the current user is in the list, sort it to the top
+      owner => owner.type === 'user' && owner.id === user.id,
+      // Secondarily, sort teams that the current user is a member of to the top
+      owner => owner.type === 'team' && memberTeamIds.has(owner.id),
+    ],
+    ['desc', 'desc']
+  );
+}
+
 function InboxIssueCard({
   assignmentFilter,
   assignedUser,
@@ -519,6 +668,7 @@ function InboxIssueCard({
   const {title} = getTitle(group);
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
+  const suggestedAssignees = useIssueSuggestedAssignees(group);
 
   return (
     <Container position="relative">
@@ -588,6 +738,9 @@ function InboxIssueCard({
                   title={group.assignedTo.name}
                 />
               ))}
+            {!group.assignedTo && suggestedAssignees.length > 0 && (
+              <SuggestedAvatarStack size={18} owners={suggestedAssignees} />
+            )}
           </Stack>
         </Grid>
       </IssueCardLink>
@@ -705,4 +858,11 @@ const IssueCardLink = styled(Link)`
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
     color: ${p => p.theme.tokens.content.primary};
   }
+`;
+
+const AssignmentBadge = styled(Badge)`
+  min-width: ${ASSIGNMENT_BADGE_WIDTH};
+  height: 16px;
+  font-size: ${p => p.theme.font.size.xs};
+  justify-content: center;
 `;

@@ -23,7 +23,7 @@ class TestCreateOrganizationWorkflows(TestCase):
             organization=self.organization, name=PULL_REQUEST_WORKFLOW_LABEL
         ).exists()
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
     def test_creates_workflow(self) -> None:
         self.send_signal()
         workflow = Workflow.objects.get(
@@ -31,7 +31,7 @@ class TestCreateOrganizationWorkflows(TestCase):
         )
         assert workflow.enabled
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
     def test_connects_workflow_to_detector(self) -> None:
         self.send_signal()
         workflow = Workflow.objects.get(
@@ -39,7 +39,7 @@ class TestCreateOrganizationWorkflows(TestCase):
         )
         assert DetectorWorkflow.objects.filter(workflow=workflow).exists()
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
     def test_no_duplicates_ever(self) -> None:
         # Multiple signal emissions
         self.send_signal()
@@ -56,7 +56,7 @@ class TestCreateOrganizationWorkflows(TestCase):
             == 1
         )
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
     @mock.patch("sentry.workflow_engine.receivers.organization_workflows.sentry_sdk")
     def test_captures_exception_on_creation_failure(self, mock_sdk: mock.MagicMock) -> None:
         organization = self.create_organization()

@@ -350,7 +350,9 @@ function EditConnectedMonitorsContent({
     if (!canEditAllProjects) {
       disabledChoices.push([
         'allProjects',
-        t('Only organization owners and managers can create global issue monitors.'),
+        t(
+          'Only organization owners and managers can create/modify global issue monitors.'
+        ),
       ]);
     }
   }
@@ -370,6 +372,7 @@ function EditConnectedMonitorsContent({
             choices={monitorModeChoices}
             disabledChoices={disabledChoices}
             onChange={handleModeChange}
+            tooltipPosition="top-start"
           />
           {monitorMode === 'project' ? (
             <AllProjectIssuesSection onProjectChange={handleProjectChange} />
