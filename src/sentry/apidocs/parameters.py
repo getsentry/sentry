@@ -389,11 +389,21 @@ class IssueParams:
         required=False,
     )
 
-    VIEW_SORT = OpenApiParameter(
+    ORGANIZATION_VIEW_SORT = OpenApiParameter(
         name="sort",
         description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), 'Date Added' (`inbox`), and 'Recommended' (`recommended`).",
         default="date",
         enum=["date", "new", "trends", "freq", "user", "inbox", "recommended"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    PROJECT_VIEW_SORT = OpenApiParameter(
+        name="sort",
+        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Recommended' (`recommended`).",
+        default="date",
+        enum=["date", "new", "trends", "freq", "user", "recommended"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,

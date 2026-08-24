@@ -28,7 +28,7 @@ from sentry.seer.anomaly_detection.utils import get_dataset_name_from_label_and_
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.metrics import parse_mri_field
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.metrics_enhanced_performance import timeseries_query
+from sentry.snuba.metrics_performance import timeseries_query
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans

@@ -1215,7 +1215,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert links["next"]["results"] == "true"
 
         assert links["next"]["href"] is not None
-        response = self.client.get(links["next"]["href"], format="json")
+        response = self.client_get(links["next"]["href"], format="json")
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {
@@ -1234,7 +1234,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert links["next"]["results"] == "false"
 
         assert links["previous"]["href"] is not None
-        response = self.client.get(links["previous"]["href"], format="json")
+        response = self.client_get(links["previous"]["href"], format="json")
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {

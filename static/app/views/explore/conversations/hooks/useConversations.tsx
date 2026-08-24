@@ -74,7 +74,7 @@ export function useConversations() {
     error,
   } = useQuery({
     ...apiOptions.as<ConversationApiResponse[]>()(
-      '/organizations/$organizationIdOrSlug/ai-conversations/',
+      '/organizations/$organizationIdOrSlug/agents/conversations/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {

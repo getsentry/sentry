@@ -19,7 +19,7 @@ export const UptimeSectionGrid = styled('div')`
     }
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     ${FieldWrapper} {
       display: flex;
       flex-direction: column;

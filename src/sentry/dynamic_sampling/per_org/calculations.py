@@ -10,6 +10,7 @@ import orjson
 import sentry_sdk
 
 from sentry import options
+from sentry.constants import SAMPLING_MODE_DEFAULT
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
@@ -19,6 +20,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
+from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
 from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
@@ -82,36 +84,109 @@ def calculate_recalibration_factor(
     # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
     # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
     # biases that oversample or down sample irrespectively of the incoming volume.
-    effective_sample_rate = data_volume.indexed / data_volume.total
+    #
+    # The two sides of the volume come from different sources counting different populations,
+    # so the ratio can legitimately land above 1. That is not a sample rate, so treat it as
+    # fully sampled rather than scaling the factor down by however far the sources differed.
+    effective_sample_rate = min(1.0, data_volume.indexed / data_volume.total)
     new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
     return new_factor
 
 
 def get_cached_recalibration_factor(org_id: int) -> float:
-    return legacy_recalibration_cache.get_adjusted_factor(org_id)
+    # A missing key is the stored form of 1.0: set_guarded_adjusted_factor deletes the key
+    # instead of writing the identity factor, and the serving path resolves a miss back to 1.0.
+    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="task")
+
+
+def get_cached_per_org_recalibration_factor(org_id: int) -> float:
+    return per_org_recalibration_cache.get_adjusted_factor(org_id, source="task")
+
+
+def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
+    """The raw ratio, deliberately left unclamped unlike the one the factor is computed from.
+
+    A rate above 1 is the only signal of how far apart the two sources behind the volume
+    are. Clamping it here would hide that from the comparison log.
+    """
+    if volume is None or volume.indexed is None or volume.total <= 0:
+        return None
+    return volume.indexed / volume.total
 
 
 def compare_recalibration_factor_with_cache(
     config: BaseDynamicSamplingConfiguration,
+    org_volume: OrganizationDataVolume | None,
     calculated_factor: float | None,
-    cached_factor: float | None,
+    cached_factor: float,
+    previous_eap_factor: float,
+    legacy_volume: OrganizationDataVolume | None = None,
+    eap_extrapolated_total: int | None = None,
 ) -> None:
+    # Each pipeline seeds its next factor from its own cached factor, so the two also differ by
+    # drift accumulated over earlier passes. The same_seed fields re-run both sides from the
+    # legacy factor, leaving only the difference the volumes explain.
+    target_sample_rate = config.get_sample_rate()
+
+    def same_seed_factor(volume: OrganizationDataVolume | None) -> float | None:
+        return calculate_recalibration_factor(volume, cached_factor, target_sample_rate)
+
+    eap_factor_same_seed = same_seed_factor(org_volume)
+    generic_metrics_factor_same_seed = same_seed_factor(legacy_volume)
+
+    if calculated_factor is None:
+        outcome = "no_eap_factor"
+    elif is_within_relative_tolerance(
+        cached_factor, calculated_factor, RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE
+    ):
+        outcome = "equal"
+    else:
+        outcome = "differs"
+
     logger.info(
         "dynamic_sampling.per_org.recalibration_factor_comparison",
         extra={
             "org_id": config.organization.id,
-            "sample_rate": config.get_sample_rate(),
+            "sampling_mode": config.organization.get_option(
+                "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
+            ),
+            "sample_rate": target_sample_rate,
             "generic_metrics_factor": cached_factor,
             "eap_factor": calculated_factor,
+            "previous_eap_factor": previous_eap_factor,
+            "total_transactions": None if org_volume is None else org_volume.total,
+            "stored_segments": None if org_volume is None else org_volume.indexed,
+            "eap_effective_sample_rate": get_effective_sample_rate(org_volume),
+            # EAP's own estimate of the same total the outcomes query supplies. The two
+            # measure one quantity, so the gap between them is the source misalignment on
+            # the denominator alone, which the same_seed fields cannot separate out.
+            "eap_extrapolated_total": eap_extrapolated_total,
+            "extrapolated_total_relative_deviation": (
+                None
+                if eap_extrapolated_total is None or org_volume is None
+                else get_relative_deviation(eap_extrapolated_total, org_volume.total)
+            ),
+            "generic_metrics_total": None if legacy_volume is None else legacy_volume.total,
+            "generic_metrics_indexed": None if legacy_volume is None else legacy_volume.indexed,
+            "generic_metrics_effective_sample_rate": get_effective_sample_rate(legacy_volume),
             "relative_deviation": (
                 None
                 if calculated_factor is None
                 else get_relative_deviation(cached_factor, calculated_factor)
             ),
-            "is_equal": calculated_factor is not None
+            "is_equal": outcome == "equal",
+            "comparison_outcome": outcome,
+            "eap_factor_same_seed": eap_factor_same_seed,
+            "generic_metrics_factor_same_seed": generic_metrics_factor_same_seed,
+            "same_seed_relative_deviation": (
+                None
+                if eap_factor_same_seed is None
+                else get_relative_deviation(generic_metrics_factor_same_seed, eap_factor_same_seed)
+            ),
+            "same_seed_is_equal": eap_factor_same_seed is not None
             and is_within_relative_tolerance(
-                cached_factor,
-                calculated_factor,
+                generic_metrics_factor_same_seed,
+                eap_factor_same_seed,
                 RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE,
             ),
         },

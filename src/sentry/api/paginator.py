@@ -308,7 +308,13 @@ class OffsetPaginator(PaginatorLike):
         else:
             hits = None
 
-        return CursorResult(results=results, next=next_cursor, prev=prev_cursor, hits=hits)
+        return CursorResult(
+            results=results,
+            next=next_cursor,
+            prev=prev_cursor,
+            hits=hits,
+            max_hits=max_hits if count_hits else None,
+        )
 
     def count_hits(self, max_hits: int) -> int:
         return count_hits(self.queryset, max_hits)
@@ -530,6 +536,9 @@ class GenericOffsetPaginator:
     def get_result(self, limit, cursor=None):
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
         # Request 1 more than limit so we can tell if there is another page
         data = self.data_fn(offset=offset, limit=limit + 1)
 

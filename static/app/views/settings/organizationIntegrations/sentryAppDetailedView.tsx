@@ -21,6 +21,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryAppInstallation} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
@@ -74,17 +75,16 @@ export default function SentryAppDetailedView() {
     data: featureData = [],
     isPending: isFeatureDataPending,
     isError: isFeatureDataError,
-  } = useApiQuery<IntegrationFeature[]>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
+  } = useQuery({
+    ...apiOptions.as<IntegrationFeature[]>()(
+      '/sentry-apps/$sentryAppIdOrSlug/features/',
+      {
         path: {sentryAppIdOrSlug: integrationSlug},
-      }),
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
 
   const {
     data: appInstalls = [],

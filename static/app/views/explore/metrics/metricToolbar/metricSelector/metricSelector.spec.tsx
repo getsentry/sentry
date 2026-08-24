@@ -1,3 +1,4 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {
   createTraceMetricFixtures,
   initializeTraceMetricsTest,
@@ -122,6 +123,39 @@ describe('MetricSelector', () => {
       });
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    });
+
+    it('renders the dropdown below sticky headers', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+
+      const positionWrapper = (await screen.findByRole('listbox')).closest(
+        '[style*="z-index"]'
+      );
+      expect(positionWrapper).toHaveStyle({zIndex: ThemeFixture().zIndex.dropdown});
+    });
+
+    it('renders a portaled dropdown above the widget builder', async () => {
+      render(
+        <MetricSelector
+          usePortal
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+
+      const positionWrapper = (await screen.findByRole('listbox')).closest(
+        '[style*="z-index"]'
+      );
+      expect(positionWrapper).toHaveStyle({
+        zIndex: ThemeFixture().zIndex.widgetBuilderDrawer + 1,
+      });
     });
 
     it('opens dropdown when trigger receives ArrowDown', async () => {

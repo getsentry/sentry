@@ -20,11 +20,11 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -105,6 +105,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
     normalizeUserField(user.email) ||
     normalizeUserField(user.username) ||
     normalizeUserField(user.ip_address) ||
+    normalizeUserField(user.id) ||
     null
   );
 }
@@ -156,16 +157,22 @@ export function ConversationsTable() {
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
-  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize<
-    GridColumnOrder<ColumnKey>
-  >({
-    columns: () =>
-      COLUMN_ORDER.map(key => ({
-        key,
-        name: COLUMN_DEFAULTS[key].name,
-        width: COLUMN_DEFAULTS[key].width,
-      })),
-  });
+  const [columnOrder, setColumnOrder] = useState<Array<GridColumnOrder<ColumnKey>>>(() =>
+    COLUMN_ORDER.map(key => ({
+      key,
+      name: COLUMN_DEFAULTS[key].name,
+      width: COLUMN_DEFAULTS[key].width,
+    }))
+  );
+
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+      setColumnOrder(current =>
+        current.map((column, index) => (index === columnIndex ? nextColumn : column))
+      );
+    },
+    []
+  );
 
   const hasNoTools = useMemo(
     () =>
@@ -187,8 +194,24 @@ export function ConversationsTable() {
   };
 
   const handleRowClick = useCallback(
-    (dataRow: Conversation) => {
-      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
+    (dataRow: Conversation, _key: number, event: React.MouseEvent) => {
+      const url = getConversationDetailUrl(
+        organization.slug,
+        dataRow,
+        selection.projects
+      );
+      // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
+      // opens a new tab (no features string) and Shift+click opens a new window
+      // (a features string makes browsers open a window rather than a tab).
+      if (event.shiftKey) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (isCtrlKeyPressed(event)) {
+        window.open(url, '_blank');
+        return;
+      }
+      navigate(url);
     },
     [navigate, organization.slug, selection.projects]
   );

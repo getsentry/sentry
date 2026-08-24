@@ -91,7 +91,7 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         # This represents the fetched tag values given the provided key
         # so eg. if the key is 'environment' and the tag_value is 'production'
-        tag_values = (
+        tag_values = tuple(
             v.lower()
             for k, v in raw_tags
             if k.lower() == key or tagstore.backend.get_standardized_key(k) == key

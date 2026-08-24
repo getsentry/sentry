@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 

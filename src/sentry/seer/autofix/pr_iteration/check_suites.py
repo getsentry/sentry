@@ -31,7 +31,7 @@ from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER, REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
@@ -39,7 +39,10 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_GITHUB_PROVIDER = "integrations:github"
+# PR iteration is github.com only; GitHub Enterprise is deliberately excluded.
+# See ``PR_ITERATION_PROVIDER``. Every repo lookup below filters on this, so a GHE
+# repo never resolves to an Autofix run here.
+SEER_GITHUB_PROVIDER = PR_ITERATION_PROVIDER
 
 # SeerRun.extras keys for the green check-suite side effects (undraft +
 # review-request). Owned here so bootstrap can short-circuit on DB markers
@@ -64,8 +67,26 @@ class GithubCheckSuiteApp(BaseModel):
         extra = "allow"
 
 
+class GithubCheckSuitePullRequestRepository(BaseModel):
+    id: int | None = None
+
+    class Config:
+        extra = "allow"
+
+
+class GithubCheckSuitePullRequestBase(BaseModel):
+    repo: GithubCheckSuitePullRequestRepository | None = None
+
+    class Config:
+        extra = "allow"
+
+
 class GithubCheckSuitePullRequest(BaseModel):
     id: int
+    # Optional so feedback serialized before this field existed still parses. Such
+    # an entry is skipped, which strands nothing: `extra = "allow"` round-tripped
+    # `base` through the model that predates the field, so it parses back in here.
+    base: GithubCheckSuitePullRequestBase | None = None
 
     class Config:
         extra = "allow"
@@ -191,14 +212,38 @@ def resolve_check_suite_autofix_run(
     match, logs a warning and returns the first. Callers that already resolved
     (or filtered) the candidate repos can pass ``repositories`` to restrict the
     search.
+
+    GitHub matches a PR to a suite on ``head_sha`` + ``head_branch``, so an entry
+    whose ``base.repo`` is not this suite's repo is a PR with its *head* here and
+    its base elsewhere — a fork syncing from upstream, say. Autofix opens both
+    sides of a PR in one repo, so such an entry can never be one of its own, and
+    resolving it would bind the suite to whatever run owns that foreign PR:
+    ``repository`` below is this suite's repo, not the entry's, and the first
+    match wins. Skipping them keeps the own-repo entry from being shadowed.
+
+    An entry with no ``base.repo`` is skipped on the same rule. A global ``pr.id``
+    could place it, but GitHub always sends ``base.repo``, so such an entry is not
+    a payload this path receives — and resolving one anyway would re-admit, for the
+    entry we cannot place, exactly the shadowing above.
     """
+    # `sentry.integrations.github` registers rule actions at import time, and this
+    # module loads while the SCM stream listeners initialize in AppConfig.ready,
+    # before options init. Deferred like `make_scm` in `confirm_green_check_suite`.
+    from sentry.integrations.github.check_payloads import is_own_repo_pull_request
+
     repos = (
         list(repositories) if repositories is not None else resolve_check_suite_repositories(event)
     )
     if not repos:
         return None
 
-    pull_requests = event.check_suite.pull_requests
+    pull_requests = []
+    for pr in event.check_suite.pull_requests:
+        base_repo_id = pr.base.repo.id if pr.base and pr.base.repo else None
+        if not is_own_repo_pull_request(base_repo_id, event.repository.id):
+            metrics.incr("autofix.pr_iteration.check_suite.foreign_pull_request")
+            continue
+        pull_requests.append(pr)
     if not pull_requests:
         return None
 

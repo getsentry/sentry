@@ -7,6 +7,7 @@ from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db import router
 from django.db.models import F
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from sentry.analytics.events.weekly_report import WeeklyReportSent
@@ -2052,3 +2053,21 @@ class WeeklyReportsTest(
 
     def test_project_breakdown_equals_covers_project_limit(self):
         assert len(project_breakdown_colors) == TOP_SPANS_LIMIT
+
+    @with_feature("organizations:weekly-report-past-issues")
+    def test_resolution_url_is_rendered_as_label_link(self) -> None:
+        resolution_url = "https://github.com/getsentry/sentry/pull/5131"
+        ctx = OrganizationReportContext(timezone.now().timestamp(), ONE_DAY * 7, self.organization)
+        ctx.projects_context_map = {self.project.id: ProjectContext(self.project)}
+        ctx.project_ownership[self.user.id] = {self.project.id}
+        ctx.projects_context_map[self.project.id].past_resolved_issues = [
+            (self.group, 1, "Resolved by Seer Fix", resolution_url)
+        ]
+
+        context = render_template_context(ctx, self.user.id)
+
+        assert context is not None
+        assert context["past_issues"][0]["resolution_url"] == resolution_url
+        html = render_to_string("sentry/emails/reports/body.html", context)
+        assert f'href="{resolution_url}"' in html
+        assert "Resolved by Seer Fix" in html
