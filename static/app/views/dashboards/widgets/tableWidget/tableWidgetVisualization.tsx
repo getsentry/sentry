@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -187,6 +188,10 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     };
   };
 
+  const scrollStyles: CSSProperties = {
+    overflowY: scrollable ? 'auto' : 'hidden',
+  };
+
   const {data, meta} = tableData;
   const locationSort = decodeSorts(location?.query?.sort)[0];
   const numColumns = columns?.length ?? Object.keys(meta.fields).length;
@@ -354,11 +359,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         },
       }}
       stickyHeader={scrollable}
-      height={scrollable ? '100%' : undefined}
-      // GridEditable scrollable prop has conflicting styles with frameless tables, so we override scrolling here
-      bodyStyle={
-        frameless ? {...FRAMELESS_STYLES, overflowY: scrollable ? 'auto' : 'hidden'} : {}
-      }
+      // GridEditable scrollable prop has conflicting styles with widget tables, so we override scrolling here
+      bodyStyle={frameless ? {...FRAMELESS_STYLES, ...scrollStyles} : scrollStyles}
       resizable={resizable}
     />
   );
