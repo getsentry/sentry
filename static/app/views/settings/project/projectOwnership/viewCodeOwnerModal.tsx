@@ -48,7 +48,7 @@ export function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModal
 }
 
 export const modalCss = (theme: Theme) => css`
-  @container (min-width: ${theme.container.xl}) {
+  @media (min-width: ${theme.breakpoints.sm}) {
     width: 80%;
   }
   [role='document'] {
