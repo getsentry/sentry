@@ -138,12 +138,12 @@ def select_verdict(
       ``NEEDS_JUDGE``.
 
     The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
-    to the PR branch after it opened. Those rows are only written under
-    ``pr-metrics-activity``, which is flagged independently of emission; without it
-    a clean merge is indistinguishable from one with later commits, so we defer
-    every outcome (``INDETERMINATE``) rather than read its absence as "no later
-    commits". A missing ``PullRequestMetrics`` row is an error state —
-    ``handle_metrics`` persists it before emission under the same flag, so its
+    to the PR branch after it opened. Those rows are only written while
+    ``pr-metrics`` is on; without it a clean merge is indistinguishable from one
+    with later commits, so we defer every outcome (``INDETERMINATE``) rather than
+    read its absence as "no later commits". A missing ``PullRequestMetrics`` row is
+    an error state — ``handle_metrics`` persists it before emission under the same
+    flag, so its
     absence means it failed — and we defer (``INDETERMINATE``) for both outcomes
     rather than emit zeroed counters (merge) or guess abandoned (close).
     """
@@ -575,7 +575,7 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
 
 def _emitting_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
     """The subset that would actually emit: a valid attribution *and* the row's org
-    with ``pr-metrics-emit`` on — the two gates every emission path applies.
+    with ``pr-metrics`` on — the two gates every emission path applies.
 
     Canonical selection runs over these so a row that can't emit — untracked (e.g. a
     run-less MCP PR whose attribution feature is on in only one org), or emit-gated
@@ -598,7 +598,7 @@ def _emitting_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
         pr
         for pr in tracked
         if (org := orgs.get(pr.organization_id)) is not None
-        and features.has("organizations:pr-metrics-emit", org)
+        and features.has("organizations:pr-metrics", org)
     ]
 
 
@@ -990,7 +990,7 @@ def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
     - ``opened_and_closed_by_same_actor``: whether the opener and closer logins
       match, or ``None`` when either is unknown.
 
-    All are only meaningful under ``pr-metrics-activity`` (no activity rows → the
+    All are only meaningful under ``pr-metrics`` (no activity rows → the
     counts are 0 and the bool signals ``None``).
     """
     doc = load_activity_document(pull_request)

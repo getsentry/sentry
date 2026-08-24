@@ -175,7 +175,6 @@ def _doc_suite(
 @with_feature(
     [
         "organizations:pr-metrics",
-        "organizations:pr-metrics-activity",
         "organizations:gen-ai-features",
     ]
 )
@@ -354,7 +353,7 @@ class PrMetricsEmissionTest(TestCase):
         # recording, so an otherwise-clean merge can't be settled deterministically
         # — and isn't a genuine needs-judge ambiguity either, since there's no
         # activity data at all to have found ambiguous.
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             with patch("sentry.pr_metrics.emit.metrics") as mock_metrics:
                 assert (
                     select_verdict(self.pull_request, self.organization)
@@ -1696,9 +1695,7 @@ EXTERNAL_ID = "556677"
 @with_feature(
     [
         "organizations:pr-metrics",
-        "organizations:pr-metrics-activity",
         "organizations:gen-ai-features",
-        "organizations:pr-metrics-emit",
     ]
 )
 class MultiOrgEmissionDedupeTest(TestCase):
@@ -1832,7 +1829,7 @@ class MultiOrgEmissionDedupeTest(TestCase):
         with patch(
             "sentry.pr_metrics.emit.features.has",
             side_effect=lambda name, org, **kw: not (
-                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
+                name == "organizations:pr-metrics" and org.id == self.organization.id
             ),
         ):
             assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
@@ -1846,7 +1843,7 @@ class MultiOrgEmissionDedupeTest(TestCase):
         with patch(
             "sentry.pr_metrics.emit.features.has",
             side_effect=lambda name, org, **kw: not (
-                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
+                name == "organizations:pr-metrics" and org.id == self.organization.id
             ),
         ):
             assert emit_pr_metrics_row(pull_request=self.pull_request) is False
@@ -1857,7 +1854,6 @@ class MultiOrgEmissionDedupeTest(TestCase):
 @with_feature(
     [
         "organizations:pr-metrics",
-        "organizations:pr-metrics-activity",
         "organizations:gen-ai-features",
     ]
 )

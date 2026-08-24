@@ -25,7 +25,6 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import SentryAppSignalDetails, record_attribution_signal
-from sentry.pr_metrics.gating import is_pr_metrics_enabled
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.milestones import reconcile_pull_requests_merged_milestone
 from sentry.seer.models.run import SeerRunPullRequest
@@ -147,10 +146,7 @@ def _record_pr_attribution(
     ``attribute_seer_created_pull_requests``; ``record_attribution_signal`` merges
     the two writes rather than one clobbering the other.
     """
-    if not is_pr_metrics_enabled(org):
-        return
-
-    if not features.has("organizations:pr-metrics-attribution", org):
+    if not features.has("organizations:pr-metrics", org):
         return
 
     number = pull_request.get("number")
