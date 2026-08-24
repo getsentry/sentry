@@ -4,7 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconCode} from 'sentry/icons';
+import {IconChevron, IconCode} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
 import {ChangedFileRow, type FileChangeTag} from './changedFileRow';
@@ -108,11 +108,12 @@ function RepoGroup({
         );
       })}
       {hiddenCount > 0 ? (
-        <Flex justify="center" borderTop="primary" padding="xs">
+        <Flex justify="center" borderTop="primary" background="primary" padding="xs">
           <Button
-            size="sm"
+            size="xs"
             variant="transparent"
             aria-expanded={showAll}
+            icon={<IconChevron isDouble direction={showAll ? 'up' : 'down'} />}
             onClick={toggleShowAll}
           >
             <Text size="sm" variant="muted">
