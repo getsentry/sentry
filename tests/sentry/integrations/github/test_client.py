@@ -258,6 +258,9 @@ class GitHubApiClientTest(TestCase):
                 "check_rate_limit",
                 return_value=RateLimitCheck(is_limited=False, local_used=1),
             ),
+            mock.patch.object(
+                DynamicRateLimiter, "record_completed_request"
+            ) as mock_record_completed,
             mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
             mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
         ):
@@ -268,8 +271,10 @@ class GitHubApiClientTest(TestCase):
             consumed=1234,
             next_window_start=1372700873,
             local_used=1,
+            referrer="shared",
             resource="core",
         )
+        mock_record_completed.assert_called_once_with("shared", "core", 1372700873)
 
     @responses.activate
     def test_capacity_is_still_recorded_without_window_headers(self) -> None:

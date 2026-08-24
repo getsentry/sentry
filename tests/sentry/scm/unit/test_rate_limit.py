@@ -29,6 +29,7 @@ class MockRateLimitProvider:
         self.set_kvs: dict = {}
         self.state_calls: list[tuple[str, str]] = []
         self.incr_calls: list[tuple[str, str, int]] = []
+        self.completed_calls: list[tuple[str, int]] = []
         self.window_writes: list[tuple[str, WindowState, int]] = []
 
     def get_rate_limit_state(self, total_key, window_key):
@@ -41,6 +42,9 @@ class MockRateLimitProvider:
 
     def set_window_state(self, window_key, state, expiration):
         self.window_writes.append((window_key, state, expiration))
+
+    def incr_completed_usage(self, usage_key, expiration):
+        self.completed_calls.append((usage_key, expiration))
 
     def get_accounted_usage(self, keys):
         self.accounted_keys.extend(keys)
@@ -94,6 +98,7 @@ class StatefulRateLimitProvider:
         self.capacities: dict[str, int] = {}
         self.usage: dict[str, tuple[int, int]] = {}
         self.total_usage: dict[str, int] = {}
+        self.completed_usage: dict[str, tuple[int, int]] = {}
         self.windows: dict[str, tuple[WindowState, int]] = {}
 
     def _live(self, expires_at: int) -> bool:
@@ -118,12 +123,22 @@ class StatefulRateLimitProvider:
     def set_window_state(self, window_key, state, expiration):
         self.windows[window_key] = (state, self.now() + expiration)
 
+    def incr_completed_usage(self, usage_key, expiration):
+        count, expires_at = self.completed_usage.get(usage_key, (0, 0))
+        if not self._live(expires_at):
+            count = 0
+        self.completed_usage[usage_key] = (count + 1, self.now() + expiration)
+
     def get_accounted_usage(self, keys):
-        return sum(
-            count
-            for count, expires_at in (self.usage.get(key, (0, 0)) for key in keys)
-            if self._live(expires_at)
-        )
+        total = 0
+        for key in keys:
+            if key in self.total_usage:
+                total += self.total_usage[key]
+                continue
+            count, expires_at = self.completed_usage.get(key, self.usage.get(key, (0, 0)))
+            if self._live(expires_at):
+                total += count
+        return total
 
     def set_key_values(self, kvs):
         for key, (value, _) in kvs.items():
@@ -407,45 +422,57 @@ class TestReportedUsageReconciliation:
         limiter, _ = make_limiter(
             capacity=100,
             usage=1,
-            window=WindowState(used=60, reset=4000),
-            accounted_usage=60,
+            window=WindowState(used=60, reset=4000, reserved_used=60),
             referrer_allocation={"my_referrer": 0.5},
         )
         assert limiter.is_rate_limited("shared", "default") is False
 
-    def test_reserved_usage_is_read_for_the_current_window(self) -> None:
-        limiter, provider = make_limiter(
+    def test_reserved_in_flight_usage_is_not_deducted_from_the_report(self) -> None:
+        limiter, _ = make_limiter(
             capacity=100,
-            usage=1,
-            window=WindowState(used=10, reset=4000),
+            usage=31,
+            total_usage=31,
+            window=WindowState(used=60, reset=4000, local_used=30, reserved_used=0),
             referrer_allocation={"my_referrer": 0.5},
         )
-        limiter.is_rate_limited("shared", "default")
-        assert provider.accounted_keys == ["rl:scm:github:1:default:my_referrer:4000"]
+        assert limiter.is_rate_limited("shared", "default") is True
 
-    def test_reserved_usage_is_read_for_the_current_resource(self) -> None:
+    def test_completed_reserved_usage_is_recorded_for_the_provider_window(self) -> None:
         limiter, provider = make_limiter(
-            capacity=100,
-            usage=1,
-            window=WindowState(used=10, reset=4000),
+            get_time_in_seconds=lambda: 3900,
             referrer_allocation={"my_referrer": 0.5},
         )
-        limiter.is_rate_limited("shared", "search")
-        assert provider.accounted_keys == ["rl:scm:github:1:search:my_referrer:4000"]
+        limiter.record_completed_request("my_referrer", "default", 4000)
+        assert provider.completed_calls == [
+            ("completed:scm:github:1:default:my_referrer:4000", 100)
+        ]
 
-    def test_indeterminate_reserved_usage_deducts_nothing(self) -> None:
+    def test_completed_reserved_usage_is_scoped_to_the_resource(self) -> None:
+        limiter, provider = make_limiter(
+            get_time_in_seconds=lambda: 3900,
+            referrer_allocation={"my_referrer": 0.5},
+        )
+        limiter.record_completed_request("my_referrer", "search", 4000)
+        assert provider.completed_calls == [("completed:scm:github:1:search:my_referrer:4000", 100)]
+
+    def test_indeterminate_completed_usage_snapshots_zero(self) -> None:
         """
         If reserved usage cannot be read, nothing is deducted from the report. That overstates the
         shared pool's usage, which is the conservative direction.
         """
-        limiter, _ = make_limiter(
-            capacity=100,
-            usage=1,
-            window=WindowState(used=60, reset=4000),
+        limiter, provider = make_limiter(
             accounted_usage_error=IndeterminateResult(),
+            get_time_in_seconds=lambda: 1000,
             referrer_allocation={"my_referrer": 0.5},
         )
-        assert limiter.is_rate_limited("shared", "default") is True
+        limiter.set_window_state(consumed=60, next_window_start=1600, resource="default")
+        assert provider.window_writes == [
+            (
+                "window:scm:github:1:default",
+                WindowState(used=60, reset=1600, reserved_used=0),
+                600,
+            )
+        ]
 
     def test_no_reserved_referrers_means_no_extra_reads(self) -> None:
         limiter, provider = make_limiter(
@@ -642,11 +669,14 @@ class TestUpdateRateLimitMeta:
 
 class TestWindowStateCodec:
     def test_round_trips(self) -> None:
-        state = WindowState(used=42, reset=1600, local_used=37)
+        state = WindowState(used=42, reset=1600, local_used=37, reserved_used=5)
         assert decode_window_state(encode_window_state(state)) == state
 
     def test_decodes_legacy_state_without_local_usage(self) -> None:
         assert decode_window_state("42:1600") == WindowState(used=42, reset=1600)
+
+    def test_decodes_state_without_reserved_usage(self) -> None:
+        assert decode_window_state("42:1600:37") == WindowState(used=42, reset=1600, local_used=37)
 
     def test_decodes_none(self) -> None:
         assert decode_window_state(None) is None
@@ -784,6 +814,7 @@ class TestReservedReferrerScenario:
 
         for _ in range(60):
             limiter.is_rate_limited("emerge", "core")
+            limiter.record_completed_request("emerge", "core", 1500)
 
         # GitHub's report includes emerge's 60 requests; shared must not be charged for them.
         clock["now"] = 1100
@@ -791,6 +822,30 @@ class TestReservedReferrerScenario:
             capacity=100, consumed=60, next_window_start=1500, resource="core"
         )
         assert limiter.is_rate_limited("shared", "core") is False
+
+    def test_reserved_response_snapshots_shared_and_completed_usage(self) -> None:
+        clock = {"now": 1000}
+        limiter, provider = make_stateful_limiter(
+            now=lambda: clock["now"], referrer_allocation={"emerge": 0.5}
+        )
+        limiter.set_total_capacity(100, resource="core")
+
+        for _ in range(30):
+            limiter.is_rate_limited("shared", "core")
+        check = limiter.check_rate_limit("emerge", "core")
+        limiter.record_completed_request("emerge", "core", 1500)
+        limiter.update_rate_limit_meta(
+            capacity=100,
+            consumed=31,
+            next_window_start=1500,
+            resource="core",
+            local_used=check.local_used,
+            referrer="emerge",
+        )
+
+        state, _ = provider.windows["window:scm:github:1:core"]
+        assert state.local_used == 30
+        assert state.reserved_used == 1
 
     def test_stale_reserved_usage_is_not_deducted_after_rollover(self) -> None:
         clock = {"now": 1000}
@@ -803,6 +858,7 @@ class TestReservedReferrerScenario:
 
         for _ in range(60):
             limiter.is_rate_limited("emerge", "core")
+            limiter.record_completed_request("emerge", "core", 1500)
 
         # The window rolls over; the fresh report's usage belongs entirely to shared callers, so
         # emerge's previous-window consumption must not be deducted from it.

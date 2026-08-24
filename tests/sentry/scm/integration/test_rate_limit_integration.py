@@ -3,6 +3,7 @@ from django.conf import settings
 from sentry.scm.private.rate_limit import (
     RedisRateLimitProvider,
     WindowState,
+    completed_usage_key,
     total_limit_key,
     total_usage_key,
     usage_count_key,
@@ -84,9 +85,11 @@ class TestRedisRateLimitProviderSetWindowState(TestCase):
 
     def test_writes_window_state_with_ttl(self) -> None:
         self.provider.set_window_state(
-            self.window_key, WindowState(used=42, reset=1600, local_used=37), 600
+            self.window_key,
+            WindowState(used=42, reset=1600, local_used=37, reserved_used=5),
+            600,
         )
-        assert _client().get(self.window_key) == "42:1600:37"
+        assert _client().get(self.window_key) == "42:1600:37:5"
         assert 0 < _client().ttl(self.window_key) <= 600
 
     def test_overwrites_existing_window_state(self) -> None:
@@ -108,6 +111,22 @@ class TestRedisRateLimitProviderSetWindowState(TestCase):
         self.provider.set_window_state(self.window_key, WindowState(used=1, reset=5200), 600)
         self.provider.set_window_state(self.window_key, WindowState(used=99, reset=1600), 600)
         assert _client().get(self.window_key) == "1:5200"
+
+
+class TestRedisRateLimitProviderIncrCompletedUsage(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = RedisRateLimitProvider()
+        self.usage_key = completed_usage_key(
+            "github", self.organization.id, 1600, "emerge", "default"
+        )
+        _client().delete(self.usage_key)
+
+    def test_increments_completed_usage_with_ttl(self) -> None:
+        self.provider.incr_completed_usage(self.usage_key, expiration=60)
+        self.provider.incr_completed_usage(self.usage_key, expiration=60)
+        assert _client().get(self.usage_key) == "2"
+        assert 0 < _client().ttl(self.usage_key) <= 60
 
 
 class TestWindowStateExpiresWithTheProviderWindow(TestCase):

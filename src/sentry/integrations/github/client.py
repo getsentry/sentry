@@ -1483,13 +1483,12 @@ class GitHubApiClient(GitHubBaseClient):
         # Quota is metered per resource on GitHub's side, so the counter we consult and the
         # capacity we record must both be scoped to the resource this request belongs to.
         resource = resolve_rate_limit_resource(path)
+        referrer = self.__rate_limiter.normalize_referrer(self.__referrer)
 
         is_rate_limited = False
         local_used: int | None = None
         try:
-            rate_limit_check = self.__rate_limiter.check_rate_limit(
-                self.__referrer, resource=resource
-            )
+            rate_limit_check = self.__rate_limiter.check_rate_limit(referrer, resource=resource)
             local_used = rate_limit_check.local_used
             if rate_limit_check.is_limited:
                 # For now do nothing. We'll eventually use this once we understand its behavior better.
@@ -1507,6 +1506,9 @@ class GitHubApiClient(GitHubBaseClient):
             used = _header_int(response, GITHUB_RATE_LIMIT_USED)
             reset = _header_int(response, GITHUB_RATE_LIMIT_RESET)
 
+            if reset is not None:
+                self.__rate_limiter.record_completed_request(referrer, resource, reset)
+
             if capacity is None:
                 # GitHub didn't return rate-limit headers for some unknown reason.
                 metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
@@ -1521,6 +1523,7 @@ class GitHubApiClient(GitHubBaseClient):
                     consumed=used,
                     next_window_start=reset,
                     local_used=local_used,
+                    referrer=referrer,
                     resource=resource,
                 )
         except Exception as e:
