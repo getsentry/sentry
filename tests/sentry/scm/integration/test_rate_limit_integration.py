@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.conf import settings
 
 from sentry.scm.private.rate_limit import (
@@ -111,6 +113,23 @@ class TestRedisRateLimitProviderSetWindowState(TestCase):
         self.provider.set_window_state(self.window_key, WindowState(used=1, reset=5200), 600)
         self.provider.set_window_state(self.window_key, WindowState(used=99, reset=1600), 600)
         assert _client().get(self.window_key) == "1:5200"
+
+    def test_unparseable_existing_state_is_overwritten(self) -> None:
+        _client().set(self.window_key, "garbage")
+        self.provider.set_window_state(self.window_key, WindowState(used=1, reset=1600), 600)
+        assert _client().get(self.window_key) == "1:1600"
+
+    def test_write_failures_are_contained(self) -> None:
+        """
+        Cluster clients raise exceptions that are not `RedisError` subclasses. A failed write must
+        never escape into the request path.
+        """
+        with mock.patch(
+            "sentry.scm.private.rate_limit.set_window_state_script",
+            side_effect=Exception("cluster says no"),
+        ):
+            self.provider.set_window_state(self.window_key, WindowState(used=1, reset=1600), 600)
+        assert _client().get(self.window_key) is None
 
 
 class TestRedisRateLimitProviderIncrCompletedUsage(TestCase):

@@ -1,10 +1,9 @@
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol, cast
+from typing import Protocol
 
 from django.conf import settings
 from redis import RedisError
-from redis.exceptions import WatchError
 
 from sentry.utils import redis
 
@@ -14,7 +13,11 @@ from sentry.utils import redis
 # pin a counter in place for an unbounded stretch nor derive a counter's identity from the
 # current instant.
 MAX_WINDOW_TTL_MULTIPLIER = 2
-WINDOW_STATE_UPDATE_RETRIES = 3
+
+# Compare-and-set for the window state key. Implemented as a Lua script because the cluster
+# clients used in production do not support WATCH/MULTI pipelines, and any exception those
+# pipelines raise is not a `RedisError`.
+set_window_state_script = redis.load_redis_script("scm/set_window_state.lua")
 
 
 def usage_count_key(
@@ -504,28 +507,17 @@ class RedisRateLimitProvider:
 
     def set_window_state(self, window_key: str, state: WindowState, expiration: int) -> None:
         """Record the service-provider's reported window state."""
-        for _ in range(WINDOW_STATE_UPDATE_RETRIES):
-            try:
-                with self.cluster.pipeline() as pipe:
-                    pipe.watch(window_key)
-                    current = decode_window_state(cast(str | None, pipe.get(window_key)))
-                    if current is not None and (
-                        current.reset > state.reset
-                        or (current.reset == state.reset and current.used >= state.used)
-                    ):
-                        return None
-
-                    pipe.multi()
-                    pipe.set(window_key, encode_window_state(state), ex=expiration)
-                    pipe.execute()
-                    return None
-            except WatchError:
-                continue
-            except RedisError:
-                # The window state is refreshed by every response, so a dropped write costs us one
-                # request's worth of accuracy.
-                return None
-        return None
+        try:
+            set_window_state_script(
+                [window_key],
+                [state.used, state.reset, encode_window_state(state), expiration],
+                self.cluster,
+            )
+        except Exception:
+            # The window state is refreshed by every response, so a dropped write costs us one
+            # request's worth of accuracy. Cluster clients raise exceptions that are not
+            # `RedisError` subclasses, so contain everything.
+            return None
 
     def incr_completed_usage(self, usage_key: str, expiration: int | None) -> None:
         """Increment a completed-request counter."""
