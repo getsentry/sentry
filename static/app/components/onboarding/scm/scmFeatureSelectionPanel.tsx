@@ -1,8 +1,8 @@
-import {Fragment, type ReactNode, useCallback, useMemo} from 'react';
+import {type ReactNode, useCallback, useMemo} from 'react';
 import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -19,6 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
+import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmFeatureInfoCards} from './scmFeatureInfoCards';
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
 import {
@@ -40,9 +41,7 @@ interface ScmFeatureSelectionPanelProps {
   selectedFeatures: ProductSolution[] | undefined;
   selectedPlatform: OnboardingSelectedSDK | undefined;
   selectedRepository: Repository | undefined;
-  // Optional element rendered as a sibling after the panel content (e.g. a
-  // divider from the host). Dropped together with the panel when there is
-  // nothing to show, so the host never strands an orphaned divider.
+  // Kept inside the reveal so hosts do not strand a divider when the panel closes.
   trailing?: ReactNode;
 }
 
@@ -50,10 +49,12 @@ interface ScmFeatureSelectionPanelProps {
  * Feature selection for the resolved platform, rendered as a sibling of
  * `ScmPlatformFeaturesCore`. Toggleable cards for platforms whose products are
  * user-configurable, informational cards for wizard-driven platforms, and
- * nothing when the platform has no product info. The resolved platform is the
+ * nothing when a resolved platform has no product info. The resolved platform is the
  * host's explicit selection or, before that commits, the first auto-detected
  * platform — re-derived here from the same (deduped) detection query Core uses.
- * Owns the feature-toggled analytic; renders nothing for an unresolved platform.
+ * Owns the feature-toggled analytic. In project creation, an unresolved platform
+ * keeps the section visible with the select-a-platform prompt; onboarding hides it
+ * until resolution.
  */
 export function ScmFeatureSelectionPanel({
   analyticsFlow,
@@ -168,81 +169,90 @@ export function ScmFeatureSelectionPanel({
     ]
   );
 
-  // Hide the whole section when a resolved platform has no configurable
-  // products. Before a platform is chosen (no resolved key), keep it visible in
-  // project creation for the select-a-platform prompt; onboarding hides both.
-  if (featureMode === 'none' && (isOnboarding || !!currentPlatformKey)) {
-    return null;
+  const hasFeatureCards = featureMode !== 'none';
+
+  let featureCards: ReactNode = null;
+  if (featureMode === 'toggleable') {
+    featureCards = (
+      <ScmFeatureSelectionCards
+        availableFeatures={availableFeatures}
+        selectedFeatures={currentFeatures}
+        disabledProducts={disabledProducts}
+        onToggleFeature={handleToggleFeature}
+        featureMeta={featureMeta}
+        isVolumeLoading={isFeatureMetaLoading}
+        isOnboarding={isOnboarding}
+      />
+    );
+  } else if (featureMode === 'informational') {
+    featureCards = (
+      <ScmFeatureInfoCards
+        availableFeatures={availableFeatures}
+        disabledProducts={disabledProducts}
+        featureMeta={featureMeta}
+        platformName={currentPlatformName}
+        isVolumeLoading={isFeatureMetaLoading}
+        isOnboarding={isOnboarding}
+      />
+    );
   }
 
+  // Project creation keeps the section open for the select-a-platform prompt.
+  const showSection = hasFeatureCards || (!isOnboarding && !currentPlatformKey);
+
   return (
-    <Fragment>
-      <MotionStack layout="position" width="100%">
-        <Stack
-          gap={isOnboarding ? '2xl' : 'lg'}
-          paddingTop={isOnboarding ? 'xs' : undefined}
-        >
-          {isOnboarding ? (
-            <Flex
-              padding="lg"
-              background="secondary"
-              border="secondary"
-              radius="md"
-              gap="lg"
-            >
-              <IconBusiness size="lg" variant="accent" />
-              <Text size="md" density="comfortable">
-                {tct(
-                  'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
-                  {
-                    bold: (
-                      <Text as="span" bold variant="accent">
-                        {null}
-                      </Text>
-                    ),
-                  }
+    <ScmCollapsibleReveal open={showSection}>
+      <Stack gap="0" width="100%">
+        <MotionStack layout="position" width="100%">
+          {/* Padding, unlike a flex gap, is clipped during the card reveal. */}
+          <Stack gap="0" paddingTop={isOnboarding ? 'xs' : undefined}>
+            {isOnboarding ? (
+              <Flex
+                padding="lg"
+                background="secondary"
+                border="secondary"
+                radius="md"
+                gap="lg"
+              >
+                <IconBusiness size="lg" variant="accent" />
+                <Text size="md" density="comfortable">
+                  {tct(
+                    'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                    {
+                      bold: (
+                        <Text as="span" bold variant="accent">
+                          {null}
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Text>
+              </Flex>
+            ) : null}
+
+            {isOnboarding ? null : (
+              <Flex justify="between" align="center" gap="md">
+                <Heading as="h4">{t('Products')}</Heading>
+                {currentPlatformKey ? null : (
+                  <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
+                    <Text ellipsis variant="inherit">
+                      {t('Select a platform to configure products')}
+                    </Text>
+                  </Tag>
                 )}
-              </Text>
-            </Flex>
-          ) : null}
+              </Flex>
+            )}
 
-          {isOnboarding ? null : (
-            <Flex justify="between" align="center" gap="md">
-              <Heading as="h4">{t('Products')}</Heading>
-              {currentPlatformKey ? null : (
-                <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
-                  <Text ellipsis variant="inherit">
-                    {t('Select a platform to configure products')}
-                  </Text>
-                </Tag>
-              )}
-            </Flex>
-          )}
-
-          {featureMode === 'toggleable' ? (
-            <ScmFeatureSelectionCards
-              availableFeatures={availableFeatures}
-              selectedFeatures={currentFeatures}
-              disabledProducts={disabledProducts}
-              onToggleFeature={handleToggleFeature}
-              featureMeta={featureMeta}
-              isVolumeLoading={isFeatureMetaLoading}
-              isOnboarding={isOnboarding}
-            />
-          ) : featureMode === 'informational' ? (
-            <ScmFeatureInfoCards
-              availableFeatures={availableFeatures}
-              disabledProducts={disabledProducts}
-              featureMeta={featureMeta}
-              platformName={currentPlatformName}
-              isVolumeLoading={isFeatureMetaLoading}
-              isOnboarding={isOnboarding}
-            />
-          ) : null}
-        </Stack>
-      </MotionStack>
-      {trailing}
-    </Fragment>
+            <ScmCollapsibleReveal open={hasFeatureCards}>
+              <Container paddingTop={isOnboarding ? '2xl' : 'lg'}>
+                {featureCards}
+              </Container>
+            </ScmCollapsibleReveal>
+          </Stack>
+        </MotionStack>
+        {trailing}
+      </Stack>
+    </ScmCollapsibleReveal>
   );
 }
 

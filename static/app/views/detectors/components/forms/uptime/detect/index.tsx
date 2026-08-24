@@ -11,13 +11,13 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';
 import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
 import {
   UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
   useUptimeDetectorFormField,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
+import {HTTPSnippet} from 'sentry/views/detectors/components/uptime/httpSnippet';
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];

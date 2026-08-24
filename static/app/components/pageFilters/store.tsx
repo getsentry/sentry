@@ -2,13 +2,10 @@ import {createStore} from 'reflux';
 
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
-import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {PageFilters, PinnedPageFilter, PageFilterDatetime} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
-function datetimeHasSameValue(
-  a: PageFilters['datetime'],
-  b: PageFilters['datetime']
-): boolean {
+function datetimeHasSameValue(a: PageFilterDatetime, b: PageFilterDatetime): boolean {
   if (Object.keys(a).length !== Object.keys(b).length) {
     return false;
   }
@@ -65,7 +62,7 @@ interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersSt
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
   reset(selection?: PageFilters): void;
-  updateDateTime(datetime: PageFilters['datetime']): void;
+  updateDateTime(datetime: PageFilterDatetime): void;
   updateEnvironments(environments: string[] | null): void;
   updatePersistence(shouldPersist: boolean): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;

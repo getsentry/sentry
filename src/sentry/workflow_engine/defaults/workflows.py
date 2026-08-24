@@ -2,6 +2,7 @@ from typing import Sequence
 
 from django.db import router, transaction
 
+from sentry import options
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -213,6 +214,9 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
 
 
 def ensure_default_organization_workflows(organization: Organization) -> list[Workflow]:
+    workflows: list[Workflow] = []
+    if not options.get("workflow_engine.auto_creation.pull_request_workflow"):
+        return workflows
     all_projects_detector = ensure_default_all_projects_detector(organization.id)
-    workflows = [ensure_pull_request_workflow(organization, all_projects_detector)]
+    workflows.append(ensure_pull_request_workflow(organization, all_projects_detector))
     return workflows

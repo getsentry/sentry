@@ -883,7 +883,12 @@ def render_template_context(
     def past_issues():
         def all_past_issues():
             for project_ctx in user_projects:
-                for group, count, resolution_label in project_ctx.past_resolved_issues:
+                for (
+                    group,
+                    count,
+                    resolution_label,
+                    resolution_url,
+                ) in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
                     yield {
                         "count": count,
@@ -891,6 +896,7 @@ def render_template_context(
                         "title": display["title"],
                         "message": display["message"],
                         "resolution_label": resolution_label,
+                        "resolution_url": resolution_url,
                         "_relevance": count
                         * (PAST_ISSUES_LINK_BOOST if resolution_label != "Resolved" else 1),
                     }

@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -71,5 +71,78 @@ describe('PermissionsObserver', () => {
     expect(
       screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
     ).not.toBeChecked();
+  });
+
+  it('renders the permissions panel statically by default', () => {
+    render(
+      <PermissionsObserver
+        scopes={[]}
+        events={[]}
+        newApp={false}
+        onScopesChange={noop}
+        onEventsChange={noop}
+      />
+    );
+
+    expect(screen.getByText('Permissions')).toBeInTheDocument();
+    expect(screen.getByText('Webhooks')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Permissions'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Webhooks'})).not.toBeInTheDocument();
+  });
+
+  it('can render the permissions panel collapsed', async () => {
+    render(
+      <PermissionsObserver
+        scopes={['project:read']}
+        events={[]}
+        newApp={false}
+        collapsePermissions
+        onScopesChange={noop}
+        onEventsChange={noop}
+      />
+    );
+
+    expect(screen.queryByRole('textbox', {name: 'Project'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Permissions'}));
+
+    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      errorProps: {permissionErrors: {Project: 'Requires at least read access'}},
+      message: 'Requires at least read access',
+      type: 'resource permission',
+    },
+    {
+      errorProps: {continuousIntegrationError: 'Continuous integration is required'},
+      message: 'Continuous integration is required',
+      type: 'continuous integration',
+    },
+  ])('expands the permissions panel for $type errors', ({errorProps, message}) => {
+    const props: React.ComponentProps<typeof PermissionsObserver> = {
+      scopes: ['project:read'],
+      events: [],
+      newApp: false,
+      collapsePermissions: true,
+      onScopesChange: noop,
+      onEventsChange: noop,
+    };
+    const {rerender} = render(<PermissionsObserver {...props} />);
+
+    expect(screen.getByRole('button', {name: 'Permissions'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+
+    rerender(<PermissionsObserver {...props} {...errorProps} />);
+
+    expect(screen.getByRole('button', {name: 'Permissions'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(message);
   });
 });

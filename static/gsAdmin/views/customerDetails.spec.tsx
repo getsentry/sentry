@@ -1182,11 +1182,13 @@ describe('Customer Details', () => {
       })[0]!
     );
 
+    expect(
+      screen.getByRole('option', {name: /Start Enterprise Trial/})
+    ).toBeInTheDocument();
     expect(screen.getByText(/capped event limits/)).toBeInTheDocument();
-    expect(screen.queryByText(/unlimited events/)).not.toBeInTheDocument();
   });
 
-  it('shows unlimited events help text for paid plan enterprise trial', async () => {
+  it('hides Start Enterprise Trial for paid plans', async () => {
     setUpMocks(organization, {plan: 'am3_business', isFree: false});
 
     render(<CustomerDetails />, {
@@ -1205,8 +1207,9 @@ describe('Customer Details', () => {
       })[0]!
     );
 
-    expect(screen.getByText(/unlimited events/)).toBeInTheDocument();
-    expect(screen.queryByText(/capped event limits/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Start Enterprise Trial/})
+    ).not.toBeInTheDocument();
   });
 
   it('renders and hides generic confirmation modals', async () => {

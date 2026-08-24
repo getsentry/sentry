@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.cache import cache
@@ -18,6 +18,8 @@ from sentry.utils.cursored_scheduler import (
     _get_tick_interval,
 )
 from sentry.utils.redis import redis_clusters
+
+CURSORED_SCHEDULER = "sentry.utils.cursored_scheduler"
 
 TEST_SCHEDULES = {
     "test-scheduler-beat": {
@@ -353,10 +355,33 @@ class CursoredSchedulerTest(TestCase):
 
         assert self.redis_client.exists(self.pk_list_key) == 0
 
-    def test_validate_item_filters_dispatches(self):
-        """When validate_item is provided, only items passing validation are dispatched."""
+    def test_prevalidate_batch_filters_dispatches(self):
+        """When prevalidate_batch is provided, only items it keeps are dispatched."""
         ois = self._create_org_integrations(30)
         # Only dispatch even-indexed PKs
+        even_pks = {oi.pk for oi in ois[::2]}
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            prevalidate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in even_pks],
+        )
+
+        scheduler.tick()
+
+        dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
+        for pk in dispatched_pks:
+            assert pk in even_pks
+
+    def test_validate_item_filters_dispatches(self):
+        """The per-item predicate keeps working alongside prevalidate_batch."""
+        ois = self._create_org_integrations(30)
         even_pks = {oi.pk for oi in ois[::2]}
 
         scheduler = CursoredScheduler(
@@ -374,17 +399,104 @@ class CursoredSchedulerTest(TestCase):
         scheduler.tick()
 
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
+        assert dispatched_pks
         for pk in dispatched_pks:
             assert pk in even_pks
 
-    def test_validate_item_none_dispatches_all(self):
-        """When validate_item is None (default), all items are dispatched."""
+    def test_prevalidate_batch_is_called_in_chunks(self):
+        """The rows are prevalidated a chunk at a time, so a huge queryset stays bounded."""
+        ois = self._create_org_integrations(5)
+        chunk_sizes = []
+
+        def record(rows):
+            chunk_sizes.append(len(rows))
+            return [oi.pk for oi in rows]
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            prevalidate_batch=record,
+        )
+
+        with patch(f"{CURSORED_SCHEDULER}.PREVALIDATE_CHUNK_SIZE", 2):
+            scheduler.tick()
+
+        assert chunk_sizes == [2, 2, 1]
+        snapshot = [int(pk) for pk in self.redis_client.lrange(self.pk_list_key, 0, -1)]
+        assert snapshot == sorted(oi.pk for oi in ois)
+
+    def test_validate_item_only_sees_prevalidated_items(self):
+        """
+        The batch check runs first, so the per-item one only ever sees what the snapshot
+        kept and its cost is paid for as few items as possible.
+        """
+        ois = self._create_org_integrations(30)
+        all_pks = sorted(oi.pk for oi in ois)
+        kept_by_batch = set(all_pks[:4])
+        seen_by_item: list[int] = []
+
+        def record(pk):
+            seen_by_item.append(pk)
+            return True
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            validate_item=record,
+            prevalidate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in kept_by_batch],
+        )
+
+        scheduler.tick()
+        scheduler.tick()
+
+        assert seen_by_item == all_pks[:4]
+        dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
+        assert dispatched_pks == all_pks[:4]
+
+    def test_no_validators_dispatches_all(self):
+        """When neither validator is provided (default), all items are dispatched."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
 
         scheduler.tick()
 
         assert self.mock_task.delay.call_count == 10
+
+    def test_rejected_items_are_not_written_to_redis(self):
+        """
+        Only the PKs the batch check kept are snapshotted, so a cycle of an all-rejecting
+        check holds no PKs and dispatches nothing.
+        """
+        self._create_org_integrations(30)
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            prevalidate_batch=lambda ois: [],  # reject all
+        )
+
+        scheduler.tick()
+
+        assert self.mock_task.delay.call_count == 0
+        assert self.redis_client.llen(self.pk_list_key) == 0
 
     def test_validate_item_cursor_advances_past_skipped(self):
         """Cursor advances based on all items in batch, not just dispatched ones."""
@@ -409,6 +521,31 @@ class CursoredSchedulerTest(TestCase):
         cursor = cache.get(f"{CURSOR_CACHE_KEY_PREFIX}:test_scheduler")
         assert cursor is not None
         assert int(cursor) == 10
+
+    def test_batch_size_is_derived_from_the_prevalidated_pks(self):
+        """
+        Batch size divides what survived the batch check, so rejected items do not consume
+        the cycle's throughput.
+        """
+        ois = self._create_org_integrations(30)
+        keep = {oi.pk for oi in ois[:15]}
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            prevalidate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in keep],
+        )
+
+        scheduler.tick()
+
+        # 15 kept over 3 ticks, not 10 of the unfiltered 30.
+        assert self.mock_task.delay.call_count == 5
 
     def test_recalculates_batch_size_on_interval_change(self):
         """When tick interval changes mid-cycle, batch size adjusts for remaining items."""
@@ -512,6 +649,30 @@ class CursoredSchedulerTest(TestCase):
         all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
 
         assert all_dispatched == [oi.pk for oi in reversed(ois)]
+
+    def test_preserve_queryset_order_with_prevalidate_batch(self):
+        """Prevalidation runs by PK range, but the snapshot still follows the queryset order."""
+        ois = self._create_org_integrations(5)
+        even_pks = {oi.pk for oi in ois if oi.pk % 2 == 0}
+        queryset = OrganizationIntegration.objects.filter(
+            integration__provider="github",
+            status=ObjectStatus.ACTIVE,
+        ).order_by("-pk")
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=queryset,
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            prevalidate_batch=lambda rows: [oi.pk for oi in rows if oi.pk in even_pks],
+            preserve_queryset_order=True,
+        )
+
+        with patch(f"{CURSORED_SCHEDULER}.PREVALIDATE_CHUNK_SIZE", 2):
+            scheduler.tick()
+
+        snapshot = [int(pk) for pk in self.redis_client.lrange(self.pk_list_key, 0, -1)]
+        assert snapshot == sorted(even_pks, reverse=True)
 
     def test_interval_decrease_halves_batch_size(self):
         """When tick interval is halved, batch size is halved for remaining items."""

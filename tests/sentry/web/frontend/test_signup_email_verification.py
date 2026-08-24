@@ -13,10 +13,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import sign
 from sentry.web.frontend.base import control_silo_view
-from sentry.web.frontend.signup_email_verification import (
-    VERIFIED_SESSION_KEY,
-    BaseSignupVerificationView,
-)
+from sentry.web.frontend.signup_email_verification import BaseSignupVerificationView
 
 SIGNUP_URL = "https://test.sentry.io/signup/"
 
@@ -87,7 +84,6 @@ class BaseSignupVerificationViewTest(TestCase):
         resp = self.client.get(self._get_path(_make_signed_blob()))
         assert resp.status_code == 400
 
-    def test_valid_link_sets_verified_email_in_session(self) -> None:
+    def test_valid_link_redirects(self) -> None:
         resp = self._get_with_session(email="user@example.com")
         assert resp.status_code == 302
-        assert self.client.session[VERIFIED_SESSION_KEY] == "user@example.com"

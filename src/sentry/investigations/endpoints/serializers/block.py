@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Set as AbstractSet
 from datetime import datetime
 from typing import Any, TypedDict, override
 
@@ -61,7 +62,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
     to it is in that set, so it must be supplied by the caller.
     """
 
-    def __init__(self, accessible_project_ids: set[int]) -> None:
+    def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
         self.accessible_project_ids = accessible_project_ids
 
     @override
@@ -73,7 +74,9 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
     ) -> MutableMapping[InvestigationBlock, dict[str, Any]]:
         dependencies: MutableMapping[int, list[str]] = defaultdict(list)
         for link in (
-            InvestigationBlockDependency.objects.filter(block__in=item_list)
+            InvestigationBlockDependency.objects.filter(
+                block__in=item_list, depends_on__deleted_at__isnull=True
+            )
             .values_list("block_id", "depends_on_id")
             .order_by("id")
         ):
@@ -118,6 +121,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             )
 
         execution = obj.current_execution
+        execution_accessible = is_accessible(execution)
         result_execution = obj.result_execution
         content_execution = obj.content_execution
         content_restricted = bool(
@@ -170,7 +174,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
                     "schemaVersion": execution.result_schema_version,
                     "startedAt": execution.started_at,
                     "completedAt": execution.completed_at,
-                    "error": execution.error,
+                    "error": execution.error if execution_accessible else None,
                 }
                 if execution is not None
                 else None

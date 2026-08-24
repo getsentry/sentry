@@ -192,7 +192,7 @@ describe('Dashboards util', () => {
       );
       const queryString = url.split('?')[1];
       const urlParams = new URLSearchParams(queryString);
-      expect(urlParams.get('query')).toBe('(is:unresolved) release:["1.0.0","2.0.0"] ');
+      expect(urlParams.get('query')).toBe('is:unresolved release:["1.0.0","2.0.0"] ');
     });
     it('applies global filters scoped to the issue dataset', () => {
       const url = getWidgetIssueUrl(
@@ -216,7 +216,7 @@ describe('Dashboards util', () => {
       );
       const queryString = url.split('?')[1];
       const urlParams = new URLSearchParams(queryString);
-      expect(urlParams.get('query')).toBe('(is:unresolved) transaction:/api/foo');
+      expect(urlParams.get('query')).toBe('is:unresolved transaction:/api/foo');
     });
   });
 

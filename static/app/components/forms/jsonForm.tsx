@@ -24,11 +24,6 @@ interface JsonFormProps extends Omit<
    * Fields that are grouped by "section"
    */
   forms?: JsonFormObject[];
-
-  /**
-   * INTERNAL FIELD: used by the `collapsible` field type to adjust rendering of the form title
-   */
-  nested?: boolean;
 }
 
 function JsonForm({
@@ -36,7 +31,6 @@ function JsonForm({
   collapsible,
   initiallyCollapsed = false,
   fields: propFields,
-  nested,
   title,
   forms,
   disabled,
@@ -89,7 +83,6 @@ function JsonForm({
             collapsible,
             initiallyCollapsed,
             fields: propFields,
-            nested,
             title,
             forms,
             disabled,
@@ -140,7 +133,6 @@ function JsonForm({
     access,
     disabled,
     features,
-    nested,
     additionalFieldProps,
     renderFooter,
     renderHeader,
@@ -166,7 +158,6 @@ interface ChildFormPanelProps extends Pick<
   | 'access'
   | 'disabled'
   | 'features'
-  | 'nested'
   | 'additionalFieldProps'
   | 'renderFooter'
   | 'renderHeader'

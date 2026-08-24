@@ -551,11 +551,13 @@ type SpanResponseRaw = {
   [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & Record<RegressionFunctions, number> &
   Record<SpanAnyFunction, string> & {
-    [Property in ConditionalAggregate as
-      | `${Property}(${string})`
-      | `${Property}(${string},${string})`
-      | `${Property}(${string},${string},${string})`
-      | `${Property}(${string},${string},${string},${string})`]: number;
+    [
+      Property in ConditionalAggregate as
+        | `${Property}(${string})`
+        | `${Property}(${string},${string})`
+        | `${Property}(${string},${string},${string})`
+        | `${Property}(${string},${string},${string},${string})`
+    ]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
     // Subset of SpanNumberFields that are actually used in division() queries.
     // Previously this was Record<`division(${SpanNumberFields},${SpanNumberFields})`, number>
@@ -572,11 +574,17 @@ type SpanResponseRaw = {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
     // TODO: The middle arg represents the operator, however adding this creastes too large of a map and tsc fails
-    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string},${string})`]: number;
+    [
+      Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string},${string})`
+    ]: number;
   } & {
-    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
+    [
+      Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`
+    ]: number;
   } & {
-    [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`]: number;
+    [
+      Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`
+    ]: number;
   };
 
 export type SpanResponse = Simplify<SpanResponseRaw>;

@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -12,7 +12,7 @@ interface UseProfileEventsStatsOptions<F> {
   dataset: 'discover' | 'profiles' | 'profileFunctions';
   referrer: string;
   yAxes: readonly F[];
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   enabled?: boolean;
   interval?: string;
   query?: string;
