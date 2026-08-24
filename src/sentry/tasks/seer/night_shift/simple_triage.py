@@ -266,7 +266,6 @@ def _fetch_and_score(
         SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
         SearchFilter(SearchKey("issue.type"), "=", SearchValue(type_ids)),
         SearchFilter(SearchKey("last_seen"), ">=", SearchValue(occurrence_cutoff)),
-        SearchFilter(SearchKey("stack.in_app"), "=", SearchValue(1.0)),
     ]
 
     scored: list[ScoredCandidate] = []
@@ -281,7 +280,6 @@ def _fetch_and_score(
             limit=fetch_limit,
             cursor=cursor,
             search_filters=search_filters,
-            date_from=occurrence_cutoff,
             referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value,
         )
 
@@ -321,6 +319,16 @@ def _fetch_and_score(
             break
 
         cursor = result.next
+
+    # Mixed issue search treats stack.in_app as a tag for issue-platform rows.
+    # Query Events directly and post-filter by group id instead.
+    in_app_group_ids = _groups_with_recent_in_app_frame(
+        [c.group.id for c in scored + unscored],
+        [project.id for project in projects],
+        projects[0].organization_id,
+    )
+    scored = [c for c in scored if c.group.id in in_app_group_ids]
+    unscored = [c for c in unscored if c.group.id in in_app_group_ids]
 
     scored.sort(key=lambda c: c.fixability or 0.0, reverse=True)
     selected = (scored + unscored)[:max_candidates]

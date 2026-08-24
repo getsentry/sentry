@@ -6,7 +6,6 @@ from taskbroker_client.scheduler.config import crontab
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.issues.search import group_types_from
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.models.project import Project
@@ -1429,30 +1428,18 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
         assert [candidate.group.id for candidate in result] == [recent_in_app.id]
 
-    def test_includes_low_value_span_issues_in_search(self) -> None:
+    def test_excludes_issue_platform_without_in_app_frame(self) -> None:
         project = self.create_project()
-        error_group = self.create_group(project=project)
-        lvs_group = self.create_group(project=project, type=LowValueSpanConfigurationType.type_id)
+        recent_in_app = self._store_event_and_update_group(project, "recent-in-app-error")
+        self.create_group(
+            project=project,
+            type=LowValueSpanConfigurationType.type_id,
+            last_seen=before_now(hours=1),
+        )
 
-        with patch(
-            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
-        ) as mock_query:
-            mock_query.return_value = _cursor_result([error_group, lvs_group])
-            result = fixability_score_strategy([project], max_candidates=10)
+        result = fixability_score_strategy([project], max_candidates=10)
 
-        assert {c.group.id for c in result} == {error_group.id, lvs_group.id}
-
-        mock_query.assert_called_once()
-        type_filters = [
-            sf
-            for sf in mock_query.call_args.kwargs["search_filters"]
-            if sf.key.name == "issue.type"
-        ]
-        assert len(type_filters) == 1
-        # The default type set is widened to include low-value-span, not replaced by it.
-        assert set(type_filters[0].value.raw_value) == group_types_from([]) | {
-            LowValueSpanConfigurationType.type_id
-        }
+        assert [candidate.group.id for candidate in result] == [recent_in_app.id]
 
     def test_per_project_fetch_limit_scales_with_max_candidates(self) -> None:
         project = self.create_project()
