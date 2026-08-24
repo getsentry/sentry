@@ -44,6 +44,8 @@ export const SpansTabCrossEventSearchBar = memo(
       useTraceItemDatasetAttributes(traceItemType, {}, 'string');
     const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
       useTraceItemDatasetAttributes(traceItemType, {}, 'boolean');
+    const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'array');
 
     const eapSpanSearchQueryBuilderProps = useMemo(
       () => ({
@@ -76,6 +78,7 @@ export const SpansTabCrossEventSearchBar = memo(
             : undefined,
         supportedAggregates:
           mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+        arrayAttributes,
         booleanAttributes,
         numberAttributes,
         stringAttributes,
@@ -83,12 +86,15 @@ export const SpansTabCrossEventSearchBar = memo(
           {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
           {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
         ],
+        arraySecondaryAliases,
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
         replaceRawSearchKeys: type === 'logs' ? ['message'] : ['span.description'],
       }),
       [
+        arrayAttributes,
+        arraySecondaryAliases,
         booleanAttributes,
         booleanSecondaryAliases,
         crossEvents,
