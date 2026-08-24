@@ -280,8 +280,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         <PanelBody>
           <PanelItem>
             <Grid
-              columns={{zero: 'auto', lg: '2fr 1fr 1fr'}}
-              flow={{zero: 'row', lg: 'column'}}
+              columns={{zero: 'auto', md: '2fr 1fr 1fr'}}
+              flow={{zero: 'row', md: 'column'}}
               gap="xl"
               width="100%"
             >
