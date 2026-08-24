@@ -12,7 +12,7 @@ import devkitCrashesStep5 from 'sentry-images/tempest/devkit-crashes-step5.jpg';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -63,7 +63,9 @@ export function DevKitSettings({organization, project}: Props) {
                   'Set up your PlayStation development kit to send crash reports to Sentry.'
                 )}
               </Description>
-              <Image src={waitingForEventImg} />
+              <Container display={{zero: 'none', xl: 'contents'}}>
+                <Image src={waitingForEventImg} />
+              </Container>
             </HeaderWrapper>
             <Divider />
             <Body>
@@ -266,10 +268,6 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`
