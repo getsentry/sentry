@@ -25,8 +25,8 @@ export function ApiTokenRow({
 }: Props) {
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell>
-        {token.name}
+      <SimpleTable.RowCell direction="column" align="start">
+        <TokenName>{token.name}</TokenName>
         <TokenPreview aria-label={t('Token preview')}>
           {tokenPreview(token.tokenLastCharacters)}
         </TokenPreview>
@@ -66,6 +66,8 @@ const ScopeList = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   max-width: 400px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 `;
 
 const Actions = styled(SimpleTable.RowCell)`
@@ -73,6 +75,17 @@ const Actions = styled(SimpleTable.RowCell)`
   gap: ${p => p.theme.space.md};
 `;
 
+const TokenName = styled('div')`
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+`;
+
 const TokenPreview = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 `;
