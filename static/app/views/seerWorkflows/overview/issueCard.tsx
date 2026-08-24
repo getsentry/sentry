@@ -7,7 +7,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -211,7 +211,7 @@ function OverviewAction({
       : null;
     const failedChecks =
       reviewPullRequest.checksStatus === 'failure'
-        ? (reviewPullRequest.failedChecks ?? [])
+        ? (reviewPullRequest.failedCheckDetails ?? [])
         : [];
 
     return (
@@ -250,13 +250,17 @@ function OverviewAction({
                       {t('Failing checks:')}
                     </Text>
                     <Stack gap="2xs" align="start">
-                      {failedChecks.map((name, index) => (
-                        <Flex key={`${name}-${index}`} gap="xs" align="start">
+                      {failedChecks.map((check, index) => (
+                        <Flex key={`${check.name}-${index}`} gap="xs" align="start">
                           <Text size="sm" variant="muted">
                             •
                           </Text>
                           <Text size="sm" align="left">
-                            {name}
+                            {check.url ? (
+                              <ExternalLink href={check.url}>{check.name}</ExternalLink>
+                            ) : (
+                              check.name
+                            )}
                           </Text>
                         </Flex>
                       ))}
