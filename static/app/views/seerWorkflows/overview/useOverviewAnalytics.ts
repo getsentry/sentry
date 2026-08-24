@@ -1,3 +1,4 @@
+import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
@@ -7,6 +8,7 @@ interface UseOverviewAnalyticsProps {
   isPending: boolean;
   numProjectsSelected: number;
   numUnconfiguredProjects: number;
+  projectConfigPending: boolean;
   statsPeriod: string | null;
   data?: AutofixOverviewResponse;
 }
@@ -19,8 +21,14 @@ export function useOverviewAnalytics({
   isPending,
   numProjectsSelected,
   numUnconfiguredProjects,
+  projectConfigPending,
   statsPeriod,
 }: UseOverviewAnalyticsProps) {
+  // Hold the page-view until both the run data and the project config have
+  // settled, otherwise route analytics fires on its own timer with empty
+  // counts (and later param updates are ignored once the event has sent).
+  const isLoading = isPending || projectConfigPending;
+  useDisableRouteAnalytics(isLoading);
   useRouteAnalyticsEventNames(
     'autofix.overview.page_viewed',
     'Autofix Overview: Page Viewed'
@@ -37,7 +45,7 @@ export function useOverviewAnalytics({
   );
 
   useRouteAnalyticsParams(
-    isPending
+    isLoading
       ? {}
       : {
           num_runs: allRuns.length,

@@ -170,6 +170,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     isPending,
     numProjectsSelected: selection.projects.length,
     numUnconfiguredProjects: unconfiguredProjects.length,
+    projectConfigPending,
     statsPeriod: selection.datetime.period,
   });
   const allUnconfigured =
