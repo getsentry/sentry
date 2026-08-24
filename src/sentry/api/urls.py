@@ -278,6 +278,9 @@ from sentry.integrations.api.endpoints.organization_integration_serverless_funct
 from sentry.integrations.api.endpoints.organization_integrations_index import (
     OrganizationIntegrationsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_pull_request_files import (
+    OrganizationPullRequestFilesEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_repositories import (
     OrganizationRepositoriesEndpoint,
 )
@@ -293,10 +296,6 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
-from sentry.investigations.endpoints.organization_breached_metric_investigations import (
-    OrganizationBreachedMetricInvestigationLaunchEndpoint,
-    OrganizationBreachedMetricInvestigationStatusEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
@@ -311,6 +310,9 @@ from sentry.investigations.endpoints.organization_investigation_block_index impo
 )
 from sentry.investigations.endpoints.organization_investigation_block_order import (
     OrganizationInvestigationBlockOrderEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_candidates import (
+    OrganizationInvestigationCandidatesEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_details import (
     OrganizationInvestigationsDetailsEndpoint,
@@ -2273,6 +2275,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-sent-first-event",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pull-requests/(?P<pull_request_id>[^/]+)/files/$",
+        OrganizationPullRequestFilesEndpoint.as_view(),
+        name="sentry-api-0-organization-pull-request-files",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/repos/$",
         OrganizationRepositoriesEndpoint.as_view(),
         name="sentry-api-0-organization-repositories",
@@ -2414,14 +2421,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigations",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/status/$",
-        OrganizationBreachedMetricInvestigationStatusEndpoint.as_view(),
-        name="sentry-api-0-organization-breached-metric-investigation-status",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/launch/$",
-        OrganizationBreachedMetricInvestigationLaunchEndpoint.as_view(),
-        name="sentry-api-0-organization-breached-metric-investigation-launch",
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/candidates/$",
+        OrganizationInvestigationCandidatesEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-candidates",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",

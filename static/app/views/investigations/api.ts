@@ -7,8 +7,10 @@ import {
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {
+  InvestigationCandidate,
   InvestigationDetail,
   InvestigationListItem,
+  MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
 type ListOptions = {
@@ -42,6 +44,28 @@ export function investigationDetailQueryOptions(
       path: {
         organizationIdOrSlug: organizationSlug,
         investigationId,
+      },
+      staleTime: 30_000,
+    }
+  );
+}
+
+export function investigationCandidatesQueryOptions({
+  organizationSlug,
+  sources,
+}: {
+  organizationSlug: string;
+  sources: MetricOpenPeriodInvestigationSource[];
+}) {
+  return apiOptions.as<{items: InvestigationCandidate[]}>()(
+    '/organizations/$organizationIdOrSlug/investigations/candidates/',
+    {
+      path: {organizationIdOrSlug: organizationSlug},
+      method: 'POST',
+      data: {
+        templateKey: 'breached_metric',
+        templateVersion: 1,
+        sources,
       },
       staleTime: 30_000,
     }
@@ -88,6 +112,26 @@ export function useCreateInvestigationMutation(
         url: `/organizations/${organizationSlug}/investigations/`,
         method: 'POST',
         data: {title: 'Untitled investigation'},
+      }),
+    options
+  );
+}
+
+export function useLaunchInvestigationMutation(
+  organizationSlug: string,
+  options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>
+) {
+  return useInvestigationMutation(
+    organizationSlug,
+    source =>
+      fetchMutation<InvestigationDetail>({
+        url: `/organizations/${organizationSlug}/investigations/`,
+        method: 'POST',
+        data: {
+          templateKey: 'breached_metric',
+          templateVersion: 1,
+          source,
+        },
       }),
     options
   );

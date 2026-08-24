@@ -17,6 +17,7 @@ from sentry.investigations.models import (
     InvestigationBlockExecutor,
     InvestigationBlockKind,
     InvestigationParameterType,
+    InvestigationSourceType,
 )
 from sentry.investigations.services.executions import (
     build_block_execution_snapshot,
@@ -103,6 +104,31 @@ class InvestigationExecutionServiceTest(TestCase):
         ]
         assert execution.input_snapshot["blockVersion"] == target.version
         assert "datasetHint" not in execution.input_snapshot
+
+    def test_source_snapshot_is_captured_separately_from_mutable_filters(self) -> None:
+        source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": {"groupId": "1", "openPeriodId": "2"},
+            "snapshot": {
+                "monitor": {"name": "Checkout errors"},
+                "analysisWindow": {"breachStart": "2026-08-01T00:00:00+00:00"},
+            },
+        }
+        self.investigation.update(
+            source=source,
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_ref=source["ref"],
+            source_key="legacy-key",
+            source_revision=1,
+            filters={"environment": ["production"], "breachedMetric": source["snapshot"]},
+        )
+        block = self.create_block()
+
+        execution, created = self.run_block(block)
+
+        assert created
+        assert execution.input_snapshot["source"] == source
+        assert execution.input_snapshot["filters"] == {"environment": ["production"]}
 
     def test_rejects_invalid_query_dataset_hint(self) -> None:
         block = self.create_block(config={"datasetHint": "invalid"})

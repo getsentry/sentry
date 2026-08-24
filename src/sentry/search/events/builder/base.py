@@ -851,7 +851,14 @@ class BaseQueryBuilder:
 
             orderby = [orderby]
 
-        orderby_columns: list[str] = orderby if orderby else []
+        # An empty orderby means "no sort", not "sort by the column named ''". The str form is
+        # handled above, but endpoints pass the raw request value as a list, so `?orderby=`
+        # arrives here as [""].
+        orderby_columns: list[str] = [
+            orderby_column
+            for orderby_column in (orderby or [])
+            if orderby_column.lstrip("-").strip()
+        ]
 
         resolved_orderby: str | SelectType | None
         for orderby in orderby_columns:

@@ -18,7 +18,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_long_tasks, issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import (
@@ -39,7 +39,8 @@ _GROUP_ACTION_LOG_WRITE_FEATURE = "projects:issue-action-log-write-to-db"
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_group",
-    namespace=issues_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
 def backfill_group_action_log_for_group(
@@ -81,7 +82,8 @@ def backfill_group_action_log_for_group(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.reset_and_backfill_group_action_log",
-    namespace=issues_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
 def reset_and_backfill_group_action_log(
@@ -121,7 +123,8 @@ def reset_and_backfill_group_action_log(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_project",
-    namespace=issues_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )
@@ -376,8 +379,9 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
         "sentry.tasks.backfill_group_action_log."
         "enroll_organization_projects_for_group_action_log_backfill"
     ),
-    namespace=issues_tasks,
-    processing_deadline_duration=15 * 60,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def enroll_organization_projects_for_group_action_log_backfill(
@@ -508,8 +512,9 @@ def enroll_organization_projects_for_group_action_log_backfill(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.enroll_projects_for_group_action_log_backfill",
-    namespace=issues_tasks,
-    processing_deadline_duration=15 * 60,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def enroll_projects_for_group_action_log_backfill(
@@ -584,8 +589,9 @@ def enroll_projects_for_group_action_log_backfill(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_all_projects",
-    namespace=issues_tasks,
-    processing_deadline_duration=15 * 60,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def backfill_group_action_log_for_all_projects(

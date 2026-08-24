@@ -62,7 +62,7 @@ const Label = styled('div')`
   white-space: nowrap;
 `;
 
-const HeaderCellContent = styled('div')<{type?: 'button'}>`
+export const HeaderCellContent = styled('div')<{type?: 'button'}>`
   align-items: center;
   background: none;
   border: 0;
