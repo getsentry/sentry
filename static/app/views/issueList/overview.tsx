@@ -25,7 +25,7 @@ import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -92,7 +92,7 @@ interface Props {
   withColumns?: GroupListColumn[];
 }
 
-interface EndpointParams extends Partial<PageFilters['datetime']> {
+interface EndpointParams extends Partial<PageFilterDatetime> {
   environment: string[];
   project: number[];
   cursor?: string;
@@ -220,9 +220,7 @@ function IssueListOverviewInner({
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
-  const hasIssueStreamProgressUI = organization.features.includes(
-    'issue-stream-progress-ui'
-  );
+  const hasIssueInbox = organization.features.includes('issue-inbox');
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
@@ -294,15 +292,11 @@ function IssueListOverviewInner({
       params.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    params.expand = [
-      'owners',
-      'inbox',
-      ...(hasIssueStreamProgressUI ? ['derivedData'] : []),
-    ];
+    params.expand = ['owners', 'inbox', ...(hasIssueInbox ? ['derivedData'] : [])];
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query, hasIssueStreamProgressUI]);
+  }, [getEndpointParams, location.query, hasIssueInbox]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);

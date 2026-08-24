@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Iterator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
 from google.cloud.exceptions import NotFound
@@ -44,6 +44,7 @@ from sentry.utils.snuba import (
     RateLimitExceeded,
     SnubaError,
     UnexpectedResponseError,
+    parse_snuba_datetime,
 )
 
 SNUBA_RETRY_EXCEPTIONS = (
@@ -121,14 +122,18 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
         return None
 
     delete_filenames_concurrently(list(_make_recording_filenames(project_id, rows)))
-    delete_replays(project_id, [row["replay_id"] for row in rows])
+    delete_replays(project_id, rows)
     return None
 
 
-def delete_replays(project_id: int, replay_ids: list[str]) -> None:
-    """Set the archived bit flag to true on each replay."""
-    for replay_id in replay_ids:
-        publish_replay_event(archive_event(project_id, replay_id))
+def delete_replays(project_id: int, rows: list[MatchedRow]) -> None:
+    """Set the archived bit flag to true on each replay.
+
+    Each archive event is stamped with the replay's own timestamp rather than "now" so it lands in
+    the same date range the replay does and hides it there.
+    """
+    for row in rows:
+        publish_replay_event(archive_event(project_id, row["replay_id"], row["timestamp"]))
 
 
 #  Keeping this small bounds threads-per-task so `worker_concurrency x N` stays under pod memory limit
@@ -197,8 +202,11 @@ def _make_recording_filenames(project_id: int, rows: list[MatchedRow]) -> Iterat
 
 class MatchedRow(TypedDict):
     retention_days: int
+    # Replay ID with dashes
     replay_id: str
     max_segment_id: int | None
+    # The Replay's last segment within the queried window
+    timestamp: datetime
 
 
 class MatchedRows(TypedDict):
@@ -243,6 +251,7 @@ def fetch_rows_matching_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
+            Function("max", parameters=[Column("timestamp")], alias="finished_at"),
             replay_id_hash_column,
         ],
         where=[
@@ -293,10 +302,22 @@ def fetch_rows_matching_pattern(
                 "max_segment_id": row["max_segment_id"],
                 "replay_id": row["replay_id"],
                 "retention_days": row["retention_days"],
+                "timestamp": snuba_timestamp_as_utc(row["finished_at"]),
             }
             for row in rows
         ],
     }
+
+
+def snuba_timestamp_as_utc(value: str) -> datetime:
+    """Parse a timestamp Snuba returned, as UTC.
+
+    Snuba renders datetimes with a zone sometimes and without one others. They are UTC either way,
+    and an unzoned one has to be told so before anything reads it as an instant -- `.timestamp()`
+    treats a naive datetime as local time, which would shift it by the host's offset.
+    """
+    parsed = parse_snuba_datetime(value)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 SEER_DELETE_RETRY = Retry(

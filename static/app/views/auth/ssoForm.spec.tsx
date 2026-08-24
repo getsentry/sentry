@@ -52,6 +52,22 @@ describe('SsoForm', () => {
     expect(await screen.findByText('Invalid org name')).toBeInTheDocument();
   });
 
+  it('shows a fallback message when an error has no detail', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/auth/sso-locate/',
+      method: 'POST',
+      statusCode: 500,
+      body: {},
+    });
+
+    render(<SsoForm authConfig={emptyAuthConfig} />);
+    await doSso(mockRequest);
+
+    expect(
+      await screen.findByText('Unable to locate the organization.')
+    ).toBeInTheDocument();
+  });
+
   it('handles success', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',

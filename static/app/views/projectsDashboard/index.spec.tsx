@@ -14,26 +14,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import ProjectsDashboard from 'sentry/views/projectsDashboard';
 
-jest.unmock('lodash/debounce');
-jest.mock('lodash/debounce', () => {
-  const debounceMap = new Map();
-  const mockDebounce =
-    (fn: (...args: any[]) => void, timeout: number) =>
-    (...args: any[]) => {
-      if (debounceMap.has(fn)) {
-        clearTimeout(debounceMap.get(fn));
-      }
-      debounceMap.set(
-        fn,
-        setTimeout(() => {
-          fn.apply(fn, args);
-          debounceMap.delete(fn);
-        }, timeout)
-      );
-    };
-  return mockDebounce;
-});
-
 describe('ProjectsDashboard', () => {
   const org = OrganizationFixture();
   const team = TeamFixture();

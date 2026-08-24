@@ -5,8 +5,8 @@ import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 
 import {MarkArea} from 'sentry/components/charts/components/markArea';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {markLine} from 'sentry/components/charts/components/markLine';
+import {lineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
 import {
   DataConditionType,
@@ -21,7 +21,7 @@ import {isSessionPercentageOperation} from 'sentry/views/detectors/utils/metricD
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
-  return MarkLine({
+  return markLine({
     silent: true,
     lineStyle: {color: lineColor, type: 'dashed', width: 1},
     data: [{yAxis: threshold}],
@@ -219,7 +219,7 @@ export function useMetricDetectorThresholdSeries({
           seriesName
         );
 
-        return LineSeries({
+        return lineSeries({
           name: seriesName,
           data: series.data.map(({name, value}) => [name, value]),
           lineStyle: {

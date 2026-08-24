@@ -8,6 +8,7 @@ import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import {
   collapseToolsColumnWhenUnused,
   ConversationsTable,
+  getUserDisplayName,
   getVisibleToolCount,
 } from './conversationsTable';
 
@@ -40,7 +41,7 @@ const organization = OrganizationFixture({
 
 function mockConversations(body: Array<Record<string, unknown>>) {
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/ai-conversations/`,
+    url: `/organizations/${organization.slug}/agents/conversations/`,
     body,
   });
 }
@@ -115,6 +116,12 @@ describe('ConversationsTable', () => {
     renderTable();
 
     expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
+  });
+
+  it('uses the user ID when no other identifying fields are available', () => {
+    expect(
+      getUserDisplayName({id: '123', email: null, username: null, ip_address: null})
+    ).toBe('123');
   });
 
   it('renders tool tags', async () => {

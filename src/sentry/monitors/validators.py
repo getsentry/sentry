@@ -670,9 +670,6 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
         if not attrs.get("name") and attrs.get("slug"):
             attrs["name"] = attrs["slug"]
 
-        if attrs.get("name") and not attrs.get("slug") and not self.instance:
-            attrs["slug"] = slugify_monitor_slug(attrs["name"])
-
         monitor_data = attrs.copy()
 
         if "is_muted" in monitor_data:

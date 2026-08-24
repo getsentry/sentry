@@ -3,6 +3,7 @@ import type {PriorityLevel, ProgressState} from 'sentry/types/group';
 import type {
   IntegrationType,
   PullRequestAttribution,
+  PullRequestAttributionAgent,
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
@@ -48,6 +49,7 @@ interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
   repository_id: string;
   repository_provider: string;
   review_status: PullRequestReviewStatus | null;
+  attribution_agent?: PullRequestAttributionAgent | null;
   attribution_type?: PullRequestAttribution['type'];
 }
 

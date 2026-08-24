@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
@@ -29,8 +30,34 @@ EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
 logger = logging.getLogger(__name__)
 
+_ftp_producers: MutableMapping[Topic, FutureTrackingProducer] = {}
+_ftp_producers_lock = threading.Lock()
+
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event, GroupEvent
+
+
+def _get_future_tracking_eventstream_producer(topic: Topic) -> FutureTrackingProducer:
+    producer = _ftp_producers.get(topic)
+    if producer is not None:
+        return producer
+
+    with _ftp_producers_lock:
+        producer = _ftp_producers.get(topic)
+        if producer is None:
+            producer_name = f"sentry.eventstream.kafka.ftp.{topic.value}"
+            producer = get_future_tracking_producer(
+                producer_name=producer_name,
+                producer_factory=partial(
+                    get_arroyo_producer,
+                    name=producer_name,
+                    topic=topic,
+                    use_simple_futures=False,
+                ),
+            )
+            _ftp_producers[topic] = producer
+
+    return producer
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
@@ -40,31 +67,23 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.transactions_topic = Topic.TRANSACTIONS
         self.issue_platform_topic = Topic.EVENTSTREAM_GENERIC
         self.__producers: MutableMapping[Topic, KafkaProducer] = {}
-        # TEMP(bmckerry): separate list of task producers used during rollout
-        self.__ftp_producers: MutableMapping[Topic, FutureTrackingProducer] = {}
         self.error_last_logged_time: int | None = None
 
     def get_transactions_topic(self, project_id: int) -> Topic:
         return self.transactions_topic
 
     def get_producer(self, topic: Topic) -> KafkaProducer | FutureTrackingProducer:
+        if in_random_rollout("tasks.producer.eventstream.rollout"):
+            return _get_future_tracking_eventstream_producer(topic)
+
         if topic not in self.__producers:
-            # TEMP(bmckerry): instantiate both producers during FutureTrackingProducer rollout
-            ftp_name = "sentry.eventstream.kafka.ftp"
-            self.__ftp_producers[topic] = get_future_tracking_producer(
-                producer_name=ftp_name,
-                producer_factory=partial(get_arroyo_producer, name=ftp_name, topic=topic),
-            )
             self.__producers[topic] = get_arroyo_producer(
                 name="sentry.eventstream.kafka",
                 topic=topic,
                 use_simple_futures=False,
             )
 
-        producer: KafkaProducer | FutureTrackingProducer = self.__producers[topic]
-        if in_random_rollout("tasks.producer.eventstream.rollout"):
-            producer = self.__ftp_producers[topic]
-        return producer
+        return self.__producers[topic]
 
     def delivery_callback(self, error: BaseException | None) -> None:
         now = int(time.time())
@@ -211,8 +230,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         try:
             if isinstance(producer, FutureTrackingProducer):
-                # FutureTrackingProducer handles the producer future internally,
-                # so we attach the callback at the produce callsite
                 producer.produce(
                     dest=ArroyoTopic(real_topic),
                     payload=KafkaPayload(
@@ -248,7 +265,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             logger.exception("Could not publish message: %s", error)
             return
 
-        # FutureTrackingProducer handles futures internally
         if not asynchronous and not isinstance(producer, FutureTrackingProducer):
             try:
                 produce_future.result()  # Wait for the message to be delivered to Kafka

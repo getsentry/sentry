@@ -50,6 +50,15 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/login.html")
 
+    def test_renders_react_template_with_cookie(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/base-react.html")
+        self.assertTemplateNotUsed(resp, "sentry/login.html")
+
     def test_cannot_request_access(self) -> None:
         resp = self.client.get(self.path)
 
@@ -349,6 +358,17 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 200
             assert resp.context["op"] == "register"
             self.assertTemplateUsed("sentry/login.html")
+
+    def test_register_renders_django_template_with_react_auth_cookie(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        with self.allow_registration():
+            resp = self.client.get(reverse("sentry-register"))
+
+        assert resp.status_code == 200
+        assert resp.context["op"] == "register"
+        self.assertTemplateUsed(resp, "sentry/login.html")
+        self.assertTemplateNotUsed(resp, "sentry/base-react.html")
 
     def test_register_prefills_invite_email(self) -> None:
         self.session["invite_email"] = "foo@example.com"

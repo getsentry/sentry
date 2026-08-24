@@ -8,7 +8,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
@@ -19,11 +18,9 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import type {ObjectStatus} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {
   checkInStatusPrecedent,
@@ -41,7 +38,6 @@ interface Props {
   timeWindowConfig: TimeWindowConfig;
   onDeleteEnvironment?: (env: string) => Promise<void>;
   onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
-  onToggleStatus?: (monitor: Monitor, status: ObjectStatus) => Promise<void>;
   /**
    * Whether only one monitor is being rendered in a larger view with this component
    * turns off things like zebra striping, hover effect, and showing monitor name
@@ -57,7 +53,6 @@ export function OverviewRow({
   timeWindowConfig,
   onDeleteEnvironment,
   onToggleMuteEnvironment,
-  onToggleStatus,
 }: Props) {
   const organization = useOrganization();
 
@@ -78,15 +73,6 @@ export function OverviewRow({
 
   const location = useLocation();
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
-
-  const canDisable = hasEveryAccess(['alerts:write'], {
-    organization,
-    project: monitor.project,
-  });
-  const permissionTooltipText = tct(
-    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
-  );
 
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
@@ -124,17 +110,6 @@ export function OverviewRow({
           </Flex>
         </Stack>
       </DetailsLink>
-      <DetailsActions>
-        {onToggleStatus && (
-          <StatusToggleButton
-            monitor={monitor}
-            size="xs"
-            onToggleStatus={status => onToggleStatus(monitor, status)}
-            disabled={!canDisable}
-            tooltipProps={{title: canDisable ? undefined : permissionTooltipText}}
-          />
-        )}
-      </DetailsActions>
     </DetailsArea>
   );
 
@@ -319,25 +294,6 @@ const TimelineRow = styled('li')<TimelineRowProps>`
   &:last-child {
     border-bottom-left-radius: ${p => p.theme.radius.md};
     border-bottom-right-radius: ${p => p.theme.radius.md};
-  }
-`;
-
-const DetailsActions = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  opacity: 0;
-
-  /* Align to the center of the heading text */
-  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
-  margin: ${p => p.theme.space['2xl']};
-
-  /* Show when timeline is hovered / focused */
-  ${TimelineRow}:hover &,
-  ${DetailsLink}:focus-visible + &,
-  &:has(a:focus-visible),
-  &:has(button:focus-visible) {
-    opacity: 1;
   }
 `;
 

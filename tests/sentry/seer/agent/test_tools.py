@@ -1,12 +1,13 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 from django.core.cache import cache
 from django.core.exceptions import BadRequest, ObjectDoesNotExist
 from pydantic import BaseModel
+from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
@@ -2021,7 +2022,7 @@ class TestGetEventDetails(
         return self.store_event(data=data, project_id=self.project.id)
 
     def _assert_event_response_shape(
-        self, result, expected_event_id: str | None, expected_trace_id: str | None = None
+        self, result, expected_event_id: str | None, expected_trace_id: Any = ANY
     ):
         assert result is not None
         assert result["project_id"] == self.project.id
@@ -2062,7 +2063,103 @@ class TestGetEventDetails(
             project_slug=self.project.slug,
         )
 
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
+
+    def test_format_returns_shared_formatter_output(self) -> None:
+        event = self._make_error_event()
+
+        with self.feature("organizations:issue-standardized-markdown-for-llm"):
+            result = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+            )
+
+        assert result is not None
+        assert result["formatted"] is not None
+        assert "## Title" in result["formatted"]
+        assert "## Exception" in result["formatted"]
+
+    def test_format_omitted_when_option_disabled(self) -> None:
+        # format requested, but the rollout option is off -> no formatted (caller falls back)
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+            format="markdown",
+        )
+
+        assert result is not None
+        assert result["formatted"] is None
+
+    def test_no_format_omits_formatted(self) -> None:
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        assert result["formatted"] is None
+
+    def test_invalid_format_raises_parse_error(self) -> None:
+        # `format` is an unvalidated RPC argument; an unknown value must be a 400, not a 500,
+        # and the answer can't depend on whether the org has the rollout yet
+        event = self._make_error_event()
+
+        for features in ([], ["organizations:issue-standardized-markdown-for-llm"]):
+            with self.subTest(features=features), self.feature(features):
+                with pytest.raises(ParseError):
+                    get_event_details(
+                        organization_id=self.organization.id,
+                        event_id=event.event_id,
+                        project_slug=self.project.slug,
+                        format="yaml",  # type: ignore[arg-type]
+                    )
+
+        # ...and it can't depend on the lookup succeeding either: a bad argument is a bad
+        # argument, not a "not found"
+        with pytest.raises(ParseError):
+            get_event_details(
+                organization_id=self.organization.id,
+                event_id=uuid.uuid4().hex,
+                project_slug=self.project.slug,
+                format="yaml",  # type: ignore[arg-type]
+            )
+
+    def test_include_breadcrumbs_false_drops_section(self) -> None:
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["breadcrumbs"] = {
+            "values": [{"category": "auth", "message": "login", "level": "info"}]
+        }
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        with self.feature("organizations:issue-standardized-markdown-for-llm"):
+            with_crumbs = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+            )
+            without_crumbs = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+                include_breadcrumbs=False,
+            )
+
+        assert with_crumbs is not None and with_crumbs["formatted"] is not None
+        assert "## Breadcrumbs" in with_crumbs["formatted"]
+        assert without_crumbs is not None and without_crumbs["formatted"] is not None
+        assert "## Breadcrumbs" not in without_crumbs["formatted"]
 
     def test_by_event_id_multi_project(self) -> None:
         """Fetching by event_id without project_slug hits the multi-project code path."""
@@ -2074,7 +2171,9 @@ class TestGetEventDetails(
             event_id=event.event_id,
         )
 
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     def test_by_event_id_not_found_returns_none(self) -> None:
         result = get_event_details(
@@ -2149,7 +2248,9 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert args[2] is None  # no start
         assert args[3] is None  # no end
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_qualified_short_id(self, mock_recommended):
@@ -2169,7 +2270,9 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert args[2] is None  # no start
         assert args[3] is None  # no end
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_with_time_range(self, mock_recommended):

@@ -72,7 +72,7 @@ describe('LinkedPullRequests', () => {
       `Pull request #123 in ${REPOSITORY_NAME}, Merged, Fix widget crash on startup`
     );
     await userEvent.hover(linkedPullRequest);
-    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(2);
+    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(1);
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).getByText(`${REPOSITORY_NAME}#123`)).toBeInTheDocument();
     expect(within(list).getByText(`${REPOSITORY_NAME}#124`)).toBeInTheDocument();
@@ -97,6 +97,38 @@ describe('LinkedPullRequests', () => {
     expect(pullRequestsMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({query: {expand: 'checksAndReview'}})
+    );
+  });
+
+  it('renders a delegated agent attribution', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '123',
+              repository,
+              author: {name: 'cursor[bot]', email: 'cursor[bot]@localhost'},
+            }),
+            attribution: {type: 'seer', id: 'seer', agent: 'cursor'},
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests group={group} />, {organization});
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'Pull request created by Cursor Cloud Agent via Seer',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'cursor'})).toHaveAttribute(
+      'src',
+      'https://github.com/cursor.png?s=120'
     );
   });
 
