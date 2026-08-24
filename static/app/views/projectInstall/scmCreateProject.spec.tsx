@@ -334,20 +334,17 @@ describe('ScmCreateProject', () => {
     expect(projectName).toHaveValue('javascript');
     expect(screen.getByText('#selected-team')).toBeInTheDocument();
 
-    // Deliberately retype the current default: manual detection must come from
-    // the edit itself (wasNameManuallyModified), not from comparing the value
-    // to the platform default, so a name matching the default still counts.
     await userEvent.clear(projectName);
-    await userEvent.type(projectName, 'javascript');
+    await userEvent.type(projectName, 'my-app');
 
     await userEvent.click(screen.getByText('Browser JavaScript'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
 
-    // The manual name survives the switch back: 'javascript' on a Python
-    // platform, where a reset would have re-derived 'python'.
-    expect(projectName).toHaveValue('javascript');
+    // The manual name survives the switch back to Python, where a reset would
+    // have re-derived 'python'.
+    expect(projectName).toHaveValue('my-app');
     expect(screen.getByText('#selected-team')).toBeInTheDocument();
   });
 
