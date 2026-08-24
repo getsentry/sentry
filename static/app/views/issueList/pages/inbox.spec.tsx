@@ -529,7 +529,7 @@ describe('InboxPage', () => {
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('includes identified issues in Assigned without a separate section', async () => {
+  it('includes identified issues in Assigned for scoped assignee tabs', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
     mockSection(
@@ -550,10 +550,9 @@ describe('InboxPage', () => {
     );
     mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]);
     mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]);
-    const assignedAllRequest = mockSection(
-      'issue.progress:[assigned,identified] is:unresolved !assigned_or_suggested:none',
-      [assignedGroup]
-    );
+    const assignedAllRequest = mockSection('issue.progress:assigned is:unresolved', [
+      assignedGroup,
+    ]);
     mockSection('issue.progress:fix_applied is:unresolved', []);
 
     render(<InboxPage />, {
@@ -579,12 +578,12 @@ describe('InboxPage', () => {
   it('shows the total issue count for each assignee tab', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
-    MockApiClient.addMockResponse({
+    const countRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-count/',
       body: {
         [`issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 10,
         [`issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 49,
-        [`issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 100,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 100,
       },
     });
 
@@ -593,6 +592,18 @@ describe('InboxPage', () => {
     expect(await screen.findByRole('radio', {name: 'Me 10'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'My Teams 49'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'All 99+'})).toBeInTheDocument();
+    expect(countRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          query: [
+            `issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`,
+            `issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
+            `issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`,
+          ],
+        },
+      })
+    );
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
@@ -675,10 +686,7 @@ describe('InboxPage', () => {
     const allRequests = [
       mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]),
       mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]),
-      mockSection(
-        'issue.progress:[assigned,identified] is:unresolved !assigned_or_suggested:none',
-        [assignedGroup]
-      ),
+      mockSection('issue.progress:assigned is:unresolved', [assignedGroup]),
       mockSection('issue.progress:fix_applied is:unresolved', []),
     ];
 

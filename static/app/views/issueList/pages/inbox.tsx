@@ -30,7 +30,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
@@ -81,6 +80,8 @@ const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
 };
 const ASSIGNMENT_COUNT_QUERY =
   'issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved';
+const ALL_ASSIGNMENT_COUNT_QUERY =
+  'issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved';
 interface InboxSectionContext {
   hasSeer: boolean;
 }
@@ -117,16 +118,10 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     analyticsKey: 'num_assigned',
     key: 'assigned',
     label: t('Assigned'),
-    query: assignmentFilter => {
-      const search = new MutableSearch(
-        'issue.progress:[assigned,identified] is:unresolved'
-      );
-      // On the "All" tab, we want to show only issues which have a suggested assignee
-      if (assignmentFilter === 'all') {
-        search.addFilterValue('!assigned_or_suggested', 'none');
-      }
-      return search.formatString();
-    },
+    query: assignmentFilter =>
+      assignmentFilter === 'all'
+        ? 'issue.progress:assigned is:unresolved'
+        : 'issue.progress:[assigned,identified] is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
     hidden: ({hasSeer}) => !hasSeer,
@@ -208,7 +203,7 @@ function useAssignmentCounts() {
   const organization = useOrganization();
   const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
-  const allQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.all}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const allQuery = `${ALL_ASSIGNMENT_COUNT_QUERY}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
 
   const {data} = useQuery({
     ...apiOptions.as<Record<string, number>>()(
