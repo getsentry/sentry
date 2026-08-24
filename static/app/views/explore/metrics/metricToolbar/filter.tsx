@@ -180,9 +180,6 @@ export function Filter({
     };
   }, [data?.booleanAttributes]);
 
-  // Array attributes are only ever custom (no static Sentry array tags), so this
-  // is just the fetched array attributes minus the hidden ones. Gated on the
-  // feature flag so arrays never surface while the flag is off.
   const visibleArrayTags = useMemo(() => {
     if (!supportsArrays) {
       return {};

@@ -204,8 +204,6 @@ describe('useLogsSearchQueryBuilderProps', () => {
         'error.messages'
       ]
     ).toBeUndefined();
-    // The valid array field is neither merged nor flagged invalid when the
-    // feature is off; it simply isn't recognized as an array attribute.
     expect(
       result.current.tracesItemSearchQueryBuilderProps.invalidFilterKeys
     ).toEqual(['missing.key']);

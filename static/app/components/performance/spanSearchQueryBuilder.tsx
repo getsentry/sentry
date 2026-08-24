@@ -93,9 +93,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     const localBooleanAttributes = {...spanBooleanAttributes};
     const localNumberAttributes = {...spanNumberAttributes};
     const localStringAttributes = {...spanStringAttributesWithSemver};
-    // Only expose array attributes when the feature is enabled, so nothing leaks
-    // through even if the fetch or the validate endpoint returns array-typed
-    // data while the flag is off.
     const localArrayAttributes = supportsArrays ? {...spansArrayAttributes} : {};
 
     if (props.validatedSearchQueryData?.query.fields.length) {

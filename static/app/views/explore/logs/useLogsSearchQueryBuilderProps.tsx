@@ -62,9 +62,6 @@ export function useLogsSearchQueryBuilderProps({
     invalidFilterKeys,
   } = useMemo(() => {
     const localInvalidFilterKeys: string[] = [];
-    // Only expose array attributes when the feature is enabled, so nothing
-    // leaks through even if the caller's fetch or the validate endpoint returns
-    // array-typed data while the flag is off.
     const localArrayAttributes = supportsArrays ? {...arrayAttributes} : {};
     const localBooleanAttributes = {...booleanAttributes};
     const localNumberAttributes = {...numberAttributes};
