@@ -90,12 +90,12 @@ describe('useConversation', () => {
   });
 
   it('stops loading after reaching the pagination cap', async () => {
-    const url = `/organizations/${organization.slug}/ai-conversations/conv-123/`;
+    const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
     const requests = Array.from({length: 10}, (_, index) =>
       MockApiClient.addMockResponse({
         url,
         match: [MockApiClient.matchQuery({cursor: index === 0 ? undefined : `${index}`})],
-        body: [{...BASE_SPAN, span_id: `span-${index}`}],
+        body: envelope([{...BASE_SPAN, span_id: `span-${index}`}]),
         headers: {
           Link: `<${url}?cursor=${index + 1}>; rel="next"; results="true"; cursor="${index + 1}"`,
         },
