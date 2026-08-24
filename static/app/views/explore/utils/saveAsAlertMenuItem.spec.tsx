@@ -65,11 +65,11 @@ describe('getSaveAsAlertMenuItem', () => {
       expect.objectContaining({
         label: 'Create a Monitor',
         textValue: 'Create a Monitor',
+        disabled: false,
         to: '/alert/',
         onAction,
       })
     );
-    expect(item.disabled).toBeFalsy();
     expect(item.children).toBeUndefined();
   });
 

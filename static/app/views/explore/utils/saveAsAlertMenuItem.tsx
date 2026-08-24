@@ -54,7 +54,7 @@ export function getSaveAsAlertMenuItem(
     key: 'create-alert',
     label,
     textValue: label,
-    disabled,
+    disabled: disabled ?? false,
     to: options.to,
     onAction: options.onAction,
   };
