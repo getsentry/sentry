@@ -2,13 +2,14 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {DateTime} from 'sentry/components/dateTime';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {GridEditable, type GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -97,7 +98,19 @@ function renderBodyCell(
     case 'provider':
       return dataRow.provider || t('unknown');
     case 'createdAt':
-      return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
+      return (
+        <Text tabular variant="muted" wrap="nowrap">
+          {({className}) => (
+            <DateTime
+              className={className}
+              date={dataRow.createdAt}
+              seconds
+              timeZone
+              year
+            />
+          )}
+        </Text>
+      );
     case 'action': {
       return getFlagActionLabel(dataRow.action);
     }
