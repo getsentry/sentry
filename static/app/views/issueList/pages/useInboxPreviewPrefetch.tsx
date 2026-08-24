@@ -1,4 +1,5 @@
 import {useFocus, useHover} from '@react-aria/interactions';
+import {useDebouncer} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {autofixSetupApiOptions} from 'sentry/components/events/autofix/useAutofixSetup';
@@ -9,6 +10,8 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+
+const PREFETCH_DELAY_MS = 100;
 
 /**
  * Warms each of the preview's independent requests as soon as a user shows
@@ -51,12 +54,16 @@ export function useInboxPreviewPrefetch(group: Group) {
       });
     }
   };
+  const hoverPrefetch = useDebouncer(prefetch, {wait: PREFETCH_DELAY_MS});
+  const focusPrefetch = useDebouncer(prefetch, {wait: PREFETCH_DELAY_MS});
 
   const {hoverProps} = useHover({
-    onHoverStart: prefetch,
+    onHoverStart: () => hoverPrefetch.maybeExecute(),
+    onHoverEnd: () => hoverPrefetch.cancel(),
   });
   const {focusProps} = useFocus({
-    onFocus: prefetch,
+    onFocus: () => focusPrefetch.maybeExecute(),
+    onBlur: () => focusPrefetch.cancel(),
   });
 
   return {
