@@ -333,10 +333,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Aggregate rows/sec ceiling for PullRequest deletions across all concurrent
-# deletion tasks. 0 disables rate limiting.
+# deletion tasks. 0 disables rate limiting. Sized to sit well above the
+# steady-state deletion rate while keeping any backlog drain gentle, so it
+# needs no tuning around deploys.
 register(
     "deletions.pull-request.rate-limit",
-    default=500,
+    default=100,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

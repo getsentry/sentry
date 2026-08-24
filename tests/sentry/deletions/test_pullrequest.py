@@ -227,8 +227,8 @@ class PullRequestDeletionTaskTest(TestCase):
 
         assert not PullRequest.objects.filter(id__in=[pr.id for pr in prs]).exists()
         mock_limiter_cls.assert_called_with(
-            burst_limit=500,
-            drip_rate=500,
+            burst_limit=100,
+            drip_rate=100,
             key="deletions.rate_limit:deletions.pull-request.rate-limit",
         )
 
