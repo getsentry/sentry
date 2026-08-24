@@ -14,6 +14,8 @@ from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
+from sentry.workflow_engine.models import Workflow
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -555,7 +557,10 @@ class ScmOnboardingTest(AcceptanceTestCase):
             project = Project.objects.get(organization=self.org)
             assert project.platform == "javascript-react"
             assert project.slug == "javascript-react"
-            assert Rule.objects.filter(project=project).count() == 1
+            assert not Rule.objects.filter(project=project).exists()
+            assert Workflow.objects.filter(
+                organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
+            ).exists()
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )

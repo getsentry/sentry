@@ -50,7 +50,7 @@ export class Rect {
     return this.width === 0 && this.height === 0;
   }
 
-  static Empty(): Rect {
+  static empty(): Rect {
     return new Rect(0, 0, 0, 0);
   }
 

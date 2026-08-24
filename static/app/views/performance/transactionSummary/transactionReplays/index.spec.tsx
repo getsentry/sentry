@@ -28,10 +28,6 @@ type InitializeOrgProps = {
   };
 };
 
-jest.mock('sentry/utils/useMedia', () => ({
-  useMedia: jest.fn(() => true),
-}));
-
 const mockEventsUrl = '/organizations/org-slug/events/';
 const mockReplaysUrl = '/organizations/org-slug/replays/';
 

@@ -59,7 +59,6 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -127,17 +126,14 @@ interface TracesTableProps {
   frameless?: boolean;
   limit?: number;
   linkToTraceView?: boolean;
-  openTraceViewDrawer?: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
   tableWidths?: number[];
 }
 
 export function TracesTable({
-  openTraceViewDrawer,
   frameless,
   dashboardFilters,
   limit = DEFAULT_LIMIT,
   tableWidths,
-  linkToTraceView,
 }: TracesTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns:
@@ -304,17 +300,9 @@ export function TracesTable({
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return (
-        <BodyCell
-          column={column}
-          dataRow={dataRow}
-          query={combinedQuery}
-          openTraceViewDrawer={openTraceViewDrawer}
-          linkToTraceView={linkToTraceView}
-        />
-      );
+      return <BodyCell column={column} dataRow={dataRow} query={combinedQuery} />;
     },
-    [combinedQuery, openTraceViewDrawer, linkToTraceView]
+    [combinedQuery]
   );
 
   const additionalGridProps = frameless
@@ -361,48 +349,31 @@ const BodyCell = memo(function BodyCellImpl({
   column,
   dataRow,
   query,
-  openTraceViewDrawer,
-  linkToTraceView,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
   query: string;
-  linkToTraceView?: boolean;
-  openTraceViewDrawer?: (traceSlug: string, spanId?: string, timestamp?: number) => void;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
 
   switch (column.key) {
-    case 'traceId':
-      if (linkToTraceView || !openTraceViewDrawer) {
-        const traceUrl = getTraceDetailsUrl({
-          organization,
-          traceSlug: dataRow.traceId,
-          dateSelection: normalizeDateTimeParams(selection.datetime),
-          timestamp: dataRow.timestamp / 1000,
-          location: {
-            ...location,
-            query: {},
-          },
-          source: TraceViewSources.AGENT_MONITORING,
-          tab: TraceLayoutTabKeys.AI_SPANS,
-        });
-        return <Link to={traceUrl}>{dataRow.traceId.slice(0, 8)}</Link>;
-      }
-      return (
-        <span>
-          <TraceIdButton
-            variant="link"
-            onClick={() =>
-              openTraceViewDrawer?.(dataRow.traceId, undefined, dataRow.timestamp / 1000)
-            }
-          >
-            {dataRow.traceId.slice(0, 8)}
-          </TraceIdButton>
-        </span>
-      );
+    case 'traceId': {
+      const traceUrl = getTraceDetailsUrl({
+        organization,
+        traceSlug: dataRow.traceId,
+        dateSelection: normalizeDateTimeParams(selection.datetime),
+        timestamp: dataRow.timestamp / 1000,
+        location: {
+          ...location,
+          query: {},
+        },
+        source: TraceViewSources.AGENT_MONITORING,
+        tab: TraceLayoutTabKeys.AI_SPANS,
+      });
+      return <Link to={traceUrl}>{dataRow.traceId.slice(0, 8)}</Link>;
+    }
     case 'agents':
       if (dataRow.isAgentDataLoading) {
         return <Placeholder width="100%" height="16px" />;
@@ -678,11 +649,6 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
-`;
-
-const TraceIdButton = styled(Button)`
-  font-weight: normal;
-  padding: 0;
 `;
 
 const StyledPagination = styled(Pagination)`

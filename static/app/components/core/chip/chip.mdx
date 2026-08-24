@@ -1,0 +1,75 @@
+---
+title: Chip
+description: A compact chonky-embossed token for search filters and standalone values.
+category: display
+source: '@sentry/scraps/chip'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chip/chip.tsx
+---
+
+import {Chip} from '@sentry/scraps/chip';
+import {Flex} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chip');
+
+The `Chip` renders a compact filter token — `property operator value` — or a
+standalone value. It's presentation only: it holds no filter state, so the
+caller owns the values and any dismiss behavior.
+
+## Composition
+
+`value` is required. Add `property` and `operator` to render a full filter
+token, or pass `value` alone for a standalone token.
+
+- Default (editable filter) — `property` + `operator` + `value`; the value is emphasized in accent.
+- `readonly` — the value reads as secondary and the dismiss affordance is suppressed; use for a non-interactive summary.
+- `value` only — just the value, in primary; use for a standalone token.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip property="browser" operator="is" value="Chrome" />
+    <Chip readonly property="browser" operator="is" value="Chrome" />
+    <Chip value="Chrome" />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip property="browser" operator="is" value="Chrome" />
+<Chip readonly property="browser" operator="is" value="Chrome" />
+<Chip value="Chrome" />
+```
+
+## Sizes
+
+Available sizes are `xs`, `sm`, and `md` (default).
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip size="md" property="chip" operator="is" value="md" />
+    <Chip size="sm" property="chip" operator="is" value="sm" />
+    <Chip size="xs" property="chip" operator="is" value="xs" />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip size="md" property="chip" operator="is" value="md" />
+<Chip size="sm" property="chip" operator="is" value="sm" />
+<Chip size="xs" property="chip" operator="is" value="xs" />
+```
+
+## Dismissable
+
+Pass `onDismiss` to render a trailing ✕ button. Omit it for a static chip.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip property="browser" operator="is" value="Chrome" onDismiss={() => {}} />
+    <Chip value="Chrome" onDismiss={() => {}} />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip property="browser" operator="is" value="Chrome" onDismiss={() => removeFilter()} />
+```

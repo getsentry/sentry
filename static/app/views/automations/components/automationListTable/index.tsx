@@ -18,7 +18,10 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AutomationsTableActions} from 'sentry/views/automations/components/automationListTable/actions';
+import {
+  AutomationsTableActions,
+  AutomationsTableActionsBanner,
+} from 'sentry/views/automations/components/automationListTable/actions';
 import {
   AutomationListRow,
   AutomationListRowSkeleton,
@@ -93,7 +96,17 @@ export function AutomationListTable({
   const organization = useOrganization();
   const canEditAutomations = useCanEditAutomation();
   const [query] = useQueryState('query', parseAsString);
-  const [selected, setSelected] = useState(new Set<string>());
+  const [selected, setSelectedIds] = useState(new Set<string>());
+  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
+
+  // Selecting every match only holds while something is selected, so emptying the
+  // selection has to clear it too.
+  const setSelected = useCallback((ids: Set<string>) => {
+    setSelectedIds(ids);
+    if (ids.size === 0) {
+      setAllInQuerySelected(false);
+    }
+  }, []);
 
   const togglePageSelected = (pageSelected: boolean) => {
     const newSelected = new Set<string>();
@@ -130,53 +143,67 @@ export function AutomationListTable({
       }
       setSelected(newSelected);
     },
-    [selected]
+    [selected, setSelected]
   );
 
   return (
-    <AutomationsSimpleTable>
-      {canEditAutomations && selected.size === 0 ? (
-        <SimpleTable.Header key="header">
-          <HeaderCell sort={sort} sortKey="name">
-            <Flex gap="md" align="center">
-              <SelectAllHeaderCheckbox
-                checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                onChange={checked => togglePageSelected(checked)}
-              />
-              <span>{t('Name')}</span>
-            </Flex>
-          </HeaderCell>
-          <HeaderCell
-            data-column-name="last-triggered"
-            sort={sort}
-            sortKey="lastTriggered"
-          >
-            {t('Last Triggered')}
-          </HeaderCell>
-          <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
-            {t('Actions')}
-          </HeaderCell>
-          <HeaderCell data-column-name="projects" sort={sort}>
-            {t('Projects')}
-          </HeaderCell>
-          <HeaderCell
-            data-column-name="connected-monitors"
-            sort={sort}
-            sortKey="connectedDetectors"
-          >
-            {t('Monitors')}
-          </HeaderCell>
-        </SimpleTable.Header>
-      ) : (
-        <AutomationsTableActions
-          key="actions"
+    <AutomationsSimpleTable
+      header={
+        canEditAutomations && selected.size === 0 ? (
+          <SimpleTable.HeaderRow key="header">
+            <HeaderCell sort={sort} sortKey="name">
+              <Flex gap="md" align="center">
+                <SelectAllHeaderCheckbox
+                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                  onChange={checked => togglePageSelected(checked)}
+                />
+                <span>{t('Name')}</span>
+              </Flex>
+            </HeaderCell>
+            <HeaderCell
+              data-column-name="last-triggered"
+              sort={sort}
+              sortKey="lastTriggered"
+            >
+              {t('Last Triggered')}
+            </HeaderCell>
+            <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
+              {t('Actions')}
+            </HeaderCell>
+            <HeaderCell data-column-name="projects" sort={sort}>
+              {t('Projects')}
+            </HeaderCell>
+            <HeaderCell
+              data-column-name="connected-monitors"
+              sort={sort}
+              sortKey="connectedDetectors"
+            >
+              {t('Monitors')}
+            </HeaderCell>
+          </SimpleTable.HeaderRow>
+        ) : (
+          <AutomationsTableActions
+            key="actions"
+            selected={selected}
+            pageSelected={pageSelected}
+            togglePageSelected={togglePageSelected}
+            queryCount={queryCount}
+            allInQuerySelected={allInQuerySelected}
+            setAllInQuerySelected={setAllInQuerySelected}
+            canEnable={canEnable}
+            canDisable={canDisable}
+          />
+        )
+      }
+    >
+      {selected.size > 0 && (
+        <AutomationsTableActionsBanner
           selected={selected}
           pageSelected={pageSelected}
-          togglePageSelected={togglePageSelected}
-          queryCount={queryCount}
           allResultsVisible={allResultsVisible}
-          canEnable={canEnable}
-          canDisable={canDisable}
+          queryCount={queryCount}
+          allInQuerySelected={allInQuerySelected}
+          setAllInQuerySelected={setAllInQuerySelected}
         />
       )}
       {isSuccess && automations.length === 0 && (

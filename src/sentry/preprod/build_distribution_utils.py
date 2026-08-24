@@ -26,10 +26,12 @@ _BUILD_NUMBER_COMPONENT_WIDTH = 6
 def parse_build_number(build: str) -> int | None:
     """Parse a build number into the sortable int launchpad stores on the artifact.
 
-    Mirrors launchpad's ``_parse_build_number``: plain integers pass through, two
-    or three period-separated integers (e.g. "1.2.3") are packed by zero-padding
-    each component, and anything else (or a value too large for the build_number
-    column) returns None.
+    Mirrors launchpad's ``_parse_build_number``: plain integers pass through,
+    period-separated integers (e.g. "1.2.3") are packed by zero-padding each
+    component, and anything else (or a value too large for the build_number
+    column) returns None. Per the CFBundleVersion spec, more than three
+    period-separated integer groups are accepted and groups beyond the third
+    are dropped.
     """
     build = build.strip()
 
@@ -38,10 +40,12 @@ def parse_build_number(build: str) -> int | None:
         value = int(build)
     else:
         parts = build.split(".")
-        if not (
-            2 <= len(parts) <= 3
-            and all(p.isdecimal() and len(p) <= _BUILD_NUMBER_COMPONENT_WIDTH for p in parts)
-        ):
+        if not all(p.isdecimal() for p in parts):
+            return None
+        # CFBundleVersion allows more than three groups; groups beyond the
+        # third are dropped.
+        parts = parts[:3]
+        if not (2 <= len(parts) and all(len(p) <= _BUILD_NUMBER_COMPONENT_WIDTH for p in parts)):
             return None
         parts += ["0"] * (3 - len(parts))
         value = sum(

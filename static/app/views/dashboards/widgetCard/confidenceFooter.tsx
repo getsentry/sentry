@@ -1,5 +1,4 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -26,7 +25,6 @@ type Props = {
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
   sampleCount?: number;
-  selection?: PageFilters;
 };
 
 export function WidgetCardConfidenceFooter({
@@ -35,14 +33,12 @@ export function WidgetCardConfidenceFooter({
   isSampled,
   loading,
   sampleCount,
-  selection: selectionProp,
   series,
   timeseriesResults,
   widget,
   yAxis,
 }: Props) {
-  const {selection: pageFilterSelection} = usePageFilters();
-  const selection = selectionProp ?? pageFilterSelection;
+  const {selection} = usePageFilters();
   const rawCounts = useWidgetRawCounts({selection, widget});
   const hasOtherSeries = timeseriesResults?.some(({seriesName}) =>
     seriesName?.match(/.* : Other$|^Other$/)
