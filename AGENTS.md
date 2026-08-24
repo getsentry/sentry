@@ -102,6 +102,12 @@ Use the right AGENTS.md for the area you're working in:
 
 Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
 
+## Cursor Cloud specific instructions
+
+Cloud agent VMs are Linux. The dashboard install script (`devenv --nocoderoot sync`) needs `uv` on `PATH` before sync — devenv no longer installs it, and `brew install uv` is macOS-only. CI uses `astral-sh/setup-uv`; cloud install should do the equivalent.
+
+Cursor sets local `core.hooksPath` to its agent hooks. Do not `git config --unset` that. `devenv sync` prepares prek hook environments without installing git hooks when `core.hooksPath` is already set.
+
 ## Viewer/Organization Context
 
 - Viewer identity is wired through the app via the `ViewerContext` contextvar; use `sentry.viewer_context.get_viewer_context()` instead of explicitly threading org/user identity when the current viewer is in scope.

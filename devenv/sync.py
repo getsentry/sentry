@@ -176,6 +176,27 @@ exec {binroot}/node-env/bin/pnpm "$@"
     )
 
 
+def git_core_hooks_path(reporoot: str) -> str | None:
+    try:
+        path = subprocess.check_output(
+            ("git", "config", "--get", "core.hooksPath"),
+            cwd=reporoot,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except subprocess.CalledProcessError:
+        return None
+    return path or None
+
+
+def prek_sync_cmd(reporoot: str) -> tuple[str, ...]:
+    # Cursor Cloud (and similar) own core.hooksPath. `prek install` refuses
+    # to overwrite that; still prepare hook environments so `prek run` works.
+    if git_core_hooks_path(reporoot):
+        return ("prek", "prepare-hooks")
+    return ("prek", "install", "--prepare-hooks", "-f")
+
+
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
@@ -208,7 +229,11 @@ def main(context: dict[str, str]) -> int:
         os.remove(f"{reporoot}/.devenv/bin/uvx")
 
     if not shutil.which("uv"):
-        print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
+        if constants.DARWIN:
+            hint = "please run `brew install uv`."
+        else:
+            hint = "please install uv (https://docs.astral.sh/uv/getting-started/installation/)."
+        print(f"\n\n\ndevenv is no longer managing uv; {hint}\n\n\n")
         return 1
 
     from devenv.lib import node
@@ -298,7 +323,7 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("prek dependencies", ("prek", "install", "--prepare-hooks", "-f"), {}),
+            ("prek dependencies", prek_sync_cmd(reporoot), {}),
             ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
         ),
         verbose,
