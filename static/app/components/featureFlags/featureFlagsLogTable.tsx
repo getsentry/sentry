@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Pagination} from '@sentry/scraps/pagination';
-import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
@@ -93,11 +92,7 @@ function renderBodyCell(
 ) {
   switch (column.key) {
     case 'flag':
-      return (
-        <Text monospace wordBreak="break-word">
-          {dataRow.flag}
-        </Text>
-      );
+      return <code>{dataRow.flag}</code>;
     case 'provider':
       return dataRow.provider || t('unknown');
     case 'createdAt':

@@ -129,6 +129,9 @@ export function GridEditable<
       const prependColumns = props.grid.prependColumnWidths || [];
       const prepend = prependColumns.join(' ');
       const widths = columnOrder.map((item, index) => {
+        if (item.grow) {
+          return 'minmax(max-content, 1fr)';
+        }
         if (item.width === COL_WIDTH_UNDEFINED) {
           return `minmax(${minimumColWidth}px, auto)`;
         }
@@ -220,7 +223,7 @@ export function GridEditable<
               isFirst={i === 0}
             >
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-              {i !== numColumn - 1 && resizable && (
+              {i !== numColumn - 1 && !column.grow && resizable && (
                 <GridResizer
                   dataRows={!error && !isLoading && data ? data.length : 0}
                   onMouseDown={e => onResizeMouseDown(e, i)}
