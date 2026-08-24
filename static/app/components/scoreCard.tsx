@@ -13,7 +13,6 @@ type ScoreCardProps = {
   className?: string;
   help?: React.ReactNode;
   isTooltipHoverable?: boolean;
-  renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
@@ -26,7 +25,6 @@ export function ScoreCard({
   trend,
   trendStatus,
   className,
-  renderOpenButton,
   isTooltipHoverable,
 }: ScoreCardProps) {
   const displayScore = score ?? '\u2014';
@@ -45,7 +43,6 @@ export function ScoreCard({
             />
           )}
         </HeaderTitle>
-        {renderOpenButton?.()}
       </Flex>
 
       <ScoreWrapper>

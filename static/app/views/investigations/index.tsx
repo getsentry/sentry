@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,6 +14,7 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -35,12 +36,14 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  investigationDetailQueryOptions,
   investigationListQueryOptions,
   useCreateInvestigationMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useSetInvestigationFavoriteMutation,
 } from 'sentry/views/investigations/api';
+import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import type {InvestigationListItem} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -67,7 +70,9 @@ const TableWrapper = styled('div')`
 `;
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
-  return normalizeUrl(`/organizations/${organizationSlug}/seer/${investigationId}/`);
+  return normalizeUrl(
+    `/organizations/${organizationSlug}/seer/investigation/${investigationId}/`
+  );
 }
 
 function FeatureDisabledPage() {
@@ -95,6 +100,7 @@ function ClosedMembershipPage() {
 
 function InvestigationsPage() {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
   const [{query, cursor}, setQueryParams] = useQueryStates({
     query: parseAsString,
@@ -117,7 +123,15 @@ function InvestigationsPage() {
   });
 
   const favoriteMutation = useSetInvestigationFavoriteMutation(organization.slug, {
-    onSuccess: () => addSuccessMessage(t('Investigation favorite updated.')),
+    onSuccess: (_data, {investigation, shouldFavorite}) => {
+      updateInvestigationCache(
+        queryClient,
+        organization.slug,
+        investigation.id,
+        current => ({...current, isFavorited: shouldFavorite})
+      );
+      addSuccessMessage(t('Investigation favorite updated.'));
+    },
     onError: () => addErrorMessage(t('Unable to update investigation favorite.')),
   });
 
@@ -127,7 +141,14 @@ function InvestigationsPage() {
   });
 
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
-    onSuccess: () => addSuccessMessage(t('Investigation deleted.')),
+    onSuccess: (_data, investigation) => {
+      queryClient.removeQueries({
+        queryKey: investigationDetailQueryOptions(organization.slug, investigation.id)
+          .queryKey,
+        exact: true,
+      });
+      addSuccessMessage(t('Investigation deleted.'));
+    },
     onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
 
@@ -193,7 +214,14 @@ function InvestigationsPage() {
       case ColumnKey.NAME:
         return (
           <Text ellipsis>
-            <Link to={getInvestigationPath(organization.slug, investigation.id)}>
+            <Link
+              to={getInvestigationPath(organization.slug, investigation.id)}
+              onClick={() =>
+                void queryClient.prefetchQuery(
+                  investigationDetailQueryOptions(organization.slug, investigation.id)
+                )
+              }
+            >
               {investigation.title}
             </Link>
           </Text>
@@ -341,12 +369,14 @@ export default function InvestigationsView() {
   const organization = useOrganization();
 
   return (
-    <Feature
-      organization={organization}
-      features="organizations:investigations"
-      renderDisabled={() => <FeatureDisabledPage />}
-    >
-      {organization.openMembership ? <InvestigationsPage /> : <ClosedMembershipPage />}
-    </Feature>
+    <AnalyticsArea name="investigations.list" overrideParent>
+      <Feature
+        organization={organization}
+        features="organizations:investigations"
+        renderDisabled={() => <FeatureDisabledPage />}
+      >
+        {organization.openMembership ? <InvestigationsPage /> : <ClosedMembershipPage />}
+      </Feature>
+    </AnalyticsArea>
   );
 }

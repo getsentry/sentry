@@ -2335,6 +2335,12 @@ function buildRoutes(): RouteObject[] {
     children: exploreChildren,
   };
 
+  const investigationRoutes: SentryRouteObject = {
+    path: '/seer/investigation/:investigationId/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/investigations/detail')),
+  };
+
   const preprodChildren: SentryRouteObject[] = [
     {
       path: 'size/:artifactId/',
@@ -2807,6 +2813,7 @@ function buildRoutes(): RouteObject[] {
       domainViewRoutes,
       tracesRoutes,
       exploreRoutes,
+      investigationRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
       gettingStartedRoutes,

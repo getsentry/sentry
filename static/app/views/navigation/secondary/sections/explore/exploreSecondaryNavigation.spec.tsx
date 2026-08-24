@@ -91,6 +91,41 @@ describe('ExploreSecondaryNavigation', () => {
     expect(screen.getByLabelText('beta')).toBeInTheDocument();
   });
 
+  it('keeps Explore and Investigations active on investigation detail pages', () => {
+    const {organization: investigationsOrganization} = initializeOrg({
+      organization: {
+        features: ['performance-view', 'visibility-explore-view', 'investigations'],
+        openMembership: true,
+      },
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: investigationsOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/seer/investigation/investigation-1/',
+          },
+        },
+      }
+    );
+
+    expect(screen.getByRole('link', {name: 'Explore'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+    expect(screen.getByRole('link', {name: /Investigations/})).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+  });
+
   it('hides Investigations for a closed-membership organization', () => {
     const {organization: closedMembershipOrganization} = initializeOrg({
       organization: {

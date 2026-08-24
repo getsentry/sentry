@@ -190,11 +190,14 @@ function ReplayPreviewTable({
   selectedIds: string[];
 }) {
   return (
-    <SimpleTableWithTwoColumns>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Replay')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+    <SimpleTableWithTwoColumns
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Replay')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {selectedIds.map(id => {
         const replay = replays.find(r => r.id === id)!;
         if (replay.is_archived) {

@@ -157,7 +157,10 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link
                     to={`${baseUrl}/investigations/`}
-                    activeTo={`${baseUrl}/investigations/`}
+                    activeTo={[
+                      `${baseUrl}/investigations/`,
+                      `/organizations/${organization.slug}/seer/investigation/`,
+                    ]}
                     analyticsItemName="explore_investigations"
                     trailingItems={<FeatureBadge type="beta" />}
                   >

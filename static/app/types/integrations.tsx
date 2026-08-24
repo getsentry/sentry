@@ -177,6 +177,14 @@ export type PullRequestReviewStatus =
   | 'changes_requested'
   | 'review_required';
 
+export type PullRequestFileChangeType =
+  | 'ADDED'
+  | 'CHANGED'
+  | 'COPIED'
+  | 'DELETED'
+  | 'MODIFIED'
+  | 'RENAMED';
+
 export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
   attribution: PullRequestAttribution | null;
   checksStatus: PullRequestChecksStatus | null;

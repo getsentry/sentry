@@ -10,3 +10,7 @@ export type InvestigationListItem = {
   title: string;
   version: number;
 };
+
+// Expand this response type as the detail UI begins consuming additional fields.
+// The complete server response is retained at runtime in the query cache.
+export type InvestigationDetail = InvestigationListItem;
