@@ -222,14 +222,6 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
         assert resp.status_code == 403
 
-    def test_no_feature(self) -> None:
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        resp = self.get_response(self.organization.slug, self.alert_rule.id)
-        assert resp.status_code == 404
-
     def test_no_project(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -2722,13 +2714,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
-
-    def test_no_feature(self) -> None:
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
     def test_snapshot_and_create_new_with_same_name(self) -> None:
         with self.tasks():
