@@ -165,6 +165,35 @@ class DeleteBlockStalenessTest(TestCase):
 
 
 class BreachedMetricSourceRefTest(TestCase):
+    def test_accepts_serialized_source_fields_and_uses_the_resolved_source(self) -> None:
+        source_ref = {"groupId": "1", "openPeriodId": "2"}
+        resolved = BreachedMetricSource(
+            project_id=self.project.id,
+            dataset="errors",
+            source={
+                "type": "metric_open_period",
+                "ref": source_ref,
+                "snapshot": {"monitor": {"name": "Resolved monitor"}},
+            },
+        )
+
+        with mock.patch(
+            "sentry.investigations.services.investigations.resolve_breached_metric_sources",
+            return_value={(1, 2): resolved},
+        ):
+            result = resolve_investigation_source(
+                organization=self.organization,
+                source={
+                    "type": "metric_open_period",
+                    "ref": source_ref,
+                    "revision": 3,
+                    "snapshot": {"monitor": {"name": "Caller-supplied monitor"}},
+                },
+                accessible_project_ids={self.project.id},
+            )
+
+        assert result == resolved
+
     def test_out_of_range_ids_are_treated_as_a_missing_source(self) -> None:
         with pytest.raises(InvestigationSourceNotFound):
             resolve_investigation_source(

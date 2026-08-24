@@ -288,7 +288,7 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
 
 
 def _metric_open_period_ref(source: dict[str, Any]) -> tuple[int, int]:
-    if set(source) != {"type", "ref"} or source.get("type") != "metric_open_period":
+    if source.get("type") != "metric_open_period":
         raise InvestigationValidationError({"source": "Unsupported investigation source."})
     source_ref = source.get("ref")
     if not isinstance(source_ref, dict) or set(source_ref) != {"groupId", "openPeriodId"}:
