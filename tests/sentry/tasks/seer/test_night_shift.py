@@ -36,6 +36,7 @@ from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.simple_triage import (
     NIGHT_SHIFT_ISSUE_FETCH_LIMIT,
     NIGHT_SHIFT_MAX_SEARCH_PAGES,
+    NIGHT_SHIFT_OCCURRENCE_LOOKBACK,
     ScoredCandidate,
     fixability_score_strategy,
     fixability_score_strategy_per_project,
@@ -84,11 +85,11 @@ class NightShiftFixtures(Fixtures):
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
         return project
 
-    def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
+    def _store_event_and_update_group(self, project, fingerprint, *, timestamp=None, **group_attrs):
         event = self.store_event(
             data={
                 "fingerprint": [fingerprint],
-                "timestamp": before_now(hours=1).isoformat(),
+                "timestamp": (timestamp or before_now(hours=1)).isoformat(),
                 "environment": "production",
             },
             project_id=project.id,
@@ -1349,6 +1350,52 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         assert null.id in result_ids
         # Low-scored issue (below threshold) is excluded entirely
         assert len(result) == 3
+
+    def test_requires_recent_occurrence(self) -> None:
+        project = self.create_project()
+        recent = self._store_event_and_update_group(project, "recent")
+        self._store_event_and_update_group(
+            project,
+            "old",
+            timestamp=before_now(days=15),
+        )
+
+        result = fixability_score_strategy([project], max_candidates=10)
+
+        assert [candidate.group.id for candidate in result] == [recent.id]
+
+    def test_agentic_search_requires_recent_occurrence(self) -> None:
+        project = self.create_project()
+        recent = self._store_event_and_update_group(project, "agentic-recent")
+        self._store_event_and_update_group(
+            project,
+            "agentic-old",
+            timestamp=before_now(days=15),
+        )
+
+        with self.feature({"organizations:agentic-triage-sort": True}):
+            result = fixability_score_strategy([project], max_candidates=10)
+
+        assert [candidate.group.id for candidate in result] == [recent.id]
+
+    def test_search_passes_fourteen_day_occurrence_window(self) -> None:
+        project = self.create_project()
+
+        with (
+            freeze_time("2026-08-24 12:00:00Z"),
+            patch("sentry.tasks.seer.night_shift.simple_triage.search.backend.query") as mock_query,
+        ):
+            mock_query.return_value = _cursor_result([])
+            fixability_score_strategy([project], max_candidates=10)
+
+        expected_cutoff = datetime(2026, 8, 24, 12, tzinfo=UTC) - NIGHT_SHIFT_OCCURRENCE_LOOKBACK
+        assert mock_query.call_args.kwargs["date_from"] == expected_cutoff
+        filters = {
+            search_filter.key.name: search_filter
+            for search_filter in mock_query.call_args.kwargs["search_filters"]
+        }
+        assert filters["last_seen"].operator == ">="
+        assert filters["last_seen"].value.raw_value == expected_cutoff
 
     def test_includes_low_value_span_issues_in_search(self) -> None:
         project = self.create_project()
