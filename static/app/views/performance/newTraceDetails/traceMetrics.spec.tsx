@@ -141,9 +141,11 @@ describe('TraceViewMetricsSection', () => {
 
     const search = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.type(search, 'metric.name:duration{enter}');
+    await userEvent.type(search, 'OR{enter}');
+    await userEvent.type(search, 'metric.name:distribution{enter}');
 
     await waitFor(() => {
-      expect(eventsRequest).toHaveBeenCalledTimes(2);
+      expect(eventsRequest).toHaveBeenCalledTimes(4);
     });
     for (const call of eventsRequest.mock.calls) {
       expect(call[1]?.query?.query).toContain(
@@ -151,7 +153,14 @@ describe('TraceViewMetricsSection', () => {
       );
     }
     expect(eventsRequest.mock.calls.at(-1)?.[1]?.query?.query).toContain('duration');
-    expect(screen.getByLabelText('Current metrics query')).toHaveTextContent('duration');
+    const currentMetricsQuery = screen.getByLabelText(
+      'Current metrics query'
+    ).textContent;
+    expect(currentMetricsQuery).toContain('duration');
+    expect(currentMetricsQuery).toContain('distribution');
+    expect(currentMetricsQuery).toMatch(
+      /^\( !has:sentry\.metric\.source OR !sentry\.metric\.source:span \) AND \( .* OR .* \)$/
+    );
   });
 
   it('scopes attribute and value autocomplete requests to the trace', async () => {

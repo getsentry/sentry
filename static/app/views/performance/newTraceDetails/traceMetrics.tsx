@@ -182,8 +182,11 @@ function MetricsSectionContent() {
       searchSource: 'tracemetrics',
       onSearch: (query: string) => {
         setVisibleQuery(query);
-        const search = new MutableSearch(query);
-        search.tokens.push(...new MutableSearch(EXCLUDE_SPAN_METRICS_QUERY).tokens);
+        const search = new MutableSearch(
+          query
+            ? `${EXCLUDE_SPAN_METRICS_QUERY} AND (${query})`
+            : EXCLUDE_SPAN_METRICS_QUERY
+        );
         setMetricsQuery(search.formatString());
       },
       hiddenAttributeKeys: HiddenTraceMetricTraceViewSearchFields,
