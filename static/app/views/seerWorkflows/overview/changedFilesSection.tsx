@@ -1,11 +1,10 @@
 import {Fragment, type ReactNode, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconChevron, IconCode} from 'sentry/icons';
+import {IconCode} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
 import {ChangedFileRow, type FileChangeTag} from './changedFileRow';
@@ -68,12 +67,9 @@ function RepoGroup({
         borderTop={groupIndex > 0 ? 'primary' : undefined}
       >
         {group.repoName ? (
-          <Fragment>
-            <Tag variant="muted">{group.files.length}</Tag>
-            <Text size="sm" bold variant="secondary" ellipsis>
-              {group.repoName}
-            </Text>
-          </Fragment>
+          <Text size="sm" bold variant="secondary" ellipsis>
+            {group.repoName}
+          </Text>
         ) : (
           <Text size="sm" variant="muted">
             {group.files.length === 1
@@ -103,9 +99,8 @@ function RepoGroup({
         <Flex borderTop="primary" padding="0 xs">
           <Button
             size="sm"
-            variant="transparent"
+            variant="link"
             aria-expanded={showAll}
-            icon={<IconChevron direction={showAll ? 'up' : 'down'} />}
             onClick={() => setShowAll(prev => !prev)}
           >
             {showAll
