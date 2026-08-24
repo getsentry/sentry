@@ -894,6 +894,39 @@ describe('InboxPage', () => {
     expect(autofixRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('renders available content while the Autofix prefetch is still loading', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    const autofixRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
+      match: [MockApiClient.matchQuery({mode: 'explorer', llmFormat: 'markdown'})],
+      body: new Promise(() => {}),
+    });
+    const pullRequestsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
+      body: {pullRequests: []},
+    });
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const issueLink = await within(
+      screen.getByRole('region', {name: 'Fix Proposed'})
+    ).findByRole('link', {name: /Fix proposed issue/});
+    await userEvent.hover(issueLink);
+    await waitFor(() => expect(autofixRequest).toHaveBeenCalledTimes(1));
+    await userEvent.click(issueLink);
+
+    const preview = screen.getByRole('complementary', {name: 'Issue preview'});
+    expect(
+      await within(preview).findByRole('heading', {name: 'Activity'})
+    ).toBeInTheDocument();
+    expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
