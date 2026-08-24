@@ -83,7 +83,7 @@ describe('IssuesSecondaryNavigation', () => {
     mockInboxCount({});
     const organizationWithOverview = OrganizationFixture({
       features: [
-        'issue-stream-progress-ui',
+        'issue-inbox',
         'gen-ai-features',
         'seat-based-seer-enabled',
         'seer-night-shift-ui',
