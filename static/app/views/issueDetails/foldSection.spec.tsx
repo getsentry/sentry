@@ -61,6 +61,22 @@ describe('FoldSection', () => {
       expect(screen.getByRole('button')).toHaveAccessibleName('Collapse Section');
     });
 
+    it('does not wrap a custom block title in inline typography', () => {
+      render(
+        <FoldSection
+          title={<div>Custom Block Title</div>}
+          sectionKey={SectionKey.HIGHLIGHTS}
+        >
+          <div>Test Content</div>
+        </FoldSection>,
+        {
+          organization: OrganizationFixture(),
+        }
+      );
+
+      expect(screen.getByText('Custom Block Title')).toBeVisible();
+    });
+
     it('uses titleLabel for a custom JSX title', () => {
       render(
         <FoldSection

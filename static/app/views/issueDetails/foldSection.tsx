@@ -215,7 +215,11 @@ export function FoldSection({
             ) : undefined
           }
         >
-          <Text size="lg">{title}</Text>
+          {typeof title === 'string' ? (
+            <Text size="lg">{title}</Text>
+          ) : (
+            (title ?? undefined)
+          )}
         </Disclosure.Title>
         <Disclosure.Content>
           <ErrorBoundary mini>{expanded ? children : null}</ErrorBoundary>

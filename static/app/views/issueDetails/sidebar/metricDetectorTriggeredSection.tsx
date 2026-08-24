@@ -652,7 +652,7 @@ function SeerInvestigationSection({
       title={
         <Flex align="center" gap="xs">
           <IconSeer aria-hidden size="sm" />
-          {t('Seer Investigation')}
+          <Text size="lg">{t('Seer Investigation')}</Text>
         </Flex>
       }
       titleLabel={t('Seer Investigation')}
