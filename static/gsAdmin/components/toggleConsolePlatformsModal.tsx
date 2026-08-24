@@ -314,7 +314,7 @@ function ToggleConsolePlatformsModal({
           />
         </div>
 
-        <SimpleTableWithColumns
+        <SimpleTable
           columns={INVITE_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
@@ -330,7 +330,7 @@ function ToggleConsolePlatformsModal({
             onRefetch={refetchInvites}
             onRevoke={handleRevoke}
           />
-        </SimpleTableWithColumns>
+        </SimpleTable>
 
         <QuotaAlert />
       </Body>
@@ -351,8 +351,6 @@ const NumberFieldFromConfig = styled(FieldFromConfig)`
     padding-right: ${p => p.theme.space['3xl']};
   }
 `;
-
-const SimpleTableWithColumns = styled(SimpleTable)``;
 
 const StyledQuotaAlert = styled(Alert)`
   margin-top: ${p => p.theme.space.xl};
