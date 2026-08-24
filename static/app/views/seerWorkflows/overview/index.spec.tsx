@@ -72,7 +72,6 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       files: [],
-      failedChecks: [],
     };
   }
 
@@ -937,7 +936,6 @@ describe('AutofixOverview', () => {
       reviewStatus: null,
       repoName: 'getsentry/sentry',
       files: [],
-      failedChecks: [],
     };
 
     const enriched = deferEnriched();
@@ -996,7 +994,6 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       repoName: null,
-      failedChecks: [],
       files: [
         {path: 'src/sentry/foo.py', additions: 1, deletions: 1, changeType: 'MODIFIED'},
         {path: 'src/sentry/bar.py', additions: 2, deletions: 0, changeType: 'ADDED'},
@@ -1022,7 +1019,6 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       files: [],
-      failedChecks: [],
     };
     // The endpoint enriches open/draft links only, so the actionable PR is the
     // one carrying badges and files.
@@ -1041,7 +1037,6 @@ describe('AutofixOverview', () => {
           changeType: 'MODIFIED',
         },
       ],
-      failedChecks: [],
     };
     mockOverview({
       base: {
@@ -1077,7 +1072,10 @@ describe('AutofixOverview', () => {
       ...pullRequestFixture({number: 3, status: 'open'}),
       checksStatus: 'failure',
       reviewStatus: 'changes_requested',
-      failedChecks: ['build (3.12)', 'mypy'],
+      failedCheckDetails: [
+        {name: 'build (3.12)', url: null},
+        {name: 'mypy', url: null},
+      ],
     };
     const pendingPullRequest: OverviewPullRequest = {
       ...pullRequestFixture({number: 4, status: 'open'}),
@@ -1120,6 +1118,30 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('mypy')).toBeInTheDocument();
   });
 
+  it('links a failing check to its run and leaves url-less checks as plain text', async () => {
+    const failingPullRequest: OverviewPullRequest = {
+      ...pullRequestFixture({number: 3, status: 'open'}),
+      checksStatus: 'failure',
+      failedCheckDetails: [
+        {name: 'build (3.12)', url: 'https://github.com/getsentry/sentry/runs/1'},
+        {name: 'flaky', url: null},
+      ],
+    };
+    mockOverview({
+      base: {has_pull_request: [{...rootCauseRun, pullRequests: [failingPullRequest]}]},
+    });
+
+    renderPage();
+
+    await userEvent.hover(await screen.findByText('2 Checks Failing'));
+
+    const runLink = await screen.findByRole('link', {name: 'build (3.12)'});
+    expect(runLink).toHaveAttribute('href', 'https://github.com/getsentry/sentry/runs/1');
+    // A check with no run url stays plain text, not a link.
+    expect(screen.getByText('flaky')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'flaky'})).not.toBeInTheDocument();
+  });
+
   it('uses the singular label for a single failed check', async () => {
     mockOverview({
       base: {
@@ -1130,7 +1152,7 @@ describe('AutofixOverview', () => {
               {
                 ...pullRequestFixture({number: 3, status: 'open'}),
                 checksStatus: 'failure',
-                failedChecks: ['mypy'],
+                failedCheckDetails: [{name: 'mypy', url: null}],
               },
             ],
           },
@@ -1143,16 +1165,16 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('1 Check Failing')).toBeInTheDocument();
   });
 
-  it('falls back to the plain failing label when a failing PR omits failedChecks', async () => {
-    // The field is absent until the backend deploys; the failing tag must fall
-    // back to the plain label rather than reading .length of undefined.
-    const {failedChecks: _omitted, ...withoutFailedChecks} = {
+  it('shows the plain failing label when a failing PR has no check details', async () => {
+    // A failing PR with no per-check details must show the plain label rather
+    // than reading .length of undefined.
+    const failingWithoutDetails: OverviewPullRequest = {
       ...pullRequestFixture({number: 3, status: 'open'}),
-      checksStatus: 'failure' as const,
+      checksStatus: 'failure',
     };
     mockOverview({
       base: {
-        has_pull_request: [{...rootCauseRun, pullRequests: [withoutFailedChecks]}],
+        has_pull_request: [{...rootCauseRun, pullRequests: [failingWithoutDetails]}],
       },
     });
 
@@ -1248,7 +1270,6 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
-                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/new.py',
@@ -1315,7 +1336,6 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
-                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/mystery.py',
@@ -1356,7 +1376,6 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
-                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/foo.py',
@@ -1412,7 +1431,6 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
-                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/foo.py',
@@ -1472,7 +1490,6 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
-                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/gone.py',

@@ -6,8 +6,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionContext,
@@ -18,6 +19,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.action_log.types import (
     ActionSource,
     ArchiveAction,
@@ -39,6 +41,7 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -516,6 +519,118 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 204
         log.assert_not_logged()
+
+
+class TestGroupActionLogOutboxRecovery(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+
+    def _publish_shared_outbox(self, action: GroupAction, group: Group) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
+            publish_action(
+                action,
+                source=ActionSource.API,
+                group_id=group.id,
+                project=group.project,
+            )
+
+    def _seed_dedicated_outbox(self, action: GroupAction, group: Group) -> None:
+        # Recovery ships before the producer cutover, so seed the dedicated table
+        # from the payload produced by the existing shared route.
+        self._publish_shared_outbox(action, group)
+        shared_outbox = CellOutbox.objects.get(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
+            shard_identifier=group.id,
+        )
+        with outbox_context(flush=False):
+            GroupActionLogOutbox(
+                shard_scope=shared_outbox.shard_scope,
+                shard_identifier=shared_outbox.shard_identifier,
+                category=shared_outbox.category,
+                object_identifier=GroupActionLogOutbox.next_object_identifier(),
+                payload=shared_outbox.payload,
+            ).save()
+        shared_outbox.delete()
+
+    def test_shared_scheduler_does_not_drain_dedicated_outbox(self) -> None:
+        other_group = self.create_group(project=self.group.project)
+        self._publish_shared_outbox(ViewAction(), self.group)
+        self._seed_dedicated_outbox(ResolveAction(), other_group)
+
+        with self.tasks():
+            enqueue_outbox_jobs(concurrency=1, process_outbox_backfills=False)
+
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
+        assert GroupActionLogOutbox.objects.count() == 1
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+        assert GroupActionLogEntry.objects.filter(group_id=other_group.id).count() == 0
+
+        with self.tasks():
+            enqueue_group_action_log_outbox_jobs(concurrency=1)
+
+        assert not GroupActionLogOutbox.objects.exists()
+        assert GroupActionLogEntry.objects.filter(group_id=other_group.id).count() == 1
+
+    def test_dedicated_scheduler_does_not_drain_shared_outbox(self) -> None:
+        self._publish_shared_outbox(ViewAction(), self.group)
+
+        with self.tasks():
+            enqueue_group_action_log_outbox_jobs(concurrency=1)
+
+        assert (
+            CellOutbox.objects.filter(category=OutboxCategory.GROUP_ACTION_LOG_EVENT).count() == 1
+        )
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
+
+    def test_receiver_failure_retains_dedicated_row(self) -> None:
+        other_group = self.create_group(project=self.group.project)
+        self._publish_shared_outbox(ResolveAction(), other_group)
+        self._seed_dedicated_outbox(ViewAction(), self.group)
+
+        with (
+            patch(
+                "sentry.hybridcloud.models.outbox.process_cell_outbox.send",
+                side_effect=ValueError("receiver failed"),
+            ),
+            self.tasks(),
+            pytest.raises(OutboxFlushError),
+        ):
+            enqueue_group_action_log_outbox_jobs(concurrency=1)
+
+        outbox = GroupActionLogOutbox.objects.get()
+        assert outbox.scheduled_for > outbox.scheduled_from
+        assert (
+            CellOutbox.objects.filter(category=OutboxCategory.GROUP_ACTION_LOG_EVENT).count() == 1
+        )
+
+        with self.tasks():
+            enqueue_outbox_jobs(concurrency=1, process_outbox_backfills=False)
+
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
+        assert GroupActionLogOutbox.objects.count() == 1
+        assert GroupActionLogEntry.objects.filter(group_id=other_group.id).count() == 1
+
+    def test_outbox_runner_drains_shared_and_dedicated_outboxes(self) -> None:
+        other_group = self.create_group(project=self.group.project)
+        self._publish_shared_outbox(ViewAction(), self.group)
+        self._seed_dedicated_outbox(ResolveAction(), other_group)
+
+        with outbox_runner():
+            pass
+
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
+        assert not GroupActionLogOutbox.objects.exists()
+        assert (
+            GroupActionLogEntry.objects.filter(group_id__in=(self.group.id, other_group.id)).count()
+            == 2
+        )
 
 
 class TestPublishActionWrite(TestCase):
