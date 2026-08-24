@@ -83,6 +83,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
       </TextBlock>
       <FeatureFlagsLogTable
         columns={columns}
+        fit="max-content"
         flags={flags?.data ?? []}
         isPending={isPending}
         error={error}
