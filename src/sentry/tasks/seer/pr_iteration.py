@@ -66,8 +66,12 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.missing_permissions import (
+    block_iteration_for_missing_permissions,
+)
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
+    peek_queued_autofix_feedback,
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
@@ -195,6 +199,17 @@ def consume_queued_autofix_feedback(
             return
 
         if state.status == "processing":
+            return
+
+        # Gate before popping: a blocked iteration must leave its feedback in the
+        # queue so the API can see there is CI we would have acted on, and so the
+        # work resumes on its own once the permissions are accepted.
+        if any(
+            item.feedback.source.should_consume(state)
+            for item in peek_queued_autofix_feedback(run_id)
+        ) and block_iteration_for_missing_permissions(
+            organization=organization, run_id=run_id, state=state
+        ):
             return
 
         queued_items = pop_queued_autofix_feedback(run_id)

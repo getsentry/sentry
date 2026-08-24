@@ -180,7 +180,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["blocks"][0]["message"]["metadata"] is None
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_out_of_date_github_permissions")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_blocked_pr_iteration_permissions")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_no_warnings_when_no_missing_permissions(
         self, mock_get_explorer_state, mock_get_perms
@@ -201,7 +201,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["warnings"] == []
         mock_get_perms.assert_called_once()
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_out_of_date_github_permissions")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_blocked_pr_iteration_permissions")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_returns_github_permission_warnings(self, mock_get_explorer_state, mock_get_perms):
         group = self.create_group()

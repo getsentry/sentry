@@ -472,6 +472,53 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     def _call(self) -> None:
         consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
 
+    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_missing_permissions_leaves_the_feedback_queued(
+        self,
+        mock_fetch: MagicMock,
+        mock_peek: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_block: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_peek.return_value = [self._queued(self._review_feedback(1))]
+        mock_block.return_value = True
+
+        self._call()
+
+        # Blocked before the pop, so the next consume still has the feedback to
+        # act on once the permissions are accepted.
+        mock_pop.assert_not_called()
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_no_permission_check_without_consumable_feedback(
+        self,
+        mock_fetch: MagicMock,
+        mock_peek: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_block: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_peek.return_value = []
+        mock_pop.return_value = []
+
+        self._call()
+
+        # Nothing to act on, so no PR comment and no GitHub lookup.
+        mock_block.assert_not_called()
+        mock_trigger.assert_not_called()
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")

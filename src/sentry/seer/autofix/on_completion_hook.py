@@ -36,12 +36,6 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.github_perms import (
-    blocks_have_failed_tool_call,
-    comment_on_out_of_date_github_permissions,
-    get_out_of_date_github_permissions,
-    repos_with_failed_tool_calls,
-)
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -203,11 +197,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # Send webhook for the completed step
         cls._send_step_webhook(organization, run_id, state, group, fallback_referrer=run_referrer)
 
-        # When a tool failed because the GitHub App installation is missing
-        # permissions the user needs to re-accept, comment on the affected PRs
-        # so the user knows to update them (at most once per repo per run).
-        cls._maybe_comment_on_missing_permissions(organization, run_id, state)
-
         # Acknowledge the comment(s) that triggered a completed PR iteration; no
         # outcomes means it was never an ack candidate, so there's nothing to log.
         reaction_outcomes = cls._maybe_react_to_completed_iteration(organization, run_id, state)
@@ -225,64 +214,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._maybe_continue_pipeline(
             organization, run_id, state, group, fallback_referrer=run_referrer
         )
-
-    @classmethod
-    def _maybe_comment_on_missing_permissions(
-        cls,
-        organization: Organization,
-        run_id: int,
-        state: SeerRunState,
-    ) -> None:
-        # Comment on a PR the first time a tool call fails for it since PRs were
-        # created — the first failing iteration touching that repo is our "first
-        # time" signal, so we don't need to persist whether we've commented.
-        # This is per-repo: a repo that already had a failing iteration is
-        # skipped, while a repo hitting its first failure now is commented on.
-        # Failures before PR creation (e.g. in code_changes) are ignored.
-        iterations = get_iterations(state)
-        if not iterations:
-            return
-
-        # Only proceed when the latest iteration failed — that's when a repo can
-        # be hitting its first failure.
-        *earlier, latest = iterations
-        if not blocks_have_failed_tool_call(latest.blocks):
-            return
-
-        missing_by_repo = get_out_of_date_github_permissions(organization, latest.blocks)
-        if not missing_by_repo:
-            return
-
-        # Repos a tool call failed against in an earlier iteration have been
-        # commented on before, so exclude them.
-        repos_with_prior_failure: set[str] = set()
-        for iteration in earlier:
-            repos_with_prior_failure |= repos_with_failed_tool_calls(iteration.blocks)
-
-        missing_by_repo = {
-            repo: info
-            for repo, info in missing_by_repo.items()
-            if repo not in repos_with_prior_failure
-        }
-        if not missing_by_repo:
-            return
-
-        logger.info(
-            "autofix.on_completion_hook.github_permissions_out_of_date",
-            extra={
-                "run_id": run_id,
-                "organization_id": organization.id,
-                "missing_by_repo": {
-                    repo: {
-                        "missing_scopes": info.missing_scopes,
-                        "installation_id": info.installation_id,
-                    }
-                    for repo, info in missing_by_repo.items()
-                },
-            },
-        )
-
-        comment_on_out_of_date_github_permissions(organization, state, missing_by_repo)
 
     @classmethod
     def _repo_name_for_feedback(
