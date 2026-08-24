@@ -293,11 +293,12 @@ class PullRequestManager(BaseManager["PullRequest"]):
     ) -> int | None:
         """The provider-global PR id for this org/repo/number, fetching on a miss.
 
-        Reads ``external_id`` off the existing row. A missing row or a NULL
-        column calls ``fetch`` and writes the result back — so a later mention
-        does not pay REST again. A ``None`` from ``fetch`` is not stored: that
-        is a lost installation, a gone-private repo, or a transient error, and
-        caching it would freeze a recoverable miss.
+        Reads ``external_id`` off the existing row. A NULL column calls
+        ``fetch`` and writes the result back — so a later mention does not pay
+        REST again. A missing row also fetches, but the id is returned
+        unpersisted: we do not invent a shell PR. A ``None`` from ``fetch`` is
+        not stored: that is a lost installation, a gone-private repo, or a
+        transient error, and caching it would freeze a recoverable miss.
 
         ``scm.pull_request.external_id`` is tagged ``result`` (``hit`` /
         ``fetched`` / ``fetch_empty``) and ``row`` (``present`` / ``absent``)
@@ -313,7 +314,6 @@ class PullRequestManager(BaseManager["PullRequest"]):
             metrics.incr(
                 "scm.pull_request.external_id",
                 tags={"result": "hit", "row": "present"},
-                sample_rate=1.0,
             )
             return stored.external_id
 
@@ -327,35 +327,22 @@ class PullRequestManager(BaseManager["PullRequest"]):
                 "row": row,
             },
         )
-        pr_id = fetch()
-        if pr_id is None:
+        external_id = fetch()
+        if external_id is None:
             metrics.incr(
                 "scm.pull_request.external_id",
                 tags={"result": "fetch_empty", "row": row},
-                sample_rate=1.0,
             )
             return None
 
         if stored is not None:
-            stored.update(external_id=pr_id)
-        else:
-            pull_request, created = self.get_or_create(
-                organization_id=organization_id,
-                repository_id=repository_id,
-                key=key,
-                defaults={"external_id": pr_id},
-            )
-            if not created and pull_request.external_id is None:
-                pull_request.update(external_id=pr_id)
-            elif not created and pull_request.external_id is not None:
-                pr_id = pull_request.external_id
+            stored.update(external_id=external_id)
 
         metrics.incr(
             "scm.pull_request.external_id",
             tags={"result": "fetched", "row": row},
-            sample_rate=1.0,
         )
-        return pr_id
+        return external_id
 
     def for_provider_pr(
         self, *, external_id: str, integration_id: int, key: int | str
