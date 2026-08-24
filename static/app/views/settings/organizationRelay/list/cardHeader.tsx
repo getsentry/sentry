@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
@@ -44,26 +44,22 @@ export function CardHeader({
   return (
     <Grid
       columns={{zero: '1fr', md: '1fr max-content'}}
-      rows={{zero: 'repeat(3, max-content)', md: 'repeat(2, max-content)'}}
-      gap={{zero: 'md', md: '2xs'}}
+      align="center"
+      gap={{zero: 'xl', md: 'md'}}
       marginBottom="md"
     >
-      <KeyName>
-        {name}
-        {description && <QuestionTooltip position="top" size="sm" title={description} />}
-      </KeyName>
-      <DateCreated>
-        {tct('Created on [date]', {date: <DateTime date={created} />})}
-      </DateCreated>
-      <Flex
-        align="center"
-        gap="md"
-        wrap="wrap"
-        row={{zero: '3', md: '1 / 3'}}
-        column={{zero: '1 / -1', md: '2'}}
-        justify={{zero: 'start', md: 'end'}}
-        paddingTop={{zero: 'md', md: '0'}}
-      >
+      <Stack gap="2xs">
+        <KeyName>
+          {name}
+          {description && (
+            <QuestionTooltip position="top" size="sm" title={description} />
+          )}
+        </KeyName>
+        <DateCreated>
+          {tct('Created on [date]', {date: <DateTime date={created} />})}
+        </DateCreated>
+      </Stack>
+      <Flex align="center" gap="md" wrap="wrap" justify={{zero: 'start', md: 'end'}}>
         <Button
           size="sm"
           icon={<IconCopyId />}
@@ -101,7 +97,6 @@ export function CardHeader({
 }
 
 const KeyName = styled('div')`
-  grid-row: 1/2;
   grid-template-columns: repeat(2, max-content);
   display: flex;
   gap: ${p => p.theme.space.md};
@@ -109,7 +104,6 @@ const KeyName = styled('div')`
 `;
 
 const DateCreated = styled('div')`
-  grid-row: 2/3;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
 `;
