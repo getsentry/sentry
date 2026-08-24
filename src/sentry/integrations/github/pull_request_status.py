@@ -6,6 +6,7 @@ from typing import Any
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
+    FailedCheck,
     PullRequestFileSummary,
     PullRequestStatusRequest,
     PullRequestStatusResult,
@@ -26,10 +27,12 @@ fragment PullRequestStatusFields on PullRequest {
               ... on CheckRun {
                 name
                 conclusion
+                detailsUrl
               }
               ... on StatusContext {
                 context
                 state
+                targetUrl
               }
             }
           }
@@ -156,7 +159,7 @@ def _extract_files(pull_request: Any) -> tuple[PullRequestFileSummary, ...]:
     return tuple(files)
 
 
-def _extract_failed_checks(pull_request: Any) -> tuple[str, ...]:
+def _extract_failed_checks(pull_request: Any) -> tuple[FailedCheck, ...]:
     nodes = (
         get_path(
             pull_request,
@@ -170,20 +173,22 @@ def _extract_failed_checks(pull_request: Any) -> tuple[str, ...]:
         )
         or []
     )
-    failed: list[str] = []
+    failed: list[FailedCheck] = []
     for node in nodes:
         if not isinstance(node, Mapping):
             continue
         if node.get("__typename") == "CheckRun":
             name = node.get("name")
             failing = node.get("conclusion") in _FAILING_CHECK_RUN_CONCLUSIONS
+            url = node.get("detailsUrl")
         elif node.get("__typename") == "StatusContext":
             name = node.get("context")
             failing = node.get("state") in _FAILING_STATUS_CONTEXT_STATES
+            url = node.get("targetUrl")
         else:
             continue
         if failing and isinstance(name, str):
-            failed.append(name)
+            failed.append(FailedCheck(name=name, url=url if isinstance(url, str) else None))
     return tuple(failed)
 
 

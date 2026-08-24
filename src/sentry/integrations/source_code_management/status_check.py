@@ -65,13 +65,21 @@ class PullRequestFileSummary:
 
 
 @dataclass(frozen=True)
+class FailedCheck:
+    """A failing check on a pull request, with a link to its run when the provider gives one."""
+
+    name: str
+    url: str | None = None
+
+
+@dataclass(frozen=True)
 class PullRequestStatusResult:
     """A pull request's checks and review state, as far as the provider reports it."""
 
     checks: AggregateChecksStatus | None = None
     review: AggregateReviewStatus | None = None
     files: tuple[PullRequestFileSummary, ...] = ()
-    failed_checks: tuple[str, ...] = ()
+    failed_checks: tuple[FailedCheck, ...] = ()
 
 
 @dataclass(frozen=True)
