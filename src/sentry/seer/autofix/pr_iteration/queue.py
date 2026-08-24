@@ -30,8 +30,6 @@ def _feedback_queue_key(run_id: int) -> str:
 
 def try_enqueue_autofix_feedback(
     *,
-    # Built by the caller and shared with ``trigger_consume_pr_iteration_feedback``,
-    # so one arrival of feedback logs both its decisions under one identity.
     log_ctx: PrIterationLogContext,
     run_id: int,
     organization_id: int,
@@ -83,12 +81,7 @@ def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
 
 
 def count_queued_autofix_feedback(run_id: int) -> int:
-    """How many items are on this run's queue, without reading or removing them.
-
-    For the drain that declines to pop: what it leaves behind is the difference
-    between "nothing was waiting" and "work is still owed to whoever comes back
-    for it", and neither is visible from a line that only says it skipped.
-    """
+    """How many items are on this run's queue, without reading or removing them."""
     return redis_clusters.get(_REDIS_CLUSTER).llen(_feedback_queue_key(run_id))
 
 

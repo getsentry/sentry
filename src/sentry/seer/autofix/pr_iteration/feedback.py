@@ -40,17 +40,12 @@ class Feedback(BaseModel):
     def feedback_id(self) -> str:
         """Names this one item in a log line, without carrying its payload.
 
-        ``<source type>:<provider id>``, or the type alone where the provider
-        issues no id of its own. The type is part of the value rather than a
-        field beside it because the ids are not comparable across sources -- a
-        GitHub issue-comment id and a review-comment id are drawn from separate
-        namespaces and can collide -- so one field names any item unambiguously,
-        and a line that reports several of them stays one field wide.
+        Delegates to :attr:`FeedbackSourceBase.source_id`. Source types are not
+        comparable (a GitHub issue-comment id and a review-comment id can
+        collide), so pair this with ``source.type`` when uniqueness across
+        sources matters.
         """
-        external_id = self.source.external_id
-        if external_id is None:
-            return self.source.type
-        return f"{self.source.type}:{external_id}"
+        return self.source.source_id
 
     @root_validator
     def _populate(cls, values: dict[str, Any]) -> dict[str, Any]:

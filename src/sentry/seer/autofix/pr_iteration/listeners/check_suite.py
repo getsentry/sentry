@@ -46,19 +46,7 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     if not is_green and conclusion not in FAILURE_CONCLUSIONS:
         return None
 
-    # Every check suite of every GitHub installation lands here, and both branches
-    # below go on to query repositories and call Seer per pull request. None of
-    # that is worth paying for when no organization behind the installation holds
-    # a flag *this conclusion* feeds, so those suites are dropped on one
-    # integration lookup: a green suite behind an installation nobody
-    # review-requests for never reaches the SCM confirm, and a failing one behind
-    # an installation nobody iterates for never costs the Seer round trip that
-    # resolves its run. Entitlement stays downstream, where the organization is
-    # actually known: this sees only the installation, not which organization the
-    # suite's repository and Autofix run turn out to belong to, so
-    # ``resolve_green_check_suite`` re-checks the review-request flag per repo and
-    # ``assign_user_for_exhausted_cap`` owns the cap-assign flag outright -- the
-    # latter gates a side effect of iteration, so it is never asked about here.
+    # Drop suites nobody behind the installation can act on
     gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
     if not resolve_check_suite_flag_gate(check_suite_event, gate_flags).flagged_organization_ids:
         return None
@@ -120,19 +108,12 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     feedback = Feedback(source=source)
     # One identity for both decisions below, so the queue line and the trigger
     # line of a single check suite are found by the same search.
-    log_ctx = PrIterationLogContext(
-        logger,
-        run_state=agent_state,
-        organization_id=organization_id,
-        group_id=autofix_run.group_id,
+    log_ctx = PrIterationLogContext.for_run(
+        logger, agent_state, organization_id, autofix_run.group_id
     )
 
-    # Everything below talks to Redis, Seer, and GitHub. Left to escape, the
-    # exception would reach `exec_listener`, which counts it against the SCM
-    # stream rather than against this run -- so the failure would be visible while
-    # the iteration it broke would not. Report it once here, under the run's
-    # identity, and drop the event: re-raising would only duplicate that report
-    # upstream, and the next check suite on this PR re-enters from the top anyway.
+    # report failrues here rather than in the SCM event stream error monitoring
+    # so it's easier to find errors in Sentry in the PR iteration flow
     try:
         enqueued = try_enqueue_autofix_feedback(
             log_ctx=log_ctx,

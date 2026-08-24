@@ -403,11 +403,8 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
 
                 # Shared by both calls, so one arrival of feedback logs its queue
                 # and trigger decisions under one identity.
-                log_ctx = PrIterationLogContext(
-                    logger,
-                    run_state=run_state,
-                    organization_id=group.organization.id,
-                    group_id=group.id,
+                log_ctx = PrIterationLogContext.for_run(
+                    logger, run_state, group.organization.id, group.id
                 )
 
                 try_enqueue_autofix_feedback(
@@ -421,10 +418,6 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
                     actor_user_id=request.user.id,
                 )
 
-                # Was a direct ``apply_async``, which scheduled the same drain
-                # without a trigger line or a ``trigger_id`` to tie it back here.
-                # Routing through the trigger changes nothing about when it runs
-                # -- this source has no gate, so it still consumes immediately.
                 trigger_consume_pr_iteration_feedback(
                     log_ctx=log_ctx,
                     run_id=resolved_run_id,

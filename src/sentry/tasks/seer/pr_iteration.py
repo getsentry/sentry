@@ -124,8 +124,6 @@ def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | Non
 
 def trigger_consume_pr_iteration_feedback(
     *,
-    # Shared with the ``try_enqueue_autofix_feedback`` call that precedes this one,
-    # so one arrival of feedback logs both its decisions under one identity.
     log_ctx: PrIterationLogContext,
     run_id: int,
     organization_id: int,
@@ -140,14 +138,9 @@ def trigger_consume_pr_iteration_feedback(
         decision = feedback.source.should_trigger(run_state)
 
     countdown = None
-    # Minted here rather than taken from the scheduled task: `apply_async` returns
-    # `None`, so the activation id it generates never comes back to the producer.
-    # Passing our own id down is the only direction the link can travel.
     trigger_id = None
 
     if decision.task is not None:
-        # ``delay`` overrides whatever the source asked for, so the line below
-        # reports the countdown the task got, not the one it requested.
         countdown = delay if delay is not None else decision.task.countdown()
         trigger_id = uuid4().hex
         consume_queued_autofix_feedback.apply_async(
@@ -159,31 +152,19 @@ def trigger_consume_pr_iteration_feedback(
             countdown=countdown,
         )
 
-    # Three outcomes, not two: a source that defers (incomplete check runs) still
-    # schedules a task, so folding it into ``triggered`` left the line reading as
-    # "consuming now" with only ``countdown`` further down to say otherwise.
-    # ``delayed`` names that case outright; ``countdown`` says how long.
     if decision.task is None:
         outcome = "not_triggered"
     elif countdown:
         outcome = "delayed"
     else:
-        # ``ConsumeTask.Now`` reports no countdown, and an explicit ``delay=0``
-        # runs just as immediately -- neither waits, so neither is deferred.
         outcome = "triggered"
 
     log_ctx.info(
         "autofix.pr_iteration.feedback.trigger",
-        # Which producer scheduled this drain. The other is the completion hook's
-        # hand-back, which has no arriving item to name. Stated outright rather
-        # than left to be inferred from ``reason`` or from ``feedback_id`` being
-        # absent, so counting one against the other is a filter and not a list of
-        # reasons someone has to know in advance.
         triggered_by="feedback",
         outcome=outcome,
         reason=decision.reason,
         countdown=countdown,
-        # Null when nothing was scheduled: the id names a task, not a decision.
         trigger_id=trigger_id,
         bypass=bypass,
         delay=delay,
@@ -240,25 +221,13 @@ def consume_queued_autofix_feedback(
             )
             return
 
-        # The run state is the first thing here that can anchor a line to the
-        # rest of the iteration, so the shared identity starts at this point. The
-        # two lookups above keep the plain logger: neither has anything to anchor
-        # to beyond the two ids the task was called with, which the task record
-        # already carries.
         group_id = state.metadata.get("group_id") if state.metadata else None
-        log_ctx = PrIterationLogContext(
-            logger,
-            run_state=state,
-            organization_id=organization_id,
-            group_id=group_id,
-        )
+        log_ctx = PrIterationLogContext.for_run(logger, state, organization_id, group_id)
         task_state = current_task()
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.started",
             run_status=state.status,
             trigger_id=trigger_id,
-            # This task's own activation, to cross over into taskbroker's records
-            # from here. ``None`` outside a worker.
             activation_id=task_state.id if task_state else None,
         )
 
@@ -272,12 +241,6 @@ def consume_queued_autofix_feedback(
                 trigger_id=trigger_id,
             )
         except Exception as e:
-            # Re-raised, unlike the check-suite listener. There the exception
-            # would have reached `exec_listener` and been counted against the SCM
-            # stream, so it was reported here and dropped instead. A task failure
-            # is already attributed to this task and reported once by the worker,
-            # so this line only adds the run identity that report lacks --
-            # capturing it again here would report the same failure twice.
             log_ctx.error(
                 "autofix.pr_iteration.consume_feedback.failed",
                 error_type=type(e).__name__,
@@ -292,19 +255,9 @@ def _drain_queued_autofix_feedback(
     organization_id: int,
     group_id: int | None,
     state: SeerRunState,
-    # Names the trigger that *scheduled* this drain, not the one whose feedback it
-    # drained: the queue is per run, so the first task to arrive takes everything
-    # on it and any later one finds it empty. ``feedback_ids`` on the line below
-    # is what was actually handed over.
     trigger_id: str | None,
 ) -> None:
-    """Pop this run's queued feedback and hand whatever survives to the agent.
-
-    Exits by way of one ``consume_feedback.drain`` line whichever way it goes,
-    with the ``outcome`` / ``reason`` pair the queue and trigger lines use. Items
-    that did not make it ride along on it in ``dropped`` rather than getting a
-    line each, so one drain stays one search result however much was queued.
-    """
+    """Pop this run's queued feedback and hand whatever survives to the agent."""
     group = (
         Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
         if group_id
@@ -315,11 +268,6 @@ def _drain_queued_autofix_feedback(
         return
 
     if state.status == "processing":
-        # The one exit that leaves the queue standing -- everything below pops it
-        # destructively. Nothing reschedules from here: what is left is picked up
-        # by the completion hook's hand-back once the run finishes, or by the next
-        # arrival of feedback. So the depth is the interesting part: it separates
-        # "nothing was waiting" from "work is owed to whoever comes back for it".
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -408,9 +356,7 @@ def _drain_queued_autofix_feedback(
         actor_user_id=actor_user_id,
     )
 
-    # The drain line above is the opening half of the bracket: nothing between it
-    # and this call can fail, so a drain with no line below it means the call
-    # never came back.
+    # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
         trigger_autofix_agent(
             group=group,
@@ -837,12 +783,7 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    log_ctx = PrIterationLogContext(
-        logger,
-        run_state=agent_state,
-        organization_id=organization_id,
-        group_id=group_id,
-    )
+    log_ctx = PrIterationLogContext.for_run(logger, agent_state, organization_id, group_id)
     try_enqueue_autofix_feedback(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
@@ -1161,12 +1102,7 @@ def trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    log_ctx = PrIterationLogContext(
-        logger,
-        run_state=agent_state,
-        organization_id=organization_id,
-        group_id=group_id,
-    )
+    log_ctx = PrIterationLogContext.for_run(logger, agent_state, organization_id, group_id)
     for feedback_obj in feedback_items:
         try_enqueue_autofix_feedback(
             log_ctx=log_ctx,

@@ -97,15 +97,13 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
             values["comment_feedback"] = command.feedback
         else:
             values["comment_feedback"] = body or ""
+        if isinstance(comment, GithubIssueComment) and comment.id is not None:
+            values["source_id"] = str(comment.id)
         return values
 
     @property
     def text(self) -> str:
         return self.comment_feedback
-
-    @property
-    def external_id(self) -> int | None:
-        return self.comment.id
 
     def should_consume(self, run_state: SeerRunState) -> Decision:
         comment_id = self.comment.id
@@ -234,6 +232,13 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     # count toward the automated-iteration streak cap; human reviews reset it.
     author_is_bot: bool = False
 
+    @root_validator
+    def _set_source_id(cls, values: dict[str, Any]) -> dict[str, Any]:
+        review_id = values.get("review_id")
+        if review_id is not None:
+            values["source_id"] = str(review_id)
+        return values
+
     @property
     def text(self) -> str:
         return self.body
@@ -241,11 +246,6 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     @property
     def is_automated(self) -> bool:
         return self.author_is_bot
-
-    @property
-    def external_id(self) -> int | None:
-        # The review, not a comment: a body has no id of its own.
-        return self.review_id
 
     def should_consume(self, run_state: SeerRunState) -> Decision:
         if self.review_id is None:

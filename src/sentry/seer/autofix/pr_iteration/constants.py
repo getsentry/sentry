@@ -18,22 +18,15 @@ REVIEW_REQUEST_FLAG = "organizations:autofix-pr-iteration-review-request"
 # reachable after iteration has already run, so it never starts iteration.
 CAP_ASSIGN_FLAG = "organizations:autofix-pr-iteration-cap-assign"
 
-# What a check suite is worth resolving *for*, split by conclusion: an
-# organization with none of the flags its conclusion feeds has no side effect
-# left on that branch, so the event is dropped before any repository query, Seer
-# round trip, or SCM call. Each flag is still re-checked per organization where
-# it is acted on -- these say which work is possible, not which run is entitled.
+# We should only resolve check suites when certain features are enabled depending on the
+# status of the check suite
 #
 # Green: undraft + review-request, both under one flag.
 GREEN_CHECK_SUITE_FLAGS = (REVIEW_REQUEST_FLAG,)
 
-# Failing: automated iteration, which ``trigger_autofix_agent`` admits the
-# PR_ITERATION step under either flag for.
-#
-# ``CAP_ASSIGN_FLAG`` is deliberately absent: it only changes what happens once
-# iteration has already run, so it can never be the sole reason to keep an event.
-# An organization holding it without an iteration flag has its handoff dropped
-# here, which is the intent -- there is nothing left for a human to take over.
+# Failing: automated iteration, the cap assign flag isn't included:
+# it modifies the hard cap behaviour which only applies after we know the org
+# has iteration enabled
 FAILING_CHECK_SUITE_FLAGS = (ITERATION_FLAG, MANUAL_FLAG)
 
 # The only SCM provider PR iteration supports.

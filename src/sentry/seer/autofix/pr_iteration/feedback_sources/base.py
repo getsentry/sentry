@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, ClassVar
+from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.seer.agent.client_models import SeerRunState
 
@@ -37,13 +38,10 @@ ConsumeTask.Later = _ConsumeLater
 
 @dataclass(frozen=True)
 class Decision:
-    """A yes/no gate on one feedback item, and the input that settled it.
+    """`should_queue` and `should_consume` decisions
 
-    ``reason`` names what the gate actually read -- ``stale_head``,
-    ``already_processed`` -- on the allow path as much as the deny path, so a
-    caller logging the decision records why it went either way rather than only
-    that it did. Values are drawn from a small fixed vocabulary per method so they
-    are safe to use as a metric tag.
+    `ok` decides whether the gate (`should_decision` and `should_queue`) resolves
+    `reason` is purely for o11y, included as a tag in logs and metrics
     """
 
     ok: bool
@@ -52,10 +50,9 @@ class Decision:
 
 @dataclass(frozen=True)
 class TriggerDecision:
-    """When to run the consume task for a feedback item, and what settled it.
+    """`should_trigger` decision with `reason` for o11y
 
-    ``task`` of ``None`` means not at all: the run has hit a limit, not that it is
-    being deferred.
+    returns a `ConsumeTask` so we can either trigger now or queue up a trigger job for laters
     """
 
     task: ConsumeTask | None
@@ -65,6 +62,10 @@ class TriggerDecision:
 class FeedbackSourceBase(BaseModel):
     class Config:
         extra = "ignore"
+
+    # Always set. Provider-backed sources overwrite this with the provider's id;
+    # sources with none (UI) keep the UUID minted here.
+    source_id: str = Field(default_factory=lambda: str(uuid4()))
 
     @property
     def text(self) -> str:
@@ -78,36 +79,17 @@ class FeedbackSourceBase(BaseModel):
 
     @property
     def is_automated(self) -> bool:
-        """Whether this feedback came from an automated actor (CI, a bot) rather
-        than a human.
+        """Whether this feedback came from an automated actor (CI, a bot).
 
-        Consecutive iterations driven only by automated feedback are capped (see
-        ``automated_iteration_cap_reached``); human feedback resets that streak.
-        Defaults to human — subclasses opt in.
+        Consecutive automated-only iterations are capped.
         """
         return False
-
-    @property
-    def external_id(self) -> int | None:
-        """The provider's id for this one item, or ``None`` where it issues none.
-
-        The same id the dedupe gates key on, so an item named in a log can be
-        found on the provider it came from. Callers do not read this directly:
-        it is composed into :attr:`Feedback.feedback_id`, which qualifies it with
-        the source type.
-        """
-        return None
 
     def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
         """The inputs this source's gates read, for the caller logging a decision.
 
-        Takes ``run_state`` because a gate is a *comparison*: recording only the
-        incoming half leaves a reader unable to re-derive the verdict, so a source
-        that checks itself against the run returns both operands.
-
-        The feedback payload itself is deliberately absent. Sources wrapping a
-        webhook keep the whole raw body (``Config.extra = "allow"``), which is tens
-        of kilobytes and no more identifying than the ids already here.
+        Takes ``run_state`` because different fields in the run state are relevant depending
+        on the feedback source, and we don't want to pollute logs with the whole run_state object.
         """
         return {}
 

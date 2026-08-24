@@ -11,6 +11,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.github_perms import (
     blocks_have_failed_tool_call,
+    failed_tool_calls,
     repos_with_failed_tool_calls,
 )
 from sentry.utils import json
@@ -38,6 +39,25 @@ def _block(
         tool_links=tool_links or None,
         tool_results=tool_results or None,
     )
+
+
+def test_failed_tool_calls_returns_errored_calls() -> None:
+    block = _block(
+        calls=[
+            ("code_file_edit", "org/repo-a", False),
+            ("summarize_failed_ci_logs", "org/repo-b", True),
+        ]
+    )
+    calls = failed_tool_calls([block])
+    assert [call.function for call in calls] == ["summarize_failed_ci_logs"]
+
+
+def test_failed_tool_calls_aggregates_across_blocks() -> None:
+    blocks = [
+        _block(calls=[("t", "org/repo-a", True)]),
+        _block(calls=[("u", "org/repo-b", True)]),
+    ]
+    assert [call.function for call in failed_tool_calls(blocks)] == ["t", "u"]
 
 
 def test_no_blocks() -> None:

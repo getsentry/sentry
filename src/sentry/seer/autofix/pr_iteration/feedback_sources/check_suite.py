@@ -70,6 +70,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         values["app_name"] = event.check_suite.app.name
         values["check_suite_url"] = get_check_suite_url(event)
         values["updated_at"] = event.check_suite.updated_at
+        values["source_id"] = str(event.check_suite.id)
         return values
 
     @property
@@ -130,24 +131,11 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def is_automated(self) -> bool:
         return True
 
-    @property
-    def external_id(self) -> int | None:
-        # The suite, not the attempt: `check_suite_attempt_key` pairs this with
-        # `updated_at` to tell re-runs apart, which a reader can get from the
-        # `check_suite_updated_at` field alongside it.
-        return self.event.check_suite.id
-
     def _matches_current_head(self, run_state: SeerRunState) -> CheckSuiteHeadMatch:
         return check_suite_head_match(self.event, run_state)
 
     def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
-        """Which suite this is, and both sides of the head comparison.
-
-        ``run_pr_commit_sha`` is the head Seer last recorded for this repo -- the
-        other operand of every ``matched`` check here. With both shas on the line a
-        ``stale_head`` verdict can be re-derived rather than taken on trust, and a
-        run whose recorded head has fallen behind the PR is visible as such.
-        """
+        """Which suite this is, and both sides of the head comparison."""
         repo_name = self.event.repository.full_name
         pr_state = run_state.repo_pr_states.get(repo_name) if repo_name else None
         return {
