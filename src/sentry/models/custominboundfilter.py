@@ -18,14 +18,23 @@ class CustomInboundFilterConditionType(StrEnum):
 
 
 class CustomInboundFilterDataType(StrEnum):
+    """
+    The data a filter matches against.
+
+    ``ALL`` is the catch-all: the filter matches every data type Sentry ingests,
+    including ones added after the filter was written. Only conditions that read a
+    field every data type carries, such as ``release``, are available to it.
+    """
+
+    ALL = "all"
     ERROR = "error"
     LOG = "log"
     METRIC = "metric"
 
 
-# The data type each condition reads a field of. A filter targets a single data type,
-# so its conditions must all map to the same one. `release` is absent because every
-# data type carries a release, so it does not tie a filter to one data type.
+# The data type each condition reads a field of. A condition is absent when its field
+# is carried by every data type, such as `release`, since such a condition does not
+# tie a filter to one data type.
 DATA_TYPE_BY_CONDITION_TYPE: Mapping[
     CustomInboundFilterConditionType, CustomInboundFilterDataType
 ] = {
@@ -45,6 +54,12 @@ class CustomInboundFilter(DefaultFieldsModel):
     )
     name = models.CharField(max_length=256, null=True, blank=True)
     active = models.BooleanField(default=True, db_default=True)
+    data_type = models.CharField(
+        max_length=32,
+        choices=[(data_type, data_type) for data_type in CustomInboundFilterDataType],
+        default=CustomInboundFilterDataType.ERROR,
+        db_default=CustomInboundFilterDataType.ERROR.value,
+    )
     conditions = models.JSONField(default=list)
 
     class Meta:
