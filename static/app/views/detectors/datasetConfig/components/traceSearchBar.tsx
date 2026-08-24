@@ -22,16 +22,20 @@ export function TraceSearchBar({
     useTraceItemDatasetAttributes(traceDataset, {projects: projectIds}, 'string');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceItemDatasetAttributes(traceDataset, {projects: projectIds}, 'boolean');
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useTraceItemDatasetAttributes(traceDataset, {projects: projectIds}, 'array');
 
   return (
     <TraceItemSearchQueryBuilder
       itemType={traceDataset}
       initialQuery={initialQuery}
       onSearch={onSearch}
+      arrayAttributes={arrayAttributes}
       booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       numberSecondaryAliases={numberSecondaryAliases}
       stringAttributes={stringAttributes}
+      arraySecondaryAliases={arraySecondaryAliases}
       booleanSecondaryAliases={booleanSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       supportedAggregates={isLogs ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}

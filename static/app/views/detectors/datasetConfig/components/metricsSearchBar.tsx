@@ -127,16 +127,26 @@ export function MetricsDetectorSearchBar({
     };
   }, [data?.booleanAttributes]);
 
+  const visibleArrayTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(data?.arrayAttributes ?? {}).filter(
+        ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+      )
+    );
+  }, [data?.arrayAttributes]);
+
   return (
     <TraceItemSearchQueryBuilder
       key={traceMetric.name}
       itemType={TraceItemDataset.TRACEMETRICS}
       initialQuery={initialQuery}
       onSearch={onSearch}
+      arrayAttributes={visibleArrayTags ?? EMPTY_TAG_COLLECTION}
       booleanAttributes={visibleBooleanTags ?? EMPTY_TAG_COLLECTION}
       numberAttributes={visibleNumberTags ?? EMPTY_TAG_COLLECTION}
       numberSecondaryAliases={EMPTY_TAG_COLLECTION}
       stringAttributes={visibleStringTags ?? EMPTY_TAG_COLLECTION}
+      arraySecondaryAliases={EMPTY_TAG_COLLECTION}
       booleanSecondaryAliases={EMPTY_TAG_COLLECTION}
       stringSecondaryAliases={EMPTY_TAG_COLLECTION}
       searchSource="detectors-metrics"
