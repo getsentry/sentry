@@ -105,17 +105,7 @@ function useModalStore() {
   };
 }
 
-type Props = {
-  /**
-   * Note this is the callback for the main App container and NOT the calling
-   * component. GlobalModal is never used directly, but is controlled via
-   * stores. To access the onClose callback from the component, you must
-   * specify it when using the action creator.
-   */
-  onClose?: () => void;
-};
-
-export function GlobalModal({onClose}: Props) {
+export function GlobalModal() {
   const {renderer, options, visible, triggerElement} = useModalStore();
   const location = useLocation();
   const theme = useTheme();
@@ -128,11 +118,8 @@ export function GlobalModal({onClose}: Props) {
 
       // actually closes the modal
       ModalStore.closeModal();
-
-      // GlobalModal onClose prop callback
-      onClose?.();
     },
-    [options, onClose]
+    [options]
   );
 
   const handleEscapeClose = useCallback(
@@ -346,6 +333,7 @@ export function useModal(): UseModalReturn {
   };
 }
 
+/** @internal only used in tests & stories */
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
 const fullPageCss = css`

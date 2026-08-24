@@ -23,7 +23,6 @@ export function OrganizationMembershipSettingsForm({
   const access = new Set(organization.access);
 
   const hasInviteMembers = features.has('invite-members');
-  const hasTeamRoles = features.has('team-roles');
   const hasOrgWrite = access.has('org:write');
   const hasOrgAdmin = access.has('org:admin');
 
@@ -159,11 +158,7 @@ export function OrganizationMembershipSettingsForm({
               <field.Switch
                 checked={field.state.value}
                 onChange={field.handleChange}
-                disabled={
-                  !hasOrgWrite ||
-                  (!hasTeamRoles &&
-                    t('You must be on a business plan to toggle this feature.'))
-                }
+                disabled={!hasOrgWrite}
               />
             </field.Layout.Row>
           )}

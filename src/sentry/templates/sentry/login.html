@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_assets %}
 
 {% block title %}{% trans "Sign In" %} | {{ block.super }}{% endblock %}
 
@@ -145,4 +146,25 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% script %}
+<script>
+  // Console helper for opting into the cookie-gated React login experiment.
+  window.__sentryEnableReactLogin = function() {
+    const hostname = window.location.hostname;
+    const cookieDomain = hostname === 'sentry.io' || hostname.endsWith('.sentry.io')
+      ? '.sentry.io'
+      : hostname === 'dev.getsentry.net' || hostname.endsWith('.dev.getsentry.net')
+        ? '.dev.getsentry.net'
+        : null;
+    const domainAttribute = cookieDomain ? `; Domain=${cookieDomain}` : '';
+
+    document.cookie = `sentry_react_auth=1; Path=/auth/; SameSite=Lax${domainAttribute}`;
+    window.location.reload();
+  };
+</script>
+{% endscript %}
 {% endblock %}

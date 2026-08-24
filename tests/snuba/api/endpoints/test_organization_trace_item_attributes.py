@@ -685,10 +685,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             uuid4().hex,
             organization_id=self.organization.id,
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            # `gen_ai.request.model` is a sentry convention name supplied as a
-            # user tag, and `http.route` is a convention defined in
-            # sentry-conventions but not in attributes.py. Both stay `user`
-            # source but should still be matched to their convention's context.
             tags={"foo": "foo", "gen_ai.request.model": "gpt-4", "http.route": "/users/:id"},
         )
 
@@ -723,10 +719,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         # Custom (non-convention) attributes aren't served yet, so they get an
         # empty context.
         assert attributes["foo"]["context"] == {}
-        # A user tag whose name matches a sentry convention keeps its `user`
-        # source (it was user-set) but is still matched to the convention's
-        # context, since context is matched by name/type, not source.
-        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
+        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "sentry"
         assert attributes["gen_ai.request.model"]["context"] == {
             "isConvention": True,
             "brief": "The model identifier being used for the request.",
@@ -743,6 +736,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "The matched route, that is, the path template in the format used "
                 "by the respective server framework."
             ),
+            "details": [
+                "This attribute should primarily be set by server-side "
+                "instrumentation that captures the framework route of an incoming "
+                "request.",
+                "For `http.client` spans and client-side routing, use `url.template` instead.",
+            ],
             "examples": ["/users/:id"],
             "isDeprecated": False,
         }

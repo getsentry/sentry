@@ -41,6 +41,7 @@ from sentry.search.eap.utils import (
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.dates import to_datetime
 from sentry.utils.snuba_rpc import trace_item_details_rpc
 
 _NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
@@ -267,6 +268,24 @@ _SERIALIZED_EVENT_ATTRIBUTES: dict[str, str] = {
 }
 
 
+def _normalize_breadcrumbs(breadcrumbs: Any) -> None:
+    """Convert breadcrumb timestamps to datetimes so they serialize as strings.
+    Matches the event endpoint's breadcrumb serialization (see
+    Breadcrumbs.get_api_context)."""
+    if not isinstance(breadcrumbs, dict):
+        return
+
+    for crumb in breadcrumbs.get("values") or []:
+        if not isinstance(crumb, dict):
+            continue
+        timestamp = crumb.get("timestamp")
+        if isinstance(timestamp, (int, float)) and not isinstance(timestamp, bool):
+            try:
+                crumb["timestamp"] = to_datetime(timestamp)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
+
 def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
     """A few event fields (contexts, extra, breadcrumbs) are stored as
     JSON-serialized strings under internal `sentry.event.serialized_*`
@@ -283,9 +302,15 @@ def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
             continue
 
         try:
-            result[event_key] = json.loads(value)
+            parsed = json.loads(value)
         except json.JSONDecodeError as e:
             sentry_sdk.capture_exception(e)
+            continue
+
+        if event_key == "breadcrumbs":
+            _normalize_breadcrumbs(parsed)
+
+        result[event_key] = parsed
 
     return result or None
 

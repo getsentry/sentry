@@ -3,7 +3,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -155,7 +155,6 @@ interface ToolbarVisualizeAddProps {
   disabled: boolean;
   display?: 'button' | 'link';
   label?: string;
-  size?: ButtonProps['size'];
 }
 
 export function ToolbarVisualizeAddChart({
@@ -163,11 +162,10 @@ export function ToolbarVisualizeAddChart({
   disabled,
   label,
   display = 'link',
-  size = 'md',
 }: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      size={display === 'link' ? 'zero' : size}
+      size={display === 'link' ? 'zero' : 'md'}
       icon={<IconAdd />}
       onClick={add}
       variant={display === 'link' ? 'link' : undefined}

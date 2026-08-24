@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, F, OuterRef
+from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.calculations import (
@@ -16,6 +19,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
     compare_rebalanced_transactions_with_cache,
     compare_recalibration_factor_with_cache,
     get_cached_organization_sample_rate,
+    get_cached_per_org_recalibration_factor,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
@@ -40,6 +44,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
+    get_recalibration_organization_volume,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
     PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC,
@@ -50,6 +55,8 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
+from sentry.dynamic_sampling.tasks.common import get_organization_volume
+from sentry.dynamic_sampling.utils import DYNAMIC_SAMPLING_FEATURE
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -85,7 +92,11 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not config.projects:
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
-    org_volume_5m = get_eap_organization_volume(config)
+    # Recalibration pairs this volume with an outcomes query later in the task. The end is
+    # fixed here instead of taken twice from the clock, and truncated to the minute because
+    # the outcomes query widens its window to whole minutes.
+    org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
+    org_volume_5m = get_eap_organization_volume(config, end=org_volume_end)
     if org_volume_5m is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
@@ -170,9 +181,33 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         )
 
     if is_org_in_recalibration_rollout(org_id):
-        calculated_factor = config.recalibrate()
+        recalibration_volume = get_recalibration_organization_volume(
+            config,
+            org_volume_5m,
+            time_interval=timedelta(minutes=5),
+            end=org_volume_end,
+        )
+        # recalibrate overwrites this factor, so read it first to keep the state the EAP loop
+        # started this pass from.
+        previous_eap_factor = get_cached_per_org_recalibration_factor(config.organization.id)
+        calculated_factor = config.recalibrate(recalibration_volume)
         cached_factor = get_cached_recalibration_factor(config.organization.id)
-        compare_recalibration_factor_with_cache(config, calculated_factor, cached_factor)
+        try:
+            compare_recalibration_factor_with_cache(
+                config,
+                recalibration_volume,
+                calculated_factor,
+                cached_factor,
+                previous_eap_factor=previous_eap_factor,
+                legacy_volume=get_organization_volume(
+                    config.organization.id, time_interval=timedelta(minutes=5)
+                ),
+                # get_recalibration_organization_volume swaps this total for the outcomes
+                # one, so pass the original along to compare the two denominators.
+                eap_extrapolated_total=org_volume_5m.total,
+            )
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
 
     return None
 
@@ -242,6 +277,20 @@ def schedule_per_org_calculations() -> None:
         dispatched += 1
         return True
 
+    def keep_orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
+        # A None result means the check failed, which would otherwise read as "none of them".
+        results = features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, organizations)
+        if results is None:
+            raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
+
+        kept = [org.id for org in organizations if results.get(f"organization:{org.id}", False)]
+        emit_status(
+            SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+            DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING,
+            amount=len(organizations) - len(kept),
+        )
+        return kept
+
     scheduler = CursoredScheduler(
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
@@ -253,10 +302,14 @@ def schedule_per_org_calculations() -> None:
                 )
             ),
             status=OrganizationStatus.ACTIVE,
-        ),
+        )
+        .annotate(_order_bucket=Mod(F("id"), 10))
+        .order_by("_order_bucket", "id"),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
+        prevalidate_batch=keep_orgs_with_dynamic_sampling,
+        preserve_queryset_order=True,
     )
     scheduler.tick()
 

@@ -40,6 +40,7 @@ import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAuto
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 const DEFAULT_INITIAL_DATA = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,

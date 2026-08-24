@@ -42,7 +42,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
 
         # Feature run dispatched with the RCA payload.
         run_kwargs = client.start_feature_run.call_args.kwargs
-        assert run_kwargs["feature_id"] == "autofix_rca"
+        assert run_kwargs["feature_id"] == "autofix"
         assert run_kwargs["flush"] is True
         payload = run_kwargs["payload"]
         assert payload["group_id"] == self.group.id
@@ -50,6 +50,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         assert payload["title"] == self.group.title
         assert payload["tweaks"]["user_context"] == "an upstream triage summary"
         assert run_kwargs["extras"] == {"referrer": AutofixReferrer.NIGHT_SHIFT.value}
+        assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
 
         # A new run consumes Seer autofix budget.
         mock_quotas.backend.record_seer_run.assert_called_once()

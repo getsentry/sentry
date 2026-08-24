@@ -552,7 +552,6 @@ class GroupActionLogPayload(TypedDict):
     data: dict[str, Any]
     force_async_derived: bool
     idempotency_key: NotRequired[str]
-    date_added: NotRequired[str]
 
 
 class SetPublicAction(GroupAction):

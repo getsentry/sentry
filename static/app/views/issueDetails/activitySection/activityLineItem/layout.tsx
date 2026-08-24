@@ -4,17 +4,21 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {tct} from 'sentry/locale';
+
 export type ActivityLineVariant = 'compact' | 'full';
 
 interface ActivityLineHeadlineProps {
   timestamp: React.ReactNode;
   title: React.ReactNode;
   details?: React.ReactNode;
+  source?: string;
 }
 
 export function ActivityLineHeadline({
   title,
   details,
+  source,
   timestamp,
 }: ActivityLineHeadlineProps) {
   return (
@@ -32,6 +36,12 @@ export function ActivityLineHeadline({
           <Fragment>
             {' '}
             <ActivityLineDetails>{details}</ActivityLineDetails>
+          </Fragment>
+        ) : null}
+        {source ? (
+          <Fragment>
+            {' '}
+            <ActivityLineDetails>{tct('via [source]', {source})}</ActivityLineDetails>
           </Fragment>
         ) : null}
         <Fragment>
@@ -60,6 +70,16 @@ export const ActivityLineRow = styled('div')`
 
   @container activity-list (min-width: 90px) {
     column-gap: ${p => p.theme.space.sm};
+  }
+
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 11px;
+    bottom: calc(-${p => p.theme.space.md} - 11px);
+    border-left: 1px solid
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
@@ -98,20 +118,9 @@ export const ActivityLineContent = styled('div')`
 `;
 
 export const ActivityLineList = styled('div')`
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
   container-name: activity-list;
   container-type: inline-size;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 11px;
-    bottom: 11px;
-    width: 0;
-    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  }
 `;

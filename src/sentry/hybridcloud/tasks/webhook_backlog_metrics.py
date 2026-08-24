@@ -1,7 +1,8 @@
 import datetime
 import logging
+import math
 from collections import defaultdict
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 
 from django.db import OperationalError, connections, transaction
@@ -9,6 +10,7 @@ from django.db.models import Count, Min
 from django.utils import timezone
 
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.webhook_event_types import event_type_from_mailbox
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
@@ -27,6 +29,12 @@ size. Measured at ~830 buffers against a 2.6M row table, but nothing in the desi
 bounds it, so it gets an explicit bound.
 """
 
+DEPTH_QUANTILES = (50, 90, 99)
+"""
+`max_depth` reads the same whether one mailbox is stuck or a provider's whole backlog
+has shifted deeper. One is a mailbox to go look at, the other a capacity problem.
+"""
+
 MAILBOX_DEPTH_QUERY_TIMEOUT = datetime.timedelta(seconds=30)
 """
 Ceiling on the per-mailbox aggregate below.
@@ -36,6 +44,17 @@ the one that could turn this monitor into a second incident. Bounding it means a
 pathological table loses the per-provider breakdown rather than pinning a control
 replica; the far cheaper `backlog.*` signals still report.
 """
+
+
+def _nearest_rank(sorted_depths: Sequence[int], percentile: int) -> int:
+    """
+    Depth of the mailbox at `percentile` of an ascending `sorted_depths`.
+
+    Nearest-rank, so every value returned is a depth some mailbox actually has. The
+    clamp stops a low percentile from indexing -1 and returning the deepest instead.
+    """
+    index = math.ceil(percentile / 100 * len(sorted_depths)) - 1
+    return sorted_depths[max(index, 0)]
 
 
 @contextmanager
@@ -78,13 +97,30 @@ def record_webhook_backlog_metrics() -> None:
             [WebhookPayload._meta.db_table],
         )
         row = cursor.fetchone()
-    # Autovacuum-maintained, so it trails reality on a churning table — measured 0.13%
-    # below an exact count mid-backlog. `mailbox.pending_count` carries the exact value.
-    metrics.gauge(
-        "hybridcloud.webhookpayload.backlog.pending_count_estimate",
-        row[0] if row else 0,
-        sample_rate=1.0,
-    )
+    if row is None:
+        # No pg_class row for the table on this connection -- we don't have a
+        # trustworthy answer, so skip rather than emit a 0. A 0 here reads as "no
+        # backlog" and, blended into the host-tagged gauge's default aggregate
+        # alongside hosts that got a real answer, silently drags the reported
+        # average down. The age lookup below is independent, so it still runs.
+        #
+        # Warning, not error: whatever makes a specific replica connection see no
+        # catalog row for this table is below what this task can diagnose or fix
+        # (replica topology/routing, not application logic), so this is a signal
+        # to watch via the counter rather than one to page on.
+        metrics.incr(
+            "hybridcloud.webhookpayload.backlog.pending_count_query_failed", sample_rate=1.0
+        )
+        logger.warning("webhook_backlog_metrics.pending_count_query_failed")
+    else:
+        # Autovacuum-maintained, so it trails reality on a churning table — measured
+        # 0.13% below an exact count mid-backlog. `mailbox.pending_count` carries the
+        # exact value.
+        metrics.gauge(
+            "hybridcloud.webhookpayload.backlog.pending_count_estimate",
+            row[0],
+            sample_rate=1.0,
+        )
 
     # Ids are monotonic, so the lowest live id is the oldest undelivered payload.
     # Reading it in primary-key order stops at the first live row rather than
@@ -123,6 +159,14 @@ def record_mailbox_depth_metrics() -> None:
     behind it while the totals still look healthy — `max_depth` is what makes that
     visible. Establishing it means aggregating every row, so this runs on a slower
     schedule than `record_webhook_backlog_metrics` and under a statement timeout.
+
+    `pending_count` is additionally tagged by `event_type`, which says what the backlog
+    is made of and joins to `github.webhook.forwarded_event`; summing over the tag
+    reproduces the provider-only value. Only that metric — the rest read fine per
+    provider, and every tag value costs a series per worker that runs the task.
+
+    `depth_quantile` gives the shape behind `max_depth`. The depths are already in
+    memory for the aggregates above, so it costs one sort per provider.
     """
     replica = WebhookPayload.objects.using_replica()
     mailboxes = replica.values("provider", "mailbox_name").annotate(
@@ -138,36 +182,45 @@ def record_mailbox_depth_metrics() -> None:
         return
 
     now = timezone.now()
-    pending: dict[str, int] = defaultdict(int)
-    mailbox_count: dict[str, int] = defaultdict(int)
-    max_depth: dict[str, int] = defaultdict(int)
+    pending: dict[tuple[str, str], int] = defaultdict(int)
     oldest: dict[str, datetime.datetime] = {}
+    depths: dict[str, list[int]] = defaultdict(list)
     for row in rows:
         # The column is nullable, and rows predating it still drain through here.
         provider = row["provider"] or "unknown"
         depth, row_oldest = row["depth"], row["oldest"]
-        pending[provider] += depth
-        mailbox_count[provider] += 1
-        max_depth[provider] = max(max_depth[provider], depth)
+        event_type = event_type_from_mailbox(provider, row["mailbox_name"])
+        pending[(provider, event_type)] += depth
         oldest[provider] = min(oldest.get(provider, row_oldest), row_oldest)
+        depths[provider].append(depth)
 
-    for provider, pending_count in pending.items():
-        tags = {"provider": provider}
+    for (provider, event_type), pending_count in pending.items():
         metrics.gauge(
             "hybridcloud.webhookpayload.mailbox.pending_count",
             pending_count,
-            tags=tags,
+            tags={"provider": provider, "event_type": event_type},
             sample_rate=1.0,
         )
+
+    for provider, mailbox_depths in depths.items():
+        mailbox_depths.sort()
+        tags = {"provider": provider}
+        for percentile in DEPTH_QUANTILES:
+            metrics.gauge(
+                "hybridcloud.webhookpayload.mailbox.depth_quantile",
+                _nearest_rank(mailbox_depths, percentile),
+                tags={**tags, "quantile": f"p{percentile}"},
+                sample_rate=1.0,
+            )
         metrics.gauge(
             "hybridcloud.webhookpayload.mailbox.active_count",
-            mailbox_count[provider],
+            len(mailbox_depths),
             tags=tags,
             sample_rate=1.0,
         )
         metrics.gauge(
             "hybridcloud.webhookpayload.mailbox.max_depth",
-            max_depth[provider],
+            mailbox_depths[-1],
             tags=tags,
             sample_rate=1.0,
         )

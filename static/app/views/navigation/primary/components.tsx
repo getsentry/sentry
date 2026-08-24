@@ -255,13 +255,12 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   );
 }
 
-interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
+interface PrimaryNavigationUnreadIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
 }
 
 function PrimaryNavigationUnreadIndicator({
   variant,
-  ...props
 }: PrimaryNavigationUnreadIndicatorProps) {
   const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = {
     top: '0',
@@ -272,7 +271,7 @@ function PrimaryNavigationUnreadIndicator({
     <Container position="absolute" {...indicatorPosition}>
       {p => (
         <StatusIndicator
-          {...mergeProps(p, props)}
+          {...p}
           animationIterationCount={14}
           variant={variant}
           data-unread-indicator

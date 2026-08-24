@@ -14,10 +14,19 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient, GitHubApiRequestType, GitHubReaction
+from sentry.integrations.github.client import (
+    GitHubApiClient,
+    GitHubApiRequestType,
+    GitHubReaction,
+    resolve_rate_limit_resource,
+    resolve_upstream_path,
+)
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.github.pull_request_status import PULL_REQUEST_STATUS_FRAGMENT
+from sentry.integrations.github.pull_request_status import (
+    PULL_REQUEST_FILES_FRAGMENT,
+    PULL_REQUEST_STATUS_FRAGMENT,
+)
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
@@ -41,7 +50,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import control_silo_test
@@ -170,7 +179,54 @@ class GitHubApiClientTest(TestCase):
             self.github_client.get_commits(self.repo.name)
 
         mock_is_rate_limited.assert_called_once()
-        mock_set_capacity.assert_called_once_with(capacity=5000)
+        mock_set_capacity.assert_called_once_with(capacity=5000, resource="core")
+
+    @responses.activate
+    def test_search_capacity_is_recorded_against_the_search_resource(self) -> None:
+        """
+        GitHub's search resource allows 30 requests/minute while core allows at least 5000/hour.
+        Recording the search limit against core made every subsequent core request appear rate
+        limited until a core response overwrote it.
+        """
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/search/issues",
+            json={"items": []},
+            headers={"x-ratelimit-limit": "30"},
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter, "is_rate_limited", return_value=False
+            ) as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.search_issues("repo:foo bar")
+
+        assert mock_is_rate_limited.call_args.kwargs["resource"] == "search"
+        mock_set_capacity.assert_called_once_with(capacity=30, resource="search")
+
+    @responses.activate
+    def test_core_capacity_is_recorded_against_the_core_resource(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+            headers={"x-ratelimit-limit": "5000"},
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter, "is_rate_limited", return_value=False
+            ) as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        assert mock_is_rate_limited.call_args.kwargs["resource"] == "core"
+        mock_set_capacity.assert_called_once_with(capacity=5000, resource="core")
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -1104,6 +1160,7 @@ class GitHubApiClientTest(TestCase):
 
         body = orjson.loads(responses.calls[-1].request.body)
         assert PULL_REQUEST_STATUS_FRAGMENT in body["query"]
+        assert PULL_REQUEST_FILES_FRAGMENT not in body["query"]
         assert body["variables"] == {
             "owner0": "Test-Organization",
             "name0": "foo",
@@ -1192,6 +1249,19 @@ class GitHubApiClientTest(TestCase):
         # A different pull request keys separately, so it still reaches GitHub.
         self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="46")
         assert len(responses.calls) == 2
+
+    def test_pull_request_status_cache_separates_file_expansion(self) -> None:
+        status_only = PullRequestStatusRequest(repo=self.repo.name, pull_number="45")
+        with_files = PullRequestStatusRequest(
+            repo=self.repo.name, pull_number="45", include_files=True
+        )
+        previous_cache_data = orjson.dumps({"repo": self.repo.name, "pull_number": "45"}).decode()
+
+        status_only_key = self.github_client._get_pull_request_status_cache_key(status_only)
+        assert status_only_key == self.github_client.get_cache_key(
+            "/graphql/pull-request-status", "", previous_cache_data
+        )
+        assert status_only_key != self.github_client._get_pull_request_status_cache_key(with_files)
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -2580,3 +2650,77 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
         )
 
         assert self.github_client.get_blame_for_files([self.file], extra={}) == []
+
+
+class TestResolveRateLimitResource:
+    """
+    https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api enumerates the
+    quota pools GitHub meters independently.
+    """
+
+    def test_graphql(self) -> None:
+        assert resolve_rate_limit_resource("/graphql") == "graphql"
+
+    def test_search_issues(self) -> None:
+        assert resolve_rate_limit_resource("/search/issues") == "search"
+
+    def test_search_repositories(self) -> None:
+        assert resolve_rate_limit_resource("/search/repositories") == "search"
+
+    def test_code_search_is_metered_separately_from_search(self) -> None:
+        assert resolve_rate_limit_resource("/search/code") == "code_search"
+
+    def test_app_routes_are_metered_against_the_app(self) -> None:
+        """JWT-authenticated app routes count against the app, not the installation."""
+        assert resolve_rate_limit_resource("/app/installations/1/access_tokens") == "app"
+        assert resolve_rate_limit_resource("/app") == "app"
+
+    def test_repository_routes_are_core(self) -> None:
+        assert resolve_rate_limit_resource("/repos/foo/bar/commits") == "core"
+
+    def test_query_string_is_ignored(self) -> None:
+        assert resolve_rate_limit_resource("/search/issues?q=repo%3Afoo+bar") == "search"
+
+    def test_leading_slash_is_optional(self) -> None:
+        assert resolve_rate_limit_resource("search/issues") == "search"
+
+    def test_unknown_route_falls_back_to_core(self) -> None:
+        assert resolve_rate_limit_resource("/some/new/route") == "core"
+
+    def test_search_prefix_without_subresource_is_not_search(self) -> None:
+        """`/searchable` must not be mistaken for the search resource."""
+        assert resolve_rate_limit_resource("/searchable") == "core"
+
+
+class TestResolveUpstreamPath:
+    def test_uses_path_url_when_not_proxying(self) -> None:
+        request = Request(method="GET", url="https://api.github.com/repos/foo/bar").prepare()
+        assert resolve_upstream_path(request) == "/repos/foo/bar"
+
+    def test_uses_proxy_path_header_when_proxying(self) -> None:
+        """
+        In a cell silo the URL is rewritten to the control silo proxy before `_do_send` runs, so
+        `path_url` names the proxy endpoint. The GitHub route lives in the proxy path header.
+        """
+        request = Request(
+            method="GET",
+            url="http://controlserver/api/0/internal/integration-proxy/",
+            headers={PROXY_PATH: "search/issues"},
+        ).prepare()
+        assert resolve_upstream_path(request) == "/search/issues"
+
+    def test_proxied_path_resolves_to_the_correct_resource(self) -> None:
+        request = Request(
+            method="POST",
+            url="http://controlserver/api/0/internal/integration-proxy/",
+            headers={PROXY_PATH: "graphql"},
+        ).prepare()
+        assert resolve_rate_limit_resource(resolve_upstream_path(request)) == "graphql"
+
+    def test_empty_proxy_path_header_falls_back_to_path_url(self) -> None:
+        request = Request(
+            method="GET",
+            url="https://api.github.com/repos/foo/bar",
+            headers={PROXY_PATH: ""},
+        ).prepare()
+        assert resolve_upstream_path(request) == "/repos/foo/bar"

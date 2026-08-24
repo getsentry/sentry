@@ -13,6 +13,7 @@ function makeAutofix(
 ): ReturnType<typeof useExplorerAutofix> {
   return {
     runState: {run_id: 1, blocks: []} as any,
+    autofixFormatted: null,
     startStep: jest.fn().mockResolvedValue(undefined),
     createPR: jest.fn(),
     reset: jest.fn(),
@@ -21,7 +22,9 @@ function makeAutofix(
     dismissCodingAgentError: jest.fn(),
     warnings: [],
     isLoading: false,
+    isWaitingForRun: false,
     isPolling: false,
+    isProcessing: false,
     ...overrides,
   };
 }

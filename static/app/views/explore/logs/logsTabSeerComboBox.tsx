@@ -23,7 +23,7 @@ import {
 import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -67,7 +67,7 @@ export function getLogsSeerLocationQuery({
 }: {
   currentAggregateFields: readonly AggregateField[];
   currentLocation: Location;
-  pageDatetime: PageFilters['datetime'];
+  pageDatetime: PageFilterDatetime;
   result: AskSeerSearchQuery;
   projects?: Project[];
 }): LogsSeerLocationQueryResult {

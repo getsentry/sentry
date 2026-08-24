@@ -4,9 +4,9 @@ import type {
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
-import {createEmptyAssertionRoot} from 'sentry/views/alerts/rules/uptime/assertions/field';
-import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
-import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
+import {createEmptyAssertionRoot} from 'sentry/views/detectors/components/uptime/assertions/field';
+import type {UptimeAssertion} from 'sentry/views/detectors/components/uptime/types';
+import {UptimeMonitorMode} from 'sentry/views/detectors/components/uptime/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 export const UPTIME_DEFAULT_RECOVERY_THRESHOLD = 1;

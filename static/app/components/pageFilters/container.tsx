@@ -6,6 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
 import {
+  getOldestPickableStart,
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
@@ -13,7 +14,6 @@ import {
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
@@ -152,12 +152,10 @@ export function PageFiltersContainer({
     }
 
     // For absolute date ranges, check if the start date is before the allowed window.
-    // Uses same calculation as initialization in pageFilters.tsx
     if (start && end) {
       const periodStart = new Date(start);
       const periodEnd = new Date(end);
-      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
-      const maxStart = new Date(maxPeriod.start);
+      const maxStart = getOldestPickableStart(maxPickableDays);
 
       if (maxDateRange) {
         const maxTimeRange = maxDateRange * DAY_IN_MS;

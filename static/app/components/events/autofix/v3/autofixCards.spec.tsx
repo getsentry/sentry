@@ -109,8 +109,11 @@ function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
 
 const mockAutofix: ReturnType<typeof useExplorerAutofix> = {
   runState: null,
+  autofixFormatted: null,
   isLoading: false,
+  isWaitingForRun: false,
   isPolling: false,
+  isProcessing: false,
   startStep: jest.fn(),
   createPR: jest.fn(),
   reset: jest.fn(),
