@@ -25,15 +25,11 @@ const selectedPlatform = {
   category: 'browser',
 } as const;
 
-// Slack: channelId = real Slack channel ID, actionTarget = display name
-// (Slack alert rules address by name), channelName = display name (also
-// the channel-validate param for Slack).
 const selectedMessagingSetup: ScmMessagingSetup = {
   mode: 'selected',
   providerKey: 'slack',
   integrationId: '15',
   channelId: 'C123',
-  actionTarget: '#alerts',
   channelName: '#alerts',
 };
 
@@ -197,7 +193,6 @@ describe('ScmMessaging', () => {
       providerKey: 'discord',
       integrationId: '15',
       channelId: '1234567890',
-      actionTarget: '1234567890',
       channelName: '#dev-alerts',
     };
     MockApiClient.addMockResponse({
@@ -432,5 +427,38 @@ describe('ScmMessaging', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Set up later'}));
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'skipped'});
     expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears an ineligible destination with an explanation', async () => {
+    // A tenant-type MS Teams integration is active but cannot receive issue alerts.
+    const msteamsSetup: ScmMessagingSetup = {
+      mode: 'selected',
+      providerKey: 'msteams',
+      integrationId: '15',
+      channelId: '19:abc@thread.tacv2',
+      channelName: 'General',
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({
+        id: '15',
+        provider: {key: 'msteams'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+        configData: {installationType: 'tenant'},
+      }),
+    });
+    const onMessagingSetupChange = jest.fn();
+
+    renderMessaging(onMessagingSetupChange, msteamsSetup);
+
+    expect(
+      await screen.findByText(
+        'The saved workspace can no longer receive issue alerts. Choose a destination again.'
+      )
+    ).toBeInTheDocument();
+    expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
+    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 });

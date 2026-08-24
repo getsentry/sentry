@@ -87,6 +87,13 @@ export function ScmMessaging({
             {t('The saved integration is no longer active. Choose a destination again.')}
           </Alert>
         )}
+        {validation.staleReason === 'ineligibleIntegration' && (
+          <Alert variant="warning" showIcon>
+            {t(
+              'The saved workspace can no longer receive issue alerts. Choose a destination again.'
+            )}
+          </Alert>
+        )}
         {validation.staleReason === 'channel' && (
           <Alert variant="warning" showIcon>
             {t("We couldn't verify the saved channel. Choose a destination again.")}
