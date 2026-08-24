@@ -86,7 +86,7 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
                 "projects": projects,
                 # allow_joinleave grants project access without team membership.
                 "validation_projects": projects
-                or self.get_projects(request, organization, include_all_accessible=True)[:1],
+                or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
             },
         )

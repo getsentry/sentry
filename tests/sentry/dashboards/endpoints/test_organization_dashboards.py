@@ -2695,7 +2695,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     # resolve_params only raises on an empty project list outside tests.
 
-    def _single_widget_dashboard(self, title: str) -> dict[str, Any]:
+    def _single_widget_dashboard(
+        self, title: str, conditions: str = "event.type:transaction"
+    ) -> dict[str, Any]:
         return {
             "title": title,
             "widgets": [
@@ -2709,7 +2711,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "fields": ["count()"],
                             "columns": [],
                             "aggregates": ["count()"],
-                            "conditions": "event.type:transaction",
+                            "conditions": conditions,
                         }
                     ],
                 },
@@ -2755,6 +2757,33 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", url, data=self._single_widget_dashboard("Open Org"))
         assert response.status_code == 201, response.data
         assert Dashboard.objects.filter(organization=org, title="Open Org").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_accepts_accessible_project_filters_for_teamless_member(
+        self, mock_in_test_environment
+    ) -> None:
+        org = self.create_organization(owner=self.user, flags=1)
+        team = self.create_team(organization=org)
+        project_one = self.create_project(organization=org, teams=[team])
+        project_two = self.create_project(organization=org, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=org, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+        response = self.do_request(
+            "post",
+            url + "?validateOnly=1",
+            data=self._single_widget_dashboard(
+                "Project Filters",
+                f"project:{project_one.slug} OR project:{project_two.slug}",
+            ),
+        )
+        assert response.status_code == 200, response.data
+        assert not Dashboard.objects.filter(organization=org, title="Project Filters").exists()
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_errors_when_no_project_is_accessible(
