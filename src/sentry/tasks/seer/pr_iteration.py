@@ -4,7 +4,8 @@ import logging
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
+from enum import StrEnum
+from typing import Any, NamedTuple
 
 import sentry_sdk
 from scm import actions as scm_actions
@@ -69,7 +70,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
-from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused, record_pause_blocked
+from sentry.seer.autofix.pr_iteration.pause import (
+    is_pr_iteration_paused,
+    pause_pr_iteration,
+    record_pause_blocked,
+)
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     clear_queued_autofix_feedback,
@@ -94,6 +99,16 @@ INELIGIBLE_PR_ITERATION_COMMENT = (
     "PR iteration only works on pull requests created by Seer's Autofix agent. "
     "PRs that the Autofix Agent didn't create aren't eligible. This includes PRs "
     "created by the Coding Agent handoff and unrelated human PRs."
+)
+
+STOPPED_PR_ITERATION_COMMENT = (
+    "Seer stopped iterating on this Autofix run. Queued feedback was discarded.\n"
+    "New comments will not start another iteration. This cannot be undone. Start a new "
+    "Autofix run to iterate again."
+)
+
+STOP_PR_ITERATION_FAILED_COMMENT = (
+    "Seer could not stop iteration on this Autofix run. Close this pull request to stop the work."
 )
 
 # One explanatory comment per PR; further pings still get a :confused: reaction.
@@ -560,6 +575,173 @@ def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> int | None:
         return None
 
 
+class PrCommentRunOutcome(StrEnum):
+    MISSING_REPO = "missing_repo"
+    UNSUPPORTED_PROVIDER = "unsupported_provider"
+    PR_FETCH_FAILED = "pr_fetch_failed"
+    NO_RUN = "no_run"
+    INELIGIBLE_RUN = "ineligible_run"
+    SCM_INIT_FAILED = "scm_init_failed"
+    UNAUTHORIZED = "unauthorized"
+    PAUSE_FAILED = "pause_failed"
+
+
+# The iterate task counts these three outcomes only.
+_COMMENT_TRIGGER_COUNTED_OUTCOMES = frozenset(
+    {
+        PrCommentRunOutcome.NO_RUN,
+        PrCommentRunOutcome.INELIGIBLE_RUN,
+        PrCommentRunOutcome.UNAUTHORIZED,
+    }
+)
+
+
+class ResolvedPrCommentRun(NamedTuple):
+    agent_state: SeerRunState
+    scm: SourceCodeManager
+    actor_user: RpcUser | None
+
+
+def _resolve_run_for_pr_comment(
+    *,
+    organization_id: int,
+    repo_id: int,
+    integration_id: int,
+    pr_number: int,
+    github_username: str,
+    comment_id: int | None,
+    source_type: GithubPrCommentFeedbackType,
+    log_prefix: str,
+    external_id: str | int | None = None,
+) -> ResolvedPrCommentRun | PrCommentRunOutcome:
+    """Resolve the Autofix run behind a PR comment and gate on repo write access.
+
+    The iterate command and the stop command share this gate. Each caller passes
+    its own ``log_prefix`` so that the two commands stay separate in the logs.
+    """
+    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    if repo is None:
+        logger.info(
+            "%s.missing_repo",
+            log_prefix,
+            extra={"organization_id": organization_id, "repo_id": repo_id},
+        )
+        return PrCommentRunOutcome.MISSING_REPO
+
+    if repo.provider != PR_ITERATION_PROVIDER:
+        # Everything below reads the provider off the constant rather than the
+        # repo, so this is where the two are held to be the same thing. The entry
+        # point already rejects anything else, which makes reaching this a
+        # disagreement between that gate and this task rather than ordinary
+        # traffic — hence warning, and hence the provider in `extra`.
+        logger.warning(
+            "%s.unsupported_provider",
+            log_prefix,
+            extra={
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "provider": repo.provider,
+            },
+        )
+        return PrCommentRunOutcome.UNSUPPORTED_PROVIDER
+
+    try:
+        scm = make_scm(organization_id, repo_id, referrer="seer")
+    except Exception:
+        logger.warning(
+            "%s.scm_init_failed",
+            log_prefix,
+            extra={"organization_id": organization_id, "repo_id": repo_id},
+            exc_info=True,
+        )
+        return PrCommentRunOutcome.SCM_INIT_FAILED
+
+    if not isinstance(scm, GetPullRequestProtocol):
+        logger.warning(
+            "%s.unsupported_provider",
+            log_prefix,
+            extra={"organization_id": organization_id, "repo_id": repo_id},
+        )
+        return PrCommentRunOutcome.UNSUPPORTED_PROVIDER
+
+    try:
+        # The issue_comment payload behind an `@sentry` mention carries only the
+        # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
+        # The mapping lives on ``PullRequest.external_id``; the provider call
+        # runs only when no webhook (or earlier write-back) has stored it yet.
+        pr_id = PullRequest.objects.get_or_fetch_external_id(
+            organization_id=organization_id,
+            repository_id=repo.id,
+            key=str(pr_number),
+            fetch=lambda: _fetch_pr_id(scm, pr_number),
+        )
+    except SCMError:
+        logger.warning(
+            "%s.get_pull_request_failed",
+            log_prefix,
+            extra={"organization_id": organization_id, "pr_number": pr_number},
+            exc_info=True,
+        )
+        return PrCommentRunOutcome.PR_FETCH_FAILED
+    if pr_id is None:
+        return PrCommentRunOutcome.PR_FETCH_FAILED
+
+    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    if agent_state is None:
+        # No-op: missing runs are expected on regions that don't own the session
+        # when webhooks are fanned out everywhere. Do not react/comment as
+        # ineligible — that would false-positive against the region that does
+        # own the Autofix run and is iterating successfully.
+        logger.info(
+            "%s.no_run",
+            log_prefix,
+            extra={"organization_id": organization_id, "pr_id": pr_id},
+        )
+        return PrCommentRunOutcome.NO_RUN
+
+    if not agent_state.repo_pr_states:
+        # Found a Seer run for this PR, but it wasn't created by Autofix
+        # (coding-agent handoff is the main case). Explain ineligibility.
+        logger.info(
+            "%s.ineligible_run",
+            log_prefix,
+            extra={
+                "organization_id": organization_id,
+                "pr_id": pr_id,
+                "run_id": agent_state.run_id,
+            },
+        )
+        _comment_pr_iteration_ineligible(
+            scm,
+            organization_id=organization_id,
+            repo_id=repo.id,
+            pr_number=pr_number,
+            github_username=github_username,
+            source_type=source_type,
+            comment_id=comment_id,
+        )
+        return PrCommentRunOutcome.INELIGIBLE_RUN
+
+    if not _github_commenter_has_repo_write_access(scm, github_username):
+        logger.info(
+            "%s.unauthorized",
+            log_prefix,
+            extra={
+                "organization_id": organization_id,
+                "github_username": github_username,
+            },
+        )
+        return PrCommentRunOutcome.UNAUTHORIZED
+
+    actor_user = find_user_for_scm_actor(
+        organization_id=organization_id,
+        integration_id=integration_id,
+        username=github_username,
+        external_id=external_id,
+    )
+    return ResolvedPrCommentRun(agent_state=agent_state, scm=scm, actor_user=actor_user)
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
@@ -602,121 +784,23 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
-    if repo is None:
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.missing_repo",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
-        )
-        return None
-
-    if repo.provider != PR_ITERATION_PROVIDER:
-        # Everything below reads the provider off the constant rather than the
-        # repo, so this is where the two are held to be the same thing. The entry
-        # point already rejects anything else, which makes reaching this a
-        # disagreement between that gate and this task rather than ordinary
-        # traffic — hence warning, and hence the provider in `extra`.
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.unsupported_provider",
-            extra={
-                "organization_id": organization_id,
-                "repo_id": repo.id,
-                "provider": repo.provider,
-            },
-        )
-        return None
-
-    try:
-        scm = make_scm(organization_id, repo_id, referrer="seer")
-    except Exception:
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.scm_init_failed",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
-            exc_info=True,
-        )
-        return None
-
-    if not isinstance(scm, GetPullRequestProtocol):
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.unsupported_provider",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
-        )
-        return None
-
-    try:
-        # The issue_comment payload behind an `@sentry` mention carries only the
-        # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
-        # The mapping lives on ``PullRequest.external_id``; the provider call
-        # runs only when no webhook (or earlier write-back) has stored it yet.
-        pr_id = PullRequest.objects.get_or_fetch_external_id(
-            organization_id=organization_id,
-            repository_id=repo.id,
-            key=str(pr_number),
-            fetch=lambda: _fetch_pr_id(scm, pr_number),
-        )
-    except SCMError:
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.get_pull_request_failed",
-            extra={"organization_id": organization_id, "pr_number": pr_number},
-            exc_info=True,
-        )
-        return None
-    if pr_id is None:
-        return None
-
-    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
-    if agent_state is None:
-        # No-op: missing runs are expected on regions that don't own the session
-        # when webhooks are fanned out everywhere. Do not react/comment as
-        # ineligible — that would false-positive against the region that does
-        # own the Autofix run and is iterating successfully.
-        metrics.incr("autofix.pr_iteration.comment_trigger.no_run")
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.no_run",
-            extra={"organization_id": organization_id, "pr_id": pr_id},
-        )
-        return None
-
-    if not agent_state.repo_pr_states:
-        # Found a Seer run for this PR, but it wasn't created by Autofix
-        # (coding-agent handoff is the main case). Explain ineligibility.
-        metrics.incr("autofix.pr_iteration.comment_trigger.ineligible_run")
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.ineligible_run",
-            extra={
-                "organization_id": organization_id,
-                "pr_id": pr_id,
-                "run_id": agent_state.run_id,
-            },
-        )
-        _comment_pr_iteration_ineligible(
-            scm,
-            organization_id=organization_id,
-            repo_id=repo.id,
-            pr_number=pr_number,
-            github_username=github_username,
-            source_type=source.type,
-            comment_id=comment.id,
-        )
-        return None
-
-    if not _github_commenter_has_repo_write_access(scm, github_username):
-        metrics.incr("autofix.pr_iteration.comment_trigger.unauthorized")
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.unauthorized",
-            extra={
-                "organization_id": organization_id,
-                "github_username": github_username,
-            },
-        )
-        return None
-
-    actor_user = find_user_for_scm_actor(
+    resolved = _resolve_run_for_pr_comment(
         organization_id=organization_id,
+        repo_id=repo_id,
         integration_id=integration_id,
-        username=github_username,
+        pr_number=pr_number,
+        github_username=github_username,
+        comment_id=comment.id,
+        source_type=source.type,
+        log_prefix="autofix.pr_iteration.comment_trigger",
         external_id=comment.user.id if comment.user else None,
     )
+    if isinstance(resolved, PrCommentRunOutcome):
+        if resolved in _COMMENT_TRIGGER_COUNTED_OUTCOMES:
+            metrics.incr(f"autofix.pr_iteration.comment_trigger.{resolved.value}")
+        return None
+
+    agent_state = resolved.agent_state
     group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
@@ -728,7 +812,7 @@ def trigger_pr_iteration_from_comment(
         feedback=feedback_obj,
         referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         run_state=agent_state,
-        actor_user_id=actor_user.id if actor_user else None,
+        actor_user_id=resolved.actor_user.id if resolved.actor_user else None,
     )
     trigger_consume_pr_iteration_feedback(
         run_id=agent_state.run_id,
@@ -744,7 +828,7 @@ def trigger_pr_iteration_from_comment(
         return None
 
     _add_comment_reaction(
-        scm,
+        resolved.scm,
         source_type=source.type,
         pr_number=pr_number,
         comment_id=comment_id,
@@ -758,6 +842,85 @@ def trigger_pr_iteration_from_comment(
             "repo_id": repo_id,
         },
     )
+
+    return None
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.pause_pr_iteration_from_comment",
+    namespace=seer_tasks,
+    processing_deadline_duration=65,
+    retry=Retry(times=1),
+)
+def pause_pr_iteration_from_comment(
+    *,
+    organization_id: int,
+    repo_id: int,
+    integration_id: int,
+    pr_number: int,
+    comment_id: int | None,
+    github_username: str,
+) -> None:
+    """
+    Resolve the Autofix run behind ``pr_number`` and stop its PR iteration.
+
+    Gates the commenter on repo write access, then acknowledges the stop with a
+    reaction and a comment on the pull request.
+    """
+    resolved = _resolve_run_for_pr_comment(
+        organization_id=organization_id,
+        repo_id=repo_id,
+        integration_id=integration_id,
+        pr_number=pr_number,
+        github_username=github_username,
+        comment_id=comment_id,
+        source_type="github-pr-comment",
+        log_prefix="autofix.pr_iteration.stop_command",
+    )
+    if isinstance(resolved, PrCommentRunOutcome):
+        metrics.incr("autofix.pr_iteration.stop_command", tags={"outcome": resolved.value})
+        return None
+
+    paused = pause_pr_iteration(
+        run_id=resolved.agent_state.run_id,
+        organization_id=organization_id,
+        actor_user_id=resolved.actor_user.id if resolved.actor_user else None,
+    )
+    reaction: Reaction = "+1"
+    body = STOPPED_PR_ITERATION_COMMENT
+    if paused:
+        metrics.incr("autofix.pr_iteration.stop_command", tags={"outcome": "success"})
+    else:
+        # The run predates SeerRun mirroring, so the stop marker has no row to land on.
+        logger.warning(
+            "autofix.pr_iteration.stop_command.pause_failed",
+            extra={"organization_id": organization_id, "run_id": resolved.agent_state.run_id},
+        )
+        metrics.incr(
+            "autofix.pr_iteration.stop_command",
+            tags={"outcome": PrCommentRunOutcome.PAUSE_FAILED.value},
+        )
+        reaction = "confused"
+        body = STOP_PR_ITERATION_FAILED_COMMENT
+
+    if comment_id is not None:
+        _add_comment_reaction(
+            resolved.scm,
+            source_type="github-pr-comment",
+            pr_number=pr_number,
+            comment_id=comment_id,
+            reaction=reaction,
+        )
+
+    if isinstance(resolved.scm, CreatePullRequestCommentProtocol):
+        try:
+            scm_actions.create_pull_request_comment(resolved.scm, str(pr_number), body)
+        except Exception:
+            logger.warning(
+                "autofix.pr_iteration.stop_command.comment_failed",
+                extra={"organization_id": organization_id, "pr_number": pr_number},
+                exc_info=True,
+            )
 
     return None
 
