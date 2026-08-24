@@ -6,24 +6,31 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {providerDetails} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
-export type Channel = {
-  display: string;
-  id: string;
-  name: string;
-};
-
-type ChannelListResponse = {
-  results: Channel[];
-};
-
-export type StaleDestinationReason = 'channel' | 'inactiveIntegration' | 'integration';
+export type StaleDestinationReason =
+  | 'channel'
+  | 'inactiveIntegration'
+  | 'ineligibleIntegration'
+  | 'integration';
 
 export function isIntegrationActive(integration: OrganizationIntegration): boolean {
   return (
     integration.status === 'active' &&
     integration.organizationIntegrationStatus === 'active'
   );
+}
+
+/**
+ * Returns true when the integration can receive Issue Alert actions.
+ * MS Teams "tenant" installations route notifications differently and
+ * cannot be used as an issue-alert destination.
+ */
+export function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
+  if (integration.provider.key !== 'msteams') {
+    return true;
+  }
+  return integration.configData?.installationType !== 'tenant';
 }
 
 /**
@@ -43,12 +50,27 @@ function resolveSavedIntegration(
   if (
     candidate.id !== messagingSetup.integrationId ||
     candidate.provider.key !== messagingSetup.providerKey ||
-    !isIntegrationActive(candidate)
+    !isIntegrationActive(candidate) ||
+    !isEligibleForIssueAlerts(candidate)
   ) {
     return undefined;
   }
 
   return candidate;
+}
+
+/**
+ * Returns the value to send as the `channel` query param to channel-validate/,
+ * reading the field this provider validates by from the provider table.
+ * Returns undefined when that field is absent (e.g. legacy msteams data written
+ * before channelName was required).
+ */
+function channelValidateParam(messagingSetup: ScmMessagingSetup): string | undefined {
+  if (messagingSetup.mode !== 'selected') {
+    return undefined;
+  }
+  const {channelValidatedBy} = providerDetails[messagingSetup.providerKey];
+  return messagingSetup[channelValidatedBy] || undefined;
 }
 
 interface UseScmMessagingSetupValidationParams {
@@ -58,8 +80,13 @@ interface UseScmMessagingSetupValidationParams {
 
 /**
  * Revalidates the organization-scoped identifiers stored in session state.
- * A restored selection is not usable until both queries succeed and resolve
- * the saved integration and channel.
+ * A restored selection is not usable until both the integration query and the
+ * channel-validate query confirm the saved destination is still reachable.
+ *
+ * channel-validate/ is treated as a confirm-only signal: a {valid: false}
+ * response marks the channel stale but does not reset session state, because
+ * the endpoint also returns false for upstream API errors. Only a conclusive
+ * {valid: true} response clears the stale warning.
  */
 export function useScmMessagingSetupValidation({
   messagingSetup,
@@ -88,6 +115,8 @@ export function useScmMessagingSetupValidation({
   const fetchedIntegration = isMissingIntegration ? undefined : integrationQuery.data;
   const hasInactiveIntegration =
     fetchedIntegration !== undefined && !isIntegrationActive(fetchedIntegration);
+  const hasIneligibleIntegration =
+    fetchedIntegration !== undefined && !isEligibleForIssueAlerts(fetchedIntegration);
   const integration = resolveSavedIntegration(fetchedIntegration, messagingSetup);
 
   // A 404 settles the query as conclusively as a successful fetch does; any
@@ -95,25 +124,28 @@ export function useScmMessagingSetupValidation({
   const isIntegrationSettled =
     !integrationQuery.isFetching && (integrationQuery.isSuccess || isMissingIntegration);
 
-  const channelsQuery = useQuery(
-    apiOptions.as<ChannelListResponse>()(
-      '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
+  const validateParam =
+    integration === undefined ? undefined : channelValidateParam(messagingSetup);
+
+  const channelValidateQuery = useQuery(
+    apiOptions.as<{valid: boolean; detail?: string}>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
       {
-        path: integration
-          ? {
-              organizationIdOrSlug: organization.slug,
-              integrationId: integration.id,
-            }
-          : skipToken,
+        path:
+          integration && validateParam !== undefined
+            ? {
+                organizationIdOrSlug: organization.slug,
+                integrationId: integration.id,
+              }
+            : skipToken,
+        query: validateParam === undefined ? undefined : {channel: validateParam},
         staleTime: 0,
       }
     )
   );
 
-  const areChannelsSettled = channelsQuery.isSuccess && !channelsQuery.isFetching;
-  const channel = hasSelectedDestination
-    ? channelsQuery.data?.results.find(item => item.id === messagingSetup.channelId)
-    : undefined;
+  const isChannelSettled =
+    channelValidateQuery.isSuccess && !channelValidateQuery.isFetching;
 
   // A newly chosen destination must not inherit the previous one's warning while
   // its own queries are still in flight — the effect below cannot clear it until
@@ -130,69 +162,64 @@ export function useScmMessagingSetupValidation({
     }
 
     if (!integration) {
-      setStaleReason(hasInactiveIntegration ? 'inactiveIntegration' : 'integration');
+      setStaleReason(
+        hasInactiveIntegration
+          ? 'inactiveIntegration'
+          : hasIneligibleIntegration
+            ? 'ineligibleIntegration'
+            : 'integration'
+      );
       onMessagingSetupChange({mode: 'unconfigured'});
       return;
     }
 
-    if (!areChannelsSettled) {
+    // Without a validate param we cannot confirm the channel — skip rather
+    // than falsely marking it stale (covers legacy session data).
+    if (validateParam === undefined || !isChannelSettled) {
       return;
     }
 
-    // Every provider helper in organization_integration_channels.py returns an
-    // empty list when the upstream API call fails, so `results: []` cannot be
-    // told apart from "the saved channel was deleted". A populated list also
-    // is not authoritative: Slack returns at most one 1,000-channel page.
-    // Keep an unresolved destination non-submittable without dropping it from
-    // session state; only a future direct channel validation can safely reset it.
-    if (channelsQuery.data.results.length === 0) {
-      return;
-    }
-
-    if (!channel) {
+    // channel-validate/ returns {valid: false} for both a genuinely missing
+    // channel and an upstream API error, so a false result cannot safely reset
+    // the selection. Only a confirmed {valid: true} clears the warning.
+    if (!channelValidateQuery.data.valid) {
       setStaleReason('channel');
       return;
     }
 
-    // Own the cleared state here rather than leaving it to the reference-change
-    // effect above: a refetch that resolves a previously unverifiable channel
-    // does not change `messagingSetup`, and the warning would outlive it.
     setStaleReason(undefined);
-
-    const channelName = channel.display || channel.name;
-    if (channelName !== messagingSetup.channelName) {
-      onMessagingSetupChange({...messagingSetup, channelName});
-    }
-    // `messagingSetup` stays in the deps because the spread above needs the whole
-    // object. This effect writes a new object through onMessagingSetupChange, so
-    // it re-runs on its own write and only settles because the channelName
-    // comparison becomes false. Any future field written unconditionally here
-    // turns that fixed point into a session-storage write loop.
   }, [
-    areChannelsSettled,
-    channel,
-    channelsQuery.data,
+    channelValidateQuery.data,
     hasInactiveIntegration,
+    hasIneligibleIntegration,
     integration,
+    isChannelSettled,
     isIntegrationSettled,
     messagingSetup,
     onMessagingSetupChange,
+    validateParam,
   ]);
+
+  const isChannelValidateError =
+    integration !== undefined &&
+    validateParam !== undefined &&
+    channelValidateQuery.isError;
 
   return {
     isError:
       hasSelectedDestination &&
-      ((!isMissingIntegration && integrationQuery.isError) ||
-        (integration !== undefined && channelsQuery.isError)),
+      ((!isMissingIntegration && integrationQuery.isError) || isChannelValidateError),
     isPending:
       hasSelectedDestination &&
       (integrationQuery.isFetching ||
-        (integration !== undefined && channelsQuery.isFetching)),
+        (integration !== undefined &&
+          validateParam !== undefined &&
+          channelValidateQuery.isFetching)),
     isValid:
       isIntegrationSettled &&
       integration !== undefined &&
-      areChannelsSettled &&
-      channel !== undefined,
+      isChannelSettled &&
+      !!channelValidateQuery.data?.valid,
     staleReason,
   };
 }

@@ -567,6 +567,7 @@ describe('Onboarding', () => {
       providerKey: 'slack',
       integrationId: '15',
       channelId: 'C123',
+      channelName: '#alerts',
     } as const satisfies ScmMessagingSetup;
 
     beforeEach(() => {
