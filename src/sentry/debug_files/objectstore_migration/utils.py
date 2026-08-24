@@ -212,6 +212,12 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
+    if recorded_size is None:
+        logger.warning(
+            "debug_files.objectstore_migration.size_missing",
+            extra={"debug_file_id": debug_file.id, "file_id": file.id},
+        )
+
     try:
         tmp, local_checksum, local_size = _spool_and_validate_with_retry(
             file,

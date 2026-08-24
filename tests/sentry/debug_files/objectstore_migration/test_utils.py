@@ -69,6 +69,30 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
         assert self.debug_file.storage_path is not None
         assert self.debug_file.checksum == expected_checksum
 
+    @requires_objectstore
+    def test_migrates_file_with_missing_size(self) -> None:
+        file = self.debug_file.file
+        assert file is not None
+        expected_size = file.size
+        assert expected_size is not None
+        file.size = None
+        file.save(update_fields=["size"])
+
+        with (
+            patch("sentry.debug_files.objectstore_migration.utils.logger.warning") as warning,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            migrate_debug_file(self.debug_file)
+
+        warning.assert_any_call(
+            "debug_files.objectstore_migration.size_missing",
+            extra={"debug_file_id": self.debug_file.id, "file_id": file.id},
+        )
+        self.debug_file.refresh_from_db()
+        assert self.debug_file.file_id is None
+        assert self.debug_file.storage_path is not None
+        assert self.debug_file.file_size == expected_size
+
     def test_integrity_failure_does_not_cut_over(self) -> None:
         session = MagicMock()
         session.get.side_effect = lambda *args, **kwargs: MagicMock(
