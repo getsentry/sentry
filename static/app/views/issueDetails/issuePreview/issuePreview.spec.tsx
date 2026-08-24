@@ -96,6 +96,39 @@ describe('IssuePreview', () => {
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
   });
 
+  it('offers a retry instead of a PR when Autofix produced no code changes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          blocks: [
+            ExplorerAutofixBlockFixture(),
+            ExplorerAutofixBlockFixture({
+              id: 'code-changes',
+              artifacts: [],
+              message: {
+                content: "Seer couldn't apply the fix automatically.",
+                metadata: {step: 'code_changes'},
+                role: 'assistant',
+              },
+            }),
+          ],
+        }),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(
+      await screen.findByRole('button', {name: 'Add context & retry'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Create PR'})).not.toBeInTheDocument();
+  });
+
   it('offers to restart Autofix after PR creation when the linked PR is closed', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,

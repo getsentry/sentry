@@ -24,6 +24,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 import {useMedia} from 'sentry/utils/useMedia';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
+import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import InboxPage from './inbox';
 
@@ -1109,6 +1110,21 @@ describe('InboxPage', () => {
         autofix: ExplorerAutofixStateFixture({
           blocks: [
             ExplorerAutofixBlockFixture({
+              merged_file_patches: [
+                {
+                  repo_name: 'org/repository',
+                  diff: 'diff --git a/src/user.ts b/src/user.ts',
+                  patch: {
+                    path: 'src/user.ts',
+                    added: 1,
+                    removed: 0,
+                    hunks: [],
+                    source_file: 'src/user.ts',
+                    target_file: 'src/user.ts',
+                    type: 'M',
+                  },
+                } as ExplorerFilePatch,
+              ],
               message: {
                 content: 'Code changes complete',
                 metadata: {step: 'code_changes'},

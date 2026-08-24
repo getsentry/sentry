@@ -10,7 +10,11 @@ import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNex
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
+  collectPatches,
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  isCodeChangesArtifact,
+  type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
@@ -31,6 +35,11 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
+
+function hasCodeChanges(section: AutofixSection): boolean {
+  const artifact = getAutofixArtifactFromSection(section);
+  return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
+}
 
 interface IssuePreviewActionsProps {
   autofix: ExplorerAutofix;
@@ -371,6 +380,28 @@ function NextAutofixStepButton({
         variant={variant}
         waiting
       />
+    );
+  }
+
+  // Seer can finish the code changes step without producing a diff. The autofix
+  // panel offers a retry instead of a PR in that case, so match its CTA here.
+  if (nextStep?.action === 'create_pr' && !hasCodeChanges(nextStep.section)) {
+    return (
+      <Button
+        {...getAutofixActionProps({
+          analyticsAction: 'view_autofix',
+          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+          analyticsEventName: 'Issue Inbox: Continue in Seer Clicked',
+          analyticsParams: {destination: 'seer', reason: 'no_code_changes'},
+          group,
+        })}
+        disabled={disabled}
+        icon={<IconRefresh />}
+        onClick={onContinueInSeer}
+        variant={variant}
+      >
+        {t('Add context & retry')}
+      </Button>
     );
   }
 
