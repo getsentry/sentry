@@ -95,7 +95,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const [orgRole, setOrgRole] = useState(member.orgRole);
   const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
-  const isNarrow = useResponsivePropValue({zero: true, xl: false});
+  const isNarrow = useResponsivePropValue({zero: true, '2xl': false});
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
