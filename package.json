@@ -122,7 +122,7 @@
     "@stripe/stripe-js": "^5.10.0",
     "@swc/plugin-emotion": "14.15.0",
     "@tanstack/query-async-storage-persister": "5.101.4",
-    "@tanstack/react-devtools": "0.9.9",
+    "@tanstack/react-devtools": "0.10.12",
     "@tanstack/react-form": "2.0.0-alpha.2",
     "@tanstack/react-form-devtools": "1.0.0-alpha.2",
     "@tanstack/react-pacer": "^0.22.1",

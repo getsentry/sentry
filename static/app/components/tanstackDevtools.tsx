@@ -1,4 +1,5 @@
 import {TanStackDevtools} from '@tanstack/react-devtools';
+import {formDevtoolsPlugin} from '@tanstack/react-form-devtools';
 import {pacerDevtoolsPlugin} from '@tanstack/react-pacer-devtools';
 import {ReactQueryDevtoolsPanel} from '@tanstack/react-query-devtools';
 
@@ -12,6 +13,7 @@ export function SentryTanStackDevtools() {
           render: <ReactQueryDevtoolsPanel />,
         },
         pacerDevtoolsPlugin(),
+        formDevtoolsPlugin(),
       ]}
     />
   );
