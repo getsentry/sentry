@@ -76,10 +76,7 @@ class WeeklyReportProgressTracker:
 
     REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
 
-    # The progress marker only has to outlive a single run of
-    # `schedule_organizations`. The task has a 30 minute processing deadline and
-    # retries up to 5 times, so 3 days is well above the worst case and well
-    # below the weekly cadence of the task.
+    # 3 days to outlive all possible retries of a weekly report schedule run
     MIN_ORG_ID_TTL: Final[timedelta] = timedelta(days=3)
 
     def __init__(self, timestamp: float | None = None, duration: int | None = None):
