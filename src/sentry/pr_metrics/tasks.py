@@ -258,16 +258,16 @@ def _report_backlog_depth(
 
     - ``backlog_lag_seconds`` — how far the deletion frontier trails the cutoff.
       Zero is drained, and since the cutoff advances an hour per hour, the slope is
-      the drain ETA. Needs no row count, which ``pg_class.reltuples`` cannot supply
-      anyway: an ANALYZE re-baseline moves it by more than this sweep deletes in a
-      week.
+      the drain ETA. The existing ``postgresql.live_rows`` gauge cannot stand in: it
+      counts the whole table, so it floors at the attributed and under-cutoff rows
+      the sweep may never delete, and never reads drained.
     - ``oldest_row_age_seconds`` — age of the oldest row of any kind. The sweep can
       never delete an attributed row, so a large age against a zero lag names the
       prefix every batch query walks past.
 
-    Each lookup is bounded and degrades on its own: measuring the work must not cost
-    us the work, and the age lookup — which starts at the head of the index, dead
-    entries and all — must not cost us the cheap seek from the frontier either.
+    Each lookup is bounded and degrades on its own: measuring the backlog must not
+    cost us the draining of it. The age lookup earns its own bound by starting at the
+    head of the index, dead entries and all, rather than at the frontier.
     """
     alias = router.db_for_read(model)
 
@@ -373,8 +373,8 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
         tags={"store": store},
         sample_rate=1.0,
     )
-    # `capped` only says the cap was hit; a store idling at a handful of batches is
-    # what says the caps elsewhere are a backlog draining, not the steady state.
+    # `capped` is binary; the batch count is what separates a backlog draining from a
+    # store idling well under its cap.
     metrics.gauge(
         "pr_metrics.activity_sweep.batches_used", batches, tags={"store": store}, sample_rate=1.0
     )
