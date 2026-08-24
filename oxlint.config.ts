@@ -1,5 +1,17 @@
 import {defineConfig} from 'oxlint';
 
+const IS_PRECOMMIT =
+  process.env.SENTRY_PRECOMMIT !== undefined &&
+  Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
+const IS_CI = process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
+const enableTypeAwareLinting = (() => {
+  if (process.env.SENTRY_OXLINT_TYPEAWARE !== undefined) {
+    return Boolean(JSON.parse(process.env.SENTRY_OXLINT_TYPEAWARE));
+  }
+
+  return IS_PRECOMMIT ? IS_CI : true;
+})();
+
 /**
  * Oxlint configuration reference:
  * https://oxc.rs/docs/guide/usage/linter/config.html
@@ -72,6 +84,10 @@ const restrictedImportPaths = [
   {
     name: 'moment',
     message: 'Please import moment-timezone instead of moment',
+  },
+  {
+    name: 'platformicons/build/platformIcon',
+    message: "Import {PlatformIcon} from 'platformicons' instead.",
   },
   {
     name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
@@ -196,7 +212,7 @@ const config = defineConfig({
     correctness: 'off',
   },
   options: {
-    typeAware: true,
+    typeAware: enableTypeAwareLinting,
     reportUnusedDisableDirectives: 'off',
   },
   env: {
@@ -447,6 +463,7 @@ const config = defineConfig({
     'no-script-url': 'error',
     'no-self-compare': 'error',
     'no-sequences': 'error',
+    'no-useless-computed-key': 'error',
     'object-shorthand': ['error', 'properties'],
     'prefer-arrow-callback': [
       'error',
