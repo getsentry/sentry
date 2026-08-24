@@ -611,9 +611,7 @@ def trigger_autofix_agent(
         group,
         user_context,
         run_state=run_state,
-        should_run_repo_checks=features.has(
-            "organizations:autofix-should-run-repo-checks", group.organization
-        ),
+        should_run_repo_checks=enable_bash_tools,
     )
     prompt_metadata = {
         "step": step.value,
