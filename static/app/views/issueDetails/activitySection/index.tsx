@@ -173,9 +173,6 @@ export function ActivitySection({
   const displayedActivities = buildActivityFeedItems({
     activities,
     filterComments,
-    showStatusFlappingRollups: organization.features.includes(
-      'issue-activity-status-flapping-rollup'
-    ),
   });
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';

@@ -275,14 +275,12 @@ export function collapseFlappingStatusActivities(
 
 interface BuildActivityFeedItemsOptions {
   activities: GroupActivity[];
-  showStatusFlappingRollups: boolean;
   filterComments?: boolean;
 }
 
 export function buildActivityFeedItems({
   activities,
   filterComments,
-  showStatusFlappingRollups,
 }: BuildActivityFeedItemsOptions): DisplayedActivityFeedItem[] {
   const {activities: deduplicatedActivities, actorActivityById} =
     deduplicatePullRequestActivities(activities);
@@ -295,7 +293,5 @@ export function buildActivityFeedItems({
   });
 
   // Collapse status flapping last so expanding a rollup restores the fully processed feed items.
-  return showStatusFlappingRollups
-    ? collapseFlappingStatusActivities(activityFeedItems)
-    : activityFeedItems;
+  return collapseFlappingStatusActivities(activityFeedItems);
 }

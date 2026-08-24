@@ -690,8 +690,6 @@ describe('ActivitySection', () => {
     expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
   });
 
-  const statusFlappingRollupFeature = 'issue-activity-status-flapping-rollup';
-
   function makeFlappingGroup(id: string) {
     return GroupFixture({
       id,
@@ -725,16 +723,13 @@ describe('ActivitySection', () => {
     });
   }
 
-  it('expands and collapses a status-flapping rollup when enabled', async () => {
+  it('expands and collapses a status-flapping rollup', async () => {
     const flappingGroup = makeFlappingGroup('1348');
 
     render(
       <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
         <ActivitySection group={flappingGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(screen.getAllByText('Regressed')).toHaveLength(1);
@@ -760,10 +755,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
         <ActivitySection group={flappingGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
