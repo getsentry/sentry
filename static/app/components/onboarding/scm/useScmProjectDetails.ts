@@ -174,7 +174,7 @@ export function useScmProjectDetails({
   const defaultName = slugify(selectedPlatform?.key ?? '');
 
   // Fields absent from the host-owned form fall back to derived defaults, so
-  // a host clearing the form (e.g. on a platform change) re-derives them.
+  // a host resetting a field (e.g. the name on a platform change) re-derives it.
   const projectNameResolved = projectDetailsForm?.projectName ?? defaultName;
   const teamSlugResolved = projectDetailsForm?.teamSlug ?? firstAdminTeam?.slug ?? '';
   const alertRuleConfig =
