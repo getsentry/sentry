@@ -21,7 +21,9 @@ from sentry.shared_integrations.exceptions import IntegrationError
 class GcpVerifyConnectionSerializer(CamelSnakeSerializer["GcpVerifyConnectionSerializer"]):
     sentry_sa_email = CharField(required=True)
     customer_sa_email = CharField(required=True)
-    gcp_project_ids = ListField(child=CharField(max_length=64), required=True, min_length=1)
+    gcp_project_ids = ListField(
+        child=CharField(max_length=64), required=True, min_length=1, max_length=100
+    )
 
 
 @cell_silo_endpoint

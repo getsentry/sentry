@@ -9,6 +9,7 @@ import orjson
 from google.auth.exceptions import DefaultCredentialsError
 from google.auth.transport.requests import AuthorizedSession
 from requests.exceptions import RequestException
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.seer.signed_seer_api import (
@@ -145,12 +146,16 @@ def verify_gcp_connection(
         }
     )
 
-    response = make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/monitoring-providers/gcp/verify-connection",
-        body=body,
-        timeout=_VERIFY_CONNECTION_TIMEOUT,
-    )
+    try:
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            "/v1/monitoring-providers/gcp/verify-connection",
+            body=body,
+            timeout=_VERIFY_CONNECTION_TIMEOUT,
+        )
+    except (TimeoutError, MaxRetryError):
+        logger.exception("gcp.verify_connection_request_error")
+        raise IntegrationError("Failed to verify GCP connection. Please try again.")
 
     if response.status != 200:
         logger.error(
@@ -159,4 +164,8 @@ def verify_gcp_connection(
         )
         raise IntegrationError("Failed to verify GCP connection. Please try again.")
 
-    return orjson.loads(response.data)
+    try:
+        return orjson.loads(response.data)
+    except orjson.JSONDecodeError:
+        logger.error("gcp.verify_connection_invalid_response")
+        raise IntegrationError("Failed to verify GCP connection. Please try again.")
