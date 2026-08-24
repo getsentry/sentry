@@ -56,6 +56,7 @@ describe('formatYAxisValue', () => {
       [0, 'byte', '0'],
       [0.712, 'megabyte', '712 kB'],
       [1231, 'kibibyte', '1.2 MiB'],
+      [-1231, 'kibibyte', '-1.2 MiB'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
       expect(formatYAxisValue(value, 'size', unit)).toEqual(formattedValue);
     });
