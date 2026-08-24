@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from sentry.scm.private.rate_limit import (
+    CUMULATIVE_USAGE_TTL_SECONDS,
     DynamicRateLimiter,
     IndeterminateResult,
     WindowState,
@@ -371,6 +372,40 @@ class TestReportedUsageReconciliation:
             window=WindowState(used=90, reset=4000, local_used=80),
         )
         assert limiter.is_rate_limited("shared", "default") is True
+
+    def test_implausible_in_flight_backlog_is_discarded(self) -> None:
+        """
+        The issued and completed counters can desync -- an evicted key, lost completion writes.
+        More in-flight requests than the provider's total capacity is implausible, so the
+        difference must be discarded rather than charged as a phantom backlog forever.
+        """
+        limiter, _ = make_limiter(
+            capacity=100,
+            usage=1,
+            total_usage=1_000_000,
+            window=WindowState(used=50, reset=4000, local_used=0),
+        )
+        assert limiter.is_rate_limited("shared", "default") is False
+
+    def test_plausible_in_flight_backlog_is_charged(self) -> None:
+        limiter, _ = make_limiter(
+            capacity=100,
+            usage=1,
+            total_usage=60,
+            window=WindowState(used=50, reset=4000, local_used=0),
+        )
+        assert limiter.is_rate_limited("shared", "default") is True
+
+    def test_completed_shared_usage_expires_with_the_cumulative_counters(self) -> None:
+        """
+        The issued and completed counters are compared by difference, so they must expire
+        together rather than persist forever.
+        """
+        limiter, provider = make_limiter()
+        limiter.record_completed_request("shared", "default", None)
+        assert provider.completed_calls == [
+            ("completed-total:scm:github:1:default:shared", CUMULATIVE_USAGE_TTL_SECONDS)
+        ]
 
     def test_reported_usage_below_capacity_is_not_rate_limited(self) -> None:
         limiter, _ = make_limiter(

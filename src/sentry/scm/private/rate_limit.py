@@ -14,6 +14,12 @@ from sentry.utils import redis
 # current instant.
 MAX_WINDOW_TTL_MULTIPLIER = 2
 
+# The cumulative issued and completed counters are compared by difference, so they are only
+# meaningful while they move in lockstep. Give both the same generous TTL, refreshed on every
+# increment, so an idle integration's counters expire together instead of persisting forever and
+# so neither key sits in Redis without an expiry.
+CUMULATIVE_USAGE_TTL_SECONDS = 86400
+
 # Compare-and-set for the window state key. Implemented as a Lua script because the cluster
 # clients used in production do not support WATCH/MULTI pipelines, and any exception those
 # pipelines raise is not a `RedisError`.
@@ -146,7 +152,7 @@ class RateLimitProvider(Protocol):
         """Record the service-provider's reported window state."""
         ...
 
-    def incr_completed_usage(self, usage_key: str, expiration: int | None) -> None:
+    def incr_completed_usage(self, usage_key: str, expiration: int) -> None:
         """Increment a completed-request counter."""
         ...
 
@@ -290,7 +296,14 @@ class DynamicRateLimiter:
         ):
             reported_usage = max(0, window.used - (window.reserved_used or 0))
             if window.local_used is not None:
-                reported_usage += max(0, local_used - window.local_used)
+                in_flight = max(0, local_used - window.local_used)
+                if service_capacity is not None and in_flight > service_capacity:
+                    # More in-flight requests than the provider's total capacity is implausible.
+                    # The issued and completed counters have desynced -- an evicted key, lost
+                    # completions -- so the difference is meaningless. Fall back to the report
+                    # alone rather than charging the phantom backlog forever.
+                    in_flight = 0
+                reported_usage += in_flight
             quota_used = max(quota_used, reported_usage)
 
         # If no limit could be found we fail open. We'll populate the limit on the other-side of the
@@ -336,7 +349,7 @@ class DynamicRateLimiter:
                     referrer,
                     resource,
                 ),
-                None,
+                CUMULATIVE_USAGE_TTL_SECONDS,
             )
             return None
 
@@ -496,7 +509,8 @@ class RedisRateLimitProvider:
                 pipe.incr(usage_key)
                 pipe.expire(usage_key, expiration)
                 pipe.incr(total_usage_key)
-                usage, _, total_usage = pipe.execute()
+                pipe.expire(total_usage_key, CUMULATIVE_USAGE_TTL_SECONDS)
+                usage, _, total_usage, _ = pipe.execute()
                 return usage, total_usage
         except (RedisError, IndexError):
             # Fail open if we could not properly handle the rate-limits. We may have miss the
@@ -519,13 +533,12 @@ class RedisRateLimitProvider:
             # `RedisError` subclasses, so contain everything.
             return None
 
-    def incr_completed_usage(self, usage_key: str, expiration: int | None) -> None:
+    def incr_completed_usage(self, usage_key: str, expiration: int) -> None:
         """Increment a completed-request counter."""
         try:
             with self.cluster.pipeline() as pipe:
                 pipe.incr(usage_key)
-                if expiration is not None:
-                    pipe.expire(usage_key, expiration)
+                pipe.expire(usage_key, expiration)
                 pipe.execute()
         except RedisError:
             # Missing completed usage overstates shared usage, which is the conservative direction.

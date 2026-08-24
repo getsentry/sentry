@@ -3,6 +3,7 @@ from unittest import mock
 from django.conf import settings
 
 from sentry.scm.private.rate_limit import (
+    CUMULATIVE_USAGE_TTL_SECONDS,
     RedisRateLimitProvider,
     WindowState,
     completed_usage_key,
@@ -76,6 +77,15 @@ class TestRedisRateLimitProviderIncrUsage(TestCase):
         self.provider.incr_usage(self.usage_key, self.total_usage_key, expiration=60)
         ttl = _client().ttl(self.usage_key)
         assert 0 < ttl <= 60
+
+    def test_total_usage_key_has_ttl_set(self) -> None:
+        """
+        The cumulative issued counter is compared against the completed counter by difference; it
+        must not persist in Redis forever once an integration goes idle.
+        """
+        self.provider.incr_usage(self.usage_key, self.total_usage_key, expiration=60)
+        ttl = _client().ttl(self.total_usage_key)
+        assert 0 < ttl <= CUMULATIVE_USAGE_TTL_SECONDS
 
 
 class TestRedisRateLimitProviderSetWindowState(TestCase):
