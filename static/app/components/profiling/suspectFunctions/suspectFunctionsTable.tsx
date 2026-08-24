@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import clamp from 'lodash/clamp';
 
@@ -9,6 +9,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
+import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -33,8 +34,6 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
-  TableStatus,
-  useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
@@ -211,8 +210,6 @@ export function SuspectFunctionsTable({
   }, [sortedMetrics, pagination]);
 
   const fields = COLUMNS.map(column => column.value);
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef);
 
   const baggage: RenderFunctionBaggage = {
     location,
@@ -241,7 +238,7 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </Flex>
-      <Table ref={tableRef} style={initialTableStyles}>
+      <Table fields={fields}>
         <TableHead>
           <TableRow>
             {COLUMNS.map((column, i) => {
@@ -263,13 +260,13 @@ export function SuspectFunctionsTable({
         </TableHead>
         <TableBody>
           {flamegraphQuery.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : flamegraphQuery.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
@@ -282,11 +279,11 @@ export function SuspectFunctionsTable({
               />
             ))
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No functions found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>

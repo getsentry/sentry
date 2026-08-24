@@ -122,36 +122,57 @@ def link_pull_request_to_seer_run(
         )
         return None
 
+    return link_resolved_pull_request_to_seer_run(
+        seer_run=seer_run,
+        pull_request=resolved.pull_request,
+        log_context={**log_context, "resolved_by": resolved.resolved_by},
+        coding_agent_handoff=coding_agent_handoff,
+    )
+
+
+def link_resolved_pull_request_to_seer_run(
+    *,
+    seer_run: SeerRun,
+    pull_request: PullRequest,
+    log_context: Mapping[str, Any],
+    coding_agent_handoff: SeerRunCodingAgentHandoff | None = None,
+) -> PullRequest | None:
+    """Idempotently link a ``PullRequest`` we already hold to ``seer_run``.
+
+    For callers that reached the row some other way than a reported repo reference --
+    an SCM webhook holds the PR itself, so re-deriving it from a name would be both
+    wasteful and less reliable. Never raises; returns None on failure. Checks the
+    killswitch itself so every write path respects it.
+    """
+    if options.get("seer.pull-request-linking.killswitch.enabled"):
+        return None
+
     try:
         _, created = SeerRunPullRequest.objects.get_or_create(
-            pull_request=resolved.pull_request,
+            pull_request=pull_request,
             defaults={"seer_run": seer_run, "coding_agent_handoff": coding_agent_handoff},
         )
     except Exception:
         logger.exception(
             "seer.pr_link.write_failed",
-            extra={**log_context, "pull_request_id": resolved.pull_request.id},
+            extra={**log_context, "pull_request_id": pull_request.id},
         )
         return None
 
     if created:
         logger.info(
             "seer.pr_link.created",
-            extra={
-                **log_context,
-                "pull_request_id": resolved.pull_request.id,
-                "resolved_by": resolved.resolved_by,
-            },
+            extra={**log_context, "pull_request_id": pull_request.id},
         )
         try:
             reconcile_pull_requests_merged_milestone(seer_run)
         except Exception:
             logger.exception(
                 "seer.pr_link.milestone_failed",
-                extra={**log_context, "pull_request_id": resolved.pull_request.id},
+                extra={**log_context, "pull_request_id": pull_request.id},
             )
 
-    return resolved.pull_request
+    return pull_request
 
 
 def record_seer_created_pull_requests(

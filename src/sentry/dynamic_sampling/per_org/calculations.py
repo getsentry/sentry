@@ -92,11 +92,11 @@ def calculate_recalibration_factor(
 def get_cached_recalibration_factor(org_id: int) -> float:
     # A missing key is the stored form of 1.0: set_guarded_adjusted_factor deletes the key
     # instead of writing the identity factor, and the serving path resolves a miss back to 1.0.
-    return legacy_recalibration_cache.get_adjusted_factor(org_id)
+    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="task")
 
 
 def get_cached_per_org_recalibration_factor(org_id: int) -> float:
-    return per_org_recalibration_cache.get_adjusted_factor(org_id)
+    return per_org_recalibration_cache.get_adjusted_factor(org_id, source="task")
 
 
 def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:

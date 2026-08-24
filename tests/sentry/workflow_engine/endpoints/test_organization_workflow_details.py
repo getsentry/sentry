@@ -314,6 +314,31 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         }
         assert action.data["settings"] == self.sentry_app_settings
 
+    def test_update_rejects_non_numeric_sentry_app_target_identifier(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "config": {
+                            "targetIdentifier": str(self.sentry_app_installation.uuid),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {"settings": self.sentry_app_settings},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+
     def test_update_triggers_with_empty_conditions(self) -> None:
         """Test that passing an empty list to triggers.conditions clears all conditions"""
         # Create a workflow with a trigger condition

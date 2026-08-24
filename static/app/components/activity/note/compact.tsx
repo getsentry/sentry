@@ -1,4 +1,4 @@
-import {useCallback, useId, useState} from 'react';
+import {useCallback, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
 import {useTheme} from '@emotion/react';
@@ -8,18 +8,13 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {mentionStyle} from 'sentry/components/activity/note/mentionStyle';
-import type {
-  CreateError,
-  MentionChangeEvent,
-  Mentioned,
-} from 'sentry/components/activity/note/types';
+import type {MentionChangeEvent, Mentioned} from 'sentry/components/activity/note/types';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {useMemberMentionData} from 'sentry/utils/members/useMemberMentionData';
 import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
-  errorJSON?: CreateError | null;
   /**
    * This is the id of the server's note object and is meant to indicate that
    * you are editing an existing item
@@ -43,7 +38,6 @@ export function CompactNoteInput({
   onUpdate,
   onCancel,
   noteId,
-  errorJSON,
   placeholder,
 }: Props) {
   const theme = useTheme();
@@ -136,18 +130,10 @@ export function CompactNoteInput({
     [canSubmit, handleSubmit]
   );
 
-  const errorId = useId();
-  const errorMessage =
-    (errorJSON &&
-      (typeof errorJSON.detail === 'string'
-        ? errorJSON.detail
-        : errorJSON.detail?.message || t('Unable to post comment'))) ||
-    null;
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <MentionsInput
         aria-label={existingItem ? t('Edit comment') : t('Add a comment')}
-        aria-errormessage={errorMessage ? errorId : undefined}
         style={{
           ...mentionStyle({
             theme,
