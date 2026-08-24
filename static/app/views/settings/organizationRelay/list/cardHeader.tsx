@@ -42,12 +42,7 @@ export function CardHeader({
     />
   );
   return (
-    <Grid
-      columns={{zero: '1fr', md: '1fr max-content'}}
-      align="center"
-      gap="md"
-      marginBottom="md"
-    >
+    <Grid columns={{zero: '1fr', md: '1fr max-content'}} align="center" gap="md">
       <Stack gap="2xs">
         <KeyName>
           {name}
