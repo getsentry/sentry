@@ -16,13 +16,11 @@ type Props = {
   token: InternalAppApiToken;
   canEdit?: boolean;
   onRemoveConfirmMessage?: string;
-  tokenPrefix?: string;
 };
 
 export function ApiTokenRow({
   token,
   onRemove,
-  tokenPrefix = '',
   canEdit = false,
   onRemoveConfirmMessage,
 }: Props) {
@@ -31,7 +29,7 @@ export function ApiTokenRow({
       <div>
         {token.name}
         <TokenPreview aria-label={t('Token preview')}>
-          {tokenPreview(token.tokenLastCharacters, tokenPrefix)}
+          {tokenPreview(token.tokenLastCharacters)}
         </TokenPreview>
       </div>
       <div>
@@ -52,7 +50,7 @@ export function ApiTokenRow({
             onRemoveConfirmMessage ||
             t(
               'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
-              tokenPreview(token.tokenLastCharacters, tokenPrefix)
+              tokenPreview(token.tokenLastCharacters)
             )
           }
         >

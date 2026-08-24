@@ -89,9 +89,9 @@ export interface SearchQueryBuilderProps {
   caseInsensitive?: CaseInsensitive;
   className?: string;
   /**
-   * When true, submitting free text will open Ask Seer and submit the full query.
-   * Requires AI search to be enabled and the organization to have the
-   * gen-ai-default-to-ask-seer feature.
+   * When true, submitting free text containing at least two words will open Ask Seer
+   * and submit the full query. Requires AI search to be enabled and the organization
+   * to have the gen-ai-default-to-ask-seer feature.
    */
   defaultToAskSeerOnFreeTextSearch?: boolean;
   disabled?: boolean;
@@ -103,6 +103,11 @@ export interface SearchQueryBuilderProps {
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
+  /**
+   * When true, negation operators (e.g. "is not", "does not contain") are
+   * removed from the operator suggestions so only positive filters can be built.
+   */
+  disallowNegation?: boolean;
   /**
    * When true, unsupported filter keys will be highlighted as invalid.
    */

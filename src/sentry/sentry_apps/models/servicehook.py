@@ -47,7 +47,7 @@ class ServiceHookProject(Model):
         unique_together = (("service_hook", "project_id"),)
 
 
-def generate_secret():
+def generate_secret() -> str:
     # the `secret` field on `ServiceHook` does not have a max_length so we can use the default length
     # of 64 characters. This is sufficiently secure and will update over time to sane defaults.
     return secrets.token_hex()

@@ -14,6 +14,8 @@ import {
   useMessagingIntegrationAlertRule,
 } from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
+import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+
 /**
  * SCM-styled variant of `MessagingIntegrationAlertRule`. Instead of the classic
  * inline sentence inside a grey card, the provider sentence is rendered into a
@@ -27,7 +29,11 @@ import {
  * option lists) and the same provider sentence as the classic layout, so copy
  * and behavior stay in lockstep; only the presentation differs.
  */
-export function ScmMessagingIntegrationAlertRule(props: IssueAlertNotificationProps) {
+type Props = IssueAlertNotificationProps & {
+  analyticsFlow: ScmAnalyticsFlow;
+};
+
+export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Props) {
   const {
     provider,
     integration,
@@ -43,7 +49,10 @@ export function ScmMessagingIntegrationAlertRule(props: IssueAlertNotificationPr
     onIntegrationChange,
     onChannelChange,
     onCreateChannel,
-  } = useMessagingIntegrationAlertRule(props);
+  } = useMessagingIntegrationAlertRule(
+    props,
+    analyticsFlow === 'project-creation' ? 'scm' : undefined
+  );
 
   if (!provider) {
     return null;

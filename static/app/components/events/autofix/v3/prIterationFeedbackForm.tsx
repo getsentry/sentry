@@ -14,13 +14,14 @@ import {IconReturn} from 'sentry/icons/iconReturn';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface PrIterationFeedbackFormProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
   onClose?: () => void;
   referrer?: string;
-  runId?: number;
+  runId?: SeerExplorerRunId;
 }
 
 export function PrIterationFeedbackForm({

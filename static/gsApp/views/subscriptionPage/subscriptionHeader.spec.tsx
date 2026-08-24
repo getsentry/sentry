@@ -29,10 +29,6 @@ describe('SubscriptionHeader', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/promotions/trigger-check/',
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
@@ -317,7 +313,7 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      isTrial: true,
+      trialPlan: 'am3_team',
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(

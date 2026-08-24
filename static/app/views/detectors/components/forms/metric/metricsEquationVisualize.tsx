@@ -13,6 +13,7 @@ import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {
   extractReferenceLabels,
@@ -37,10 +38,7 @@ import {
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {
-  EQUATION_LABEL,
-  parseAggregateExpression,
-} from 'sentry/views/explore/metrics/parseAggregateExpression';
+import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -65,27 +63,15 @@ function computeEquationReferencedLabels(
 }
 
 interface MetricsEquationVisualizeProps {
-  /**
-   * Form field that stores the aggregate expression. Defaults to the metric
-   * detector field; the legacy alert form passes `aggregate`.
-   */
-  aggregateFieldName?: typeof METRIC_DETECTOR_FORM_FIELDS.aggregateFunction | 'aggregate';
   environments?: string[];
-  /**
-   * Called when the selected row's filter query changes. The legacy alert
-   * form uses this to run `onFilterSearch` so the threshold chart refresh
-   * on filter-bar edits.
-   */
-  onQueryChange?: (query: string) => void;
   projectIds?: number[];
 }
 
 export function MetricsEquationVisualize({
-  aggregateFieldName = METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
   projectIds,
   environments,
-  onQueryChange,
 }: MetricsEquationVisualizeProps) {
+  const aggregateFieldName = METRIC_DETECTOR_FORM_FIELDS.aggregateFunction;
   const aggregateFunction = useFormField<string>(aggregateFieldName);
   const query = useFormField<string>(METRIC_DETECTOR_FORM_FIELDS.query);
 
@@ -106,7 +92,6 @@ export function MetricsEquationVisualize({
         aggregateFieldName={aggregateFieldName}
         projectIds={projectIds}
         environments={environments}
-        onQueryChange={onQueryChange}
       />
     </LocalMultiMetricsQueryParamsProvider>
   );
@@ -116,11 +101,9 @@ function MetricsEquationVisualizeContent({
   aggregateFieldName,
   projectIds,
   environments,
-  onQueryChange,
 }: {
   aggregateFieldName: string;
   environments?: string[];
-  onQueryChange?: (query: string) => void;
   projectIds?: number[];
 }) {
   const formContext = useContext(FormContext);
@@ -158,9 +141,8 @@ function MetricsEquationVisualizeContent({
     }
     if (selectedFilter !== undefined) {
       formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, selectedFilter);
-      onQueryChange?.(selectedFilter);
     }
-  }, [metricQueries, selectedLabel, formContext.form, aggregateFieldName, onQueryChange]);
+  }, [metricQueries, selectedLabel, formContext.form, aggregateFieldName]);
 
   const functionQueries = useMemo(
     () => metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)),
@@ -388,7 +370,9 @@ function MetricToolbar({
         name="metricAggregateRow"
         checked={isSelected}
         onChange={() =>
-          onRowSelection(isVisualizeEquation(visualize) ? EQUATION_LABEL : queryLabel)
+          onRowSelection(
+            isVisualizeEquation(visualize) ? DEFAULT_EQUATION_LABEL : queryLabel
+          )
         }
         aria-label={t('Use row %s as the alert aggregate', queryLabel)}
         disabled={isVisualizeFunction(visualize) && traceMetric.name === ''}

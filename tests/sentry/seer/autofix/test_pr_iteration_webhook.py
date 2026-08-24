@@ -57,7 +57,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_schedules_task_for_valid_command(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(self._event())
 
         mock_delay.assert_called_once()
@@ -73,12 +73,13 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         feedback = Feedback.parse_raw(kwargs["feedback"])
         assert isinstance(feedback.source, GithubPrCommentFeedbackSource)
         assert feedback.source.comment.id == 999
+        assert feedback.source.repo_name == self.repo.name
         assert feedback.text == "fix it"
         assert feedback.ui_text == "fix it"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(self._event(action="edited"))
         mock_delay.assert_not_called()
 
@@ -86,26 +87,39 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
     def test_skips_when_not_pr_comment(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("pull_request")
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(event)
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_not_iterate_command(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(self._event(body="just a comment"))
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_when_feature_disabled(self, mock_delay: MagicMock) -> None:
-        self._call(self._event())
+    def test_skips_when_manual_feature_disabled(self, mock_delay: MagicMock) -> None:
+        # Automated CI iteration on, manual off: the comment trigger is manual-only,
+        # so the automated flag must not enable it.
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event())
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_github_enterprise(self, mock_delay: MagicMock) -> None:
+        # GHE inherits this processor and sends the same issue_comment events,
+        # so the mention lands here and must be dropped before a task is
+        # scheduled — PR iteration is not supported on GHE.
+        self.integration = MagicMock(id=42, provider="github_enterprise")
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            self._call(self._event())
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_no_pr_number(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("number")
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(event)
         mock_delay.assert_not_called()
 
@@ -120,7 +134,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
             external_id="123",
             name="owner/repo",
         )
-        self.comment = {"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}}
+        self.comment = {
+            "id": 999,
+            "body": "@sentry fix it",
+            "user": {"id": 1234, "login": "octocat"},
+        }
 
     def _agent_state(self) -> SeerRunState:
         return SeerRunState(
@@ -163,6 +181,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.find_user_for_scm_actor")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -177,11 +196,13 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_consume: MagicMock,
         mock_has_access: MagicMock,
         mock_make_scm: MagicMock,
+        mock_find_user: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
         mock_integration = self._mock_integration()
         mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = self._agent_state()
+        mock_find_user.return_value = self.user
 
         self._call()
 
@@ -193,6 +214,13 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert kwargs["group_id"] == self.group.id
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
         assert kwargs["feedback"].text == "fix it"
+        assert kwargs["actor_user_id"] == self.user.id
+        mock_find_user.assert_called_once_with(
+            organization_id=self.organization.id,
+            integration_id=42,
+            username="octocat",
+            external_id="1234",
+        )
         mock_consume.assert_called_once_with(
             kwargs={
                 "run_id": 67890,

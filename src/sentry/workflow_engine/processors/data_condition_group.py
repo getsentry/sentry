@@ -9,7 +9,6 @@ from sentry.workflow_engine.processors.data_condition import split_conditions_by
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
     DataConditionGroupEvaluation,
-    TriggerResult,
 )
 from sentry.workflow_engine.types import ConditionError
 from sentry.workflow_engine.utils import scopedstats
@@ -66,37 +65,32 @@ def evaluate_condition_group_results(
     condition_results: list[DataConditionEvaluation],
     logic_type: DataConditionGroup.Type,
 ) -> DataConditionGroupEvaluation:
-    logic_result = TriggerResult.FALSE
-    outcomes = [condition_result.outcome for condition_result in condition_results]
+    triggered, error = False, None
 
     match logic_type:
         case DataConditionGroup.Type.NONE:
-            logic_result = TriggerResult.none(outcomes)
+            triggered, error = DataConditionGroupEvaluation.none(condition_results)
         case DataConditionGroup.Type.ANY | DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
-            logic_result = TriggerResult.any(outcomes)
+            triggered, error = DataConditionGroupEvaluation.any(condition_results)
         case DataConditionGroup.Type.ALL:
-            logic_result = TriggerResult.all(outcomes)
+            triggered, error = DataConditionGroupEvaluation.all(condition_results)
 
     # When the group didn't trigger, or it's a NONE group (which triggers precisely
     # when nothing matched), this is empty.
     passing_evaluations = (
-        [
-            condition_result
-            for condition_result in condition_results
-            if condition_result.outcome.triggered
-        ]
-        if logic_result.triggered
+        [condition_result for condition_result in condition_results if condition_result.triggered]
+        if triggered
         else []
     )
 
     return DataConditionGroupEvaluation(
-        result=logic_result.triggered,
+        result=triggered,
         data={
             "condition_evaluations": passing_evaluations,
             "logic_type": logic_type,
         },
-        triggered=logic_result.triggered,
-        error=logic_result.error,
+        triggered=triggered,
+        error=error,
     )
 
 
@@ -126,14 +120,14 @@ def evaluate_data_conditions(
         evaluation = condition.evaluate_value(value)
 
         # Check for short-circuiting evaluations
-        if evaluation.outcome.triggered:
+        if evaluation.triggered:
             match logic_type:
                 case DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
                     # The first matching condition conclusively satisfies the group.
                     return DataConditionGroupEvaluation(
                         result=True,
                         triggered=True,
-                        error=evaluation.outcome.error,
+                        error=evaluation.error,
                         data={
                             "condition_evaluations": [evaluation],
                             "logic_type": logic_type,
@@ -145,7 +139,7 @@ def evaluate_data_conditions(
                     return DataConditionGroupEvaluation(
                         result=False,
                         triggered=False,
-                        error=evaluation.outcome.error,
+                        error=evaluation.error,
                         data={
                             "condition_evaluations": [],
                             "logic_type": logic_type,
@@ -177,9 +171,9 @@ def _is_conclusive_evaluation(evaluation: DataConditionGroupEvaluation) -> bool:
 
     match logic_type:
         case DataConditionGroup.Type.ALL | DataConditionGroup.Type.NONE:
-            return not evaluation.outcome.triggered
+            return not evaluation.triggered
         case DataConditionGroup.Type.ANY | DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
-            return evaluation.outcome.triggered
+            return evaluation.triggered
 
     return False
 

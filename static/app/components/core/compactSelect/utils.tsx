@@ -22,6 +22,10 @@ import type {
   SelectSectionWithKey,
 } from './types';
 
+// Avoid the relatively expensive CSS.escape call for common keys while preserving
+// full escaping for values that are not already simple CSS identifiers.
+const SIMPLE_CSS_IDENTIFIER = /^-?(?!\d)\w[-\w]*$/;
+
 /**
  * Normalises the `search` prop into a plain config object (or `undefined` if
  * search is disabled). Accepts `true` as shorthand for `{}` and treats
@@ -40,7 +44,8 @@ export function getSearchConfig<Value extends SelectKey>(
 }
 
 export function getEscapedKey(value: SelectKey): string {
-  return CSS.escape(String(value));
+  const stringValue = String(value);
+  return SIMPLE_CSS_IDENTIFIER.test(stringValue) ? stringValue : CSS.escape(stringValue);
 }
 
 export function getItemsWithKeys<Value extends SelectKey>(
@@ -271,7 +276,7 @@ export function getSortedItems<Value extends SelectKey>(
       if ('options' in item) {
         return {
           ...item,
-          options: [...item.options].sort(
+          options: item.options.toSorted(
             (a, b) => (scores.get(b.key) ?? 0) - (scores.get(a.key) ?? 0)
           ),
         };
@@ -280,7 +285,7 @@ export function getSortedItems<Value extends SelectKey>(
     });
   }
 
-  return [...items].sort(
+  return items.toSorted(
     (a, b) =>
       (scores.get((b as SelectOptionWithKey<Value>).key) ?? 0) -
       (scores.get((a as SelectOptionWithKey<Value>).key) ?? 0)
@@ -334,7 +339,7 @@ export function SectionToggle({item, listState}: SectionToggleProps) {
 
   const toggleAllOptions = useCallback(() => {
     toggleOptions(
-      [...item.childNodes].map(n => n.key),
+      Array.from(item.childNodes, n => n.key),
       listState.selectionManager
     );
   }, [item, listState.selectionManager]);
@@ -406,7 +411,7 @@ export function HiddenSectionToggle({
   const {pressProps} = usePress({
     onPress: () => {
       toggleOptions(
-        [...item.childNodes].map(n => n.key),
+        Array.from(item.childNodes, n => n.key),
         listState.selectionManager
       );
     },

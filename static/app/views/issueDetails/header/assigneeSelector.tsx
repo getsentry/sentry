@@ -25,7 +25,6 @@ import type {Project} from 'sentry/types/project';
 import {buildTeamId} from 'sentry/utils';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -35,6 +34,10 @@ interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
   group: Group;
   project: Project;
+  /**
+   * Show the assignee name next to the avatar. Defaults to true.
+   */
+  showLabel?: boolean;
 }
 
 function getCurrentAssignmentActivity(group: Group): GroupActivityAssigned | undefined {
@@ -64,6 +67,7 @@ function getAssignmentSource(
     case 'projectOwnership':
     case 'codeowners':
     case 'suspectCommitter':
+    case 'seerSuggested':
       return activity.data.integration;
     default:
       return undefined;
@@ -97,6 +101,7 @@ export function GroupHeaderAssigneeSelector({
   group,
   project,
   event,
+  showLabel = true,
 }: GroupHeaderAssigneeSelectorProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -110,26 +115,26 @@ export function GroupHeaderAssigneeSelector({
     eventId: event?.id ?? '',
     projectSlug: project.slug,
   });
-  const {data: committersResponse} = useCommitters({
-    eventId: event?.id ?? '',
-    projectSlug: project.slug,
-    group,
+  const {data: memberList = []} = useQuery({
+    ...useProjectMembersQueryOptions([project.id]),
+    select: resp => selectUsersFromMembers(resp.json),
   });
 
   const owners = getOwnerList(
-    committersResponse?.committers ?? [],
+    group.owners ?? [],
     eventOwners,
-    group.assignedTo
+    group.assignedTo,
+    memberList
   );
 
   return (
     <AssigneeSelector
       group={group}
-      owners={owners}
+      owners={event ? owners : undefined}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
-      showLabel
+      showLabel={showLabel}
       useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
         <MenuComponents.CTAButton
@@ -166,21 +171,12 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     eventId: event?.id ?? '',
     projectSlug: project.slug,
   });
-  const {data: committersResponse} = useCommitters({
-    eventId: event?.id ?? '',
-    projectSlug: project.slug,
-    group,
-  });
   const {data: members = []} = useQuery({
     ...useProjectMembersQueryOptions([project.id]),
     select: resp => selectUsersFromMembers(resp.json),
   });
 
-  const owners = getOwnerList(
-    committersResponse?.committers ?? [],
-    eventOwners,
-    group.assignedTo
-  );
+  const owners = getOwnerList(group.owners ?? [], eventOwners, group.assignedTo, members);
   const currentAssigneeIcon = group.assignedTo ? (
     <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />
   ) : (

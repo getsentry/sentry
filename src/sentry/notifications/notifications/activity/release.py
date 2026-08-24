@@ -125,9 +125,13 @@ class ReleaseActivityNotification(ActivityNotification):
         projects = sorted(self.get_projects(recipient), key=lambda project: project.slug)
         release_links = [
             self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}",
+                f"/organizations/{self.organization.slug}/releases/{self.version}/",
                 query=urlencode(
-                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                    {
+                        "project": p.id,
+                        "referrer": self.metrics_key,
+                        "notification_uuid": self.notification_uuid,
+                    }
                 ),
             )
             for p in projects

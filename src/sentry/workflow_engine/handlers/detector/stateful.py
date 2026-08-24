@@ -402,7 +402,7 @@ class StatefulDetectorHandler(
             "conditions": [
                 condition_evaluation.condition.get_snapshot()
                 for condition_evaluation in group_evaluation.data["condition_evaluations"]
-                if condition_evaluation.outcome.triggered
+                if condition_evaluation.triggered
             ],
             "config": self.detector.config,
             "data_sources": self._build_evidence_data_sources(data_packet),
@@ -432,16 +432,10 @@ class StatefulDetectorHandler(
                 group_data_values[group_key]
             )
 
-            if (
-                detector_trigger_evaluation is not None
-                and detector_trigger_evaluation.outcome.is_tainted()
-            ):
+            if detector_trigger_evaluation is not None and detector_trigger_evaluation.is_tainted():
                 tainted = True
 
-            if (
-                detector_trigger_evaluation is None
-                or detector_trigger_evaluation.outcome.triggered is False
-            ):
+            if detector_trigger_evaluation is None or not detector_trigger_evaluation.triggered:
                 # Invalid condition result, nothing we can do
                 # Or if we didn't match any conditions in the evaluation
                 continue
@@ -678,7 +672,7 @@ class StatefulDetectorHandler(
                 },
             )
 
-        if group_evaluation.outcome.triggered:
+        if group_evaluation.triggered:
             """
             TODO - @saponifi3d - split the conditions results that
             don't have a DetectorPriorityLevel result.
@@ -688,7 +682,7 @@ class StatefulDetectorHandler(
             validated_condition_results: list[DetectorPriorityLevel] = [
                 condition_evaluation.result
                 for condition_evaluation in group_evaluation.data["condition_evaluations"]
-                if condition_evaluation.outcome.triggered
+                if condition_evaluation.triggered
                 and isinstance(condition_evaluation.result, DetectorPriorityLevel)
             ]
 

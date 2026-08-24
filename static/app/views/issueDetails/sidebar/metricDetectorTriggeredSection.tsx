@@ -47,6 +47,7 @@ import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -70,8 +71,9 @@ interface MetricDetectorEvidenceData {
    */
   value:
     | number
+    | null
     // XXX: Anomaly detectors will store an object here with other data necessary for processing
-    | {value: number};
+    | {value: number | null};
 }
 
 interface MetricDetectorTriggeredSectionProps {
@@ -134,8 +136,12 @@ function getFormattedEvaluatedValue({
 }: {
   aggregate: string;
   detectionType: MetricDetectorConfig['detectionType'];
-  value: number;
-}): string {
+  value: number | null;
+}): string | null {
+  if (value === null) {
+    return null;
+  }
+
   const unitSuffix = getMetricDetectorSuffix(detectionType, aggregate);
   return `${value.toLocaleString()}${unitSuffix}`;
 }
@@ -206,6 +212,7 @@ function ZoomToOpenPeriod(props: Parameters<typeof useZoomTimeRangeToOpenPeriod>
  * Issues list does not support AND/OR in the query, but Discover does.
  */
 function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
+  const organization = useOrganization();
   return (
     <Alert.Container>
       <Alert
@@ -213,7 +220,9 @@ function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
         trailingItems={
           <Feature features="discover-basic">
             <LinkButton variant="secondary" size="xs" to={discoverUrl}>
-              {t('Open in Discover')}
+              {getDiscoverDeprecation(organization)
+                ? t('Open in Explore')
+                : t('Open in Discover')}
             </LinkButton>
           </Feature>
         }
@@ -415,13 +424,14 @@ function TriggeredConditionDetails({
         actions={
           <Flex gap="xs">
             <FeedbackButton
+              variant="secondary"
               aria-label={t('Give feedback on metric issues')}
               size="xs"
               feedbackOptions={{
                 messagePlaceholder: t('Tell us what you think about this metric issue.'),
                 tags: {
-                  ['feedback.source']: 'metric_issue_details',
-                  ['feedback.owner']: 'aci',
+                  'feedback.source': 'metric_issue_details',
+                  'feedback.owner': 'aci',
                 },
               }}
             />
@@ -493,11 +503,15 @@ function TriggeredConditionDetails({
               ),
               subject: t('Condition'),
             },
-            {
-              key: 'value',
-              value: formattedEvaluatedValue,
-              subject: t('Evaluated Value'),
-            },
+            ...(formattedEvaluatedValue
+              ? [
+                  {
+                    key: 'value',
+                    value: formattedEvaluatedValue,
+                    subject: t('Evaluated Value'),
+                  },
+                ]
+              : []),
           ]}
         />
       </FoldSection>

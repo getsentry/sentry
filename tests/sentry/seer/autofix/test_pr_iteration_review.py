@@ -6,6 +6,7 @@ from scm.errors import ResourceNotFound
 from sentry.scm.types import PullRequestReviewEvent, SubscriptionEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
@@ -37,6 +38,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         state: str = "commented",
         author_id: str = "999",
         is_bot: bool = False,
+        skipped_authentication: bool = False,
         installation_id: int | None = 12345,
         repository_id: int | None = 7654321,
         pull_request_id: str = "7",
@@ -51,6 +53,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
             "extra": {
                 "installation_id": installation_id,
                 "repository_id": repository_id,
+                "skipped-authentication": skipped_authentication,
             },
             "sentry_meta": None,
         }
@@ -79,7 +82,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event())
 
         mock_delay.assert_called_once()
@@ -91,6 +94,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         assert kwargs["review_id"] == 500
         # Author is threaded to the task, which gates on its repo write access.
         assert kwargs["author_username"] == "reviewer"
+        assert kwargs["author_external_id"] == "999"
         # Human authorship is threaded through so the task can apply the
         # automated-only streak cap.
         assert kwargs["author_is_bot"] is False
@@ -101,7 +105,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event(action="edited"))
         mock_delay.assert_not_called()
 
@@ -113,21 +117,38 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self._mock_org_contexts(mock_contexts)
         # The listener dispatches every submitted review, bots included; the repo
         # write-access gate is enforced downstream in the task, not here.
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(
                 self._event(author_id="333333", is_bot=True)
             )
         mock_delay.assert_called_once()
         # Bot authorship is threaded through so the task can apply the streak cap.
         assert mock_delay.call_args.kwargs["author_is_bot"] is True
+        assert mock_delay.call_args.kwargs["delivery_authenticated"] is True
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
-    def test_skips_when_feature_disabled(
+    def test_unsigned_delivery_is_marked_unauthenticated(
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        handle_pull_request_review_for_autofix_iteration(self._event())
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            handle_pull_request_review_for_autofix_iteration(
+                self._event(is_bot=True, skipped_authentication=True)
+            )
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args.kwargs["delivery_authenticated"] is False
+
+    @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
+    @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
+    def test_skips_when_manual_feature_disabled(
+        self, mock_contexts: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        self._mock_org_contexts(mock_contexts)
+        # Automated CI iteration on, manual off: the review trigger is manual-only,
+        # so the automated flag must not enable it.
+        with self.feature("organizations:autofix-pr-iteration"):
+            handle_pull_request_review_for_autofix_iteration(self._event())
         mock_delay.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
@@ -136,15 +157,29 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         mock_contexts.return_value = MagicMock(integration=None, organization_integrations=[])
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event())
+        mock_delay.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
+    @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
+    def test_skips_github_enterprise(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
+        # PR iteration is not supported on GHE, which delivers the same
+        # pull_request_review events. It must be dropped here, before the
+        # control-silo integration lookup and before any task is scheduled.
+        self._mock_org_contexts(mock_contexts)
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            handle_pull_request_review_for_autofix_iteration(
+                self._event(provider="github_enterprise")
+            )
+        assert mock_contexts.call_count == 0
         mock_delay.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
     def test_skips_when_missing_ids(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event(installation_id=None))
         mock_delay.assert_not_called()
 
@@ -169,6 +204,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     mock_consume: MagicMock
     mock_make_scm: MagicMock
     mock_actions: MagicMock
+    mock_find_user: MagicMock
 
     def setUp(self) -> None:
         super().setUp()
@@ -190,6 +226,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
             ("mock_make_scm", "make_scm"),
             ("mock_actions", "scm_actions"),
+            ("mock_find_user", "find_user_for_scm_actor"),
         ):
             patcher = patch(f"{TASK_PATH}.{target}")
             setattr(self, attr, patcher.start())
@@ -200,11 +237,18 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_make_scm.return_value = MagicMock(spec=_ScmStub)
         self.mock_actions.get_review_comments.return_value = self._paginated([])
         self.mock_actions.get_pull_request_review.return_value = self._review_result(
-            {"id": "500", "html_url": "https://x/500", "body": "overall summary"}
+            {
+                "id": "500",
+                "html_url": "https://x/500",
+                "body": "overall summary",
+                "state": "changes_requested",
+                "author": {"id": "999", "username": "reviewer"},
+            }
         )
         # Default the author to a repo collaborator with write access; tests that
         # exercise the gate override this.
         self.mock_actions.get_repository_user_permission.return_value = {"data": {"perms": "write"}}
+        self.mock_find_user.return_value = self.user
 
     def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         return SeerRunState(
@@ -226,6 +270,28 @@ class TriggerPrIterationFromReviewTest(TestCase):
             message=Message(
                 role="assistant",
                 metadata={"step": "pr_iteration", "iteration_index": idx},
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
+    def _feedback_iteration_block(self, idx: int, *, author_is_bot: bool) -> MemoryBlock:
+        """An iteration block carrying real serialized review feedback."""
+        feedback = Feedback(
+            source=GithubPrReviewBodyFeedbackSource(
+                review_id=idx,
+                body="fix this",
+                author_is_bot=author_is_bot,
+            )
+        )
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": idx,
+                    "feedback": serialize_feedback([feedback]),
+                },
             ),
             timestamp="2024-01-01T00:00:00Z",
         )
@@ -266,7 +332,13 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
         return {"data": review, "type": "github", "raw": {}}
 
-    def _run(self, author_username: str | None = "reviewer", author_is_bot: bool = False) -> None:
+    def _run(
+        self,
+        author_username: str | None = "reviewer",
+        author_external_id: str | int | None = "999",
+        author_is_bot: bool = False,
+        delivery_authenticated: bool = True,
+    ) -> None:
         trigger_pr_iteration_from_review(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
@@ -274,7 +346,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
             pr_number=7,
             review_id=500,
             author_username=author_username,
+            author_external_id=author_external_id,
             author_is_bot=author_is_bot,
+            delivery_authenticated=delivery_authenticated,
         )
 
     def test_batch_review_with_inline_comments_and_body(self) -> None:
@@ -303,15 +377,27 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert len(comment_sources) == 2
         assert len(body_sources) == 1
         assert body_sources[0].body == "overall summary"
+        # The shared review id lands on every item from the review — both inline
+        # comments and the body — so the UI can group them under one review. The
+        # review's state lives on the body source (the review's representation).
+        assert all(s.review_id == 500 for s in sources)
+        assert body_sources[0].review_state == "changes_requested"
         # The SCM ``url`` maps onto the source's ``html_url``; the UI drops
         # comments without it, so this is what surfaces the feedback.
         assert {s.comment.html_url for s in comment_sources} == {
             "https://github.com/owner/repo/pull/7#discussion_r1",
             "https://github.com/owner/repo/pull/7#discussion_r2",
         }
+        # The commenter's GitHub id rides along for commit attribution.
+        assert all(
+            s.comment.user is not None and s.comment.user.id == "999" for s in comment_sources
+        )
         assert all(
             c.kwargs["referrer"] == AutofixReferrer.GITHUB_PR_REVIEW
             for c in self.mock_enqueue.call_args_list
+        )
+        assert all(
+            c.kwargs["actor_user_id"] == self.user.id for c in self.mock_enqueue.call_args_list
         )
         self.mock_consume.assert_called_once()
 
@@ -391,9 +477,37 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert isinstance(source, GithubPrReviewBodyFeedbackSource)
         assert source.body == "overall summary"
         assert source.review_id == 500
+        assert source.review_state == "changes_requested"
+        # The author rides on the body source's ``user`` (the same shape an inline
+        # comment carries) so the UI can render the reviewer's avatar on the header.
+        assert source.user is not None
+        assert source.user.login == "reviewer"
+        # The GitHub id rides along so commit attribution can build the noreply email.
+        assert source.user.id == "999"
 
         # A body-only review has no inline comment to react to.
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_body_author_read_from_review_not_gate_actor(self) -> None:
+        # The body avatar author comes from the fetched review's author, not the
+        # write-access gate's actor. Set them to different logins to prove the
+        # source is the review payload (mirroring how a comment reads its author).
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {
+                "id": "500",
+                "html_url": "https://x/500",
+                "body": "overall summary",
+                "state": "changes_requested",
+                "author": {"id": "42", "username": "review-author"},
+            }
+        )
+
+        self._run(author_username="gate-actor")
+
+        source = self.mock_enqueue.call_args.kwargs["feedback"].source
+        assert isinstance(source, GithubPrReviewBodyFeedbackSource)
+        assert source.user is not None
+        assert source.user.login == "review-author"
 
     def test_single_comment_review(self) -> None:
         # GitHub's "Add single comment" fires a review with state=commented, one
@@ -455,6 +569,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_called_once()
         source = self.mock_enqueue.call_args.kwargs["feedback"].source
         assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+        # The review 404'd, but the inline comment still flows through, tagged with
+        # its review id for grouping (no body source is emitted to carry state).
+        assert source.review_id == 500
 
     def test_skips_when_no_agent_state(self) -> None:
         self.mock_get_state.return_value = None
@@ -484,6 +601,47 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+        # The cap drops the bot, not the write-access gate.
+        self.mock_actions.get_repository_user_permission.assert_not_called()
+
+    def test_bot_review_capped_when_prior_iterations_recorded_bot_feedback(self) -> None:
+        # Bot reviews recorded as automated feedback trip the cap, so bot-vs-agent
+        # ping-pong is bounded even though the bot skips the write-access gate.
+        self.mock_get_state.return_value = self._agent_state(
+            blocks=[
+                self._feedback_iteration_block(1, author_is_bot=True),
+                self._feedback_iteration_block(2, author_is_bot=True),
+            ]
+        )
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._run(author_is_bot=True)
+
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_bot_review_proceeds_when_prior_iteration_had_human_feedback(self) -> None:
+        # One human feedback item in a drained iteration makes it manual, which
+        # breaks the streak and lets the next bot review through.
+        self.mock_get_state.return_value = self._agent_state(
+            blocks=[
+                self._feedback_iteration_block(1, author_is_bot=False),
+                self._feedback_iteration_block(2, author_is_bot=True),
+            ]
+        )
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._run(author_is_bot=True)
+
+        self.mock_enqueue.assert_called()
+        self.mock_consume.assert_called_once()
 
     def test_human_review_proceeds_when_automated_streak_capped(self) -> None:
         # The streak cap only bounds automated (bot) reviews; a human review always
@@ -514,6 +672,53 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_bot_review_proceeds_without_repo_write_access(self) -> None:
+        # A bot account is never a repo collaborator, so it skips the gate.
+        self.mock_actions.get_repository_user_permission.return_value = {"data": {"perms": "none"}}
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        self._run(author_is_bot=True)
+
+        self.mock_enqueue.assert_called()
+        self.mock_consume.assert_called_once()
+        self.mock_actions.get_repository_user_permission.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_called_once()
+
+        # The review still counts as automated, so the streak cap can stop it later.
+        self.mock_find_user.assert_not_called()
+        sources = [c.kwargs["feedback"].source for c in self.mock_enqueue.call_args_list]
+        assert all(s.author_is_bot for s in sources)
+        assert all(c.kwargs["actor_user_id"] is None for c in self.mock_enqueue.call_args_list)
+
+    def test_unauthenticated_bot_review_still_needs_write_access(self) -> None:
+        # A legacy GitHub Enterprise host can deliver without a verified signature,
+        # so the bot flag is forgeable and must not skip the gate.
+        self.mock_actions.get_repository_user_permission.return_value = {"data": {"perms": "none"}}
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        self._run(author_is_bot=True, delivery_authenticated=False)
+
+        self.mock_actions.get_repository_user_permission.assert_called_once()
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_bot_review_proceeds_without_author_username(self) -> None:
+        # GitHub always sends a login, but the bot path must not depend on one.
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        self._run(author_username=None, author_is_bot=True)
+
+        self.mock_enqueue.assert_called()
+        self.mock_consume.assert_called_once()
+        self.mock_actions.get_repository_user_permission.assert_not_called()
 
     def test_skips_review_with_no_author(self) -> None:
         # No author username means we can't check access, so drop without even

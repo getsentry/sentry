@@ -11,7 +11,7 @@ This covers only top-level PR comments (``issue_comment``). Inline review
 comments arrive via the ``pull_request_review`` SCM listener (see
 ``listeners/review.py``),
 which acts on the whole submitted review without requiring an ``@sentry`` command
-but still gates on the review author's repo write access.
+but still gates human review authors on repo write access.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ from sentry import features
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -73,7 +74,9 @@ def _dispatch_autofix_iteration_from_comment(
     log_extra: Mapping[str, Any],
 ) -> None:
     try:
-        feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=comment))
+        feedback = Feedback(
+            source=GithubPrCommentFeedbackSource(comment=comment, repo_name=repo.name)
+        )
     except ValidationError:
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
         return None
@@ -83,12 +86,23 @@ def _dispatch_autofix_iteration_from_comment(
     # log at info to make any silent drop debuggable.
     logger.info("autofix.pr_iteration.comment_trigger.received", extra=log_extra)
 
-    if not features.has("organizations:autofix-pr-iteration", organization):
+    if not features.has("organizations:autofix-pr-iteration-manual", organization):
         logger.info("autofix.pr_iteration.comment_trigger.feature_disabled", extra=log_extra)
         return None
 
     if integration is None:
         logger.info("autofix.pr_iteration.comment_trigger.no_integration", extra=log_extra)
+        return None
+
+    # GitHub Enterprise inherits this processor (see
+    # ``GitHubEnterpriseIssueCommentEventWebhook``) and sends the same
+    # ``issue_comment`` events, so it is turned away here rather than a task hop
+    # later. See ``PR_ITERATION_PROVIDER``.
+    if integration.provider != PR_ITERATION_PROVIDER_SLUG:
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.unsupported_provider",
+            extra={**log_extra, "provider": integration.provider},
+        )
         return None
 
     if pr_number is None:

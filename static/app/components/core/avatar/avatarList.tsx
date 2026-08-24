@@ -75,9 +75,7 @@ export function AvatarList({
     numCollapsedAvatars = 0;
   }
 
-  if (!tooltipOptions.position) {
-    tooltipOptions.position = 'top';
-  }
+  const resolvedTooltipOptions = {position: 'top' as const, ...tooltipOptions};
 
   return (
     <AvatarListWrapper className={className}>
@@ -99,7 +97,7 @@ export function AvatarList({
               key={`${team.id}-${team.name}`}
               team={team}
               size={avatarSize}
-              tooltipOptions={tooltipOptions}
+              tooltipOptions={resolvedTooltipOptions}
               hasTooltip
             />
           ))
@@ -108,7 +106,7 @@ export function AvatarList({
               key={user.id}
               user={user}
               size={avatarSize}
-              tooltipOptions={tooltipOptions}
+              tooltipOptions={resolvedTooltipOptions}
               renderTooltip={renderTooltip}
               hasTooltip
             />
@@ -120,7 +118,7 @@ export function AvatarList({
               key={user.id}
               user={user}
               size={avatarSize}
-              tooltipOptions={tooltipOptions}
+              tooltipOptions={resolvedTooltipOptions}
               renderTooltip={renderTooltip}
               hasTooltip
             />
@@ -130,7 +128,7 @@ export function AvatarList({
               key={`${team.id}-${team.name}`}
               team={team}
               size={avatarSize}
-              tooltipOptions={tooltipOptions}
+              tooltipOptions={resolvedTooltipOptions}
               hasTooltip
             />
           ))}

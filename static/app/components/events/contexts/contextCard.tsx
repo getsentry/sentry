@@ -25,8 +25,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
   alias: string;
-  event: Event;
   type: string;
+  event?: Event;
   project?: Project;
   value?: ContextValue;
 }

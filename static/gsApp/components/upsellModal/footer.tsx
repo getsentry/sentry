@@ -8,14 +8,13 @@ import type {Organization} from 'sentry/types/organization';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
-import {getFriendlyPlanName} from 'getsentry/utils/billing';
+import {getFriendlyPlanName, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface UpsellFooterProps {
   onCloseModal: () => void;
   organization: Organization;
   subscription: Subscription;
-  showTrialResetContent?: boolean;
   source?: string;
 }
 
@@ -24,7 +23,6 @@ export function Footer({
   organization,
   source,
   onCloseModal,
-  showTrialResetContent,
 }: UpsellFooterProps) {
   const buttonProps = {
     subscription,
@@ -33,13 +31,13 @@ export function Footer({
     onSuccess: onCloseModal,
   };
 
-  const canTrial = subscription.canTrial && !subscription.isTrial;
+  const canTrial = subscription.canTrial && !isTrial(subscription);
 
   return (
     <Flex align="end" gap="md">
       <UpgradeOrTrialButton data-test-id="upgrade-or-trial" {...buttonProps} />
       {/* if the trial was reset, just show them a maybe later button */}
-      {canTrial && !showTrialResetContent ? (
+      {canTrial ? (
         <UpgradeOrTrialButton
           data-test-id="upgrade-plan"
           variant="secondary"

@@ -1,7 +1,7 @@
 """Reader-routing tests for the reduced activity document (CORE-283 PR 4).
 
 Each reader (select_verdict, select_fallback_verdict, the activity-derived counters,
-ci_failing_at_close, resolved_group_ids, the judge timeline forward) routes per PR by
+_ci_failing_at_close, resolved_group_ids, the judge timeline forward) routes per PR by
 store presence: a ``PullRequestActivityLog`` row → read the document; no row → read
 the legacy rows.
 These craft a document and assert the reader returns the document-derived value
@@ -26,7 +26,9 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.emit import (
     VerdictDeferral,
     _activity_derived_metrics,
-    ci_failing_at_close,
+    _ci_failed_at_open,
+    _ci_failing_at_close,
+    _no_ci_events,
     review_activity,
     select_fallback_verdict,
     select_verdict,
@@ -166,21 +168,49 @@ class ActivityDocumentReadersTest(TestCase):
         assert metrics["reviews_human_count"] == 1
         assert metrics["participants_count"] == 1  # human only; ci[bot] excluded
 
-    # --- ci_failing_at_close ----------------------------------------------
+    # --- _ci_failing_at_close ----------------------------------------------
 
     def test_ci_failing_at_close_from_doc(self) -> None:
         self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="failure")}))
-        assert ci_failing_at_close(self.pr) is True
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
 
     def test_ci_not_failing_at_close_from_doc(self) -> None:
         self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="success")}))
-        assert ci_failing_at_close(self.pr) is False
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is False
+
+    def test_ci_failing_at_close_failure_not_masked_by_sibling_suite(self) -> None:
+        # One app, two suites (two workflow runs) at the same head: the workflow
+        # that failed keeps its own group, so the other workflow's later green
+        # completion doesn't erase the failure.
+        self._write_doc(
+            _doc(
+                checks={
+                    "sha1|github-actions|1": _group(check_suite_id=1, suite_conclusion="failure"),
+                    "sha1|github-actions|2": _group(check_suite_id=2, suite_conclusion="success"),
+                }
+            )
+        )
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
+
+    def test_ci_failing_at_close_mixed_merged_and_suite_groups_keeps_frozen_failure(self) -> None:
+        # Rolling-deploy state: a failure frozen in the merged legacy group,
+        # suite-scoped greens beside it. Any-failure-wins keeps reporting it for
+        # the document's life — the accepted over-report, not an erasure.
+        self._write_doc(
+            _doc(
+                checks={
+                    "sha1|github-actions": _group(suite_conclusion="failure"),
+                    "sha1|github-actions|2": _group(check_suite_id=2, suite_conclusion="success"),
+                }
+            )
+        )
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
 
     # --- review_activity (requested_count, results) -------------------------
 
     def test_reviews_requested_count_from_doc(self) -> None:
         self._write_doc(_doc(counts={"review_requested": 3, "review_request_removed": 1}))
-        assert review_activity(self.pr).requested_count == 2
+        assert review_activity(self.pr, doc=load_activity_document(self.pr)).requested_count == 2
 
     def test_reviews_requested_count_from_legacy_rows(self) -> None:
         # No PullRequestActivityLog row → routes to the legacy PullRequestActivity
@@ -203,7 +233,7 @@ class ActivityDocumentReadersTest(TestCase):
             event_type=PullRequestActivityType.REVIEW_REQUEST_REMOVED,
             payload={},
         )
-        assert review_activity(self.pr).requested_count == 1
+        assert review_activity(self.pr, doc=load_activity_document(self.pr)).requested_count == 1
 
     def test_review_results_from_doc(self) -> None:
         self._write_doc(
@@ -214,7 +244,7 @@ class ActivityDocumentReadersTest(TestCase):
                 ]
             )
         )
-        assert review_activity(self.pr).results == {
+        assert review_activity(self.pr, doc=load_activity_document(self.pr)).results == {
             "approved": 1,
             "changes_requested": 1,
             "commented": 0,
@@ -229,11 +259,66 @@ class ActivityDocumentReadersTest(TestCase):
             event_type=PullRequestActivityType.REVIEW_SUBMITTED,
             payload={"review_state": "commented"},
         )
-        assert review_activity(self.pr).results == {
+        assert review_activity(self.pr, doc=load_activity_document(self.pr)).results == {
             "approved": 0,
             "changes_requested": 0,
             "commented": 1,
         }
+
+    # --- _ci_failed_at_open --------------------------------------------------
+
+    def test_ci_failed_at_open_from_doc(self) -> None:
+        self._write_doc(
+            _doc(
+                events=[_entry("opened", "o1", head_sha="sha1")],
+                checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")},
+            )
+        )
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is True
+
+    def test_ci_failed_at_open_from_doc_without_an_open_entry(self) -> None:
+        # Tracking started after the PR opened, so nothing names the opening head:
+        # the first sync link's ``before_sha`` is the head that push replaced, which
+        # is the opening head only if it was the first push. With no head to scope
+        # to, the failing suite on record can't be attributed to the open.
+        self._write_doc(
+            _doc(
+                events=[_entry("synchronized", "s1", after_sha="sha2", before_sha="sha1")],
+                sync_chain=[["sha2", "sha1", "alice", "User", "s1"]],
+                checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")},
+            )
+        )
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is False
+
+    def test_ci_failed_at_open_from_doc_excludes_later_head(self) -> None:
+        # The failing check belongs to a later push's head, not the opening one.
+        self._write_doc(
+            _doc(
+                events=[_entry("opened", "o1", head_sha="sha1")],
+                checks={"sha2|github-actions": _group(head_sha="sha2", suite_conclusion="failure")},
+            )
+        )
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is False
+
+    def test_ci_failed_at_open_from_doc_no_opened_entry_is_false(self) -> None:
+        # No OPENED entry recorded (e.g. tracking enabled after the PR opened) —
+        # there's no reliable opening head to scope the check to.
+        self._write_doc(
+            _doc(
+                checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")}
+            )
+        )
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is False
+
+    # --- _no_ci_events --------------------------------------------------------
+
+    def test_no_ci_events_true_from_empty_doc(self) -> None:
+        self._write_doc(_doc())
+        assert _no_ci_events(self.pr, doc=load_activity_document(self.pr)) is True
+
+    def test_no_ci_events_false_from_doc_with_checks(self) -> None:
+        self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="success")}))
+        assert _no_ci_events(self.pr, doc=load_activity_document(self.pr)) is False
 
     # --- resolved_group_ids -----------------------------------------------
 

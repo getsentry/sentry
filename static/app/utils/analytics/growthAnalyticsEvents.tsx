@@ -1,5 +1,7 @@
 import type {PlatformKey} from 'sentry/types/platform';
 
+export type PlatformSelectionSource = 'detected' | 'manual';
+
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
 };
@@ -11,17 +13,22 @@ type PlatformParam = {
 type PlatformCategory = {
   category: string;
   source?: string;
+  // For project creation, `source` identifies the flow and `variant` the experience.
+  variant?: 'scm' | 'legacy';
 };
 
 type PlatformPickerParam = {
   platform_id: string;
+  selection_source?: PlatformSelectionSource;
   source?: string;
+  variant?: 'scm' | 'legacy';
 };
 
 type PlatformSearchParam = {
   num_results: number;
   search: string;
   source?: string;
+  variant?: 'scm' | 'legacy';
 };
 
 type SampleEventParam = {

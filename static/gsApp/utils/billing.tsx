@@ -118,7 +118,7 @@ export const getSlot = (
  *                Useful for Errors/Transactions but not recommended to be used
  *                with Attachments because "1K GB" is hard to read.
  * isGifted: For gifted data volumes, 0 is displayed as 0 instead of unlimited.
- * useUnitScaling: For Attachments only. Scale from KB -> MB -> GB -> TB -> etc
+ * useUnitScaling: For Attachments only. Scale from kB -> MB -> GB -> TB -> etc
  */
 type FormatOptions = {
   fractionDigits?: number;
@@ -208,7 +208,9 @@ export function formatUsageWithUnits(
     }
     return options.isAbbreviated
       ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
+      : usageProfileHours.toLocaleString(undefined, {
+          maximumFractionDigits: 1,
+        });
   }
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
@@ -278,7 +280,7 @@ function formatReservedNumberToString(
  * sentry/utils/formatBytes.
  */
 function formatByteUnits(bytes: number, u = 0) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   const threshold = 1000;
 
   while (bytes >= threshold) {
@@ -331,16 +333,18 @@ export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUS
 
 export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
 
+/**
+ * Whether the subscription is currently on a trial, derived from `trialPlan`
+ * (non-null iff trialing).
+ */
+export const isTrial = (subscription: Subscription) => defined(subscription.trialPlan);
+
 export const isBusinessTrial = (subscription: Subscription) => {
-  return (
-    subscription.isTrial &&
-    !subscription.isPerformancePlanTrial &&
-    !subscription.isEnterpriseTrial
-  );
+  return isTrial(subscription) && !subscription.isEnterpriseTrial;
 };
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
-  return subscription.isTrial && subscription.isTrialStarted;
+  return isTrial(subscription) && subscription.isTrialStarted;
 }
 
 export const displayBudgetName = (
@@ -859,7 +863,7 @@ export function checkIsAddOnChildCategory(
  *
  * If the data category has no sibling categories, `checkReserved` is ignored and we return the parent add-on.
  */
-export function getParentAddOn(
+function getParentAddOn(
   subscription: Subscription | null,
   category: DataCategory,
   checkReserved: boolean

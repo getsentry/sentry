@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   EVENT_CHOICES,
-  WebhookGranularEvent,
+  WebhookSubscription,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   PERMISSIONS_MAP,
@@ -26,9 +26,9 @@ type Props = {
   disabledFromPermissions: boolean;
   isNew: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
-  onEventChange: (event: WebhookGranularEvent, checked: boolean) => void;
+  onEventChange: (event: WebhookSubscription, checked: boolean) => void;
   resource: Resource;
-  selectedEvents: WebhookGranularEvent[];
+  selectedEvents: WebhookSubscription[];
 };
 
 export function SubscriptionBox({
@@ -41,13 +41,6 @@ export function SubscriptionBox({
   selectedEvents,
 }: Props) {
   const {features} = useOrganization();
-
-  if (
-    resource === 'preprod_artifact' &&
-    !features.includes('preprod-artifact-webhooks')
-  ) {
-    return null;
-  }
 
   let disabled = disabledFromPermissions;
   let message = t(

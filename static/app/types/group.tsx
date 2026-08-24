@@ -399,14 +399,6 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
-// Occurrence type IDs for hidden issue types - used to filter API queries.
-// Note: This only works for issuePlatform events not discover/error events.
-export const HIDDEN_OCCURRENCE_TYPE_IDS: number[] = Object.entries(
-  OCCURRENCE_TYPE_TO_ISSUE_TYPE
-)
-  .filter(([_, issueType]) => HIDDEN_ISSUE_TYPES.includes(issueType))
-  .map(([id]) => Number(id));
-
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
 
 export function getIssueTypeFromOccurrenceType(
@@ -458,6 +450,12 @@ export type Tag = {
   key: string;
   name: string;
   alias?: string;
+
+  /**
+   * For trace-item attributes, whether the attribute was defined by Sentry
+   * ('sentry') or sent by the user ('user').
+   */
+  attributeSource?: 'sentry' | 'user';
 
   isInput?: boolean;
 
@@ -550,11 +548,12 @@ export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
   | 'projectOwnership'
+  | 'seerSuggested'
   // TODO: codeowners may no longer exist
   | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
-type SuggestedOwner = {
+export type SuggestedOwner = {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
@@ -824,8 +823,29 @@ interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
   type: GroupActivityType.PULL_REQUEST_UNLINKED;
 }
 
+/**
+ * Mirrors `sentry.seer.autofix.constants.AutofixReferrer` on the backend.
+ * Keep these values in sync when the backend enum changes.
+ */
+type AutofixReferrer =
+  | 'api.cli'
+  | 'api.group_ai_autofix'
+  | 'api.linear_agent'
+  | 'api.mcp'
+  | 'api.web'
+  | 'autofix.on_completion_hook'
+  | 'github.check_suite'
+  | 'github.pr_comment'
+  | 'github.pr_review'
+  | 'issue_summary.post_process_fixability'
+  | 'night_shift'
+  | 'slack'
+  | 'unknown';
+
 interface GroupActivityTriggerAutofix extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {
+    referrer?: AutofixReferrer;
+  };
   type: GroupActivityType.TRIGGER_AUTOFIX;
 }
 
@@ -902,7 +922,7 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
-export interface GroupActivitySetPriority extends GroupActivityBase {
+interface GroupActivitySetPriority extends GroupActivityBase {
   data: {
     priority: PriorityLevel;
     reason: string;
@@ -924,7 +944,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'codeowners'
       | 'slack'
       | 'msteams'
-      | 'suspectCommitter';
+      | 'suspectCommitter'
+      | 'seerSuggested';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
     user?: Team | User;
@@ -932,7 +953,7 @@ export interface GroupActivityAssigned extends GroupActivityBase {
   type: GroupActivityType.ASSIGNED;
 }
 
-export interface GroupActivityCreateIssue extends GroupActivityBase {
+interface GroupActivityCreateIssue extends GroupActivityBase {
   data: {
     location: string;
     provider: string;
@@ -1010,6 +1031,7 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
     iteration_index?: number;
+    referrer?: AutofixReferrer;
     run_id?: number;
   };
   type: GroupActivityType.SEER_ITERATION_STARTED;

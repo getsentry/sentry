@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {type AriaComboBoxProps} from '@react-aria/combobox';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -21,14 +20,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
-  AriaComboBoxProps<unknown>,
-  'children'
-> {
+interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T, runId?: number | string) => void;
   initialQuery: string;
   projectIds: number[];
   strategy: string;
+  className?: string;
   /**
    * Fallback mutation options to use if the polling endpoint fails.
    * If provided, the component will fall back to AskSeerComboBox on start failure.
@@ -118,6 +115,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   if (startFailed && fallbackMutationOptions) {
     return (
       <AskSeerComboBox
+        {...props}
         initialQuery={initialQuery}
         askSeerMutationOptions={fallbackMutationOptions}
         applySeerSearchQuery={applySeerSearchQuery}

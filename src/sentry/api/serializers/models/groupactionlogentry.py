@@ -41,6 +41,7 @@ class GroupActionLogEntrySerializerResponse(TypedDict):
     user: dict[str, Any] | None
     sentry_app: _ActivitySentryAppEmbed | None
     type: str
+    source: str | None
     data: dict[str, Any]
     dateCreated: datetime
 
@@ -59,6 +60,7 @@ def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerR
         "user": None,
         "sentry_app": None,
         "type": ActivityType.FIRST_SEEN.name.lower(),
+        "source": None,
         "data": {"priority": initial_priority},
         "dateCreated": group.first_seen,
     }
@@ -206,11 +208,18 @@ class GroupActionLogEntrySerializer(Serializer):
                 data = dict(raw_data)
             data.pop("mentions", None)
 
+        if (
+            obj.type == GroupActionType.SET_RESOLVED_IN_RELEASE.value
+            and data.get("current_release_version") is None
+        ):
+            data.pop("current_release_version", None)
+
         return {
             "id": str(obj.id),
             "type": type_display,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],
             "data": data,
+            "source": obj.source,
             "dateCreated": obj.date_added,
         }

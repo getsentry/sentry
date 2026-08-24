@@ -4,8 +4,8 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
 /**
  * Whether the current project selection represents "all projects" (-1 or empty).
@@ -44,7 +44,7 @@ export function useShowConversationOnboarding(): {
       limit: 1,
       pageFilters: selection,
     },
-    Referrer.CONVERSATIONS_ONBOARDING
+    Referrer.ONBOARDING
   );
 
   const hasData = !request.isLoading && (request.data?.length ?? 0) > 0;

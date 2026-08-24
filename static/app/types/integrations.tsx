@@ -156,16 +156,40 @@ export interface PullRequest {
 
 export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
 
+export type PullRequestAttributionAgent =
+  | 'cursor'
+  | 'github_copilot'
+  | 'claude_code'
+  | 'unknown';
+
 type SeerAttribution = {
   id: 'seer';
   type: 'seer';
+  agent?: PullRequestAttributionAgent | null;
 };
 
 export type PullRequestAttribution = SeerAttribution;
 
+export type PullRequestChecksStatus = 'success' | 'failure' | 'pending';
+
+export type PullRequestReviewStatus =
+  | 'approved'
+  | 'changes_requested'
+  | 'review_required';
+
+export type PullRequestFileChangeType =
+  | 'ADDED'
+  | 'CHANGED'
+  | 'COPIED'
+  | 'DELETED'
+  | 'MODIFIED'
+  | 'RENAMED';
+
 export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
   attribution: PullRequestAttribution | null;
+  checksStatus: PullRequestChecksStatus | null;
   dateLinked: string;
+  reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus;
   author?: PullRequestAuthor;
 }
@@ -239,7 +263,8 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  author: string;
+  // Null for internal integrations, which have no author.
+  author: string | null;
   events: WebhookEvent[];
   featureData: IntegrationFeature[];
   isAlertable: boolean;
@@ -256,6 +281,9 @@ export type SentryApp = {
   status: SentryAppStatus;
   uuid: string;
   verifyInstall: boolean;
+  // The stored subscriptions as exact event tokens, where `events` consolidates
+  // them to resource names.
+  webhookEvents: string[];
   webhookUrl: string | null;
   allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
@@ -267,9 +295,6 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
-  // The stored subscriptions as exact event tokens, where `events` consolidates
-  // them to resource names. Absent on older API responses.
-  webhookEvents?: string[];
   // Each entry is a "Header-Name: value" line. Saved values are masked by the API
   webhookHeaders?: string[];
 };
@@ -324,12 +349,20 @@ export type SentryAppWebhookRequest = {
   responseCode: number;
   sentryAppSlug: string;
   webhookUrl: string;
-  errorUrl?: string;
+  error_id?: string | null;
   organization?: {
-    id: string;
+    id: number;
     name: string;
     slug: string;
   };
+  project_id?: number | null;
+  request_body?: string | null;
+  /**
+   * Values of custom headers are masked before they reach the buffer, so only
+   * the header names are meaningful for those.
+   */
+  request_headers?: Record<string, string> | null;
+  response_body?: string | null;
 };
 
 /**

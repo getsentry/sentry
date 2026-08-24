@@ -4,6 +4,7 @@ import {
 } from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {EQUATION_PREFIX, isEquation} from 'sentry/utils/discover/fields';
+import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import {
   defaultMetricQuery,
   type BaseMetricQuery,
@@ -13,12 +14,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {
-  getFunctionLabel,
-  getVisualizeLabel,
-} from 'sentry/views/explore/toolbar/toolbarVisualize';
-
-export const EQUATION_LABEL = getVisualizeLabel(1, true);
+import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface ParsedAggregateExpression {
   /**
@@ -91,15 +88,19 @@ function makeMetricQuery(
   };
 }
 
-function makeEquationRow(prefixedEquation: string, query?: string): BaseMetricQuery {
+function makeEquationRow(
+  prefixedEquation: string,
+  query?: string,
+  chartType?: ChartType
+): BaseMetricQuery {
   const base = defaultMetricQuery({type: 'equation'});
   return {
     metric: {name: '', type: ''},
     queryParams: base.queryParams.replace({
-      aggregateFields: [new VisualizeEquation(prefixedEquation)],
+      aggregateFields: [new VisualizeEquation(prefixedEquation, {chartType})],
       query: query ?? '',
     }),
-    label: EQUATION_LABEL,
+    label: DEFAULT_EQUATION_LABEL,
   };
 }
 
@@ -120,7 +121,8 @@ function defaultRow(label: string): BaseMetricQuery {
  */
 export function parseAggregateExpression(
   aggregate: string,
-  query?: string
+  query?: string,
+  chartType?: ChartType
 ): ParsedAggregateExpression {
   if (!isEquation(aggregate)) {
     const tokens = tokenizeExpression(aggregate);
@@ -164,6 +166,6 @@ export function parseAggregateExpression(
   return {
     metricQueries,
     compactExpression,
-    equationRow: makeEquationRow(aggregate, query),
+    equationRow: makeEquationRow(aggregate, query, chartType),
   };
 }

@@ -35,7 +35,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 const userFeedbackFeedbackOptions = {
   messagePlaceholder: t('How can we improve the User Feedback experience?'),
   tags: {
-    ['feedback.source']: 'feedback-list',
+    'feedback.source': 'feedback-list',
   },
 };
 
@@ -229,7 +229,7 @@ export default function FeedbackListPage() {
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
-      <Stack flex={1} contain="size">
+      <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
         <FeedbackApiOptions organization={organization}>
           <TopBar.Slot name="title">{titleContent}</TopBar.Slot>
           <TopBar.Slot name="feedback">

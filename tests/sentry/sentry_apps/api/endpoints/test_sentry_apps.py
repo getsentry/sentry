@@ -571,11 +571,8 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data["slug"] != sentry_app.slug
 
     def test_cannot_create_app_without_organization(self) -> None:
-        self.create_project(organization=self.organization)
-        sentry_app = self.create_internal_integration(name="Foo Bar")
+        response = self.get_error_response(status_code=404)
 
-        data = self.get_data(name=sentry_app.name, organization=None)
-        response = self.get_error_response(**data, status_code=404)
         assert response.data == {
             "detail": "Please provide a valid value for the 'organization' field.",
         }
@@ -694,6 +691,17 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_cannot_create_with_error_created_hook_without_flag(self) -> None:
         with Feature({"organizations:integrations-event-hooks": False}):
             response = self.get_error_response(**self.get_data(events=("error",)), status_code=403)
+            assert response.data == {
+                "non_field_errors": [
+                    "Your organization does not have access to the 'error' resource subscription."
+                ]
+            }
+
+    def test_cannot_create_with_granular_error_created_without_flag(self) -> None:
+        with Feature({"organizations:integrations-event-hooks": False}):
+            response = self.get_error_response(
+                **self.get_data(events=("error.created",)), status_code=403
+            )
             assert response.data == {
                 "non_field_errors": [
                     "Your organization does not have access to the 'error' resource subscription."

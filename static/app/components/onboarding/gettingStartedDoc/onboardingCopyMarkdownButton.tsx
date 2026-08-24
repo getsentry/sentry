@@ -8,7 +8,6 @@ import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdow
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
@@ -17,6 +16,8 @@ interface CopyMarkdownButtonProps {
   label?: string;
   onCopy?: () => void;
   title?: string;
+  /** Identifies the SCM or legacy experience for copy-as-markdown analytics. */
+  variant?: 'scm' | 'legacy';
 }
 
 /**
@@ -35,6 +36,7 @@ export function CopyMarkdownButton({
   onCopy,
   title,
   label,
+  variant,
 }: CopyMarkdownButtonProps) {
   return (
     <Tooltip
@@ -51,7 +53,7 @@ export function CopyMarkdownButton({
         icon={<IconCopy />}
         analyticsEventKey="setup_guide.copy_as_markdown"
         analyticsEventName="Setup Guide: Copy as Markdown"
-        analyticsParams={{format: 'markdown', source}}
+        analyticsParams={{format: 'markdown', source, ...(variant ? {variant} : {})}}
         onClick={() => {
           copyToClipboard(getMarkdown());
           onCopy?.();
@@ -76,6 +78,8 @@ interface OnboardingCopyMarkdownButtonProps {
    * not represented as onboarding steps.
    */
   postamble?: string;
+  /** Identifies the SCM or legacy experience for copy-as-markdown analytics. */
+  variant?: 'scm' | 'legacy';
 }
 
 /**
@@ -88,6 +92,7 @@ export function OnboardingCopyMarkdownButton({
   borderless,
   postamble,
   onCopy,
+  variant,
 }: OnboardingCopyMarkdownButtonProps) {
   const authToken = useAuthToken();
   const tabSelectionsMap = useTabSelectionsMap();
@@ -115,38 +120,7 @@ export function OnboardingCopyMarkdownButton({
       source={source}
       borderless={borderless}
       onCopy={onCopy}
+      variant={variant}
     />
   );
-}
-
-type CopySetupInstructionsType = 'onboarding' | 'project_creation';
-
-const FEATURE_FLAGS: Record<CopySetupInstructionsType, string> = {
-  onboarding: 'onboarding-copy-setup-instructions',
-  project_creation: 'onboarding-copy-setup-instructions-project-creation',
-};
-
-/**
- * Returns whether the copy setup instructions button should be shown
- * for the given context type.
- */
-export function useCopySetupInstructionsEnabled(
-  type: CopySetupInstructionsType = 'onboarding'
-): boolean {
-  const organization = useOrganization();
-  return organization.features.includes(FEATURE_FLAGS[type]);
-}
-
-export function CopySetupInstructionsGate({
-  children,
-  type,
-}: {
-  children: React.ReactNode;
-  type?: CopySetupInstructionsType;
-}) {
-  const enabled = useCopySetupInstructionsEnabled(type);
-  if (!enabled) {
-    return null;
-  }
-  return children;
 }

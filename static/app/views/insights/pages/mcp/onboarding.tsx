@@ -5,16 +5,14 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -163,8 +161,8 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
-                <HeaderText>
+              <Flex justify="between" radius="md" padding="3xl">
+                <Container flex={{zero: 1, xl: 0.65}}>
                   <Title>{t('Monitor MCP Servers')}</Title>
                   <SubTitle>
                     {t(
@@ -188,9 +186,11 @@ function OnboardingPanel({
                       )}
                     </li>
                   </BulletList>
-                </HeaderText>
-                <Image src={emptyTraceImg} />
-              </HeaderWrapper>
+                </Container>
+                <Container display={{zero: 'none', xl: 'block'}}>
+                  {imageProps => <Image {...imageProps} src={emptyTraceImg} />}
+                </Container>
+              </Flex>
               <Divider />
 
               <Body>
@@ -217,7 +217,6 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -322,7 +321,6 @@ export function Onboarding() {
     },
     platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
-    newOrg: false,
     urlPrefix,
     isSelfHosted,
   };
@@ -351,7 +349,7 @@ export function Onboarding() {
             stepIndex={index}
             isLastStep={index === steps.length - 1}
             trailingItems={
-              index === 0 && copyEnabled ? (
+              index === 0 ? (
                 <OnboardingCopyMarkdownButton
                   borderless
                   steps={steps}
@@ -412,21 +410,6 @@ const BulletList = styled('ul')`
   }
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
-`;
-
 const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 `;
@@ -449,14 +432,9 @@ const BodyTitle = styled('div')`
 `;
 
 const Image = styled('img')`
-  display: block;
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`

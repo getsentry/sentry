@@ -5,12 +5,12 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.notifications.notification_action.activity_registry.base import (
-    extract_notification_models_by_activity,
-    require_config,
-)
+from sentry.notifications.notification_action.activity_registry.base import require_config
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import ActivityHandler
+from sentry.notifications.platform.templates.activity.base import (
+    extract_notification_models_by_activity,
+)
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,

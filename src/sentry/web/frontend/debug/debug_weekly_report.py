@@ -22,7 +22,12 @@ from sentry.tasks.summaries.utils import (
     OrganizationReportContext,
     ProjectContext,
 )
-from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
+from sentry.tasks.summaries.weekly_reports import (
+    CHART_PALETTE,
+    _pct_change,
+    _top_spans_chart_url,
+    render_template_context,
+)
 from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -201,7 +206,20 @@ class DebugWeeklyReportView(MailPreviewView):
                         substatus=GroupSubStatus.NEW,
                     ),
                     random.randint(100, 5000),
-                    random.choice([True, False]),
+                    *random.choice(
+                        [
+                            ("Resolved", None),
+                            (
+                                "Resolved in release",
+                                "https://github.com/getsentry/sentry/pull/12345",
+                            ),
+                            ("Resolved in next release", None),
+                            (
+                                "Resolved by Seer Fix",
+                                "https://github.com/getsentry/sentry/pull/12345",
+                            ),
+                        ]
+                    ),
                 )
                 for group_index in range(3)
             ]
@@ -228,6 +246,10 @@ class DebugWeeklyReportView(MailPreviewView):
         ctx.spans_count_by_project = {
             pid: random.randint(100000, 1500000) for pid in all_project_ids
         }
+        ctx.prev_week_spans_count_by_project = {
+            pid: int(ctx.spans_count_by_project[pid] * random.uniform(0.5, 1.5))
+            for pid in all_project_ids
+        }
         intervals = 28
         for name in span_names:
             ctx.top_spans_timeseries[name] = {
@@ -243,7 +265,10 @@ class DebugWeeklyReportView(MailPreviewView):
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
             context["show_past_issues"] = True
-            context["total_spans_count"] = sum(ctx.spans_count_by_project.values())
+            total_spans = sum(ctx.spans_count_by_project.values())
+            prev_total_spans = sum(ctx.prev_week_spans_count_by_project.values())
+            context["total_spans_count"] = total_spans
+            context["spans_pct_change"] = _pct_change(total_spans, prev_total_spans)
             project_by_id = {pid: pctx.project for pid, pctx in ctx.projects_context_map.items()}
             context["top_spans_table"] = [
                 {
@@ -254,24 +279,13 @@ class DebugWeeklyReportView(MailPreviewView):
                     if ctx.top_spans_projects.get(span["name"]) in project_by_id
                     else "",
                     "url": "#",
+                    "color": CHART_PALETTE[i] if i < len(CHART_PALETTE) else "",
                 }
-                for span in ctx.top_spans
+                for i, span in enumerate(ctx.top_spans)
             ]
-            past_issues: list[dict[str, Any]] = []
-            for project_ctx in ctx.projects_context_map.values():
-                for group, count, has_link in project_ctx.past_resolved_issues:
-                    display = get_group_display(group)
-                    past_issues.append(
-                        {
-                            "count": count,
-                            "group": group,
-                            "title": display["title"],
-                            "message": display["message"],
-                            "has_linked_pr_or_commit": has_link,
-                        }
-                    )
-            past_issues.sort(key=lambda x: x["count"], reverse=True)
-            context["past_issues"] = past_issues[:3]
+            chart_url = _top_spans_chart_url(context["top_spans_table"], ctx, None)
+            if chart_url:
+                context["spans_chart_url"] = chart_url
         return context
 
     @property

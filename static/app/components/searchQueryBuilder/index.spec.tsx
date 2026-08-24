@@ -13,6 +13,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {GlobalModal} from '@sentry/scraps/modal';
+
+import * as indicators from 'sentry/actionCreators/indicator';
+import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -40,6 +44,8 @@ import {
 } from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
+
+jest.unmock('@tanstack/react-pacer');
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -192,6 +198,29 @@ describe('SearchQueryBuilder', () => {
     label: 'Query Builder',
     searchSource: '',
   };
+
+  it.each([
+    ['Ctrl+K', '{Control>}k{/Control}'],
+    ['Ctrl+Shift+P', '{Control>}{Shift>}p{/Shift}{/Control}'],
+  ])(
+    'opens the command palette from an open suggestions menu with %s',
+    async (_label, keys) => {
+      render(
+        <Fragment>
+          <CommandPaletteHotkeys />
+          <GlobalModal />
+          <SearchQueryBuilder {...defaultProps} />
+        </Fragment>
+      );
+
+      await userEvent.click(getLastInput());
+      await screen.findByRole('listbox');
+
+      await userEvent.keyboard(keys);
+
+      expect(await screen.findByRole('textbox', {name: 'Search commands'})).toHaveFocus();
+    }
+  );
 
   it('displays a placeholder when empty', async () => {
     render(<SearchQueryBuilder {...defaultProps} placeholder="foo" />);
@@ -1008,6 +1037,10 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
       it('displays recent search queries when query is empty', async () => {
         render(
           <SearchQueryBuilder
@@ -1074,7 +1107,16 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
 
-        await userEvent.click(await screen.findByRole('option', {name: 'assigned:me'}));
+        const recentSearchOption = await screen.findByRole('option', {
+          name: 'assigned:me',
+        });
+        jest.useFakeTimers();
+        await userEvent.click(recentSearchOption, {delay: null});
+
+        expect(mockCreateRecentSearch).not.toHaveBeenCalled();
+
+        await act(() => jest.advanceTimersByTimeAsync(3000));
+        jest.useRealTimers();
         await waitFor(() => {
           expect(mockOnSearch).toHaveBeenCalledWith('assigned:me', expect.anything());
         });
@@ -1091,6 +1133,40 @@ describe('SearchQueryBuilder', () => {
             data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
           })
         );
+        expect(mockCreateRecentSearch).toHaveBeenCalledTimes(1);
+      });
+
+      it('saves a selected recent search when unmounted during the debounce', async () => {
+        const mockCreateRecentSearch = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'POST',
+        });
+        const {unmount} = render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+        const recentSearchOption = await screen.findByRole('option', {
+          name: 'assigned:me',
+        });
+        jest.useFakeTimers();
+        await userEvent.click(recentSearchOption, {delay: null});
+
+        expect(mockCreateRecentSearch).not.toHaveBeenCalled();
+
+        act(() => unmount());
+
+        expect(mockCreateRecentSearch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
+          })
+        );
+        expect(mockCreateRecentSearch).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -1468,6 +1544,38 @@ describe('SearchQueryBuilder', () => {
         'browser.name:Firefox',
         expect.anything()
       );
+    });
+
+    it('quotes colon-containing keys selected from key suggestions', async () => {
+      const filterKey = 'imaginary.attribute:made_up_key';
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [filterKey]: {
+              key: filterKey,
+              name: filterKey,
+              kind: FieldKind.TAG,
+              predefined: true,
+              values: ['asdf'],
+            },
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.keyboard('imaginary');
+      await userEvent.click(screen.getByRole('option', {name: filterKey}));
+
+      expect(
+        screen.getByRole('row', {
+          name: `"${filterKey}":${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
     });
 
     it('defaults to contains when adding a default-string filter', async () => {
@@ -2862,6 +2970,43 @@ describe('SearchQueryBuilder', () => {
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('is:test\\*', expect.anything());
+      });
+    });
+
+    it('preserves quoted syntax when selecting a value for a user attribute', async () => {
+      const mockOnChange = jest.fn();
+      const filterKey = 'imaginary.attribute:made_up_key';
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [filterKey]: {
+              key: filterKey,
+              name: filterKey,
+              kind: FieldKind.TAG,
+              predefined: true,
+              values: ['asdf'],
+            },
+          }}
+          onChange={mockOnChange}
+          initialQuery={`"${filterKey}":${WildcardOperators.CONTAINS}""`}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: `Edit value for filter: ${filterKey}`})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'asdf'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          `"${filterKey}":asdf`,
+          expect.anything()
+        );
       });
     });
 
@@ -6014,6 +6159,97 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('disallowNegation', () => {
+    it('removes negation operators from string filter options', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="browser.name:firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+
+      // Positive operators remain available
+      expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'contains'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
+
+      // Negation operators are hidden
+      expect(screen.queryByRole('option', {name: 'is not'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not contain'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not start with'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not end with'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('removes "does not have" from has filter options', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} disallowNegation initialQuery="has:key" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: has'})
+      );
+
+      expect(await screen.findByRole('option', {name: 'has'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not have'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('marks a negated filter invalid (e.g. when pasted)', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="!browser.name:firefox"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: '!browser.name:firefox'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Negation is not allowed in this search.')
+      ).toBeInTheDocument();
+    });
+
+    it('marks operator-based negation invalid (e.g. pasted "!=")', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="timesSeen:!=5"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'timesSeen:!=5'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Negation is not allowed in this search.')
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('highlightUnsupportedFilters', () => {
     it('should mark unsupported filters as invalid', async () => {
       render(
@@ -7052,6 +7288,7 @@ describe('SearchQueryBuilder', () => {
           );
         }
 
+        const successMessageSpy = jest.spyOn(indicators, 'addSuccessMessage');
         const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
         render(
           <AskSeerWrapper>
@@ -7084,20 +7321,20 @@ describe('SearchQueryBuilder', () => {
         const filter = await screen.findByRole('option', {
           name: "Query parameters: Filter is 'span.duration is greater than 30s ', visualizations are 'count()', sort is 'span.duration Desc'",
         });
-        await userEvent.click(filter);
-        await userEvent.click(getLastInput());
 
-        const feedback = await screen.findByText(
-          'We loaded the results. Does this look right?'
-        );
+        const feedback = await screen.findByText('How did we do?');
         expect(feedback).toBeInTheDocument();
+        expect(
+          screen.queryByText('We loaded the results. Does this look right?')
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Generate again'})).toBeInTheDocument();
 
         const yep = await screen.findByRole('button', {name: 'Yep, correct results'});
         await userEvent.click(yep);
 
-        expect(
-          await screen.findByRole('button', {name: /Ask AI to build your query/})
-        ).toBeInTheDocument();
+        expect(successMessageSpy).toHaveBeenCalledWith('Thanks for the feedback!');
+        expect(screen.queryByText('How did we do?')).not.toBeInTheDocument();
+        expect(filter).toBeInTheDocument();
       });
     });
 
@@ -7287,24 +7524,54 @@ describe('SearchQueryBuilder', () => {
         );
 
         await userEvent.click(getLastInput());
-        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+        await userEvent.type(getLastInput(), 'slow spans{enter}');
 
         expect(
           await screen.findByRole('combobox', {
             name: 'Ask Seer with Natural Language',
           })
-        ).toHaveValue('find slow spans ');
+        ).toHaveValue('slow spans ');
         await waitFor(() => {
-          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+          expect(mockAskSeer).toHaveBeenCalledWith('slow spans', expect.anything());
         });
         expect(mockOnSearch).not.toHaveBeenCalled();
 
         await userEvent.click(screen.getByRole('button', {name: 'Close Seer Search'}));
 
-        expect(
-          screen.queryByRole('row', {name: 'find slow spans'})
-        ).not.toBeInTheDocument();
-        expect(screen.queryByDisplayValue('find slow spans')).not.toBeInTheDocument();
+        expect(screen.queryByRole('row', {name: 'slow spans'})).not.toBeInTheDocument();
+        expect(screen.queryByDisplayValue('slow spans')).not.toBeInTheDocument();
+      });
+
+      it('submits a single word as a regular search when defaulting to ask seer', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'error{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('error', expect.anything());
+        });
+        expect(mockAskSeer).not.toHaveBeenCalled();
       });
 
       it('does not duplicate committed free text when defaulting to ask seer', async () => {

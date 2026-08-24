@@ -210,7 +210,7 @@ export function CommandPalette({
               children: [] as CMDKFlatItem[],
               listItemType: 'action' as const,
               display: {label: t('Tell us what to improve'), icon: <IconMegaphone />},
-              onAction: () => openForm({tags: {['feedback.source']: 'command_palette'}}),
+              onAction: () => openForm({tags: {'feedback.source': 'command_palette'}}),
             },
           ]
         : []),
@@ -261,7 +261,7 @@ export function CommandPalette({
     );
   }, [actions]);
 
-  const treeState = useTreeState({
+  const treeState = useTreeState<CommandPaletteActionMenuItem>({
     disabledKeys: sectionKeys,
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action, prefixMap);
@@ -716,7 +716,7 @@ export function CommandPalette({
 function presortBySlotRef(
   nodes: Array<CollectionTreeNode<CMDKActionData>>
 ): Array<CollectionTreeNode<CMDKActionData>> {
-  return [...nodes].sort((a, b) => {
+  return nodes.toSorted((a, b) => {
     const aEl = a.ref?.current ?? null;
     const bEl = b.ref?.current ?? null;
 
@@ -1249,7 +1249,7 @@ function CommandPaletteNoResults() {
             variant="primary"
             feedbackOptions={{
               tags: {
-                ['feedback.source']: 'command_palette',
+                'feedback.source': 'command_palette',
               },
             }}
           />

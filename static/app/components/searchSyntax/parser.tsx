@@ -48,6 +48,8 @@ export enum Token {
   KEY_EXPLICIT_BOOLEAN_TAG = 'keyExplicitBooleanTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
+  KEY_EXPLICIT_ARRAY_TAG = 'keyExplicitArrayTag',
+  KEY_ARRAY_INCLUDES = 'keyArrayIncludes',
   KEY_AGGREGATE = 'keyAggregate',
   KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
   KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
@@ -117,6 +119,7 @@ export enum FilterType {
   AGGREGATE_RELATIVE_DATE = 'aggregateRelativeDate',
   HAS = 'has',
   IS = 'is',
+  ARRAY_INCLUDES = 'arrayIncludes',
 }
 
 /**
@@ -153,6 +156,13 @@ export const wildcardOperators = [
 
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
+export const negationOperators: readonly TermOperator[] = [
+  TermOperator.NOT_EQUAL,
+  TermOperator.DOES_NOT_CONTAIN,
+  TermOperator.DOES_NOT_START_WITH,
+  TermOperator.DOES_NOT_END_WITH,
+];
+
 /**
  * Map of certain filter types to other filter types with applicable operators
  * e.g. SpecificDate can use the operators from Date to become a Date filter.
@@ -174,9 +184,12 @@ const textKeys = [
   Token.KEY_SIMPLE,
   Token.KEY_EXPLICIT_TAG,
   Token.KEY_EXPLICIT_STRING_TAG,
+  Token.KEY_EXPLICIT_ARRAY_TAG,
   Token.KEY_EXPLICIT_FLAG,
   Token.KEY_EXPLICIT_STRING_FLAG,
 ] as const;
+
+const arrayIncludesKeys = [Token.KEY_ARRAY_INCLUDES] as const;
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -291,6 +304,12 @@ export const filterTypeConfig = {
   },
   [FilterType.IS]: {
     validKeys: [Token.KEY_SIMPLE],
+    validOps: basicOperators,
+    validValues: [Token.VALUE_TEXT],
+    canNegate: true,
+  },
+  [FilterType.ARRAY_INCLUDES]: {
+    validKeys: arrayIncludesKeys,
     validOps: basicOperators,
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
@@ -475,7 +494,7 @@ export class TokenConverter {
       value,
       negated,
       operator: operatorToUse,
-      invalid: this.checkInvalidFilter(filter, key, value, negated),
+      invalid: this.checkInvalidFilter(filter, key, value, negated, operatorToUse),
       warning: this.checkFilterWarning(key),
     } as FilterResult;
 
@@ -601,6 +620,30 @@ export class TokenConverter {
     type: Token.KEY_EXPLICIT_BOOLEAN_TAG as const,
     prefix,
     key,
+  });
+
+  tokenKeyExplicitArrayTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_ARRAY_TAG as const,
+    prefix,
+    key,
+  });
+
+  // An array element-access key, eg. `foo[*]`. `index` is `*` for membership
+  // over any element (a future `[N]` would target a specific index).
+  tokenKeyArrayIncludes = (
+    key:
+      | ReturnType<TokenConverter['tokenKeySimple']>
+      | ReturnType<TokenConverter['tokenKeyExplicitArrayTag']>,
+    index: string
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_ARRAY_INCLUDES as const,
+    key,
+    index,
   });
 
   tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
@@ -895,6 +938,8 @@ export class TokenConverter {
         Token.KEY_EXPLICIT_BOOLEAN_TAG,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
+        Token.KEY_EXPLICIT_ARRAY_TAG,
+        Token.KEY_ARRAY_INCLUDES,
         Token.KEY_EXPLICIT_FLAG,
         Token.KEY_EXPLICIT_NUMBER_FLAG,
         Token.KEY_EXPLICIT_STRING_FLAG,
@@ -914,7 +959,8 @@ export class TokenConverter {
     filter: T,
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value'],
-    negated: FilterMap[T]['negated']
+    negated: FilterMap[T]['negated'],
+    operator: FilterMap[T]['operator']
   ) => {
     // Text filter is the "fall through" filter that will match when other
     // filter predicates fail.
@@ -929,7 +975,10 @@ export class TokenConverter {
       };
     }
 
-    if (this.config.disallowNegation && negated) {
+    if (
+      this.config.disallowNegation &&
+      (negated || negationOperators.includes(operator))
+    ) {
       return {
         type: InvalidReason.NEGATION_NOT_ALLOWED,
         reason: this.config.invalidMessages[InvalidReason.NEGATION_NOT_ALLOWED],
@@ -966,6 +1015,7 @@ export class TokenConverter {
     if (
       key.type === Token.KEY_EXPLICIT_TAG ||
       key.type === Token.KEY_EXPLICIT_STRING_TAG ||
+      key.type === Token.KEY_EXPLICIT_ARRAY_TAG ||
       key.type === Token.KEY_EXPLICIT_FLAG ||
       key.type === Token.KEY_EXPLICIT_STRING_FLAG
     ) {

@@ -14,6 +14,7 @@ import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -44,7 +45,7 @@ function NewQueryTokens({
   expandedProjectIds,
   crossEvents,
 }: QueryTokensProps) {
-  const tokens = [];
+  const tokens: React.ReactNode[] = [];
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();
   // Project is applied to the page-level project selector, so surface it as the
@@ -56,7 +57,7 @@ function NewQueryTokens({
     : null;
   if (displayQuery && parsedQuery?.length) {
     tokens.push(
-      <Stack key="filter">
+      <Stack key="filter" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
         <Stack gap="xs" overflow="hidden">
           {parsedQuery
@@ -78,7 +79,9 @@ function NewQueryTokens({
         <Stack as="span" gap="xs" overflow="hidden">
           {visualizations.map((visualization, vIdx) =>
             visualization.yAxes.map(yAxis => (
-              <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
+              <ExploreVisualizes key={`${vIdx}-${yAxis}`}>
+                {isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis}
+              </ExploreVisualizes>
             ))
           )}
         </Stack>
@@ -152,35 +155,39 @@ function NewQueryTokens({
   }
 
   if (sort && sort.length > 0) {
+    const descending = sort[0] === '-';
+    const rawSort = descending ? sort.slice(1) : sort;
+    const formattedSort = isEquation(rawSort) ? stripEquationPrefix(rawSort) : rawSort;
     tokens.push(
       <Stack key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
         <Stack as="span" gap="xs" overflow="hidden">
           <ExploreGroupBys>
-            {sort[0] === '-' ? sort.slice(1) + ' Desc' : sort + ' Asc'}
+            {formattedSort + (descending ? ' Desc' : ' Asc')}
           </ExploreGroupBys>
         </Stack>
       </Stack>
     );
   }
 
+  const crossEventTokens: React.ReactNode[] = [];
   crossEvents?.forEach((crossEvent, idx) => {
     const filterQuery = getCrossEventFilterQuery(crossEvent);
     const parsedCrossEvent = filterQuery
       ? parseQueryBuilderValue(filterQuery, getFieldDefinition)
       : null;
 
-    tokens.push(
+    crossEventTokens.push(
       <Stack overflow="hidden" key={`${crossEvent.type}-${idx}`}>
         <ExploreParamTitle>{t('Cross Event Filter:')}</ExploreParamTitle>
-        <Flex gap="md">
-          <Stack gap="xs">
+        <Flex gap="md" wrap="wrap">
+          <Stack gap="xs" minWidth="0" maxWidth="100%">
             <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
             <Container>
               <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
             </Container>
           </Stack>
-          <Stack gap="xs">
+          <Stack gap="xs" minWidth="0" maxWidth="100%">
             <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
             <Stack gap="xs">
               {parsedCrossEvent
@@ -198,9 +205,18 @@ function NewQueryTokens({
   });
 
   return (
-    <Flex gap="xl" padding="md" wrap="wrap">
-      {tokens}
-    </Flex>
+    <Stack gap="xl" padding="md">
+      {tokens.length > 0 ? (
+        <Flex gap="xl" wrap="wrap">
+          {tokens}
+        </Flex>
+      ) : null}
+      {crossEventTokens.length > 0 ? (
+        <Flex gap="xl" wrap="wrap">
+          {crossEventTokens}
+        </Flex>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -222,10 +238,11 @@ const ExploreVisualizes = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
-  height: 24px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  min-height: 24px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
   display: inline-flex;
   align-items: center;
 `;
@@ -233,5 +250,8 @@ const ExploreVisualizes = styled('span')`
 const ExploreGroupBys = ExploreVisualizes;
 
 const FormattedQueryWrapper = styled('span')`
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
 `;

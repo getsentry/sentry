@@ -1,30 +1,45 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
 from scm import actions as scm_actions
 from scm.errors import ResourceNotFound
+from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
 from scm.types import (
+    Author,
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
+    DeletePullRequestCommentReactionProtocol,
+    DeleteReviewCommentReactionProtocol,
     DiffLine,
+    GetAuthenticatedActorProtocol,
+    GetPullRequestCommentReactionsProtocol,
     GetPullRequestReviewProtocol,
+    GetPullRequestReviewThreadsProtocol,
     GetRepositoryUserPermissionProtocol,
+    GetReviewCommentReactionsProtocol,
     GetReviewCommentsProtocol,
     PaginationParams,
     Reaction,
+    ReactionResult,
+    ResolveReviewThreadProtocol,
+    ResourceId,
     Review,
     ReviewComment,
+    ReviewThread,
 )
 from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -38,6 +53,7 @@ from sentry.seer.autofix.autofix_agent import (
     PrIterationNotEnabledException,
     trigger_autofix_agent,
 )
+from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
@@ -59,6 +75,7 @@ from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -92,6 +109,13 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     if len(referrers) == 1:
         return referrers.pop()
     return AutofixReferrer.UNKNOWN
+
+
+def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
+    actor_user_ids = {item.actor_user_id for item in items}
+    if len(actor_user_ids) == 1:
+        return actor_user_ids.pop()
+    return None
 
 
 def trigger_consume_pr_iteration_feedback(
@@ -177,6 +201,7 @@ def consume_queued_autofix_feedback(
         if not queued_items:
             return
 
+        consumable_items: list[QueuedAutofixFeedback] = []
         feedback_items = []
         # Keyed by (source class, id): issue-comment, review-comment, and review
         # (body) ids come from separate GitHub namespaces, so dedupe within each
@@ -218,6 +243,7 @@ def consume_queued_autofix_feedback(
                     continue
                 seen_check_suite_keys.add(suite_key)
 
+            consumable_items.append(item)
             feedback_items.append(item.feedback)
 
         if not feedback_items:
@@ -231,10 +257,12 @@ def consume_queued_autofix_feedback(
             trigger_autofix_agent(
                 group=group,
                 step=AutofixStep.PR_ITERATION,
-                referrer=_get_feedback_referrer(queued_items),
+                referrer=_get_feedback_referrer(consumable_items),
                 run_id=run_id,
                 user_context="\n\n".join(item.text for item in feedback_items),
                 feedback=feedback_items,
+                actor_user_id=_get_feedback_actor_user_id(consumable_items),
+                commit_author=commit_author_for_feedback(feedback_items, organization_id),
             )
         except (
             PrIterationNoPullRequestException,
@@ -294,6 +322,136 @@ def _add_comment_reaction(
             )
     except Exception as e:
         sentry_sdk.capture_exception(e)
+
+
+def _delete_own_comment_eyes_reaction(
+    scm: SourceCodeManager,
+    *,
+    source_type: GithubPrCommentFeedbackType,
+    pr_number: int,
+    comment_id: int,
+) -> None:
+    """Remove the :eyes: we added at trigger time, completing the :eyes:->:tada: swap.
+
+    Both top-level PR comments and inline review comments get the trigger-time
+    :eyes:, so both are cleaned up here. GitHub keeps issue-comment and
+    review-comment reactions in separate namespaces, so the get/delete calls are
+    dispatched off ``source_type``.
+    """
+    if not isinstance(scm, GetAuthenticatedActorProtocol):
+        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+        return
+
+    def _own_eyes_reaction_ids(reactions: list[ReactionResult], actor_id: ResourceId) -> list[str]:
+        return [
+            str(reaction["id"])
+            for reaction in reactions
+            if reaction["content"] == "eyes"
+            and (author := reaction.get("author")) is not None
+            and author["id"] == actor_id
+        ]
+
+    try:
+        actor = scm_actions.get_authenticated_actor(scm)
+        actor_id = actor["data"]["id"]
+
+        # GitHub keeps issue-comment and review-comment reactions in separate
+        # namespaces, so the get/delete calls are dispatched off ``source_type``.
+        if source_type == "github-pr-review-comment":
+            if not (
+                isinstance(scm, GetReviewCommentReactionsProtocol)
+                and isinstance(scm, DeleteReviewCommentReactionProtocol)
+            ):
+                logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+                return
+            result = scm_actions.get_review_comment_reactions(scm, str(pr_number), str(comment_id))
+            for reaction_id in _own_eyes_reaction_ids(result["data"], actor_id):
+                scm_actions.delete_review_comment_reaction(
+                    scm, str(pr_number), str(comment_id), reaction_id
+                )
+        else:
+            if not (
+                isinstance(scm, GetPullRequestCommentReactionsProtocol)
+                and isinstance(scm, DeletePullRequestCommentReactionProtocol)
+            ):
+                logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+                return
+            result = scm_actions.get_pull_request_comment_reactions(
+                scm, str(pr_number), str(comment_id)
+            )
+            for reaction_id in _own_eyes_reaction_ids(result["data"], actor_id):
+                scm_actions.delete_pull_request_comment_reaction(
+                    scm, str(pr_number), str(comment_id), reaction_id
+                )
+    except Exception:
+        logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
+
+
+class UnsupportedProviderError(Exception):
+    """The SCM provider can't resolve review threads."""
+
+
+@dataclass
+class ResolveReviewThreadsResult:
+    resolved: int = 0
+    already_resolved: int = 0
+    not_found: int = 0
+
+
+def _resolve_review_comment_threads(
+    scm: SourceCodeManager,
+    *,
+    pr_number: int,
+    comment_unique_ids: Collection[str],
+) -> ResolveReviewThreadsResult:
+    """Resolve the review threads of this iteration's inline comments (CW-1688).
+
+    Raises ``UnsupportedProviderError`` when the provider lacks the review-thread
+    protocols, and lets SCM failures propagate; the caller logs both with its own
+    run/org/repo context.
+    """
+    if not (
+        isinstance(scm, ResolveReviewThreadProtocol)
+        and isinstance(scm, GetPullRequestReviewThreadsProtocol)
+    ):
+        raise UnsupportedProviderError(type(scm).__name__)
+
+    threads: list[ReviewThread] = []
+    # Empty starting cursor so GitHub's GraphQL first page is `after: null`.
+    for page in iter_all_pages(
+        lambda pagination: scm_actions.get_pull_request_review_threads(
+            scm, str(pr_number), pagination
+        ),
+        per_page=100,
+        cursor="",
+    ):
+        threads.extend(page["data"])
+
+    thread_by_comment: dict[str, ReviewThread] = {}
+    for thread in threads:
+        for comment in thread["comments"]:
+            unique_id = comment.get("unique_id")
+            if unique_id is not None:
+                thread_by_comment[unique_id] = thread
+
+    outcome = ResolveReviewThreadsResult()
+    thread_ids_to_resolve: set[ResourceId] = set()
+    already_resolved_ids: set[ResourceId] = set()
+    for comment_unique_id in comment_unique_ids:
+        owning_thread = thread_by_comment.get(comment_unique_id)
+        if owning_thread is None:
+            outcome.not_found += 1
+            continue
+        if owning_thread["is_resolved"]:
+            already_resolved_ids.add(owning_thread["id"])
+        else:
+            thread_ids_to_resolve.add(owning_thread["id"])
+
+    outcome.already_resolved = len(already_resolved_ids)
+    for thread_id in thread_ids_to_resolve:
+        scm_actions.resolve_review_thread(scm, str(pr_number), str(thread_id))
+        outcome.resolved += 1
+    return outcome
 
 
 def _comment_pr_iteration_ineligible(
@@ -503,6 +661,12 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
+    actor_user = find_user_for_scm_actor(
+        organization_id=organization_id,
+        integration_id=integration_id,
+        username=github_username,
+        external_id=comment.user.id if comment.user else None,
+    )
     group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
@@ -514,6 +678,7 @@ def trigger_pr_iteration_from_comment(
         feedback=feedback_obj,
         referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         run_state=agent_state,
+        actor_user_id=actor_user.id if actor_user else None,
     )
     trigger_consume_pr_iteration_feedback(
         run_id=agent_state.run_id,
@@ -601,13 +766,18 @@ def _build_review_feedback(
     *,
     review_id: int,
     review_html_url: str | None,
+    review_state: str | None,
+    review_author: Author | None,
     author_is_bot: bool,
 ) -> list[Feedback]:
     """Normalize a submitted review into feedback items.
 
     Each inline comment becomes an anchored ``GithubPrReviewCommentFeedbackSource``
     (command gate relaxed) and the review's summary body, if any, becomes its own
-    non-anchored ``GithubPrReviewBodyFeedbackSource``.
+    non-anchored ``GithubPrReviewBodyFeedbackSource``. Every item carries the
+    shared ``review_id`` so the UI can group them under one review; the review's
+    ``review_state`` (approved / changes requested / commented) lives on the body
+    source, the review's own representation.
 
     ``author_is_bot`` marks the resulting feedback as automated so it counts
     toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
@@ -629,18 +799,29 @@ def _build_review_feedback(
             line=_diff_line_number(comment.get("line")),
             start_line=_diff_line_number(comment.get("start_line")),
             diff_hunk=comment.get("diff_hunk"),
-            user=GithubPrCommentUser(login=author["username"] if author else None),
+            user=GithubPrCommentUser(
+                id=author["id"] if author else None,
+                login=author["username"] if author else None,
+            ),
+            unique_id=comment.get("unique_id"),
         )
         source = GithubPrReviewCommentFeedbackSource(
-            comment=review_comment, author_is_bot=author_is_bot
+            comment=review_comment,
+            review_id=review_id,
+            author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=source))
 
     if review_body:
         body_source = GithubPrReviewBodyFeedbackSource(
             review_id=review_id,
+            review_state=review_state,
             body=review_body,
             html_url=review_html_url,
+            user=GithubPrCommentUser(
+                id=review_author["id"] if review_author else None,
+                login=review_author["username"] if review_author else None,
+            ),
             author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=body_source))
@@ -662,7 +843,9 @@ def trigger_pr_iteration_from_review(
     pr_number: int,
     review_id: int,
     author_username: str | None = None,
+    author_external_id: str | int | None = None,
     author_is_bot: bool = False,
+    delivery_authenticated: bool = True,
 ) -> None:
     """
     Resolve the Autofix run behind a submitted PR review and kick off an iteration.
@@ -671,9 +854,9 @@ def trigger_pr_iteration_from_review(
     to recover its GitHub id, looks up the agent run keyed on that id, fetches the
     review's inline comments and summary body, and triggers the iteration with the
     whole review as feedback. Unlike the comment path there is no ``@sentry``
-    command gate — any submitted review with content is acted on — but the review
-    author must have repo write/admin access, so an untrusted reviewer can't spend
-    Autofix quota or inject feedback that rewrites the PR.
+    command gate — any submitted review with content is acted on — but a human
+    review author must have repo write/admin access, so an untrusted reviewer can't
+    spend Autofix quota or inject feedback that rewrites the PR.
 
     ``author_is_bot`` reviews (test-coverage bots and the like) count toward the
     automated-iteration streak cap and are dropped once it's reached; human
@@ -756,18 +939,29 @@ def trigger_pr_iteration_from_review(
         logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
         return None
 
-    # Gate on repo write access before fetching, enqueueing, or acking: a review
-    # from someone without write/admin is silently dropped so an untrusted
-    # reviewer can't spend Autofix quota or inject feedback that rewrites the PR.
-    if not author_username or not _github_commenter_has_repo_write_access(scm, author_username):
+    # Bots skip the write-access gate: a bot account is never a repo collaborator.
+    # An unauthenticated delivery can forge the bot flag, so it stays gated.
+    actor_user: RpcUser | None = None
+    if author_is_bot and delivery_authenticated:
+        metrics.incr("autofix.pr_iteration.review_trigger.write_access_gate_skipped")
+    elif not author_username or not _github_commenter_has_repo_write_access(scm, author_username):
         metrics.incr("autofix.pr_iteration.review_trigger.no_write_access")
         logger.info("autofix.pr_iteration.review_trigger.no_write_access", extra=log_extra)
         return None
+    else:
+        actor_user = find_user_for_scm_actor(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            username=author_username,
+            external_id=author_external_id,
+        )
 
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
     review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
     review_body = (review.get("body") or "").strip() if review else None
     review_html_url = review.get("html_url") if review else None
+    review_state = review.get("state") if review else None
+    review_author = review.get("author") if review else None
 
     # Skip genuinely empty reviews — no body text AND no inline comments — there
     # is nothing to act on (e.g. a bare approve with no message). A review with
@@ -781,6 +975,8 @@ def trigger_pr_iteration_from_review(
         review_body,
         review_id=review_id,
         review_html_url=review_html_url,
+        review_state=review_state,
+        review_author=review_author,
         author_is_bot=author_is_bot,
     )
     if not feedback_items:
@@ -799,6 +995,7 @@ def trigger_pr_iteration_from_review(
             feedback=feedback_obj,
             referrer=AutofixReferrer.GITHUB_PR_REVIEW,
             run_state=agent_state,
+            actor_user_id=actor_user.id if actor_user else None,
         )
 
     # A single consume pass drains everything queued above; trigger once using

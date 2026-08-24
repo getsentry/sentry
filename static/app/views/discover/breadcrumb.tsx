@@ -4,32 +4,29 @@ import omit from 'lodash/omit';
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {EventInputName} from 'sentry/views/discover/eventInputName';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  event?: Event;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
 
 export function DiscoverBreadcrumb({
   eventView,
-  event,
   organization,
   location,
   isHomepage,
   savedQuery,
 }: Props) {
-  const shouldRenderEditableName = !event;
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
     ? {
@@ -47,7 +44,7 @@ export function DiscoverBreadcrumb({
       isHomepage && eventView
         ? eventView.getResultsViewUrlTarget(organization, isHomepage)
         : discoverTarget,
-    label: t('Discover'),
+    label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
   });
 
   if (!isHomepage && eventView?.isValid()) {
@@ -61,25 +58,15 @@ export function DiscoverBreadcrumb({
       });
     }
     crumbs.push({
-      to: shouldRenderEditableName
-        ? undefined
-        : eventView.getResultsViewUrlTarget(organization, isHomepage),
-      label: shouldRenderEditableName ? (
+      to: undefined,
+      label: (
         <EventInputName
           savedQuery={savedQuery}
           organization={organization}
           eventView={eventView}
           isHomepage={isHomepage}
         />
-      ) : (
-        eventView.name || ''
       ),
-    });
-  }
-
-  if (event) {
-    crumbs.push({
-      label: t('Event Detail'),
     });
   }
 

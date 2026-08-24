@@ -14,8 +14,10 @@ import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {AuthLayoutContent as Layout} from 'sentry/views/auth/layout';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -78,6 +80,7 @@ export default function DataDownload() {
     dataExportId: string;
     orgId: string;
   }>();
+  const organization = useOrganization({allowNull: true});
 
   const {
     data: download,
@@ -316,7 +319,9 @@ export default function DataDownload() {
           }
         >
           {type === ExportQueryType.DISCOVER
-            ? t('Open in Discover')
+            ? organization && getDiscoverDeprecation(organization)
+              ? t('Open in Explore')
+              : t('Open in Discover')
             : t('Open in Explore')}
         </Button>
         <br />

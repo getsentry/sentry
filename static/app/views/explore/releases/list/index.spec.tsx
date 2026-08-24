@@ -489,10 +489,10 @@ describe('ReleasesList', () => {
     });
     PageFiltersStore.updateProjects([2], null);
     render(<ReleasesList />, {organization});
-    const hiddenProjectsMessage = await screen.findByTestId('hidden-projects');
+    const hiddenProjectsMessage = await screen.findByText(/hidden projects/);
     expect(hiddenProjectsMessage).toHaveTextContent('2 hidden projects');
 
-    expect(screen.getAllByTestId('release-card-project-row')).toHaveLength(1);
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(1);
 
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('test2');
   });
@@ -505,8 +505,8 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([-1], null);
     render(<ReleasesList />, {organization});
 
-    expect(await screen.findByTestId('release-card-project-row')).toBeInTheDocument();
-    expect(screen.queryByTestId('hidden-projects')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'View'})).toBeInTheDocument();
+    expect(screen.queryByText(/hidden projects/)).not.toBeInTheDocument();
   });
 
   it('renders mobile builds when the mobile-builds tab is selected', async () => {
@@ -594,6 +594,13 @@ describe('ReleasesList', () => {
     });
   }
 
+  it('does not fetch releases while viewing mobile builds', async () => {
+    renderMobileBuildsTab({query: 'sha:abcdef1'});
+
+    expect(await screen.findByTestId('query-builder-input')).toBeInTheDocument();
+    expect(endpointMock).not.toHaveBeenCalled();
+  });
+
   it('toggles display mode in the mobile-builds tab and injects installable:true', async () => {
     const {router} = renderMobileBuildsTab();
 
@@ -636,6 +643,22 @@ describe('ReleasesList', () => {
     // Wait for the controls to render before asserting the button is absent.
     expect(await screen.findByRole('button', {name: 'Display Size'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Download CSV'})).not.toBeInTheDocument();
+  });
+
+  it('searches distribution builds by install group without fetching values', async () => {
+    const installGroupValuesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/install_groups/values/`,
+      body: [],
+    });
+    const {router} = renderMobileBuildsTab({display: 'distribution'});
+
+    const searchInput = await screen.findByTestId('query-builder-input');
+    await userEvent.type(searchInput, 'install_groups:alpha{enter}');
+
+    await waitFor(() => {
+      expect(router.location.query.query).toBe('install_groups:alpha');
+    });
+    expect(installGroupValuesMock).not.toHaveBeenCalled();
   });
 
   it('allows searching within the mobile-builds tab', async () => {

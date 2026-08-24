@@ -1,6 +1,8 @@
 import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
 import {parseJsonWithFix} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
+import {isKnownHtmlTag} from './htmlTags';
+
 type AIContentType =
   | 'json'
   | 'fixed-json'
@@ -11,7 +13,7 @@ type AIContentType =
 
 type ContentSegment =
   | {content: string; type: 'text'}
-  | {content: string; tagName: string; type: 'xml-tag'};
+  | {attributes: string; content: string; tagName: string; type: 'xml-tag'};
 
 interface AIContentDetectionResult {
   type: AIContentType;
@@ -58,17 +60,23 @@ export function tryParsePythonDict(text: string): unknown | null {
 /** Splits text into segments of plain text and XML-like tag blocks. */
 export function parseXmlTagSegments(text: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
-  const xmlTagRegex = /<([a-zA-Z][\w-]*)>([\s\S]*?)<\/\1>/g;
+  const xmlTagRegex = /<([a-zA-Z][\w-]*)(\s[^>]*)?>([\s\S]*?)<\/\1\s*>/g;
   let lastIndex = 0;
 
   for (const match of text.matchAll(xmlTagRegex)) {
+    // Only agent/semantic XML tags collapse. Known HTML tags stay in the text
+    // to render normally rather than being treated as collapsible tags.
+    if (isKnownHtmlTag(match[1]!)) {
+      continue;
+    }
     if (match.index > lastIndex) {
       segments.push({type: 'text', content: text.slice(lastIndex, match.index)});
     }
     segments.push({
       type: 'xml-tag',
       tagName: match[1]!,
-      content: match[2]!,
+      attributes: match[2] ?? '',
+      content: match[3]!,
     });
     lastIndex = match.index + match[0].length;
   }
@@ -82,8 +90,12 @@ export function parseXmlTagSegments(text: string): ContentSegment[] {
 
 /** Replaces inline XML tags with italic markdown, leaves block-level tags untouched. */
 export function preprocessInlineXmlTags(text: string): string {
-  const xmlTagRegex = /<([a-zA-Z][\w-]*)>([\s\S]*?)<\/\1>/g;
+  const xmlTagRegex = /<([a-zA-Z][\w-]*)(?:\s[^>]*)?>([\s\S]*?)<\/\1\s*>/g;
   return text.replace(xmlTagRegex, (match, tagName, content, offset) => {
+    // Known HTML tags aren't agent/semantic tags, so leave them untouched.
+    if (isKnownHtmlTag(tagName)) {
+      return match;
+    }
     const isBlock = offset === 0 || /\n\s*$/.test(text.slice(0, offset));
     if (isBlock) {
       return match;
@@ -93,7 +105,7 @@ export function preprocessInlineXmlTags(text: string): string {
   });
 }
 
-const XML_TAG_REGEX = /<([a-zA-Z][\w-]*)>[\s\S]*?<\/\1>/;
+const XML_TAG_REGEX = /<([a-zA-Z][\w-]*)(?:\s[^>]*)?>[\s\S]*?<\/\1\s*>/;
 
 const MARKDOWN_INDICATORS = [
   /^#{1,6}\s/m, // headings
@@ -134,6 +146,8 @@ export function detectAIContentType(text: string): AIContentDetectionResult {
     }
   }
 
+  // Any XML/HTML-style tag pair routes to the tag-aware renderer. Agent/semantic
+  // tags collapse there; known HTML tags render normally.
   if (XML_TAG_REGEX.test(trimmed)) {
     return {type: 'markdown-with-xml'};
   }

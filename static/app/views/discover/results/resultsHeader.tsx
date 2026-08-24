@@ -114,7 +114,7 @@ function ResultsHeaderBase({
     </Fragment>
   );
 
-  const pageFrameBreadcrumb = (
+  const discoverBreadcrumb = (
     <DiscoverBreadcrumb
       eventView={eventView}
       organization={organization}
@@ -148,7 +148,7 @@ function ResultsHeaderBase({
         {isHomepage ? (
           <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
         ) : hasDiscoverQueryFeature ? (
-          pageFrameBreadcrumb
+          discoverBreadcrumb
         ) : (
           title
         )}

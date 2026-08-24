@@ -19,7 +19,7 @@ import type {Guide} from 'sentry/components/assistant/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
 
-import {openForcedTrialModal, openTrialEndingModal} from 'getsentry/actionCreators/modal';
+import {openTrialEndingModal} from 'getsentry/actionCreators/modal';
 import GSBanner from 'getsentry/components/gsBanner';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
@@ -64,7 +64,6 @@ function setUpTests() {
     'another-slug-3',
     'another-slug-4',
     'org-slug',
-    'promotion-platform',
     'forced-trial',
     'soft-cap',
     'trial-ending',
@@ -77,10 +76,6 @@ function setUpTests() {
     'past-due-4',
   ].forEach(slug => {
     SubscriptionStore.set(slug, {});
-    MockApiClient.addMockResponse({
-      url: `/organizations/${slug}/promotions/trigger-check/`,
-      method: 'POST',
-    });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${slug}/prompts-activity/`,
@@ -141,7 +136,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        isTrial: true,
+        trialPlan: 'am1_t',
         hasDismissedTrialEndingNotice: false,
         plan: 'am1_t',
         trialEnd: now.add(2, 'day').toISOString(),
@@ -225,7 +220,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        isTrial: true,
+        trialPlan: 'am1_business',
         hasDismissedTrialEndingNotice: false,
         plan: 'am1_business',
         trialEnd: now.add(2, 'day').toISOString(),
@@ -279,31 +274,6 @@ describe('GSBanner', () => {
     subscription.categories.transactions!.reserved = 10_000_001;
     subscription.planDetails.totalPrice = 100_000 * 12;
     SubscriptionStore.set(organization.slug, subscription);
-    MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/promotions/lorem-ipsum/claim/`,
-      body: {},
-    });
-
-    const now = moment();
-    const promotionData = {
-      availablePromotions: [
-        {
-          endDate: null,
-          name: 'Lorem Ipsum',
-          slug: 'lorem-ipsum',
-          startDate: now.add(-14, 'day'),
-          timeLimit: 'null',
-          autoOptIn: true,
-        },
-      ],
-    };
-    MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      body: promotionData,
-    });
-
     window.pendo = {
       initialize: jest.fn(),
     };
@@ -364,34 +334,9 @@ describe('GSBanner', () => {
       })
     );
 
-    MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/promotions/lorem-ipsum/claim/`,
-      body: {},
-    });
-
     window.pendo = {
       initialize: jest.fn(),
     };
-
-    const now = moment();
-    const promotionData = {
-      availablePromotions: [
-        {
-          endDate: null,
-          name: 'Lorem Ipsum',
-          slug: 'lorem-ipsum',
-          startDate: now.add(-14, 'day'),
-          timeLimit: 'null',
-          autoOptIn: true,
-        },
-      ],
-    };
-    MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      body: promotionData,
-    });
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -416,266 +361,6 @@ describe('GSBanner', () => {
           guides: {
             delay: true,
           },
-        })
-      );
-    });
-  });
-
-  it('automatically starts forced trial', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-      totalLicenses: 1,
-      usedLicenses: 2,
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const mockForceTrial = MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/over-member-limit-trial/`,
-      body: {},
-    });
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(mockForceTrial).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/over-member-limit-trial/`,
-        expect.objectContaining({
-          method: 'POST',
-        })
-      );
-    });
-
-    expect(openForcedTrialModal).toHaveBeenCalled();
-  });
-
-  it('does not automatically start forced trial if already on a trial', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-      totalLicenses: 1,
-      usedLicenses: 2,
-      isTrial: true,
-      isForcedTrial: false,
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const mockForceTrial = MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/over-member-limit-trial/`,
-      body: {},
-    });
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    // wait for requests to finish
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-
-    expect(mockForceTrial).not.toHaveBeenCalled();
-    expect(openForcedTrialModal).not.toHaveBeenCalled();
-  });
-
-  it('automatically starts forced trial for restricted integration', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        plan: 'am1_f',
-        organization,
-        totalLicenses: 1,
-        usedLicenses: 1,
-        hasRestrictedIntegration: true,
-      })
-    );
-
-    const mockForceTrial = MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/restricted-integration-trial/`,
-      body: {},
-    });
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(mockForceTrial).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/restricted-integration-trial/`,
-        expect.objectContaining({
-          method: 'POST',
-        })
-      );
-    });
-    expect(openForcedTrialModal).toHaveBeenCalled();
-  });
-
-  it('opens the forced trial modal', async () => {
-    const now = moment();
-    const organization = OrganizationFixture({
-      slug: 'forced-trial',
-    });
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        hasDismissedForcedTrialNotice: false,
-        plan: 'am1_t',
-        trialEnd: now.add(14, 'day').toISOString(),
-        isForcedTrial: true,
-        isTrial: true,
-      })
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await waitFor(() => expect(openForcedTrialModal).toHaveBeenCalled());
-  });
-
-  it('does not open forced trial modal if dismissed', async () => {
-    const now = moment();
-    const organization = OrganizationFixture({
-      slug: 'forced-trial',
-    });
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        hasDismissedForcedTrialNotice: true,
-        plan: 'am1_t',
-        trialEnd: now.add(14, 'day').toISOString(),
-        isForcedTrial: true,
-        isTrial: true,
-      })
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(openForcedTrialModal).not.toHaveBeenCalled();
-  });
-
-  it('activates the first available promotion', async () => {
-    const now = moment();
-    const organization = OrganizationFixture({
-      slug: 'promotion-platform',
-    });
-
-    const promotionData = {
-      availablePromotions: [
-        {
-          endDate: null,
-          name: 'Lorem Ipsum',
-          slug: 'lorem-ipsum',
-          startDate: now.add(-14, 'day'),
-          timeLimit: 'null',
-          autoOptIn: true,
-        },
-      ],
-    };
-    MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      body: promotionData,
-    });
-
-    const activatePromoEndpoint = MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/promotions/lorem-ipsum/claim/`,
-      body: {},
-    });
-
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        plan: 'am1_team',
-      })
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(activatePromoEndpoint).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/promotions/lorem-ipsum/claim/`,
-        expect.objectContaining({
-          method: 'POST',
-        })
-      );
-    });
-  });
-
-  it("doesn't activate non auto-opt-in promos", async () => {
-    const now = moment();
-    const organization = OrganizationFixture({
-      slug: 'promotion-platform',
-    });
-
-    const promotionData = {
-      availablePromotions: [
-        {
-          endDate: null,
-          name: 'Lorem Ipsum',
-          slug: 'lorem-ipsum',
-          startDate: now.add(-14, 'day'),
-          timeLimit: 'null',
-          autoOptIn: false,
-        },
-      ],
-    };
-    MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      body: promotionData,
-    });
-
-    const activatePromoEndpoint = MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/promotions/lorem-ipsum/claim/`,
-      body: {},
-    });
-
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        plan: 'am1_team',
-      })
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(activatePromoEndpoint).not.toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/promotions/lorem-ipsum/claim/`,
-        expect.objectContaining({
-          method: 'POST',
         })
       );
     });

@@ -47,10 +47,6 @@ interface CategoricalSeriesWidgetVisualizationProps {
    */
   plottables: CategoricalPlottable[];
   /**
-   * Reference to the chart instance.
-   */
-  chartRef?: React.Ref<ReactEchartsRef>;
-  /**
    * A mapping of series name to boolean. If the value is `false`, the series is hidden.
    */
   legendSelection?: LegendSelection;
@@ -69,10 +65,6 @@ interface CategoricalSeriesWidgetVisualizationProps {
    * - `always`: Always show the legend.
    */
   showLegend?: 'auto' | 'never' | 'always';
-  /**
-   * Truncate the category labels.
-   */
-  truncateCategoryLabels?: number | boolean;
 }
 
 export function CategoricalSeriesWidgetVisualization(
@@ -98,8 +90,12 @@ export function CategoricalSeriesWidgetVisualization(
 
   // Extract all unique categories from all plottables and convert to display strings
   // for ECharts compatibility (xAxis.data expects string[])
-  const allCategories = uniq(
-    props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))
+  const allCategories = useMemo(
+    () =>
+      uniq(
+        props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))
+      ),
+    [props.plottables]
   );
 
   // Configure the Y axis (value axis)
@@ -142,14 +138,8 @@ export function CategoricalSeriesWidgetVisualization(
     // If the categories are still too long after "smart" truncation, apply naive truncation
     const trimmedTotal = trimmed.reduce((sum, c) => sum + c.length, 0);
 
-    let truncateLength: number | boolean;
-    if (typeof props.truncateCategoryLabels === 'number') {
-      truncateLength = props.truncateCategoryLabels;
-    } else if (trimmedTotal > TOTAL_CHARACTER_THRESHOLD) {
-      truncateLength = TRUNCATED_LABEL_MAX_LENGTH;
-    } else {
-      truncateLength = props.truncateCategoryLabels ?? true;
-    }
+    const truncateLength: number | boolean =
+      trimmedTotal > TOTAL_CHARACTER_THRESHOLD ? TRUNCATED_LABEL_MAX_LENGTH : true;
 
     // NOTE: In the end, ECharts still applies its own legend overlap logic, and
     // might choose to hide some labels. By doing our own truncation and
@@ -160,8 +150,7 @@ export function CategoricalSeriesWidgetVisualization(
         truncationFormatter(trimmed[i]!, truncateLength, false),
       ])
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allCategories.join(','), props.truncateCategoryLabels]);
+  }, [allCategories]);
 
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {
@@ -374,8 +363,9 @@ export function CategoricalSeriesWidgetVisualization(
 
   return (
     <BaseChart
-      ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
+      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
       autoHeightResize
+      renderer="canvas"
       series={seriesFromPlottables}
       legend={
         showLegend

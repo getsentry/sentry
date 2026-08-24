@@ -1,4 +1,4 @@
-import {TraceTimeCompression} from './traceTimeCompression';
+import {COLLAPSED_GAP_WIDTH_PX, TraceTimeCompression} from './traceTimeCompression';
 
 function node(type: string, space: [number, number]) {
   return {type, space} as any;
@@ -57,18 +57,28 @@ describe('TraceTimeCompression', () => {
     expect(compression.gaps).toHaveLength(0);
   });
 
-  it('keeps marker padding around zero-duration activity', () => {
+  it('keeps a pixel-derived buffer around zero-duration errors', () => {
+    const physicalWidth = 600;
     const compression = TraceTimeCompression.FromVisibleItems({
       enabled: true,
-      traceSpace: [0, 10_000],
-      physicalWidth: 1000,
-      nodes: [node('error', [5000, 0])],
+      traceSpace: [0, 3_600_000],
+      physicalWidth,
+      nodes: [
+        node('span', [0, 600_000]),
+        node('error', [2_100_000, 0]),
+        node('span', [3_000_000, 600_000]),
+      ],
       indicators: [],
     });
 
     expect(compression.gaps).toHaveLength(2);
-    expect(compression.gaps[0]).toMatchObject({start: 0, end: 4900});
-    expect(compression.gaps[1]).toMatchObject({start: 5100, end: 10_000});
+    const [beforeError, afterError] = compression.gaps;
+    const errorBufferPx =
+      ((afterError!.compressedStart - beforeError!.compressedEnd) /
+        compression.compressedDuration) *
+      physicalWidth;
+
+    expect(errorBufferPx).toBeGreaterThanOrEqual(COLLAPSED_GAP_WIDTH_PX * 2);
   });
 
   it('round trips between real and compressed coordinates', () => {

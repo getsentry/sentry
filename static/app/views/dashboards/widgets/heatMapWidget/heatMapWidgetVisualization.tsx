@@ -324,6 +324,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     <Stack height="100%">
       <BaseChart
         autoHeightResize
+        renderer="canvas"
         // will be grouped by date as we only support time as the x-axis right now.
         // TODO(nikki): eventually this might change and we'll pass in what kind of x-axis we have
         isGroupedByDate

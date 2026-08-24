@@ -172,6 +172,80 @@ describe('useInfiniteLogsQuery', () => {
     );
   });
 
+  it('keeps the first row first when fetching the previous page in ascending sort order', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+    mockLocation.mockReturnValue(
+      LocationFixture({query: {[LOGS_SORT_BYS_KEY]: 'timestamp'}})
+    );
+
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '1', timestamp_precise: '100', timestamp: '100'},
+        {id: '2', timestamp_precise: '200', timestamp: '200'},
+        {id: '3', timestamp_precise: '300', timestamp: '300'},
+      ]),
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.length === 0;
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const olderRowsMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([]),
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=100 !${OurLogKnownFieldKey.ID}:1`
+          );
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const newerRowsMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '3', timestamp_precise: '300', timestamp: '300'},
+        {id: '2', timestamp_precise: '200', timestamp: '200'},
+      ]),
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=100 !${OurLogKnownFieldKey.ID}:1`
+          );
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    await result.current.fetchPreviousPage();
+    rerender();
+
+    expect(olderRowsMock).toHaveBeenCalled();
+    expect(newerRowsMock).not.toHaveBeenCalled();
+    expect(result.current.data.map(datum => datum[OurLogKnownFieldKey.ID])).toEqual([
+      '1',
+      '2',
+      '3',
+    ]);
+  });
+
   it('should remove empty pages but maintain hasNextPage', async () => {
     const eventsEndpoint = `/organizations/${organization.slug}/events/`;
 
@@ -339,6 +413,92 @@ describe('useInfiniteLogsQuery', () => {
       eventsEndpoint,
       expect.objectContaining({data: {highFidelity: true}})
     );
+  });
+
+  describe('frozen to a trace', () => {
+    const traceId = 'a'.repeat(32);
+    const traceLogsEndpoint = `/organizations/${organization.slug}/trace-logs/`;
+
+    function mockTraceLogsRequest() {
+      return MockApiClient.addMockResponse({
+        url: traceLogsEndpoint,
+        body: createMockLogsData([{id: '1', timestamp_precise: '100', timestamp: '100'}]),
+        headers: linkHeaders,
+      });
+    }
+
+    function createTraceWrapper(freeze: {traceId: string; traceTimestamp?: number}) {
+      return function ({children}: {children?: React.ReactNode}) {
+        return (
+          <QueryClientProvider client={queryClient}>
+            <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+              source="location"
+              freeze={freeze}
+            >
+              {children}
+            </LogsQueryParamsProvider>
+          </QueryClientProvider>
+        );
+      };
+    }
+
+    beforeEach(() => {
+      mockUsePageFilters.mockReturnValue({
+        isReady: true,
+        pinnedFilters: new Set(),
+        shouldPersist: true,
+        selection: PageFiltersFixture({
+          datetime: {
+            start: '2025-04-03T00:00:00',
+            end: '2025-04-03T00:10:00',
+            period: null,
+            utc: null,
+          },
+        }),
+      });
+    });
+
+    it('queries as far back as logs go, narrowed by the trace timestamp', async () => {
+      const mockRequest = mockTraceLogsRequest();
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({traceId, traceTimestamp: 1743695410}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '30d',
+            timestamp: 1743695410,
+            traceId: [traceId],
+          }),
+        })
+      );
+    });
+
+    it('keeps the selected range when there is no trace timestamp to narrow by', async () => {
+      const mockRequest = mockTraceLogsRequest();
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({traceId}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2025-04-03T00:00:00.000',
+            end: '2025-04-03T00:10:00.000',
+          }),
+        })
+      );
+    });
   });
 
   describe('high fidelity', () => {
@@ -735,7 +895,7 @@ function createAscendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=400 !${OurLogKnownFieldKey.ID}:4`
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=400 !${OurLogKnownFieldKey.ID}:4`
           ) && query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },

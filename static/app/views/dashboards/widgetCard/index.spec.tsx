@@ -38,7 +38,7 @@ describe('Dashboards > WidgetCard', () => {
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
     }),
-  } as Parameters<typeof initializeOrg>[0]);
+  });
 
   const renderWithProviders = (component: React.ReactNode, features: string[] = []) =>
     render(
@@ -655,7 +655,8 @@ describe('Dashboards > WidgetCard', () => {
         widgetLimitReached={false}
         isPreview
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      ['performance-transaction-deprecation-banner']
     );
 
     expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();

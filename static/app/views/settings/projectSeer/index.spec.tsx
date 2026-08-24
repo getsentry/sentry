@@ -58,6 +58,7 @@ describe('ProjectSeer', () => {
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       method: 'GET',
       body: {
+        hasFreeAutofixAccess: false,
         billing: {
           hasAutofixQuota: true,
           hasScannerQuota: true,
@@ -171,6 +172,28 @@ describe('ProjectSeer', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('shows settings with free Autofix access and no quota', async () => {
+    organization = OrganizationFixture({features: ['seer-billing']});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {
+        hasFreeAutofixAccess: true,
+        billing: {
+          hasAutofixQuota: false,
+          hasScannerQuota: false,
+        },
+      },
+    });
+
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project},
+    });
+
+    expect(await screen.findByText('Scan Issues')).toBeInTheDocument();
   });
 
   it('can add a repository', async () => {
