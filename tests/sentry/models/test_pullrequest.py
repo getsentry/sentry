@@ -332,12 +332,12 @@ class PullRequestRetentionTest(TestCase):
         self.create_pull_request_commit(pr, commit)
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_commit_in_recent_release_is_not_unused(self) -> None:
-        """PR with a commit in a release from within the window should not be unused"""
+    def test_pr_with_commit_in_release_is_not_unused(self) -> None:
+        """PR with a commit that's part of a release should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
-        release = self.create_release(project=self.project, date_added=self.recent_date)
+        release = self.create_release(project=self.project)
         ReleaseCommit.objects.create(
             organization_id=self.organization.id,
             release=release,
@@ -346,8 +346,9 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_commit_in_old_release_is_unused(self) -> None:
-        """A release older than the window no longer pins the PR that shipped in it"""
+    def test_pr_with_commit_in_old_release_is_not_unused(self) -> None:
+        """The release pin is for the release's lifetime, not its recency: the PR is
+        part of the release's provenance for as long as the release exists"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
@@ -358,14 +359,14 @@ class PullRequestRetentionTest(TestCase):
             commit=commit,
             order=1,
         )
-        assert pr.is_unused(self.cutoff_date)
+        assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_commit_as_recent_release_head_is_not_unused(self) -> None:
-        """PR with a commit heading a release from within the window should not be unused"""
+    def test_pr_with_commit_as_release_head_is_not_unused(self) -> None:
+        """PR with a commit that's a release head should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
-        release = self.create_release(project=self.project, date_added=self.recent_date)
+        release = self.create_release(project=self.project)
         ReleaseHeadCommit.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
@@ -374,8 +375,8 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_commit_as_old_release_head_is_unused(self) -> None:
-        """An old release doesn't pin the PR through its head commit either"""
+    def test_pr_with_commit_as_old_release_head_is_not_unused(self) -> None:
+        """An old release pins the PR through its head commit for its lifetime too"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
@@ -386,7 +387,7 @@ class PullRequestRetentionTest(TestCase):
             release=release,
             commit=commit,
         )
-        assert pr.is_unused(self.cutoff_date)
+        assert not pr.is_unused(self.cutoff_date)
 
     def test_pr_linked_to_existing_group_is_not_unused(self) -> None:
         """PR linked to an existing group via GroupLink should not be unused"""

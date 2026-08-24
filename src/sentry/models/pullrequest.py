@@ -378,7 +378,8 @@ class PullRequest(Model):
         This is the inverse of what makes a PR "in use".
 
         Every keep condition must be bounded, either by ``cutoff_date`` or by the
-        lifetime of the object referencing the PR. An unbounded one makes the PR immortal.
+        lifetime of the object referencing the PR. A condition bounded by neither
+        makes the PR immortal and must say why that is intended.
         """
         from sentry.models.grouplink import GroupLink
         from sentry.models.releasecommit import ReleaseCommit
@@ -399,19 +400,13 @@ class PullRequest(Model):
             ).filter(Q(created_at__gte=cutoff_date) | Q(updated_at__gte=cutoff_date))
         )
 
-        # Bounded by the release's recency rather than the commit's: CommitDeletionTask
-        # keeps any commit that is in a release forever, so keying on the commit
-        # bounds nothing.
-        commit_in_release = Exists(
-            ReleaseCommit.objects.filter(
-                commit_id=OuterRef("commit_id"), release__date_added__gte=cutoff_date
-            )
-        )
-        commit_in_head = Exists(
-            ReleaseHeadCommit.objects.filter(
-                commit_id=OuterRef("commit_id"), release__date_added__gte=cutoff_date
-            )
-        )
+        # Bounded by the release's lifetime, deliberately: a PR whose commit shipped
+        # in a release is part of that release's provenance (CommitSerializer attaches
+        # it to the release's commits), so it lives as long as the release — the same
+        # condition under which CommitDeletionTask keeps the commit itself. Releases
+        # at the tail are effectively immortal, and these PRs are too, by choice.
+        commit_in_release = Exists(ReleaseCommit.objects.filter(commit_id=OuterRef("commit_id")))
+        commit_in_head = Exists(ReleaseHeadCommit.objects.filter(commit_id=OuterRef("commit_id")))
         commit_exists = Exists(
             PullRequestCommit.objects.filter(
                 pull_request_id=OuterRef("id"),

@@ -88,18 +88,19 @@ class PullRequestDeletionTaskTest(TestCase):
         assert len(filtered) == 1
         assert filtered[0].id == pr_old_unused.id
 
-    def test_query_filter_keeps_pr_with_recent_release_commit(self) -> None:
+    def test_query_filter_keeps_pr_with_release_commit(self) -> None:
         pr = self.create_pr("pr_release", self.old_date)
         commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
 
-        release = self.create_release(project=self.project, date_added=self.recent_date)
+        release = self.create_release(project=self.project)
         self.create_release_commit(release, commit)
 
         filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 0
 
-    def test_query_filter_deletes_pr_whose_release_is_past_the_window(self) -> None:
+    def test_query_filter_keeps_pr_whose_release_is_past_the_window(self) -> None:
+        """The release pin lasts for the release's lifetime, however old the release."""
         pr = self.create_pr("pr_old_release", self.old_date)
         commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
@@ -108,8 +109,7 @@ class PullRequestDeletionTaskTest(TestCase):
         self.create_release_commit(release, commit)
 
         filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
-        assert len(filtered) == 1
-        assert filtered[0].id == pr.id
+        assert len(filtered) == 0
 
     def test_query_filter_keeps_pr_with_valid_group_link(self) -> None:
         pr = self.create_pr("pr_group", self.old_date)
