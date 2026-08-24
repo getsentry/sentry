@@ -1,6 +1,5 @@
 /** @public */
 export {
-  formOptions,
   useScrapsForm,
   ScrapsForm,
   toFieldErrors,

@@ -112,7 +112,7 @@ const formComponents = {
 
 export type BoundFormComponents = typeof formComponents;
 
-const {useAppForm, useFormContext, appFormOptions, defineAppFieldGroup} = createFormHook({
+const {useAppForm, useFormContext, defineAppFieldGroup} = createFormHook({
   fieldComponents,
   formComponents,
   defaultFormOptions: {
@@ -130,7 +130,7 @@ const {useAppForm, useFormContext, appFormOptions, defineAppFieldGroup} = create
 export const useScrapsForm = useAppForm;
 
 /** @public */
-export {appFormOptions as formOptions, defineAppFieldGroup};
+export {defineAppFieldGroup};
 
 export function ScrapsForm({
   form,
