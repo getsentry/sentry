@@ -101,11 +101,7 @@ INELIGIBLE_PR_ITERATION_COMMENT = (
     "created by the Coding Agent handoff and unrelated human PRs."
 )
 
-STOPPED_PR_ITERATION_COMMENT = (
-    "Seer stopped iterating on this Autofix run. Queued feedback was discarded.\n"
-    "New comments will not start another iteration. This cannot be undone. Start a new "
-    "Autofix run to iterate again."
-)
+STOPPED_PR_ITERATION_COMMENT = "Seer stopped iterating on this Autofix run."
 
 STOP_PR_ITERATION_FAILED_COMMENT = (
     "Seer could not stop iteration on this Autofix run. Close this pull request to stop the work."

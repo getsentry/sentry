@@ -106,8 +106,7 @@ def _status_comment_body(github_login: str) -> str:
         "decision — you can:\n\n"
         "- push a fix to this branch yourself,\n"
         "- comment `@sentry <guidance>` to send Seer back for another attempt,\n"
-        "- comment `@sentry stop iterating` on this PR (not in a review) to stop this "
-        "Autofix run from iterating, or\n"
+        "- comment `@sentry stop iterating` to stop this Autofix run from iterating, or\n"
         "- close this pull request if it is not worth pursuing."
     )
 

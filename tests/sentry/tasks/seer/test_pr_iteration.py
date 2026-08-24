@@ -268,6 +268,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self.mock_actions.get_pull_request.assert_not_called()
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
 
+    @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
@@ -278,6 +279,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
+        mock_metrics: MagicMock,
     ) -> None:
         mock_get_state.return_value = self._agent_state()
 
@@ -286,6 +288,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_has_access.assert_called_once_with(self.mock_make_scm.return_value, "octocat")
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
+        mock_metrics.incr.assert_any_call("autofix.pr_iteration.comment_trigger.unauthorized")
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.default_cache")
