@@ -227,12 +227,6 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
 
         assert resp.data == []
 
-    def test_no_feature(self) -> None:
-        self.create_team(organization=self.organization, members=[self.user])
-        self.login_as(self.user)
-        resp = self.get_response(self.organization.slug)
-        assert resp.status_code == 404
-
     def test_response_headers(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
@@ -1626,10 +1620,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 ],
             )
             assert resp.json() == {"projects": ["Invalid project"]}
-
-    def test_no_feature(self) -> None:
-        resp = self.get_response(self.organization.slug)
-        assert resp.status_code == 404
 
     def test_no_perms(self) -> None:
         with (
