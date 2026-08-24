@@ -44,8 +44,8 @@ jest.mock('sentry/data/platforms', () => {
   const actual = jest.requireActual('sentry/data/platforms');
   return {
     ...actual,
-    platforms: actual.platforms.filter(
-      (p: {id: string}) => p.id === 'python' || p.id === 'javascript'
+    platforms: actual.platforms.filter((p: {id: string}) =>
+      ['python', 'javascript', 'python-django', 'javascript-react'].includes(p.id)
     ),
   };
 });
@@ -310,40 +310,37 @@ describe('ScmCreateProject', () => {
       url: `/organizations/${organization.slug}/user-teams/`,
       body: [adminTeam, selectedTeam],
     });
-    renderGlobalModal();
     render(<ScmCreateProject />, {organization});
 
+    // Framework SDKs commit straight from the picker; a base language (plain
+    // Python) would detour through the framework-suggestion modal.
     await userEvent.click(await screen.findByText('Search SDKs...'));
-    await userEvent.keyboard('Python');
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
     const projectName = screen.getByPlaceholderText('project-name');
+    expect(projectName).toHaveValue('python-django');
     await userEvent.type(screen.getByLabelText('Select a Team'), '{keyDown}');
     await userEvent.click(await screen.findByText('#selected-team'));
 
-    await userEvent.click(screen.getByText('Python'));
-    await userEvent.keyboard('JavaScript');
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Browser JavaScript'})
-    );
-    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+    await userEvent.click(screen.getByText('Django'));
+    await userEvent.keyboard('React');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'React'}));
 
     // The name was never touched, so it re-derives from the new platform
-    // ('python' -> 'javascript') while the team selection survives.
-    expect(projectName).toHaveValue('javascript');
+    // while the team selection survives.
+    expect(projectName).toHaveValue('javascript-react');
     expect(screen.getByText('#selected-team')).toBeInTheDocument();
 
     await userEvent.clear(projectName);
     await userEvent.type(projectName, 'my-app');
 
-    await userEvent.click(screen.getByText('Browser JavaScript'));
-    await userEvent.keyboard('Python');
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+    await userEvent.click(screen.getByText('React'));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
-    // The manual name survives the switch back to Python, where a reset would
-    // have re-derived 'python'.
+    // The manual name survives the switch back to Django, where a reset would
+    // have re-derived 'python-django'.
     expect(projectName).toHaveValue('my-app');
     expect(screen.getByText('#selected-team')).toBeInTheDocument();
   });
