@@ -1369,7 +1369,7 @@ class InactiveUserIdentityTest(AuthIdentityHandlerTest):
         # AuthIdentity still points to the original inactive user
         auth_identity.refresh_from_db()
         assert auth_identity.user_id == inactive_user.id
-        assert auth_identity.user_id != attacker.id
+        assert auth_identity.user_id != requesting_user.id
 
 
 @control_silo_test
@@ -1432,7 +1432,6 @@ class ApplySSOAvatarTest(AuthIdentityHandlerTest):
             handler._apply_sso_avatar(user)
 
         assert not UserAvatar.objects.filter(user_id=user.id).exists()
-        assert auth_identity.user_id != requesting_user.id
 
 
 @control_silo_test
