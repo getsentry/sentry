@@ -6,26 +6,14 @@ import TopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
 type Props = {
   children: React.ReactNode;
-  /**
-   * @default '200px'
-   */
-  bottomWidth?: string;
-  /**
-   * @default '400px'
-   */
-  topWidth?: string;
 };
 
-export function HighlightModalContainer({
-  topWidth = '400px',
-  bottomWidth = '200px',
-  children,
-}: Props) {
+export function HighlightModalContainer({children}: Props) {
   return (
     <Fragment>
-      <PositionTopRight src={TopRight} width={topWidth} />
+      <PositionTopRight src={TopRight} width="400px" />
       {children}
-      <PositionBottomLeft src={BottomLeft} width={bottomWidth} />
+      <PositionBottomLeft src={BottomLeft} width="200px" />
     </Fragment>
   );
 }

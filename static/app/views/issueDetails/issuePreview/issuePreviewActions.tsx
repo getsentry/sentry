@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {Fragment, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -77,6 +77,7 @@ function getAutofixActionProps({
 }
 
 function StartAutofixAction({
+  variant = 'primary',
   action,
   analyticsAction,
   analyticsEventKey,
@@ -90,6 +91,7 @@ function StartAutofixAction({
   label,
   onContinueInSeer,
   tooltip,
+  waiting,
 }: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   action: () => unknown | Promise<unknown>;
   analyticsAction: string;
@@ -100,11 +102,13 @@ function StartAutofixAction({
   codingAgentStep?: 'root_cause' | 'solution';
   icon?: ReactNode;
   tooltip?: string | null;
+  variant?: 'primary' | 'secondary';
+  waiting?: boolean;
 }) {
   const organization = useOrganization();
   const [isStartingAction, setIsStartingAction] = useState(false);
   const runId = autofix.runState?.run_id;
-  const busy = autofix.isPolling || isStartingAction;
+  const isProcessing = autofix.isPolling || isStartingAction;
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
       autofix,
@@ -156,10 +160,11 @@ function StartAutofixAction({
         group,
       })}
       icon={icon}
-      busy={busy}
-      disabled={disabled || busy}
+      busy={isStartingAction || waiting}
+      disabled={disabled || isProcessing}
       onClick={handleClick}
       tooltipProps={tooltip ? {title: tooltip} : undefined}
+      variant={variant}
     >
       {label}
     </Button>
@@ -178,11 +183,11 @@ function StartAutofixAction({
         trigger={(triggerProps, isOpen) => (
           <Button
             {...triggerProps}
-            variant="primary"
+            variant={variant}
             size="sm"
             icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
             aria-label={t('More code fix options')}
-            disabled={disabled || busy || defined(codingAgentDisabledReason)}
+            disabled={disabled || isProcessing || defined(codingAgentDisabledReason)}
             tooltipProps={{title: codingAgentDisabledReason}}
           />
         )}
@@ -203,41 +208,23 @@ function StartAutofixAction({
   );
 }
 
-function ActionButtons({
+function NextAutofixStepButton({
   autofix,
   disabled,
   group,
-  linkedPullRequestsData,
   onContinueInSeer,
-}: AutofixActionProps) {
-  const {runState} = autofix;
+  variant = 'primary',
+}: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
+  autofix: ExplorerAutofix;
+  group: Group;
+  onContinueInSeer: () => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'secondary';
+}) {
+  const {runState, isWaitingForRun} = autofix;
   const sections = getOrderedAutofixSections(runState);
-  const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
-    .filter(
-      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
-    )
-    .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated))[0];
 
-  if (latestOpenPullRequest) {
-    return (
-      <LinkButton
-        {...getAutofixActionProps({
-          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-          analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
-          analyticsParams: {destination: 'pull_request'},
-          group,
-        })}
-        external
-        disabled={disabled}
-        href={latestOpenPullRequest.externalUrl}
-        icon={<IconGithub data-test-id="pull-request-github" />}
-      >
-        {t('View %s#%s', latestOpenPullRequest.repository.name, latestOpenPullRequest.id)}
-      </LinkButton>
-    );
-  }
-
-  if (!runState || sections.length === 0) {
+  if (!runState) {
     return (
       <StartAutofixAction
         action={() => autofix.startStep('root_cause')}
@@ -249,6 +236,8 @@ function ActionButtons({
         group={group}
         label={t('Find Root Cause')}
         onContinueInSeer={onContinueInSeer}
+        variant={variant}
+        waiting={isWaitingForRun}
       />
     );
   }
@@ -271,6 +260,7 @@ function ActionButtons({
         disabled={disabled || autofix.isPolling}
         icon={<IconSeer />}
         onClick={onContinueInSeer}
+        variant={variant}
       >
         {runState.pending_user_input?.input_type === 'file_change_approval'
           ? t('Review Changes')
@@ -300,6 +290,7 @@ function ActionButtons({
         label={t('Retry PR in %s', failedPullRequest.repo_name)}
         onContinueInSeer={onContinueInSeer}
         tooltip={failedPullRequest.pr_creation_error}
+        variant={variant}
       />
     );
   }
@@ -327,6 +318,7 @@ function ActionButtons({
         disabled={disabled}
         href={resultLink.url}
         icon={<IconOpen />}
+        variant={variant}
       >
         {resultLink.label}
       </LinkButton>
@@ -349,6 +341,7 @@ function ActionButtons({
         disabled={disabled}
         href={codingAgent.agent_url}
         icon={<IconOpen />}
+        variant={variant}
       >
         {t('Open in %s', getCodingAgentName(codingAgent.provider))}
       </LinkButton>
@@ -356,6 +349,30 @@ function ActionButtons({
   }
 
   const nextStep = getAutofixNextStep({sections});
+  if (autofix.isPolling) {
+    const label =
+      nextStep?.action === 'solution'
+        ? t('Make a Plan')
+        : nextStep?.action === 'code_changes'
+          ? t('Write a Code Fix')
+          : t('Find Root Cause');
+
+    return (
+      <StartAutofixAction
+        action={() => {}}
+        analyticsAction="polling"
+        analyticsEventKey="issue_inbox.start_fix_clicked"
+        analyticsEventName="Issue Inbox: Start Fix Clicked"
+        autofix={autofix}
+        disabled
+        group={group}
+        label={label}
+        onContinueInSeer={onContinueInSeer}
+        variant={variant}
+        waiting
+      />
+    );
+  }
 
   switch (nextStep?.action) {
     case 'create_pr':
@@ -371,6 +388,7 @@ function ActionButtons({
           group={group}
           label={t('Create PR')}
           onContinueInSeer={onContinueInSeer}
+          variant={variant}
         />
       );
     case 'code_changes':
@@ -386,6 +404,7 @@ function ActionButtons({
           codingAgentStep="solution"
           label={t('Write a Code Fix')}
           onContinueInSeer={onContinueInSeer}
+          variant={variant}
         />
       );
     case 'solution':
@@ -401,6 +420,7 @@ function ActionButtons({
           codingAgentStep="root_cause"
           label={t('Make a Plan')}
           onContinueInSeer={onContinueInSeer}
+          variant={variant}
         />
       );
     // We are not yet supporting PR iteration
@@ -418,9 +438,65 @@ function ActionButtons({
           icon={<IconRefresh />}
           label={t('Restart Autofix')}
           onContinueInSeer={onContinueInSeer}
+          variant={variant}
         />
       );
   }
+}
+
+function ActionButtons({
+  autofix,
+  disabled,
+  group,
+  linkedPullRequestsData,
+  onContinueInSeer,
+}: AutofixActionProps) {
+  const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
+    .filter(
+      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+    )
+    .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated))[0];
+
+  if (latestOpenPullRequest) {
+    return (
+      <Fragment>
+        <LinkButton
+          {...getAutofixActionProps({
+            analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+            analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+            analyticsParams: {destination: 'pull_request'},
+            group,
+          })}
+          external
+          disabled={disabled}
+          href={latestOpenPullRequest.externalUrl}
+          icon={<IconGithub data-test-id="pull-request-github" />}
+        >
+          {t(
+            'View %s#%s',
+            latestOpenPullRequest.repository.name,
+            latestOpenPullRequest.id
+          )}
+        </LinkButton>
+        <NextAutofixStepButton
+          autofix={autofix}
+          disabled={disabled}
+          group={group}
+          onContinueInSeer={onContinueInSeer}
+          variant="secondary"
+        />
+      </Fragment>
+    );
+  }
+
+  return (
+    <NextAutofixStepButton
+      autofix={autofix}
+      disabled={disabled}
+      group={group}
+      onContinueInSeer={onContinueInSeer}
+    />
+  );
 }
 
 export function IssuePreviewActions({
@@ -432,17 +508,19 @@ export function IssuePreviewActions({
   const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
     useLinkedPullRequests({group});
 
-  if (autofix.isLoading || pullRequestsPending) {
+  if ((autofix.isLoading && !autofix.isWaitingForRun) || pullRequestsPending) {
     return <Placeholder width="120px" height="32px" />;
   }
 
   return (
-    <ActionButtons
-      autofix={autofix}
-      disabled={disabled}
-      group={group}
-      linkedPullRequestsData={linkedPullRequestsData}
-      onContinueInSeer={onContinueInSeer}
-    />
+    <Flex gap="sm">
+      <ActionButtons
+        autofix={autofix}
+        disabled={disabled}
+        group={group}
+        linkedPullRequestsData={linkedPullRequestsData}
+        onContinueInSeer={onContinueInSeer}
+      />{' '}
+    </Flex>
   );
 }

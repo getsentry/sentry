@@ -329,6 +329,7 @@ class SeerAgentClient:
         code_review_enabled: bool = False,
         max_iterations: int | None = None,
         enable_embeds: bool = True,
+        enable_streaming: bool | None = None,
     ):
         self.organization = organization
         self.user = user
@@ -348,6 +349,7 @@ class SeerAgentClient:
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
         self.enable_embeds = enable_embeds
+        self.enable_streaming = enable_streaming
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
@@ -396,7 +398,10 @@ class SeerAgentClient:
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
         override_ce_enable: bool = True,
+        force_ce: bool | None = None,
         ui_tools: str | None = None,
+        record_in_history: bool = True,
+        on_run_created: Callable[[SeerRun], None] | None = None,
     ) -> SeerRun:
         """
         Start a new Seer Agent session.
@@ -409,6 +414,8 @@ class SeerAgentClient:
             metadata: Optional metadata to store with the run (e.g., stopping_point). group_id is
                 added automatically when the client was constructed with a group.
             request: Optional rest_framework Request object from endpoints.
+            force_ce: If set, forces the context engine on/off for this run, ignoring
+                the org flag and rollout.
 
         Returns:
             SeerRun: The mirror row for the run. Its seer_run_state_id is the id
@@ -492,6 +499,7 @@ class SeerAgentClient:
         agent_run_options.update(
             self._build_agent_run_options(
                 override_ce_enable=override_ce_enable,
+                force_ce=force_ce,
             )
         )
 
@@ -502,24 +510,27 @@ class SeerAgentClient:
         )
 
         def _create_agent_run(run: SeerRun) -> None:
-            source = self.category_key or ""
-            if not source:
-                logger.warning(
-                    "seer_agent_run.missing_source",
-                    extra={
-                        "organization_id": self.organization.id,
-                        "seer_run_id": run.id,
-                        "user_id": user_id,
-                    },
+            if record_in_history:
+                source = self.category_key or ""
+                if not source:
+                    logger.warning(
+                        "seer_agent_run.missing_source",
+                        extra={
+                            "organization_id": self.organization.id,
+                            "seer_run_id": run.id,
+                            "user_id": user_id,
+                        },
+                    )
+                SeerAgentRun.objects.create(
+                    run=run,
+                    title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
+                    source=source,
+                    project=self.project,
+                    group=self.group,
+                    extras=({"category_value": self.category_value} if self.category_value else {}),
                 )
-            SeerAgentRun.objects.create(
-                run=run,
-                title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
-                source=source,
-                project=self.project,
-                group=self.group,
-                extras=({"category_value": self.category_value} if self.category_value else {}),
-            )
+            if on_run_created is not None:
+                on_run_created(run)
 
         return enqueue_seer_run(
             organization=self.organization,
@@ -540,6 +551,7 @@ class SeerAgentClient:
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        referrer: str | None = None,
         force_ce: bool | None = None,
         force_frontend_code_search: bool | None = None,
     ) -> SeerRun:
@@ -594,7 +606,7 @@ class SeerAgentClient:
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
-            referrer=feature_id,
+            referrer=referrer,
             flush=flush,
         )
 
@@ -667,10 +679,13 @@ class SeerAgentClient:
         if self._embed_widgets_enabled():
             opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
-        if features.has(
-            "organizations:seer-explorer-stream",
-            self.organization,
-            actor=self.user,
+        if self.enable_streaming is True or (
+            self.enable_streaming is None
+            and features.has(
+                "organizations:seer-explorer-stream",
+                self.organization,
+                actor=self.user,
+            )
         ):
             opts["enable_streaming"] = True
 

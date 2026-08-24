@@ -121,7 +121,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = indexed / total
     # We get the previous factor that was used for the recalibration.
-    previous_factor = get_adjusted_factor(org_id)
+    previous_factor = get_adjusted_factor(org_id, source="task")
 
     # We want to compute the new adjusted factor.
     adjusted_factor = compute_adjusted_factor(
@@ -179,7 +179,7 @@ def recalibrate_project(
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = indexed / total
     # We get the previous factor that was used for the recalibration.
-    previous_factor = get_adjusted_project_factor(project_id)
+    previous_factor = get_adjusted_project_factor(project_id, source="task")
 
     # We want to compute the new adjusted factor.
     adjusted_factor = compute_adjusted_factor(

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -369,6 +370,36 @@ def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list
     return created
 
 
+def assert_drain_skips_failed_message(drain: Callable[[int], None], provider: str) -> None:
+    """
+    Drain a 5 message mailbox where the second delivery fails.
+
+    Asserts the provider is allowlisted in
+    `hybridcloud.webhookpayload.skip_on_failure_providers`: every message is
+    attempted and only the failed one is left behind for a later retry. The
+    provider string is used verbatim for `WebhookPayload.provider`, so a value
+    that doesn't match the registered default fails here instead of silently
+    behaving as a non-allowlisted provider.
+    """
+    url = f"http://us.testserver/extensions/{provider}/webhook/"
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=500, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    records = create_payloads(5, f"{provider}:123", provider=provider)
+
+    drain(records[0].id)
+
+    assert len(responses.calls) == 5
+    assert WebhookPayload.objects.count() == 1
+
+    remaining = WebhookPayload.objects.get()
+    assert remaining.provider == provider
+    assert remaining.attempts == 1
+    assert remaining.schedule_for > timezone.now()
+
+
 @control_silo_test
 class DrainMailboxTest(TestCase):
     @responses.activate
@@ -472,6 +503,26 @@ class DrainMailboxTest(TestCase):
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_github_enterprise(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "github_enterprise")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "bitbucket")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket_server(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "bitbucket_server")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_gitlab(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "gitlab")
 
     @responses.activate
     @override_cells(cell_config)
@@ -856,6 +907,26 @@ class DrainMailboxParallelTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    def test_drain_skip_on_failure_github_enterprise(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "github_enterprise")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "bitbucket")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket_server(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "bitbucket_server")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_gitlab(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "gitlab")
+
+    @responses.activate
+    @override_cells(cell_config)
     def test_drain_success(self) -> None:
         responses.add(
             responses.POST,
@@ -1145,6 +1216,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert tags.get("region_sent_to") == "us"
         # Rows predating the provider column still drain through here.
         assert tags.get("provider") == "unknown"
+        assert tags.get("event_type") == "none"
         # A drain with no dispatch arguments still emits the attribution keys; a
         # tag missing from some series breaks grouping rather than showing a gap.
         assert tags.get("dispatcher") == "unknown"
@@ -1161,7 +1233,7 @@ class DeliveryTimeMetricsTest(TestCase):
             body="",
         )
         webhook = self.create_webhook_payload(
-            mailbox_name="github:123",
+            mailbox_name="github:123:0:pull_request",
             cell_name="us",
             provider="github",
             request_headers=orjson.dumps(
@@ -1180,6 +1252,8 @@ class DeliveryTimeMetricsTest(TestCase):
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "github"
+        assert tags.get("event_type") == "pull_request"
+        # Both tags emit while consumers migrate off the unbounded one.
         assert tags.get("github_event_and_action") == "pull_request.opened"
 
     @responses.activate
@@ -1193,7 +1267,7 @@ class DeliveryTimeMetricsTest(TestCase):
             body="",
         )
         webhook = self.create_webhook_payload(
-            mailbox_name="github:123",
+            mailbox_name="github:123:0:push",
             cell_name="us",
             provider="github",
             request_headers=orjson.dumps(
@@ -1211,6 +1285,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
+        assert tags.get("event_type") == "push"
         assert tags.get("github_event_and_action") == "push.unknown"
 
     @responses.activate
@@ -1239,7 +1314,38 @@ class DeliveryTimeMetricsTest(TestCase):
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "stripe"
+        assert tags.get("event_type") == "none"
         assert "github_event_and_action" not in tags
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_github_mailbox_without_event_suffix(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        """A delivery with no X-GitHub-Event header mailboxes without the suffix."""
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("provider") == "github"
+        assert tags.get("event_type") == "unknown"
 
 
 @control_silo_test
@@ -1803,6 +1909,8 @@ class DeliveryDispatchTagTest(TestCase):
                 "mode": "claim",
                 "region_sent_to": "us",
                 "provider": "github",
+                # This fixture's mailbox carries no event-type suffix to read.
+                "event_type": "unknown",
             }
         ]
 
@@ -1834,6 +1942,7 @@ class DeliveryDispatchTagTest(TestCase):
             "mode": "claim",
             "region_sent_to": "us",
             "provider": "github",
+            "event_type": "unknown",
         }
         assert self.delivery_time_tags(mock_metrics) == [expected, expected]
 

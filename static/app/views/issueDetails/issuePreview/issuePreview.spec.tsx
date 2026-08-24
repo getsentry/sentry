@@ -64,7 +64,7 @@ describe('IssuePreview', () => {
     });
   });
 
-  it('links to an open user pull request without an Autofix state', async () => {
+  it('links to an open user pull request and shows the next Autofix step', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: ExplorerAutofixResponseFixture({autofix: null}),
@@ -93,6 +93,7 @@ describe('IssuePreview', () => {
     expect(
       await screen.findByRole('button', {name: 'View example/repo-name#10'})
     ).toHaveAttribute('href', 'https://github.com/example/repo-name/pull/10');
+    expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
   });
 
   it('offers to restart Autofix after PR creation when the linked PR is closed', async () => {

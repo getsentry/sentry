@@ -25,20 +25,11 @@ interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
     | 'oneTransactionSummary'
     | 'oneRelease';
   clientData?: SandboxData;
-  /**
-   * Matching on the error type or title
-   */
-  errorType?: string;
 
   /**
    * Which project we should link to in the sandbox
    */
   projectSlug?: 'react' | 'python' | 'ios' | 'android' | 'react-native';
-
-  /**
-   * Where is the component being used
-   */
-  source?: string;
 }
 
 /**
@@ -49,9 +40,7 @@ interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
 export function DemoSandboxButton({
   scenario,
   projectSlug,
-  errorType,
   clientData,
-  source,
   ...buttonProps
 }: DemoSandboxButtonProps): React.ReactElement {
   const organization = useOrganization();
@@ -65,9 +54,6 @@ export function DemoSandboxButton({
     url.searchParams.append('projectSlug', projectSlug);
   }
 
-  if (errorType) {
-    url.searchParams.append('errorType', errorType);
-  }
   // always skip adding email when coming from in-product
   const clientOptions: SandboxData = {
     skipEmail: true,
@@ -83,7 +69,6 @@ export function DemoSandboxButton({
         trackAnalytics('growth.clicked_enter_sandbox', {
           scenario,
           organization,
-          source,
         })
       }
       {...buttonProps}

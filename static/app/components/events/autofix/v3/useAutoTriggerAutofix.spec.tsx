@@ -19,6 +19,7 @@ function makeAutofix(
     dismissCodingAgentError: jest.fn(),
     warnings: [],
     isLoading: false,
+    isWaitingForRun: false,
     isPolling: false,
   };
   return {...base, ...overrides};
