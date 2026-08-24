@@ -80,7 +80,7 @@ export function SavedEntityTable({
   );
 }
 
-SavedEntityTable.Header = SimpleTable.Header;
+SavedEntityTable.Header = SimpleTable.HeaderRow;
 
 SavedEntityTable.HeaderCell = SimpleTable.HeaderCell;
 

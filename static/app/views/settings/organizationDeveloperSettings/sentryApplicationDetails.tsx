@@ -515,7 +515,7 @@ function ClaudeRoutineTemplateForm() {
         scopes={CLAUDE_ROUTINE_SCOPES}
         events={CLAUDE_ROUTINE_EVENTS}
         newApp
-        collapsePermissions
+        collapsePanels
         permissionErrors={scopeErrors.permissions}
         continuousIntegrationError={scopeErrors.continuousIntegration}
         onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
