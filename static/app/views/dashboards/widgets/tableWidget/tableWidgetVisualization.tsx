@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {auto} from '@popperjs/core';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -354,9 +355,10 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         },
       }}
       stickyHeader={scrollable}
-      scrollable={scrollable}
       height={scrollable ? '100%' : undefined}
-      bodyStyle={frameless ? FRAMELESS_STYLES : {}}
+      bodyStyle={
+        frameless ? {...FRAMELESS_STYLES, overflowY: scrollable ? auto : 'hidden'} : {}
+      }
       resizable={resizable}
     />
   );
