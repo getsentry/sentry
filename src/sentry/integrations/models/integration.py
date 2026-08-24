@@ -15,6 +15,7 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -121,14 +122,28 @@ class Integration(DefaultFieldsModelExisting):
 
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
-                org_integration, created = OrganizationIntegration.objects.get_or_create(
-                    organization_id=organization_id,
-                    integration_id=self.id,
-                    defaults={"default_auth_id": default_auth_id, "config": {}},
+                org_integration, created = (
+                    OrganizationIntegration.objects.select_for_update().get_or_create(
+                        organization_id=organization_id,
+                        integration_id=self.id,
+                        defaults={"default_auth_id": default_auth_id, "config": {}},
+                    )
                 )
                 # TODO(Steve): add audit log if created
-                if not created and default_auth_id:
-                    org_integration.update(default_auth_id=default_auth_id)
+                if not created:
+                    was_pending_deletion = org_integration.status in {
+                        ObjectStatus.PENDING_DELETION,
+                        ObjectStatus.DELETION_IN_PROGRESS,
+                    }
+                    updates = {}
+                    if default_auth_id:
+                        updates["default_auth_id"] = default_auth_id
+                    if was_pending_deletion:
+                        updates["status"] = ObjectStatus.ACTIVE
+                    if updates:
+                        org_integration.update(**updates)
+                    if was_pending_deletion:
+                        ScheduledDeletion.cancel(org_integration)
 
                 if created:
                     organization_service.schedule_signal(

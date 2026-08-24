@@ -56,6 +56,26 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
+    def test_reinstall_cancels_pending_deletion(self) -> None:
+        org = self.create_organization()
+        integration = self.create_provider_integration(provider="example", name="Example")
+        organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(instance=organization_integration, days=0)
+
+        reactivated = integration.add_organization(org, self.user)
+        assert reactivated is not None
+        assert reactivated.id == organization_integration.id
+        assert reactivated.status == ObjectStatus.ACTIVE
+        assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
+
     def test_repository_and_identity(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
