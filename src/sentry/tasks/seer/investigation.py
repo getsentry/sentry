@@ -25,7 +25,10 @@ def dispatch_investigation_execution(execution_id: int) -> None:
         .filter(id=execution_id)
         .first()
     )
-    if execution is None or not mark_block_execution_dispatch_started(execution):
+    if execution is None:
+        return
+    dispatch_claimed_at = mark_block_execution_dispatch_started(execution)
+    if dispatch_claimed_at is None:
         return
     user = (
         user_service.get_user(user_id=execution.triggered_by_id)
@@ -37,7 +40,8 @@ def dispatch_investigation_execution(execution_id: int) -> None:
             execution,
             execution.block.investigation.organization,
             user,
+            dispatch_claimed_at=dispatch_claimed_at,
         )
     except Exception:
         logger.exception("investigations.execution.dispatch_failed")
-        mark_block_execution_dispatch_failed(execution)
+        mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=dispatch_claimed_at)

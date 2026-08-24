@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -23,6 +24,7 @@ from sentry.investigations.services.executions import (
     build_block_execution_snapshot,
     create_block_execution,
     mark_block_execution_dispatch_failed,
+    mark_block_execution_dispatch_started,
     mark_block_execution_dispatched,
 )
 from sentry.investigations.services.investigations import (
@@ -352,6 +354,28 @@ class InvestigationExecutionServiceTest(TestCase):
         execution.refresh_from_db()
         assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert execution.error is None
+
+    def test_stale_dispatch_claim_fences_the_previous_worker(self) -> None:
+        block = self.create_block()
+        execution, _ = self.run_block(block)
+        first_claim = mark_block_execution_dispatch_started(execution)
+        assert first_claim is not None
+        execution.update(started_at=timezone.now() - timedelta(minutes=6))
+        second_claim = mark_block_execution_dispatch_started(execution)
+        assert second_claim is not None
+        seer_run = self.create_seer_run(organization=self.organization)
+
+        assert not mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=first_claim)
+        assert not mark_block_execution_dispatched(
+            execution,
+            seer_run_id=seer_run.id,
+            dispatch_claimed_at=first_claim,
+        )
+        assert mark_block_execution_dispatched(
+            execution,
+            seer_run_id=seer_run.id,
+            dispatch_claimed_at=second_claim,
+        )
 
     def test_notebook_context_query_count_is_constant(self) -> None:
         one_query_count = self._snapshot_query_count(1)

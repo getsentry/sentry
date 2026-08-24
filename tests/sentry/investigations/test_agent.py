@@ -153,6 +153,32 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
 
+    def test_completed_query_keeps_reused_result_projects(self) -> None:
+        self.execution.input_snapshot["contextDataProjectIds"] = [self.project.id]
+        self.execution.save(update_fields=["input_snapshot"])
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="result",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="assistant",
+                        content=(
+                            '{"tableMarkdown":"| Errors |\\n| ---: |\\n| 12 |",'
+                            '"chart":null,"preferredView":"table","isEmpty":false,'
+                            '"chartUnavailableReason":"Reused the previous result."}'
+                        ),
+                    ),
+                )
+            ]
+        )
+
+        synchronize_execution(self.execution, run_state)
+
+        self.execution.refresh_from_db()
+        assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert list(self.execution.data_projects.all()) == [self.project]
+
     def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
         client = MagicMock()
         self.execution.input_snapshot["source"] = {

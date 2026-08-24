@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -459,11 +459,21 @@ def create_block_execution(
 
 
 def mark_block_execution_dispatched(
-    execution: InvestigationBlockExecution, *, seer_run_id: int
+    execution: InvestigationBlockExecution,
+    *,
+    seer_run_id: int,
+    dispatch_claimed_at: datetime | None = None,
 ) -> bool:
-    updated = InvestigationBlockExecution.objects.filter(
-        id=execution.id, status=InvestigationBlockExecutionStatus.PENDING
-    ).update(
+    candidates = InvestigationBlockExecution.objects.filter(id=execution.id)
+    if dispatch_claimed_at is None:
+        candidates = candidates.filter(status=InvestigationBlockExecutionStatus.PENDING)
+    else:
+        candidates = candidates.filter(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            seer_run_id__isnull=True,
+            started_at=dispatch_claimed_at,
+        )
+    updated = candidates.update(
         seer_run_id=seer_run_id,
         status=InvestigationBlockExecutionStatus.RUNNING,
         started_at=timezone.now(),
@@ -471,8 +481,11 @@ def mark_block_execution_dispatched(
     return updated == 1
 
 
-def mark_block_execution_dispatch_started(execution: InvestigationBlockExecution) -> bool:
+def mark_block_execution_dispatch_started(
+    execution: InvestigationBlockExecution,
+) -> datetime | None:
     stale_before = timezone.now() - DISPATCH_CLAIM_TIMEOUT
+    claimed_at = timezone.now()
     updated = (
         InvestigationBlockExecution.objects.filter(id=execution.id)
         .filter(
@@ -490,10 +503,10 @@ def mark_block_execution_dispatch_started(execution: InvestigationBlockExecution
         )
         .update(
             status=InvestigationBlockExecutionStatus.RUNNING,
-            started_at=timezone.now(),
+            started_at=claimed_at,
         )
     )
-    return updated == 1
+    return claimed_at if updated == 1 else None
 
 
 def block_execution_needs_dispatch(execution: InvestigationBlockExecution) -> bool:
@@ -534,14 +547,24 @@ def mark_block_execution_cancelled(execution: InvestigationBlockExecution) -> bo
     return updated == 1
 
 
-def mark_block_execution_dispatch_failed(execution: InvestigationBlockExecution) -> bool:
-    updated = InvestigationBlockExecution.objects.filter(
-        id=execution.id,
-        status__in=[
-            InvestigationBlockExecutionStatus.PENDING,
-            InvestigationBlockExecutionStatus.RUNNING,
-        ],
-    ).update(
+def mark_block_execution_dispatch_failed(
+    execution: InvestigationBlockExecution, *, dispatch_claimed_at: datetime | None = None
+) -> bool:
+    candidates = InvestigationBlockExecution.objects.filter(id=execution.id)
+    if dispatch_claimed_at is None:
+        candidates = candidates.filter(
+            status__in=[
+                InvestigationBlockExecutionStatus.PENDING,
+                InvestigationBlockExecutionStatus.RUNNING,
+            ]
+        )
+    else:
+        candidates = candidates.filter(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            seer_run_id__isnull=True,
+            started_at=dispatch_claimed_at,
+        )
+    updated = candidates.update(
         status=InvestigationBlockExecutionStatus.FAILED,
         error={
             "code": "dispatch_failed",

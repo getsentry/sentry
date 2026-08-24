@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import html
+from datetime import datetime
 from enum import StrEnum
 from functools import partial
 from typing import Any
@@ -22,6 +23,7 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
+from sentry.investigations.services.executions import mark_block_execution_dispatched
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
     investigation_source,
@@ -130,6 +132,7 @@ def start_execution_run(
     organization: Organization,
     user: Any,
     client: SeerAgentClient | None = None,
+    dispatch_claimed_at: datetime | None = None,
 ) -> None:
     is_query = execution.block.kind == InvestigationBlockKind.QUERY
     if client is None:
@@ -151,15 +154,22 @@ def start_execution_run(
             "execution_id": str(execution.id),
         },
         record_in_history=False,
-        on_run_created=lambda run: _mark_dispatched(execution, run.id),
+        on_run_created=lambda run: _mark_dispatched(
+            execution, run.id, dispatch_claimed_at=dispatch_claimed_at
+        ),
     )
 
 
-def _mark_dispatched(execution: InvestigationBlockExecution, seer_run_id: int) -> None:
-    execution.update(
+def _mark_dispatched(
+    execution: InvestigationBlockExecution,
+    seer_run_id: int,
+    *,
+    dispatch_claimed_at: datetime | None = None,
+) -> None:
+    mark_block_execution_dispatched(
+        execution,
         seer_run_id=seer_run_id,
-        status=InvestigationBlockExecutionStatus.RUNNING,
-        started_at=timezone.now(),
+        dispatch_claimed_at=dispatch_claimed_at,
     )
 
 
@@ -695,8 +705,17 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 result["queryLinks"] = links
                 result = validate_query_result(result)
                 allowed_project_ids = set(execution.input_snapshot.get("projectIds", []))
-                if not {project.id for project in projects}.issubset(allowed_project_ids):
+                result_project_ids = {project.id for project in projects}.union(
+                    execution.input_snapshot.get("contextDataProjectIds", [])
+                )
+                if not result_project_ids.issubset(allowed_project_ids):
                     raise ValueError("The result queried outside the investigation project scope.")
+                projects = list(
+                    Project.objects.filter(
+                        organization=execution.block.investigation.organization,
+                        id__in=result_project_ids,
+                    ).order_by("id")
+                )
             else:
                 context_project_ids = execution.input_snapshot.get("contextDataProjectIds", [])
                 projects = list(
