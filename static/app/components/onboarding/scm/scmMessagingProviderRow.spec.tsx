@@ -384,7 +384,8 @@ describe('ScmMessagingProviderRow', () => {
         providerKey: 'msteams',
         provider: msteamsProvider,
         status: 'installable',
-        integration: undefined,
+        eligibleIntegrations: [],
+        permissionLimitedIntegration: undefined,
       };
 
       const {rerender} = render(
