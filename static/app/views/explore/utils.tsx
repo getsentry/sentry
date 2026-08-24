@@ -24,17 +24,17 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -63,6 +63,7 @@ import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 export interface GetExploreUrlArgs {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
+  aggregateSort?: string;
   caseInsensitive?: CaseInsensitive;
   chartSelection?: ChartSelectionQueryParam;
   crossEvents?: CrossEvent[];
@@ -91,6 +92,7 @@ export function getExploreUrl({
   query,
   groupBy,
   sort,
+  aggregateSort,
   field,
   id,
   table,
@@ -115,6 +117,7 @@ export function getExploreUrl({
     visualize: visualize?.map(v => JSON.stringify(v)),
     groupBy,
     sort,
+    aggregateSort,
     field,
     utc,
     id,
@@ -308,6 +311,9 @@ export function generateTargetQuery({
 
   // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
+    if (!groupBy) {
+      continue;
+    }
     const value = row[groupBy];
     // some fields require special handling so make sure to handle it here
     if (groupBy === 'project' && typeof value === 'string') {
@@ -429,12 +435,16 @@ export function viewSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return getTargetWithReadableQueryParams(location, {
+  const target = getTargetWithReadableQueryParams(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
     query: newSearch.formatString(),
     sortBys: newSortBys,
   });
+
+  delete target.query.table;
+
+  return target;
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
@@ -718,7 +728,7 @@ function getConversationsUrlFromSavedQueryUrl({
     queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
   }
   const basePath = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
   );
   return `${basePath}?${queryString}`;
 }

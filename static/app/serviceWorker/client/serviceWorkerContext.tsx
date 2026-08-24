@@ -66,6 +66,10 @@ function useRegisterServiceWorker() {
       // service workers are supported since Safari 16.4.
       .register(getWorkerUrl(), {scope: '/', type: 'module'})
       .then(registration => {
+        if (!registration) {
+          log('registered-undefined');
+          return;
+        }
         log('registered', {
           attributes: {
             // An old version could be active while the new instance is incoming

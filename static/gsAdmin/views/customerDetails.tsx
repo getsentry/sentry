@@ -541,9 +541,9 @@ export function CustomerDetails() {
           {
             key: 'startEnterpriseTrial',
             name: 'Start Enterprise Trial',
-            help: subscription.isFree
-              ? 'Start enterprise trial with capped event limits (includes SSO).'
-              : 'Start enterprise trial with unlimited events (includes SSO).',
+            help: 'Start enterprise trial with capped event limits (includes SSO).',
+            // Enterprise trials from admin are only offered on free/developer plans.
+            visible: subscription.isFree,
             disabled: subscription.isPartner || subscription.isEnterpriseTrial,
             disabledReason: subscription.isPartner
               ? 'This account is managed by a third-party.'
@@ -562,7 +562,7 @@ export function CustomerDetails() {
           {
             key: 'startTrial',
             name: isTrial(subscription) ? 'Extend Trial' : 'Start Trial',
-            help: 'Start or extend a trial for this account.',
+            help: 'Start or extend a trial for this account. Starting a trial on a paid plan will not change quota limits and will only enable business features.',
             confirmModalOpts: {
               renderModalSpecificContent: deps => (
                 <TrialSubscriptionAction subscription={subscription} {...deps} />

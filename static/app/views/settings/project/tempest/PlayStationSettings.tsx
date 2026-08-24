@@ -6,13 +6,14 @@ import {useMutation} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack, Grid} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
@@ -35,6 +36,14 @@ interface Props {
   organization: Organization;
   project: DetailedProject;
 }
+
+const CREDENTIAL_COLUMNS: TableColumnConfig[] = [
+  {key: 'clientId', width: 'auto'},
+  {key: 'status', width: 'auto'},
+  {key: 'createdAt', width: 'auto'},
+  {key: 'createdBy', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 export function PlayStationSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess(project);
@@ -148,25 +157,31 @@ export function PlayStationSettings({organization, project}: Props) {
               />
             </FullWidthPanel>
           ) : (
-            <StyledPanelTable
-              headers={[
-                t('Client ID'),
-                t('Status'),
-                t('Created At'),
-                t('Created By'),
-                '',
-              ]}
-              isLoading={isLoading}
+            <StyledSimpleTable
+              columns={CREDENTIAL_COLUMNS}
+              header={
+                <SimpleTable.HeaderRow>
+                  <SimpleTable.HeaderCell>{t('Client ID')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Created At')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell />
+                </SimpleTable.HeaderRow>
+              }
             >
-              {tempestCredentials?.map(credential => (
-                <CredentialRow
-                  key={credential.id}
-                  credential={credential}
-                  isRemoving={isRemoving && removingCredential?.id === credential.id}
-                  removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-                />
-              ))}
-            </StyledPanelTable>
+              {isLoading ? (
+                <SimpleTable.Loading />
+              ) : (
+                tempestCredentials?.map(credential => (
+                  <CredentialRow
+                    key={credential.id}
+                    credential={credential}
+                    isRemoving={isRemoving && removingCredential?.id === credential.id}
+                    removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+                  />
+                ))
+              )}
+            </StyledSimpleTable>
           )}
         </Stack>
       )}
@@ -174,7 +189,7 @@ export function PlayStationSettings({organization, project}: Props) {
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   width: 100%;
 `;
 

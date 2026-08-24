@@ -29,17 +29,12 @@ export type SeerAnalyticsEventsParameters = {
     type: 'positive' | 'negative';
   };
   'ai_query.interface': {
-    action: 'opened' | 'closed' | 'consent_accepted';
+    action: 'opened' | 'closed';
     area: string;
   };
   'ai_query.regenerated': {
     area: string;
     natural_language_query: string;
-  };
-  'ai_query.rejected': {
-    area: string;
-    natural_language_query: string;
-    num_queries_returned: number;
   };
   'ai_query.submitted': {
     area: string;
@@ -56,7 +51,7 @@ export type SeerAnalyticsEventsParameters = {
     group_id: string;
     organization: Organization;
     provider: string;
-    step: 'root_cause' | 'solution';
+    step: 'root_cause' | 'solution' | 'code_changes';
     mode?: 'explorer' | 'legacy';
     referrer?: string;
   };
@@ -71,6 +66,24 @@ export type SeerAnalyticsEventsParameters = {
     group_id: string;
     organization: Organization;
     tool_name: string;
+  };
+  'autofix.overview.action_clicked': {
+    action: 'create_plan' | 'generate_code' | 'draft_pr';
+    group_id: string;
+    organization: Organization;
+    run_id: string;
+  };
+  'autofix.overview.milestone_advanced': {
+    from_milestone: string;
+    group_id: string;
+    organization: Organization;
+    run_id: string;
+    to_milestone: string;
+  };
+  'autofix.overview.open_seer_clicked': {
+    group_id: string;
+    organization: Organization;
+    run_id: string;
   };
   'autofix.pr_iteration.feedback': {
     group_id: string;
@@ -117,7 +130,7 @@ export type SeerAnalyticsEventsParameters = {
     group_id: string;
     organization: Organization;
     provider: string;
-    source: 'autofix' | 'explorer';
+    source: 'autofix' | 'explorer' | 'overview';
     user_id: string;
   };
   'coding_integration.setup_handoff_clicked': {
@@ -182,13 +195,15 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'ai_query.error': 'AI Query: Error',
   'ai_query.interface': 'AI Query: Interface',
   'ai_query.regenerated': 'AI Query: Regenerated',
-  'ai_query.rejected': 'AI Query: Rejected',
   'ai_query.submitted': 'AI Query: Submitted',
   'ai_query.feedback': 'AI Query: Feedback',
   'autofix.coding_agent.launch': 'Autofix: Coding Agent Launch',
   'autofix.code_changes.re_run': 'Autofix: Code Changes Re-run',
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
   'autofix.evidence.clicked': 'Autofix: Evidence Clicked',
+  'autofix.overview.action_clicked': 'Autofix Overview: Action Clicked',
+  'autofix.overview.milestone_advanced': 'Autofix Overview: Milestone Advanced',
+  'autofix.overview.open_seer_clicked': 'Autofix Overview: Open Seer Clicked',
   'autofix.pr_iteration.feedback': 'Autofix: PR Iteration Feedback',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',

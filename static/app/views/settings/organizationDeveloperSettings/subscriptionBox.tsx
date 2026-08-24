@@ -42,13 +42,6 @@ export function SubscriptionBox({
 }: Props) {
   const {features} = useOrganization();
 
-  if (
-    resource === 'preprod_artifact' &&
-    !features.includes('preprod-artifact-webhooks')
-  ) {
-    return null;
-  }
-
   let disabled = disabledFromPermissions;
   let message = t(
     "Must have at least 'Read' permissions enabled for %s",

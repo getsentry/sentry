@@ -44,22 +44,14 @@ const IDENTITY_ICONS = {
   vsts,
 } satisfies Record<string, string>;
 
-export interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
+export interface IdentityIconProps {
   providerId: string | keyof typeof IDENTITY_ICONS;
-  /**
-   * @default 36
-   */
-  size?: number;
 }
 
-export function IdentityIcon({providerId, size = 36, ref}: IdentityIconProps) {
+export function IdentityIcon({providerId}: IdentityIconProps) {
   return (
-    <StyledIdentityIconContainer size={size}>
-      <StyledIdentityIcon
-        ref={ref}
-        size={size}
-        identitySrc={getIdentityIconSource(providerId)}
-      />
+    <StyledIdentityIconContainer size={36}>
+      <StyledIdentityIcon size={36} identitySrc={getIdentityIconSource(providerId)} />
     </StyledIdentityIconContainer>
   );
 }

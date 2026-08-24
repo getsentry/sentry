@@ -44,9 +44,14 @@ from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, handle_query_errors
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
@@ -80,6 +85,7 @@ from sentry.search.eap.types import (
 from sentry.search.eap.utils import (
     can_expose_attribute,
     can_expose_attribute_to_api,
+    get_deprecated_source_internal_names,
     get_secondary_aliases,
     is_internal_sentry_convention_attribute,
     is_sentry_convention_replacement_attribute,
@@ -94,7 +100,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.filter import _flip_field_sort
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
-from sentry.tagstore.types import TagValue
+from sentry.tagstore.types import TagValue, TagValueSerializerResponse
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
@@ -195,6 +201,14 @@ SEARCH_QUERY_PARAM = OpenApiParameter(
     description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing attributes.",
 )
 
+VALUE_SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
+    name="substringMatch",
+    location="query",
+    required=False,
+    type=str,
+    description="Restrict results to attribute values containing this substring.",
+)
+
 EXPAND_QUERY_PARAM = OpenApiParameter(
     name="expand",
     location="query",
@@ -202,7 +216,9 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     many=True,
     type=str,
     enum=["context"],
-    # Internal-only for now, so exclude it from the public OpenAPI spec.
+    # Withheld from the public OpenAPI spec because the context shape it returns
+    # is still evolving. The matching half is the ``exclude_fields=["context"]``
+    # on ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
     exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include attribute metadata "
@@ -511,6 +527,21 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
     if name in {column.internal_name for column in definitions.columns.values()}:
         return True
     return ATTRIBUTE_METADATA.get(name) is not None
+
+
+def _replacement_superseded_by_present_source(
+    public_alias: str,
+    item_type: SupportedTraceItemType,
+    present_names: set[str],
+) -> bool:
+    """
+    Whether a convention replacement attribute should be hidden because its
+    deprecated source is also present in the results.
+    """
+    if not is_sentry_convention_replacement_attribute(public_alias, item_type):
+        return False
+    deprecated_names = get_deprecated_source_internal_names(public_alias, item_type)
+    return not deprecated_names.isdisjoint(present_names)
 
 
 def as_attribute_key(
@@ -934,6 +965,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_context: bool = False,
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
+        present_names = {attribute.name for attribute in rpc_response.attributes if attribute.name}
         for attribute in rpc_response.attributes:
             if not attribute.name:
                 continue
@@ -956,8 +988,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     trace_item_type,
                     include_internal=include_internal,
                 )
-                and not is_sentry_convention_replacement_attribute(
-                    attr_key["name"], trace_item_type
+                and not _replacement_superseded_by_present_source(
+                    attr_key["name"], trace_item_type, present_names
                 )
                 # Remove anything where the public alias doesn't match the substring
                 # This can happen when the public alias is different, but that's handled by
@@ -1003,15 +1035,53 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         return attributes
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
-    def get(self, request: Request, organization: Organization, key: str) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationTraceItemAttributeValues",
+        summary="List Trace Item Attribute Values",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="key",
+                location="path",
+                required=True,
+                type=str,
+                description="The attribute key to list values for.",
+            ),
+            DATASET_QUERY_PARAM,
+            ITEM_TYPE_QUERY_PARAM,
+            VALUE_SUBSTRING_MATCH_QUERY_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListTraceItemAttributeValuesResponse", list[TagValueSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization, key: str
+    ) -> Response[list[TagValueSerializerResponse]] | Response[ValidationErrorResponse]:
+        """
+        List the values seen for a given attribute key on a trace item dataset (spans,
+        logs, trace metrics, etc.), most frequent first.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

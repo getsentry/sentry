@@ -86,10 +86,6 @@ interface AssigneeSelectorDropdownProps {
    */
   memberList?: User[];
   /**
-   * If true, the chevron to open the dropdown will not be shown
-   */
-  noDropdown?: boolean;
-  /**
    * Callback for when an assignee is selected from the dropdown.
    * The parent component should update the group with the new assignee
    * in this callback.
@@ -217,7 +213,6 @@ export function AssigneeSelectorDropdown({
   group,
   loading,
   memberList,
-  noDropdown = false,
   onAssign,
   onClear,
   owners,
@@ -496,7 +491,7 @@ export function AssigneeSelectorDropdown({
         {loading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
-        {!loading && !noDropdown && (
+        {!loading && (
           <AssigneeTrigger
             variant="transparent"
             data-test-id="assignee-selector"
@@ -505,7 +500,6 @@ export function AssigneeSelectorDropdown({
             {avatarElement}
           </AssigneeTrigger>
         )}
-        {!loading && noDropdown && avatarElement}
       </Fragment>
     );
   };

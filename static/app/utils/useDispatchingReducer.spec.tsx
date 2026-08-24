@@ -157,13 +157,12 @@ describe('useDispatchingReducer', () => {
   });
 
   it('emitter supports side effect dispatching', () => {
-    const reducer = jest.fn().mockImplementation(function reducer(
-      state: Record<any, any>,
-      action: string
-    ) {
-      const nextState = {...state, [action]: 1};
-      return nextState;
-    });
+    const reducer = jest
+      .fn()
+      .mockImplementation((state: Record<any, any>, action: string) => {
+        const nextState = {...state, [action]: 1};
+        return nextState;
+      });
 
     const initialState = {};
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));

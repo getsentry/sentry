@@ -4,21 +4,14 @@ from datetime import datetime
 from typing import NotRequired, TypedDict
 from urllib import parse
 
-from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
-from sentry.incidents.logic import GetMetricIssueAggregatesParams, get_metric_issue_aggregates
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
-from sentry.incidents.models.incident import (
-    INCIDENT_STATUS,
-    Incident,
-    IncidentProject,
-    IncidentStatus,
-)
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
@@ -68,28 +61,6 @@ class TitleLinkParams(TypedDict, total=False):
 
 def logo_url() -> str:
     return absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-
-
-def get_metric_count_from_incident(incident: Incident) -> float | None:
-    """Returns the current or last count of an incident aggregate."""
-    # TODO(iamrajjoshi): Hoist FK lookup up
-    start, end = None, None
-    organization = Organization.objects.get_from_cache(id=incident.organization_id)
-
-    project_ids = list(
-        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
-    )
-
-    params = GetMetricIssueAggregatesParams(
-        snuba_query=incident.alert_rule.snuba_query,
-        date_started=incident.date_started,
-        current_end_date=incident.current_end_date,
-        organization=organization,
-        project_ids=project_ids,
-        start_arg=start,
-        end_arg=end,
-    )
-    return get_metric_issue_aggregates(params).get("count")
 
 
 def get_incident_status_text(
@@ -151,23 +122,6 @@ def get_status_text(status: IncidentStatus) -> str:
 
 def get_title(status: str, name: str) -> str:
     return f"{status}: {name}"
-
-
-def build_title_link_workflow_engine_ui(
-    identifier_id: int, organization: Organization, project_id: int, params: TitleLinkParams
-) -> str:
-    """Builds the URL for the metric issue with the given parameters."""
-    return organization.absolute_url(
-        reverse(
-            "sentry-group",
-            kwargs={
-                "organization_slug": organization.slug,
-                "project_id": project_id,
-                "group_id": identifier_id,
-            },
-        ),
-        query=parse.urlencode(params),
-    )
 
 
 def build_title_link(
@@ -248,84 +202,4 @@ def incident_attachment_info(
         logo_url=logo_url(),
         status=status,
         title_link=title_link,
-    )
-
-
-def metric_alert_unfurl_attachment_info(
-    alert_rule: AlertRule,
-    selected_incident: Incident | None = None,
-    new_status: IncidentStatus | None = None,
-    metric_value: float | None = None,
-) -> AttachmentInfo:
-    latest_incident = None
-    if selected_incident is None:
-        try:
-            # Use .get() instead of .first() to avoid sorting table by id
-            latest_incident = Incident.objects.filter(
-                id__in=Incident.objects.filter(alert_rule=alert_rule)
-                .values("alert_rule_id")
-                .annotate(incident_id=Max("id"))
-                .values("incident_id")
-            ).get()
-        except Incident.DoesNotExist:
-            latest_incident = None
-
-    if new_status:
-        status = get_status_text(new_status)
-    elif selected_incident:
-        status = get_status_text(IncidentStatus(selected_incident.status))
-    elif latest_incident:
-        status = get_status_text(IncidentStatus(latest_incident.status))
-    else:
-        status = get_status_text(IncidentStatus.CLOSED)
-
-    title_link_params: TitleLinkParams = {"detection_type": alert_rule.detection_type}
-    if selected_incident:
-        title_link_params["alert"] = str(selected_incident.identifier)
-
-    title = get_title(status, alert_rule.name)
-    title_link = build_title_link(alert_rule.id, alert_rule.organization, title_link_params)
-
-    if metric_value is None:
-        if (
-            selected_incident is None
-            and latest_incident
-            and latest_incident.status != IncidentStatus.CLOSED
-        ):
-            # Without a selected incident, use latest incident if it is not resolved
-            incident_info: Incident | None = latest_incident
-        else:
-            incident_info = selected_incident
-
-        if incident_info:
-            # TODO(iamrajjoshi): Hoist FK lookup up
-            metric_value = get_metric_count_from_incident(incident_info)
-
-    text = ""
-    if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
-        text = get_incident_status_text(
-            alert_rule.snuba_query,
-            (
-                AlertRuleThresholdType(alert_rule.threshold_type)
-                if alert_rule.threshold_type is not None
-                else None
-            ),
-            alert_rule.comparison_delta,
-            str(metric_value),
-        )
-
-    if features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
-        text += f"\nThreshold: {alert_rule.detection_type.title()}"
-
-    date_started = None
-    if selected_incident:
-        date_started = selected_incident.date_started
-
-    return AttachmentInfo(
-        title_link=title_link,
-        title=title,
-        text=text,
-        status=status,
-        logo_url=logo_url(),
-        date_started=date_started,
     )

@@ -30,10 +30,13 @@ import {
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/utils';
+import {MetricsAggregateExportModalButton} from 'sentry/views/explore/metrics/exports/metricsAggregateExportModalButton';
+import {MetricsSamplesExportModalButton} from 'sentry/views/explore/metrics/exports/metricsSamplesExportModalButton';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
+import {TRACE_METRICS_INGESTION_DELAY_SECONDS} from 'sentry/views/explore/metrics/ingestionDelay';
 import {
   MetricsGraph,
   getMetricsChartTypeOptions,
@@ -57,6 +60,7 @@ import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -64,7 +68,6 @@ import {
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const RESULT_LIMIT = 50;
-const TWO_MINUTE_DELAY = 120;
 
 const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
   [ChartType.LINE]: 'line',
@@ -152,7 +155,7 @@ export function MetricPanel({
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
-    ingestionDelaySeconds: TWO_MINUTE_DELAY,
+    ingestionDelaySeconds: TRACE_METRICS_INGESTION_DELAY_SECONDS,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
@@ -341,6 +344,25 @@ export function MetricPanel({
                       <MetricInfoTabs
                         traceMetric={traceMetric}
                         isMetricOptionsEmpty={isMetricOptionsEmpty}
+                        additionalActions={
+                          mode === Mode.AGGREGATE ? (
+                            <MetricsAggregateExportModalButton
+                              isError={metricAggregatesTableResult.result.isError}
+                              isLoading={metricAggregatesTableResult.result.isPending}
+                              pageLinks={metricAggregatesTableResult.result.pageLinks}
+                              tableData={metricAggregatesTableResult.result.data ?? []}
+                              traceMetric={traceMetric}
+                            />
+                          ) : (
+                            <MetricsSamplesExportModalButton
+                              fields={fields}
+                              isError={Boolean(metricSamplesTableResult.isError)}
+                              isLoading={Boolean(metricSamplesTableResult.isPending)}
+                              tableData={metricSamplesTableResult.result.data ?? []}
+                              traceMetric={traceMetric}
+                            />
+                          )
+                        }
                       />
                     </Container>
                   </Grid>

@@ -75,7 +75,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
@@ -425,8 +425,8 @@ export function GlobalCommandPaletteActions() {
           />
           {organization.features.includes('gen-ai-conversations') && (
             <CMDKAction
-              display={{label: t('Conversations')}}
-              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/?referrer=cmdk`}
+              display={{label: t('Agents')}}
+              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
             />
           )}
           <CMDKAction
@@ -701,7 +701,6 @@ export function GlobalCommandPaletteActions() {
                   // some orgs have thousands of projects.
                   // `params.projectId`/`queryProjectIds` bust the cache when
                   // the active project changes (affects "Current" tag display).
-                  // eslint-disable-next-line @tanstack/query/exhaustive-deps
                   cmdkQueryOptions({
                     queryKey: [
                       'project-settings',
@@ -958,7 +957,6 @@ export function GlobalCommandPaletteActions() {
           // TanStack serializes the entire key for cache lookups, and
           // including the full projects array would be too costly —
           // some orgs have thousands of projects.
-          // eslint-disable-next-line @tanstack/query/exhaustive-deps
           cmdkQueryOptions({
             queryKey: [
               'cmdk-project-nav',

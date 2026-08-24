@@ -19,6 +19,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -64,6 +65,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const estimateSize = () => 41;
+
+const TABLE_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'max-content'},
+  {key: 'project', width: '2fr'},
+  {key: 'repos', width: '74px'},
+  {key: 'fixes', width: '1fr'},
+  {key: 'automation_steps', width: '1fr'},
+];
 
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
@@ -194,7 +203,7 @@ export function SeerProjectTable() {
         knownIds={data?.map(item => String(item.projectId)) ?? []}
         endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
-        <InfiniteTable.Table columns="max-content 2fr 74px repeat(2, 1fr)">
+        <InfiniteTable.Table columns={TABLE_COLUMNS}>
           <ProjectTableHeader
             settings={data ?? []}
             sort={sortBy}
@@ -202,114 +211,112 @@ export function SeerProjectTable() {
             mutableSearch={mutableSearch}
           />
 
-          <InfiniteTable.Scrollable>
-            {isPending ? (
-              <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
-                <LoadingIndicator />
-              </Flex>
-            ) : isError ? (
-              <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
-                <LoadingError message={error?.message} />
-              </Flex>
-            ) : data.length === 0 ? (
-              <InfiniteTable.Empty>
-                {searchTerm
-                  ? agentFilter === 'all'
-                    ? tct('No projects found matching [searchTerm]', {
-                        searchTerm: <code>{searchTerm}</code>,
-                      })
-                    : tct('No projects found matching [searchTerm] with [agentFilter]', {
-                        searchTerm: <code>{searchTerm}</code>,
-                        agentFilter: <code>{agentFilter}</code>,
-                      })
-                  : agentFilter === 'all'
-                    ? t('No projects found')
-                    : tct('No projects found with [agentFilter]', {
-                        agentFilter: <code>{agentFilter}</code>,
-                      })}
-              </InfiniteTable.Empty>
-            ) : (
-              <Fragment>
-                <InfiniteTable.Body
-                  estimateSize={estimateSize}
-                  queryResult={result}
-                  select={_ => _ ?? []}
-                >
-                  {item => (
-                    <InfiniteTable.Row>
-                      <InfiniteTable.RowCell>
-                        <ListItemSelectCheckbox
-                          htmlPrefix="seer-project-settings"
-                          value={String(item.projectId)}
+          {isPending ? (
+            <InfiniteTable.Status>
+              <LoadingIndicator />
+            </InfiniteTable.Status>
+          ) : isError ? (
+            <InfiniteTable.Status>
+              <LoadingError message={error?.message} />
+            </InfiniteTable.Status>
+          ) : data.length === 0 ? (
+            <InfiniteTable.Empty>
+              {searchTerm
+                ? agentFilter === 'all'
+                  ? tct('No projects found matching [searchTerm]', {
+                      searchTerm: <code>{searchTerm}</code>,
+                    })
+                  : tct('No projects found matching [searchTerm] with [agentFilter]', {
+                      searchTerm: <code>{searchTerm}</code>,
+                      agentFilter: <code>{agentFilter}</code>,
+                    })
+                : agentFilter === 'all'
+                  ? t('No projects found')
+                  : tct('No projects found with [agentFilter]', {
+                      agentFilter: <code>{agentFilter}</code>,
+                    })}
+            </InfiniteTable.Empty>
+          ) : (
+            <Fragment>
+              <InfiniteTable.Body
+                estimateSize={estimateSize}
+                queryResult={result}
+                select={_ => _ ?? []}
+              >
+                {item => (
+                  <InfiniteTable.Row>
+                    <InfiniteTable.RowCell>
+                      <ListItemSelectCheckbox
+                        htmlPrefix="seer-project-settings"
+                        value={String(item.projectId)}
+                      />
+                    </InfiniteTable.RowCell>
+                    <InfiniteTable.RowCell>
+                      <Link
+                        to={{
+                          pathname: `/settings/${organization.slug}/seer/projects/${item.projectSlug}/`,
+                          query: location.query,
+                        }}
+                      >
+                        <ProjectBadge
+                          disableLink
+                          project={
+                            projectsById.get(item.projectId) ?? {slug: item.projectSlug}
+                          }
+                          avatarSize={16}
                         />
-                      </InfiniteTable.RowCell>
-                      <InfiniteTable.RowCell>
-                        <Link
-                          to={{
-                            pathname: `/settings/${organization.slug}/seer/projects/${item.projectSlug}/`,
-                            query: location.query,
-                          }}
-                        >
-                          <ProjectBadge
-                            disableLink
-                            project={
-                              projectsById.get(item.projectId) ?? {slug: item.projectSlug}
-                            }
-                            avatarSize={16}
-                          />
-                        </Link>
-                      </InfiniteTable.RowCell>
-                      <InfiniteTable.RowCell justify="end">
-                        <Text tabular>{item.reposCount}</Text>
-                      </InfiniteTable.RowCell>
-                      <InfiniteTable.RowCell overflow="visible">
-                        <AgentSelectCell
-                          projectSlug={item.projectSlug}
-                          initialValue={coalesePreferredAgent(
-                            item.agent,
-                            item.integrationId
+                      </Link>
+                    </InfiniteTable.RowCell>
+                    <InfiniteTable.RowCell justify="end">
+                      <Text tabular>{item.reposCount}</Text>
+                    </InfiniteTable.RowCell>
+                    <InfiniteTable.RowCell overflow="visible">
+                      <AgentSelectCell
+                        projectSlug={item.projectSlug}
+                        initialValue={coalesePreferredAgent(
+                          item.agent,
+                          item.integrationId
+                        )}
+                        agentSelectOptions={agentSelectOptions}
+                        knownAgents={knownAgents}
+                        disabled={!canWrite}
+                      />
+                    </InfiniteTable.RowCell>
+                    <InfiniteTable.RowCell>
+                      <Stack align="stretch" flex="1">
+                        <AutoSaveForm
+                          name="stoppingPoint"
+                          schema={seerProjectSettingsSchema}
+                          initialValue={coaleseStoppingPoint(
+                            item.stoppingPoint,
+                            item.automationTuning
                           )}
-                          agentSelectOptions={agentSelectOptions}
-                          knownAgents={knownAgents}
-                          disabled={!canWrite}
-                        />
-                      </InfiniteTable.RowCell>
-                      <InfiniteTable.RowCell>
-                        <Stack align="stretch" flex="1">
-                          <AutoSaveForm
-                            name="stoppingPoint"
-                            schema={seerProjectSettingsSchema}
-                            initialValue={coaleseStoppingPoint(
-                              item.stoppingPoint,
-                              item.automationTuning
-                            )}
-                            mutationOptions={getMutateSeerProjectSettingsOptions({
-                              organization,
-                              project: {slug: item.projectSlug},
-                              queryClient,
-                            })}
-                          >
-                            {field => (
-                              <field.Select
-                                disabled={!canWrite}
-                                menuPortalTarget={document.body}
-                                onChange={field.handleChange}
-                                options={stoppingPointOptions}
-                                // @ts-expect-error: Select component does not have a size prop defined
-                                size="xs"
-                                value={field.state.value}
-                              />
-                            )}
-                          </AutoSaveForm>
-                        </Stack>
-                      </InfiniteTable.RowCell>
-                    </InfiniteTable.Row>
-                  )}
-                </InfiniteTable.Body>
-                <InfiniteTable.LoadingRow queryResult={result} />
-              </Fragment>
-            )}
-          </InfiniteTable.Scrollable>
+                          mutationOptions={getMutateSeerProjectSettingsOptions({
+                            organization,
+                            project: {slug: item.projectSlug},
+                            queryClient,
+                          })}
+                        >
+                          {field => (
+                            <field.Select
+                              disabled={!canWrite}
+                              menuPortalTarget={document.body}
+                              onChange={field.handleChange}
+                              options={stoppingPointOptions}
+                              // @ts-expect-error: Select component does not have a size prop defined
+                              size="xs"
+                              value={field.state.value}
+                            />
+                          )}
+                        </AutoSaveForm>
+                      </Stack>
+                    </InfiniteTable.RowCell>
+                  </InfiniteTable.Row>
+                )}
+              </InfiniteTable.Body>
+              <InfiniteTable.LoadingRow queryResult={result} />
+            </Fragment>
+          )}
         </InfiniteTable.Table>
       </ListItemCheckboxProvider>
     </Fragment>

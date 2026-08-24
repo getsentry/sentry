@@ -71,11 +71,6 @@ export interface SearchQueryBuilderProps {
    */
   searchSource: string;
   /**
-   * The badge type to display for the AI search option.
-   * Defaults to 'beta'.
-   */
-  aiSearchBadgeType?: 'alpha' | 'beta';
-  /**
    * Query key used to scope async filter key metadata. When omitted, metadata is
    * scoped to this query builder instance.
    */
@@ -89,9 +84,8 @@ export interface SearchQueryBuilderProps {
   caseInsensitive?: CaseInsensitive;
   className?: string;
   /**
-   * When true, submitting free text will open Ask Seer and submit the full query.
-   * Requires AI search to be enabled and the organization to have the
-   * gen-ai-default-to-ask-seer feature.
+   * When true, submitting free text containing at least two words will open Ask Seer
+   * and submit the full query. Requires AI search to be enabled.
    */
   defaultToAskSeerOnFreeTextSearch?: boolean;
   disabled?: boolean;

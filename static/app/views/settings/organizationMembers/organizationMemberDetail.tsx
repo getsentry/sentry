@@ -109,8 +109,6 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     },
     onSuccess: data => {
       addSuccessMessage(t('Saved'));
-      // Will be fixed soon when we get rid of setApiQueryData.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<Member>(
         queryClient,
         getMemberQueryKey(organization.slug, member.id),
@@ -136,8 +134,6 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       onSuccess: data => {
         addSuccessMessage(t('Sent invite!'));
 
-        // Will be fixed soon when we get rid of setApiQueryData.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<Member>(
           queryClient,
           getMemberQueryKey(organization.slug, member.id),

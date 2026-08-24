@@ -54,6 +54,14 @@ interface ConversationApiResponse extends Omit<
 
 const CONVERSATION_LIST_PER_PAGE = 50;
 
+function normalizeConversationPreview(
+  content: ConversationApiResponse['firstInput']
+): string | null {
+  return typeof content === 'string'
+    ? content
+    : (content?.find(part => part.type === 'text')?.text ?? null);
+}
+
 export function useConversations() {
   const organization = useOrganization();
   const {cursor, setCursor} = useTableCursor();
@@ -66,7 +74,7 @@ export function useConversations() {
     error,
   } = useQuery({
     ...apiOptions.as<ConversationApiResponse[]>()(
-      '/organizations/$organizationIdOrSlug/ai-conversations/',
+      '/organizations/$organizationIdOrSlug/agents/conversations/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
@@ -94,14 +102,8 @@ export function useConversations() {
           lastOutput: rawLastOutput,
           ...rest
         }): Conversation => {
-          const firstInput =
-            typeof rawFirstInput === 'string'
-              ? rawFirstInput
-              : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
-          const lastOutput =
-            typeof rawLastOutput === 'string'
-              ? rawLastOutput
-              : (rawLastOutput?.find(content => content.type === 'text')?.text ?? null);
+          const firstInput = normalizeConversationPreview(rawFirstInput);
+          const lastOutput = normalizeConversationPreview(rawLastOutput);
           return {...rest, firstInput, lastOutput};
         }
       )

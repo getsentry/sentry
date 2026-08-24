@@ -82,15 +82,17 @@ export function BilledSeats({
             (normalizedMetricHistory.prepaid > 0 ||
               normalizedMetricHistory.prepaid === UNLIMITED_RESERVED))
         }
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
+              {tct('Active Contributors ([count])', {count: billedSeats?.length ?? 0})}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
+              {t('Date Added')}
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
-            {tct('Active Contributors ([count])', {count: billedSeats?.length ?? 0})}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
-            {t('Date Added')}
-          </SimpleTable.HeaderCell>
-        </SimpleTable.Header>
         {seatsError ? (
           <SimpleTable.Empty>
             <LoadingError onRetry={refetch} />

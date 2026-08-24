@@ -87,7 +87,7 @@ interface SnapshotSidebarContentProps {
   statusCounts?: StatusCounts | null;
 }
 
-export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
+export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
   sections,
   activeItemKey,
   searchQuery,
@@ -263,7 +263,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   );
 });
 
-const SectionHeaderRow = memo(function SectionHeaderRow({
+const SectionHeaderRow = memo(function SectionHeaderRowImpl({
   row,
   expanded,
   onToggle,
@@ -290,7 +290,7 @@ const SectionHeaderRow = memo(function SectionHeaderRow({
   );
 });
 
-const SidebarItem = memo(function SidebarItem({
+const SidebarItem = memo(function SidebarItemImpl({
   group,
   indented,
   isActive,
@@ -356,7 +356,7 @@ function StatusPill({
   );
 }
 
-const TagFilterSection = memo(function TagFilterSection({
+const TagFilterSection = memo(function TagFilterSectionImpl({
   availableTags,
 }: {
   availableTags: Map<string, Map<string, number>>;

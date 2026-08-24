@@ -254,7 +254,7 @@ jobs:
 
       - name: Check for changes
         run: |
-          if ! git diff --exit-code static/app/components/core/form/generatedFieldRegistry.ts; then
+          if ! git diff --exit-code static/app/views/settings/fieldRegistry.generated.ts; then
             echo ""
             echo "❌ Form field registry is out of sync!"
             echo ""

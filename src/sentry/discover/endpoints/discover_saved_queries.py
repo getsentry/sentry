@@ -92,9 +92,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
 
         # Hide transactions saved queries if organizations has the discover transactions
         # deprecation flag enabled
-        if features.has(
-            "organizations:discover-saved-queries-deprecation", organization, actor=request.user
-        ):
+        if features.has("organizations:deprecate-discover", organization, actor=request.user):
             queryset = queryset.exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
 
         query = request.query_params.get("query")

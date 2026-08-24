@@ -2,6 +2,7 @@ import {createContext, useContext, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
@@ -42,6 +43,9 @@ export function IssueStreamDetectorContextProvider({
       return map;
     }
     for (const detector of data) {
+      if (!defined(detector.projectId)) {
+        continue;
+      }
       const existing = map.get(detector.projectId);
       if (existing) {
         existing.push(detector);

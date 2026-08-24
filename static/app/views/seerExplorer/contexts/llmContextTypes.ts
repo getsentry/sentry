@@ -61,12 +61,30 @@ export interface LLMContextState {
 }
 
 /**
+ * Where the user is in the app, independent of what any page registered.
+ *
+ * `name` is the route pattern and `params` its filled-in values, so
+ * `/issues/:groupId/` plus `{groupId: '123'}` tells the reader what `123` *is* —
+ * something a bare URL leaves it to guess.
+ */
+export interface LLMContextLocation {
+  name: string;
+  params: Record<string, string>;
+  query: Record<string, string | string[]>;
+  url: string;
+}
+
+/**
  * The snapshot format returned by `getSnapshot()`. This is what gets sent
  * to the LLM API — a plain-JSON-serializable nested tree.
+ *
+ * `location` is present regardless of whether any component registered a node,
+ * so a page with no LLMContext coverage still reports where the user is.
  */
 export interface LLMContextSnapshot {
   nodes: LLMContextNodeSnapshot[];
   version: number;
+  location?: LLMContextLocation;
 }
 
 export interface LLMContextNodeSnapshot {
