@@ -1,11 +1,14 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
+
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -61,6 +64,10 @@ export function OrganizationFeatureFlagsAuditLogTable({
 
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>();
 
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: BASE_COLUMNS,
+  });
+
   const handleMouseOver = useCallback((_dataRow: RawFlag, key: number) => {
     setActiveRowKey(key);
   }, []);
@@ -76,18 +83,21 @@ export function OrganizationFeatureFlagsAuditLogTable({
           'Verify your webhook integration(s) by checking the audit logs below for recent changes to your feature flags.'
         )}
       </TextBlock>
-      <FeatureFlagsLogTable
-        columns={BASE_COLUMNS}
-        fit="max-content"
-        flags={flags?.data ?? []}
-        isPending={isPending}
-        error={error}
-        onRowMouseOver={handleMouseOver}
-        onRowMouseOut={handleMouseOut}
-        highlightedRowKey={activeRowKey}
-        pageLinks={pageLinks}
-        resizable={false}
-      />
+      <Container minWidth={0} overflowX="auto">
+        <Container minWidth="768px">
+          <FeatureFlagsLogTable
+            columns={columns}
+            flags={flags?.data ?? []}
+            isPending={isPending}
+            error={error}
+            onRowMouseOver={handleMouseOver}
+            onRowMouseOut={handleMouseOut}
+            onResizeColumn={handleResizeColumn}
+            highlightedRowKey={activeRowKey}
+            pageLinks={pageLinks}
+          />
+        </Container>
+      </Container>
     </Fragment>
   );
 }

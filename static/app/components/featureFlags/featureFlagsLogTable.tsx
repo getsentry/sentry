@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
@@ -23,12 +22,10 @@ interface FeatureFlagsLogTableProps {
   isPending: boolean;
   pageLinks: string | null;
   cursorKeyName?: string;
-  fit?: 'max-content';
   highlightedRowKey?: number;
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
   onRowMouseOver?: (dataRow: RawFlag, key: number) => void;
-  resizable?: boolean;
   scrollable?: boolean;
 }
 
@@ -38,13 +35,11 @@ export function FeatureFlagsLogTable({
   flags,
   isPending,
   error,
-  fit,
   pageLinks,
   onResizeColumn,
   onRowMouseOver,
   onRowMouseOut,
   highlightedRowKey,
-  resizable,
   scrollable = false,
 }: FeatureFlagsLogTableProps) {
   const organization = useOrganization();
@@ -67,14 +62,13 @@ export function FeatureFlagsLogTable({
   );
 
   return (
-    <Container minWidth={0} width="100%">
+    <div>
       <GridEditable
         error={error}
         isLoading={isPending}
         data={flags ?? []}
         columnOrder={columns}
         columnSortBy={[]}
-        fit={fit}
         grid={{
           renderBodyCell,
           onResizeColumn,
@@ -82,13 +76,12 @@ export function FeatureFlagsLogTable({
         onRowMouseOver={onRowMouseOver}
         onRowMouseOut={onRowMouseOut}
         highlightedRowKey={highlightedRowKey}
-        resizable={resizable}
         scrollable={scrollable}
         data-test-id="audit-log-table"
       />
 
       <PaginationNoMargin pageLinks={pageLinks} onCursor={handlePageChange} />
-    </Container>
+    </div>
   );
 }
 
