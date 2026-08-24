@@ -183,7 +183,7 @@ describe('MetricDetectorTriggeredSection', () => {
           activities: [],
         },
       ],
-      match: [MockApiClient.matchQuery({groupId: defaultGroup.id})],
+      match: [MockApiClient.matchQuery({groupId: defaultGroup.id, per_page: 1})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',
@@ -198,6 +198,39 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(
       await screen.findByRole('button', {name: 'Launch Investigation'})
     ).toBeInTheDocument();
+  });
+
+  it('does not fall back to an unrelated open period when the event lookup fails', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    const event = {...defaultEvent, id: 'failed-event', eventID: 'failed-event'};
+    const latestPeriodMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+      match: [MockApiClient.matchQuery({groupId: defaultGroup.id, per_page: 1})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      statusCode: 500,
+      match: [
+        MockApiClient.matchQuery({
+          groupId: defaultGroup.id,
+          eventId: 'failed-event',
+          per_page: 1,
+        }),
+      ],
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} event={event} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('Unable to load investigation information.')
+    ).toBeInTheDocument();
+    expect(latestPeriodMock).not.toHaveBeenCalled();
   });
 
   it('renders nothing when event has no occurrence', () => {

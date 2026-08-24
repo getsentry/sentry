@@ -562,11 +562,7 @@ const GroupListWrapper = styled('div')`
 `;
 
 const InvestigationSummaryCard = styled(Stack)`
-  position: relative;
-  overflow: hidden;
   padding: 14px 16px;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 8px;
   box-shadow: ${p => p.theme.shadow.low};
 
   &::before {
@@ -588,19 +584,19 @@ function SeerInvestigationSection({
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const {data: eventOpenPeriod, isPending: isEventOpenPeriodPending} = useEventOpenPeriod(
-    {
-      groupId,
-      eventId,
-    }
+  const eventOpenPeriodQuery = useEventOpenPeriod({groupId, eventId});
+  const shouldLoadLatest =
+    eventOpenPeriodQuery.isSuccess && eventOpenPeriodQuery.data === null;
+  const groupOpenPeriodsQuery = useOpenPeriods(
+    {groupId, limit: 1},
+    {enabled: shouldLoadLatest}
   );
-  const {data: groupOpenPeriods, isPending: isGroupOpenPeriodsPending} = useOpenPeriods(
-    {groupId},
-    {enabled: !isEventOpenPeriodPending && !eventOpenPeriod}
-  );
-  const openPeriod = eventOpenPeriod ?? groupOpenPeriods?.[0] ?? null;
+  const openPeriod = eventOpenPeriodQuery.data ?? groupOpenPeriodsQuery.data?.[0] ?? null;
   const isOpenPeriodPending =
-    isEventOpenPeriodPending || (!eventOpenPeriod && isGroupOpenPeriodsPending);
+    eventOpenPeriodQuery.isPending ||
+    (shouldLoadLatest && groupOpenPeriodsQuery.isPending);
+  const isOpenPeriodError =
+    eventOpenPeriodQuery.isError || (shouldLoadLatest && groupOpenPeriodsQuery.isError);
   const source = useMemo<MetricOpenPeriodInvestigationSource | null>(
     () =>
       openPeriod
@@ -615,15 +611,20 @@ function SeerInvestigationSection({
     organizationSlug: organization.slug,
     sources: source ? [source] : [],
   });
-  const {data, isPending: isCandidatePending} = useQuery({
+  const {
+    data: candidate,
+    isPending: isCandidatePending,
+    isError: isCandidateError,
+  } = useQuery({
     ...candidateOptions,
     enabled: source !== null,
+    select: response => response.json.items[0],
   });
-  const candidate = data?.items[0];
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
       queryClient.setQueryData(candidateOptions.queryKey, {
-        items: [{status: 'view', investigationId: launchedInvestigation.id}],
+        json: {items: [{status: 'view', investigationId: launchedInvestigation.id}]},
+        headers: {},
       });
       queryClient.setQueryData(
         investigationDetailQueryOptions(organization.slug, launchedInvestigation.id)
@@ -659,9 +660,21 @@ function SeerInvestigationSection({
     >
       {isOpenPeriodPending || (source !== null && isCandidatePending) ? (
         <Placeholder height="40px" width="160px" />
+      ) : isOpenPeriodError || isCandidateError ? (
+        <Alert.Container>
+          <Alert variant="danger" showIcon>
+            {t('Unable to load investigation information.')}
+          </Alert>
+        </Alert.Container>
       ) : (
         <Stack gap="md">
-          <InvestigationSummaryCard gap="xs">
+          <InvestigationSummaryCard
+            position="relative"
+            overflow="hidden"
+            border="primary"
+            radius="md"
+            gap="xs"
+          >
             <Text size="lg" bold>
               {t('Different investigation title')}
             </Text>

@@ -185,8 +185,9 @@ export function FoldSection({
   }, [organization, sectionKey, setIsCollapsed, preventCollapse, isCollapsed]);
 
   const accessibleTitle = titleLabel ?? (typeof title === 'string' ? title : sectionKey);
+  const labelTitle = titleLabel ?? (typeof title === 'string' ? title : null);
   const labelPrefix = expanded ? t('Collapse') : t('View');
-  const labelSuffix = accessibleTitle + t(' Section');
+  const labelSuffix = labelTitle ? t('%s Section', labelTitle) : t('Section');
 
   return (
     <Fragment>

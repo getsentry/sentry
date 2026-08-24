@@ -1,5 +1,4 @@
 import {
-  queryOptions,
   useMutation,
   useQueryClient,
   type UseMutationOptions,
@@ -58,20 +57,19 @@ export function investigationCandidatesQueryOptions({
   organizationSlug: string;
   sources: MetricOpenPeriodInvestigationSource[];
 }) {
-  return queryOptions({
-    queryKey: ['investigation-candidates', organizationSlug, sources] as const,
-    queryFn: () =>
-      fetchMutation<{items: InvestigationCandidate[]}>({
-        url: `/organizations/${organizationSlug}/investigations/candidates/`,
-        method: 'POST',
-        data: {
-          templateKey: 'breached_metric',
-          templateVersion: 1,
-          sources,
-        },
-      }),
-    staleTime: 30_000,
-  });
+  return apiOptions.as<{items: InvestigationCandidate[]}>()(
+    '/organizations/$organizationIdOrSlug/investigations/candidates/',
+    {
+      path: {organizationIdOrSlug: organizationSlug},
+      method: 'POST',
+      data: {
+        templateKey: 'breached_metric',
+        templateVersion: 1,
+        sources,
+      },
+      staleTime: 30_000,
+    }
+  );
 }
 
 type FavoriteVariables = {

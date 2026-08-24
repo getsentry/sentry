@@ -58,6 +58,27 @@ describe('FoldSection', () => {
       );
 
       expect(screen.getByText('Custom Title')).toBeVisible();
+      expect(screen.getByRole('button')).toHaveAccessibleName('Collapse Section');
+    });
+
+    it('uses titleLabel for a custom JSX title', () => {
+      render(
+        <FoldSection
+          title={<span>Custom Title</span>}
+          titleLabel="Accessible Title"
+          sectionKey={SectionKey.HIGHLIGHTS}
+        >
+          <div>Test Content</div>
+        </FoldSection>,
+        {
+          organization: OrganizationFixture(),
+        }
+      );
+
+      expect(screen.getByRole('region')).toHaveAccessibleName('Accessible Title');
+      expect(screen.getByRole('button')).toHaveAccessibleName(
+        'Collapse Accessible Title Section'
+      );
     });
 
     it('applies accessibility attributes to container', () => {
