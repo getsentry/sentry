@@ -43,8 +43,8 @@ export function CardHeader({
   );
   return (
     <Grid
-      columns={{'3xl': '1fr max-content'}}
-      rows={{'3xl': 'repeat(2, max-content)'}}
+      columns={{zero: '1fr', md: '1fr max-content'}}
+      rows={{zero: 'repeat(3, max-content)', md: 'repeat(2, max-content)'}}
       gap="2xs"
       marginBottom="md"
     >
@@ -55,7 +55,7 @@ export function CardHeader({
       <DateCreated>
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
-      <Grid flow="column" align="center" gap="md" row={{'3xl': '1 / 3'}}>
+      <Grid flow="column" align="center" gap="md" row={{zero: '3', md: '1 / 3'}}>
         <Button
           size="sm"
           icon={<IconCopyId />}
