@@ -36,7 +36,6 @@ from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.simple_triage import (
     NIGHT_SHIFT_ISSUE_FETCH_LIMIT,
     NIGHT_SHIFT_MAX_SEARCH_PAGES,
-    NIGHT_SHIFT_OCCURRENCE_LOOKBACK,
     ScoredCandidate,
     fixability_score_strategy,
     fixability_score_strategy_per_project,
@@ -1378,7 +1377,9 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
     def test_requires_recent_occurrence(self) -> None:
         project = self.create_project()
-        recent = self._store_event_and_update_group(project, "recent")
+        recent = self._store_event_and_update_group(
+            project, "recent", timestamp=before_now(days=13)
+        )
         self._store_event_and_update_group(
             project,
             "old",
@@ -1391,7 +1392,9 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
     def test_agentic_search_requires_recent_occurrence(self) -> None:
         project = self.create_project()
-        recent = self._store_event_and_update_group(project, "agentic-recent")
+        recent = self._store_event_and_update_group(
+            project, "agentic-recent", timestamp=before_now(days=13)
+        )
         self._store_event_and_update_group(
             project,
             "agentic-old",
@@ -1403,44 +1406,28 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
         assert [candidate.group.id for candidate in result] == [recent.id]
 
-    def test_requires_in_app_frame(self) -> None:
+    def test_requires_recent_in_app_frame(self) -> None:
         project = self.create_project()
-        in_app = self._store_event_and_update_group(project, "in-app")
-        self._store_event_and_update_group(project, "not-in-app", in_app=False)
+        recent_in_app = self._store_event_and_update_group(project, "recent-in-app")
+        self._store_event_and_update_group(project, "old-in-app", timestamp=before_now(days=15))
+        self._store_event_and_update_group(project, "old-in-app", in_app=False)
 
         result = fixability_score_strategy([project], max_candidates=10)
 
-        assert [candidate.group.id for candidate in result] == [in_app.id]
+        assert [candidate.group.id for candidate in result] == [recent_in_app.id]
 
-    def test_agentic_search_requires_in_app_frame(self) -> None:
+    def test_agentic_search_requires_recent_in_app_frame(self) -> None:
         project = self.create_project()
-        in_app = self._store_event_and_update_group(project, "agentic-in-app")
-        self._store_event_and_update_group(project, "agentic-not-in-app", in_app=False)
+        recent_in_app = self._store_event_and_update_group(project, "agentic-recent-in-app")
+        self._store_event_and_update_group(
+            project, "agentic-old-in-app", timestamp=before_now(days=15)
+        )
+        self._store_event_and_update_group(project, "agentic-old-in-app", in_app=False)
 
         with self.feature({"organizations:agentic-triage-sort": True}):
             result = fixability_score_strategy([project], max_candidates=10)
 
-        assert [candidate.group.id for candidate in result] == [in_app.id]
-
-    def test_search_scopes_in_app_filter_to_recent_occurrences(self) -> None:
-        project = self.create_project()
-
-        with (
-            freeze_time("2026-08-24 12:00:00Z"),
-            patch("sentry.tasks.seer.night_shift.simple_triage.search.backend.query") as mock_query,
-        ):
-            mock_query.return_value = _cursor_result([])
-            fixability_score_strategy([project], max_candidates=10)
-
-        expected_cutoff = datetime(2026, 8, 24, 12, tzinfo=UTC) - NIGHT_SHIFT_OCCURRENCE_LOOKBACK
-        assert mock_query.call_args.kwargs["date_from"] == expected_cutoff
-        filters = {
-            search_filter.key.name: search_filter
-            for search_filter in mock_query.call_args.kwargs["search_filters"]
-        }
-        assert filters["last_seen"].operator == ">="
-        assert filters["last_seen"].value.raw_value == expected_cutoff
-        assert filters["stack.in_app"].value.raw_value == 1.0
+        assert [candidate.group.id for candidate in result] == [recent_in_app.id]
 
     def test_includes_low_value_span_issues_in_search(self) -> None:
         project = self.create_project()
