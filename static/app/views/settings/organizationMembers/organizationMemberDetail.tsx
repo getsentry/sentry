@@ -280,9 +280,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         <PanelBody>
           <PanelItem>
             <Grid
-              columns={{zero: 'auto', md: '2fr 1fr 1fr'}}
-              flow={{zero: 'row', md: 'column'}}
+              columns="minmax(max-content, 2fr) repeat(2, minmax(max-content, 1fr))"
               gap="xl"
+              overflowX="auto"
               width="100%"
             >
               <div>
