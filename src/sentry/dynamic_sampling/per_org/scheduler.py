@@ -37,6 +37,7 @@ from sentry.dynamic_sampling.per_org.gate import (
     is_org_in_recalibration_rollout,
     is_org_in_rollout,
     is_org_in_sample_rates_summary_log_rollout,
+    is_prevalidation_skipped,
     sliding_window_comparison_org_ids,
     transaction_volume_debug_project_ids,
 )
@@ -308,7 +309,9 @@ def schedule_per_org_calculations() -> None:
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
-        prevalidate_batch=keep_orgs_with_dynamic_sampling,
+        # Without it every active org occupies a batch and is filtered at dispatch instead,
+        # which is slower per cycle but keeps a slow cycle-start query off the critical path.
+        prevalidate_batch=None if is_prevalidation_skipped() else keep_orgs_with_dynamic_sampling,
         preserve_queryset_order=True,
     )
     scheduler.tick()

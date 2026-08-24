@@ -2353,6 +2353,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Skips the batched dynamic sampling feature check the per-org scheduler runs at cycle
+# start. The per-item check at dispatch time still runs, so no org without the feature is
+# processed; the orgs it would have filtered out just occupy the cycle's batches instead.
+register(
+    "dynamic-sampling.per_org.skip-prevalidation",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
 # organization id. A value of 0.0 disables the pipeline for every org; 1.0
 # enables it for every org. Intermediate values select a stable hash-based

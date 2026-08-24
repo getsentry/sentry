@@ -158,6 +158,21 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert with_dynamic_sampling.id in org_ids
         assert without_dynamic_sampling.id not in org_ids
 
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.skip-prevalidation": True,
+        }
+    )
+    def test_skip_prevalidation_option_drops_the_batch_check(self) -> None:
+        self.create_project(organization=self.create_organization())
+
+        with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
+            MockScheduler.return_value.tick.return_value = False
+            schedule_per_org_calculations()
+
+        assert MockScheduler.call_args.kwargs["prevalidate_batch"] is None
+
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_raises_when_the_feature_cannot_be_evaluated(self) -> None:
         org = self.create_organization()

@@ -4,6 +4,7 @@ from sentry import options
 from sentry.options.rollout import in_rollout_group
 
 KILLSWITCH_OPTION = "dynamic-sampling.per_org.killswitch"
+SKIP_PREVALIDATION_OPTION = "dynamic-sampling.per_org.skip-prevalidation"
 ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.rollout-rate"
 RECALIBRATION_ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.recalibration-rollout-rate"
 METRICS_SAMPLE_RATE_OPTION = "dynamic-sampling.per_org.metrics-sample-rate"
@@ -25,6 +26,10 @@ SAMPLE_RATES_SUMMARY_LOG_ROLLOUT_RATE_OPTION = (
 
 def is_killswitch_engaged() -> bool:
     return bool(options.get(KILLSWITCH_OPTION))
+
+
+def is_prevalidation_skipped() -> bool:
+    return bool(options.get(SKIP_PREVALIDATION_OPTION))
 
 
 def rollout_rate() -> float:
