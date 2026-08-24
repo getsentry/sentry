@@ -549,9 +549,7 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    expect(
-      await screen.findByText('You don’t have any Autofix runs...yet.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('No Autofix runs')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Autofix Activity 7D'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: /Sort/})).toBeInTheDocument();
@@ -905,9 +903,7 @@ describe('AutofixOverview', () => {
 
     narrower.resolve();
 
-    expect(
-      await screen.findByText('You don’t have any Autofix runs...yet.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('No Autofix runs')).toBeInTheDocument();
   });
 
   it('holds the project filter as a placeholder until projects finish loading', async () => {
@@ -1660,9 +1656,7 @@ describe('AutofixOverview', () => {
       expect(
         await screen.findByText('No Autofix runs match the selected assignee.')
       ).toBeInTheDocument();
-      expect(
-        screen.queryByText('You don’t have any Autofix runs...yet.')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
       // No tabs above the message when the filter matches nothing to switch between.
       expect(screen.queryByRole('tab', {name: /All Runs/})).not.toBeInTheDocument();
     });
@@ -1830,9 +1824,7 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByText('Set up Seer to start fixing issues')
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText('You don’t have any Autofix runs...yet.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Set up Seer'})).toHaveAttribute(
       'href',
       '/settings/org-slug/seer/'
@@ -1853,18 +1845,14 @@ describe('AutofixOverview', () => {
       0
     );
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('You don’t have any Autofix runs...yet.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
 
     deferred.resolve();
 
     expect(
       await screen.findByText('Set up Seer to start fixing issues')
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText('You don’t have any Autofix runs...yet.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
   });
 
   it('does not flash the generic empty state when switching from an unconfigured project to one with runs', async () => {
@@ -1897,18 +1885,14 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByText('Set up Seer to start fixing issues')
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('You don’t have any Autofix runs...yet.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
 
     configured.resolve();
 
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText('You don’t have any Autofix runs...yet.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No Autofix runs')).not.toBeInTheDocument();
   });
 
   it('waits for project config before painting cards so the warning does not pop in', async () => {
