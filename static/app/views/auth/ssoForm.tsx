@@ -14,6 +14,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 const schema = z.object({organization: z.string().min(1)});
 
+type SsoLocateRequest = {
+  organization: string;
+};
+
 type SsoLocateResponse = {
   nextUri: string;
 };
@@ -28,7 +32,7 @@ export function SsoForm({authConfig}: Props) {
 
   const {serverHostname} = authConfig;
   const mutation = useMutation({
-    mutationFn: (data: z.infer<typeof schema>) =>
+    mutationFn: (data: SsoLocateRequest) =>
       fetchMutation<SsoLocateResponse>({url: '/auth/sso-locate/', method: 'POST', data}),
     onSuccess: response => {
       navigate({pathname: response.nextUri});
@@ -45,12 +49,8 @@ export function SsoForm({authConfig}: Props) {
     ...defaultFormOptions,
     defaultValues: {organization: ''},
     validators: {onDynamic: schema},
-    onSubmit: async ({value}) => {
-      try {
-        await mutation.mutateAsync(value);
-      } catch {
-        // The mutation's onError callback displays the error.
-      }
+    onSubmit: ({value}) => {
+      return mutation.mutateAsync(value).catch(() => {});
     },
   });
 
