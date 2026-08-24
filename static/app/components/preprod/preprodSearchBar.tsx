@@ -99,6 +99,8 @@ export function PreprodSearchBar({
     usePreprodItemAttributes({}, 'number', hiddenKeys);
   const {attributes: rawBooleanAttributes, secondaryAliases: rawBooleanSecondaryAliases} =
     usePreprodItemAttributes({}, 'boolean', hiddenKeys);
+  const {attributes: rawArrayAttributes, secondaryAliases: rawArraySecondaryAliases} =
+    usePreprodItemAttributes({}, 'array', hiddenKeys);
 
   const stringAttributes = useMemo(
     () =>
@@ -151,6 +153,26 @@ export function PreprodSearchBar({
     [allowedKeys, rawBooleanSecondaryAliases]
   );
 
+  // Array attributes filter by membership (`[*]`), so they don't participate in
+  // the freeform-value handling; only the allowlist filter applies. The fetch is
+  // already gated on organizations:trace-item-array-query-support, so these are
+  // empty when the flag is off.
+  const arrayAttributes = useMemo(
+    () =>
+      allowedKeys
+        ? filterToAllowedKeys(rawArrayAttributes, allowedKeys)
+        : rawArrayAttributes,
+    [allowedKeys, rawArrayAttributes]
+  );
+
+  const arraySecondaryAliases = useMemo(
+    () =>
+      allowedKeys
+        ? filterToAllowedKeys(rawArraySecondaryAliases, allowedKeys)
+        : rawArraySecondaryAliases,
+    [allowedKeys, rawArraySecondaryAliases]
+  );
+
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={initialQuery}
@@ -159,8 +181,10 @@ export function PreprodSearchBar({
       itemType={TraceItemDataset.PREPROD}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      arrayAttributes={arrayAttributes}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
+      arraySecondaryAliases={arraySecondaryAliases}
       booleanAttributes={booleanAttributes}
       booleanSecondaryAliases={booleanSecondaryAliases}
       searchSource={searchSource}
