@@ -1145,8 +1145,8 @@ class MultiRepoRejectionTest(TestCase):
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={
-                "owner/a": RepoPRState(repo_name="owner/a", pr_id=222),
-                "owner/b": RepoPRState(repo_name="owner/b", pr_id=111),
+                "owner/a": RepoPRState(repo_name="owner/a", pr_id=222, integration_id="9"),
+                "owner/b": RepoPRState(repo_name="owner/b", pr_id=111, integration_id="8"),
             },
         )
 
@@ -1154,8 +1154,12 @@ class MultiRepoRejectionTest(TestCase):
 
         mock_logger.info.assert_called_once()
         extra = mock_logger.info.call_args.kwargs["extra"]
-        assert extra["pr_ids"] == [111, 222]
         assert extra["repo_count"] == 2
+        # Per-PR numeric identifiers, sorted by pr_id, queryable back to the repo.
+        assert extra["prs"] == [
+            {"pr_id": 111, "integration_id": "8"},
+            {"pr_id": 222, "integration_id": "9"},
+        ]
         # Repo slugs must never reach durable logs (wrdn-pii).
         assert "repo_names" not in extra
         assert "owner/a" not in repr(extra)

@@ -115,10 +115,15 @@ def log_multi_repo_rejection(
 ) -> None:
     """Record a rejected multi-repo PR-iteration trigger.
 
-    Identifiers (``run_id``, ``pr_id``s) stay in the log rather than metric tags:
-    the metrics middleware denylists keys ending in ``_id`` and rejects unbounded
-    values. The metric carries only the bounded ``source`` tag. Repo *slugs* are
-    deliberately kept out of the log — only numeric identifiers are recorded.
+    Identifiers stay in the log rather than metric tags: the metrics middleware
+    denylists keys ending in ``_id`` and rejects unbounded values. The metric
+    carries only the bounded ``source`` tag.
+
+    Repo *slugs* are deliberately kept out of the log (wrdn-pii). Instead each
+    PR is logged with the numeric identifiers on hand — ``pr_id`` (a Sentry
+    ``PullRequest.id``, so ``(organization_id, pr_id)`` resolves the row and its
+    ``repository_id``), plus ``integration_id`` — enough to query the DB back to
+    the specific repo without another lookup here.
     """
     logger.info(
         "autofix.pr_iteration.multi_repo_rejected",
@@ -126,11 +131,16 @@ def log_multi_repo_rejection(
             "run_id": run_state.run_id,
             "organization_id": organization_id,
             "repo_count": len(run_state.repo_pr_states),
-            "pr_ids": sorted(
-                state.pr_id
-                for state in run_state.repo_pr_states.values()
-                if state.pr_id is not None
-            ),
+            "prs": [
+                {
+                    "pr_id": state.pr_id,
+                    "integration_id": state.integration_id,
+                }
+                for state in sorted(
+                    run_state.repo_pr_states.values(),
+                    key=lambda s: (s.pr_id is None, s.pr_id),
+                )
+            ],
             "source": source,
             "pr_id": pr_id,
         },
