@@ -68,10 +68,47 @@ describe('OrganizationRestore', () => {
     const button = await screen.findByTestId('form-submit');
     await userEvent.click(button);
 
-    expect(mockUpdate).toHaveBeenCalled();
+    expect(mockUpdate).toHaveBeenCalledWith(
+      `/organizations/${pendingDeleteOrg.slug}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {cancelDeletion: 1},
+      })
+    );
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       `/organizations/${pendingDeleteOrg.slug}/issues/`
     );
+  });
+
+  it('shows the API error when restoring fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${pendingDeleteOrg.slug}/`,
+      method: 'GET',
+      status: 200,
+      body: pendingDeleteOrg,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${pendingDeleteOrg.slug}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {detail: 'This organization can no longer be restored.'},
+    });
+
+    render(<OrganizationRestore />, {
+      organization: pendingDeleteOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
+        },
+        route: '/organizations/:orgId/restore/',
+      },
+    });
+
+    await userEvent.click(await screen.findByTestId('form-submit'));
+
+    expect(
+      await screen.findByText('This organization can no longer be restored.')
+    ).toBeInTheDocument();
   });
 
   it('shows message and no form during deletion', async () => {
