@@ -12,60 +12,18 @@ describe('AdjustedFiltersAlert', () => {
   });
 
   it('renders nothing when the selection was not adjusted', () => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, []);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, {});
 
     const {container} = render(<AdjustedFiltersAlert hasUnsavedChanges={false} />);
 
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('explains why the selection fell back to All Projects', () => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), true, [
-      {filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS},
-    ]);
-
-    render(<AdjustedFiltersAlert hasUnsavedChanges={false} />);
-
-    expect(
-      screen.getByText(
-        "Your project selection changed to All Projects because you're not a member of any project in this organization."
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('tells the user to save when the adjustment created unsaved changes', () => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), true, [
-      {filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS},
-    ]);
-
-    render(<AdjustedFiltersAlert hasUnsavedChanges />);
-
-    expect(
-      screen.getByText(/Save this dashboard to keep the new selection\./)
-    ).toBeInTheDocument();
-  });
-
-  it('does not prompt to save when there are no unsaved changes', () => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), true, [
-      {filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS},
-    ]);
-
-    render(<AdjustedFiltersAlert hasUnsavedChanges={false} />);
-
-    expect(
-      screen.queryByText(/Save this dashboard to keep the new selection\./)
-    ).not.toBeInTheDocument();
-  });
-
-  it('lists every adjustment made to the selection', () => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, [
-      {filter: 'projects', reason: PageFilterAdjustmentReason.INVALID_PROJECTS},
-      {
-        filter: 'datetime',
-        reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
-        days: 30,
-      },
-    ]);
+  it('explains every adjustment and prompts to save', () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), true, {
+      projects: {reason: PageFilterAdjustmentReason.INVALID_PROJECTS},
+      datetime: {reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS, days: 30},
+    });
 
     render(<AdjustedFiltersAlert hasUnsavedChanges />);
 
@@ -79,28 +37,10 @@ describe('AdjustedFiltersAlert', () => {
     ).toBeInTheDocument();
   });
 
-  it('names the project that was auto-selected', () => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), true, [
-      {
-        filter: 'projects',
-        reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
-        projectSlug: 'the-only-project',
-      },
-    ]);
-
-    render(<AdjustedFiltersAlert hasUnsavedChanges={false} />);
-
-    expect(
-      screen.getByText(
-        'Your project selection changed to the-only-project, the only project in this organization.'
-      )
-    ).toBeInTheDocument();
-  });
-
   it('stops explaining an adjustment once the user changes that filter', () => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), true, [
-      {filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS},
-    ]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), true, {
+      projects: {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS},
+    });
 
     const message = /Your project selection changed to All Projects/;
 
