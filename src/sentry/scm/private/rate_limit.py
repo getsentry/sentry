@@ -1,9 +1,10 @@
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 from django.conf import settings
 from redis import RedisError
+from redis.exceptions import WatchError
 
 from sentry.utils import redis
 
@@ -13,6 +14,7 @@ from sentry.utils import redis
 # pin a counter in place for an unbounded stretch nor derive a counter's identity from the
 # current instant.
 MAX_WINDOW_TTL_MULTIPLIER = 2
+WINDOW_STATE_UPDATE_RETRIES = 3
 
 
 def usage_count_key(
@@ -373,12 +375,28 @@ class RedisRateLimitProvider:
 
     def set_window_state(self, window_key: str, state: WindowState, expiration: int) -> None:
         """Record the service-provider's reported window state."""
-        try:
-            self.cluster.set(window_key, encode_window_state(state), ex=expiration)
-        except RedisError:
-            # The window state is refreshed by every response, so a dropped write costs us one
-            # request's worth of accuracy.
-            return None
+        for _ in range(WINDOW_STATE_UPDATE_RETRIES):
+            try:
+                with self.cluster.pipeline() as pipe:
+                    pipe.watch(window_key)
+                    current = decode_window_state(cast(str | None, pipe.get(window_key)))
+                    if current is not None and (
+                        current.reset > state.reset
+                        or (current.reset == state.reset and current.used >= state.used)
+                    ):
+                        return None
+
+                    pipe.multi()
+                    pipe.set(window_key, encode_window_state(state), ex=expiration)
+                    pipe.execute()
+                    return None
+            except WatchError:
+                continue
+            except RedisError:
+                # The window state is refreshed by every response, so a dropped write costs us one
+                # request's worth of accuracy.
+                return None
+        return None
 
     def get_accounted_usage(self, keys: list[str]) -> int:
         """Return the sum of a given set of keys."""

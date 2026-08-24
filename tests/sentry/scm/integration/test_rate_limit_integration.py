@@ -94,6 +94,21 @@ class TestRedisRateLimitProviderSetWindowState(TestCase):
         self.provider.set_window_state(self.window_key, WindowState(used=99, reset=1600), 600)
         assert _client().get(self.window_key) == "99:1600"
 
+    def test_does_not_regress_usage_within_a_window(self) -> None:
+        self.provider.set_window_state(self.window_key, WindowState(used=99, reset=1600), 600)
+        self.provider.set_window_state(self.window_key, WindowState(used=1, reset=1600), 600)
+        assert _client().get(self.window_key) == "99:1600"
+
+    def test_newer_window_replaces_the_previous_window(self) -> None:
+        self.provider.set_window_state(self.window_key, WindowState(used=99, reset=1600), 600)
+        self.provider.set_window_state(self.window_key, WindowState(used=1, reset=5200), 600)
+        assert _client().get(self.window_key) == "1:5200"
+
+    def test_previous_window_cannot_replace_a_newer_window(self) -> None:
+        self.provider.set_window_state(self.window_key, WindowState(used=1, reset=5200), 600)
+        self.provider.set_window_state(self.window_key, WindowState(used=99, reset=1600), 600)
+        assert _client().get(self.window_key) == "1:5200"
+
 
 class TestWindowStateExpiresWithTheProviderWindow(TestCase):
     """
