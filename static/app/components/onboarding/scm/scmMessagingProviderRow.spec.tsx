@@ -55,21 +55,24 @@ const installableSlack: ScmMessagingProviderViewModel = {
   providerKey: 'slack',
   provider: slackProvider,
   status: 'installable',
-  integration: undefined,
+  eligibleIntegrations: [],
+  permissionLimitedIntegration: undefined,
 };
 
 const connectedSlack: ScmMessagingProviderViewModel = {
   providerKey: 'slack',
   provider: slackProvider,
   status: 'connected',
-  integration: slackIntegration,
+  eligibleIntegrations: [slackIntegration],
+  permissionLimitedIntegration: undefined,
 };
 
 const permissionLimitedMsteams: ScmMessagingProviderViewModel = {
   providerKey: 'msteams',
   provider: msteamsProvider,
   status: 'permission-limited',
-  integration: msteamsIntegration,
+  eligibleIntegrations: [],
+  permissionLimitedIntegration: msteamsIntegration,
 };
 
 const selectedSlackSetup: ScmMessagingSetup = {
@@ -343,11 +346,88 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
       expect(renderChannelPicker).toHaveBeenCalledWith(
         expect.objectContaining({
-          integration: slackIntegration,
+          integrations: [slackIntegration],
           onCancel: undefined,
           onConfigured: expect.any(Function),
         })
       );
+    });
+
+    it('passes only eligible integrations to the picker when a provider has mixed installations', () => {
+      const msteamsTeamIntegration = OrganizationIntegrationsFixture({
+        id: 'msteams-team',
+        name: 'Team Workspace',
+        provider: {
+          key: 'msteams',
+          slug: 'msteams',
+          name: 'Microsoft Teams',
+          canAdd: true,
+          canDisable: false,
+          features: [],
+          aspects: {},
+        },
+        configData: {installationType: 'team'},
+      });
+
+      const mixedMsteams: ScmMessagingProviderViewModel = {
+        providerKey: 'msteams',
+        provider: msteamsProvider,
+        status: 'connected',
+        eligibleIntegrations: [msteamsTeamIntegration],
+        permissionLimitedIntegration: undefined,
+      };
+
+      const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
+      renderRow(mixedMsteams, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
+
+      expect(renderChannelPicker).toHaveBeenCalledWith(
+        expect.objectContaining({
+          integrations: [msteamsTeamIntegration],
+        })
+      );
+    });
+
+    it('does not treat a setup referencing an ineligible integration as configured', () => {
+      const msteamsTeamIntegration = OrganizationIntegrationsFixture({
+        id: 'msteams-team',
+        name: 'Team Workspace',
+        provider: {
+          key: 'msteams',
+          slug: 'msteams',
+          name: 'Microsoft Teams',
+          canAdd: true,
+          canDisable: false,
+          features: [],
+          aspects: {},
+        },
+        configData: {installationType: 'team'},
+      });
+
+      const mixedMsteams: ScmMessagingProviderViewModel = {
+        providerKey: 'msteams',
+        provider: msteamsProvider,
+        status: 'connected',
+        eligibleIntegrations: [msteamsTeamIntegration],
+        permissionLimitedIntegration: undefined,
+      };
+
+      // A destination previously saved against the tenant (ineligible) integration.
+      const tenantSetup: ScmMessagingSetup = {
+        mode: 'selected',
+        providerKey: 'msteams',
+        integrationId: 'msteams-tenant',
+        channelId: 'C1',
+        channelName: '#general',
+      };
+
+      const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
+      renderRow(mixedMsteams, tenantSetup, {renderChannelPicker});
+
+      // Should NOT be in configured state — the tenant integration is not eligible.
+      expect(screen.queryByRole('button', {name: /Edit/})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /Remove/})).not.toBeInTheDocument();
+      // Picker is auto-expanded for the unconfigured connected state.
+      expect(screen.getByText('channel-picker')).toBeInTheDocument();
     });
 
     it('saves the setup and transitions to configured when onConfigured is called', () => {
