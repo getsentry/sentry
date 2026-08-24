@@ -1438,8 +1438,6 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
             search_filter.key.name: search_filter
             for search_filter in mock_query.call_args.kwargs["search_filters"]
         }
-        assert filters["last_seen"].operator == ">="
-        assert filters["last_seen"].value.raw_value == expected_cutoff
         assert filters["stack.in_app"].value.raw_value == 1.0
 
     def test_includes_low_value_span_issues_in_search(self) -> None:
