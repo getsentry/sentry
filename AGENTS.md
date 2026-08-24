@@ -47,7 +47,9 @@ SENTRY_MYPY_PRE_PUSH=1 .venv/bin/prek run -q mypy --files src/sentry/foo/bar.py 
 .venv/bin/prek run -q ruff-format --files src/sentry/foo/bar.py
 ```
 
-If a hook fails, fix the issues, stage changes, then re-run until it passes.
+Hook ids must match `.pre-commit-config.yaml` exactly. A wrong id warns "selector ... did not match any hooks" and exits 1, but `-q` suppresses that output — so an unrecognized id looks like a clean pass while running nothing.
+
+If a hook fails, fix the issues, then re-run until it passes. Staging is not required — both `--files` and bare `prek run` operate on unstaged changes, so don't `git add` just to run hooks.
 
 #### Testing
 
