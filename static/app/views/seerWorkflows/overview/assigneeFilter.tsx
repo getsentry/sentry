@@ -5,6 +5,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 
@@ -24,10 +25,12 @@ export function AssigneeFilter({
   runs,
   value,
   onChange,
+  loading,
 }: {
   onChange: (value: string | null) => void;
   runs: OverviewRun[];
   value: string | null;
+  loading?: boolean;
 }) {
   const options = useMemo(() => {
     const byValue = new Map<string, {actor: Actor | null; count: number}>();
@@ -67,11 +70,20 @@ export function AssigneeFilter({
     <CompactSelect
       clearable
       search
+      loading={loading}
+      disabled={false}
+      menuTitle={loading ? t('Assignee') : undefined}
       options={options}
       value={value ?? undefined}
       onChange={selected => onChange(selected?.value ?? null)}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={t('Assignee')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Assignee')}>
+          {loading && value ? (
+            <Placeholder height="1rem" width="4rem" />
+          ) : (
+            triggerProps.children
+          )}
+        </OverlayTrigger.Button>
       )}
     />
   );

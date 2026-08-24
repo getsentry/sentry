@@ -238,10 +238,10 @@ describe('IssueList', () => {
       expect(screen.getByRole('row', {name: 'level:error'})).toBeInTheDocument();
     });
 
-    it('requests derived data when the progress UI flag is enabled', async () => {
+    it('requests derived data when the issue inbox flag is enabled', async () => {
       render(<IssueListOverview />, {
         organization: OrganizationFixture({
-          features: ['issue-stream-progress-ui'],
+          features: ['issue-inbox'],
         }),
         initialRouterConfig,
       });

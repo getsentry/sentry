@@ -113,6 +113,7 @@ const mockAutofix: ReturnType<typeof useExplorerAutofix> = {
   isLoading: false,
   isWaitingForRun: false,
   isPolling: false,
+  isProcessing: false,
   startStep: jest.fn(),
   createPR: jest.fn(),
   reset: jest.fn(),

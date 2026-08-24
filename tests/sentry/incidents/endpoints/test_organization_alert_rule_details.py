@@ -132,14 +132,13 @@ class AlertRuleDetailsBase(AlertRuleBase):
         original_method = self.method
         self.endpoint = "sentry-api-0-organization-alert-rules"
         self.method = "get"
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug)
-            assert len(resp.data) >= 1
-            serialized_alert_rule = resp.data[0]
-            if serialized_alert_rule["environment"]:
-                serialized_alert_rule["environment"] = serialized_alert_rule["environment"][0]
-            else:
-                serialized_alert_rule.pop("environment", None)
+        resp = self.get_success_response(self.organization.slug)
+        assert len(resp.data) >= 1
+        serialized_alert_rule = resp.data[0]
+        if serialized_alert_rule["environment"]:
+            serialized_alert_rule["environment"] = serialized_alert_rule["environment"][0]
+        else:
+            serialized_alert_rule.pop("environment", None)
         self.endpoint = original_endpoint
         self.method = original_method
         return serialized_alert_rule
@@ -209,34 +208,23 @@ class AlertRuleDetailsBase(AlertRuleBase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, 1234)
+        resp = self.get_response(self.organization.slug, 1234)
 
         assert resp.status_code == 404
 
     def test_permissions(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.create_user())
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, self.alert_rule.id)
+        resp = self.get_response(self.organization.slug, self.alert_rule.id)
 
         assert resp.status_code == 403
-
-    def test_no_feature(self) -> None:
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        resp = self.get_response(self.organization.slug, self.alert_rule.id)
-        assert resp.status_code == 404
 
     def test_no_project(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         project = self.alert_rule.projects.get()
         Project.objects.get(id=project.id).delete()
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, self.alert_rule.id)
+        resp = self.get_response(self.organization.slug, self.alert_rule.id)
 
         assert resp.status_code == 404
 
@@ -319,8 +307,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
         detector = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id).detector
         assert resp.data == serialize(
@@ -328,7 +315,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         )
 
     @with_feature("organizations:workflow-engine-rule-serializers")
-    @with_feature("organizations:incidents")
     def test_workflow_engine_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -345,7 +331,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data["name"] == self.detector.name
 
     @with_feature("organizations:workflow-engine-rule-serializers")
-    @with_feature("organizations:incidents")
     def test_pending_deletion_detector_returns_404(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -380,10 +365,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         alert_rule = self.create_alert_rule(aggregate="count_unique(tags[sentry:user])")
         self.create_alert_rule_trigger(alert_rule, "critical", 100)
         dual_write_alert_rule(alert_rule)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, alert_rule.id)
-            assert resp.data["aggregate"] == "count_unique(tags[sentry:user])"
-            assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
+        resp = self.get_success_response(self.organization.slug, alert_rule.id)
+        assert resp.data["aggregate"] == "count_unique(tags[sentry:user])"
+        assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
     def test_expand_latest_incident(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
@@ -428,18 +412,16 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             incident_identifier=incident.identifier,
         )
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, expand=["latestIncident"]
-            )
-            no_expand_resp = self.get_success_response(self.organization.slug, alert_rule.id)
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, expand=["latestIncident"]
+        )
+        no_expand_resp = self.get_success_response(self.organization.slug, alert_rule.id)
 
         assert resp.data["latestIncident"] is not None
         assert resp.data["latestIncident"]["id"] == str(incident.id)
         assert "latestIncident" not in no_expand_resp.data
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     def test_static_detection_type(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -475,7 +457,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW)
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     def test_percent_detection_type(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -516,7 +497,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -596,7 +576,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     def test_missing_threshold(self) -> None:
         """Test that we throw a validation error when the trigger is missing alertThreshold"""
         self.create_team(organization=self.organization, members=[self.user])
@@ -660,8 +639,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             ],
             status=200,
         )
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, rule.id)
+        resp = self.get_response(self.organization.slug, rule.id)
 
         assert resp.status_code == 200
         assert len(responses.calls) == 1
@@ -725,19 +703,18 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             ],
             status=200,
         )
-        with self.feature("organizations:incidents"):
-            with mock.patch.object(app_service, "get_component_contexts") as mock_get:
-                mock_get.return_value = get_context_response
-                resp = self.get_response(self.organization.slug, rule.id)
+        with mock.patch.object(app_service, "get_component_contexts") as mock_get:
+            mock_get.return_value = get_context_response
+            resp = self.get_response(self.organization.slug, rule.id)
 
-                assert mock_get.call_count == 1
-                mock_get.assert_called_with(
-                    filter={
-                        "app_ids": [sentry_app.id],
-                        "organization_id": self.organization.id,
-                    },
-                    component_type="alert-rule-action",
-                )
+            assert mock_get.call_count == 1
+            mock_get.assert_called_with(
+                filter={
+                    "app_ids": [sentry_app.id],
+                    "organization_id": self.organization.id,
+                },
+                component_type="alert-rule-action",
+            )
 
         assert resp.status_code == 200
         assert len(responses.calls) == 1
@@ -782,8 +759,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         dual_write_alert_rule(self.rule)
 
         responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, self.rule.id)
+        resp = self.get_response(self.organization.slug, self.rule.id)
 
         assert resp.status_code == 200
 
@@ -802,8 +778,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule)
 
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        response = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
         assert response.data["snooze"] is False
         assert "snoozeCreatedBy" not in response.data
@@ -818,15 +793,13 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         user2 = self.create_user("user2@example.com")
         self.snooze_rule(owner_id=user2.id, alert_rule=self.alert_rule)
 
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        response = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
         assert response.data["snooze"] is True
         assert response.data["snoozeForEveryone"] is True
         assert "snoozeCreatedBy" not in response.data
 
     @with_feature("organizations:workflow-engine-rule-serializers")
-    @with_feature("organizations:incidents")
     def test_non_dual_written_detector_serialization(self) -> None:
         """A detector created directly (not via dual-write from AlertRule) is
         serialized into the AlertRule-compatible format by the detail endpoint."""
@@ -943,8 +916,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.alert_rule.snuba_query.aggregate = "upsampled_count()"
         self.alert_rule.snuba_query.save()
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
         assert resp.data["aggregate"] == "count()", (
             "GET should return count() to user, hiding internal upsampled_count() storage"
@@ -965,7 +937,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["name"] = "what"
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
@@ -1007,7 +979,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).delete()
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_error_response(
                 self.organization.slug,
                 alert_rule.id,
@@ -1038,7 +1010,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule["dataset"] = "events"
         serialized_alert_rule["name"] = "Updated to Count Rule"
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
@@ -1075,7 +1047,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # Update only the name, not the aggregate
         serialized_alert_rule["name"] = "Updated Name Only"
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
@@ -1100,10 +1072,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         existing_sub = self.alert_rule.snuba_query.subscriptions.first()
 
@@ -1129,17 +1100,16 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["triggers"][0]["label"] = "goodbye"
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
-            )
-            assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
-            serialized_alert_rule["triggers"][0]["label"] = "critical"
-            serialized_alert_rule["triggers"][1]["label"] = "goodbye"
-            resp = self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
-            )
-            assert resp.data == {"nonFieldErrors": ['Trigger 2 must be labeled "warning"']}
+        resp = self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+        )
+        assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
+        serialized_alert_rule["triggers"][0]["label"] = "critical"
+        serialized_alert_rule["triggers"][1]["label"] = "goodbye"
+        resp = self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+        )
+        assert resp.data == {"nonFieldErrors": ['Trigger 2 must be labeled "warning"']}
 
     def test_update_trigger_id_not_belonging_to_alert_rule(self) -> None:
         self.create_member(
@@ -1157,11 +1127,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["triggers"][0]["id"] = other_trigger.id
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
-            )
-            assert "do not belong to this alert rule" in str(resp.data)
+        resp = self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+        )
+        assert "do not belong to this alert rule" in str(resp.data)
 
     def test_update_action_id_not_belonging_to_trigger(self) -> None:
         self.create_member(
@@ -1178,11 +1147,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         foreign_action_id = serialized_alert_rule["triggers"][1]["actions"][0]["id"]
         serialized_alert_rule["triggers"][0]["actions"][0]["id"] = foreign_action_id
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
-            )
-            assert "do not belong to this trigger" in str(resp.data)
+        resp = self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+        )
+        assert "do not belong to this trigger" in str(resp.data)
 
     def test_update_trigger_alert_threshold(self) -> None:
         self.create_member(
@@ -1197,10 +1165,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule["triggers"][1]["alertThreshold"] = 125
         serialized_alert_rule["name"] = "AUniqueName"
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         assert resp.data["name"] == "AUniqueName"
         assert resp.data["triggers"][1]["alertThreshold"] == 125
@@ -1220,10 +1187,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule["resolveThreshold"] = None
         serialized_alert_rule["name"] = "AUniqueName"
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         alert_rule.refresh_from_db()
         assert resp.data["name"] == "AUniqueName"
@@ -1244,10 +1210,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule["resolveThreshold"] = 75
         serialized_alert_rule["name"] = "AUniqueName"
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
         assert resp.data["name"] == "AUniqueName"
         assert resp.data["resolveThreshold"] == 75
 
@@ -1263,10 +1228,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         serialized_alert_rule["triggers"].pop(1)
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         assert len(resp.data["triggers"]) == 1
 
@@ -1293,7 +1257,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).delete()
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_error_response(
                 self.organization.slug,
                 alert_rule.id,
@@ -1316,10 +1280,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         serialized_alert_rule["triggers"].pop(1)
 
-        with self.feature("organizations:incidents"):
-            self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        self.get_success_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
         assert AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id).count() == 1
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
@@ -1351,8 +1312,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         put_payload["triggers"][0]["id"] = critical_trigger.id
         put_payload["triggers"].pop(1)
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, alert_rule.id, **put_payload)
+        resp = self.get_success_response(self.organization.slug, alert_rule.id, **put_payload)
 
         assert len(resp.data["triggers"]) == 1
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
@@ -1387,15 +1347,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         # TEST 1: if we update the critical trigger threshold, the resolve threshold shouldn't change
         put_payload["triggers"][0]["alertThreshold"] = 300
-        with self.feature("organizations:incidents"):
-            self.get_success_response(self.organization.slug, alert_rule.id, **put_payload)
+        self.get_success_response(self.organization.slug, alert_rule.id, **put_payload)
         assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
 
         # TEST 2: if we update the warning trigger threshold, the resolve threshold also changes
         new_threshold = 100
         put_payload["triggers"][1]["alertThreshold"] = new_threshold
-        with self.feature("organizations:incidents"):
-            self.get_success_response(self.organization.slug, alert_rule.id, **put_payload)
+        self.get_success_response(self.organization.slug, alert_rule.id, **put_payload)
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
     def test_update_trigger_threshold_dual_update_resolve_noop(self) -> None:
@@ -1416,10 +1374,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         new_threshold = 125
         serialized_alert_rule["triggers"][1]["alertThreshold"] = new_threshold
-        with self.feature("organizations:incidents"):
-            self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        self.get_success_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
         # remains unchanged
         assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
 
@@ -1441,10 +1396,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         serialized_alert_rule["resolveThreshold"] = None
         new_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
-        with self.feature("organizations:incidents"):
-            self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        self.get_success_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
         # resolve threshold changes to the warning threshold
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
@@ -1464,14 +1416,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         test_params["triggers"][0]["alertThreshold"] = 300
         test_params["triggers"][1]["alertThreshold"] = 50
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             self.get_success_response(self.organization.slug, self.alert_rule.id, **test_params)
 
         # resolve threshold changes to the warning threshold
         assert_dual_written_resolution_threshold_equals(self.alert_rule, 50)
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1493,7 +1444,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1518,7 +1468,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1545,7 +1494,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1593,20 +1541,18 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         serialized_alert_rule["triggers"][1]["actions"].pop(1)
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         assert len(resp.data["triggers"][1]["actions"]) == 1
 
         # Delete the last one.
         serialized_alert_rule["triggers"][1]["actions"].pop()
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
-            )
+        resp = self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+        )
         assert resp.data == {
             "nonFieldErrors": [
                 "Each trigger must have an associated action for this alert to fire."
@@ -1630,10 +1576,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         action = AlertRuleTriggerAction.objects.get(id=serialized_action["id"])
         warning_trigger_id = serialized_alert_rule["triggers"][1]["id"]
 
-        with self.feature("organizations:incidents"):
-            self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        self.get_success_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
 
         assert (
             AlertRuleTriggerAction.objects.filter(alert_rule_trigger_id=warning_trigger_id).count()
@@ -1658,10 +1601,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule["triggers"][0]["actions"][0]["targetType"] = "user"
         serialized_alert_rule["triggers"][0]["actions"][0]["targetIdentifier"] = self.user.id
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         # And it comes back successfully changed:
         assert resp.data["triggers"][0]["actions"][0]["targetType"] == "user"
@@ -1684,10 +1626,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         serialized_alert_rule["triggers"][0]["alertThreshold"] = 50  # Invalid
         serialized_alert_rule.pop("resolveThreshold")
-        with self.feature("organizations:incidents"):
-            self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
-            )
+        self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+        )
 
     def test_update_snapshot(self) -> None:
         self.create_member(
@@ -1702,10 +1643,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule.save()
 
-        with self.feature("organizations:incidents"):
-            self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=404, **serialized_alert_rule
-            )
+        self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=404, **serialized_alert_rule
+        )
 
     def test_no_owner(self) -> None:
         self.create_member(
@@ -1718,10 +1658,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["owner"] = None
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         alert_rule.refresh_from_db()
         detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
@@ -1744,14 +1683,12 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             organizationmember__user_id=self.user.id,
             team=self.team,
         ).delete()
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
+        resp = self.get_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
         assert resp.status_code == 200
         self.create_team_membership(team=self.team, member=om)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         alert_rule.refresh_from_db()
         detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
@@ -1766,7 +1703,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, self.alert_rule.id, **test_params
             )
@@ -1800,10 +1737,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule_dict["alertType"] = "eap_metrics"
         alert_rule_dict["extrapolation_mode"] = "server_weighted"
 
-        with self.feature("organizations:incidents"):
-            self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
-            )
+        self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+        )
 
     def test_invalid_extrapolation_mode_save_not_migrated_alert(self) -> None:
         self.create_member(
@@ -1820,10 +1756,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule_dict["alertType"] = "eap_metrics"
         alert_rule_dict["extrapolation_mode"] = "none"
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
-            )
+        resp = self.get_error_response(
+            self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+        )
 
         assert (
             resp.data["nonFieldErrors"][0]
@@ -1848,7 +1783,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["query"] = "user.modified:query"
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
@@ -1870,9 +1805,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule_dict["dataset"] = "transactions"
 
         with (
-            self.feature(
-                ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
-            ),
+            self.feature(["organizations:discover-saved-queries-deprecation"]),
             outbox_runner(),
         ):
             self.get_error_response(
@@ -1896,9 +1829,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule_dict["dataset"] = "generic_metrics"
 
         with (
-            self.feature(
-                ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
-            ),
+            self.feature(["organizations:discover-saved-queries-deprecation"]),
             outbox_runner(),
         ):
             self.get_error_response(
@@ -1936,7 +1867,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
                 resp = self.get_success_response(self.organization.slug, alert_rule.id, **put_data)
@@ -2023,8 +1954,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             # The trigger code would accept channelId to be a string and that is why I don't cast it to an int
             test_params["triggers"][0]["actions"][0]["inputChannelId"] = channelID
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
+        resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
         return resp
 
     @patch(
@@ -2065,8 +1995,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             },
         ]
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
+        resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
 
         # A task with this uuid has been scheduled because there's a Slack channel async search
         assert resp.data["uuid"] == "abc123"
@@ -2403,7 +2332,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             },
         ]
 
-        with self.feature("organizations:incidents"), self.tasks():
+        with self.tasks():
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
 
         # A task with this uuid has been scheduled because there's a Slack channel async search
@@ -2456,7 +2385,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             },
         ]
 
-        with self.feature("organizations:incidents"), self.tasks():
+        with self.tasks():
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
         assert resp.data["uuid"] == "abc123"
         assert (
@@ -2497,7 +2426,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                 ],
             },
         ]
-        with self.feature("organizations:incidents"), self.tasks():
+        with self.tasks():
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
         assert resp.status_code == 400
         assert (
@@ -2530,10 +2459,9 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
             "sentryAppId": sentry_app.id,
         }
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
 
         alert_rule.refresh_from_db()
         alert_rule.name = "ValidSentryAppTestRule"
@@ -2567,7 +2495,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
                 }
             ],
         }
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             self.get_success_response(
                 self.organization.slug,
                 self.alert_rule.id,
@@ -2624,7 +2552,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
             }
         ]
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             self.get_success_response(
                 self.organization.slug,
                 self.alert_rule.id,
@@ -2683,7 +2611,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
             }
         ]
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
         assert resp.status_code == 500
         assert error_message in resp.data["detail"]
@@ -2698,7 +2626,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         )
         self.login_as(self.user)
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, self.alert_rule.id, status_code=204
             )
@@ -2723,13 +2651,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             == list(audit_log_entry)[0].ip_address
         )
 
-    def test_no_feature(self) -> None:
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
-
     def test_snapshot_and_create_new_with_same_name(self) -> None:
         with self.tasks():
             self.create_member(
@@ -2740,10 +2661,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             # We attach the rule to an incident so the rule is snapshotted instead of deleted.
             incident = self.create_incident(alert_rule=self.alert_rule)
 
-            with self.feature("organizations:incidents"):
-                self.get_success_response(
-                    self.organization.slug, self.alert_rule.id, status_code=204
-                )
+            self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
             alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
 
@@ -2767,8 +2685,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             organizationmember__user_id=self.user.id,
             team=self.team,
         ).delete()
-        with self.feature("organizations:incidents"):
-            self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)
+        self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)
 
     def test_project_permission(self) -> None:
         """Test that a user can't delete an alert in a project they do not have access to"""
@@ -2794,11 +2711,9 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         other_alert_rule.save()
         migrate_alert_rule(other_alert_rule)
 
-        with self.feature("organizations:incidents"):
-            self.get_error_response(self.organization.slug, alert_rule.id, status_code=403)
+        self.get_error_response(self.organization.slug, alert_rule.id, status_code=403)
 
-        with self.feature("organizations:incidents"):
-            self.get_success_response(self.organization.slug, other_alert_rule.id, status_code=204)
+        self.get_success_response(self.organization.slug, other_alert_rule.id, status_code=204)
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine_detector_deleted(self) -> None:
@@ -2834,7 +2749,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
         fake_detector_id = get_fake_id_from_object_id(ard.detector_id)
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             self.get_success_response(self.organization.slug, fake_detector_id, status_code=204)
 
         with self.tasks():

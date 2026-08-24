@@ -200,7 +200,7 @@ class ActivityAlertBaseTest(TestCase):
 
         assert data.user_settings_url is None
 
-    @with_feature("organizations:issue-stream-progress-ui")
+    @with_feature("organizations:issue-inbox")
     def test_build_activity_notification_data_seer_activity_inbox_url(self) -> None:
         activity = self.create_group_activity(
             group=self.group, type=ActivityType.SEER_RCA_STARTED.value
@@ -213,7 +213,7 @@ class ActivityAlertBaseTest(TestCase):
         )
         assert absolute_uri(expected_inbox_url) == data.issue_url
 
-    @with_feature("organizations:issue-stream-progress-ui")
+    @with_feature("organizations:issue-inbox")
     def test_build_activity_notification_data_non_seer_activity_uses_issue_url(self) -> None:
         activity = self.create_group_activity(
             group=self.group, type=ActivityType.SET_RESOLVED.value
