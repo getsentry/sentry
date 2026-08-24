@@ -137,6 +137,24 @@ describe('SimpleTable component', () => {
     expect(within(row).getByRole('cell', {name: 'Banner'})).toBeInTheDocument();
   });
 
+  it('renders a loading indicator in a spanning cell when loading', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Loading />
+      </SimpleTable>
+    );
+
+    const cell = screen.getByRole('cell');
+
+    expect(within(cell).getByTestId('loading-indicator')).toBeInTheDocument();
+  });
+
   it('renders the empty state as a cell when there are no rows', () => {
     render(
       <SimpleTable

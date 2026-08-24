@@ -297,7 +297,7 @@ function HeadCell({
     index !== context.lastColumnIndex &&
     context.resizableByIndex[index] === true;
 
-  const sortable = !!onSort || !!sort;
+  const sortable = !!onSort || !!sort || !!overlays;
 
   const cellRef = useRef<HTMLTableCellElement>(null);
   const {max, width} = useObservedColumnSize(cellRef);
