@@ -30,6 +30,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
@@ -116,10 +117,16 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     analyticsKey: 'num_assigned',
     key: 'assigned',
     label: t('Assigned'),
-    query: assignmentFilter =>
-      `issue.progress:[assigned,identified] is:unresolved${
-        assignmentFilter === 'all' ? ' !assigned_or_suggested:none' : ''
-      }`,
+    query: assignmentFilter => {
+      const search = new MutableSearch(
+        'issue.progress:[assigned,identified] is:unresolved'
+      );
+      // On the "All" tab, we want to show only issues which have a suggested assignee
+      if (assignmentFilter === 'all') {
+        search.addFilterValue('!assigned_or_suggested', 'none');
+      }
+      return search.formatString();
+    },
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
     hidden: ({hasSeer}) => !hasSeer,
