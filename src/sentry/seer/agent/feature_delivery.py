@@ -1,11 +1,12 @@
-"""Registry for Seer feature result delivery handlers."""
-
 from __future__ import annotations
 
 from typing import Any, Protocol
 from uuid import UUID
 
 from sentry.seer.agent.types import FeatureRunStatus
+from sentry.seer.autofix_rca.delivery import deliver_autofix_rca_result
+from sentry.seer.autofix_rca.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+from sentry.seer.autofix_rca.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.night_shift.delivery import deliver_night_shift_result
 from sentry.seer.smart_assignment.delivery import deliver_smart_assignment_result
 
@@ -26,4 +27,7 @@ class FeatureDeliveryFn(Protocol):
 DELIVERY_HANDLERS: dict[str, FeatureDeliveryFn] = {
     "night_shift": deliver_night_shift_result,
     "smart_assignment": deliver_smart_assignment_result,
+    AUTOFIX_FEATURE_ID: deliver_autofix_rca_result,
+    # Runs started before the autofix_rca -> autofix rename deliver the old id.
+    LEGACY_AUTOFIX_FEATURE_ID: deliver_autofix_rca_result,
 }

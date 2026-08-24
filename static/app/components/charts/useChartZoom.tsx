@@ -3,7 +3,7 @@ import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'ech
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
-import {ToolBox} from 'sentry/components/charts/components/toolBox';
+import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
@@ -50,6 +50,18 @@ function getFormattedPeriod({period, start, end}: DateTimeUpdate) {
 }
 
 type FormattedPeriod = ReturnType<typeof getFormattedPeriod>;
+
+/**
+ * ECharts flags synced charts using the __connectUpdateStatus key.
+ * We use this to determine if a chart is receiving a synced zoom
+ * relayed from a main chart that the user is interacting with.
+ */
+const CONNECT_STATUS_KEY = '__connectUpdateStatus';
+const CONNECT_STATUS_PENDING = 0;
+
+function isRelayedZoom(chart: ECharts): boolean {
+  return chart[CONNECT_STATUS_KEY] === CONNECT_STATUS_PENDING;
+}
 
 function hasZoomValues(payload: DataZoomRangePayload): payload is DataZoomRange {
   return (
@@ -243,8 +255,14 @@ export function useChartZoom({
   );
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
-    evt => {
+    (evt, chart) => {
       if (disabled) {
+        return;
+      }
+
+      // Only the chart the user actually zoomed should write URL state.
+      // Don't write URL state for charts that received a synced zoom.
+      if (isRelayedZoom(chart)) {
         return;
       }
 
@@ -300,7 +318,7 @@ export function useChartZoom({
       return {};
     }
 
-    return ToolBox(
+    return getToolBox(
       {id: 'useChartZoom-toolbox'},
       {
         dataZoom: {

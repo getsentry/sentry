@@ -287,7 +287,7 @@ export function eventedProfileToSampledProfile(
       thread_id: String(profile.threadID),
       timestamp: profileTimestamp + profile.events[0]!.at * 1e-9,
     });
-    stacks[stackId] = stack.slice().reverse();
+    stacks[stackId] = stack.toReversed();
     stackId++;
 
     for (let i = 1; i < profile.events.length; i++) {
@@ -316,7 +316,7 @@ export function eventedProfileToSampledProfile(
           timestamp: profileTimestamp + current.at * 1e-9,
         });
 
-        stacks[stackId] = stack.slice().reverse();
+        stacks[stackId] = stack.toReversed();
         stackId++;
       }
     }
@@ -328,7 +328,7 @@ export function eventedProfileToSampledProfile(
         timestamp:
           profileTimestamp + profile.events[profile.events.length - 1]!.at * 1e-9,
       });
-      stacks[stackId] = stack.slice().reverse();
+      stacks[stackId] = stack.toReversed();
       stackId++;
     }
   }

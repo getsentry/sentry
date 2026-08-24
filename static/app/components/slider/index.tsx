@@ -396,11 +396,13 @@ const SliderTick = styled('div')<{
     p.inSelection &&
     css`
       /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-      background: ${p.disabled
-        ? p.theme.tokens.content.disabled
-        : p.error
-          ? p.theme.tokens.content.danger
-          : p.theme.tokens.interactive.link.accent.active};
+      background: ${
+        p.disabled
+          ? p.theme.tokens.content.disabled
+          : p.error
+            ? p.theme.tokens.content.danger
+            : p.theme.tokens.interactive.link.accent.active
+      };
     `}
 `;
 

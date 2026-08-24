@@ -39,10 +39,7 @@ def test_dlq(consumer_def) -> None:
         "uptime-results",
         "metrics-last-seen-updater",
         "generic-metrics-last-seen-updater",
-        "billing-metrics-consumer",
         "ingest-occurrences",
-        "ingest-replay-recordings",
-        "ingest-replay-recordings-two-step",
     ]
 
     consumer_name, defn = consumer_def

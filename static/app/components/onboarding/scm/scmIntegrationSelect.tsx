@@ -21,7 +21,7 @@ interface ScmIntegrationSelectProps {
  * Compact dropdown for choosing which connected SCM integration (provider plus
  * org/account) to search repositories within. The trigger shows the selected
  * integration's provider icon and name; the menu lists every active
- * integration and links out to integration settings via a "Manage providers"
+ * integration and links out to repository settings via a "Manage providers"
  * footer.
  */
 export function ScmIntegrationSelect({
@@ -63,7 +63,7 @@ export function ScmIntegrationSelect({
       menuFooter={({closeOverlay}) => (
         <MenuComponents.CTALinkButton
           icon={<IconSettings />}
-          to={`/settings/${organization.slug}/integrations/?category=source%20code%20management`}
+          to={`/settings/${organization.slug}/repos/`}
           onClick={() => {
             trackAnalytics('project_creation.manage_providers_clicked', {
               organization,

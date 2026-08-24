@@ -3,8 +3,6 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {updateDashboard} from 'sentry/actionCreators/dashboards';
 
 describe('updateDashboard', () => {
-  const api = new MockApiClient();
-
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -17,7 +15,7 @@ describe('updateDashboard', () => {
       body: dashboard,
     });
 
-    await updateDashboard(api, 'org-slug', dashboard);
+    await updateDashboard('org-slug', dashboard);
 
     expect(mockPut).toHaveBeenCalledWith(
       expect.anything(),
@@ -35,7 +33,7 @@ describe('updateDashboard', () => {
       body: dashboard,
     });
 
-    await updateDashboard(api, 'org-slug', dashboard, {
+    await updateDashboard('org-slug', dashboard, {
       revisionSource: 'edit-with-agent',
     });
 

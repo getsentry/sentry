@@ -25,10 +25,11 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import {GroupListHeader} from './groupListHeader';
+
+export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
+  'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search';
 
 export type GroupListColumn =
   | 'graph'
@@ -48,7 +49,6 @@ type Props = {
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   canSelectGroups?: boolean;
-  customStatsPeriod?: TimePeriodType;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
@@ -111,7 +111,6 @@ export function GroupList({
   onFetchSuccess,
   renderEmptyMessage,
   renderErrorMessage,
-  customStatsPeriod,
   queryFilterDescription,
   source,
   staleTime = 0,
@@ -369,7 +368,6 @@ export function GroupList({
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
-                    customStatsPeriod={customStatsPeriod}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}

@@ -11,6 +11,10 @@ import {
 import {Stack} from '@sentry/scraps/layout';
 
 import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
+import {
+  MessagingIntegrationAnalyticsView,
+  SetupMessagingIntegrationButton,
+} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
 import {
@@ -24,10 +28,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  MessagingIntegrationAnalyticsView,
-  SetupMessagingIntegrationButton,
-} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 

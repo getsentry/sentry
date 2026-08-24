@@ -1,53 +1,51 @@
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {Container} from '@sentry/scraps/layout';
 
+import {useDragSeparator} from './useDragSeparator';
+
 export type Orientation = 'horizontal' | 'vertical';
 
-// The handle renders as a 1px border; account for it when a consumer derives
-// layout sizes (e.g. the max size of a panel next to it).
+export type DragHandleVariant = 'solid' | 'ghost';
+
 export const DRAG_HANDLE_SIZE = 1;
 
-// At a limit the handle can only travel one way, so point the cursor that way;
-// the grow/shrink direction flips when the sized pane sits after the handle.
-function getDragHandleCursor(
-  orientation: Orientation,
-  atMin: boolean,
-  atMax: boolean,
-  isSizedFirst: boolean
-): React.CSSProperties['cursor'] {
-  if (orientation === 'horizontal') {
-    if (atMin) {
-      return isSizedFirst ? 'e-resize' : 'w-resize';
-    }
-    if (atMax) {
-      return isSizedFirst ? 'w-resize' : 'e-resize';
-    }
-    return 'ew-resize';
-  }
-  if (atMin) {
-    return isSizedFirst ? 's-resize' : 'n-resize';
-  }
-  if (atMax) {
-    return isSizedFirst ? 'n-resize' : 's-resize';
-  }
-  return 'ns-resize';
-}
+/** The 24x24 CSS pixel minimum that WCAG 2.5.8 asks of a pointer target. */
+export const DRAG_SEPARATOR_TARGET_SIZE = 24;
 
-export type DragHandleProps = {
-  isHeld: boolean;
+const targetLength = 'var(--drag-separator-target-length, none)';
+
+const targetOffset = `calc(50% - ${DRAG_SEPARATOR_TARGET_SIZE / 2}px)`;
+
+/**
+ * A focusable `separator` is a widget, so it needs a name, or it is announced as a bare
+ * value with no subject. Prefer `aria-labelledby` when the handle sits inside an element
+ * that is named from its content, such as a table header cell: an `aria-label` there
+ * would also become part of that element's own name.
+ */
+type DragHandleNameProps =
+  | {'aria-label': string; 'aria-labelledby'?: never}
+  | {'aria-labelledby': string; 'aria-label'?: never};
+
+export type DragHandleProps = DragHandleNameProps & {
   isSizedFirst: boolean;
   max: number;
   min: number;
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
-  onKeyDown: React.KeyboardEventHandler<HTMLElement>;
-  onPointerDown: React.PointerEventHandler<HTMLElement>;
+  onMove: (delta: number) => void;
   orientation: Orientation;
   value: number;
+  onKeyDown?: React.KeyboardEventHandler<HTMLElement>;
+  onMoveEnd?: () => void;
+  onMoveStart?: () => void;
+  variant?: DragHandleVariant;
 };
 
 export function DragHandle({
-  isHeld,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledby,
+  variant = 'solid',
   isSizedFirst,
   max,
   min,
@@ -55,32 +53,30 @@ export function DragHandle({
   value,
   onDoubleClick,
   onKeyDown,
-  onPointerDown,
+  onMove,
+  onMoveEnd,
+  onMoveStart,
 }: DragHandleProps) {
-  const cursor = getDragHandleCursor(
+  const {cursor, separatorProps} = useDragSeparator({
+    isSizedFirst,
+    max,
+    min,
+    onMove,
+    onMoveEnd,
+    onMoveStart,
     orientation,
-    value <= min,
-    Number.isFinite(max) && value >= max,
-    isSizedFirst
-  );
+    value,
+  });
 
   return (
     <Container position="relative" flexShrink={0}>
       {containerProps => (
         <DragHandleLine
-          {...containerProps}
+          {...mergeProps(separatorProps, containerProps, {onDoubleClick, onKeyDown})}
           $cursor={cursor}
-          aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
-          aria-valuemax={Number.isFinite(max) ? max : undefined}
-          aria-valuemin={min}
-          aria-valuenow={value}
-          data-is-held={isHeld}
-          data-orientation={orientation}
-          onDoubleClick={onDoubleClick}
-          onKeyDown={onKeyDown}
-          onPointerDown={onPointerDown}
-          role="separator"
-          tabIndex={0}
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledby}
+          data-variant={variant}
         />
       )}
     </Container>
@@ -90,13 +86,15 @@ export function DragHandle({
 const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
   user-select: none;
   touch-action: none;
-  cursor: ${p => p.$cursor};
+  pointer-events: none;
 
-  /* Invisible wider hit area for dragging */
+  /* Invisible wider hit area for dragging, and the only part that takes pointer events */
   &::before {
     content: '';
     position: absolute;
     z-index: ${p => p.theme.zIndex.drawer};
+    pointer-events: auto;
+    cursor: ${p => p.$cursor};
   }
 
   /* Accent bar that lights up on hover/drag */
@@ -106,7 +104,7 @@ const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
     z-index: ${p => p.theme.zIndex.drawer};
     opacity: 0.8;
     background: transparent;
-    transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
+    transition: background ${p => p.theme.motion.smooth.slow};
   }
 
   &:hover::after,
@@ -121,8 +119,9 @@ const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
     &::before {
-      inset: 0 auto 0 -5px;
-      width: 11px;
+      inset: 0 auto 0 ${targetOffset};
+      width: ${DRAG_SEPARATOR_TARGET_SIZE}px;
+      max-height: ${targetLength};
     }
 
     &::after {
@@ -137,13 +136,25 @@ const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
     &::before {
-      inset: -5px 0 auto 0;
-      height: 11px;
+      inset: ${targetOffset} 0 auto 0;
+      height: ${DRAG_SEPARATOR_TARGET_SIZE}px;
+      max-width: ${targetLength};
     }
 
     &::after {
       inset: -2px 0 auto 0;
       height: 4px;
+    }
+  }
+
+  &[data-variant='ghost'] {
+    border-color: transparent;
+    transition: border-color ${p => p.theme.motion.smooth.slow};
+
+    &:hover,
+    &:focus-visible,
+    &[data-is-held='true'] {
+      border-color: ${p => p.theme.tokens.border.primary};
     }
   }
 

@@ -13,19 +13,25 @@ export const kbdStyles = (theme: Theme, variant?: KbdProps['variant']) => css`
   align-items: center;
   justify-content: center;
 
-  color: ${variant === 'debossed'
-    ? theme.tokens.content.secondary
-    : theme.tokens.content.primary};
-  background: ${variant === 'debossed'
-    ? theme.tokens.background.secondary
-    : theme.tokens.background.primary};
+  color: ${
+    variant === 'debossed' ? theme.tokens.content.secondary : theme.tokens.content.primary
+  };
+  background: ${
+    variant === 'debossed'
+      ? theme.tokens.background.secondary
+      : theme.tokens.background.primary
+  };
   border: ${theme.border.md} solid ${theme.tokens.border.primary};
-  border-top: ${variant === 'debossed'
-    ? `${theme.border.xl} solid ${theme.tokens.border.primary}`
-    : undefined};
-  border-bottom: ${variant === 'debossed'
-    ? undefined
-    : `${theme.border.xl} solid ${theme.tokens.border.primary}`};
+  border-top: ${
+    variant === 'debossed'
+      ? `${theme.border.xl} solid ${theme.tokens.border.primary}`
+      : undefined
+  };
+  border-bottom: ${
+    variant === 'debossed'
+      ? undefined
+      : `${theme.border.xl} solid ${theme.tokens.border.primary}`
+  };
   border-radius: ${theme.radius.sm};
   box-shadow: none;
 `;

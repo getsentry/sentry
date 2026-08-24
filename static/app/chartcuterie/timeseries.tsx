@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 
 import {Grid} from 'sentry/components/charts/components/grid';
-import {Legend} from 'sentry/components/charts/components/legend';
+import {legend} from 'sentry/components/charts/components/legend';
 import {XAxis} from 'sentry/components/charts/components/xAxis';
 import {YAxis} from 'sentry/components/charts/components/yAxis';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -92,7 +92,7 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
   const defaults = {
     grid: Grid({left: 10, right: 10, bottom: 10, top: GRID_TOP_OFFSET}),
     backgroundColor: theme.tokens.background.primary,
-    legend: Legend({
+    legend: legend({
       theme,
       icon: 'roundRect',
       itemHeight: 16,
@@ -129,7 +129,7 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
   // Grouped widgets stack in order, with the "Other" bucket pinned to a
   // neutral color. Ungrouped widgets keep the response order.
   const sorted = hasGroups
-    ? timeSeries.slice().sort((a, b) => (a.meta?.order ?? 0) - (b.meta?.order ?? 0))
+    ? timeSeries.toSorted((a, b) => (a.meta?.order ?? 0) - (b.meta?.order ?? 0))
     : timeSeries;
   const hasOther = hasGroups && sorted.some(ts => ts.meta?.isOther);
   const color = theme.chart

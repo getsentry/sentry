@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -10,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconSeer} from 'sentry/icons';
+import {IconBot, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupActivityType,
@@ -23,6 +24,7 @@ import type {
   LinkedPullRequestsResponse,
   PullRequestAuthor,
   PullRequestAttribution,
+  PullRequestAttributionAgent,
 } from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -41,6 +43,13 @@ const PULL_REQUEST_ACTIVITY_TYPES = new Set([
   GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
   GroupActivityType.PULL_REQUEST_CLOSED,
 ]);
+
+const CODING_AGENT_NAMES: Record<PullRequestAttributionAgent, string> = {
+  cursor: 'Cursor Cloud Agent',
+  github_copilot: 'GitHub Copilot',
+  claude_code: 'Claude Code',
+  unknown: 'a coding agent',
+};
 
 export function getLinkedPullRequestActivityIds(group: Group) {
   return new Set(
@@ -62,24 +71,30 @@ export function getLinkedPullRequestActivityIds(group: Group) {
 
 interface LinkedPullRequestsProps {
   group: Group;
+  showChecksAndReview?: boolean;
   showEmptyState?: boolean;
+  variant?: 'compact' | 'default';
 }
 
 function LinkedPullRequestRow({
   group,
   pullRequest,
+  variant,
 }: {
   group: Group;
   pullRequest: LinkedPullRequest;
+  variant: 'compact' | 'default';
 }) {
   const organization = useOrganization();
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   const statusLabel = getPullRequestStatusLabel(pullRequest.status);
   const pullRequestLabel = t('#%s', pullRequest.id);
   const author = getPullRequestAuthor(pullRequest);
+  const githubAuthorLogin = getGithubPullRequestAuthorLogin(pullRequest);
 
   return (
     <Tooltip
+      disabled={variant !== 'compact'}
       title={
         <Text as="span" align="left" wordBreak="break-word">
           {title}
@@ -100,6 +115,7 @@ function LinkedPullRequestRow({
         onClick={() =>
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
+            attribution_agent: pullRequest.attribution?.agent,
             attribution_type: pullRequest.attribution?.type,
             checks_status: pullRequest.checksStatus,
             review_status: pullRequest.reviewStatus,
@@ -111,7 +127,11 @@ function LinkedPullRequestRow({
           })
         }
       >
-        <Grid columns="max-content minmax(0, 1fr)" gap="sm" padding="sm">
+        <Grid
+          columns="max-content minmax(0, 1fr)"
+          gap="sm"
+          padding={variant === 'compact' ? 'sm' : 'md'}
+        >
           <Flex as="span" aria-hidden align="start">
             <RepoProviderIcon
               provider={pullRequest.repository.provider.id}
@@ -119,36 +139,59 @@ function LinkedPullRequestRow({
               variant="muted"
             />
           </Flex>
-          <Stack gap="xs" minWidth={0}>
-            <PullRequestTitle>
-              <Text as="span" bold textWrap="nowrap">
-                {pullRequestLabel}
-              </Text>
-              <Text as="span" ellipsis>
-                {pullRequest.repository.name}
-              </Text>
-            </PullRequestTitle>
-            <Flex align="center" gap="xs">
+          <Stack gap={variant === 'default' ? 'sm' : 'xs'} minWidth={0}>
+            <Stack gap="xs">
+              {variant === 'default' && (
+                <Text as="span" bold ellipsis>
+                  {title}
+                </Text>
+              )}
+              <PullRequestTitle>
+                {variant === 'default' ? (
+                  <Fragment>
+                    <Text as="span" ellipsis variant="muted">
+                      {pullRequest.repository.name}
+                      {pullRequestLabel}
+                    </Text>
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <Text as="span" bold textWrap="nowrap">
+                      {pullRequestLabel}
+                    </Text>
+                    <Text as="span" ellipsis>
+                      {pullRequest.repository.name}
+                    </Text>
+                  </Fragment>
+                )}
+              </PullRequestTitle>
+            </Stack>
+            <Flex align="center" gap="md" wrap="wrap">
               <PullRequestStatusBadge status={pullRequest.status} />
+              <Flex align="center" gap="xs">
+                {pullRequest.attribution ? (
+                  <PullRequestAttributionAvatar
+                    attribution={pullRequest.attribution}
+                    githubAuthorLogin={githubAuthorLogin}
+                  />
+                ) : author ? (
+                  <PullRequestAuthorAvatar author={author} />
+                ) : null}
+                <Text as="span" size="sm" variant="muted">
+                  <TimeSince
+                    date={pullRequest.dateLinked}
+                    suffix={t('ago')}
+                    tooltipPrefix={t('Linked')}
+                    unitStyle="short"
+                  />
+                </Text>
+              </Flex>
               {pullRequest.checksStatus && (
                 <PullRequestChecksBadge status={pullRequest.checksStatus} />
               )}
               {pullRequest.reviewStatus && (
                 <PullRequestReviewBadge status={pullRequest.reviewStatus} />
               )}
-              {pullRequest.attribution ? (
-                <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
-              ) : author ? (
-                <PullRequestAuthorAvatar author={author} />
-              ) : null}
-              <Text as="span" size="sm" variant="muted">
-                <TimeSince
-                  date={pullRequest.dateLinked}
-                  suffix={t('ago')}
-                  tooltipPrefix={t('Linked')}
-                  unitStyle="short"
-                />
-              </Text>
             </Flex>
           </Stack>
         </Grid>
@@ -159,13 +202,49 @@ function LinkedPullRequestRow({
 
 function PullRequestAttributionAvatar({
   attribution,
+  githubAuthorLogin,
 }: {
   attribution: PullRequestAttribution;
+  githubAuthorLogin: string | null;
 }) {
   switch (attribution.type) {
-    case 'seer':
-      return <SeerAttributionAvatar />;
+    case 'seer': {
+      if (!attribution.agent) {
+        return <SeerAttributionAvatar />;
+      }
+
+      const label = t(
+        'Pull request created by %s via Seer',
+        CODING_AGENT_NAMES[attribution.agent] ?? CODING_AGENT_NAMES.unknown
+      );
+      return (
+        <Tooltip title={label} skipWrapper>
+          {githubAuthorLogin ? (
+            <Flex as="span" aria-label={label} role="img">
+              <Avatar
+                identifier={githubAuthorLogin}
+                name={githubAuthorLogin}
+                round
+                size={18}
+                type="upload"
+                uploadUrl={`https://github.com/${githubAuthorLogin}.png`}
+              />
+            </Flex>
+          ) : (
+            <IconBot aria-label={label} size="xs" />
+          )}
+        </Tooltip>
+      );
+    }
   }
+}
+
+function getGithubPullRequestAuthorLogin(pullRequest: LinkedPullRequest): string | null {
+  if (pullRequest.repository.provider.id !== 'integrations:github') {
+    return null;
+  }
+
+  return pullRequest.author?.name?.replace(/\[bot\]$/, '') ?? null;
 }
 
 function getPullRequestAuthor(pullRequest: LinkedPullRequest): PullRequestAuthor | null {
@@ -222,7 +301,6 @@ function SeerAttributionAvatar() {
         justify="center"
         radius="full"
         role="img"
-        title={label}
         width="18px"
       >
         <IconSeer aria-hidden size="xs" />
@@ -231,7 +309,13 @@ function SeerAttributionAvatar() {
   );
 }
 
-export function useLinkedPullRequests({group}: {group: Group}) {
+export function useLinkedPullRequests({
+  group,
+  includeChecksAndReview = true,
+}: {
+  group: Group;
+  includeChecksAndReview?: boolean;
+}) {
   const organization = useOrganization();
 
   return useQuery(
@@ -239,15 +323,23 @@ export function useLinkedPullRequests({group}: {group: Group}) {
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-        query: {expand: 'checksAndReview'},
+        query: includeChecksAndReview ? {expand: 'checksAndReview'} : undefined,
         staleTime: 30_000,
       }
     )
   );
 }
 
-export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
-  const {data, isError, isPending} = useLinkedPullRequests({group});
+export function LinkedPullRequests({
+  group,
+  showChecksAndReview = true,
+  showEmptyState,
+  variant = 'default',
+}: LinkedPullRequestsProps) {
+  const {data, isError, isPending} = useLinkedPullRequests({
+    group,
+    includeChecksAndReview: showChecksAndReview,
+  });
   const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
 
   if (isError) {
@@ -255,7 +347,7 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
   }
 
   if (isPending && activityPullRequestIds.size > 0) {
-    return <Placeholder height="52px" />;
+    return <Placeholder height={variant === 'compact' ? '52px' : '78px'} />;
   }
 
   if (data?.pullRequests.length === 0) {
@@ -287,7 +379,11 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
           borderTop={index === 0 ? undefined : 'primary'}
           style={{listStyle: 'none'}}
         >
-          <LinkedPullRequestRow group={group} pullRequest={pullRequest} />
+          <LinkedPullRequestRow
+            group={group}
+            pullRequest={pullRequest}
+            variant={variant}
+          />
         </Container>
       ))}
     </Stack>

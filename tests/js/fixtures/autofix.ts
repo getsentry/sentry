@@ -1,8 +1,29 @@
 import type {
   ExplorerAutofixResponse,
   ExplorerAutofixState,
+  useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {Artifact, Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+
+export function ExplorerAutofixFixture(
+  params: Partial<ReturnType<typeof useExplorerAutofix>> = {}
+): ReturnType<typeof useExplorerAutofix> {
+  return {
+    runState: ExplorerAutofixStateFixture(),
+    autofixFormatted: null,
+    startStep: jest.fn(),
+    createPR: jest.fn(),
+    reset: jest.fn(),
+    triggerCodingAgentHandoff: jest.fn(),
+    codingAgentErrors: [],
+    dismissCodingAgentError: jest.fn(),
+    warnings: [],
+    isLoading: false,
+    isWaitingForRun: false,
+    isPolling: false,
+    ...params,
+  };
+}
 
 export function AutofixRootCauseArtifactFixture(
   params: Partial<Artifact> = {}

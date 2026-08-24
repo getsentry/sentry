@@ -82,6 +82,113 @@ describe('LLMContextProvider — empty state', () => {
   });
 });
 
+describe('LLMContextProvider — location', () => {
+  it('reports route params even with no nodes registered', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    render(
+      <LLMContextProvider>
+        <ContextCapture />
+      </LLMContextProvider>,
+      {
+        initialRouterConfig: {
+          route: '/issues/:groupId/',
+          location: {pathname: '/issues/123/'},
+        },
+      }
+    );
+
+    // A snapshot with no registered nodes still carries location — that is the
+    // point, since most routes register nothing.
+    await waitFor(() => {
+      expect(getSnapshot().nodes).toEqual([]);
+      expect(getSnapshot().location?.params).toEqual({groupId: '123'});
+    });
+    expect(getSnapshot().location?.url).toBe(window.location.href);
+  });
+
+  it('reads the query string off window.location at snapshot time', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+    const {search} = window.location;
+    window.history.replaceState(
+      {},
+      '',
+      '/issues/123/?query=is%3Aunresolved&project=1&project=2'
+    );
+
+    try {
+      render(
+        <LLMContextProvider>
+          <ContextCapture />
+        </LLMContextProvider>
+      );
+
+      await waitFor(() => {
+        expect(getSnapshot().location?.query).toEqual({
+          query: 'is:unresolved',
+          project: ['1', '2'],
+        });
+      });
+    } finally {
+      window.history.replaceState({}, '', search || '/');
+    }
+  });
+
+  it('includes location on a component-scoped snapshot too', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    render(
+      <LLMContextProvider>
+        <ContextWidget title="Error Rate">
+          <ContextCapture />
+        </ContextWidget>
+      </LLMContextProvider>,
+      {
+        initialRouterConfig: {
+          route: '/issues/:groupId/',
+          location: {pathname: '/issues/456/'},
+        },
+      }
+    );
+
+    await waitFor(() => {
+      expect(getSnapshot(true).location?.params).toEqual({groupId: '456'});
+    });
+  });
+
+  it('does not re-render the provider when the route changes', async () => {
+    let providerRenders = 0;
+    function CountingChild() {
+      providerRenders += 1;
+      return null;
+    }
+
+    const {router} = render(
+      <LLMContextProvider>
+        <CountingChild />
+      </LLMContextProvider>,
+      {
+        initialRouterConfig: {
+          route: '/issues/:groupId/',
+          location: {pathname: '/issues/1/'},
+        },
+      }
+    );
+
+    await waitFor(() => {
+      expect(providerRenders).toBe(1);
+    });
+
+    router.navigate('/issues/2/');
+
+    // The watcher re-renders, but it renders null and the provider's children
+    // are untouched — so nothing below the provider re-renders.
+    await waitFor(() => {
+      expect(providerRenders).toBe(1);
+    });
+  });
+});
+
 describe('registerLLMContext — nesting', () => {
   it('nests Chart inside Widget inside Dashboard in the snapshot', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();
@@ -102,6 +209,7 @@ describe('registerLLMContext — nesting', () => {
     await waitFor(() => {
       expect(getSnapshot()).toEqual({
         version: expect.any(Number),
+        location: expect.any(Object),
         nodes: [
           {
             nodeType: 'dashboard',

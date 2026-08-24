@@ -130,7 +130,7 @@ export function GroupHeaderAssigneeSelector({
   return (
     <AssigneeSelector
       group={group}
-      owners={owners}
+      owners={event ? owners : undefined}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}

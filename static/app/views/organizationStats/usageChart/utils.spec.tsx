@@ -19,7 +19,7 @@ beforeEach(() => {
       ...ConfigStore.get('user')?.options,
       timezone: 'America/New_York',
     },
-  } as any);
+  });
 });
 
 describe('getDateFromMoment', () => {
