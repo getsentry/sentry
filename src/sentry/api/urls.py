@@ -565,9 +565,6 @@ from sentry.seer.endpoints.organization_events_anomalies import OrganizationEven
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_agent_pr_groups import (
-    OrganizationSeerAgentPRGroupsEndpoint,
-)
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
@@ -2529,11 +2526,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
         OrganizationSeerWorkflowsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflows",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-pr-groups/$",
-        OrganizationSeerAgentPRGroupsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-explorer-pr-groups",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
