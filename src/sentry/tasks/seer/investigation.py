@@ -3,10 +3,7 @@ from __future__ import annotations
 import logging
 
 from sentry.investigations.agent import start_execution_run
-from sentry.investigations.models import (
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
-)
+from sentry.investigations.models import InvestigationBlockExecution
 from sentry.investigations.services import (
     mark_block_execution_dispatch_failed,
     mark_block_execution_dispatch_started,
@@ -25,7 +22,7 @@ logger = logging.getLogger(__name__)
 def dispatch_investigation_execution(execution_id: int) -> None:
     execution = (
         InvestigationBlockExecution.objects.select_related("block__investigation__organization")
-        .filter(id=execution_id, status=InvestigationBlockExecutionStatus.PENDING)
+        .filter(id=execution_id)
         .first()
     )
     if execution is None or not mark_block_execution_dispatch_started(execution):

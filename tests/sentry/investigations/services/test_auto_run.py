@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from unittest import mock
+
+from django.utils import timezone
 
 from sentry.investigations.models import (
     InvestigationBlock,
@@ -122,3 +125,44 @@ class InvestigationAutoRunTest(TestCase):
         dispatch_investigation_execution(execution_id)
 
         start_execution_run.assert_called_once()
+
+    @mock.patch("sentry.tasks.seer.investigation.start_execution_run")
+    def test_stale_dispatch_claim_can_be_reclaimed(self, start_execution_run: mock.Mock) -> None:
+        with self.captureOnCommitCallbacks(execute=False):
+            schedule_eligible_auto_run_blocks(
+                investigation_id=self.investigation.id,
+                user_id=self.user.id,
+            )
+        self.root.refresh_from_db()
+        execution = self.root.current_execution
+        assert execution is not None
+
+        dispatch_investigation_execution(execution.id)
+        execution.update(started_at=timezone.now() - timedelta(minutes=6))
+        dispatch_investigation_execution(execution.id)
+
+        assert start_execution_run.call_count == 2
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
+    def test_redispatches_a_stale_dispatch_claim(self, dispatch: mock.Mock) -> None:
+        with self.captureOnCommitCallbacks(execute=False):
+            schedule_eligible_auto_run_blocks(
+                investigation_id=self.investigation.id,
+                user_id=self.user.id,
+            )
+        self.root.refresh_from_db()
+        execution = self.root.current_execution
+        assert execution is not None
+        execution.update(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            started_at=timezone.now() - timedelta(minutes=6),
+        )
+        dispatch.delay.reset_mock()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            schedule_eligible_auto_run_blocks(
+                investigation_id=self.investigation.id,
+                user_id=self.user.id,
+            )
+
+        dispatch.delay.assert_called_once_with(execution.id)

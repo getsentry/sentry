@@ -11,7 +11,10 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationBlockKind,
 )
-from sentry.investigations.services.executions import create_block_execution
+from sentry.investigations.services.executions import (
+    block_execution_needs_dispatch,
+    create_block_execution,
+)
 
 
 def _dependency_is_ready(block: InvestigationBlock) -> bool:
@@ -58,7 +61,7 @@ def schedule_eligible_auto_run_blocks(
         if not block.config.get("autoRun"):
             continue
         if block.current_execution is not None and block.stale_at is None:
-            if block.current_execution.status == InvestigationBlockExecutionStatus.PENDING:
+            if block_execution_needs_dispatch(block.current_execution):
                 _dispatch_after_commit(block.current_execution)
                 continue
             if not retry_failed or block.current_execution.status not in {

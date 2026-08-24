@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
 from django.db import router, transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -36,6 +38,7 @@ from sentry.utils import json
 MAX_CONTEXT_BLOCKS = 20
 MAX_CONTEXT_TEXT_CHARS = 50_000
 MAX_CONTEXT_BYTES = 512 * 1024
+DISPATCH_CLAIM_TIMEOUT = timedelta(minutes=5)
 
 
 def _fingerprint(snapshot: dict[str, Any]) -> str:
@@ -469,13 +472,41 @@ def mark_block_execution_dispatched(
 
 
 def mark_block_execution_dispatch_started(execution: InvestigationBlockExecution) -> bool:
-    updated = InvestigationBlockExecution.objects.filter(
-        id=execution.id, status=InvestigationBlockExecutionStatus.PENDING
-    ).update(
-        status=InvestigationBlockExecutionStatus.RUNNING,
-        started_at=timezone.now(),
+    stale_before = timezone.now() - DISPATCH_CLAIM_TIMEOUT
+    updated = (
+        InvestigationBlockExecution.objects.filter(id=execution.id)
+        .filter(
+            Q(status=InvestigationBlockExecutionStatus.PENDING)
+            | Q(
+                status=InvestigationBlockExecutionStatus.RUNNING,
+                seer_run_id__isnull=True,
+                started_at__lte=stale_before,
+            )
+            | Q(
+                status=InvestigationBlockExecutionStatus.RUNNING,
+                seer_run_id__isnull=True,
+                started_at__isnull=True,
+            )
+        )
+        .update(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            started_at=timezone.now(),
+        )
     )
     return updated == 1
+
+
+def block_execution_needs_dispatch(execution: InvestigationBlockExecution) -> bool:
+    if execution.status == InvestigationBlockExecutionStatus.PENDING:
+        return True
+    return (
+        execution.status == InvestigationBlockExecutionStatus.RUNNING
+        and execution.seer_run_id is None
+        and (
+            execution.started_at is None
+            or execution.started_at <= timezone.now() - DISPATCH_CLAIM_TIMEOUT
+        )
+    )
 
 
 def mark_block_execution_resumed(execution: InvestigationBlockExecution) -> bool:
