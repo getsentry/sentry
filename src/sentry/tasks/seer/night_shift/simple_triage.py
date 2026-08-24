@@ -233,6 +233,7 @@ def _fetch_and_score(
         SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
         SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
         SearchFilter(SearchKey("issue.type"), "=", SearchValue(type_ids)),
+        SearchFilter(SearchKey("last_seen"), ">=", SearchValue(occurrence_cutoff)),
     ]
 
     scored: list[ScoredCandidate] = []
@@ -247,7 +248,6 @@ def _fetch_and_score(
             limit=fetch_limit,
             cursor=cursor,
             search_filters=search_filters,
-            date_from=occurrence_cutoff,
             referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value,
         )
 
