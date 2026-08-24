@@ -959,6 +959,22 @@ function isSearchFilterArgument(value: string): boolean {
   return value.length >= 2 && value.startsWith('`') && value.endsWith('`');
 }
 
+const IF_SUFFIX = '_if';
+
+function getBaseAggregateFromParsedFunction(result: ParsedFunction): {
+  arguments: string[];
+  name: string;
+} {
+  if (result.filter !== undefined && result.name.endsWith(IF_SUFFIX)) {
+    return {
+      name: result.name.slice(0, -IF_SUFFIX.length),
+      arguments: result.arguments.slice(1),
+    };
+  }
+
+  return {name: result.name, arguments: result.arguments};
+}
+
 /**
  * Parse an aggregate into its name and arguments.
  *
@@ -976,7 +992,7 @@ export function parseFunction(field: string): ParsedFunction | null {
     const name = results[1]!;
     const args = parseArguments(results[2]!);
     const firstArgument = args[0];
-    if (isSearchFilterArgument(firstArgument ?? '')) {
+    if (isSearchFilterArgument(firstArgument ?? '') && name.endsWith(IF_SUFFIX)) {
       return {
         name,
         arguments: args,
@@ -1259,10 +1275,12 @@ export function getAggregateAlias(field: string): string {
     return field;
   }
 
-  let alias = result.name;
+  const {name, arguments: args} = getBaseAggregateFromParsedFunction(result);
 
-  if (result.arguments.length > 0) {
-    alias += '_' + result.arguments.join('_');
+  let alias = name;
+
+  if (args.length > 0) {
+    alias += '_' + args.join('_');
   }
 
   return alias.replace(/\W/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
@@ -1322,7 +1340,8 @@ export function aggregateOutputType(field: string | undefined): AggregationOutpu
   if (!result) {
     return 'number';
   }
-  const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
+  const {name, arguments: args} = getBaseAggregateFromParsedFunction(result);
+  const outputType = aggregateFunctionOutputType(name, args[0]);
   if (outputType === null) {
     return 'number';
   }
@@ -1444,11 +1463,12 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!result) {
     return 'area';
   }
-  if (!Object.hasOwn(AGGREGATIONS, result.name)) {
+  const {name} = getBaseAggregateFromParsedFunction(result);
+  if (!Object.hasOwn(AGGREGATIONS, name)) {
     return 'area';
   }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return AGGREGATIONS[result.name].multiPlotType;
+  return AGGREGATIONS[name].multiPlotType;
 }
 
 function validateForNumericAggregate(

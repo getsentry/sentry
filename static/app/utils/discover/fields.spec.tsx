@@ -151,6 +151,13 @@ describe('parseFunction', () => {
       arguments: ['span.duration'],
     });
   });
+
+  it('does not treat backtick args as filters on non-_if aggregates', () => {
+    expect(parseFunction('avg(`span.op:db`,span.duration)')).toEqual({
+      name: 'avg',
+      arguments: ['`span.op:db`', 'span.duration'],
+    });
+  });
 });
 
 describe('generateFieldAsString', () => {
@@ -252,6 +259,15 @@ describe('getAggregateAlias', () => {
     expect(
       getAggregateAlias('to_other(release,"release:beta@1.1.1 (2)",others,current)')
     ).toBe('to_other_release__release_beta_1_1_1__2___others_current');
+  });
+
+  it('handles EAP conditional aggregates', () => {
+    expect(getAggregateAlias('avg_if(`span.op:db`,span.duration)')).toBe(
+      'avg_span_duration'
+    );
+    expect(getAggregateAlias('count_if(`span.op:db`,span.duration)')).toBe(
+      'count_span_duration'
+    );
   });
 });
 
@@ -433,6 +449,7 @@ describe('aggregateMultiPlotType', () => {
     expect(aggregateMultiPlotType('sum(transaction.duration)')).toBe('area');
     expect(aggregateMultiPlotType('p95()')).toBe('line');
     expect(aggregateMultiPlotType('equation|sum(transaction.duration) / 2')).toBe('line');
+    expect(aggregateMultiPlotType('avg_if(`span.op:db`,span.duration)')).toBe('line');
   });
 });
 
