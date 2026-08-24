@@ -82,6 +82,16 @@ def _orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[i
     return [org.id for org in organizations if results.get(f"organization:{org.id}", False)]
 
 
+@instrumented_task(
+    name="sentry.dynamic_sampling.per_org.refresh_orgs_with_dynamic_sampling",
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=10 * 60,
+    # A refresh still queued when the next one is due would write an older answer over a
+    # newer one. Drop it and let the next run rebuild the entry.
+    expires=REFRESH_INTERVAL,
+    retry=Retry(times=2, delay=30),
+    silo_mode=SiloMode.CELL,
+)
 def refresh_orgs_with_dynamic_sampling() -> int:
     """
     Evaluate the dynamic sampling feature for every candidate organization and cache the
@@ -117,17 +127,3 @@ def refresh_orgs_with_dynamic_sampling() -> int:
         sample_rate=1.0,
     )
     return len(org_ids)
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.per_org.refresh_orgs_with_dynamic_sampling",
-    namespace=telemetry_experience_tasks,
-    processing_deadline_duration=10 * 60,
-    # A refresh still queued when the next one is due would write an older answer over a
-    # newer one. Drop it and let the next run rebuild the entry.
-    expires=REFRESH_INTERVAL,
-    retry=Retry(times=2, delay=30),
-    silo_mode=SiloMode.CELL,
-)
-def refresh_orgs_with_dynamic_sampling_task() -> None:
-    refresh_orgs_with_dynamic_sampling()
