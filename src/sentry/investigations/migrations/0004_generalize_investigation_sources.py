@@ -82,14 +82,6 @@ class Migration(CheckedMigration):
             migrations.RunPython.noop,
             hints={"tables": ["investigations_investigation"]},
         ),
-        migrations.AddIndex(
-            model_name="investigation",
-            index=models.Index(
-                condition=models.Q(("lineage_key__isnull", False)),
-                fields=["organization", "lineage_key", "-source_revision"],
-                name="invest_lineage_latest_idx",
-            ),
-        ),
         migrations.AddConstraint(
             model_name="investigation",
             constraint=models.UniqueConstraint(

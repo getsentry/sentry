@@ -178,11 +178,6 @@ class Investigation(DefaultFieldsModel):
                 condition=Q(status=InvestigationStatus.ACTIVE, source_key__isnull=False),
                 name="invest_source_latest_idx",
             ),
-            models.Index(
-                fields=["organization", "lineage_key", "-source_revision"],
-                condition=Q(lineage_key__isnull=False),
-                name="invest_lineage_latest_idx",
-            ),
         ]
 
     __repr__ = sane_repr("organization_id", "title")
