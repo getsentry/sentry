@@ -144,6 +144,11 @@ type StopExecutionVariables = {
   executionId: string;
 };
 
+type ResumeExecutionVariables = StopExecutionVariables & {
+  inputId: string;
+  responseData: {answers: string[]};
+};
+
 type MutationOptions<TData, TVariables> = Omit<
   UseMutationOptions<TData, Error, TVariables>,
   'mutationFn'
@@ -295,66 +300,6 @@ export function useAddInvestigationBlockMutation(
         queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
       });
       await options?.onSuccess?.(block, variables, onMutateResult, context);
-    },
-  });
-}
-
-export function useDuplicateInvestigationBlockMutation(
-  organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlock, BlockIdVariables>
-) {
-  const queryClient = useQueryClient();
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organizationSlug,
-    investigationId
-  );
-
-  return useMutation({
-    ...options,
-    mutationFn: ({blockId}) => {
-      const investigation = queryClient.getQueryData(detailOptions.queryKey)?.json;
-      const block = investigation?.blocks?.find(item => item.id === blockId);
-      if (!investigation || !block) {
-        throw new Error('Investigation block is not cached.');
-      }
-
-      return fetchMutation<InvestigationBlock>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/`,
-        method: 'POST',
-        data: {
-          investigationVersion: investigation.version,
-          kind: block.kind,
-          title: block.title,
-          content: block.content,
-          generationPrompt: block.generationPrompt,
-          config: block.config,
-          display: block.display,
-        },
-      });
-    },
-    onSuccess: async (duplicate, variables, onMutateResult, context) => {
-      queryClient.setQueryData(detailOptions.queryKey, current =>
-        current
-          ? {
-              ...current,
-              json: {
-                ...current.json,
-                blockCount: current.json.blockCount + 1,
-                blocks: [...(current.json.blocks ?? []), duplicate],
-                version: current.json.version + 1,
-              },
-            }
-          : current
-      );
-      await queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
-      });
-      await options?.onSuccess?.(duplicate, variables, onMutateResult, context);
-    },
-    onError: async (error, variables, onMutateResult, context) => {
-      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }
@@ -631,6 +576,42 @@ export function useStopInvestigationExecutionMutation(
       fetchMutation<void>({
         url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/executions/${executionId}/`,
         method: 'DELETE',
+      }),
+    onSuccess: async (_data, variables, onMutateResult, context) => {
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
+        queryClient.invalidateQueries({
+          queryKey: investigationExecutionDetailQueryOptions({
+            organizationSlug,
+            investigationId,
+            blockId: variables.blockId,
+            executionId: variables.executionId,
+          }).queryKey,
+        }),
+      ]);
+      await options?.onSuccess?.(_data, variables, onMutateResult, context);
+    },
+  });
+}
+
+export function useResumeInvestigationExecutionMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<void, ResumeExecutionVariables>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = getInvestigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({blockId, executionId, inputId, responseData}) =>
+      fetchMutation<void>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/executions/${executionId}/`,
+        method: 'PATCH',
+        data: {input_id: inputId, response_data: responseData},
       }),
     onSuccess: async (_data, variables, onMutateResult, context) => {
       await Promise.all([

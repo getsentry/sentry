@@ -1,6 +1,6 @@
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useDebouncedCallback} from '@tanstack/react-pacer';
+import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -80,10 +80,13 @@ function InvestigationBootstrapPage({investigationId}: {investigationId: string}
     isPending,
   } = useQuery({
     ...detailOptions,
-    refetchInterval: query =>
-      query.state.data?.json.blocks?.some(block => isExecutionActive(block.outputStatus))
+    refetchInterval: query => {
+      const data = query.state.data?.json;
+      return data?.blocks?.some(block => isExecutionActive(block.outputStatus)) ||
+        isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
-        : false,
+        : false;
+    },
   });
 
   if (isPending && !investigation) {
@@ -125,16 +128,27 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       onError: () => addErrorMessage(t('Unable to rename investigation.')),
     }
   );
-  const renameInvestigation = renameMutation.mutate;
-  const debouncedRename = useDebouncedCallback(
+  const renameDebouncer = useDebouncer(
     (nextTitle: string) => {
       const title = nextTitle.trim();
       if (title && title !== persistedTitle.current) {
-        renameInvestigation(title);
+        renameMutation.mutate(title);
       }
     },
-    {wait: 500}
+    {wait: 500, onUnmount: debouncer => debouncer.flush()}
   );
+
+  useEffect(() => {
+    if (
+      draftTitle === persistedTitle.current &&
+      investigation.title !== persistedTitle.current
+    ) {
+      persistedTitle.current = investigation.title;
+      // Keep an in-progress user edit, but adopt a generated title while the draft is clean.
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      setDraftTitle(investigation.title);
+    }
+  }, [draftTitle, investigation.title]);
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
     onSuccess: duplicate => {
       addSuccessMessage(t('Investigation duplicated.'));
@@ -167,14 +181,24 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       investigation.id,
       current => ({...current, title: nextTitle})
     );
-    debouncedRename(nextTitle);
+    renameDebouncer.maybeExecute(nextTitle);
   }
 
   function handleTitleBlur() {
+    renameDebouncer.cancel();
     const title = draftTitle.trim();
     if (title) {
       if (title !== draftTitle) {
-        handleTitleChange(title);
+        setDraftTitle(title);
+        updateInvestigationCache(
+          queryClient,
+          organization.slug,
+          investigation.id,
+          current => ({...current, title})
+        );
+      }
+      if (title !== persistedTitle.current) {
+        renameMutation.mutate(title);
       }
       return;
     }
@@ -416,6 +440,10 @@ function AddCellComposer({
 
 function isExecutionActive(status: string) {
   return ['pending', 'running', 'awaiting_input', 'stopping'].includes(status);
+}
+
+function isTitleGenerationActive(status: string | null | undefined) {
+  return status === 'pending' || status === 'running';
 }
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {

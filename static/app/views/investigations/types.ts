@@ -100,7 +100,7 @@ export type InvestigationTranscriptBlock = {
 export type InvestigationPendingUserInput = {
   data: Record<string, unknown>;
   id: string;
-  input_type: string;
+  input_type: 'ask_user_question';
 };
 
 export type InvestigationExecutionDetail = {
@@ -130,7 +130,7 @@ export type InvestigationDetail = InvestigationListItem & {
   projectIds?: number[];
   source?: Record<string, unknown>;
   template?: {key: string; version: number} | null;
-  titleGeneration?: Record<string, unknown>;
+  titleGeneration?: {status: string | null};
 };
 
 export type MetricOpenPeriodInvestigationSource = {

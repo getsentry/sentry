@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -31,7 +31,7 @@ import {
   getInvestigationDetailQueryOptions,
   investigationExecutionDetailQueryOptions,
   useDeleteInvestigationBlockMutation,
-  useDuplicateInvestigationBlockMutation,
+  useResumeInvestigationExecutionMutation,
   useRunInvestigationBlockMutation,
   useStopInvestigationExecutionMutation,
   useUpdateInvestigationBlockPromptMutation,
@@ -39,12 +39,15 @@ import {
 import type {
   InvestigationBlock,
   InvestigationDetail,
+  InvestigationExecutionDetail,
   InvestigationExecutionStatus,
   InvestigationQueryOutput,
   InvestigationTranscriptBlock,
 } from 'sentry/views/investigations/types';
 import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
+import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 type InvestigationCellProps = {
@@ -81,11 +84,6 @@ export function InvestigationCell({
     organizationSlug,
     investigation.id,
     {onError: () => addErrorMessage(t('Unable to rerun this cell.'))}
-  );
-  const duplicateMutation = useDuplicateInvestigationBlockMutation(
-    organizationSlug,
-    investigation.id,
-    {onError: () => addErrorMessage(t('Unable to duplicate this cell.'))}
   );
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
@@ -156,12 +154,6 @@ export function InvestigationCell({
           'aria-label': t('Cell actions for %s', displayTitle),
         }}
         items={[
-          {
-            key: 'duplicate',
-            label: t('Duplicate'),
-            disabled: !canRun || duplicateMutation.isPending,
-            onAction: () => duplicateMutation.mutate({blockId: block.id}),
-          },
           {
             key: 'delete',
             label: t('Delete'),
@@ -239,7 +231,7 @@ function CellResult({
   progressState: CellProgressState;
   refinementButton: React.ReactNode;
 }) {
-  const markdown = getTextOutput(block.output);
+  const markdown = getTextOutput(block.output) ?? (block.content.trim() || null);
   return (
     <Stack
       position="relative"
@@ -440,6 +432,11 @@ function RefinementPanel({
       onError: () => addErrorMessage(t('Unable to stop this Seer run.')),
     }
   );
+  const resumeMutation = useResumeInvestigationExecutionMutation(
+    organizationSlug,
+    investigation.id,
+    {onError: () => addErrorMessage(t('Unable to resume this Seer run.'))}
+  );
   const executionId = traceExecutionId;
   const executionOptions = investigationExecutionDetailQueryOptions({
     organizationSlug,
@@ -584,6 +581,20 @@ function RefinementPanel({
             completedAt={currentExecution?.completedAt ?? null}
             active={active}
           />
+          {executionId && execution?.pendingUserInput ? (
+            <PendingInvestigationQuestion
+              pendingInput={execution.pendingUserInput}
+              responding={resumeMutation.isPending}
+              onRespond={(inputId, responseData) =>
+                resumeMutation.mutate({
+                  blockId: block.id,
+                  executionId,
+                  inputId,
+                  responseData,
+                })
+              }
+            />
+          ) : null}
           {execution?.transcriptTruncated ? (
             <Text size="sm" variant="muted">
               {t('Earlier steps are not shown.')}
@@ -626,6 +637,76 @@ function RefinementPanel({
         </Stack>
       </RefinementDisclosureContent>
     </RefinementDisclosure>
+  );
+}
+
+function PendingInvestigationQuestion({
+  onRespond,
+  pendingInput,
+  responding,
+}: {
+  onRespond: (inputId: string, responseData: {answers: string[]}) => void;
+  pendingInput: NonNullable<InvestigationExecutionDetail['pendingUserInput']>;
+  responding: boolean;
+}) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const userScrolledUpRef = useRef(false);
+  const {
+    canSubmitQuestion,
+    currentQuestion,
+    customText,
+    handleQuestionBack,
+    handleQuestionCustomTextChange,
+    handleQuestionNext,
+    handleQuestionSelectOption,
+    isOtherSelected,
+    questionIndex,
+    selectedOption,
+    totalQuestions,
+  } = usePendingUserInput({
+    isAwaitingUserInput: true,
+    pendingInput,
+    respondToUserInput: (inputId, responseData) => {
+      if (responseData && 'answers' in responseData) {
+        onRespond(inputId, responseData);
+      }
+    },
+    scrollContainerRef,
+    userScrolledUpRef,
+  });
+
+  if (!currentQuestion) {
+    return null;
+  }
+
+  return (
+    <Stack ref={scrollContainerRef} gap="sm" data-test-id="investigation-question">
+      <AskUserQuestionBlock
+        currentQuestion={currentQuestion}
+        customText={customText}
+        isOtherSelected={isOtherSelected}
+        onCustomTextChange={handleQuestionCustomTextChange}
+        onSelectOption={handleQuestionSelectOption}
+        questionIndex={questionIndex}
+        selectedOption={selectedOption}
+      />
+      <Flex align="center" justify="end" gap="sm">
+        {questionIndex > 0 ? (
+          <Button size="sm" onClick={handleQuestionBack} disabled={responding}>
+            {t('Back')}
+          </Button>
+        ) : null}
+        <Button
+          size="sm"
+          variant="primary"
+          busy={responding}
+          disabled={!canSubmitQuestion}
+          onClick={handleQuestionNext}
+        >
+          {questionIndex + 1 === totalQuestions ? t('Submit') : t('Next')}
+        </Button>
+      </Flex>
+    </Stack>
   );
 }
 

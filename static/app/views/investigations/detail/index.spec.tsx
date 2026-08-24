@@ -151,6 +151,7 @@ describe('Investigation detail', () => {
     investigation.blocks = [
       {
         ...textBlock,
+        content: '',
         config: {autoRun: true},
         outputStatus: 'running',
         currentExecution: {
@@ -178,6 +179,7 @@ describe('Investigation detail', () => {
         id: 'block-3',
         position: 2,
         title: 'Synthesis',
+        content: '',
         config: {autoRun: true},
         dependencies: ['block-1', 'block-2'],
       },
@@ -458,43 +460,6 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('duplicates a query cell from its actions menu', async () => {
-    const investigation = InvestigationDetailFixture();
-    const block = investigation.blocks[1]!;
-    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-    const duplicateRequest = MockApiClient.addMockResponse({
-      url: `${detailUrl}blocks/`,
-      method: 'POST',
-      body: {...block, id: 'duplicated-block', position: 2},
-    });
-
-    renderView();
-    await userEvent.click(await screen.findByLabelText('Cell actions for Latency query'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
-
-    await waitFor(() =>
-      expect(duplicateRequest).toHaveBeenCalledWith(
-        `${detailUrl}blocks/`,
-        expect.objectContaining({
-          data: {
-            investigationVersion: 1,
-            kind: 'query',
-            title: 'Latency query',
-            content: '',
-            generationPrompt: 'Find slow spans',
-            config: {},
-            display: {type: 'table'},
-          },
-        })
-      )
-    );
-    expect(
-      screen
-        .getAllByTestId('query-cell-title')
-        .filter(element => element.textContent === 'Latency query')
-    ).toHaveLength(2);
-  });
-
   it('deletes a query cell from its actions menu after confirmation', async () => {
     const investigation = InvestigationDetailFixture();
     const block = investigation.blocks[1]!;
@@ -673,8 +638,9 @@ describe('Investigation detail', () => {
       {
         ...block,
         version: 3,
+        content: 'Previous successful result',
         outputStatus: 'completed',
-        output: {schemaVersion: 1, markdown: 'Previous successful result'},
+        output: null,
         currentExecution: {
           id: 'execution-2',
           status: 'completed',
@@ -876,6 +842,76 @@ describe('Investigation detail', () => {
     expect(screen.getByText('Stable result')).toBeInTheDocument();
   });
 
+  it('answers a question while an execution is awaiting input', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[0]!,
+        outputStatus: 'awaiting_input',
+        currentExecution: {
+          id: 'execution-awaiting-input',
+          status: 'awaiting_input',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: null,
+          error: null,
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const executionUrl = `${detailUrl}blocks/block-1/executions/execution-awaiting-input/`;
+    MockApiClient.addMockResponse({
+      url: executionUrl,
+      body: {
+        id: 'execution-awaiting-input',
+        status: 'awaiting_input',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: {
+          id: 'input-1',
+          input_type: 'ask_user_question',
+          data: {
+            questions: [
+              {
+                question: 'Which environment should I inspect?',
+                options: [
+                  {label: 'Production', description: 'Use production events'},
+                  {label: 'Staging', description: 'Use staging events'},
+                ],
+              },
+            ],
+          },
+        },
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+    const resumeRequest = MockApiClient.addMockResponse({
+      url: executionUrl,
+      method: 'PATCH',
+    });
+
+    renderView();
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
+    );
+    expect(
+      await screen.findByText('Which environment should I inspect?')
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+    await waitFor(() =>
+      expect(resumeRequest).toHaveBeenCalledWith(
+        executionUrl,
+        expect.objectContaining({
+          data: {
+            input_id: 'input-1',
+            response_data: {answers: ['Production']},
+          },
+        })
+      )
+    );
+  });
+
   it('reuses an investigation prefetched before the detail page mounts', async () => {
     const request = MockApiClient.addMockResponse({
       url: detailUrl,
@@ -927,6 +963,64 @@ describe('Investigation detail', () => {
         ),
       {timeout: 1500}
     );
+  });
+
+  it('flushes a pending title change when the page unmounts', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+    const renameRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'PUT',
+      body: InvestigationDetailFixture({title: 'Saved before leaving', version: 2}),
+    });
+
+    const {unmount} = renderView();
+    const titleInput = await screen.findByLabelText('Investigation title');
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, 'Saved before leaving');
+    expect(renameRequest).not.toHaveBeenCalled();
+
+    unmount();
+
+    await waitFor(() =>
+      expect(renameRequest).toHaveBeenCalledWith(
+        detailUrl,
+        expect.objectContaining({
+          data: {title: 'Saved before leaving', investigationVersion: 1},
+        })
+      )
+    );
+  });
+
+  it('polls for and displays a generated title after block execution finishes', async () => {
+    let requestCount = 0;
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: () => {
+        requestCount += 1;
+        return requestCount === 1
+          ? InvestigationDetailFixture({
+              title: 'Untitled Investigation',
+              titleGeneration: {status: 'running'},
+            })
+          : InvestigationDetailFixture({
+              title: 'Generated latency investigation',
+              titleGeneration: {status: 'completed'},
+            });
+      },
+    });
+
+    renderView();
+    expect(await screen.findByDisplayValue('Untitled Investigation')).toBeInTheDocument();
+
+    expect(
+      await screen.findByDisplayValue('Generated latency investigation', undefined, {
+        timeout: 3000,
+      })
+    ).toBeInTheDocument();
+    expect(requestCount).toBeGreaterThan(1);
   });
 
   it('duplicates and opens the duplicate from the title menu', async () => {
