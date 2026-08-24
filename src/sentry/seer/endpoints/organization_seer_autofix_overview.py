@@ -151,7 +151,10 @@ def _serialize_pull_request(
             }
             for file in checks_and_review.files
         ],
-        "failedChecks": list(checks_and_review.failed_checks),
+        "failedChecks": [check.name for check in checks_and_review.failed_checks],
+        "failedCheckDetails": [
+            {"name": check.name, "url": check.url} for check in checks_and_review.failed_checks
+        ],
     }
 
 
