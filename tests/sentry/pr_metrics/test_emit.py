@@ -16,6 +16,12 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
+from sentry.pr_metrics.activity_doc import (
+    MAX_EVENTS,
+    ActivityDoc,
+    apply_activity,
+    new_document,
+)
 from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
     VerdictDeferral,
@@ -34,6 +40,7 @@ from sentry.pr_metrics.emit import (
     select_verdict,
 )
 from sentry.pr_metrics.utils import _commit_shas_from_activity, resolved_group_ids
+from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -85,6 +92,83 @@ METRICS = {
     "review_comments_count": 6,
     "is_assigned": True,
 }
+
+
+# --- activity-document builders -------------------------------------------
+# The CI-head tests drive real webhook payloads through the reducer rather than
+# hand-writing ``PullRequestActivityLog.data``. A hand-written document can
+# describe states production never reaches (an opening head sitting in
+# ``sync_chain`` that the reducer never put there, say), which is exactly how a
+# real regression once hid behind green emit tests.
+
+
+def _doc_open(
+    doc: ActivityDoc,
+    *,
+    head_sha: str,
+    sender_login: str,
+    sender_type: str,
+    ts: str = "2026-07-10T12:00:00Z",
+    webhook_id: str = "o1",
+) -> None:
+    apply_activity(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        payload={
+            "head_sha": head_sha,
+            "sender_login": sender_login,
+            "sender_type": sender_type,
+        },
+        ts=ts,
+        webhook_id=webhook_id,
+    )
+
+
+def _doc_sync(
+    doc: ActivityDoc,
+    *,
+    after_sha: str,
+    before_sha: str | None,
+    sender_login: str,
+    sender_type: str,
+    ts: str = "2026-07-10T12:01:00Z",
+    webhook_id: str = "s1",
+) -> None:
+    apply_activity(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        payload={
+            "after_sha": after_sha,
+            "before_sha": before_sha,
+            "sender_login": sender_login,
+            "sender_type": sender_type,
+        },
+        ts=ts,
+        webhook_id=webhook_id,
+    )
+
+
+def _doc_suite(
+    doc: ActivityDoc,
+    *,
+    head_sha: str,
+    conclusion: str,
+    app_slug: str = "github-actions",
+    check_runs_count: int = 1,
+    updated_at: str = "2026-07-10T12:05:00Z",
+) -> None:
+    apply_activity(
+        doc,
+        event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
+        payload={
+            "head_sha": head_sha,
+            "app_slug": app_slug,
+            "conclusion": conclusion,
+            "check_runs_count": check_runs_count,
+        },
+        ts="2026-07-10T12:05:00Z",
+        provider_ts=updated_at,
+    )
 
 
 @cell_silo_test
@@ -280,8 +364,8 @@ class PrMetricsEmissionTest(TestCase):
         assert _ci_failing_at_close(self.pull_request, doc=None) is False
 
     def test_ci_failing_at_close_conclusion_vocabulary(self) -> None:
-        # _FAILING_CHECK_CONCLUSIONS is the enumerated failing set; every other
-        # GitHub check conclusion is not a failure for this label.
+        # activity_doc.FAILING_CHECK_CONCLUSIONS is the enumerated failing set; every
+        # other GitHub check conclusion is not a failure for this label.
         for conclusion in ("failure", "timed_out", "startup_failure"):
             PullRequestActivity.objects.filter(pull_request=self.pull_request).delete()
             self._add_check_suite(conclusion=conclusion, webhook_id="check-1")
@@ -309,22 +393,24 @@ class PrMetricsEmissionTest(TestCase):
         assert _ci_failing_at_close(self.pull_request, doc=None) is True
 
     def test_reviews_requested_count_no_activity_is_zero(self) -> None:
-        assert review_activity(self.pull_request).requested_count == 0
+        assert review_activity(self.pull_request, doc=None).requested_count == 0
 
     def test_reviews_requested_count_nets_removals(self) -> None:
         self._add_review_request(webhook_id="rr1")
         self._add_review_request(webhook_id="rr2")
         self._add_review_request(webhook_id="rr3", removed=True)
-        assert review_activity(self.pull_request).requested_count == 1  # 2 requested - 1 removed
+        assert (
+            review_activity(self.pull_request, doc=None).requested_count == 1
+        )  # 2 requested - 1 removed
 
     def test_reviews_requested_count_floors_at_zero(self) -> None:
         # More removals than requests can't be matched 1:1 (e.g. a second
         # reviewer's outstanding request), so the net never goes negative.
         self._add_review_request(webhook_id="rr1", removed=True)
-        assert review_activity(self.pull_request).requested_count == 0
+        assert review_activity(self.pull_request, doc=None).requested_count == 0
 
     def test_review_results_no_activity_is_all_zero(self) -> None:
-        assert review_activity(self.pull_request).results == {
+        assert review_activity(self.pull_request, doc=None).results == {
             "approved": 0,
             "changes_requested": 0,
             "commented": 0,
@@ -335,7 +421,7 @@ class PrMetricsEmissionTest(TestCase):
         self._add_review(webhook_id="r2", review_state="approved")
         self._add_review(webhook_id="r3", review_state="changes_requested")
         self._add_review(webhook_id="r4", review_state="commented")
-        assert review_activity(self.pull_request).results == {
+        assert review_activity(self.pull_request, doc=None).results == {
             "approved": 2,
             "changes_requested": 1,
             "commented": 1,
@@ -345,7 +431,7 @@ class PrMetricsEmissionTest(TestCase):
         # A review_dismissed row (or any future/unmapped state) contributes
         # nothing rather than erroring or padding an unexpected key.
         self._add_review(webhook_id="r1", review_state="dismissed")
-        assert review_activity(self.pull_request).results == {
+        assert review_activity(self.pull_request, doc=None).results == {
             "approved": 0,
             "changes_requested": 0,
             "commented": 0,
@@ -390,6 +476,59 @@ class PrMetricsEmissionTest(TestCase):
         self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-1")
         self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
         assert _ci_failed_at_open(self.pull_request, doc=None) is False
+
+    def test_ci_failed_at_open_from_doc_scopes_to_the_opening_head(self) -> None:
+        # The OPENED entry names the head, and the rollup's ``head_sha`` keys the
+        # failure to it — the later push's own checks are a different head.
+        doc = new_document()
+        _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
+        _doc_sync(
+            doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
+        )
+        _doc_suite(doc, head_sha="open1", conclusion="failure")
+        _doc_suite(doc, head_sha="push2", conclusion="success")
+
+        assert _ci_failed_at_open(self.pull_request, doc=doc) is True
+
+    def test_ci_failed_at_open_from_doc_excludes_a_later_head(self) -> None:
+        doc = new_document()
+        _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
+        _doc_sync(
+            doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
+        )
+        _doc_suite(doc, head_sha="open1", conclusion="success")
+        _doc_suite(doc, head_sha="push2", conclusion="failure")
+
+        assert _ci_failed_at_open(self.pull_request, doc=doc) is False
+
+    def test_ci_failed_at_open_from_doc_past_cap_reports_nothing(self) -> None:
+        # Fill the entries cap before the OPENED delivery arrives, so its entry is
+        # dropped from ``events`` and nothing left on the document names the opening
+        # head: the first ``sync_chain`` link's ``before_sha`` is the head that push
+        # replaced, which is the opening head only if that push was the first one —
+        # unknowable here. With no head to scope to, the recorded failure can't be
+        # attributed to the open.
+        doc = self._doc_at_events_cap()
+        _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
+        _doc_sync(
+            doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
+        )
+        _doc_suite(doc, head_sha="open1", conclusion="failure")
+        assert doc["events_dropped"] == 2
+
+        assert _ci_failed_at_open(self.pull_request, doc=doc) is False
+
+    def _doc_at_events_cap(self) -> ActivityDoc:
+        doc = new_document()
+        for index in range(MAX_EVENTS):
+            apply_activity(
+                doc,
+                event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+                payload={"sender_login": "alice", "sender_type": "User"},
+                ts="2026-07-10T12:00:00Z",
+                webhook_id=f"r{index}",
+            )
+        return doc
 
     # --- _no_ci_events --------------------------------------------------------
 
@@ -969,6 +1108,123 @@ class PrMetricsEmissionTest(TestCase):
         assert row.conversation_comments_bot is None
         assert row.diagnosis_labels is None
         assert row.conversation_metadata is None
+        # No activity document → per-head CI summary unavailable (null, not zeros).
+        assert row.ci_head_results is None
+
+    def test_build_row_ci_head_summary_from_activity_doc(self) -> None:
+        doc = new_document()
+        _doc_open(doc, head_sha="old111", sender_login="alice", sender_type="User")
+        _doc_sync(
+            doc,
+            after_sha="new222",
+            before_sha="old111",
+            sender_login="sentry[bot]",
+            sender_type="Bot",
+        )
+        _doc_suite(doc, head_sha="old111", conclusion="failure")
+        _doc_suite(doc, head_sha="new222", conclusion="success")
+        PullRequestActivityLog.objects.create(pull_request=self.pull_request, data=doc)
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[{"signal_type": "sentry_app", "source": "seer_data"}],
+            group_ids=[],
+        )
+        assert row.ci_head_results is not None
+        results = json.loads(row.ci_head_results)
+        assert [(item["head_sha"], item["outcome"], item["actor"]) for item in results] == [
+            ("old111", "failure", "human"),
+            ("new222", "success", "seer"),
+        ]
+        # The pusher's login classifies the head but never reaches the warehouse.
+        assert "alice" not in row.ci_head_results
+
+    def test_build_row_ci_head_summary_empty_checks_is_zero(self) -> None:
+        PullRequestActivityLog.objects.create(pull_request=self.pull_request, data=new_document())
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[{"signal_type": "sentry_app", "source": "seer_data"}],
+            group_ids=[],
+        )
+        assert row.ci_head_results is not None
+        assert json.loads(row.ci_head_results) == []
+
+    def test_build_row_ci_head_actor_from_cap_resilient_fields(self) -> None:
+        # Pushed-head attribution reads ``sync_chain`` senders, not ``events``. Fill
+        # the entries cap first so both head-bearing deliveries are dropped from
+        # ``events`` on arrival: the pushed head keeps its sender slot on the chain
+        # and still buckets under ``seer``, while the opening head no longer has a
+        # source that names it as the opening head — its checks are still reported,
+        # but as an unsequenced head with an ``unknown`` actor rather than
+        # attributed to the sender of the push that superseded it.
+        doc = self._doc_at_events_cap()
+        _doc_open(doc, head_sha="seer1", sender_login="seer-by-sentry[bot]", sender_type="Bot")
+        _doc_sync(
+            doc,
+            after_sha="seer2",
+            before_sha="seer1",
+            sender_login="seer-by-sentry[bot]",
+            sender_type="Bot",
+        )
+        assert doc["events_dropped"] == 2
+        _doc_suite(doc, head_sha="seer1", conclusion="failure")
+        _doc_suite(doc, head_sha="seer2", conclusion="success")
+        PullRequestActivityLog.objects.create(pull_request=self.pull_request, data=doc)
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[{"signal_type": "sentry_app", "source": "seer_data"}],
+            group_ids=[],
+        )
+        assert row.ci_head_results is not None
+        results = json.loads(row.ci_head_results)
+        assert [(item["sequence"], item["outcome"], item["actor"]) for item in results] == [
+            (0, "success", "seer"),
+            (None, "failure", "unknown"),
+        ]
+
+    def _ci_head_doc(self) -> None:
+        # One human-opened head with a failing suite — enough for a summary to be
+        # computable, so a null result can only come from the attribution gate.
+        doc = new_document()
+        _doc_open(doc, head_sha="human1", sender_login="alice", sender_type="User")
+        _doc_suite(doc, head_sha="human1", conclusion="failure")
+        PullRequestActivityLog.objects.create(pull_request=self.pull_request, data=doc)
+
+    def test_build_row_ci_head_summary_null_for_mcp_only_pr(self) -> None:
+        # MCP correlates a PR to an issue viewed through us; none of its commits are
+        # ours, so the per-head summary is unavailable rather than a tally of someone
+        # else's CI.
+        self._ci_head_doc()
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[{"signal_type": "mcp", "source": "webhook_data"}],
+            group_ids=[],
+        )
+        assert row.ci_head_results is None
+
+    def test_build_row_ci_head_summary_emits_when_mcp_accompanies_authoring_signal(self) -> None:
+        # A weak signal alongside an authoring one still emits: the authoring signal
+        # means we pushed here, so the heads are meaningful.
+        self._ci_head_doc()
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[
+                {"signal_type": "mcp", "source": "webhook_data"},
+                {"signal_type": "sentry_app", "source": "seer_data"},
+            ],
+            group_ids=[],
+        )
+        assert row.ci_head_results is not None
+        results = json.loads(row.ci_head_results)
+        assert [(item["outcome"], item["actor"]) for item in results] == [
+            ("failure", "human"),
+        ]
 
     def test_build_row_conversation_metadata_null_when_absent(self) -> None:
         # An analysis without a metadata bundle emits a null conversation_metadata (not
@@ -1428,6 +1684,166 @@ class PrMetricsEmissionTest(TestCase):
 
 
 EXTERNAL_ID = "556677"
+
+
+@cell_silo_test
+@with_feature(
+    [
+        "organizations:pr-metrics-activity",
+        "organizations:gen-ai-features",
+        "organizations:pr-metrics-emit",
+    ]
+)
+class MultiOrgEmissionDedupeTest(TestCase):
+    """A provider PR shared across orgs fans out to one tracked row per org; only
+    the canonical (run's-org) row should emit."""
+
+    def setUp(self) -> None:
+        # Run's org (org A): the canonical row, linked to the run.
+        self.repo = self._repo(self.project)
+        self.pull_request = self._mergeable_pr(self.repo, self.organization)
+        run = self.create_seer_run(
+            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=777
+        )
+        self.create_seer_run_pull_request(run, self.pull_request)
+
+        # Sibling org (org B): a shadow row for the same provider PR.
+        self.sibling_org = self.create_organization()
+        self.sibling_repo = self._repo(self.create_project(organization=self.sibling_org))
+        self.sibling_pull_request = self._mergeable_pr(self.sibling_repo, self.sibling_org)
+
+        # Both rows carry the naive webhook attribution, so both pass the gate.
+        for pull_request in (self.pull_request, self.sibling_pull_request):
+            PullRequestAttribution.objects.create(
+                pull_request=pull_request,
+                signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+                source=PullRequestAttributionSource.WEBHOOK_DATA,
+                is_valid=True,
+            )
+
+    def _repo(self, project: Any) -> Any:
+        # Same integration_id across orgs = one shared installation, so the rows are
+        # siblings of one provider PR.
+        return self.create_repo(
+            project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=EXTERNAL_ID,
+            integration_id=909,
+        )
+
+    def _mergeable_pr(self, repo: Any, organization: Any) -> Any:
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=organization.id, key="42"
+        )
+        pull_request.head_commit_sha = HEAD_SHA
+        pull_request.merge_commit_sha = MERGE_SHA
+        pull_request.opened_at = OPENED_AT
+        pull_request.closed_at = CLOSED_AT
+        pull_request.merged_at = CLOSED_AT
+        pull_request.draft = False
+        pull_request.save()
+        return pull_request
+
+    @patch("sentry.analytics.record")
+    def test_canonical_run_org_row_emits(self, mock_record: Any) -> None:
+        assert emit_pr_metrics_row(pull_request=self.pull_request) is True
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_sibling_row_skipped(self, mock_record: Any) -> None:
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is False
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_lowest_id_row_emits_when_no_run_link(self, mock_record: Any) -> None:
+        # No link ties either row to its own org — the lowest-id row (created
+        # first, the run's-org row here) is the stable canonical pick.
+        SeerRunPullRequest.objects.all().delete()
+        assert emit_pr_metrics_row(pull_request=self.pull_request) is True
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is False
+        assert mock_record.call_count == 1
+
+    @patch("sentry.pr_metrics.emit.logger")
+    @patch("sentry.analytics.record")
+    def test_warns_when_no_run_org_row_among_emitting_siblings(
+        self, mock_record: Any, mock_logger: Any
+    ) -> None:
+        # Two emitting rows for one provider PR, neither linked to a run in its own
+        # org (e.g. a delegated PR whose handoff link dropped) — dedupe still picks
+        # the lowest id, but the link loss is surfaced.
+        SeerRunPullRequest.objects.all().delete()
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        warned = [
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args and call.args[0] == "pr_metrics.emit.dedup_no_run_org_row"
+        ]
+        assert len(warned) == 1
+
+    @patch("sentry.pr_metrics.emit.logger")
+    @patch("sentry.analytics.record")
+    def test_no_warning_when_run_org_row_present(self, mock_record: Any, mock_logger: Any) -> None:
+        # setUp links the run's-org row, so the canonical is found via the link, not
+        # the lowest-id fallback — no warning.
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        assert not any(
+            call.args and call.args[0] == "pr_metrics.emit.dedup_no_run_org_row"
+            for call in mock_logger.warning.call_args_list
+        )
+
+    @patch("sentry.analytics.record")
+    def test_fallback_prefers_more_complete_row(self, mock_record: Any) -> None:
+        # No run link on either row (the fallback). The higher-id sibling carries the
+        # richer attribution (run_id + group_ids in signal_details), so it — not the
+        # lower-id row — is canonical and emits the fuller event.
+        SeerRunPullRequest.objects.all().delete()
+        PullRequestAttribution.objects.filter(pull_request=self.sibling_pull_request).update(
+            signal_details={"run_id": 777, "group_ids": [1]}
+        )
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
+        assert emit_pr_metrics_row(pull_request=self.pull_request) is False
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_tracked_sibling_emits_when_lower_id_row_untracked(self, mock_record: Any) -> None:
+        # No run link, and the lower-id row is an untracked shadow (its attribution
+        # feature was off in that org) — as happens for a run-less MCP-attributed PR.
+        # The tracked higher-id row must still emit, not defer to the untracked row.
+        SeerRunPullRequest.objects.all().delete()
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_emit_disabled_canonical_does_not_suppress_enabled_sibling(
+        self, mock_record: Any
+    ) -> None:
+        # Mid-rollout: the run's-org row (canonical via its link) has pr-metrics-emit
+        # off, the sibling has it on. The sibling must still emit rather than defer to
+        # a canonical that its own emit gate will never let through.
+        with patch(
+            "sentry.pr_metrics.emit.features.has",
+            side_effect=lambda name, org, **kw: not (
+                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
+            ),
+        ):
+            assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_emit_disabled_row_defers_rather_than_duplicating(self, mock_record: Any) -> None:
+        # The mirror of the above: the run's-org row that lost pr-metrics-emit after
+        # its cooldown was claimed must defer to the enabled sibling, not emit a
+        # duplicate alongside it.
+        with patch(
+            "sentry.pr_metrics.emit.features.has",
+            side_effect=lambda name, org, **kw: not (
+                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
+            ),
+        ):
+            assert emit_pr_metrics_row(pull_request=self.pull_request) is False
+        assert mock_record.call_count == 0
 
 
 @cell_silo_test

@@ -19,10 +19,6 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 type Props = {
   event: Event;
   projectSlug: Project['slug'];
-  /**
-   * Additional buttons to render in the header of the section
-   */
-  additionalActions?: React.ReactNode;
   disableCollapsePersistence?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 };
@@ -31,7 +27,6 @@ export function EventTagsDataSection({
   ref,
   event,
   projectSlug,
-  additionalActions,
   disableCollapsePersistence,
 }: Props) {
   const sentryTags = getSentryDefaultTags();
@@ -65,7 +60,6 @@ export function EventTagsDataSection({
 
   const actions = (
     <Grid flow="column" align="center" gap="md">
-      {additionalActions}
       <SegmentedControl
         size="xs"
         aria-label={t('Filter tags')}

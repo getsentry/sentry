@@ -29,6 +29,11 @@ const prIterationOrganization = OrganizationFixture({
   features: ['autofix-pr-iteration'],
 });
 
+// For the feedback form and its reset behavior, which are manual-only.
+const manualPrIterationOrganization = OrganizationFixture({
+  features: ['autofix-pr-iteration-manual'],
+});
+
 function makeSection(
   step: string,
   status: AutofixSection['status'],
@@ -104,7 +109,9 @@ function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
 
 const mockAutofix: ReturnType<typeof useExplorerAutofix> = {
   runState: null,
+  autofixFormatted: null,
   isLoading: false,
+  isWaitingForRun: false,
   isPolling: false,
   startStep: jest.fn(),
   createPR: jest.fn(),
@@ -672,7 +679,7 @@ describe('ArtifactCard', () => {
             [makeAssistantBlock('The relevant files are not in the connected repo.')]
           )}
         />,
-        {organization: prIterationOrganization}
+        {organization: manualPrIterationOrganization}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
@@ -691,6 +698,44 @@ describe('ArtifactCard', () => {
         runId: 123,
         userContext: 'Try the other repo',
       });
+    });
+
+    it('does not open PR iteration feedback when only automated CI iteration is enabled', async () => {
+      const autofixWithPR: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofixWithRunState,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithPR}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
+
+      // Reset is ineligible once a PR exists without the manual flag, so neither
+      // the PR iteration form nor the free-text reset prompt opens.
+      expect(
+        screen.queryByText('Anything else you want to see on your PR?')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('What additional context should Seer use?')
+      ).not.toBeInTheDocument();
     });
 
     it('falls back to the generic failure copy when there is no explanation', () => {
@@ -1388,6 +1433,34 @@ describe('ArtifactCard', () => {
       expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
     });
 
+    it('disables reset once PRs exist when only automated CI iteration is enabled', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      // Reset opens the manual feedback form, so the automated flag must not
+      // unlock it once a PR exists.
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+    });
+
     it('keeps reset enabled with the feature flag even when PRs exist', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
@@ -1408,7 +1481,7 @@ describe('ArtifactCard', () => {
             [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        {organization: prIterationOrganization}
+        {organization: manualPrIterationOrganization}
       );
 
       expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
@@ -1460,7 +1533,7 @@ describe('ArtifactCard', () => {
             [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        {organization: prIterationOrganization}
+        {organization: manualPrIterationOrganization}
       );
 
       expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
@@ -1540,7 +1613,7 @@ describe('ArtifactCard', () => {
             [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
         />,
-        {organization: prIterationOrganization}
+        {organization: manualPrIterationOrganization}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
@@ -1770,7 +1843,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [makeCodingAgent({provider: 'unknown_provider' as any})],
+            [makeCodingAgent({provider: 'unknown_provider'})],
           ])}
         />
       );
@@ -1821,6 +1894,7 @@ describe('ArtifactCard', () => {
                     description: 'Fixed',
                     repo_full_name: 'org/repo',
                     repo_provider: 'github',
+                    pr_number: 99,
                     pr_url: 'https://github.com/org/repo/pull/99',
                   },
                 ],
@@ -1830,7 +1904,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      const link = screen.getByRole('button', {name: 'View Pull Request'});
+      const link = screen.getByRole('button', {name: 'View org/repo#99'});
       expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/99');
     });
 

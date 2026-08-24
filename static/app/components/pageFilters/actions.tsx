@@ -21,13 +21,19 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {
+  DateString,
+  PageFilters,
+  PageFilterDatetime,
+  PinnedPageFilter,
+} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {DAY as DAY_IN_MS, HOUR as HOUR_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -86,15 +92,16 @@ function getProjectIdFromProject(project: MinimalProject) {
   return parseInt(project.id, 10);
 }
 
+export function getOldestPickableStart(maxPickableDays: number, now = Date.now()) {
+  return new Date(now - maxPickableDays * DAY_IN_MS);
+}
+
 /**
  * Merges two date time objects, where the `base` object takes precedence, and
  * the `fallback` values are used when the base values are null or undefined.
  */
-function mergeDatetime(
-  base: PageFilters['datetime'],
-  fallback?: Partial<PageFilters['datetime']>
-) {
-  const datetime: PageFilters['datetime'] = {
+function mergeDatetime(base: PageFilterDatetime, fallback?: Partial<PageFilterDatetime>) {
+  const datetime: PageFilterDatetime = {
     start: base.start ?? fallback?.start ?? null,
     end: base.end ?? fallback?.end ?? null,
     period: base.period ?? fallback?.period ?? null,
@@ -372,20 +379,20 @@ export function initializeUrlState({
   let shouldUseMaxDateRange = false;
 
   if (maxPickableDays && pageFilters.datetime) {
+    const now = Date.now();
     let {start, end} = pageFilters.datetime;
 
     if (pageFilters.datetime.period) {
-      const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
-      start = parsedPeriod.start;
-      end = parsedPeriod.end;
+      const periodInHours = parsePeriodToHours(pageFilters.datetime.period);
+      start = new Date(now - periodInHours * HOUR_IN_MS);
+      end = new Date(now);
     }
 
     if (start && end) {
       const periodStart = new Date(start);
       const periodEnd = new Date(end);
-      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
-      const maxTimeRange = (maxDateRange ?? maxPickableDays) * 24 * 60 * 60 * 1000;
-      const maxStart = new Date(maxPeriod.start);
+      const maxTimeRange = (maxDateRange ?? maxPickableDays) * DAY_IN_MS;
+      const maxStart = getOldestPickableStart(maxPickableDays, now);
       if (maxDateRange) {
         if (
           periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||

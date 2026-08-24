@@ -2,18 +2,24 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Op
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.models.group import Group
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
+from sentry.models.group import Group, _normalize_replay_id, bulk_get_latest_event_ids
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
-from tests.sentry.issues.test_utils import OccurrenceTestMixin
+from sentry.utils.snuba import SnubaError, bulk_snuba_queries
+from tests.sentry.issues.test_utils import OccurrenceTestMixin, SearchIssueTestMixin
 
 
 def _get_recommended_non_null(g: Group) -> GroupEvent:
@@ -34,7 +40,108 @@ def _get_oldest_non_null(g: Group, environments: Sequence[str] = ()) -> GroupEve
     return ret
 
 
-class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
+class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, SearchIssueTestMixin):
+    def test_bulk_get_latest_event_ids(self) -> None:
+        project = self.create_project()
+        error_timestamp = before_now(minutes=1)
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": error_timestamp.isoformat(),
+                "fingerprint": ["error-group"],
+            },
+            project_id=project.id,
+        )
+        latest_error_event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": error_timestamp.isoformat(),
+                "fingerprint": ["error-group"],
+            },
+            project_id=project.id,
+        )
+
+        feedback_event, _, feedback_group_info = self.store_search_issue(
+            project_id=project.id,
+            user_id=self.user.id,
+            fingerprints=["feedback-group"],
+            insert_time=before_now(seconds=30),
+            override_occurrence_data={"type": FeedbackGroup.type_id},
+        )
+        assert latest_error_event.group is not None
+        assert feedback_group_info is not None
+
+        with patch("sentry.utils.snuba.bulk_snuba_queries", wraps=bulk_snuba_queries) as bulk_query:
+            result = bulk_get_latest_event_ids(
+                [latest_error_event.group, feedback_group_info.group]
+            )
+
+        assert bulk_query.call_count == 1
+        assert result == {
+            latest_error_event.group.id: (project.id, latest_error_event.event_id),
+            feedback_group_info.group.id: (project.id, feedback_event.event_id),
+        }
+
+    def test_bulk_get_latest_event_ids_with_stale_last_seen(self) -> None:
+        project = self.create_project()
+        initial_event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(minutes=10).isoformat(),
+                "fingerprint": ["stale-group"],
+            },
+            project_id=project.id,
+        )
+        assert initial_event.group is not None
+        stale_group = Group.objects.get(id=initial_event.group.id)
+
+        latest_event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["stale-group"],
+            },
+            project_id=project.id,
+        )
+
+        assert bulk_get_latest_event_ids([stale_group]) == {
+            stale_group.id: (project.id, latest_event.event_id)
+        }
+
+    def test_bulk_get_latest_event_ids_includes_accepted_future_event(self) -> None:
+        project = self.create_project()
+        initial_event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["future-group"],
+            },
+            project_id=project.id,
+        )
+        latest_event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": (timezone.now() + timedelta(seconds=30)).isoformat(),
+                "fingerprint": ["future-group"],
+            },
+            project_id=project.id,
+        )
+        assert initial_event.group is not None
+
+        assert bulk_get_latest_event_ids([initial_event.group]) == {
+            initial_event.group.id: (project.id, latest_event.event_id)
+        }
+
+    @patch("sentry.utils.snuba.bulk_snuba_queries")
+    def test_bulk_get_latest_event_ids_casts_group_id(self, bulk_snuba_queries: MagicMock) -> None:
+        group = self.create_group()
+        event_id = "a" * 32
+        bulk_snuba_queries.return_value = [
+            {"data": [{"group_id": str(group.id), "event_id": event_id}]}
+        ]
+
+        assert bulk_get_latest_event_ids([group]) == {group.id: (group.project_id, event_id)}
+
     def test_get_oldest_latest_for_environments(self) -> None:
         project = self.create_project()
         self.store_event(
@@ -155,8 +262,14 @@ def _get_recommended(
     conditions: Sequence[Condition] | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
+    verify_replay_exists: bool = False,
 ) -> GroupEvent:
-    ret = g.get_recommended_event(conditions=conditions, start=start, end=end)
+    ret = g.get_recommended_event(
+        conditions=conditions,
+        start=start,
+        end=end,
+        verify_replay_exists=verify_replay_exists,
+    )
     assert ret is not None
     return ret
 
@@ -253,7 +366,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_recommended(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_recommended(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range
@@ -270,6 +383,64 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
             == self.event_b.event_id
         )
 
+    VERIFY_REPLAY_FILTER = "sentry.replays.usecases.replay_existence.filter_existing_replay_ids"
+
+    @patch(VERIFY_REPLAY_FILTER)
+    def test_recommended_event_verify_replay_missing_falls_back(
+        self, mock_filter: MagicMock
+    ) -> None:
+        # No replay exists -> fall back to the top-ranked event (current behavior).
+        mock_filter.return_value = set()
+        assert (
+            _get_recommended(self.group, verify_replay_exists=True).event_id
+            == self.event_b.event_id
+        )
+
+    @patch(VERIFY_REPLAY_FILTER)
+    def test_recommended_event_verify_replay_prefers_existing(self, mock_filter: MagicMock) -> None:
+        # A lower-ranked event (replay + processing errors) whose replay exists is
+        # preferred over the top-ranked event whose replay is missing.
+        lower_replay_id = uuid.uuid4().hex
+        lower_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": before_now(minutes=4).isoformat(),
+                "fingerprint": ["group-1"],
+                "environment": "production",
+                "contexts": {"replay": {"replay_id": lower_replay_id}},
+                "errors": [{"type": "one"}, {"type": "two"}],
+                "message": "Error: Division by zero",
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        mock_filter.return_value = {lower_replay_id}
+        assert (
+            _get_recommended(self.group, verify_replay_exists=True).event_id == lower_event.event_id
+        )
+
+    @patch(VERIFY_REPLAY_FILTER)
+    def test_recommended_event_verify_replay_query_error_falls_back(
+        self, mock_filter: MagicMock
+    ) -> None:
+        mock_filter.side_effect = SnubaError("boom")
+        assert (
+            _get_recommended(self.group, verify_replay_exists=True).event_id
+            == self.event_b.event_id
+        )
+
+    def test_normalize_replay_id_handles_dashed_and_dashless(self) -> None:
+        assert (
+            _normalize_replay_id("550e8400-e29b-41d4-a716-446655440000")
+            == "550e8400e29b41d4a716446655440000"
+        )
+        assert (
+            _normalize_replay_id("550e8400e29b41d4a716446655440000")
+            == "550e8400e29b41d4a716446655440000"
+        )
+        assert _normalize_replay_id(None) is None
+        assert _normalize_replay_id("not-a-uuid") is None
+
     def test_latest_event(self) -> None:
         # No filter
         assert _get_latest(self.group).event_id == self.event_a.event_id
@@ -285,7 +456,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_latest(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_latest(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range
@@ -315,7 +486,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range

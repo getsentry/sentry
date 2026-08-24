@@ -35,7 +35,7 @@ type Props = SortProps & {
   highlightedRowIndex?: number;
   pageLinks?: string | null;
   query?: Query;
-  ref?: RefObject<HTMLDivElement | null>;
+  ref?: RefObject<HTMLTableElement | null>;
   stickyHeader?: boolean;
 };
 
@@ -62,17 +62,19 @@ export function ReplayTable({
   if (isPending) {
     return (
       <StyledSimpleTable
+        header={
+          <ReplayTableHeader
+            columns={columns}
+            replays={replays}
+            onSortClick={onSortClick}
+            sort={sort}
+            stickyHeader={stickyHeader}
+          />
+        }
         data-test-id="replay-table-loading"
         ref={ref}
         style={{gridTemplateColumns}}
       >
-        <ReplayTableHeader
-          columns={columns}
-          replays={replays}
-          onSortClick={onSortClick}
-          sort={sort}
-          stickyHeader={stickyHeader}
-        />
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
@@ -83,18 +85,19 @@ export function ReplayTable({
   if (error) {
     return (
       <StyledSimpleTable
+        header={
+          <ReplayTableHeader
+            columns={columns}
+            replays={replays}
+            onSortClick={onSortClick}
+            sort={sort}
+            stickyHeader={stickyHeader}
+          />
+        }
         data-test-id="replay-table-errored"
         ref={ref}
         style={{gridTemplateColumns}}
       >
-        <ReplayTableHeader
-          columns={columns}
-          onSortClick={onSortClick}
-          replays={replays}
-          sort={sort}
-          stickyHeader={stickyHeader}
-        />
-
         <SimpleTable.Empty>
           <Alert variant="danger">
             {t('Sorry, the list of replays could not be loaded. ')}
@@ -107,17 +110,19 @@ export function ReplayTable({
 
   return (
     <StyledSimpleTable
+      header={
+        <ReplayTableHeader
+          columns={columns}
+          replays={replays}
+          onSortClick={onSortClick}
+          sort={sort}
+          stickyHeader={stickyHeader}
+        />
+      }
       data-test-id="replay-table"
       ref={ref}
       style={{gridTemplateColumns}}
     >
-      <ReplayTableHeader
-        columns={columns}
-        onSortClick={onSortClick}
-        replays={replays}
-        sort={sort}
-        stickyHeader={stickyHeader}
-      />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
@@ -129,6 +134,7 @@ export function ReplayTable({
         >
           {hasInteractiveColumn ? (
             <InteractionStateLayer
+              as="td"
               isHovered={highlightedRowIndex === rowIndex ? true : undefined}
             />
           ) : null}
@@ -149,15 +155,17 @@ export function ReplayTable({
         </RowWithScrollIntoView>
       ))}
       {pageLinks ? (
-        <StyledPagination
-          pageLinks={pageLinks}
-          onCursor={(cursor, path, searchQuery) => {
-            navigate({
-              pathname: path,
-              query: {...searchQuery, cursor},
-            });
-          }}
-        />
+        <SimpleTable.FullWidthRow>
+          <StyledPagination
+            pageLinks={pageLinks}
+            onCursor={(cursor, path, searchQuery) => {
+              navigate({
+                pathname: path,
+                query: {...searchQuery, cursor},
+              });
+            }}
+          />
+        </SimpleTable.FullWidthRow>
       ) : null}
     </StyledSimpleTable>
   );
@@ -171,7 +179,7 @@ function RowWithScrollIntoView({
   children: React.ReactNode;
   scrollIntoView: boolean;
 } & React.ComponentProps<typeof SimpleTable.Row>) {
-  const rowRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLTableRowElement>(null);
   useEffect(() => {
     if (scrollIntoView) {
       rowRef.current?.scrollIntoView({block: 'center'});
@@ -195,7 +203,7 @@ const StyledSimpleTable = styled(SimpleTable)`
 
 const StyledPagination = styled(Pagination)`
   margin: ${p => p.theme.space.md};
-  grid-column: 1 / -1;
+  width: 100%;
 `;
 
 function getErrorMessage(fetchError: Error | string) {

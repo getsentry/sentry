@@ -466,6 +466,29 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
         assert self._backfill_pr_lifecycle() == 0
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
+    def test_heals_activity_backfill_with_unknown_open_pr_state(self) -> None:
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.MERGED,
+            merged_at=self.now - timedelta(minutes=1),
+        )
+        self._backfill_resolved_action(pull_request)
+        merged_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_MERGED,
+            source=BACKFILL_ACTIVITY_SOURCE,
+            data={"pull_request": pull_request.id, "has_other_open_prs": None},
+            date_added=self.now - timedelta(minutes=1),
+        )
+
+        assert self._backfill_pr_lifecycle() == 0
+
+        merged_entry.refresh_from_db()
+        assert merged_entry.data["has_other_open_prs"] is False
+        derived = process_group_log(self.group.id)
+        assert derived.data["has_open_fix_pr"] is False
+        assert derived.progress != IssueProgressState.FIX_PROPOSED
+        assert self._backfill_pr_lifecycle() == 0
+
     def test_backfills_merge_after_stale_closed_action(self) -> None:
         merged_at = self.now - timedelta(minutes=1)
         pull_request = self._create_linked_pull_request(

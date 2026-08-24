@@ -84,6 +84,48 @@ def clamp_conversation_id_for_storage(conversation_id: str) -> str:
     return conversation_id[:CONVERSATION_ID_TRUNCATE_TO] + "..."
 
 
+# Earliest title source wins (closest to the first user message); project_id breaks ties.
+TITLE_ORDER_BY = (F("title_source_timestamp").asc(nulls_last=True), "project_id")
+
+
+def fetch_conversation_titles(
+    conversation_project_pairs: Collection[tuple[str, int]],
+) -> dict[str, str]:
+    """One title per conversation_id among the given (conversation_id, project_id) pairs.
+
+    Only requested pairs are considered (ids are unique per project). Among those,
+    earliest ``title_source_timestamp`` wins; ``project_id`` breaks ties.
+    """
+    if not conversation_project_pairs:
+        return {}
+
+    requested_pairs = set(conversation_project_pairs)
+    conversation_id_by_hash = {
+        conversation_id_hash(conversation_id): conversation_id
+        for conversation_id, _ in requested_pairs
+    }
+
+    rows = (
+        AIConversationMetadata.objects.filter(
+            project_id__in={project_id for _, project_id in requested_pairs},
+            conversation_id_hash__in=conversation_id_by_hash,
+            title__isnull=False,
+        )
+        .exclude(title="")
+        .order_by(*TITLE_ORDER_BY)
+        .values_list("conversation_id_hash", "project_id", "title")
+    )
+
+    titles: dict[str, str] = {}
+    for row_hash, project_id, title in rows:
+        if title is None:
+            continue
+        conversation_id = conversation_id_by_hash[row_hash]
+        if (conversation_id, project_id) in requested_pairs:
+            titles.setdefault(conversation_id, title)
+    return titles
+
+
 def fetch_conversation_title(
     conversation_id: str,
     project_ids: Collection[int],
@@ -105,43 +147,9 @@ def fetch_conversation_title(
             title__isnull=False,
         )
         .exclude(title="")
-        .order_by(F("title_source_timestamp").asc(nulls_last=True), "project_id")
+        .order_by(*TITLE_ORDER_BY)
         .first()
     )
-
-
-def fetch_conversation_titles(
-    conversation_project_pairs: Collection[tuple[str, int]],
-) -> dict[tuple[str, int], str]:
-    """Look up stored titles for the given (conversation_id, project_id) pairs.
-
-    A conversation id is only unique within a project, so callers must key on the
-    pair. Pairs without a titled row are simply absent from the result.
-    """
-    if not conversation_project_pairs:
-        return {}
-
-    requested_pairs = set(conversation_project_pairs)
-    conversation_id_by_hash = {
-        conversation_id_hash(conversation_id): conversation_id
-        for conversation_id, _ in requested_pairs
-    }
-
-    rows = AIConversationMetadata.objects.filter(
-        project_id__in={project_id for _, project_id in requested_pairs},
-        conversation_id_hash__in=conversation_id_by_hash,
-        title__isnull=False,
-    ).values_list("conversation_id_hash", "project_id", "title")
-
-    # The filter matches the cross product of the hashes and the projects, so drop
-    # any (conversation, project) combination the caller did not ask about.
-    titles: dict[tuple[str, int], str] = {}
-    for row_hash, project_id, title in rows:
-        pair = (conversation_id_by_hash[row_hash], project_id)
-        if title and pair in requested_pairs:
-            titles[pair] = title
-
-    return titles
 
 
 def _extract_first_user_message(messages: Any) -> str | None:

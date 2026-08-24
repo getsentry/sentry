@@ -11,7 +11,7 @@ import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -21,12 +21,13 @@ import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issue
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
+function useFetchAllEnvsGroupData(organization: Organization, group: Group) {
   return useQuery({
     ...groupApiOptions({
       organizationSlug: organization.slug,
       groupId: group.id,
       environments: [],
+      expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
     }),
     gcTime: 30_000,
   });
@@ -34,7 +35,6 @@ function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Grou
 
 export function FirstLastSeenSection({event, group}: {group: Group; event?: Event}) {
   const organization = useOrganization();
-  const {project} = group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const shouldReserveReleaseSpace = !!event?.release;
 
@@ -76,9 +76,6 @@ export function FirstLastSeenSection({event, group}: {group: Group; event?: Even
           <SeenInfo
             date={lastSeen}
             dateGlobal={lastSeenGlobal}
-            organization={organization}
-            projectId={project.id}
-            projectSlug={project.slug}
             environment={shortEnvironmentLabel}
           />
         </Flex>
@@ -96,9 +93,6 @@ export function FirstLastSeenSection({event, group}: {group: Group; event?: Even
           <SeenInfo
             date={group.firstSeen}
             dateGlobal={allEnvsGroupData?.firstSeen ?? group.firstSeen}
-            organization={organization}
-            projectId={project.id}
-            projectSlug={project.slug}
             environment={shortEnvironmentLabel}
           />
         </Flex>

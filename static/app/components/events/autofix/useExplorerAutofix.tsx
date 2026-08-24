@@ -34,6 +34,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
   isExplorerCodingAgentState,
@@ -46,6 +47,7 @@ import {
   type RepoPRState,
   type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
+import {collectArtifacts} from 'sentry/views/seerExplorer/utils';
 
 /**
  * Available autofix steps that can be triggered via the Explorer.
@@ -225,16 +227,28 @@ export interface ExplorerAutofixState {
  */
 export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
+  formatted?: {content: string; format: string};
 }
 
-const POLL_INTERVAL = 1000;
+/**
+ * Poll interval while a run is active, so streaming blocks show up promptly in
+ * the drawer.
+ */
+const ACTIVE_POLL_INTERVAL = 1000;
+
+/**
+ * Poll interval while idle and only watching an already created PR. These are
+ * slow external events (automated CI iteration pushes, review comments), so
+ * polling stays cheap rather than matching the active-run rate.
+ */
+const PR_POLL_INTERVAL = 10000;
 
 function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-      query: {mode: 'explorer'},
+      query: {mode: 'explorer', llmFormat: 'markdown'},
       staleTime: 0,
     }
   );
@@ -316,8 +330,12 @@ export const getPollInterval = ({
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
   const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
 
-  if (shouldPollPR || shouldPollProcessing) {
-    return POLL_INTERVAL;
+  if (shouldPollProcessing) {
+    return ACTIVE_POLL_INTERVAL;
+  }
+
+  if (shouldPollPR) {
+    return PR_POLL_INTERVAL;
   }
 
   return false;
@@ -359,7 +377,9 @@ function buildSection(
   blocks: Block[],
   runState: ExplorerAutofixState | null
 ): AutofixSection {
-  const artifacts: AutofixArtifact[] = blocks.flatMap(block => block.artifacts ?? []);
+  // Both channels: the classic block field and Code Mode's structuredContent
+  // (codemode-structured-content-only).
+  const artifacts: AutofixArtifact[] = collectArtifacts(blocks);
 
   const section: AutofixSection = {
     index,
@@ -496,7 +516,7 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
 }
 
 export function isRunValidForPrIteration(organization: Organization): boolean {
-  return organization.features.includes('autofix-pr-iteration');
+  return organization.features.includes('autofix-pr-iteration-manual');
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
@@ -549,11 +569,20 @@ function isLastBlockOfSection(block?: Block): boolean {
 
 interface UseExplorerAutofixOptions {
   /**
-   * Whether to enable the hook and make API calls.
-   * When false, the hook returns null state and no-op functions.
-   * Defaults to true.
+   * The `source` reported on coding agent handoff analytics.
+   * Defaults to 'explorer'.
+   */
+  codingAgentAnalyticsSource?: 'explorer' | 'overview';
+  /**
+   * Whether to fetch and poll run state. Action callbacks (startStep, createPR,
+   * triggerCodingAgentHandoff) stay live even when false — used by the overview.
    */
   enabled?: boolean;
+  /**
+   * Called with coding agent launch failure messages. Defaults to
+   * accumulating them in `codingAgentErrors` for inline display.
+   */
+  onCodingAgentError?: (messages: string[]) => void;
   /**
    * Force fast polling while the drawer is mounted. Other observers can keep
    * their processing-aware intervals.
@@ -570,13 +599,18 @@ interface UseExplorerAutofixOptions {
  * - Creating pull requests from code changes
  */
 export function useExplorerAutofix(
-  group: Group,
+  group: Pick<Group, 'id' | 'shortId'>,
   options: UseExplorerAutofixOptions = {}
 ) {
   const groupId = group.id;
   const {openModal} = useModal();
 
-  const {enabled = true, pollPR = false} = options;
+  const {
+    enabled = true,
+    pollPR = false,
+    codingAgentAnalyticsSource = 'explorer',
+    onCodingAgentError,
+  } = options;
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -601,8 +635,13 @@ export function useExplorerAutofix(
       ...messages.map(message => ({id: nextCodingAgentErrorId.current++, message})),
     ]);
   }, []);
+  const reportCodingAgentErrors = onCodingAgentError ?? appendCodingAgentErrors;
 
-  const {data: apiData, isPending} = useQuery({
+  const {
+    data: apiData,
+    isFetching,
+    isPending,
+  } = useQuery({
     ...explorerAutofixApiOptions(orgSlug, groupId),
     retry: false,
     enabled,
@@ -667,6 +706,9 @@ export function useExplorerAutofix(
         // Invalidate to fetch fresh data
         const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+        });
+        queryClient.invalidateQueries({
+          queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
         });
 
         if (step === 'pr_iteration') {
@@ -803,7 +845,7 @@ export function useExplorerAutofix(
         organization,
         group_id: groupId,
         provider: integration.provider,
-        source: 'explorer',
+        source: codingAgentAnalyticsSource,
         user_id: user.id,
       });
 
@@ -881,7 +923,7 @@ export function useExplorerAutofix(
           }
 
           if (otherFailures.length > 0) {
-            appendCodingAgentErrors(
+            reportCodingAgentErrors(
               otherFailures.map(f => f.error_message ?? 'Failed to launch coding agent')
             );
           }
@@ -897,7 +939,7 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        appendCodingAgentErrors([
+        reportCodingAgentErrors([
           e?.responseJSON?.detail ?? 'Failed to launch coding agent',
         ]);
         throw e;
@@ -913,7 +955,8 @@ export function useExplorerAutofix(
       queryClient,
       organization,
       user.id,
-      appendCodingAgentErrors,
+      codingAgentAnalyticsSource,
+      reportCodingAgentErrors,
       openModal,
     ]
   );
@@ -931,9 +974,19 @@ export function useExplorerAutofix(
      */
     runState,
     /**
-     * Whether the initial data fetch is pending.
+     * Formatted markdown for LLM prompts
      */
-    isLoading: isPending,
+    autofixFormatted: apiData?.formatted?.content ?? null,
+    /**
+     * Whether we're fetching without an existing run to display.
+     * This includes background refetches of a cached null response so callers do not
+     * treat that stale response as confirmation that no run exists.
+     */
+    isLoading: isPending || (isFetching && !runState),
+    /**
+     * Whether a step was started but the backend has not returned its first run state yet.
+     */
+    isWaitingForRun: waitingForResponse && !runState,
     /**
      * Whether we're actively processing (used for UI indicators).
      */

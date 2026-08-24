@@ -205,6 +205,7 @@ export type DashboardListItem = {
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
+  description?: string;
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
@@ -243,7 +244,7 @@ export type DashboardDetails = {
   widgets: Widget[];
   createdBy?: User;
   end?: string;
-  environment?: string[];
+  environment?: string[] | null;
   isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;

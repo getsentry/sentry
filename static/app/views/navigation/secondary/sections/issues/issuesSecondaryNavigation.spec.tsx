@@ -2,12 +2,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 describe('IssuesSecondaryNavigation', () => {
+  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui'],
+    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -24,18 +26,18 @@ describe('IssuesSecondaryNavigation', () => {
     });
   }
 
-  function renderNavigation() {
+  function renderNavigation(testOrganization = organization) {
     render(
       <SecondaryNavigationContextProvider>
         <IssuesSecondaryNavigation />
       </SecondaryNavigationContextProvider>,
-      {organization}
+      {organization: testOrganization}
     );
   }
 
-  it('shows the inbox count for every progress section and the user and their teams', async () => {
+  it('shows the inbox count for Seer progress sections assigned or suggested to the user', async () => {
     const request = mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 12,
+      [inboxCountQuery]: 12,
     });
 
     renderNavigation();
@@ -46,15 +48,17 @@ describe('IssuesSecondaryNavigation', () => {
     const [[, options]] = request.mock.calls;
     expect(options.query.query).toHaveLength(1);
     const [query] = options.query.query;
+    expect(options.query).not.toHaveProperty('project');
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
-    expect(query).toContain('assigned:[me,my_teams]');
+    expect(query).toContain('is:unresolved');
+    expect(query).toContain('assigned_or_suggested:me');
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
     mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 100,
+      [inboxCountQuery]: 100,
     });
 
     renderNavigation();
@@ -62,14 +66,45 @@ describe('IssuesSecondaryNavigation', () => {
     expect(await screen.findByText('99+')).toBeInTheDocument();
   });
 
-  it('renders no badge when nothing is waiting', async () => {
-    mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 0,
+  it('does not render Inbox or request its count without Autofix access', async () => {
+    const request = mockInboxCount({});
+    const organizationWithoutAutofix = OrganizationFixture({
+      features: ['issue-stream-progress-ui', 'gen-ai-features'],
     });
+
+    renderNavigation(organizationWithoutAutofix);
+
+    expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Inbox/})).not.toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('renders the Autofix Overview link when the org has seer-night-shift-ui', async () => {
+    mockInboxCount({});
+    const organizationWithOverview = OrganizationFixture({
+      features: [
+        'issue-stream-progress-ui',
+        'gen-ai-features',
+        'seat-based-seer-enabled',
+        'seer-night-shift-ui',
+      ],
+    });
+
+    renderNavigation(organizationWithOverview);
+
+    const overviewLink = await screen.findByRole('link', {name: /Overview/});
+    expect(overviewLink).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/autofix/overview/'
+    );
+  });
+
+  it('does not render the Autofix Overview link without seer-night-shift-ui', async () => {
+    mockInboxCount({});
 
     renderNavigation();
 
-    expect(await screen.findByRole('link', {name: 'Inbox'})).toBeInTheDocument();
-    expect(screen.queryByText('0')).not.toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Overview/})).not.toBeInTheDocument();
   });
 });

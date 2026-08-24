@@ -6,7 +6,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -95,15 +95,22 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
         });
 
   const table = (
-    <SimpleTableWithColumns>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="action-filters">
-          {t('Actions')}
-        </SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+    <SimpleTableWithColumns
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="action-filters">
+            {t('Actions')}
+          </SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
-      {isError && <LoadingError />}
+      {isError && (
+        <SimpleTable.Empty>
+          <LoadingError />
+        </SimpleTable.Empty>
+      )}
       {isSuccess && automations?.length === 0 && (
         <SimpleTable.Empty>
           {searchQuery ? t('No matching alerts found') : emptyMessage}
@@ -127,7 +134,7 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
   );
 
   return (
-    <Container>
+    <Container containerType="inline-size">
       <Stack gap="md">
         <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
         {table}
@@ -146,7 +153,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
   const queryClient = useQueryClient();
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const {mutate: updateDetector} = useUpdateDetector();
-  const project = useProjectFromId({project_id: detector.projectId});
+  const project = useProjectFromId({project_id: detector.projectId ?? undefined});
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
     projectId: detector.projectId,
   });
@@ -316,14 +323,10 @@ export function DetectorDetailsAutomations({detector}: Props) {
   );
 }
 
-const Container = styled('div')`
-  container-type: inline-size;
-`;
-
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 180px;
 
-  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+  @container (max-width: ${p => p.theme.container.sm}) {
     grid-template-columns: 1fr 120px;
   }
 `;

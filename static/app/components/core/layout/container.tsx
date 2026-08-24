@@ -157,6 +157,8 @@ export type ContainerElement =
   | 'section'
   | 'span'
   | 'summary'
+  | 'td'
+  | 'th'
   | 'ul'
   | 'hr';
 

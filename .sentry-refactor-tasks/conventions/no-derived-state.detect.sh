@@ -44,7 +44,7 @@ trap cleanup EXIT
 # Bring up the repo's toolchain, then pin the plugin to the version this
 # convention's detection depends on — independent of the repo's own lockfile.
 pnpm install --frozen-lockfile 1>&2
-pnpm add -D eslint-plugin-react-you-might-not-need-an-effect@1.0.1 1>&2
+pnpm add -D -w eslint-plugin-react-you-might-not-need-an-effect@1.0.1 1>&2
 
 # Write a standalone flat config that loads only this rule. Bypassing the
 # repo's own eslint.config avoids failures from rule names that differ between

@@ -9,11 +9,11 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
 from sentry.seer.entrypoints.cache import SeerOperatorAgentCache, SeerOperatorAutofixCache
@@ -31,7 +31,6 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.pull_requests import link_seer_run_pull_requests
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -138,14 +137,17 @@ class SeerAutofixOperator[CachePayloadT]:
         Validates Seer access for the organization, the issue category, and autofix quota.
         """
         from sentry import quotas
-        from sentry.seer.autofix.utils import is_issue_category_eligible
+        from sentry.seer.autofix.utils import is_free_cohort_org, is_issue_category_eligible
 
         return (
             has_seer_access(group.organization)
             and is_issue_category_eligible(group)
-            and quotas.backend.check_seer_quota(
-                org_id=group.organization.id,
-                data_category=DataCategory.SEER_AUTOFIX,
+            and (
+                is_free_cohort_org(group.organization)
+                or quotas.backend.check_seer_quota(
+                    org_id=group.organization.id,
+                    data_category=DataCategory.SEER_AUTOFIX,
+                )
             )
         )
 
@@ -254,6 +256,11 @@ class SeerAutofixOperator[CachePayloadT]:
                         group,
                         run_id,
                         referrer=AutofixReferrer.SLACK,
+                        author=commit_author_for_user(
+                            user,
+                            group.organization.id,
+                            referrer="autofix_open_pr_slack",
+                        ),
                     )
                 else:
                     # NOTE: Stopping point here is really just what
@@ -646,6 +653,49 @@ def _create_seer_activity(
     )
 
 
+def record_seer_activity(
+    *,
+    group: Group,
+    event_type: SentryAppEventType,
+    event_payload: dict[str, Any],
+    activity_attribution: SeerActivityAttribution | None = None,
+) -> None:
+    iteration_attribution: SeerActivityAttribution | None = None
+    if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
+        try:
+            referrer = AutofixReferrer(activity_attribution["referrer"])
+        except ValueError:
+            pass
+        else:
+            iteration_attribution = {"referrer": referrer}
+            actor_user_id = activity_attribution.get("actor_user_id")
+            if actor_user_id is not None:
+                iteration_attribution["actor_user_id"] = actor_user_id
+
+    action_source = ActionSource.SEER_EXPLORER
+    action_actor = SYSTEM_ACTOR
+    if iteration_attribution is not None:
+        action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
+            iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
+        )
+        actor_user_id = iteration_attribution.get("actor_user_id")
+        if actor_user_id is not None:
+            action_actor = GroupActionActor.user(actor_user_id)
+
+    try:
+        with action_context_scope(action_source, action_actor):
+            _create_seer_activity(group, event_type, event_payload, iteration_attribution)
+    except Exception:
+        logger.exception(
+            "seer.activity_creation_failed",
+            extra={
+                "group_id": group.id,
+                "run_id": event_payload.get("run_id"),
+                "event_type": str(event_type),
+            },
+        )
+
+
 @instrumented_task(
     name="sentry.seer.entrypoints.operator.process_autofix_updates",
     namespace=seer_tasks,
@@ -658,10 +708,15 @@ def process_autofix_updates(
     event_payload: dict[str, Any],
     organization_id: int,
     activity_attribution: SeerActivityAttribution | None = None,
+    activity_datetime: str | None = None,
+    activity_already_recorded: bool = False,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
     has a cache. If so, call the entrypoint's handler with the payload it had previously cached.
+
+    activity_datetime is accepted for compatibility with already queued tasks and intentionally
+    ignored.
     """
     with SeerOperatorEventLifecycleMetric(
         interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AUTOFIX_UPDATE
@@ -697,66 +752,13 @@ def process_autofix_updates(
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        iteration_attribution: SeerActivityAttribution | None = None
-        if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
-            try:
-                activity_attribution["referrer"] = AutofixReferrer(activity_attribution["referrer"])
-            except ValueError:
-                pass
-            else:
-                iteration_attribution = activity_attribution
-
-        action_source = ActionSource.SEER_EXPLORER
-        action_actor = SYSTEM_ACTOR
-        if iteration_attribution is not None:
-            action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
-                iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
+        if not activity_already_recorded:
+            record_seer_activity(
+                group=group,
+                event_type=event_type,
+                event_payload=event_payload,
+                activity_attribution=activity_attribution,
             )
-            actor_user_id = iteration_attribution.get("actor_user_id")
-            if actor_user_id is not None:
-                action_actor = GroupActionActor.user(actor_user_id)
-
-        try:
-            with action_context_scope(action_source, action_actor):
-                _create_seer_activity(group, event_type, event_payload, iteration_attribution)
-        except Exception:
-            logger.exception(
-                "seer.activity_creation_failed",
-                extra={
-                    "group_id": group_id,
-                    "run_id": run_id,
-                    "event_type": str(event_type),
-                },
-            )
-
-        if event_type == SentryAppEventType.SEER_PR_CREATED:
-            pull_requests = event_payload.get("pull_requests", [])
-
-            if features.has("organizations:pr-metrics-attribution", organization):
-                try:
-                    attribute_seer_created_pull_requests(
-                        organization=organization,
-                        pull_requests=pull_requests,
-                        run_id=run_id,
-                        group_id=group_id,
-                    )
-                except Exception:
-                    logger.exception(
-                        "seer.pr_attribution.failed",
-                        extra={"group_id": group_id, "run_id": run_id},
-                    )
-
-            try:
-                link_seer_run_pull_requests(
-                    organization=organization,
-                    seer_run_state_id=run_id,
-                    pull_requests=pull_requests,
-                )
-            except Exception:
-                logger.exception(
-                    "seer.pr_link.failed",
-                    extra={"group_id": group_id, "run_id": run_id},
-                )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {

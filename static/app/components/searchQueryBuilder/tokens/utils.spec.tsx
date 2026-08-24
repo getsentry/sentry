@@ -10,6 +10,15 @@ describe('getInitialFilterText', () => {
     );
   });
 
+  it('quotes typed filter keys containing colons', () => {
+    expect(
+      getInitialFilterText('imaginary.attribute:made_up_key', {
+        kind: FieldKind.FIELD,
+        valueType: FieldValueType.STRING,
+      })
+    ).toBe(`"imaginary.attribute:made_up_key":${WildcardOperators.CONTAINS}""`);
+  });
+
   it('defaults null value types to contains', () => {
     const fieldDefinition: FieldDefinition = {
       kind: FieldKind.FIELD,
@@ -29,5 +38,26 @@ describe('getInitialFilterText', () => {
     };
 
     expect(getInitialFilterText('message', fieldDefinition)).toBe('message:""');
+  });
+
+  it('builds array membership filters with the [*] suffix and no wildcard', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.ARRAY,
+      valueType: FieldValueType.STRING,
+    };
+
+    // Non-tag array: no wrapping.
+    expect(getInitialFilterText('some.array', fieldDefinition)).toBe('some.array[*]:""');
+    // Tag array (key without `[*]`, eg. from selection): the operator is added.
+    expect(getInitialFilterText('tags[csv_headers,array]', fieldDefinition)).toBe(
+      'tags[csv_headers,array][*]:""'
+    );
+    // Key that already carries `[*]` (eg. user-typed): not doubled.
+    expect(getInitialFilterText('tags[csv_headers,array][*]', fieldDefinition)).toBe(
+      'tags[csv_headers,array][*]:""'
+    );
+    expect(getInitialFilterText('some.array[*]', fieldDefinition)).toBe(
+      'some.array[*]:""'
+    );
   });
 });

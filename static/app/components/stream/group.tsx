@@ -49,7 +49,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
@@ -82,7 +81,6 @@ const COLUMNS: GroupListColumn[] = [
 type Props = {
   group: Group;
   canSelect?: boolean;
-  customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
   hasGuideAnchor?: boolean;
   memberList?: User[];
@@ -91,7 +89,6 @@ type Props = {
   progressState?: ProgressState | null;
   query?: string;
   queryFilterDescription?: string;
-  showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
   useFilteredStats?: boolean;
@@ -199,14 +196,13 @@ function GroupFirstSeen({group}: {group: Group}) {
 
 type LoadingSteamGroupProps = Pick<
   Props,
-  'displayReprocessingLayout' | 'withChart' | 'withColumns' | 'showLastTriggered'
+  'displayReprocessingLayout' | 'withChart' | 'withColumns'
 >;
 
 export function LoadingStreamGroup({
   displayReprocessingLayout,
   withChart = true,
   withColumns = COLUMNS,
-  showLastTriggered = false,
 }: LoadingSteamGroupProps) {
   const theme = useTheme();
 
@@ -282,17 +278,6 @@ export function LoadingStreamGroup({
         </Fragment>
       ) : (
         <Fragment>
-          {showLastTriggered && (
-            <Flex
-              justify="end"
-              alignSelf="center"
-              width="100px"
-              paddingRight="xl"
-              marginRight="xl"
-            >
-              <Placeholder height="18px" />
-            </Flex>
-          )}
           {withColumns.includes('event') && (
             <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
@@ -364,7 +349,6 @@ export function LoadingStreamGroup({
 
 export function StreamGroup({
   group,
-  customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
   memberList,
@@ -377,7 +361,6 @@ export function StreamGroup({
   withColumns = COLUMNS,
   useFilteredStats = false,
   useTintRow = true,
-  showLastTriggered = false,
   onPriorityChange,
   onAssigneeChange,
   progressState,
@@ -402,10 +385,9 @@ export function StreamGroup({
   const {period, start, end} = selection.datetime || {};
 
   const summary =
-    customStatsPeriod?.label?.toLowerCase() ??
-    (!!start && !!end
+    !!start && !!end
       ? 'time range'
-      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
+      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
   const sharedAnalytics = useMemo(() => {
     const owners = group?.owners ?? [];
@@ -486,23 +468,23 @@ export function StreamGroup({
     return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
+  const parsedSearch = useMemo(() => parseSearch(query ?? ''), [query]);
+
   const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
-    // when there is no discover feature open events page
+    // When there is no Discover feature, open the events page.
     const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const parsedResult = parseSearch(
-      isFiltered && typeof query === 'string' ? query : ''
-    );
-    const filteredTerms = parsedResult?.filter(
-      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
-    );
+    const filteredTerms = isFiltered
+      ? parsedSearch?.filter(
+          p =>
+            !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+        )
+      : [];
     const filteredQuery = joinQuery(filteredTerms, true);
-
     const commonQuery = {projects: [Number(group.project.id)]};
 
     if (hasDiscoverQuery) {
-      const stats = customStatsPeriod ?? (selection.datetime || {});
-
+      const stats = selection.datetime || {};
       const discoverQuery: NewQuery = {
         ...commonQuery,
         id: undefined,
@@ -616,51 +598,47 @@ export function StreamGroup({
   const primaryUserCount = group.filtered ? group.filtered.userCount : group.userCount;
   const secondaryUserCount = group.filtered ? group.userCount : undefined;
   // preview stats
-  const lastTriggeredDate = group.lastTriggered;
-
   const showSecondaryPoints = Boolean(
     withChart && group?.filtered && statsPeriod && useFilteredStats
   );
 
   const groupCount = (
-    <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-      <Tooltip
-        disabled={!useFilteredStats}
-        isHoverable
-        title={
-          <CountTooltipContent>
-            <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
-            {group.filtered && (
-              <Fragment>
-                <div>{queryFilterDescription ?? t('Matching filters')}</div>
-                <Link to={getDiscoverUrl(true)}>
-                  <Count value={group.filtered?.count} />
-                </Link>
-              </Fragment>
-            )}
+    <Tooltip
+      disabled={!useFilteredStats}
+      isHoverable
+      title={
+        <CountTooltipContent>
+          <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
+          {group.filtered && (
             <Fragment>
-              <div>{t('Total in %s', summary)}</div>
-              <Link to={getDiscoverUrl()}>
-                <Count value={group.count} />
+              <div>{queryFilterDescription ?? t('Matching filters')}</div>
+              <Link to={getDiscoverUrl(true)}>
+                <Count value={group.filtered?.count} />
               </Link>
             </Fragment>
-            {group.lifetime && (
-              <Fragment>
-                <div>{t('Since issue began')}</div>
-                <Count value={group.lifetime.count} />
-              </Fragment>
-            )}
-          </CountTooltipContent>
-        }
-      >
-        <Stack position="relative">
-          <PrimaryCount value={primaryCount} />
-          {secondaryCount !== undefined && useFilteredStats && (
-            <SecondaryCount value={secondaryCount} />
           )}
-        </Stack>
-      </Tooltip>
-    </GuideAnchor>
+          <Fragment>
+            <div>{t('Total in %s', summary)}</div>
+            <Link to={getDiscoverUrl()}>
+              <Count value={group.count} />
+            </Link>
+          </Fragment>
+          {group.lifetime && (
+            <Fragment>
+              <div>{t('Since issue began')}</div>
+              <Count value={group.lifetime.count} />
+            </Fragment>
+          )}
+        </CountTooltipContent>
+      }
+    >
+      <Stack position="relative">
+        <PrimaryCount value={primaryCount} />
+        {secondaryCount !== undefined && useFilteredStats && (
+          <SecondaryCount value={secondaryCount} />
+        )}
+      </Stack>
+    </Tooltip>
   );
 
   const groupUsersCount = (
@@ -700,17 +678,6 @@ export function StreamGroup({
         )}
       </Stack>
     </Tooltip>
-  );
-
-  const lastTriggered = defined(lastTriggeredDate) ? (
-    <PositionedTimeSince
-      tooltipPrefix={t('Last Triggered')}
-      date={lastTriggeredDate}
-      suffix={t('ago')}
-      unitStyle="short"
-    />
-  ) : (
-    <Placeholder height="18px" />
   );
 
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -822,17 +789,6 @@ export function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {showLastTriggered && (
-            <Flex
-              justify="end"
-              alignSelf="center"
-              width="100px"
-              paddingRight="xl"
-              marginRight="xl"
-            >
-              {lastTriggered}
-            </Flex>
-          )}
           {withColumns.includes('event') && (
             <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}

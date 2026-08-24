@@ -1,10 +1,13 @@
+import {useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
@@ -50,7 +53,19 @@ export const ExploreFilterSection = styled('div')`
   }
 `;
 
-export const ExploreBodySearch = styled(Layout.Body)`
+function StuckAwareExploreBodySearch(props: React.ComponentProps<typeof Layout.Body>) {
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {pageContentTop} = useTopOffset();
+  const isStuck = useIsStuck(elementRef, {
+    offset: Number.parseInt(pageContentTop, 10) ?? 0,
+  });
+
+  return (
+    <Layout.Body ref={elementRef} data-stuck={isStuck ? '' : undefined} {...props} />
+  );
+}
+
+export const ExploreBodySearch = styled(StuckAwareExploreBodySearch)`
   flex-grow: 0;
 
   position: sticky;
@@ -63,6 +78,11 @@ export const ExploreBodySearch = styled(Layout.Body)`
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding-bottom: ${p => p.theme.space.xl};
+  }
+
+  &[data-stuck] {
+    /* Content dropdowns should scroll underneath the sticky search controls. */
+    z-index: ${p => p.theme.zIndex.stickyHeader};
   }
 `;
 

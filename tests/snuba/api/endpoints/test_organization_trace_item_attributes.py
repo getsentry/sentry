@@ -3,16 +3,27 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from django.db import connections
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesResponse,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
 from sentry.api.endpoints.organization_trace_item_attributes import build_sentry_convention_context
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.models import (
+    TraceItemAttributeContext,
+    TraceItemAttributeTypes,
+    TraceItemTypes,
+)
 from sentry.search.eap import constants
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SupportedTraceItemType
@@ -109,6 +120,10 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
     OrganizationTraceItemAttributesEndpointTestBase, OurLogTestCase
 ):
     feature_flags = {"organizations:ourlogs-enabled": True}
+    array_feature_flags = {
+        "organizations:ourlogs-enabled": True,
+        "organizations:trace-item-array-query-support": True,
+    }
     item_type = SupportedTraceItemType.LOGS
 
     def test_no_feature(self) -> None:
@@ -477,6 +492,132 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "tags[feature_enabled,boolean]" in keys
         assert "tags[another_flag,boolean]" in keys
 
+    def _store_array_log(self) -> None:
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "data_export.csv_headers": {
+                        "array_value": ArrayValue(
+                            values=[
+                                AnyValue(string_value="title"),
+                                AnyValue(string_value="project"),
+                            ]
+                        )
+                    },
+                    "data_export.blob_offsets": {
+                        "array_value": ArrayValue(
+                            values=[AnyValue(int_value=0), AnyValue(int_value=1048576)]
+                        )
+                    },
+                    "data_export.status": {"string_value": "finished"},
+                },
+            ),
+        ]
+        self.store_eap_items(logs)
+
+    @pytest.mark.xfail(
+        strict=False,
+        reason=(
+            "Real array attribute names require Snuba's co-occurring-attrs v2 roll-up, "
+            "which is gated behind a Snuba option and a data-window cutoff and is not the "
+            "default in the local test Snuba, so this insert is served by v1 (no array "
+            "columns). Remove this marker once co-occurring-attrs v2 is the default."
+        ),
+    )
+    def test_array_attributes_surface_with_array_kind(self) -> None:
+        self._store_array_log()
+
+        response = self.do_request(features=self.array_feature_flags)
+        assert response.status_code == 200, response.content
+        by_name = {item["name"]: item for item in response.data}
+
+        assert "data_export.csv_headers" in by_name
+        assert by_name["data_export.csv_headers"]["attributeType"] == "array"
+        assert by_name["data_export.csv_headers"]["key"] == "tags[data_export.csv_headers,array]"
+
+        assert "data_export.blob_offsets" in by_name
+        assert by_name["data_export.blob_offsets"]["attributeType"] == "array"
+
+    def _mock_attribute_names_rpc(self, response_by_type):
+        """Patch the attribute-names RPC to return a patched response when snuba
+        gates  co-occurring-attrs v2 attributes"""
+
+        def _fake(rpc_request, debug=False):
+            return response_by_type.get(rpc_request.type, TraceItemAttributeNamesResponse())
+
+        return mock.patch(
+            "sentry.utils.snuba_rpc.attribute_names_rpc",
+            side_effect=_fake,
+        )
+
+    def test_array_pass_does_not_mislabel_scalars_as_arrays(self) -> None:
+        """v1-shaped response when type is array. Remove alongside the array branch of the endpoint's
+        returned-type guard when co-occurring-attrs v1 is retired in Snuba.
+        """
+        Attribute = TraceItemAttributeNamesResponse.Attribute
+        response_by_type = {
+            AttributeKey.Type.TYPE_STRING: TraceItemAttributeNamesResponse(
+                attributes=[
+                    Attribute(name="data_export.status", type=AttributeKey.Type.TYPE_STRING)
+                ]
+            ),
+            AttributeKey.Type.TYPE_DOUBLE: TraceItemAttributeNamesResponse(
+                attributes=[Attribute(name="my.number", type=AttributeKey.Type.TYPE_DOUBLE)]
+            ),
+            AttributeKey.Type.TYPE_ARRAY: TraceItemAttributeNamesResponse(
+                attributes=[
+                    Attribute(name="data_export.status", type=AttributeKey.Type.TYPE_STRING),
+                    Attribute(name="my.number", type=AttributeKey.Type.TYPE_DOUBLE),
+                ]
+            ),
+        }
+
+        with self._mock_attribute_names_rpc(response_by_type):
+            response = self.do_request(
+                query={"project": self.project.id}, features=self.array_feature_flags
+            )
+
+        assert response.status_code == 200, response.content
+        keys = [item["key"] for item in response.data]
+        # scalar type in reponse
+        assert "data_export.status" in keys
+        assert not any(key.endswith(",array]") for key in keys), keys
+
+    def test_array_pass_surfaces_real_array_attributes(self) -> None:
+        """v2-shaped mocked response"""
+        Attribute = TraceItemAttributeNamesResponse.Attribute
+        response_by_type = {
+            AttributeKey.Type.TYPE_ARRAY: TraceItemAttributeNamesResponse(
+                attributes=[
+                    Attribute(
+                        name="data_export.csv_headers",
+                        type=AttributeKey.Type.TYPE_ARRAY_STRING,
+                    ),
+                    Attribute(
+                        name="data_export.blob_offsets",
+                        type=AttributeKey.Type.TYPE_ARRAY_INT,
+                    ),
+                ]
+            ),
+        }
+
+        with self._mock_attribute_names_rpc(response_by_type):
+            response = self.do_request(
+                query={"project": self.project.id}, features=self.array_feature_flags
+            )
+
+        assert response.status_code == 200, response.content
+        by_name = {item["name"]: item for item in response.data}
+
+        assert "data_export.csv_headers" in by_name
+        assert by_name["data_export.csv_headers"]["attributeType"] == "array"
+        assert by_name["data_export.csv_headers"]["key"] == "tags[data_export.csv_headers,array]"
+
+        assert "data_export.blob_offsets" in by_name
+        assert by_name["data_export.blob_offsets"]["attributeType"] == "array"
+
     def test_debug_as_superuser(self) -> None:
         logs = [
             self.create_ourlog(
@@ -544,10 +685,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             uuid4().hex,
             organization_id=self.organization.id,
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            # `gen_ai.request.model` is a sentry convention name supplied as a
-            # user tag, and `http.route` is a convention defined in
-            # sentry-conventions but not in attributes.py. Both stay `user`
-            # source but should still be matched to their convention's context.
             tags={"foo": "foo", "gen_ai.request.model": "gpt-4", "http.route": "/users/:id"},
         )
 
@@ -582,10 +719,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         # Custom (non-convention) attributes aren't served yet, so they get an
         # empty context.
         assert attributes["foo"]["context"] == {}
-        # A user tag whose name matches a sentry convention keeps its `user`
-        # source (it was user-set) but is still matched to the convention's
-        # context, since context is matched by name/type, not source.
-        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
+        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "sentry"
         assert attributes["gen_ai.request.model"]["context"] == {
             "isConvention": True,
             "brief": "The model identifier being used for the request.",
@@ -602,6 +736,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "The matched route, that is, the path template in the format used "
                 "by the respective server framework."
             ),
+            "details": [
+                "This attribute should primarily be set by server-side "
+                "instrumentation that captures the framework route of an incoming "
+                "request.",
+                "For `http.client` spans and client-side routing, use `url.template` instead.",
+            ],
             "examples": ["/users/:id"],
             "isDeprecated": False,
         }
@@ -648,11 +788,261 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert message["name"] == "message"
         assert message["context"] == {}
 
+    def create_context(
+        self,
+        attribute_key,
+        project=None,
+        item_type=TraceItemTypes.SPANS,
+        attribute_type=TraceItemAttributeTypes.STRING,
+        **kwargs,
+    ):
+        kwargs.setdefault("brief", f"Authored brief for {attribute_key}")
+        return TraceItemAttributeContext.objects.create(
+            organization=self.organization,
+            project=project,
+            attribute_key=attribute_key,
+            item_type=item_type,
+            attribute_type=attribute_type,
+            created_by_id=self.user.id,
+            **kwargs,
+        )
+
+    def test_expand_context_custom_attribute(self) -> None:
+        self._store_basic_segment()
+        self.create_context(
+            "foo",
+            brief="How foo is used here",
+            additional_context="Only set by the checkout service.",
+            examples=["a", "b"],
+        )
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        # Marked isCustom, and no isDeprecated since deprecation isn't modeled
+        # for custom attributes.
+        assert attributes["foo"]["context"] == {
+            "isCustom": True,
+            "brief": "How foo is used here",
+            "details": ["Only set by the checkout service."],
+            "examples": ["a", "b"],
+        }
+        # A custom attribute with no authored context still gets an empty one.
+        assert attributes["http.route"]["context"]["isConvention"] is True
+
+    def test_expand_context_custom_attribute_single_bounded_query(self) -> None:
+        self._store_basic_segment()
+        self.create_context("foo")
+        # Rows for attributes not in the response must not be fetched.
+        for i in range(10):
+            self.create_context(f"not_in_response_{i}")
+
+        with CaptureQueriesContext(connections["default"]) as captured:
+            response = self.do_request(
+                query={"attributeType": "string", "expand": "context"},
+                features={
+                    **self.feature_flags,
+                    "organizations:data-browsing-attribute-context": True,
+                },
+            )
+        assert response.status_code == 200, response.data
+
+        context_queries = [
+            query["sql"]
+            for query in captured.captured_queries
+            if "explore_traceitemattributecontext" in (query["sql"] or "")
+        ]
+        # One query for the whole page, regardless of how many attributes it has.
+        assert len(context_queries) == 1
+        assert "IN (" in context_queries[0]
+        assert "not_in_response_0" not in context_queries[0]
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"]["isCustom"] is True
+
+    def test_expand_context_custom_number_attribute(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            measurements={"cart_total": 42.0},
+        )
+        # Number attributes are exposed under a `tags[...]` key, but context is
+        # matched on the internal name the write endpoint stores.
+        self.create_context(
+            "cart_total",
+            attribute_type=TraceItemAttributeTypes.NUMBER,
+            brief="Value of the cart in cents",
+        )
+
+        response = self.do_request(
+            query={"attributeType": "number", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["tags[cart_total,number]"]["context"] == {
+            "isCustom": True,
+            "brief": "Value of the cart in cents",
+        }
+
+    def test_expand_context_custom_attribute_same_name_both_types(self) -> None:
+        # Sent as a string on one span and a number on another, so it appears
+        # twice under one name; each variant resolves its own context.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"cart_total": "free"},
+        )
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=9).replace(microsecond=0),
+            measurements={"cart_total": 42.0},
+        )
+        self.create_context(
+            "cart_total",
+            attribute_type=TraceItemAttributeTypes.STRING,
+            brief="Cart tier label",
+        )
+
+        response = self.do_request(
+            query={"expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["cart_total"]["attributeType"] == "string"
+        assert attributes["cart_total"]["context"] == {
+            "isCustom": True,
+            "brief": "Cart tier label",
+        }
+        # The number variant has no context authored for its type.
+        assert attributes["tags[cart_total,number]"]["context"] == {}
+
+    def test_expand_context_custom_attribute_requires_feature(self) -> None:
+        self._store_basic_segment()
+        self.create_context("foo")
+
+        # Custom context is gated, unlike conventions context.
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": False,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+        assert attributes["device.class"]["context"]["isConvention"] is True
+
+    def test_expand_context_custom_attribute_project_scoped(self) -> None:
+        self._store_basic_segment()
+        other_project = self.create_project(organization=self.organization)
+        # Context authored against a different project must not leak into this
+        # project's response.
+        self.create_context("foo", project=other_project, brief="Other project brief")
+
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "expand": "context",
+                "project": self.project.id,
+            },
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+
+    def test_expand_context_custom_attribute_project_overrides_org_wide(self) -> None:
+        self._store_basic_segment()
+        self.create_context("foo", brief="Org-wide brief")
+        self.create_context("foo", project=self.project, brief="Project brief")
+
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "expand": "context",
+                "project": self.project.id,
+            },
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"]["brief"] == "Project brief"
+
+    def test_expand_context_custom_attribute_type_must_match(self) -> None:
+        self._store_basic_segment()
+        # `foo` is a string attribute, so number-typed context must not attach.
+        self.create_context("foo", attribute_type=TraceItemAttributeTypes.NUMBER)
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+
+    def test_expand_context_custom_attribute_item_type_must_match(self) -> None:
+        self._store_basic_segment()
+        # Context authored for logs must not attach to a span attribute.
+        self.create_context("foo", item_type=TraceItemTypes.LOGS)
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()
 
-        # Context is no longer gated by a feature flag: expand=context alone is
-        # enough, even with the data-browsing-attribute-context flag disabled.
+        # Conventions context is not gated by a feature flag: expand=context alone
+        # is enough, even with the data-browsing-attribute-context flag disabled.
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
             features={

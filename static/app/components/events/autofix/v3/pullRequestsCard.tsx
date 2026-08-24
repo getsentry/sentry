@@ -4,6 +4,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {
   getAutofixArtifactFromSection,
   isPullRequestsArtifact,
@@ -62,20 +63,12 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
           );
         }
 
-        if (
-          pullRequest.pr_creation_status === 'completed' &&
-          pullRequest.pr_url &&
-          pullRequest.pr_number
-        ) {
+        const link = getRepoPullRequestLink(pullRequest);
+        if (link) {
           return (
             <Flex key={pullRequest.repo_name} gap="xs" align="center">
-              <LinkButton
-                external
-                href={pullRequest.pr_url}
-                variant="primary"
-                icon={<IconOpen />}
-              >
-                {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
+              <LinkButton external href={link.url} variant="primary" icon={<IconOpen />}>
+                {link.label}
               </LinkButton>
               <Button
                 variant="primary"
@@ -83,7 +76,7 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
                 aria-label={t('Copy PR URL')}
                 tooltipProps={{title: t('Copy PR URL')}}
                 onClick={() =>
-                  copy(pullRequest.pr_url!, {
+                  copy(link.url, {
                     successMessage: t('PR URL copied to clipboard.'),
                   })
                 }

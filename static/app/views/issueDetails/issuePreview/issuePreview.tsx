@@ -1,14 +1,19 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect} from 'react';
+import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {EventMessage} from 'sentry/components/events/eventMessage';
+import {
+  LinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -17,12 +22,13 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
-import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
   GroupDataContextProvider,
   useGroupData,
@@ -32,19 +38,19 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
-import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
-import {IssuePreviewAutofix} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofix';
-import {IssuePreviewSeerActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewSeerActions';
-import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
+import {IssuePreviewActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewActions';
+import {IssuePreviewSection} from 'sentry/views/issueDetails/issuePreview/issuePreviewSection';
+import {
+  IssuePreviewSeerContent,
+  useIssuePreviewSeer,
+} from 'sentry/views/issueDetails/issuePreview/issuePreviewSeer';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
-import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -63,15 +69,19 @@ function useMarkPreviewedGroupSeen(group: Group | undefined) {
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${groupId}/`
+  );
 
   useMarkPreviewedGroupSeen(group);
 
   return (
-    <Fragment>
+    <AnalyticsArea name="issue_inbox" overrideParent>
       <Container padding="xs 2xl" borderBottom="muted">
-        <Flex align="center" flex="1" gap="md">
+        <Flex align="center" justify="between" flex="1" gap="md">
           {group && project ? (
             <IssueIdBreadcrumb group={group} project={project} />
           ) : isPending ? (
@@ -80,6 +90,21 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               <Placeholder width="80px" height="16px" shape="rect" />
             </Flex>
           ) : null}
+          {group && (
+            <LinkButton
+              to={issueDetailsUrl}
+              size="xs"
+              analyticsEventKey="issue_inbox.open_issue_clicked"
+              analyticsEventName="Issue Inbox: Open Issue Clicked"
+              analyticsParams={{
+                group_id: group.id,
+                progress: group.derivedData?.progress,
+                source: 'button',
+              }}
+            >
+              {t('Open Issue')}
+            </LinkButton>
+          )}
         </Flex>
       </Container>
       <Container
@@ -99,25 +124,16 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
           </GroupDataContextProvider>
         )}
       </Container>
-    </Fragment>
+    </AnalyticsArea>
   );
 }
 
-type IssuePreviewTab = 'activity' | 'autofix';
-
 function IssuePreviewContent() {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {group, project} = useGroupData();
-  const {hasAutofix} = useAiConfig(group, project);
-  const [selectedTab, setSelectedTab] = useState<IssuePreviewTab>('activity');
-  const autofix = useExplorerAutofix(group, {
-    enabled: hasAutofix,
-  });
-  const {data: event} = useGroupEvent({
-    groupId: group.id,
-    eventId: 'recommended',
-    options: {enabled: true},
-  });
+  const previewSeer = useIssuePreviewSeer(group, project);
+  const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [
@@ -128,10 +144,9 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
-
   return (
-    <Fragment>
-      <Container paddingBottom="lg" borderBottom="muted">
+    <IssueDetailsContextProvider>
+      <Container paddingBottom="sm">
         <Stack gap="xs">
           <Container>
             <Flex align="center" justify="between" gap="md">
@@ -143,18 +158,26 @@ function IssuePreviewContent() {
                   showOnlyOnOverflow
                   delay={1000}
                 >
-                  <Heading as="h3" size="lg" ellipsis>
-                    {primaryTitle}
-                  </Heading>
+                  <TitleLink
+                    to={issueDetailsUrl}
+                    analyticsEventKey="issue_inbox.open_issue_clicked"
+                    analyticsEventName="Issue Inbox: Open Issue Clicked"
+                    analyticsParams={{
+                      group_id: group.id,
+                      progress: group.derivedData?.progress,
+                      source: 'title',
+                    }}
+                  >
+                    <Container flex="1" minWidth={0}>
+                      <Heading as="h3" size="lg" ellipsis>
+                        {primaryTitle}
+                      </Heading>
+                    </Container>
+                    <Flex align="center" flexShrink={0}>
+                      <IconOpen size="xs" variant="muted" />
+                    </Flex>
+                  </TitleLink>
                 </Tooltip>
-                <LinkButton
-                  to={issueDetailsUrl}
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconOpen size="xs" variant="muted" />}
-                  aria-label={t('Open Issue')}
-                  tooltipProps={{title: t('Open Issue')}}
-                />
               </Flex>
               <IssueSeenTimes group={group} />
             </Flex>
@@ -169,16 +192,13 @@ function IssuePreviewContent() {
               <GroupStatusSubtitle group={group} project={project} />
             </Flex>
             <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
-              {group.derivedData?.progress && (
-                <IssueProgressTag state={group.derivedData.progress} />
-              )}
               <EventUserCounts group={group} project={project} />
             </Flex>
           </Flex>
         </Stack>
       </Container>
       <Flex
-        paddingTop="lg"
+        paddingTop="sm"
         paddingBottom="lg"
         borderBottom="muted"
         justify="between"
@@ -186,12 +206,16 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        {hasAutofix ? (
-          <IssuePreviewSeerActions
-            autofix={autofix}
+        {previewSeer.isLoading ? (
+          <Placeholder width="120px" height="32px" />
+        ) : previewSeer.shouldShowSeerActions ? (
+          <IssuePreviewActions
+            autofix={previewSeer.autofix}
             group={group}
             disabled={disableActions}
-            onOpenAutofix={() => setSelectedTab('autofix')}
+            onContinueInSeer={() => {
+              navigate({pathname: issueDetailsUrl, query: {seerDrawer: 'true'}});
+            }}
           />
         ) : (
           <GroupActions
@@ -211,61 +235,72 @@ function IssuePreviewContent() {
           />
         </Flex>
       </Flex>
-      <Container paddingTop="md">
-        <Tabs value={selectedTab} onChange={setSelectedTab}>
-          <Container paddingBottom="md" borderBottom="muted">
-            <TabList variant="floating">
-              <TabList.Item key="activity">{t('Activity')}</TabList.Item>
-              {hasAutofix ? (
-                <TabList.Item key="autofix">{t('Autofix')}</TabList.Item>
-              ) : null}
-            </TabList>
+      {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
+      {previewSeer.isLoading || linkedPullRequests.isPending ? (
+        <LoadingIndicator />
+      ) : (
+        <Dividers>
+          {linkedPullRequests.data?.pullRequests.length ? (
+            <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
+              <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
+              <IssuePreviewSection.Content>
+                <LinkedPullRequests group={group} showEmptyState={false} />
+              </IssuePreviewSection.Content>
+            </IssuePreviewSection>
+          ) : null}
+          {previewSeer.hasAutofix && (
+            <IssuePreviewSeerContent
+              key={group.id}
+              group={group}
+              project={project}
+              previewSeer={previewSeer}
+            />
+          )}
+          <Container>
+            <ErrorBoundary mini>
+              <FoldSection
+                title={
+                  <Heading as="h3" size="md">
+                    {t('Activity')}
+                  </Heading>
+                }
+                sectionKey={SectionKey.ACTIVITY}
+              >
+                <ActivitySection
+                  group={group}
+                  variant="standalone"
+                  placeholder={t('Add a comment. Tag users with @, or teams with #')}
+                />
+              </FoldSection>
+            </ErrorBoundary>
           </Container>
-          <TabPanels>
-            <TabPanels.Item key="activity">
-              <Container paddingTop="md" paddingLeft="md" paddingRight="md">
-                <IssueDetailsContextProvider>
-                  {event && (
-                    <ErrorBoundary mini>
-                      <ExternalIssueSidebarList group={group} event={event} />
-                    </ErrorBoundary>
-                  )}
-                  <ErrorBoundary mini>
-                    <SidebarFoldSection
-                      title={
-                        <Heading as="h3" size="md">
-                          {t('Activity')}
-                        </Heading>
-                      }
-                      sectionKey={SectionKey.ACTIVITY}
-                    >
-                      <ActivitySection
-                        group={group}
-                        variant="standalone"
-                        size="md"
-                        placeholder={t(
-                          'Add a comment. Tag users with @, or teams with #'
-                        )}
-                      />
-                    </SidebarFoldSection>
-                  </ErrorBoundary>
-                </IssueDetailsContextProvider>
-              </Container>
-            </TabPanels.Item>
-            {hasAutofix ? (
-              <TabPanels.Item key="autofix">
-                <Container paddingTop="md">
-                  <IssuePreviewAutofix
-                    autofix={autofix}
-                    group={group}
-                    project={project}
-                  />
-                </Container>
-              </TabPanels.Item>
-            ) : null}
-          </TabPanels>
-        </Tabs>
-      </Container>
-    </Fragment>
+        </Dividers>
+      )}
+    </IssueDetailsContextProvider>
   );
 }
+
+const Dividers = styled('div')`
+  padding: ${p => p.theme.space.md} 0;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+
+  & > * + * {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+    padding-top: ${p => p.theme.space.md};
+  }
+`;
+
+const TitleLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+  overflow: hidden;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.tokens.content.secondary};
+  }
+`;

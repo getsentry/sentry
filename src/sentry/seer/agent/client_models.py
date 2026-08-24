@@ -146,6 +146,11 @@ class ToolResult(BaseModel):
     tool_call_id: str
     tool_call_function: str
     content: str | None = None
+    # Standard MCP-style structured payload carried from seer (openspec:
+    # code-mode-effects-registry). Opaque pass-through: frontend-only effects like
+    # `navigation` (RENDERED) ride this to the client. Additive/optional — absent on old
+    # seer responses, ignored by old clients.
+    structuredContent: dict[str, Any] | None = None
 
     class Config:
         extra = "ignore"
@@ -186,11 +191,17 @@ class PendingUserInput(BaseModel):
 
 
 class CodingAgentResult(BaseModel):
-    """Result from a coding agent."""
+    """Result from a coding agent.
+
+    ``pr_url`` points at a pull request when ``pr_number`` is set and at a pushed branch
+    otherwise, except on results recorded before Seer reported the number -- so a missing
+    number does not by itself mean the URL is a branch.
+    """
 
     description: str
     repo_provider: str
     repo_full_name: str
+    pr_number: int | None = None
     pr_url: str | None = None
 
     class Config:

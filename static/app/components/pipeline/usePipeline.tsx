@@ -392,7 +392,7 @@ export function usePipeline<
  */
 function getErrorMessage(err: Error): string {
   if (err instanceof RequestError) {
-    const detail = (err.responseJSON as Record<string, unknown> | undefined)?.detail;
+    const detail = err.responseJSON?.detail;
     if (typeof detail === 'string') {
       return detail;
     }
@@ -422,7 +422,7 @@ function getPipelineError(
     return getErrorMessage(initializeError);
   }
   if (advanceError) {
-    const json = advanceError.responseJSON as Record<string, unknown> | undefined;
+    const json = advanceError.responseJSON;
     if (json?.status === 'error') {
       const data = json.data as Record<string, unknown> | undefined;
       if (typeof data?.detail === 'string') {

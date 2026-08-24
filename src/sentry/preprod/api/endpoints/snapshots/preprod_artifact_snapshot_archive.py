@@ -144,7 +144,6 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
             return resolved
         artifact, _metrics = resolved
         user_id = getattr(request.user, "id", None)
-
         try:
             build_snapshot_images_zip.apply_async(
                 kwargs={
@@ -152,6 +151,8 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                     "project_id": artifact.project_id,
                     "artifact_id": artifact.id,
                     "user_id": user_id,
+                    # TODO: Remove after this change has been fully deployed.
+                    "include_manifest": True,
                 }
             )
         except Exception:

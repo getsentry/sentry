@@ -25,7 +25,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     ResolvedPullRequest,
-    parse_pull_request_number,
+    parse_pull_request_url,
 )
 
 logger = logging.getLogger(__name__)
@@ -179,6 +179,7 @@ def _attribute_pull_request(
     source: PullRequestAttributionSource,
     signal_details: Mapping[str, Any] | None,
     log_context: Mapping[str, Any],
+    repo_external_id: str | None = None,
 ) -> None:
     """Resolve a single reported PR to its canonical ``PullRequest`` and idempotently
     record one attribution signal. Shared by the Seer-native and delegated-agent paths.
@@ -194,6 +195,7 @@ def _attribute_pull_request(
             repo_name=repo_name,
             provider=provider,
             key=pr_number,
+            repo_external_id=repo_external_id,
         )
     except Exception:
         logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
@@ -241,6 +243,7 @@ def attribute_seer_created_pull_requests(
     for entry in pull_requests:
         repo_name = entry.get("repo_name")
         provider = entry.get("provider")
+        repo_external_id = entry.get("repo_external_id")
         pr_payload = entry.get("pull_request") or {}
         pr_number = pr_payload.get("pr_number")
         pr_url = pr_payload.get("pr_url")
@@ -251,6 +254,7 @@ def attribute_seer_created_pull_requests(
             "group_id": group_id,
             "repo_name": repo_name,
             "provider": provider,
+            "repo_external_id": repo_external_id,
             "pr_number": pr_number,
         }
 
@@ -271,6 +275,7 @@ def attribute_seer_created_pull_requests(
                 run_id=int(run_id) if run_id is not None else None,
             ).dict(),
             log_context=log_context,
+            repo_external_id=repo_external_id,
         )
 
 
@@ -310,7 +315,8 @@ def attribute_delegated_agent_pull_request(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr_number = parse_pull_request_number(pr_url)
+    parsed_pr = parse_pull_request_url(pr_url)
+    pr_number = parsed_pr.number if parsed_pr else None
 
     log_context = {
         "organization_id": organization_id,

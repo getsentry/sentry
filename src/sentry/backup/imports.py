@@ -452,21 +452,13 @@ def _import(
             slug_mapping[org_id] = org_slug or ""
 
         if len(slug_mapping) > 0:
-            # HACK(azaslavsky): Okay, this gets a bit complicated, but bear with me: the following
-            # `bulk_create...` calls will result in some actions on the control silo that call back
-            # into this region. So the client (this region) calls the server (the control silo)
-            # which may need to make one or more calls back into the client (this region). Because
-            # some of our `OrganizationMemberTeam` outboxes may not be drained due to the HACK we
-            # performed in `import_export/impl.py` (see that file for more details), there may be a
-            # massive backlog of `OrganizationMemberTeam` outboxes that need to clear before this
-            # region can respond. In the worst case scenario, this will result in a timeout of the
-            # original, outer `bulk_create...` call.
+            # The `bulk_create...` call below is reentrant: this region calls the control silo,
+            # which may call back into this region before it can answer. Any backlog on an
+            # imported organization's `ORGANIZATION_SCOPE` shard has to clear before this region
+            # can serve that callback, which in the worst case times out the outer call.
             #
-            # So, the solution we take here is to manually clear all `ORGANIZATION_SCOPE` outboxes
-            # for each imported organization on this side first, so that when this region responds
-            # to the call triggered from the server-side of `bulk_create...`, the
-            # `ORGANIZATION`-scoped outbox queue is empty and is free to only serve requests
-            # specifically related to slug provisioning.
+            # Draining each organization's shard up front keeps that queue free to serve only the
+            # slug-provisioning callback.
             for id in slug_mapping.keys():
                 # To combat ephemeral errors, we'll try this a few times before accepting failure.
                 for attempt in range(MAX_SHARD_DRAIN_ATTEMPTS):

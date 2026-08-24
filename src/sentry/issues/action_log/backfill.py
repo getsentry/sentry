@@ -231,30 +231,44 @@ def backfill_group_activities(
     return total_created
 
 
-def _latest_pr_lifecycle_action_types(*, group_id: int, project_id: int) -> dict[int, int]:
-    """Map pull request id to the type of its most recently logged lifecycle action.
+def _latest_pr_lifecycle_actions(
+    *, group_id: int, project_id: int
+) -> dict[int, GroupActionLogEntry]:
+    """Map pull request id to its most recently logged lifecycle action.
 
     Entries are scanned oldest first so the last write per pull request wins.
     """
-    latest_action_types: dict[int, int] = {}
-    logged_entries = (
-        GroupActionLogEntry.objects.filter(
-            group_id=group_id,
-            project_id=project_id,
-            type__in=_PR_LIFECYCLE_ACTION_TYPES,
-        )
-        .order_by("date_added", "id")
-        .values_list("type", "data")
-    )
-    for action_type, data in logged_entries:
+    latest_actions: dict[int, GroupActionLogEntry] = {}
+    logged_entries = GroupActionLogEntry.objects.filter(
+        group_id=group_id,
+        project_id=project_id,
+        type__in=_PR_LIFECYCLE_ACTION_TYPES,
+    ).order_by("date_added", "id")
+    for entry in logged_entries:
+        data = entry.data
         if not isinstance(data, dict):
             continue
         try:
             pull_request_id = int(data["pull_request"])
         except (KeyError, TypeError, ValueError):
             continue
-        latest_action_types[pull_request_id] = action_type
-    return latest_action_types
+        latest_actions[pull_request_id] = entry
+    return latest_actions
+
+
+def _heal_has_other_open_prs(
+    *,
+    entry: GroupActionLogEntry,
+    has_other_open_prs: bool,
+) -> bool:
+    """Heal the has_other_open_prs field on any action where it is present but null."""
+    if "has_other_open_prs" not in entry.data or entry.data["has_other_open_prs"] is not None:
+        return False
+
+    entry.data = {**entry.data, "has_other_open_prs": has_other_open_prs}
+    entry.save(update_fields=["data", "date_updated"])
+    invalidate_group_derived_data(entry.group_id, cursor=(entry.date_added, entry.id))
+    return True
 
 
 def _get_new_pr_lifecycle_action(
@@ -379,21 +393,25 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
         if is_open_pull_request_state(pull_request.state)
     }
 
-    latest_action_types = _latest_pr_lifecycle_action_types(
-        group_id=group_id, project_id=project_id
-    )
+    latest_actions = _latest_pr_lifecycle_actions(group_id=group_id, project_id=project_id)
 
     entries: list[BackfillEntry] = []
     for pull_request in pull_requests:
-        latest_action_type = latest_action_types.get(pull_request.id)
+        latest_action = latest_actions.get(pull_request.id)
+        has_other_open_prs = bool(open_pull_request_ids - {pull_request.id})
         action_and_date = _get_new_pr_lifecycle_action(
             pull_request=pull_request,
-            latest_action_type=latest_action_type,
-            has_other_open_prs=bool(open_pull_request_ids - {pull_request.id}),
+            latest_action_type=latest_action.type if latest_action is not None else None,
+            has_other_open_prs=has_other_open_prs,
             group_id=group_id,
             project_id=project_id,
         )
         if action_and_date is None:
+            if latest_action is not None:
+                _heal_has_other_open_prs(
+                    entry=latest_action,
+                    has_other_open_prs=has_other_open_prs,
+                )
             continue
         action, date_added = action_and_date
 

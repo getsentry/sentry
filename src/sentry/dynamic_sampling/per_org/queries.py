@@ -8,6 +8,7 @@ from enum import StrEnum
 from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import ProjectId
@@ -145,18 +146,51 @@ def get_eap_organization_volume(
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
 
 
+def get_recalibration_organization_volume(
+    config: OrganizationVolumeConfig,
+    eap_volume: OrganizationDataVolume | None,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
+) -> OrganizationDataVolume | None:
+    if eap_volume is None or eap_volume.indexed is None:
+        return None
+
+    outcomes_volume = get_outcomes_organization_volume(config, time_interval=time_interval, end=end)
+    if outcomes_volume is None:
+        return None
+
+    return OrganizationDataVolume(
+        org_id=config.organization.id,
+        total=outcomes_volume.total,
+        indexed=eap_volume.indexed,
+    )
+
+
 def get_outcomes_organization_volume(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
     end_time = end or datetime.now(UTC)
+
+    # The outcomes query widens its window outwards to whole intervals. Minute resolution
+    # keeps a short window from covering a whole hour, but it cannot be used throughout: it is
+    # capped at MAX_POINTS intervals, which a 24-hour window is rejected for. The end is
+    # truncated to the resolution so that nothing is widened and the window covers the
+    # interval that was asked for, rather than up to one resolution step more.
+    if time_interval >= timedelta(hours=1):
+        interval = "1h"
+        end_time = end_time.replace(minute=0, second=0, microsecond=0)
+    else:
+        interval = "1m"
+        end_time = end_time.replace(second=0, microsecond=0)
     start_time = end_time - time_interval
 
     query = QueryDefinition(
         fields=["sum(quantity)"],
         start=start_time.isoformat(),
         end=end_time.isoformat(),
+        interval=interval,
         organization_id=config.organization.id,
         project_ids=[project.id for project in config.projects],
         outcome=["accepted"],
@@ -178,8 +212,6 @@ def get_generic_metrics_organization_volume(
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
-
     end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
 
@@ -355,7 +387,9 @@ def get_eap_transaction_volumes(
 
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
-    transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
+    transaction_counts_by_project: defaultdict[int, defaultdict[str, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
 
     orderby = [
         DynamicSamplingQueryFields.DSC_PROJECT_ID,
@@ -372,7 +406,7 @@ def get_eap_transaction_volumes(
                 projects=config.projects,
                 organization=config.organization,
             ),
-            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
+            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}]",
             "selected_columns": [
                 DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.DSC_TRANSACTION,
@@ -391,20 +425,26 @@ def get_eap_transaction_volumes(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         }
     ):
-        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)
         total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:
             continue
 
+        # A root span with no transaction name and one named "" are the same unnamed
+        # transaction, but EAP returns them as separate groups. Coalescing to "" keeps
+        # them a single class in the rebalancing model instead of two, one of which
+        # would carry the misleading name "None".
+        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION) or ""
+
         project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
-        transaction_counts = transaction_counts_by_project[project_id]
-        transaction_counts.append((str(transaction), total))
+        transaction_counts_by_project[project_id][transaction] += total
 
     return [
         ProjectTransactionCounts(
             project_id=project_id,
             org_id=config.organization.id,
-            transaction_counts=transaction_counts,
+            transaction_counts=sorted(
+                transaction_counts.items(), key=lambda item: (-item[1], item[0])
+            ),
         )
         for project_id, transaction_counts in sorted(transaction_counts_by_project.items())
     ]

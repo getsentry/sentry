@@ -25,7 +25,6 @@ import AllMonitors from 'sentry/views/detectors/list/allMonitors';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
     access: ['org:write'],
   });
 
@@ -240,7 +239,9 @@ describe('DetectorsList', () => {
 
       // Click on Name column header to sort
       await userEvent.click(
-        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+        within(
+          screen.getByRole('columnheader', {name: 'Select all on page Name'})
+        ).getByRole('button')
       );
 
       await waitFor(() => {
@@ -257,7 +258,9 @@ describe('DetectorsList', () => {
 
       // Click on Name column header again to change sort direction
       await userEvent.click(
-        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+        within(
+          screen.getByRole('columnheader', {name: 'Select all on page Name'})
+        ).getByRole('button')
       );
 
       await waitFor(() => {
@@ -577,7 +580,6 @@ describe('DetectorsList', () => {
 
     it('disables action buttons when user does not have permissions', async () => {
       const noPermsOrganization = OrganizationFixture({
-        features: ['workflow-engine-ui'],
         access: [],
       });
       render(<AllMonitors />, {organization: noPermsOrganization});
