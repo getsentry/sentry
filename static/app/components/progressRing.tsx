@@ -25,7 +25,6 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    */
   barWidth?: number;
   maxValue?: number;
-  minValue?: number;
   /**
    * The color of the ring bar. A function may be provided to compute the color
    * based on the percent value filled of the progress bar.
@@ -70,7 +69,6 @@ const animatedTextDefaultProps = {
 
 export function ProgressRing({
   value,
-  minValue = 0,
   maxValue = 100,
   size = 20,
   barWidth = 3,
@@ -86,8 +84,8 @@ export function ProgressRing({
   const radius = size / 2 - barWidth / 2;
   const circumference = 2 * Math.PI * radius;
 
-  const boundedValue = Math.min(Math.max(value, minValue), maxValue);
-  const progress = (boundedValue - minValue) / (maxValue - minValue);
+  const boundedValue = Math.min(Math.max(value, 0), maxValue);
+  const progress = boundedValue / maxValue;
   const percent = progress * 100;
   const progressOffset = (1 - progress) * circumference;
 

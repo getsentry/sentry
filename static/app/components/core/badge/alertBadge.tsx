@@ -4,15 +4,11 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
-import {IconCheckmark, IconFire, IconIssues, IconPause, IconWarning} from 'sentry/icons';
+import {IconCheckmark, IconFire, IconIssues, IconWarning} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 interface AlertBadgeProps {
-  /**
-   * Displays a "disabled" badge
-   */
-  isDisabled?: boolean;
   /**
    * There is no status for issue, this is to facilitate this custom usage.
    */
@@ -27,7 +23,7 @@ interface AlertBadgeProps {
   withText?: boolean;
 }
 
-type AlertBadgeStatus = IncidentStatus | 'disabled' | 'issue';
+type AlertBadgeStatus = IncidentStatus | 'issue';
 interface AlertBadgeConfig {
   icon: React.FC<SVGIconProps>;
   style: React.CSSProperties;
@@ -36,16 +32,6 @@ interface AlertBadgeConfig {
 function useAlertBadgeConfig(status: AlertBadgeStatus, theme: Theme): AlertBadgeConfig {
   const {t} = useTranslation();
   switch (status) {
-    case 'disabled':
-      return {
-        text: t('Disabled'),
-        icon: IconPause,
-        style: {
-          color: theme.tokens.content.primary,
-          background: theme.tokens.background.primary,
-          border: `1px solid ${theme.tokens.border.primary}`,
-        },
-      };
     case 'issue':
       return {
         text: t('Issue'),
@@ -92,11 +78,7 @@ function useAlertBadgeConfig(status: AlertBadgeStatus, theme: Theme): AlertBadge
  */
 export function AlertBadge(props: AlertBadgeProps) {
   const theme = useTheme();
-  const status = props.isDisabled
-    ? 'disabled'
-    : props.isIssue
-      ? 'issue'
-      : (props.status ?? IncidentStatus.CLOSED);
+  const status = props.isIssue ? 'issue' : (props.status ?? IncidentStatus.CLOSED);
   const {text, icon: Icon, style} = useAlertBadgeConfig(status, theme);
 
   return (

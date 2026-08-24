@@ -102,7 +102,7 @@ export function ComboBox({
   onInputFocus,
   onOpenChange,
   onOptionSelected,
-  ['data-test-id']: dataTestId,
+  'data-test-id': dataTestId,
   filterValue,
   onInputChange,
   onKeyDown,

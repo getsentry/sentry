@@ -23,8 +23,6 @@ const DEFAULT_HISTORY_PER_PAGE = 10;
 
 type Props = {
   automationId: string;
-  emptyMessage?: string;
-  limit?: number;
   query?: Record<string, any>;
 };
 
@@ -51,16 +49,12 @@ function Skeletons() {
   );
 }
 
-export function AutomationHistoryList({
-  automationId,
-  limit = DEFAULT_HISTORY_PER_PAGE,
-  query,
-  emptyMessage = t('No history found'),
-}: Props) {
-  const getPaginationCaption = useGetPaginationCaption();
+export function AutomationHistoryList({automationId, query}: Props) {
+  const limit = DEFAULT_HISTORY_PER_PAGE;
   const org = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const getPaginationCaption = useGetPaginationCaption();
 
   const cursor =
     typeof location.query.cursor === 'string' ? location.query.cursor : undefined;
@@ -106,7 +100,7 @@ export function AutomationHistoryList({
           </SimpleTable.Empty>
         )}
         {!isLoading && !isError && fireHistory.length === 0 && (
-          <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
+          <SimpleTable.Empty>{t('No history found')}</SimpleTable.Empty>
         )}
         {fireHistory.map((row, index) => (
           <SimpleTable.Row key={index}>

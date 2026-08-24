@@ -9,7 +9,7 @@ import {IconBug} from 'sentry/icons/iconBug';
 import {IconLab} from 'sentry/icons/iconLab';
 import type {TagVariant} from 'sentry/utils/theme';
 
-import {Tag, type TagProps} from './tag';
+import {Tag} from './tag';
 
 function useDefaultTitle(type: FeatureBadgeProps['type']) {
   const {t} = useTranslation();
@@ -45,17 +45,17 @@ const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
   debug: <IconBug size="xs" aria-hidden />,
 };
 
-export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'> {
+export interface FeatureBadgeProps {
   type: 'alpha' | 'beta' | 'new' | 'experimental' | 'debug';
   tooltipProps?: Omit<Partial<TooltipProps>, 'isHoverable' | 'skipWrapper'>;
 }
 
-export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
+export function FeatureBadge({type, tooltipProps}: FeatureBadgeProps) {
   const defaultTitle = useDefaultTitle(type);
   const title = tooltipProps?.title ?? defaultTitle;
 
   const {ref, isInsideInteractiveElement, isInteractiveElementFocusVisible} =
-    useIsInsideInteractiveElement(props.ref);
+    useIsInsideInteractiveElement<HTMLDivElement>(undefined);
 
   return (
     <Tooltip
@@ -69,7 +69,6 @@ export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) 
       }
     >
       <SquareTag
-        {...props}
         tabIndex={isInsideInteractiveElement ? undefined : 0}
         variant={variantMap[type]}
         aria-label={type}

@@ -341,8 +341,8 @@ function TraceWaterfallVersionBanner() {
               onClick={() =>
                 openForm({
                   tags: {
-                    ['feedback.source']: 'trace-waterfall-version-message',
-                    ['feedback.owner']: 'performance',
+                    'feedback.source': 'trace-waterfall-version-message',
+                    'feedback.owner': 'performance',
                   },
                 })
               }

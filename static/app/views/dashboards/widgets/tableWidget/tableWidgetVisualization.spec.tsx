@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {dragHandle} from 'sentry-test/dragMove';
 import {
   render,
   screen,
@@ -263,12 +264,7 @@ describe('TableWidgetVisualization', () => {
         }
       );
 
-      const $gridResizer = screen.getAllByRole('columnheader')[0]?.children[1]!;
-      await userEvent.pointer([
-        {keys: '[MouseLeft>]', target: $gridResizer},
-        {target: $gridResizer, coords: {x: 100}},
-        {keys: '[/MouseLeft]'},
-      ]);
+      dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
       await waitFor(() =>
         expect(testRouter.location.query.width).toStrictEqual(['100', '-1'])
       );
@@ -283,12 +279,7 @@ describe('TableWidgetVisualization', () => {
         />
       );
 
-      const $gridResizer = screen.getAllByRole('columnheader')[0]?.children[1]!;
-      await userEvent.pointer([
-        {keys: '[MouseLeft>]', target: $gridResizer},
-        {target: $gridResizer, coords: {x: 100}},
-        {keys: '[/MouseLeft]'},
-      ]);
+      dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
       await waitFor(() =>
         expect(onResizeColumnMock).toHaveBeenCalledWith([
           {

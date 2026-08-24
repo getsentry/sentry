@@ -68,13 +68,13 @@ class PerOrgRecalibrationCacheTest(TestCase):
         assert legacy_key != per_org_key
 
         redis.set(legacy_key, 2.5)
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 2.5
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert legacy_recalibration_cache.get_adjusted_factor(org.id, source="task") == 2.5
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
 
         redis.delete(legacy_key)
         redis.set(per_org_key, 3.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 3.5
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 3.5
+        assert legacy_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
 
     def test_per_org_cache_sets_and_deletes_adjusted_factor(self) -> None:
         org = self.create_organization()
@@ -84,10 +84,10 @@ class PerOrgRecalibrationCacheTest(TestCase):
         redis.delete(cache_key)
 
         per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 2.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 2.5
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 2.5
 
         per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 1.0)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
@@ -472,6 +472,7 @@ class RunCalculationsPerOrgTest(TestCase):
             1.0,
             previous_eap_factor=1.0,
             legacy_volume=legacy_volume,
+            eap_extrapolated_total=100,
         )
 
     @override_options(
@@ -528,6 +529,7 @@ class RunCalculationsPerOrgTest(TestCase):
             1.0,
             previous_eap_factor=1.0,
             legacy_volume=None,
+            eap_extrapolated_total=100,
         )
 
     @override_options(

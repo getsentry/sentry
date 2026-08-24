@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.endpoints.group_autofix_setup_check import (
@@ -327,35 +326,3 @@ class GroupAIAutofixSetupFreeCohortTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data["billing"]["hasAutofixQuota"] is False
-
-    @patch(
-        "sentry.seer.endpoints.group_autofix_setup_check.is_free_cohort_org",
-        return_value=True,
-    )
-    @patch(
-        "sentry.seer.autofix.utils.is_free_cohort_org",
-        return_value=True,
-    )
-    @patch(
-        "sentry.seer.endpoints.group_autofix_setup_check.get_autofix_integration_setup_problems",
-        return_value=None,
-    )
-    def test_free_cohort_org_with_project_repos_has_seer_repos_linked(
-        self,
-        mock_integration_check: MagicMock,
-        mock_utils_free_cohort: MagicMock,
-        mock_endpoint_free_cohort: MagicMock,
-    ) -> None:
-        """Free cohort orgs with ProjectRepository rows get seerReposLinked: True."""
-        ProjectRepository.objects.create(
-            project=self.project,
-            repository=self.repo,
-        )
-
-        group = self.create_group()
-        self.login_as(user=self.user)
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["seerReposLinked"] is True

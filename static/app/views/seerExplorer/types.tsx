@@ -107,8 +107,12 @@ export interface CallRecord {
   method?: string;
   /** Lib records only. */
   name?: string;
-  /** Lib records only: the call's scalar arguments, which name what it acted on. */
-  params?: Record<string, string>;
+  /**
+   * Lib records only: arguments the call was made with, plus values filled in after it returned
+   * (e.g. a translated search query). Scalars name the subject at call time; richer values arrive
+   * later when the call itself produced them. Untyped wire JSON — narrow at the use site.
+   */
+  params?: Record<string, unknown>;
   parent?: number | null;
   path?: string;
   path_params?: Record<string, string>;

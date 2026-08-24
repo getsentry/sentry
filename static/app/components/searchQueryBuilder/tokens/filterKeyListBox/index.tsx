@@ -108,8 +108,8 @@ function FeedbackFooter({
           messagePlaceholder: t('How can we make search better for you?'),
           tags: {
             search_source: searchSource,
-            ['feedback.source']: 'search_query_builder',
-            ['feedback.owner']: 'issues',
+            'feedback.source': 'search_query_builder',
+            'feedback.owner': 'issues',
           },
         }}
       />

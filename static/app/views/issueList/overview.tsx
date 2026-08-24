@@ -25,7 +25,7 @@ import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -92,7 +92,7 @@ interface Props {
   withColumns?: GroupListColumn[];
 }
 
-interface EndpointParams extends Partial<PageFilters['datetime']> {
+interface EndpointParams extends Partial<PageFilterDatetime> {
   environment: string[];
   project: number[];
   cursor?: string;
