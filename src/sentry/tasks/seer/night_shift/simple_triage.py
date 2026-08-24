@@ -56,6 +56,37 @@ class ScoredCandidate(TriageResult):
     action: TriageAction = TriageAction.AUTOFIX
 
 
+def fixability_score_strategy(
+    projects: Sequence[Project],
+    max_candidates: int,
+) -> list[ScoredCandidate]:
+    """Scores candidates across all projects combined — a busy project can eat
+    the whole max_candidates budget. See fixability_score_strategy_per_project."""
+    if features.has(
+        "organizations:agentic-triage-sort", projects[0].organization
+    ):  # Assume all projects are in the same org
+        return _fetch_and_score_agentic(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
+    return _fetch_and_score(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
+
+
+def fixability_score_strategy_per_project(
+    projects: Sequence[Project],
+    max_candidates: int,
+) -> list[ScoredCandidate]:
+    """Like fixability_score_strategy, but scores each project independently so
+    no project can crowd out the others' share of max_candidates."""
+    fetch_limit = min(
+        NIGHT_SHIFT_ISSUE_FETCH_LIMIT, max_candidates * NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER
+    )
+    selected: list[ScoredCandidate] = []
+    for project in projects:
+        if features.has("organizations:agentic-triage-sort", project.organization):
+            selected.extend(_fetch_and_score_agentic([project], max_candidates, fetch_limit))
+        else:
+            selected.extend(_fetch_and_score([project], max_candidates, fetch_limit))
+    return selected
+
+
 def _groups_with_recent_in_app_frame(
     group_ids: Sequence[int], project_ids: Sequence[int], organization_id: int
 ) -> set[int]:
@@ -86,37 +117,6 @@ def _groups_with_recent_in_app_frame(
         request, referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value
     )["data"]
     return {row["group_id"] for row in rows}
-
-
-def fixability_score_strategy(
-    projects: Sequence[Project],
-    max_candidates: int,
-) -> list[ScoredCandidate]:
-    """Scores candidates across all projects combined — a busy project can eat
-    the whole max_candidates budget. See fixability_score_strategy_per_project."""
-    if features.has(
-        "organizations:agentic-triage-sort", projects[0].organization
-    ):  # Assume all projects are in the same org
-        return _fetch_and_score_agentic(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
-    return _fetch_and_score(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
-
-
-def fixability_score_strategy_per_project(
-    projects: Sequence[Project],
-    max_candidates: int,
-) -> list[ScoredCandidate]:
-    """Like fixability_score_strategy, but scores each project independently so
-    no project can crowd out the others' share of max_candidates."""
-    fetch_limit = min(
-        NIGHT_SHIFT_ISSUE_FETCH_LIMIT, max_candidates * NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER
-    )
-    selected: list[ScoredCandidate] = []
-    for project in projects:
-        if features.has("organizations:agentic-triage-sort", project.organization):
-            selected.extend(_fetch_and_score_agentic([project], max_candidates, fetch_limit))
-        else:
-            selected.extend(_fetch_and_score([project], max_candidates, fetch_limit))
-    return selected
 
 
 def _agentic_triage_snuba_factors(
