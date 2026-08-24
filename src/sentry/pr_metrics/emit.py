@@ -16,7 +16,7 @@ from typing import Any, NamedTuple, cast
 from django.db.models import Count, Q
 from django.utils import timezone as dj_timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
@@ -564,9 +564,9 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
     )
     # Canonical is the winner among only the rows that would actually emit (see
     # _emitting_rows); comparing its id to this row's — rather than short-circuiting
-    # on a count — means a row that can't emit (e.g. it lost the emit flag after the
-    # cooldown was claimed) defers instead of emitting a duplicate alongside the real
-    # one. Emit when nothing would qualify, so the PR is never dropped entirely.
+    # on a count — means an untracked row defers instead of emitting a duplicate
+    # alongside the real one. Emit when nothing would qualify, so the PR is never
+    # dropped entirely.
     emitting = _emitting_rows(siblings)
     if not emitting:
         return True
@@ -574,32 +574,23 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
 
 
 def _emitting_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
-    """The subset that would actually emit: a valid attribution *and* the row's org
-    with ``pr-metrics`` on — the two gates every emission path applies.
+    """The subset that would actually emit: the rows carrying a valid attribution,
+    which is the gate every emission path applies.
 
-    Canonical selection runs over these so a row that can't emit — untracked (e.g. a
-    run-less MCP PR whose attribution feature is on in only one org), or emit-gated
-    off for its org mid-rollout — never wins canonical and drops the PR by
-    suppressing a sibling that would emit.
+    Canonical selection runs over these so an untracked row — e.g. a run-less MCP PR
+    whose attribution feature is on in only one org — never wins canonical and drops
+    the PR by suppressing a sibling that would emit.
+
+    ``pr-metrics`` is not re-checked here: it resolves per deployment rather than per
+    org, so every sibling gets the same answer and it can never be what separates
+    them.
     """
     tracked_ids = set(
         PullRequestAttribution.objects.filter(pull_request__in=pull_requests, is_valid=True)
         .values_list("pull_request_id", flat=True)
         .distinct()
     )
-    tracked = [pr for pr in pull_requests if pr.id in tracked_ids]
-    if not tracked:
-        return []
-    orgs = {
-        org.id: org
-        for org in Organization.objects.filter(id__in={pr.organization_id for pr in tracked})
-    }
-    return [
-        pr
-        for pr in tracked
-        if (org := orgs.get(pr.organization_id)) is not None
-        and features.has("organizations:pr-metrics", org)
-    ]
+    return [pr for pr in pull_requests if pr.id in tracked_ids]
 
 
 def _attribution_completeness(siblings: list[PullRequest]) -> dict[int, tuple[bool, bool, int]]:
