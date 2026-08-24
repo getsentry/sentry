@@ -256,8 +256,13 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         )
         self.login_as(viewer)
 
-        duplicate = self.client.post(self.collection_url, launch_payload, format="json")
+        with mock.patch(
+            "sentry.investigations.endpoints.organization_investigation_index."
+            "schedule_eligible_auto_run_blocks"
+        ) as schedule_auto_run:
+            duplicate = self.client.post(self.collection_url, launch_payload, format="json")
         assert duplicate.status_code == 403
+        schedule_auto_run.assert_not_called()
 
         candidate = self.client.post(
             self.candidates_url,

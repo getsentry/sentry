@@ -80,11 +80,11 @@ def _query_refinement_context_execution(
     if current is not None and _has_usable_query_data(current.result):
         return current
 
-    for execution in (
-        block.executions.filter(status=InvestigationBlockExecutionStatus.COMPLETED)
-        .exclude(id=current.id if current is not None else None)
-        .order_by("-date_added")[:20]
-    ):
+    completed = block.executions.filter(status=InvestigationBlockExecutionStatus.COMPLETED)
+    if current is not None:
+        assert current.id is not None
+        completed = completed.exclude(id=current.id)
+    for execution in completed.order_by("-date_added")[:20]:
         if _has_usable_query_data(execution.result):
             return execution
     return current

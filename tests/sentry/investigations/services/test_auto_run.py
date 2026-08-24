@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest import mock
 
 from sentry.investigations.models import (
+    InvestigationBlock,
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
     InvestigationBlockKind,
@@ -49,7 +50,7 @@ class InvestigationAutoRunTest(TestCase):
         assert self.root.current_execution is not None
         assert self.root.current_execution.status == InvestigationBlockExecutionStatus.PENDING
         assert self.dependent.current_execution is None
-        dispatch.assert_called_once_with(self.root.current_execution.id)
+        dispatch.delay.assert_called_once_with(self.root.current_execution.id)
 
         self.root.current_execution.update(
             status=InvestigationBlockExecutionStatus.COMPLETED,
@@ -69,7 +70,7 @@ class InvestigationAutoRunTest(TestCase):
         assert self.root.stale_at is None
         assert self.root.result_execution is not None
         assert self.root.result_execution.status == InvestigationBlockExecutionStatus.COMPLETED
-        dispatch.reset_mock()
+        dispatch.delay.reset_mock()
 
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
@@ -77,10 +78,10 @@ class InvestigationAutoRunTest(TestCase):
                 user_id=self.user.id,
             )
 
-        self.dependent.refresh_from_db()
-        assert self.dependent.current_execution is not None
-        assert self.dependent.current_execution.status == InvestigationBlockExecutionStatus.PENDING
-        dispatch.assert_called_once_with(self.dependent.current_execution.id)
+        dependent = InvestigationBlock.objects.get(id=self.dependent.id)
+        assert dependent.current_execution is not None
+        assert dependent.current_execution.status == InvestigationBlockExecutionStatus.PENDING
+        dispatch.delay.assert_called_once_with(dependent.current_execution.id)
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
     def test_redispatches_an_existing_pending_execution(self, dispatch: mock.Mock) -> None:
@@ -92,7 +93,7 @@ class InvestigationAutoRunTest(TestCase):
         self.root.refresh_from_db()
         execution_id = self.root.current_execution_id
         assert execution_id is not None
-        dispatch.reset_mock()
+        dispatch.delay.reset_mock()
 
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
@@ -103,4 +104,4 @@ class InvestigationAutoRunTest(TestCase):
         self.root.refresh_from_db()
         assert self.root.current_execution_id == execution_id
         assert InvestigationBlockExecution.objects.filter(block=self.root).count() == 1
-        dispatch.assert_called_once_with(execution_id)
+        dispatch.delay.assert_called_once_with(execution_id)

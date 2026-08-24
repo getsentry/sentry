@@ -95,14 +95,12 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         accessible_project_ids=project_ids,
                         title=values.get("title"),
                     )
+                    if not created:
+                        require_investigation_project_access(investigation, project_ids)
                     schedule_eligible_auto_run_blocks(
                         investigation_id=investigation.id,
                         user_id=user_id(request),
                     )
-                    if created:
-                        investigation.refresh_from_db()
-                    else:
-                        require_investigation_project_access(investigation, project_ids)
             else:
                 created = True
                 requested_project_ids = values.get("project_ids", [])

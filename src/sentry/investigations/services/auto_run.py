@@ -31,7 +31,7 @@ def _dispatch_after_commit(execution: InvestigationBlockExecution) -> None:
     from sentry.tasks.seer.investigation import dispatch_investigation_execution
 
     transaction.on_commit(
-        partial(dispatch_investigation_execution, execution.id),
+        partial(dispatch_investigation_execution.delay, execution.id),
         using=router.db_for_write(InvestigationBlockExecution),
     )
 
