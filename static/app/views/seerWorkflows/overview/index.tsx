@@ -69,7 +69,9 @@ export default function AutofixOverview() {
       renderDisabled={() => <NoAccess />}
     >
       <PageFiltersContainer
-        defaultSelection={{datetime: {period: '7d', start: null, end: null, utc: null}}}
+        defaultSelection={{
+          datetime: {period: '7d', start: null, end: null, utc: null},
+        }}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Layout.Title>{t('Autofix Overview')}</Layout.Title>
@@ -107,7 +109,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   const setQueryParam = (key: string, value: string | undefined) =>
     navigate(
-      {pathname: location.pathname, query: {...location.query, [key]: value}},
+      {
+        pathname: location.pathname,
+        query: {...location.query, [key]: value},
+      },
       {replace: true}
     );
 
@@ -188,9 +193,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       />
     );
   } else {
-    noRunsContent = (
-      <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
-    );
+    noRunsContent = <EmptyState padding="3xl" title={t('No Autofix runs')} />;
   }
 
   return (
