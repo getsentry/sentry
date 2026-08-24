@@ -551,7 +551,7 @@ describe('InboxPage', () => {
     mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]);
     mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]);
     const assignedAllRequest = mockSection(
-      'issue.progress:[assigned,identified] is:unresolved',
+      'issue.progress:[assigned,identified] is:unresolved !assigned_or_suggested:none',
       [assignedGroup]
     );
     mockSection('issue.progress:fix_applied is:unresolved', []);
@@ -675,7 +675,10 @@ describe('InboxPage', () => {
     const allRequests = [
       mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]),
       mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]),
-      mockSection('issue.progress:[assigned,identified] is:unresolved', [assignedGroup]),
+      mockSection(
+        'issue.progress:[assigned,identified] is:unresolved !assigned_or_suggested:none',
+        [assignedGroup]
+      ),
       mockSection('issue.progress:fix_applied is:unresolved', []),
     ];
 

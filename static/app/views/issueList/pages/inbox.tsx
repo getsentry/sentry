@@ -78,6 +78,7 @@ const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
+const ALL_ASSIGNED_QUERY_SUFFIX = ' !assigned_or_suggested:none';
 const ASSIGNMENT_COUNT_QUERY =
   'issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved';
 interface InboxSectionContext {
@@ -454,11 +455,15 @@ function InboxSection({
   selectedIssueId,
 }: InboxSectionProps) {
   const organization = useOrganization();
+  const assignmentQuerySuffix =
+    assignmentFilter === 'all' && section.progress === ProgressState.ASSIGNED
+      ? ALL_ASSIGNED_QUERY_SUFFIX
+      : ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter];
   const queryResult = useInfiniteQuery({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
+        query: `${section.query}${assignmentQuerySuffix}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
