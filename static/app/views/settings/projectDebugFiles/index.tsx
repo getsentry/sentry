@@ -172,7 +172,7 @@ export default function ProjectDebugSymbols() {
         <Fragment>
           <Grid
             columns={{zero: '1fr', xl: 'auto 1fr'}}
-            gap={{zero: '0', xl: '3xl'}}
+            gap={{zero: 'md', xl: '3xl'}}
             align="center"
             marginTop="3xl"
             marginBottom="md"
