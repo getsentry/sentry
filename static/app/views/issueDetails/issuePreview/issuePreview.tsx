@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -9,11 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  getOrderedAutofixSections,
-  isCodeChangesSection,
-  type useExplorerAutofix,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {
   LinkedPullRequests,
@@ -49,7 +44,6 @@ import {
   IssuePreviewSeerContent,
   useIssuePreviewSeer,
 } from 'sentry/views/issueDetails/issuePreview/issuePreviewSeer';
-import {RetryableAutofixSection} from 'sentry/views/issueDetails/issuePreview/retryableAutofixSection';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
@@ -57,34 +51,6 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
-
-/**
- * Shares one code changes retry state between the action row and the proposal
- * section, so the row's retry CTA opens the prompt the section renders inline.
- */
-function CodeChangesRetryProvider({
-  autofix,
-  children,
-}: {
-  autofix: ReturnType<typeof useExplorerAutofix>;
-  children: React.ReactNode;
-}) {
-  const {runState} = autofix;
-  const section = useMemo(
-    () => getOrderedAutofixSections(runState).findLast(isCodeChangesSection),
-    [runState]
-  );
-
-  if (!section) {
-    return children;
-  }
-
-  return (
-    <RetryableAutofixSection autofix={autofix} section={section} step="code_changes">
-      {children}
-    </RetryableAutofixSection>
-  );
-}
 
 interface IssuePreviewProps {
   groupId: string;
@@ -180,143 +146,136 @@ function IssuePreviewContent() {
   );
   return (
     <IssueDetailsContextProvider>
-      <CodeChangesRetryProvider autofix={previewSeer.autofix}>
-        <Container paddingBottom="sm">
-          <Stack gap="xs">
-            <Container>
-              <Flex align="center" justify="between" gap="md">
-                <Flex align="center" gap="md" minWidth={0}>
-                  <Tooltip
-                    title={primaryTitle}
-                    skipWrapper
-                    isHoverable
-                    showOnlyOnOverflow
-                    delay={1000}
+      <Container paddingBottom="sm">
+        <Stack gap="xs">
+          <Container>
+            <Flex align="center" justify="between" gap="md">
+              <Flex align="center" gap="md" minWidth={0}>
+                <Tooltip
+                  title={primaryTitle}
+                  skipWrapper
+                  isHoverable
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
+                  <TitleLink
+                    to={issueDetailsUrl}
+                    analyticsEventKey="issue_inbox.open_issue_clicked"
+                    analyticsEventName="Issue Inbox: Open Issue Clicked"
+                    analyticsParams={{
+                      group_id: group.id,
+                      progress: group.derivedData?.progress,
+                      source: 'title',
+                    }}
                   >
-                    <TitleLink
-                      to={issueDetailsUrl}
-                      analyticsEventKey="issue_inbox.open_issue_clicked"
-                      analyticsEventName="Issue Inbox: Open Issue Clicked"
-                      analyticsParams={{
-                        group_id: group.id,
-                        progress: group.derivedData?.progress,
-                        source: 'title',
-                      }}
-                    >
-                      <Container flex="1" minWidth={0}>
-                        <Heading as="h3" size="lg" ellipsis>
-                          {primaryTitle}
-                        </Heading>
-                      </Container>
-                      <Flex align="center" flexShrink={0}>
-                        <IconOpen size="xs" variant="muted" />
-                      </Flex>
-                    </TitleLink>
-                  </Tooltip>
-                </Flex>
-                <IssueSeenTimes group={group} />
+                    <Container flex="1" minWidth={0}>
+                      <Heading as="h3" size="lg" ellipsis>
+                        {primaryTitle}
+                      </Heading>
+                    </Container>
+                    <Flex align="center" flexShrink={0}>
+                      <IconOpen size="xs" variant="muted" />
+                    </Flex>
+                  </TitleLink>
+                </Tooltip>
               </Flex>
-              <EventMessage
-                level={group.level}
-                message={secondaryTitle}
-                type={group.type}
-              />
-            </Container>
-            <Flex justify="between" align="center" gap="md">
-              <Flex flex="1" minWidth={0}>
-                <GroupStatusSubtitle group={group} project={project} />
-              </Flex>
-              <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
-                <EventUserCounts group={group} project={project} />
-              </Flex>
+              <IssueSeenTimes group={group} />
             </Flex>
-          </Stack>
-        </Container>
-        <Flex
-          paddingTop="sm"
-          paddingBottom="lg"
-          borderBottom="muted"
-          justify="between"
-          align="center"
-          wrap="wrap"
-          gap="md"
-        >
-          {previewSeer.isLoading ? (
-            <Placeholder width="120px" height="32px" />
-          ) : previewSeer.shouldShowSeerActions ? (
-            <IssuePreviewActions
-              autofix={previewSeer.autofix}
-              group={group}
-              disabled={disableActions}
-              onContinueInSeer={() => {
-                navigate({
-                  pathname: issueDetailsUrl,
-                  query: {seerDrawer: 'true'},
-                });
-              }}
+            <EventMessage
+              level={group.level}
+              message={secondaryTitle}
+              type={group.type}
             />
-          ) : (
-            <GroupActions
+          </Container>
+          <Flex justify="between" align="center" gap="md">
+            <Flex flex="1" minWidth={0}>
+              <GroupStatusSubtitle group={group} project={project} />
+            </Flex>
+            <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
+              <EventUserCounts group={group} project={project} />
+            </Flex>
+          </Flex>
+        </Stack>
+      </Container>
+      <Flex
+        paddingTop="sm"
+        paddingBottom="lg"
+        borderBottom="muted"
+        justify="between"
+        align="center"
+        wrap="wrap"
+        gap="md"
+      >
+        {previewSeer.isLoading ? (
+          <Placeholder width="120px" height="32px" />
+        ) : previewSeer.shouldShowSeerActions ? (
+          <IssuePreviewActions
+            autofix={previewSeer.autofix}
+            group={group}
+            disabled={disableActions}
+            onContinueInSeer={() => {
+              navigate({pathname: issueDetailsUrl, query: {seerDrawer: 'true'}});
+            }}
+          />
+        ) : (
+          <GroupActions
+            group={group}
+            project={project}
+            disabled={disableActions}
+            event={null}
+          />
+        )}
+        <Flex align="center" wrap="wrap" gap="lg">
+          <GroupPriority group={group} />
+          <GroupHeaderAssigneeSelector
+            group={group}
+            project={project}
+            event={null}
+            showLabel={false}
+          />
+        </Flex>
+      </Flex>
+      {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
+      {previewSeer.isLoading || linkedPullRequests.isPending ? (
+        <LoadingIndicator />
+      ) : (
+        <Dividers>
+          {linkedPullRequests.data?.pullRequests.length ? (
+            <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
+              <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
+              <IssuePreviewSection.Content>
+                <LinkedPullRequests group={group} showEmptyState={false} />
+              </IssuePreviewSection.Content>
+            </IssuePreviewSection>
+          ) : null}
+          {previewSeer.hasAutofix && (
+            <IssuePreviewSeerContent
+              key={group.id}
               group={group}
               project={project}
-              disabled={disableActions}
-              event={null}
+              previewSeer={previewSeer}
             />
           )}
-          <Flex align="center" wrap="wrap" gap="lg">
-            <GroupPriority group={group} />
-            <GroupHeaderAssigneeSelector
-              group={group}
-              project={project}
-              event={null}
-              showLabel={false}
-            />
-          </Flex>
-        </Flex>
-        {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-        {previewSeer.isLoading || linkedPullRequests.isPending ? (
-          <LoadingIndicator />
-        ) : (
-          <Dividers>
-            {linkedPullRequests.data?.pullRequests.length ? (
-              <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
-                <IssuePreviewSection.Title>
-                  {t('Pull Requests')}
-                </IssuePreviewSection.Title>
-                <IssuePreviewSection.Content>
-                  <LinkedPullRequests group={group} showEmptyState={false} />
-                </IssuePreviewSection.Content>
-              </IssuePreviewSection>
-            ) : null}
-            {previewSeer.hasAutofix && (
-              <IssuePreviewSeerContent
-                key={group.id}
-                group={group}
-                project={project}
-                previewSeer={previewSeer}
-              />
-            )}
-            <Container>
-              <ErrorBoundary mini>
-                <FoldSection
-                  title={
-                    <Heading as="h3" size="md">
-                      {t('Activity')}
-                    </Heading>
-                  }
-                  sectionKey={SectionKey.ACTIVITY}
-                >
-                  <ActivitySection
-                    group={group}
-                    variant="standalone"
-                    placeholder={t('Add a comment. Tag users with @, or teams with #')}
-                  />
-                </FoldSection>
-              </ErrorBoundary>
-            </Container>
-          </Dividers>
-        )}
-      </CodeChangesRetryProvider>
+          <Container>
+            <ErrorBoundary mini>
+              <FoldSection
+                title={
+                  <Heading as="h3" size="md">
+                    {t('Activity')}
+                  </Heading>
+                }
+                sectionKey={SectionKey.ACTIVITY}
+              >
+                <ActivitySection
+                  group={group}
+                  variant="standalone"
+                  placeholder={t('Add a comment. Tag users with @, or teams with #')}
+                />
+              </FoldSection>
+            </ErrorBoundary>
+          </Container>
+        </Dividers>
+      )}
     </IssueDetailsContextProvider>
   );
 }

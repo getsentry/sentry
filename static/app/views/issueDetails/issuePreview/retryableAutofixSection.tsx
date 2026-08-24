@@ -92,14 +92,6 @@ function ResetPrompt({
   ) : null;
 }
 
-/**
- * The retry state of the enclosing section, or null when rendered outside one.
- * Lets the preview's action row drive a section's reset prompt.
- */
-export function useOptionalRetryableAutofixSection() {
-  return use(RetryableAutofixSectionContext);
-}
-
 function useRetryableAutofixSection() {
   const context = use(RetryableAutofixSectionContext);
   if (!context) {

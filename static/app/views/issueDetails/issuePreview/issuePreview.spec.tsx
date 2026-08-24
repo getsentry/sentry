@@ -121,20 +121,18 @@ describe('IssuePreview', () => {
       body: {pullRequests: []},
     });
 
-    render(<IssuePreview groupId={group.id} />, {organization});
+    const {router} = render(<IssuePreview groupId={group.id} />, {organization});
 
     expect(screen.queryByRole('button', {name: 'Create PR'})).not.toBeInTheDocument();
 
-    // The CTA opens the proposal section's own prompt rather than navigating away.
     await userEvent.click(
       await screen.findByRole('button', {name: 'Add context & retry'})
     );
 
-    expect(
-      screen.getByPlaceholderText(
-        'Give Seer additional context to improve these code changes.'
-      )
-    ).toBeInTheDocument();
+    expect(router.location.pathname).toBe(
+      `/organizations/${organization.slug}/issues/${group.id}/`
+    );
+    expect(router.location.query).toEqual({seerDrawer: 'true'});
   });
 
   it('offers to restart Autofix after PR creation when the linked PR is closed', async () => {

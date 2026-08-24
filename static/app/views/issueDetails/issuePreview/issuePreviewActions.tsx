@@ -10,8 +10,11 @@ import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNex
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
-  getCodeChangePatches,
+  collectPatches,
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  isCodeChangesArtifact,
+  type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
@@ -30,9 +33,13 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOptionalRetryableAutofixSection} from 'sentry/views/issueDetails/issuePreview/retryableAutofixSection';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
+
+function hasCodeChanges(section: AutofixSection): boolean {
+  const artifact = getAutofixArtifactFromSection(section);
+  return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
+}
 
 interface IssuePreviewActionsProps {
   autofix: ExplorerAutofix;
@@ -224,7 +231,6 @@ function NextAutofixStepButton({
   variant?: 'primary' | 'secondary';
 }) {
   const {runState, isWaitingForRun} = autofix;
-  const codeChangesRetry = useOptionalRetryableAutofixSection();
   const sections = getOrderedAutofixSections(runState);
 
   if (!runState) {
@@ -377,13 +383,10 @@ function NextAutofixStepButton({
     );
   }
 
-  // Seer can finish the code changes step without producing a diff, leaving
-  // nothing to open a PR from. The proposal section renders a reset prompt for
-  // exactly this state, so point the CTA at it instead of offering a PR.
-  if (
-    nextStep?.action === 'create_pr' &&
-    getCodeChangePatches(nextStep.section).size === 0
-  ) {
+  // Seer can finish the code changes step without producing a diff. The full
+  // Seer drawer offers a retry for this state, so send users there instead of
+  // offering to create an empty PR.
+  if (nextStep?.action === 'create_pr' && !hasCodeChanges(nextStep.section)) {
     return (
       <Button
         {...getAutofixActionProps({
@@ -394,13 +397,7 @@ function NextAutofixStepButton({
         })}
         disabled={disabled}
         icon={<IconRefresh />}
-        onClick={() => {
-          if (codeChangesRetry) {
-            codeChangesRetry.setShouldShowReset(true);
-            return;
-          }
-          onContinueInSeer();
-        }}
+        onClick={onContinueInSeer}
         variant={variant}
       >
         {t('Add context & retry')}
