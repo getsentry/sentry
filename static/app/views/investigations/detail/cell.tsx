@@ -44,7 +44,7 @@ import type {
 } from 'sentry/views/investigations/types';
 import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
+import type {Block} from 'sentry/views/seerExplorer/types';
 
 type InvestigationCellProps = {
   block: InvestigationBlock;
@@ -198,8 +198,11 @@ export function InvestigationCell({
   ) : null;
 
   return (
-    <CellSection
-      $withDivider={block.kind === 'query'}
+    <Stack
+      as="section"
+      width="100%"
+      padding={block.kind === 'query' ? 'xl 0' : '0'}
+      borderBottom={block.kind === 'query' ? 'primary' : undefined}
       data-test-id={`investigation-cell-${block.id}`}
       data-has-divider={block.kind === 'query'}
     >
@@ -222,7 +225,7 @@ export function InvestigationCell({
           {panel}
         </Fragment>
       )}
-    </CellSection>
+    </Stack>
   );
 }
 
@@ -237,14 +240,23 @@ function CellResult({
 }) {
   const markdown = getTextOutput(block.output);
   return (
-    <TextResult data-test-id="text-cell-result" data-cell-variant="unbordered">
-      <TextCellAction>{refinementButton}</TextCellAction>
+    <Stack
+      position="relative"
+      flex={1}
+      minWidth={0}
+      gap="sm"
+      data-test-id="text-cell-result"
+      data-cell-variant="unbordered"
+    >
+      <Container position="absolute" top={0} right={0}>
+        {refinementButton}
+      </Container>
       {markdown ? (
         <SeerMarkdown raw={markdown} />
       ) : (
         <CellProgress state={progressState} />
       )}
-    </TextResult>
+    </Stack>
   );
 }
 
@@ -269,20 +281,31 @@ function QueryResult({
     getChartMetadata(chart);
 
   return (
-    <QueryResultContainer>
+    <Stack width="100%" gap="sm">
       <QueryDisclosureButton
-        type="button"
+        size="sm"
+        variant="transparent"
+        icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
         aria-label={t('Toggle %s', title)}
         aria-expanded={expanded}
         onClick={() => setExpanded(value => !value)}
       >
-        <IconChevron direction={expanded ? 'down' : 'right'} size="xs" />
-        <QueryCellTitle data-test-id="query-cell-title" size="sm" tabular>
+        <Text data-test-id="query-cell-title" size="sm" tabular>
           {title}
-        </QueryCellTitle>
+        </Text>
       </QueryDisclosureButton>
       {expanded ? (
-        <QueryResultCard data-test-id="query-cell-result" data-cell-variant="bordered">
+        <Stack
+          width="100%"
+          flex={1}
+          minWidth={0}
+          gap="0"
+          overflow="hidden"
+          border="primary"
+          radius="md"
+          data-test-id="query-cell-result"
+          data-cell-variant="bordered"
+        >
           <QueryResultHeader
             align="start"
             justify="between"
@@ -312,9 +335,9 @@ function QueryResult({
               </QueryCellProgress>
             )}
           </QueryResultBody>
-        </QueryResultCard>
+        </Stack>
       ) : null}
-    </QueryResultContainer>
+    </Stack>
   );
 }
 
@@ -685,9 +708,7 @@ function isRenderableTranscriptBlock(block: InvestigationTranscriptBlock, index:
       if (!structuredContent) {
         return false;
       }
-      const calls = Array.isArray(structuredContent.calls)
-        ? (structuredContent.calls as CallRecord[])
-        : [];
+      const calls = structuredContent.calls ?? [];
       return (
         visibleCallRecords(calls).length > 0 ||
         (Array.isArray(structuredContent.links) && structuredContent.links.length > 0) ||
@@ -766,7 +787,12 @@ function getTextOutput(output: unknown): string | null {
     : null;
 }
 
-function getQueryOutput(output: unknown): InvestigationQueryOutput | null {
+type RenderableQueryOutput = Pick<
+  InvestigationQueryOutput,
+  'chart' | 'preferredView' | 'tableMarkdown'
+>;
+
+function getQueryOutput(output: unknown): RenderableQueryOutput | null {
   if (
     !output ||
     typeof output !== 'object' ||
@@ -777,7 +803,19 @@ function getQueryOutput(output: unknown): InvestigationQueryOutput | null {
   ) {
     return null;
   }
-  return output as InvestigationQueryOutput;
+  const chart =
+    'chart' in output && (output.chart === null || isRecord(output.chart))
+      ? output.chart
+      : null;
+  return {
+    chart,
+    preferredView: output.preferredView,
+    tableMarkdown: output.tableMarkdown,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function getRenderableChart(chart: Record<string, unknown> | null) {
@@ -835,69 +873,10 @@ function getSeriesName(series: {label: string} | {name: string}) {
   return 'label' in series ? series.label : series.name;
 }
 
-const CellSection = styled('section')<{$withDivider: boolean}>`
+const QueryDisclosureButton = styled(Button)`
   width: 100%;
-  margin-bottom: ${p => (p.$withDivider ? p.theme.space.xl : 0)};
-  padding: ${p => (p.$withDivider ? p.theme.space.xl : 0)} 0;
-  border-bottom: ${p =>
-    p.$withDivider ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
-`;
-
-const TextResult = styled(Stack)`
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const TextCellAction = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-`;
-
-const QueryResultContainer = styled(Stack)`
-  width: 100%;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const QueryDisclosureButton = styled('button')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  width: 100%;
-  margin: 0;
-  padding: ${p => p.theme.space.sm};
-  color: ${p => p.theme.tokens.content.primary};
+  justify-content: flex-start;
   text-align: left;
-  background: transparent;
-  border: 0;
-  border-radius: ${p => p.theme.radius.md};
-  cursor: pointer;
-
-  &:hover {
-    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-`;
-
-const QueryCellTitle = styled(Text)`
-  color: ${p => p.theme.tokens.content.primary};
-  font-style: normal;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 1.4;
-  letter-spacing: normal;
-  vertical-align: middle;
-  font-variant-numeric: lining-nums tabular-nums;
-`;
-
-const QueryResultCard = styled(Stack)`
-  width: 100%;
-  flex: 1;
-  min-width: 0;
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
 `;
 
 const QueryResultHeader = styled(Flex)`

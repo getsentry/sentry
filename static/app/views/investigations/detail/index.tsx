@@ -300,7 +300,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 />
               ) : null}
 
-              <Stack gap="0">
+              <Stack gap="xl">
                 {notebookCells.map(block => (
                   <InvestigationCell
                     key={block.id}

@@ -1,3 +1,5 @@
+import type {ToolResult} from 'sentry/views/seerExplorer/types';
+
 export type InvestigationListItem = {
   blockCount: number;
   createdBy: string | null;
@@ -91,7 +93,7 @@ export type InvestigationTranscriptBlock = {
     content: string;
     tool_call_function: string;
     tool_call_id: string;
-    structuredContent?: Record<string, unknown> | null;
+    structuredContent?: ToolResult['structuredContent'];
   } | null> | null;
 };
 
