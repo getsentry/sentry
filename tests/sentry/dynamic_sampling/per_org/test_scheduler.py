@@ -472,6 +472,7 @@ class RunCalculationsPerOrgTest(TestCase):
             1.0,
             previous_eap_factor=1.0,
             legacy_volume=legacy_volume,
+            eap_extrapolated_total=100,
         )
 
     @override_options(
@@ -528,6 +529,7 @@ class RunCalculationsPerOrgTest(TestCase):
             1.0,
             previous_eap_factor=1.0,
             legacy_volume=None,
+            eap_extrapolated_total=100,
         )
 
     @override_options(
