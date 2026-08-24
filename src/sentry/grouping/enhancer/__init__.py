@@ -85,6 +85,8 @@ def _merge_rust_enhancements(
     This will merge the parsed enhancements together with the `bases`.
     It pretty much concatenates all the rules in `bases` (in order) together
     with all the rules in the incoming `rust_enhancements`.
+
+    Note: Assumes all of the passed bases are valid.
     """
     merged_rust_enhancements = RustEnhancements.empty()
     for base_id in bases:
