@@ -4,10 +4,11 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -33,6 +34,12 @@ import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+const ENVIRONMENT_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'minmax(0, 1fr)'},
+  {key: 'toggle', width: 'max-content'},
+  {key: 'action', width: 'max-content'},
+];
 
 interface EnvironmentRowProps {
   name: React.ReactNode;
@@ -301,27 +308,31 @@ export default function ProjectEnvironments() {
         </Container>
       </Flex>
 
-      <EnvironmentTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell
-            sort={sort === 'name' ? direction : undefined}
-            handleSortClick={() => handleSort('name')}
-          >
-            {isHidden ? t('Hidden') : t('Active Environments')}
-          </SimpleTable.HeaderCell>
-          <Tooltip
-            title={t('Count of all error events from the last 30 days')}
-            skipWrapper
-          >
+      <SimpleTable
+        columns={ENVIRONMENT_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell
+              sort={sort === 'name' ? direction : undefined}
+              handleSortClick={() => handleSort('name')}
+            >
+              {isHidden ? t('Hidden') : t('Active Environments')}
+            </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell
               sort={sort === 'events' ? direction : undefined}
               handleSortClick={() => handleSort('events')}
             >
-              {t('Recent Error Events')}
+              <InfoText
+                title={t('Count of all error events from the last 30 days')}
+                variant="muted"
+              >
+                {t('Recent Error Events')}
+              </InfoText>
             </SimpleTable.HeaderCell>
-          </Tooltip>
-          <SimpleTable.HeaderCell aria-label={t('Actions')} />
-        </SimpleTable.Header>
+            <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isPending ? (
           <EnvironmentTableSkeleton isHidden={isHidden} />
         ) : isError ? (
@@ -363,7 +374,7 @@ export default function ProjectEnvironments() {
                 : t("You don't have any environments yet.")}
           </SimpleTable.Empty>
         )}
-      </EnvironmentTable>
+      </SimpleTable>
       {environmentCount > ENVIRONMENTS_PER_PAGE && (
         <Flex justify="end" align="center" gap="xl" margin="2xl 0 0 0">
           <Text variant="muted">
@@ -400,8 +411,4 @@ export default function ProjectEnvironments() {
 
 const TabsContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const EnvironmentTable = styled(SimpleTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
 `;

@@ -1,11 +1,10 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
@@ -16,30 +15,28 @@ type Props = {
   token: InternalAppApiToken;
   canEdit?: boolean;
   onRemoveConfirmMessage?: string;
-  tokenPrefix?: string;
 };
 
 export function ApiTokenRow({
   token,
   onRemove,
-  tokenPrefix = '',
   canEdit = false,
   onRemoveConfirmMessage,
 }: Props) {
   return (
-    <Fragment>
-      <div>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
         {token.name}
         <TokenPreview aria-label={t('Token preview')}>
-          {tokenPreview(token.tokenLastCharacters, tokenPrefix)}
+          {tokenPreview(token.tokenLastCharacters)}
         </TokenPreview>
-      </div>
-      <div>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <DateTime date={token.dateCreated} />
-      </div>
-      <div>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <ScopeList>{token.scopes.join(', ')}</ScopeList>
-      </div>
+      </SimpleTable.RowCell>
       <Actions>
         {canEdit && (
           <LinkButton size="sm" to={`/settings/account/api/auth-tokens/${token.id}/`}>
@@ -52,7 +49,7 @@ export function ApiTokenRow({
             onRemoveConfirmMessage ||
             t(
               'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
-              tokenPreview(token.tokenLastCharacters, tokenPrefix)
+              tokenPreview(token.tokenLastCharacters)
             )
           }
         >
@@ -61,7 +58,7 @@ export function ApiTokenRow({
           </Button>
         </Confirm>
       </Actions>
-    </Fragment>
+    </SimpleTable.Row>
   );
 }
 
@@ -71,10 +68,9 @@ const ScopeList = styled('div')`
   max-width: 400px;
 `;
 
-const Actions = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
+const Actions = styled(SimpleTable.RowCell)`
   justify-content: flex-end;
+  gap: ${p => p.theme.space.md};
 `;
 
 const TokenPreview = styled('div')`

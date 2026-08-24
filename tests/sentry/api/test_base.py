@@ -483,6 +483,11 @@ class PaginateTest(APITestCase):
         response = self.view(request)
         assert response.status_code == 400
 
+    def test_negative_cursor(self) -> None:
+        request = self.make_request(GET={"cursor": "0:-1:0"})
+        response = self.view(request)
+        assert response.status_code == 400
+
     def test_non_int_per_page(self) -> None:
         request = self.make_request(GET={"per_page": "nope"})
         response = self.view(request)

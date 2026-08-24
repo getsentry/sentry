@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {useMutation} from '@tanstack/react-query';
 import type {MutationOptions} from '@tanstack/react-query';
 
@@ -23,10 +22,7 @@ interface AskSeerMutationResult<T extends QueryTokensProps> {
   unsupported_reason: string | null;
 }
 
-export interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
-  AriaComboBoxProps<unknown>,
-  'children'
-> {
+export interface AskSeerComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T) => void;
   askSeerMutationOptions: MutationOptions<AskSeerMutationResult<T>, Error, string>;
   initialQuery: string;

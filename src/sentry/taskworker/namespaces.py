@@ -166,6 +166,11 @@ issues_tasks = app.taskregistry.create_namespace(
     app_feature="issueplatform",
 )
 
+issues_action_log_tasks = app.taskregistry.create_namespace(
+    "issues.action_log",
+    app_feature="issueplatform",
+)
+
 issues_merge_tasks = app.taskregistry.create_namespace(
     "issues.merge",
     app_feature="issueplatform",
@@ -173,6 +178,11 @@ issues_merge_tasks = app.taskregistry.create_namespace(
 
 issues_reprocessing_tasks = app.taskregistry.create_namespace(
     "issues.reprocessing",
+    app_feature="issueplatform",
+)
+
+issues_long_tasks = app.taskregistry.create_namespace(
+    "issues.long",
     app_feature="issueplatform",
 )
 

@@ -12,6 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.auth import (
+    REACT_AUTH_COOKIE,
     EmailAuthBackend,
     SsoSession,
     construct_link_with_query,
@@ -143,6 +144,15 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-2fa-dialog')}"
 
+    def test_pending_2fa_with_react_auth(self) -> None:
+        request = self._make_request()
+        request.session["_pending_2fa"] = [1234, 1234, 1234]
+        request.COOKIES[REACT_AUTH_COOKIE] = "1"
+
+        result = get_login_redirect(request)
+
+        assert result == reverse("sentry-login")
+
     def test_login_uses_default(self) -> None:
         result = get_login_redirect(self._make_request(reverse("sentry-login")))
         assert result == reverse("sentry-login")
@@ -194,6 +204,31 @@ class LoginTest(TestCase):
         with mock.patch("sentry.utils.auth.record_suspended_user_rejection") as mock_metric:
             assert not login(request, self.user)
         mock_metric.assert_called_once_with("session_login")
+
+
+@control_silo_test
+class ActiveOrganizationTest(TestCase):
+    def test_clear_active_org(self) -> None:
+        request = HttpRequest()
+        request.session = SessionBase()
+        request.session["activeorg"] = "acme"
+
+        sentry.utils.auth.clear_active_org(request)
+
+        assert "activeorg" not in request.session
+
+    def test_clear_active_org_without_active_org(self) -> None:
+        request = HttpRequest()
+        request.session = SessionBase()
+
+        sentry.utils.auth.clear_active_org(request)
+
+        assert "activeorg" not in request.session
+
+    def test_clear_active_org_without_session(self) -> None:
+        request = HttpRequest()
+
+        sentry.utils.auth.clear_active_org(request)
 
 
 def test_sso_expiry_default() -> None:

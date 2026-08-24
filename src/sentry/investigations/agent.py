@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import html
 from enum import StrEnum
+from functools import partial
 from typing import Any
 
 from django.db import router, transaction
@@ -11,6 +12,7 @@ from django.utils import timezone
 
 from sentry.investigations.contracts import validate_query_result, validate_text_result
 from sentry.investigations.models import (
+    TERMINAL_BLOCK_EXECUTION_STATUSES,
     Investigation,
     InvestigationBlock,
     InvestigationBlockExecution,
@@ -19,8 +21,10 @@ from sentry.investigations.models import (
     InvestigationBlockKind,
     InvestigationStatus,
 )
+from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
+    investigation_source,
     mark_downstream_blocks_stale,
 )
 from sentry.models.organization import Organization
@@ -57,7 +61,6 @@ class TitleGenerationStatus(StrEnum):
 
 
 IN_FLIGHT_TITLE_STATUSES = (TitleGenerationStatus.PENDING, TitleGenerationStatus.RUNNING)
-
 
 QUERY_INSTRUCTIONS = """You are answering a query block inside a Sentry investigation.
 Use Code Mode only for telemetry analysis. You may call sentry.telemetry_live_search and
@@ -106,6 +109,7 @@ def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
     context = {
         "request": snapshot.get("prompt"),
         "projectSlugs": snapshot.get("projectSlugs", []),
+        "source": snapshot.get("source", {}),
         "filters": snapshot.get("filters", {}),
         "parameters": snapshot.get("parameters", {}),
         "notebookContext": snapshot.get("context", []),
@@ -568,6 +572,11 @@ def _result_from_final_message(state: SeerRunState, *, block_kind: str) -> dict[
 
 
 def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRunState) -> None:
+    # The branches below each guard their own writes against a terminal status, except the
+    # off-policy one, which acts on the Seer state alone. Without this a late off-policy run
+    # would overwrite a cancelled execution with a failure the user did not cause.
+    if execution.status in TERMINAL_BLOCK_EXECUTION_STATUSES:
+        return
     blocks, transcript_truncated, off_policy = sanitize_state(
         state,
         allow_query_tools=execution.block.kind == InvestigationBlockKind.QUERY,
@@ -614,13 +623,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
     if status:
         updated = (
             InvestigationBlockExecution.objects.filter(id=execution.id)
-            .exclude(
-                status__in=[
-                    InvestigationBlockExecutionStatus.COMPLETED,
-                    InvestigationBlockExecutionStatus.FAILED,
-                    InvestigationBlockExecutionStatus.CANCELLED,
-                ]
-            )
+            .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
             .update(status=status, transcript=blocks, transcript_truncated=transcript_truncated)
         )
         if updated:
@@ -636,11 +639,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             .select_related("block__investigation")
             .get(id=execution.id)
         )
-        if execution.status in {
-            InvestigationBlockExecutionStatus.COMPLETED,
-            InvestigationBlockExecutionStatus.FAILED,
-            InvestigationBlockExecutionStatus.CANCELLED,
-        }:
+        if execution.status in TERMINAL_BLOCK_EXECUTION_STATUSES:
             return
         execution.transcript = blocks
         execution.transcript_truncated = transcript_truncated
@@ -744,6 +743,15 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             lambda: _maybe_start_title_generation(block.investigation, execution.triggered_by_id),
             using=database,
         )
+        if execution.triggered_by_id is not None:
+            transaction.on_commit(
+                partial(
+                    schedule_eligible_auto_run_blocks,
+                    investigation_id=block.investigation_id,
+                    user_id=execution.triggered_by_id,
+                ),
+                using=database,
+            )
 
 
 def _maybe_start_title_generation(investigation: Investigation, user_id: int | None) -> None:
@@ -772,7 +780,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         "generic titles such as 'Metric Monitor Breach Investigation' or 'Incident Analysis'. "
         "Do not use tools. Return only the title text. Do not call any function to write or save "
         "it.\n<source_context>\n"
-        f"{json.dumps(investigation.source_ref)}\n</source_context>\n"
+        f"{json.dumps(investigation_source(investigation))}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
 
