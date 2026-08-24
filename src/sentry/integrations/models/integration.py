@@ -122,6 +122,9 @@ class Integration(DefaultFieldsModelExisting):
 
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
+                # We're using select_for_update here to guard against a deletion race.
+                # You can find the other side of the lock here:
+                #   src/sentry/deletions/defaults/organizationintegration.py
                 org_integration, created = (
                     OrganizationIntegration.objects.select_for_update().get_or_create(
                         organization_id=organization_id,
@@ -131,18 +134,39 @@ class Integration(DefaultFieldsModelExisting):
                 )
                 # TODO(Steve): add audit log if created
                 if not created:
-                    was_pending_deletion = org_integration.status in {
-                        ObjectStatus.PENDING_DELETION,
-                        ObjectStatus.DELETION_IN_PROGRESS,
-                    }
-                    updates = {}
+                    # The deletion task has already claimed the row. Exit early. We
+                    # can not honor the re-installation request.
+                    #
+                    # There is a chance that a failed deletion leaves this
+                    # stuck. Deletes are periodically retried but there could
+                    # be significant time delay. Ideally we're not mutating shared
+                    # state in this way. We should be creating new integration rows
+                    # not fighting over the old one. Or just not deleting it at all
+                    # but I don't know enough to determine the side effects.
+                    if org_integration.status == ObjectStatus.DELETION_IN_PROGRESS:
+                        logger.info(
+                            "add-organization-deletion-in-progress",
+                            extra={
+                                "organization_id": organization_id,
+                                "integration_id": self.id,
+                                "organization_integration_id": org_integration.id,
+                            },
+                        )
+                        return None
+
+                    # We've locked the row so, technically, we can rescue the row
+                    # from deletion without risking a concurrent delete. This is in
+                    # all likelihood the source of our deletion race.
+                    reactivating = org_integration.status == ObjectStatus.PENDING_DELETION
+
+                    updates: dict[str, Any] = {}
                     if default_auth_id:
                         updates["default_auth_id"] = default_auth_id
-                    if was_pending_deletion:
+                    if reactivating:
                         updates["status"] = ObjectStatus.ACTIVE
                     if updates:
                         org_integration.update(**updates)
-                    if was_pending_deletion:
+                    if reactivating:
                         ScheduledDeletion.cancel(org_integration)
 
                 if created:

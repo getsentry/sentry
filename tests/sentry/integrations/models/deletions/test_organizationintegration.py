@@ -1,4 +1,8 @@
+from unittest import mock
+
+from sentry import deletions
 from sentry.constants import ObjectStatus
+from sentry.deletions.defaults.organizationintegration import OrganizationIntegrationDeletionTask
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -75,6 +79,91 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             run_scheduled_deletions_control()
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
+
+    def test_reinstall_after_deletion_task_read_the_row(self) -> None:
+        """
+        The scheduled deletion task checks `should_proceed` against a copy of the
+        row that it read before it started. A reinstall landing in that window
+        used to be deleted anyway, because the deletion re-queried by id only.
+        """
+        org = self.create_organization()
+        integration = self.create_provider_integration(provider="example", name="Example")
+        organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(instance=organization_integration, days=0)
+
+        real_should_proceed = OrganizationIntegrationDeletionTask.should_proceed
+
+        def reinstall_then_proceed(
+            task: OrganizationIntegrationDeletionTask, instance: OrganizationIntegration
+        ) -> bool:
+            # `instance` was read while still PENDING_DELETION, so this returns
+            # True even though the row is ACTIVE again by the time it does.
+            integration.add_organization(org, self.user)
+            return real_should_proceed(task, instance)
+
+        with mock.patch.object(
+            OrganizationIntegrationDeletionTask, "should_proceed", reinstall_then_proceed
+        ):
+            with self.tasks():
+                run_scheduled_deletions_control()
+
+        assert (
+            OrganizationIntegration.objects.get(id=organization_integration.id).status
+            == ObjectStatus.ACTIVE
+        )
+        assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
+
+    def test_delete_bulk_skips_rows_reactivated_after_selection(self) -> None:
+        """
+        `chunk` selects rows without locking them, so a reinstall can land
+        between the select and the delete. The claim must catch that.
+        """
+        org = self.create_organization()
+        integration = self.create_provider_integration(provider="example", name="Example")
+        organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+
+        task = deletions.get(
+            model=OrganizationIntegration, query={"id": organization_integration.id}
+        )
+        assert isinstance(task, OrganizationIntegrationDeletionTask)
+
+        # The stale copy the task selected, before the reinstall commits.
+        stale = OrganizationIntegration.objects.get(id=organization_integration.id)
+        assert stale.status == ObjectStatus.PENDING_DELETION
+
+        reactivated = integration.add_organization(org, self.user)
+        assert reactivated is not None
+        assert reactivated.status == ObjectStatus.ACTIVE
+
+        assert task.delete_bulk([stale]) is False
+        assert (
+            OrganizationIntegration.objects.get(id=organization_integration.id).status
+            == ObjectStatus.ACTIVE
+        )
+
+    def test_reinstall_refused_while_deletion_in_progress(self) -> None:
+        """
+        Once the deletion has claimed the row its children are being torn down,
+        so the row cannot be handed back as a successful install.
+        """
+        org = self.create_organization()
+        integration = self.create_provider_integration(provider="example", name="Example")
+        organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
+
+        organization_integration.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+
+        assert integration.add_organization(org, self.user) is None
+        assert (
+            OrganizationIntegration.objects.get(id=organization_integration.id).status
+            == ObjectStatus.DELETION_IN_PROGRESS
+        )
 
     def test_repository_and_identity(self) -> None:
         org = self.create_organization()
