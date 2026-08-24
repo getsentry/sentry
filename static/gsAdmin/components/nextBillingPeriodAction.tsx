@@ -1,13 +1,13 @@
-import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Heading} from '@sentry/scraps/text';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Form} from 'sentry/components/forms/form';
-import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
@@ -24,58 +24,55 @@ function EndPeriodEarlyModal({
   closeModal,
   Header,
   Body,
+  Footer,
 }: EndPeriodEarlyModalProps) {
-  const {mutateAsync: endPeriodEarly, isPending} = useMutation<any>({
+  const mutation = useMutation({
     mutationFn: () =>
       fetchMutation({
         url: `/customers/${orgId}/`,
         method: 'PUT',
         data: {endPeriodEarly: true},
       }),
-  });
-
-  const onSubmit: OnSubmitCallback = async (
-    _formData,
-    onSubmitSuccess,
-    onSubmitError
-  ) => {
-    try {
-      const response = await endPeriodEarly();
-
+    onSuccess: () => {
       addSuccessMessage('Current period ended successfully');
-      onSubmitSuccess(response);
       onSuccess();
       closeModal();
-    } catch (err: any) {
-      onSubmitError({
-        responseJSON: err.responseJSON,
-      });
-    }
-  };
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {},
+    onSubmit: () => mutation.mutateAsync().catch(() => {}),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         <Heading as="h3">End Current Period Immediately</Heading>
       </Header>
       <Body>
-        <Form
-          onSubmit={onSubmit}
-          onCancel={closeModal}
-          submitLabel="Submit"
-          submitDisabled={isPending}
-          cancelLabel="Cancel"
-        >
+        <Stack gap="lg">
           <Alert.Container>
             <Alert variant="warning" showIcon={false}>
               Ending the current billing period will immediately start the next billing
               cycle and may impact invoicing and usage proration.
             </Alert>
           </Alert.Container>
-          <p>End the current billing period immediately and start a new one.</p>
-        </Form>
+          <Text as="p">
+            End the current billing period immediately and start a new one.
+          </Text>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button disabled={mutation.isPending} onClick={closeModal}>
+            Cancel
+          </Button>
+          <form.SubmitButton>Submit</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 
