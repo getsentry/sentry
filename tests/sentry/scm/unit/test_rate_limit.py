@@ -771,6 +771,34 @@ class TestWindowStateCodec:
     def test_decodes_zero_values(self) -> None:
         assert decode_window_state("0:0") == WindowState(used=0, reset=0)
 
+    def test_round_trips_reserved_usage_without_local_usage(self) -> None:
+        state = WindowState(used=42, reset=1600, local_used=None, reserved_used=5)
+        assert encode_window_state(state) == "42:1600::5"
+        assert decode_window_state("42:1600::5") == state
+
+    def test_decodes_negative_values(self) -> None:
+        """A proxy can hand us nonsense like a negative reset; the codec must not choke on it."""
+        assert decode_window_state("5:-1") == WindowState(used=5, reset=-1)
+
+
+class TestNegativeReset:
+    def test_negative_reset_falls_back_to_the_local_boundary(self) -> None:
+        limiter, _ = make_limiter()
+        assert limiter.window_end(3675, WindowState(used=5, reset=-1), "default") == 7200
+
+    def test_negative_reset_is_not_recorded(self) -> None:
+        limiter, provider = make_limiter(get_time_in_seconds=lambda: 1000)
+        limiter.set_window_state(consumed=42, next_window_start=-1, resource="default")
+        assert provider.window_writes == []
+
+    def test_negative_reported_usage_is_not_charged(self) -> None:
+        limiter, _ = make_limiter(
+            capacity=100,
+            usage=1,
+            window=WindowState(used=-5, reset=4000),
+        )
+        assert is_rate_limited(limiter, "shared", "default") is False
+
 
 class TestWindowAlignmentScenario:
     """

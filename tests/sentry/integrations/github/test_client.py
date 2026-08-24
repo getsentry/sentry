@@ -383,6 +383,64 @@ class GitHubApiClientTest(TestCase):
         mock_metrics.incr.assert_any_call("sentry.scm.github.could_not_extract_rate_limit_headers")
 
     @responses.activate
+    def test_transport_failure_still_records_completion(self) -> None:
+        """
+        A request that never produces a response still consumed an issued-counter increment. It
+        must be marked complete -- with no window, since no reset was observed -- or the in-flight
+        estimate inflates permanently.
+        """
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            body=ConnectionError("connection reset"),
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
+            ),
+            mock.patch.object(
+                DynamicRateLimiter, "record_completed_request"
+            ) as mock_record_completed,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            pytest.raises(Exception),
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        mock_record_completed.assert_called_once_with("shared", "core", None)
+
+    @responses.activate
+    def test_referrer_is_normalized_before_the_rate_limit_check(self) -> None:
+        """
+        An unregistered referrer must consult and complete against the shared pool, so the check
+        and the completion land on the same counters.
+        """
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter,
+                "check_rate_limit",
+                return_value=RateLimitCheck(is_limited=False, local_used=1),
+            ) as mock_check,
+            mock.patch.object(
+                DynamicRateLimiter, "record_completed_request"
+            ) as mock_record_completed,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            self.github_client.referrer("not-a-registered-referrer"),
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        assert mock_check.call_args.args[0] == "shared"
+        mock_record_completed.assert_called_once_with("shared", "core", None)
+
+    @responses.activate
     def test_unparseable_rate_limit_headers_record_nothing(self) -> None:
         """A malformed header must be treated as absent rather than raising into the request path."""
         responses.add(
