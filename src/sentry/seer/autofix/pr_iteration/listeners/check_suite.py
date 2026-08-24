@@ -4,7 +4,6 @@ import orjson
 import sentry_sdk
 from pydantic import ValidationError
 
-from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -49,6 +48,8 @@ def _retrigger_deferred_iteration(resolved: ResolvedGreenCheckSuite) -> None:
     re-scheduling per green suite would pile up one consume per CI app.
     ``should_consume`` drops items whose head no longer matches the run.
     """
+    from sentry.integrations.github.utils import is_github_rate_limit_sensitive
+
     if is_github_rate_limit_sensitive(resolved.organization.slug):
         return
 
