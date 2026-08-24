@@ -68,13 +68,13 @@ export function DebugFileRow({
           <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
 
           {features && (
-            <FeatureTags>
+            <Flex display="inline-flex" wrap="wrap" gap="xs">
               {features.map(feature => (
                 <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
-                  <StyledTag variant="muted">{feature}</StyledTag>
+                  <Tag variant="muted">{feature}</Tag>
                 </Tooltip>
               ))}
-            </FeatureTags>
+            </Flex>
           )}
           {showDetails && (
             <div>
@@ -144,16 +144,6 @@ export function DebugFileRow({
 const DescriptionText = styled('span')`
   display: inline-flex;
   margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
-`;
-
-const FeatureTags = styled('div')`
-  display: inline-flex;
-  flex-wrap: wrap;
-  margin: -${p => p.theme.space.xs};
-`;
-
-const StyledTag = styled(Tag)`
-  padding: ${p => p.theme.space.xs};
 `;
 
 const DebugId = styled('code')`
