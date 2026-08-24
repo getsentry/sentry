@@ -547,9 +547,8 @@ def handle_metrics(
     Kept current on every ``pull_request`` event so the emit path can read the
     counts off the row — the judge path (Seer RPC callback) has no payload to
     derive them from. Registered before ``handle_emission`` so a close/merge
-    reflects the final counts. Gated by the emit flag, the sole consumer; it
-    writes only the webhook-sourced counters, leaving the other columns to their
-    own producers.
+    reflects the final counts. It writes only the webhook-sourced counters, leaving
+    the other columns to their own producers.
 
     Skips a payload the ``PullRequest`` row rejected as stale: both writes come from
     one snapshot, and letting a replay clobber the counters while the PR row holds
@@ -607,7 +606,7 @@ def handle_activity(
     if not action or (action not in _ACTIVITY_ACTIONS and action not in _DOC_ONLY_ACTIONS):
         return
 
-    if not features.has("organizations:pr-metrics", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
     pr = _get_pull_request(
