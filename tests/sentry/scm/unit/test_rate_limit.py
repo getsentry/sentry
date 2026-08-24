@@ -390,6 +390,15 @@ class TestReportedUsageReconciliation:
         )
         assert limiter.is_rate_limited("shared", "default") is False
 
+    def test_reported_usage_from_an_implausible_window_is_ignored(self) -> None:
+        limiter, _ = make_limiter(
+            capacity=100,
+            usage=1,
+            window=WindowState(used=5000, reset=10**10),
+            get_time_in_seconds=lambda: 1000,
+        )
+        assert limiter.is_rate_limited("shared", "default") is False
+
     def test_reserved_usage_is_deducted_from_reported_usage(self) -> None:
         """
         Reported usage includes quota the reserved referrers consumed. Charging it to the shared
@@ -603,11 +612,10 @@ class TestSetWindowState:
         limiter.set_window_state(consumed=42, next_window_start=1000, resource="default")
         assert provider.window_writes == []
 
-    def test_bounds_the_ttl_of_an_implausible_reset(self) -> None:
-        """An implausible reset is keyed to the local boundary, so its TTL expires there too."""
+    def test_ignores_an_implausible_reset(self) -> None:
         limiter, provider = make_limiter(get_time_in_seconds=lambda: 1000)
         limiter.set_window_state(consumed=42, next_window_start=10**10, resource="default")
-        assert provider.window_writes[0][2] == 2600
+        assert provider.window_writes == []
 
     def test_window_state_is_scoped_to_the_resource(self) -> None:
         """Resources reset on their own schedules, so their window state cannot share a key."""

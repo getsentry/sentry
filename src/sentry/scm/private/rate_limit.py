@@ -179,6 +179,11 @@ class DynamicRateLimiter:
         """Return the length of the rate-limit window for a resource."""
         return self.resource_windows.get(resource, self.rate_limit_window_seconds)
 
+    def is_live_window(self, current_time: int, window: WindowState, resource: str) -> bool:
+        """Return whether the provider reset is live and plausibly near."""
+        max_reset = current_time + (self.window_seconds(resource) * MAX_WINDOW_TTL_MULTIPLIER)
+        return current_time < window.reset <= max_reset
+
     def window_end(self, current_time: int, window: WindowState | None, resource: str) -> int:
         """
         Return the epoch second at which the current rate-limit window ends.
@@ -192,10 +197,8 @@ class DynamicRateLimiter:
         """
         window_seconds = self.window_seconds(resource)
 
-        if window is not None:
-            max_reset = current_time + (window_seconds * MAX_WINDOW_TTL_MULTIPLIER)
-            if current_time < window.reset <= max_reset:
-                return window.reset
+        if window is not None and self.is_live_window(current_time, window, resource):
+            return window.reset
 
         # We have no live, plausible reset from the provider, so assume a tumbling window of the
         # configured length.
@@ -240,7 +243,11 @@ class DynamicRateLimiter:
         # the shared pool, and only after the quota reserved referrers have accounted for is
         # deducted from it. A report whose window has already closed describes usage the provider
         # has forgiven, so it must not be charged into the window we are in now.
-        if window is not None and window.reset > current_time and referrer == "shared":
+        if (
+            window is not None
+            and self.is_live_window(current_time, window, resource)
+            and referrer == "shared"
+        ):
             reported_usage = window.used - self._reserved_usage(window_end, resource)
             if window.local_used is not None:
                 reported_usage += max(0, local_used - window.local_used)
@@ -310,11 +317,11 @@ class DynamicRateLimiter:
     ) -> None:
         """Record the service-provider's own accounting of the current window."""
         current_time = self.get_time_in_seconds()
-        if next_window_start <= current_time:
-            # The window has already closed, so this tells us nothing about current consumption.
+        state = WindowState(used=consumed, reset=next_window_start, local_used=local_used)
+        if not self.is_live_window(current_time, state, resource):
+            # A closed or implausibly distant window tells us nothing about current consumption.
             return None
 
-        state = WindowState(used=consumed, reset=next_window_start, local_used=local_used)
         self.rate_limit_provider.set_window_state(
             window_state_key(self.provider, self.integration_id, resource),
             state,
