@@ -834,7 +834,7 @@ class SlackActionEndpoint(Endpoint):
                 organization,
                 viewer_context=viewer_context,
             )
-        except SeerApiError:
+        except (SeerApiError, AttributeError, TypeError, ValueError):
             _logger.exception(
                 "seer.slack.agent_write_approval.state_fetch_failed",
                 extra={"organization_id": organization.id, "run_id": run_id},

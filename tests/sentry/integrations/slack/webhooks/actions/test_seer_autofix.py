@@ -318,6 +318,22 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.action.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.action.fetch_run_status")
+    def test_invalid_seer_state_returns_ephemeral_error(self, mock_fetch, mock_update):
+        self.cache_message()
+        mock_fetch.side_effect = ValueError("No session found")
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self.post_webhook_block_kit(
+                action_data=[self.get_action(SlackAction.SEER_AGENT_WRITE_APPROVE)],
+                original_message=self.get_original_message(),
+            )
+
+        assert response.status_code == 200
+        assert response.data["text"] == "Sentry can't perform that action right now on your behalf!"
+        mock_update.assert_not_called()
+
+    @patch("sentry.integrations.slack.webhooks.action.make_agent_update_request")
+    @patch("sentry.integrations.slack.webhooks.action.fetch_run_status")
     def test_stale_message_cannot_approve_a_later_input(self, mock_fetch, mock_update):
         self.cache_message(input_id="approval-previous")
         mock_fetch.return_value = self.pending_state(input_id="approval-current")
