@@ -15,6 +15,7 @@ import {
   useLinkedPullRequests,
 } from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -113,7 +114,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
         overscrollBehavior="contain"
         padding="lg 2xl"
       >
-        {isPending && <IssuePreviewLoadingSkeleton />}
+        {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
           <GroupDataContextProvider group={group} project={project}>
@@ -124,33 +125,6 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
         )}
       </Container>
     </AnalyticsArea>
-  );
-}
-
-function IssuePreviewLoadingSkeleton() {
-  return (
-    <Stack gap="md" aria-label={t('Loading issue preview')}>
-      <Stack gap="sm" paddingBottom="sm">
-        <Placeholder width="50%" height="22px" />
-        <Placeholder width="75%" height="18px" />
-        <Placeholder width="60%" height="18px" />
-      </Stack>
-      <Flex
-        paddingTop="sm"
-        paddingBottom="lg"
-        borderBottom="muted"
-        justify="between"
-        align="center"
-      >
-        <Placeholder width="120px" height="32px" />
-        <Placeholder width="80px" height="32px" />
-      </Flex>
-      <Stack gap="md">
-        <Placeholder height="78px" />
-        <Placeholder height="120px" />
-        <Placeholder height="160px" />
-      </Stack>
-    </Stack>
   );
 }
 

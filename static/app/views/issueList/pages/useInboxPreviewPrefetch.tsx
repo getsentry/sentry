@@ -1,4 +1,4 @@
-import {useFocus, useHover} from '@react-aria/interactions';
+import {useHover} from '@react-aria/interactions';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -26,48 +26,42 @@ export function useInboxPreviewPrefetch(group: Group) {
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features') &&
     getConfigForIssueType(group, group.project).autofix;
-  const prefetch = () => {
-    void queryClient.prefetchQuery(
-      groupApiOptions({
-        groupId: group.id,
-        organizationSlug: organization.slug,
-        environments,
-        expandDerivedData: organization.features.includes('issue-inbox'),
-      })
-    );
-    void queryClient.prefetchQuery(
-      linkedPullRequestsApiOptions({
-        groupId: group.id,
-        organizationSlug: organization.slug,
-      })
-    );
-    void queryClient.prefetchQuery(
-      autofixSetupApiOptions({
-        groupId: group.id,
-        organizationSlug: organization.slug,
-      })
-    );
-    if (shouldPrefetchAutofix) {
-      void queryClient.prefetchQuery({
-        ...explorerAutofixApiOptions(organization.slug, group.id),
-        retry: false,
-      });
-    }
-  };
-  const hoverPrefetch = useDebouncer(prefetch, {wait: PREFETCH_DELAY_MS});
-  const focusPrefetch = useDebouncer(prefetch, {wait: PREFETCH_DELAY_MS});
+  const prefetchDebouncer = useDebouncer(
+    () => {
+      void queryClient.prefetchQuery(
+        groupApiOptions({
+          groupId: group.id,
+          organizationSlug: organization.slug,
+          environments,
+          expandDerivedData: organization.features.includes('issue-inbox'),
+        })
+      );
+      void queryClient.prefetchQuery(
+        linkedPullRequestsApiOptions({
+          groupId: group.id,
+          organizationSlug: organization.slug,
+        })
+      );
+      void queryClient.prefetchQuery(
+        autofixSetupApiOptions({
+          groupId: group.id,
+          organizationSlug: organization.slug,
+        })
+      );
+      if (shouldPrefetchAutofix) {
+        void queryClient.prefetchQuery({
+          ...explorerAutofixApiOptions(organization.slug, group.id),
+          retry: false,
+        });
+      }
+    },
+    {wait: PREFETCH_DELAY_MS}
+  );
 
   const {hoverProps} = useHover({
-    onHoverStart: () => hoverPrefetch.maybeExecute(),
-    onHoverEnd: () => hoverPrefetch.cancel(),
-  });
-  const {focusProps} = useFocus({
-    onFocus: () => focusPrefetch.maybeExecute(),
-    onBlur: () => focusPrefetch.cancel(),
+    onHoverStart: () => prefetchDebouncer.maybeExecute(),
+    onHoverEnd: () => prefetchDebouncer.cancel(),
   });
 
-  return {
-    ...hoverProps,
-    ...focusProps,
-  };
+  return hoverProps;
 }
