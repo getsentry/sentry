@@ -213,7 +213,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   }
 
   return (
-    <PerformanceOnboardingContainer>
+    <Container column="1 / -1">
       {noPerformanceSupport && (
         <UnsupportedAlert projectSlug={project.slug} featureName="Performance" />
       )}
@@ -263,13 +263,9 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
           }
         />
       </Panel>
-    </PerformanceOnboardingContainer>
+    </Container>
   );
 }
-
-const PerformanceOnboardingContainer = styled('div')`
-  grid-column: 1/-1;
-`;
 
 function ButtonList({children}: {children: React.ReactNode}) {
   return (
