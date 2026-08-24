@@ -229,11 +229,8 @@ class AuthLoginView(BaseView):
 
         organization: RpcOrganization | None = kwargs.pop("organization", None)
 
-        # Check `op == "login"` first: registration is allowed for the whole
-        # invite session (can_register), but a user on that same page can
-        # still submit the login form (e.g. via the "Already have an
-        # account? Sign in" link), and that submission must be routed to the
-        # login handler regardless of can_register.
+        # can_register is true for the whole invite session, so check
+        # op == "login" first or a login submit would hit the register handler.
         if op == "login":
             return self.handle_login_form_submit(
                 request=request, organization=organization, **kwargs
@@ -311,19 +308,15 @@ class AuthLoginView(BaseView):
         """
         op = request.POST.get("op")
         invite_email = request.session.get("invite_email", "")
-        initial_data = {"username": invite_email}
         form = RegistrationForm(
             request.POST if op == "register" else None,
-            initial=initial_data,
+            initial={"username": invite_email},
             # Custom auto_id to avoid ID collision with AuthenticationForm.
             auto_id="id_registration_%s",
         )
-        if invite_email:
-            # The invited email is the source of truth while accepting an
-            # invite. Disabling (rather than just pre-filling) the field means
-            # Django ignores any submitted value and always uses `initial`,
-            # so the field can't be tampered with client-side.
-            form.fields["username"].disabled = True
+        # Disabling (not just pre-filling) makes Django use `initial` no
+        # matter what's submitted, so the invited email can't be tampered with.
+        form.fields["username"].disabled = bool(invite_email)
         return form
 
     def handle_new_user_creation(

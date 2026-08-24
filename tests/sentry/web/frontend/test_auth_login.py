@@ -353,6 +353,9 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
             assert resp.status_code == 200
             assert resp.context["op"] == "register"
+            assert resp.context["register_form"].fields["username"].disabled is False
+            assert resp.context["is_invite_registration"] is False
+            assert "nav-tabs" in resp.content.decode("utf-8")
             self.assertTemplateUsed("sentry/login.html")
 
     def test_register_prefills_invite_email(self) -> None:
@@ -386,17 +389,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         assert "_auth_user_id" in self.client.session
         assert not User.objects.filter(username="foo@example.com").exists()
-
-    def test_register_without_invite_shows_tabs(self) -> None:
-        with self.allow_registration():
-            register_path = reverse("sentry-register")
-            resp = self.client.get(register_path)
-
-        assert resp.status_code == 200
-        assert resp.context["register_form"].fields["username"].disabled is False
-        assert resp.context["is_invite_registration"] is False
-        content = resp.content.decode("utf-8")
-        assert "nav-tabs" in content
 
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
     def test_register_ignores_tampered_invite_email(self, from_session: mock.MagicMock) -> None:
