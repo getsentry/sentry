@@ -55,7 +55,7 @@ export function DevKitSettings({organization, project}: Props) {
     <Fragment>
       <Panel>
         <PanelBody>
-          <div>
+          <Container containerType="inline-size">
             <HeaderWrapper>
               <Title>{t('Get Started with DevKit Crash Monitoring')}</Title>
               <Description>
@@ -229,7 +229,7 @@ export function DevKitSettings({organization, project}: Props) {
                 </GuidedSteps>
               </Setup>
             </Body>
-          </div>
+          </Container>
         </PanelBody>
       </Panel>
     </Fragment>
