@@ -111,7 +111,11 @@ def refresh_orgs_with_dynamic_sampling() -> int:
         orjson.dumps(org_ids),
         ex=int(CACHE_TTL.total_seconds()),
     )
-    metrics.gauge("dynamic_sampling.per_org.feature_cache.size", len(org_ids))
+    metrics.distribution(
+        "dynamic_sampling.per_org.feature_cache.size",
+        len(org_ids),
+        sample_rate=1.0,
+    )
     return len(org_ids)
 
 
