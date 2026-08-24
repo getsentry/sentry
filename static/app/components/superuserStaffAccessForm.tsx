@@ -4,7 +4,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -115,7 +115,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       superuserAccessCategory: '',
       superuserReason: '',
     },
-    validators: [{run: accessSchema, triggers: ['change']}],
+    validators: defaultFormValidators(accessSchema),
     onSubmit: async ({value}) => {
       const access = accessSchema.parse(value);
 

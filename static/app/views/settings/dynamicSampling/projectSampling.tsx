@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -61,7 +61,7 @@ export function ProjectSampling() {
     defaultValues: {
       projectRates,
     },
-    validators: [{run: projectSamplingSchema, triggers: ['change']}],
+    validators: defaultFormValidators(projectSamplingSchema),
     onSubmit: async ({value, formApi}) => {
       const ratesArray = Object.entries(value.projectRates).map(([id, rate]) => ({
         id: Number(id),

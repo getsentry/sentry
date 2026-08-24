@@ -5,7 +5,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -127,7 +127,7 @@ export function RepositoryProjectPathConfigModal({
       sourceRoot: existingConfig?.sourceRoot ?? '',
       integrationId: integration.id,
     },
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       trackAnalytics('integrations.stacktrace_submit_config', {
         setup_type: 'manual',

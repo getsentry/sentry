@@ -3,7 +3,7 @@ import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -130,14 +130,11 @@ export function EditExistingErrorDetectorForm({
 
   const form = useScrapsForm({
     defaultValues: {workflowIds: detector.workflowIds},
-    validators: [
-      {
-        run: z.object({
-          workflowIds: z.array(z.string()),
-        }),
-        triggers: ['change'],
-      },
-    ],
+    validators: defaultFormValidators(
+      z.object({
+        workflowIds: z.array(z.string()),
+      })
+    ),
     onSubmit: async ({value}) => {
       await submitEditDetector({
         detectorId: detector.id,

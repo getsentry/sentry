@@ -7,7 +7,7 @@ import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -333,7 +333,7 @@ function CustomFilterModal({
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: filterSchema, triggers: ['change']}],
+    validators: defaultFormValidators(filterSchema),
     onSubmit: ({value}) =>
       onSave(value)
         .then(() => closeModal())

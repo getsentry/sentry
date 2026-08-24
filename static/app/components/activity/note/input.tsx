@@ -6,7 +6,7 @@ import {AnimatePresence, motion, useReducedMotion} from 'framer-motion';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -112,7 +112,7 @@ export function NoteInput({
 
   const form = useScrapsForm({
     defaultValues: {text: text ?? ''},
-    validators: [{run: noteInputSchema, triggers: ['change']}],
+    validators: defaultFormValidators(noteInputSchema),
     onSubmit: ({value}) => submitNote(value.text),
   });
 

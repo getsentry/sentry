@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -112,7 +112,7 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       const data: S3SubmitData = {
@@ -328,7 +328,7 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       const data: GcsSubmitData = {

@@ -6,7 +6,12 @@ import {z} from 'zod';
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {FormSearch, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FormSearch,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -65,7 +70,7 @@ function AccountEmails() {
 
   const form = useScrapsForm({
     defaultValues: {email: ''},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value, formApi}) => {
       return mutation
         .mutateAsync(value)

@@ -1,6 +1,11 @@
 import {z} from 'zod';
 
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -24,7 +29,7 @@ function ClaudeCodeApiKeyStep({
 }: PipelineStepProps<Record<string, never>, {apiKey: string}>) {
   const form = useScrapsForm({
     defaultValues: {apiKey: ''},
-    validators: [{run: apiKeySchema, triggers: ['change']}],
+    validators: defaultFormValidators(apiKeySchema),
     onSubmit: ({value, createValidationError}) =>
       advance({apiKey: value.apiKey}).catch(error => {
         if (error instanceof RequestError) {

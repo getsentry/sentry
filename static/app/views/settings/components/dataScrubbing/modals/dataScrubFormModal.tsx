@@ -7,7 +7,12 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ScrapsForm, useScrapsForm, useSelector} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  useScrapsForm,
+  useSelector,
+} from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -122,7 +127,7 @@ export function DataScrubFormModal({
       dataset: initialDataset,
       eventId: sourceGroupData.eventId,
     },
-    validators: [{run: dataScrubSchema, triggers: ['change']}],
+    validators: defaultFormValidators(dataScrubSchema),
     onSubmit: async ({value, createValidationError}) => {
       // Strip dataset and eventId from values before creating rules
       const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;

@@ -4,7 +4,7 @@ export {
   useScrapsForm,
   ScrapsForm,
   toFieldErrors,
-  validateOnSubmitThenChange,
+  defaultFormValidators,
   defineAppFieldGroup,
 } from './scrapsForm';
 export {AutoSaveForm} from './autoSaveForm';

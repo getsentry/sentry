@@ -2,7 +2,12 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -105,7 +110,7 @@ function OrganizationCreate() {
       dataStorageLocation: null as string | null,
       aggregatedDataConsent: false,
     },
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value, createValidationError}) => {
       addLoadingMessage(t('Creating Organization\u2026'));
 

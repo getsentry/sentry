@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   defineAppFieldGroup,
   FieldGroup,
   ScrapsForm,
@@ -195,7 +196,7 @@ export function SQSSetupForm({
 }) {
   const form = useScrapsForm({
     defaultValues: {...baseFormSetupDefaults, ...sqsDefaults},
-    validators: [{run: sqsSchema, triggers: ['change']}],
+    validators: defaultFormValidators(sqsSchema),
     onSubmit: ({value}) => {
       const {
         is_enabled: _is_enabled,
@@ -268,7 +269,7 @@ export function SQSEditForm({
       ...sqsDefaults,
       ...dataForwarder.config,
     },
-    validators: [{run: sqsSchema, triggers: ['change']}],
+    validators: defaultFormValidators(sqsSchema),
     onSubmit: ({value}) => {
       const {is_enabled, enroll_new_projects, project_ids, ...configFields} = value;
       onSubmit({

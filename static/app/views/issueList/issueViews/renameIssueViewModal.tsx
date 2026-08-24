@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -49,7 +49,7 @@ export function RenameIssueViewModal({
 
   const form = useScrapsForm({
     defaultValues: {name: view.name},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => updateIssueView({...view, name: value.name}).catch(() => {}),
   });
 

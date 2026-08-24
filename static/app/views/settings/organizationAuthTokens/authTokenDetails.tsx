@@ -3,7 +3,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -127,7 +127,7 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
 
   const form = useScrapsForm({
     defaultValues: {name: token.name},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       addLoadingMessage();
       return mutation.mutateAsync(value).catch(() => {});

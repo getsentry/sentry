@@ -3,6 +3,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   FieldGroup as FormPanel,
   ScrapsForm,
   useScrapsForm,
@@ -59,7 +60,7 @@ export function SmsEnrollForm({
       phone: authenticator.phone ?? getServerFieldDefault(authenticator.form, 'phone'),
       otp: getServerFieldDefault(authenticator.form, 'otp'),
     },
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: async ({value, formApi}) => {
       if (!value.phone || !authenticator.secret) {
         return;

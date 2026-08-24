@@ -7,7 +7,7 @@ import sentryAvatar from 'sentry-images/sentry-avatar.png';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -292,7 +292,7 @@ function NotificationConfigurator() {
 
   const form = useScrapsForm({
     defaultValues: DEFAULT_VALUES,
-    validators: [{run: notificationSchema, triggers: ['change']}],
+    validators: defaultFormValidators(notificationSchema),
     onSubmit: async ({value}) => {
       const message = buildPayload(value, imageSourcesRef.current);
       try {

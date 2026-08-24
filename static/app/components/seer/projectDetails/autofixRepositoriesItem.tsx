@@ -5,6 +5,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   ScrapsForm,
   AutoSaveContextProvider,
   AutoSaveForm,
@@ -96,7 +97,7 @@ export function AutofixRepositoriesItem({
     defaultValues: {
       branchOverrides: repository.branchOverrides,
     },
-    validators: [{run: repoSchema, triggers: ['change']}],
+    validators: defaultFormValidators(repoSchema),
     listeners: [
       {
         triggerDebounceMs: 1000,

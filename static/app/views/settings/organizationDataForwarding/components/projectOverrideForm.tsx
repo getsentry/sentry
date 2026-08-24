@@ -4,7 +4,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -83,7 +83,7 @@ export function ProjectOverrideForm({
       ...emptyDefaults,
       ...projectConfig?.overrides,
     },
-    validators: [{run: dataForwarderOverrideSchema, triggers: ['change']}],
+    validators: defaultFormValidators(dataForwarderOverrideSchema),
     onSubmit: ({value}) => {
       const {is_enabled, ...allOverrides} = value;
       // Only include non-empty overrides for the current provider to avoid

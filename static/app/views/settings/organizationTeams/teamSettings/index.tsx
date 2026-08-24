@@ -3,7 +3,13 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {FieldGroup, FormSearch, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FieldGroup,
+  FormSearch,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -64,7 +70,7 @@ export default function TeamSettings() {
 
   const form = useScrapsForm({
     defaultValues: {slug: team.slug, teamId: team.id},
-    validators: [{run: teamSettingsSchema, triggers: ['change']}],
+    validators: defaultFormValidators(teamSettingsSchema),
     onSubmit: ({value}) => mutation.mutateAsync({slug: value.slug}).catch(() => {}),
   });
 

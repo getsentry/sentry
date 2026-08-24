@@ -1,6 +1,11 @@
 import {z} from 'zod';
 
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -66,7 +71,7 @@ function PerforceInstallationConfigStep({
       webUrl: '',
       unicodeServer: false,
     },
-    validators: [{run: installationConfigSchema, triggers: ['change']}],
+    validators: defaultFormValidators(installationConfigSchema),
     onSubmit: ({value, createValidationError}) =>
       advance({
         p4port: value.p4port,

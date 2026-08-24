@@ -10,7 +10,13 @@ import {useState} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {ScrapsForm, AutoSaveForm, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  AutoSaveForm,
+  FieldGroup,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -28,7 +34,7 @@ export function QuickStartDemo() {
       email: '',
       name: '',
     },
-    validators: [{run: quickStartSchema, triggers: ['change']}],
+    validators: defaultFormValidators(quickStartSchema),
     onSubmit: async ({value}) => {
       await sleep(1000);
       // eslint-disable-next-line no-alert
@@ -134,7 +140,7 @@ const conditionalSchema = z.object({
 export function ConditionalDemo() {
   const form = useScrapsForm({
     defaultValues: {plan: 'free', billingEmail: ''},
-    validators: [{run: conditionalSchema, triggers: ['change']}],
+    validators: defaultFormValidators(conditionalSchema),
     onSubmit: ({value}) => {
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value, null, 2));
@@ -195,14 +201,11 @@ export function ConditionalDemo() {
 export function BaseFieldDemo() {
   const form = useScrapsForm({
     defaultValues: {color: '#3c74dd'},
-    validators: [
-      {
-        run: z.object({
-          color: z.string().min(1, 'Please select a color'),
-        }),
-        triggers: ['change'],
-      },
-    ],
+    validators: defaultFormValidators(
+      z.object({
+        color: z.string().min(1, 'Please select a color'),
+      })
+    ),
     onSubmit: ({value}) => {
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value, null, 2));

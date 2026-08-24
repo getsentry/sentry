@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {
+  defaultFormValidators,
   AutoSaveForm,
   FieldGroup,
   FormSearch,
@@ -168,7 +169,7 @@ function ProjectSlugForm({
 
   const form = useScrapsForm({
     defaultValues: {slug: project.slug},
-    validators: [{run: slugSchema, triggers: ['change']}],
+    validators: defaultFormValidators(slugSchema),
     onSubmit: ({value, createValidationError}) =>
       updateProject
         .mutateAsync({slug: value.slug})
@@ -233,7 +234,7 @@ function ProjectSlugForm({
 function ProjectIdField({project}: {project: DetailedProject}) {
   const form = useScrapsForm({
     defaultValues: {projectId: project.id},
-    validators: [{run: projectIdSchema, triggers: ['change']}],
+    validators: defaultFormValidators(projectIdSchema),
   });
 
   return (
@@ -263,7 +264,7 @@ function AutoResolveForm({
 
   const form = useScrapsForm({
     defaultValues: {resolveAge: project.resolveAge ?? 0},
-    validators: [{run: resolveAgeSchema, triggers: ['change']}],
+    validators: defaultFormValidators(resolveAgeSchema),
     onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync({resolveAge: value.resolveAge})
@@ -356,7 +357,7 @@ function SecurityTokenForm({
         fixed: '__SECURITY_TOKEN__',
       }),
     },
-    validators: [{run: securityTokenSchema, triggers: ['change']}],
+    validators: defaultFormValidators(securityTokenSchema),
     onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync({securityToken: value.securityToken})
@@ -417,7 +418,7 @@ function SecurityTokenHeaderForm({
 
   const form = useScrapsForm({
     defaultValues: {securityTokenHeader: project.securityTokenHeader ?? ''},
-    validators: [{run: securityTokenHeaderSchema, triggers: ['change']}],
+    validators: defaultFormValidators(securityTokenHeaderSchema),
     onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync({securityTokenHeader: value.securityTokenHeader})

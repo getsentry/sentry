@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -48,7 +48,7 @@ function SamplingModeSwitchModal({
     defaultValues: {
       targetSampleRate: formatPercent(initialTargetRate || 0),
     },
-    validators: [{run: targetSampleRateSchema, triggers: ['change']}],
+    validators: defaultFormValidators(targetSampleRateSchema),
     onSubmit: ({value}) => {
       const changes: Parameters<typeof updateOrganization>[0] = {samplingMode};
       if (samplingMode === 'organization') {

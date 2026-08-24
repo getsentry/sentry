@@ -2,7 +2,12 @@ import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
-import {FieldGroup, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FieldGroup,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -128,7 +133,7 @@ function ThresholdsForm({
 
   const form = useScrapsForm({
     defaultValues: backendThresholds,
-    validators: [{run: getThresholdsSchema(onDemandEnabled), triggers: ['change']}],
+    validators: defaultFormValidators(getThresholdsSchema(onDemandEnabled)),
     onSubmit: async ({value}) => {
       try {
         await fetchMutation({

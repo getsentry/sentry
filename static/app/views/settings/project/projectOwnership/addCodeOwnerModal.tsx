@@ -4,7 +4,12 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm, useSelector} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  useScrapsForm,
+  useSelector,
+} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -145,7 +150,7 @@ function ApplyCodeMappings({
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       if (!value.codeMappingId || !codeownersFile) {
         return;

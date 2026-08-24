@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -62,7 +62,7 @@ export function OrganizationSampling() {
     defaultValues: {
       targetSampleRate: initialTargetSampleRate,
     },
-    validators: [{run: targetSampleRateSchema, triggers: ['change']}],
+    validators: defaultFormValidators(targetSampleRateSchema),
     onSubmit: async ({value, formApi}) => {
       try {
         await updateOrganization({

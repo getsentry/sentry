@@ -2,7 +2,12 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {FormSearch, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FormSearch,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -39,7 +44,7 @@ export function PasswordForm() {
       passwordNew: '',
       passwordVerify: '',
     },
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value, formApi}) => {
       return mutation
         .mutateAsync(value)

@@ -5,7 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -194,7 +194,7 @@ function SudoModal({
 
   const passwordForm = useScrapsForm({
     defaultValues: {password: ''},
-    validators: [{run: passwordSchema, triggers: ['change']}],
+    validators: defaultFormValidators(passwordSchema),
     onSubmit: async ({value}) => {
       try {
         await authenticate({
@@ -212,7 +212,7 @@ function SudoModal({
       superuserAccessCategory: '',
       superuserReason: '',
     },
-    validators: [{run: accessSchema, triggers: ['change']}],
+    validators: defaultFormValidators(accessSchema),
     onSubmit: async ({value}) => {
       const access = accessSchema.parse(value);
 

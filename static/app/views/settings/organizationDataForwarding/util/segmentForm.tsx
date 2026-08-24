@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   defineAppFieldGroup,
   FieldGroup,
   ScrapsForm,
@@ -98,7 +99,7 @@ export function SegmentSetupForm({
 }) {
   const form = useScrapsForm({
     defaultValues: {...baseFormSetupDefaults, ...segmentDefaults},
-    validators: [{run: segmentSchema, triggers: ['change']}],
+    validators: defaultFormValidators(segmentSchema),
     onSubmit: ({value}) => {
       const {
         is_enabled: _is_enabled,
@@ -164,7 +165,7 @@ export function SegmentEditForm({
       ...segmentDefaults,
       ...dataForwarder.config,
     },
-    validators: [{run: segmentSchema, triggers: ['change']}],
+    validators: defaultFormValidators(segmentSchema),
     onSubmit: ({value}) => {
       const {is_enabled, enroll_new_projects, project_ids, ...configFields} = value;
       onSubmit({

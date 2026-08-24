@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   AutoSaveForm,
   FieldGroup,
   FormSearch,
@@ -407,7 +408,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
       sensitiveFields: initialSensitiveFields,
       safeFields: initialSafeFields,
     },
-    validators: [{run: dataScrubMultilineSchema, triggers: ['change']}],
+    validators: defaultFormValidators(dataScrubMultilineSchema),
     onSubmit: ({value}) =>
       orgMutation
         .mutateAsync({

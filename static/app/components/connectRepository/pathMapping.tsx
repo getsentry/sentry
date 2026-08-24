@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -142,7 +142,7 @@ function PathMappingEdit({
 }: PathMappingEditProps) {
   const form = useScrapsForm({
     defaultValues: {stackRoot, sourceRoot, branch},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     listeners: [
       {
         run: ({formApi}) => {

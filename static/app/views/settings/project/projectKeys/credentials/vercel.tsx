@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -34,7 +34,7 @@ export function VercelTab({
       traceDrainEndpoint: tracesEndpoint,
       traceDrainHeaders: headers,
     },
-    validators: [{run: vercelSchema, triggers: ['change']}],
+    validators: defaultFormValidators(vercelSchema),
   });
 
   return (

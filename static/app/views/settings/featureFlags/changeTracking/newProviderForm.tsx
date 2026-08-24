@@ -2,7 +2,13 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {FormSearch, ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FormSearch,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -109,7 +115,7 @@ export function NewProviderForm({
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value, createValidationError}) => {
       return mutation.mutateAsync(schema.parse(value)).catch(error => {
         if (error instanceof RequestError) {

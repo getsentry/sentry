@@ -1,7 +1,7 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -66,7 +66,7 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       return onSubmit({

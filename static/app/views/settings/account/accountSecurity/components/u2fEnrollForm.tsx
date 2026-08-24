@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   FieldGroup as FormPanel,
   ScrapsForm,
   toFieldErrors,
@@ -80,24 +81,19 @@ export function U2fEnrollForm({
       deviceName: getServerFieldDefault(authenticator.form, 'deviceName'),
       enrollment: {challenge: '', response: ''},
     },
-    validators: [
-      {
-        run: z.object({
-          deviceName: z
-            .string()
-            .max(60, t('Device name must be 60 characters or fewer.')),
-          enrollment: z
-            .object({
-              challenge: z.string(),
-              response: z.string(),
-            })
-            .refine(value => Boolean(value.challenge), {
-              message: t('Enroll your device before continuing.'),
-            }),
-        }),
-        triggers: ['change'],
-      },
-    ],
+    validators: defaultFormValidators(
+      z.object({
+        deviceName: z.string().max(60, t('Device name must be 60 characters or fewer.')),
+        enrollment: z
+          .object({
+            challenge: z.string(),
+            response: z.string(),
+          })
+          .refine(value => Boolean(value.challenge), {
+            message: t('Enroll your device before continuing.'),
+          }),
+      })
+    ),
     onSubmit: async ({value, createValidationError, formApi}) => {
       try {
         await enrollAuthenticator({

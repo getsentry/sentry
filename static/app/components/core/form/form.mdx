@@ -42,7 +42,7 @@ A minimal form with validation and submission.
 ```jsx
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 const schema = z.object({
   email: z.email('Please enter a valid email'),
@@ -52,7 +52,7 @@ const schema = z.object({
 function MyForm() {
   const form = useScrapsForm({
     defaultValues: {email: '', name: ''},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       console.log(value);
     },
@@ -80,7 +80,7 @@ Create a form by calling `useScrapsForm` with your configuration. The Sentry for
 ```jsx
 const form = useScrapsForm({
   defaultValues: {email: '', name: ''},
-  validators: [{run: schema, triggers: ['change']}],
+  validators: defaultFormValidators(schema),
   onSubmit: ({value}) => {
     // Handle submission
   },
@@ -104,7 +104,7 @@ const form = useScrapsForm({
 
 Define a Zod schema and pass it in a validator array. Always provide helpful error messages.
 
-The default policy runs the validator on change and hides errors until the first submit attempt. For expensive validation, use the exported `validateOnSubmitThenChange` policy. It runs on change only after a submit attempt.
+The default policy hides errors until the first submit attempt. Use `defaultFormValidators(schema)` for form-level validation. It runs the validator on submit and on change after a submit attempt.
 
 ```jsx
 const schema = z.object({
@@ -359,7 +359,7 @@ function MyForm() {
 
   const form = useScrapsForm({
     defaultValues: {...},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => mutation.mutateAsync(value),
   });
 
@@ -424,7 +424,7 @@ function MyForm() {
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       // schema.parse validates and narrows null away
       return mutation.mutateAsync(schema.parse(value)).catch(() => {});

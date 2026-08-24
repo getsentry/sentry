@@ -3,7 +3,12 @@ import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {FieldGroup, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FieldGroup,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -101,7 +106,7 @@ export function KeyRateLimitsForm({
       count: data.rateLimit?.count ?? null,
       window: data.rateLimit?.window ?? 0,
     },
-    validators: [{run: rateLimitSchema, triggers: ['change']}],
+    validators: defaultFormValidators(rateLimitSchema),
     onSubmit: ({value}) => {
       const rateLimit =
         (value.count === null || value.count === 0) && value.window === 0

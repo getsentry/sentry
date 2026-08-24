@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -54,7 +54,7 @@ export function OtlpTab({
       tracesHeaders: headers,
       collectorConfig,
     },
-    validators: [{run: otlpSchema, triggers: ['change']}],
+    validators: defaultFormValidators(otlpSchema),
   });
 
   return (

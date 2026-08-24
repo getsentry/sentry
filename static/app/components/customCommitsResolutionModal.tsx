@@ -2,7 +2,7 @@ import {queryOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -48,7 +48,7 @@ export function CustomCommitsResolutionModal({
 }: CustomCommitsResolutionModalProps) {
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: commitSchema, triggers: ['change']}],
+    validators: defaultFormValidators(commitSchema),
     onSubmit: ({value}) => {
       onSelected({
         inCommit: {

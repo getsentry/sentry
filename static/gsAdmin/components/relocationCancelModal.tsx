@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -66,7 +66,7 @@ export function RelocationCancelModal({
 
   const form = useScrapsForm({
     defaultValues: {atStep: ''},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const payload: {atStep?: string} = {};
       if (value.atStep !== 'ASAP') {

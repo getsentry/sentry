@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -46,7 +46,7 @@ export default function OrganizationJoinRequest() {
 
   const form = useScrapsForm({
     defaultValues: {email: ''},
-    validators: [{run: joinRequestSchema, triggers: ['change']}],
+    validators: defaultFormValidators(joinRequestSchema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 

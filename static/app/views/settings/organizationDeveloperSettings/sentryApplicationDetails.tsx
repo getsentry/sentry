@@ -7,7 +7,12 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -449,7 +454,7 @@ function ClaudeRoutineTemplateForm() {
       events: CLAUDE_ROUTINE_EVENTS,
       isAlertable: true,
     },
-    validators: [{run: claudeRoutineSchema, triggers: ['change']}],
+    validators: defaultFormValidators(claudeRoutineSchema),
     onSubmit: ({value, createValidationError}) => {
       const payload = buildSentryAppPayload(value);
       payload.webhookHeaders = [
@@ -650,7 +655,7 @@ function InternalSentryAppCreationForm() {
 
   const form = useScrapsForm({
     defaultValues: emptySentryAppValues(organization.slug, true),
-    validators: [{run: internalSentryAppSchema, triggers: ['change']}],
+    validators: defaultFormValidators(internalSentryAppSchema),
     onSubmit: ({value, createValidationError}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))
@@ -714,7 +719,7 @@ function PublicSentryAppCreationForm() {
 
   const form = useScrapsForm({
     defaultValues: emptySentryAppValues(organization.slug, false),
-    validators: [{run: publicSentryAppSchema, triggers: ['change']}],
+    validators: defaultFormValidators(publicSentryAppSchema),
     onSubmit: ({value, createValidationError}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))
@@ -962,12 +967,9 @@ function SentryAppEditForm({
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [
-      {
-        run: isInternal ? internalSentryAppSchema : publicSentryAppSchema,
-        triggers: ['change'],
-      },
-    ],
+    validators: defaultFormValidators(
+      isInternal ? internalSentryAppSchema : publicSentryAppSchema
+    ),
     onSubmit: ({value, createValidationError}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))

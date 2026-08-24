@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -46,7 +46,7 @@ const securitySchema = z.object({
 function SecurityTab({securityEndpoint}: SecurityTabProps) {
   const form = useScrapsForm({
     defaultValues: {securityEndpoint},
-    validators: [{run: securitySchema, triggers: ['change']}],
+    validators: defaultFormValidators(securitySchema),
   });
 
   return (
@@ -89,7 +89,7 @@ const minidumpSchema = z.object({
 function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
   const form = useScrapsForm({
     defaultValues: {minidumpEndpoint},
-    validators: [{run: minidumpSchema, triggers: ['change']}],
+    validators: defaultFormValidators(minidumpSchema),
   });
 
   return (
@@ -132,7 +132,7 @@ const unrealSchema = z.object({
 function UnrealTab({unrealEndpoint}: UnrealTabProps) {
   const form = useScrapsForm({
     defaultValues: {unrealEndpoint},
-    validators: [{run: unrealSchema, triggers: ['change']}],
+    validators: defaultFormValidators(unrealSchema),
   });
 
   return (
@@ -180,7 +180,7 @@ function CredentialsTab({
 }: CredentialsTabProps) {
   const form = useScrapsForm({
     defaultValues: {publicKey, secretKey, projectId},
-    validators: [{run: credentialsSchema, triggers: ['change']}],
+    validators: defaultFormValidators(credentialsSchema),
   });
 
   return (
@@ -280,15 +280,12 @@ export function ProjectKeyCredentials({
       dsn: data.dsn.public,
       useCase: data.useCase ?? '',
     },
-    validators: [
-      {
-        run: z.object({
-          dsn: z.string(),
-          useCase: z.string(),
-        }),
-        triggers: ['change'],
-      },
-    ],
+    validators: defaultFormValidators(
+      z.object({
+        dsn: z.string(),
+        useCase: z.string(),
+      })
+    ),
   });
 
   const tabParser = useMemo(

@@ -1,7 +1,12 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -57,7 +62,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
 
   const form = useScrapsForm({
     defaultValues: {code: ''},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value, createValidationError, formApi}) => {
       return mutation
         .mutateAsync(value)

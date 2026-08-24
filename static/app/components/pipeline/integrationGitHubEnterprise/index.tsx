@@ -2,7 +2,12 @@ import {useCallback} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -72,7 +77,7 @@ function InstallationConfigStep({
       clientId: '',
       clientSecret: '',
     },
-    validators: [{run: installationConfigSchema, triggers: ['change']}],
+    validators: defaultFormValidators(installationConfigSchema),
     onSubmit: ({value, createValidationError}) =>
       advance(installationConfigSchema.parse(value)).catch(error => {
         if (error instanceof RequestError) {

@@ -6,7 +6,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {ScrapsForm, useScrapsForm, useSelector} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  useScrapsForm,
+  useSelector,
+} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -105,14 +110,15 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
     },
     validators: [
       {
-        run: formSchema.extend({
-          project: z.string(),
-          repoEntries: z.array(repoEntrySchema),
-        }),
-        triggers: ['change'],
+        ...defaultFormValidators(
+          formSchema.extend({
+            project: z.string(),
+            repoEntries: z.array(repoEntrySchema),
+          })
+        )[0],
         runOnMount: true,
       },
-      {run: formSchema, triggers: ['change']},
+      ...defaultFormValidators(formSchema),
     ],
     onSubmit: ({value, createValidationError}) => {
       return saveMutation

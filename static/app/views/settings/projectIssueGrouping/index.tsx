@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {
+  defaultFormValidators,
   FieldGroup,
   FormSearch,
   ScrapsForm,
@@ -37,9 +38,7 @@ function FingerprintRulesForm({
 
   const form = useScrapsForm({
     defaultValues: {fingerprintingRules: project.fingerprintingRules ?? ''},
-    validators: [
-      {run: z.object({fingerprintingRules: z.string()}), triggers: ['change']},
-    ],
+    validators: defaultFormValidators(z.object({fingerprintingRules: z.string()})),
     onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync(value)
@@ -140,9 +139,7 @@ function StackTraceRulesForm({
 
   const form = useScrapsForm({
     defaultValues: {groupingEnhancements: project.groupingEnhancements ?? ''},
-    validators: [
-      {run: z.object({groupingEnhancements: z.string()}), triggers: ['change']},
-    ],
+    validators: defaultFormValidators(z.object({groupingEnhancements: z.string()})),
     onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync(value)

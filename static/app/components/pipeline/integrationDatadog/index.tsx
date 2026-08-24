@@ -1,6 +1,11 @@
 import {z} from 'zod';
 
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -30,7 +35,7 @@ function DatadogCredentialsStep({
 >) {
   const form = useScrapsForm({
     defaultValues: {apiKey: '', appKey: '', site: ''},
-    validators: [{run: credentialsSchema, triggers: ['change']}],
+    validators: defaultFormValidators(credentialsSchema),
     onSubmit: ({value, createValidationError}) =>
       advance({apiKey: value.apiKey, appKey: value.appKey, site: value.site}).catch(
         error => {

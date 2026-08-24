@@ -2,7 +2,12 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {ScrapsForm, useScrapsForm, useSelector} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  useScrapsForm,
+  useSelector,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -69,7 +74,7 @@ export function ExploreExportModal({
 
   const form = useScrapsForm({
     defaultValues,
-    validators: [{run: exportModalFormSchema, triggers: ['change']}],
+    validators: defaultFormValidators(exportModalFormSchema),
     onSubmit: async ({value}) => {
       const isAllColumns =
         config.supportsAllColumns && value.columns === ModalColumnValue.ALL;

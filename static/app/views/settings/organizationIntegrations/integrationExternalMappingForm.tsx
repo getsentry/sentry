@@ -4,6 +4,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   AutoSaveForm,
   ScrapsForm,
   toFieldErrors,
@@ -291,7 +292,7 @@ function ModalMappingForm({
       externalName: mapping?.externalName ?? '',
       sentryId: initialSentryId!,
     },
-    validators: [{run: modalSchema, triggers: ['change']}],
+    validators: defaultFormValidators(modalSchema),
     onSubmit: ({value, createValidationError}) =>
       mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {

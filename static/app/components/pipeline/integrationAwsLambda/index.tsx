@@ -6,7 +6,12 @@ import {z} from 'zod';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -55,7 +60,7 @@ function ProjectSelectStep({
     defaultValues: {
       projectId: autoSelectedProjectId,
     },
-    validators: [{run: projectSchema, triggers: ['change']}],
+    validators: defaultFormValidators(projectSchema),
     onSubmit: ({value, createValidationError}) =>
       advance({projectId: Number(value.projectId)}).catch(error => {
         if (error instanceof RequestError) {
@@ -157,7 +162,7 @@ function CloudFormationStep({
       region: '',
       awsExternalId: defaultExternalId,
     },
-    validators: [{run: cloudFormationSchema, triggers: ['change']}],
+    validators: defaultFormValidators(cloudFormationSchema),
     onSubmit: ({value, createValidationError}) =>
       advance(value).catch(error => {
         if (error instanceof RequestError) {

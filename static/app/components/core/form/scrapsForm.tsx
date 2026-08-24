@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-restricted-imports
 import {
   createFormHook,
-  createValidator,
+  createValidators,
   type CreateValidationErrorFn,
   type DeepKeys,
   type OnSubmitError,
@@ -150,14 +150,16 @@ export function ScrapsForm({
   );
 }
 
-export const validateOnSubmitThenChange = createValidator({
-  triggers: [
-    {
-      trigger: 'change',
-      when: ({formApi}) => formApi.state.submissionAttempts > 0,
-    },
-  ],
-});
+export const defaultFormValidators = createValidators([
+  {
+    triggers: [
+      {
+        trigger: 'change',
+        when: ({formApi}) => formApi.state.submissionAttempts > 0,
+      },
+    ],
+  },
+]);
 
 /**
  * Type for field errors that can be returned after form submission (e.g., from

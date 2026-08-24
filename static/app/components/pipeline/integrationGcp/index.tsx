@@ -2,7 +2,12 @@ import {Fragment} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -98,7 +103,7 @@ function GcpCustomerConfigStep({
 >) {
   const form = useScrapsForm({
     defaultValues: {customerSaEmail: '', projects: ['']},
-    validators: [{run: gcpCustomerConfigSchema, triggers: ['change']}],
+    validators: defaultFormValidators(gcpCustomerConfigSchema),
     onSubmit: ({value, createValidationError}) =>
       advance({
         customerSaEmail: value.customerSaEmail,

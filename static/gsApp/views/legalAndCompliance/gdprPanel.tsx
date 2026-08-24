@@ -4,7 +4,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -82,7 +82,7 @@ function GDPREditModal({
       phone: subscription.gdprDetails?.[`${prefix}Phone`] ?? '',
       email: subscription.gdprDetails?.[`${prefix}Email`] ?? '',
     } satisfies GDPRFormValues,
-    validators: [{run: gdprSchema, triggers: ['change']}],
+    validators: defaultFormValidators(gdprSchema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 

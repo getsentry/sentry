@@ -1,6 +1,11 @@
 import {z} from 'zod';
 
-import {FieldGroup as FormPanel, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FieldGroup as FormPanel,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -29,17 +34,11 @@ export function TotpEnrollForm({
 
   const form = useScrapsForm({
     defaultValues: {otp: getServerFieldDefault(authenticator.form, 'otp')},
-    validators: [
-      {
-        run: z.object({
-          otp: z
-            .string()
-            .min(1, t('Authenticator token is required'))
-            .max(OTP_MAX_LENGTH),
-        }),
-        triggers: ['change'],
-      },
-    ],
+    validators: defaultFormValidators(
+      z.object({
+        otp: z.string().min(1, t('Authenticator token is required')).max(OTP_MAX_LENGTH),
+      })
+    ),
     onSubmit: async ({value}) => {
       if (!authenticator.secret) {
         return;

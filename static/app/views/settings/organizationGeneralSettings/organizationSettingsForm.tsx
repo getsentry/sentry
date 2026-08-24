@@ -6,6 +6,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {
+  defaultFormValidators,
   AutoSaveForm,
   FieldGroup,
   FormSearch,
@@ -452,7 +453,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
   // Slug form — uses explicit Save button instead of auto-save
   const slugForm = useScrapsForm({
     defaultValues: {slug: initialData.slug},
-    validators: [{run: slugSchema, triggers: ['change']}],
+    validators: defaultFormValidators(slugSchema),
     onSubmit: ({value, createValidationError, formApi}) =>
       updateSlug({slug: value.slug})
         .then(() => formApi.reset())

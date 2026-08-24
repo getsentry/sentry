@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -63,7 +63,7 @@ function CreateTeamModal({
 
   const form = useScrapsForm({
     defaultValues: {slug: ''},
-    validators: [{run: schema, triggers: ['change']}],
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => submitCreateTeam(value).catch(() => {}),
   });
 

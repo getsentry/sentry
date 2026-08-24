@@ -13,6 +13,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   AutoSaveForm,
   FieldGroup,
   FormSearch,
@@ -331,7 +332,7 @@ function CustomFiltersForm({
         project.options?.['filters:trace_metric_names'] ?? ''
       ),
     },
-    validators: [{run: customFiltersSchema, triggers: ['change']}],
+    validators: defaultFormValidators(customFiltersSchema),
     onSubmit: ({value, formApi}) =>
       updateProject
         .mutateAsync({options: value})
