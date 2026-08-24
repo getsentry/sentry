@@ -246,11 +246,8 @@ function AcceptOrganizationInvite() {
     },
   });
 
-  // For the common invite case (no SSO configured on the org), skip the
-  // "create account or login" choice screen and go straight to the
-  // registration form, which is pre-filled with the invited email. Orgs
-  // with SSO configured keep the choice screen since it also surfaces the
-  // SSO option.
+  // Skip the create-account/login choice screen for the common case (no org
+  // SSO); SSO orgs keep it since it also surfaces the SSO option.
   const shouldRedirectToRegister = Boolean(
     inviteDetails?.needsAuthentication &&
       !inviteDetails.requireSso &&
@@ -259,9 +256,7 @@ function AcceptOrganizationInvite() {
 
   useEffect(() => {
     if (shouldRedirectToRegister) {
-      // Use `replace` (not `assign`) so this accept-invite page isn't left
-      // in browser history — otherwise pressing Back here would just
-      // redirect straight back to /auth/register/ again.
+      // `replace`, not `assign`, so Back doesn't loop through this redirect.
       testableWindowLocation.replace('/auth/register/');
     }
   }, [shouldRedirectToRegister]);
