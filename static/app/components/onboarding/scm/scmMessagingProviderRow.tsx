@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -68,31 +67,41 @@ function deriveVisualState({
   isConfiguring,
   isRemoving,
   hasInstallAccess,
+  isRefetchingIntegrations,
 }: {
   hasInstallAccess: boolean;
   installState: ReturnType<typeof useAddIntegration>['state'];
   isConfiguring: boolean;
+  isRefetchingIntegrations: boolean;
   isRemoving: boolean;
   messagingSetup: ScmMessagingSetup;
   viewModel: ScmMessagingProviderViewModel;
 }): RowVisualState {
-  const forThisProvider =
-    installState.status !== 'idle' && installState.providerKey === viewModel.providerKey;
-
-  if (forThisProvider) {
-    if (installState.status === 'installing') {
-      return 'installing';
-    }
+  // `installState` is local to this row's `useAddIntegration`, so it always
+  // refers to this provider's flow.
+  if (installState.status === 'installing') {
+    return 'installing';
+  }
+  // Only surface an install error while still uninstalled; a shared-query
+  // refetch may reveal the integration after a local error.
+  if (viewModel.status === 'installable') {
     if (installState.status === 'error') {
       return 'install-error';
     }
     if (installState.status === 'cancelled' && installState.lastError) {
       return 'install-error';
     }
-    // Install confirmed — stay in loading until the view model catches up.
-    if (installState.status === 'complete' && viewModel.status !== 'connected') {
-      return 'loading';
-    }
+  }
+  // Show the spinner only while the shared integrations query is actively
+  // refetching after install. Once it settles — whether or not the integration
+  // surfaced — isRefetchingIntegrations becomes false and the row falls back to
+  // installable (Connect), so it can never spin forever.
+  if (
+    installState.status === 'complete' &&
+    isRefetchingIntegrations &&
+    viewModel.status === 'installable'
+  ) {
+    return 'loading';
   }
 
   if (viewModel.status === 'installable') {
@@ -122,11 +131,30 @@ function deriveVisualState({
   return 'configuring';
 }
 
+function getInstallErrorMessage(
+  installState: ReturnType<typeof useAddIntegration>['state']
+): string | undefined {
+  if (installState.status === 'error') {
+    return installState.error;
+  }
+  if (installState.status === 'cancelled') {
+    return installState.lastError;
+  }
+  return undefined;
+}
+
 export interface ScmMessagingProviderRowProps {
   messagingSetup: ScmMessagingSetup;
   onInstallComplete: () => void;
   onMessagingSetupChange: (setup: ScmMessagingSetup) => void;
   viewModel: ScmMessagingProviderViewModel;
+  /**
+   * True while the parent's integrations query is actively refetching (e.g.
+   * after a fresh install). Drives the post-install loading spinner; scoped to
+   * this prop so the spinner clears as soon as the refetch settles even if no
+   * integration surfaced, preventing an infinite spin.
+   */
+  isRefetchingIntegrations?: boolean;
   /**
    * Render prop for the inline channel picker.
    *
@@ -149,6 +177,7 @@ export function ScmMessagingProviderRow({
   onMessagingSetupChange,
   onInstallComplete,
   renderChannelPicker,
+  isRefetchingIntegrations = false,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
   const {startFlow, state: installState} = useAddIntegration();
@@ -169,6 +198,7 @@ export function ScmMessagingProviderRow({
     isConfiguring,
     isRemoving,
     hasInstallAccess,
+    isRefetchingIntegrations,
   });
 
   // When the integration goes away (e.g. removed externally), close any
@@ -221,16 +251,11 @@ export function ScmMessagingProviderRow({
     [onMessagingSetupChange]
   );
 
-  const errorMessage =
-    installState.status === 'error'
-      ? installState.error
-      : installState.status === 'cancelled' && installState.lastError
-        ? installState.lastError
-        : undefined;
+  const errorMessage = getInstallErrorMessage(installState);
 
   return (
     <ScmSelectableContainer isSelected={isConfigured}>
-      <RowBody>
+      <Stack>
         {visualState === 'install-error' && (
           <Stack padding="md" gap="md" align="start">
             <Alert
@@ -247,9 +272,9 @@ export function ScmMessagingProviderRow({
         {visualState !== 'install-error' && (
           <Flex padding="lg" gap="md" align="center" justify="between">
             <Flex gap="md" align="center" style={{flex: 1, minWidth: 0}}>
-              <IconWrapper>
+              <Container flexShrink={0} paddingTop="2xs">
                 <PluginIcon pluginId={viewModel.providerKey} size={24} />
-              </IconWrapper>
+              </Container>
               <Stack gap="xs">
                 <Flex gap="xs" align="center">
                   <Text bold size="md">
@@ -294,8 +319,8 @@ export function ScmMessagingProviderRow({
           </Flex>
         )}
 
-        {visualState === 'configuring' && (
-          <ChannelPickerSlot>
+        {visualState === 'configuring' && viewModel.eligibleIntegrations.length > 0 && (
+          <Container borderTop="primary" padding="lg">
             {renderChannelPicker ? (
               renderChannelPicker({
                 integrations: viewModel.eligibleIntegrations,
@@ -311,9 +336,9 @@ export function ScmMessagingProviderRow({
                 existingSetup={isConfigured ? messagingSetup : undefined}
               />
             )}
-          </ChannelPickerSlot>
+          </Container>
         )}
-      </RowBody>
+      </Stack>
     </ScmSelectableContainer>
   );
 }
@@ -481,18 +506,3 @@ function RowActions({
 
   return null;
 }
-
-const RowBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-const IconWrapper = styled('div')`
-  flex-shrink: 0;
-  margin-top: 2px;
-`;
-
-const ChannelPickerSlot = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space.lg};
-`;

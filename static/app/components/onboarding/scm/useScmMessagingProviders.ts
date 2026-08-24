@@ -47,8 +47,10 @@ export type ScmMessagingProviderViewModel = {
 export function useScmMessagingProviders(): {
   isError: boolean;
   isPending: boolean;
+  isRefetchingIntegrations: boolean;
   providers: ScmMessagingProviderViewModel[];
   refetchIntegrations: () => void;
+  retry: () => void;
 } {
   const organization = useOrganization();
 
@@ -81,6 +83,7 @@ export function useScmMessagingProviders(): {
       ) as Partial<Record<ScmMessagingProviderKey, IntegrationProvider>>,
       isPending: results.some(r => r.isPending),
       isError: results.some(r => r.isError),
+      refetch: () => results.forEach(r => r.refetch()),
     }),
   });
 
@@ -127,6 +130,11 @@ export function useScmMessagingProviders(): {
     providers,
     isPending,
     isError,
+    isRefetchingIntegrations: integrationsQuery.isRefetching,
     refetchIntegrations: () => integrationsQuery.refetch(),
+    retry: () => {
+      integrationsQuery.refetch();
+      providerQueries.refetch();
+    },
   };
 }

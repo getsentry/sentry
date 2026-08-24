@@ -3,11 +3,11 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ScmMessagingProviderRow} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {useScmMessagingSetupValidation} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
-import {Placeholder} from 'sentry/components/placeholder';
 import {IconMail} from 'sentry/icons/iconMail';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -41,18 +41,19 @@ export function ScmMessaging({
     onMessagingSetupChange,
   });
 
-  const {providers, isPending, isError, refetchIntegrations} = useScmMessagingProviders();
+  const {
+    providers,
+    isPending,
+    isError,
+    isRefetchingIntegrations,
+    refetchIntegrations,
+    retry,
+  } = useScmMessagingProviders();
 
-  const isConfigured = messagingSetup.mode === 'selected';
-
-  // A staged destination is only submittable once revalidation settles without a
-  // problem. A stale, unverifiable, or still-checking destination must not appear
-  // ready to submit, since Continue is the project/alert-rule creation boundary.
-  const canContinue =
-    isConfigured &&
-    !validation.staleReason &&
-    !validation.isError &&
-    !validation.isPending;
+  // Continue creates the project and alert rules, so it must wait for a
+  // conclusively revalidated destination — not merely the absence of a
+  // problem, which is briefly true before the stale-check effect runs.
+  const canContinue = validation.isValid;
 
   const handleContinue = () => onComplete?.();
 
@@ -118,19 +119,15 @@ export function ScmMessaging({
         </Flex>
 
         {isPending && (
-          <Stack gap="md">
-            <Placeholder height="72px" />
-            <Placeholder height="72px" />
-            <Placeholder height="72px" />
-          </Stack>
+          <Flex justify="center">
+            <LoadingIndicator />
+          </Flex>
         )}
 
         {isError && !isPending && (
           <Alert
             variant="warning"
-            trailingItems={
-              <Alert.Button onClick={refetchIntegrations}>{t('Retry')}</Alert.Button>
-            }
+            trailingItems={<Alert.Button onClick={retry}>{t('Retry')}</Alert.Button>}
           >
             {t('Failed to load integrations.')}
           </Alert>
@@ -145,6 +142,7 @@ export function ScmMessaging({
                 messagingSetup={messagingSetup}
                 onMessagingSetupChange={onMessagingSetupChange}
                 onInstallComplete={refetchIntegrations}
+                isRefetchingIntegrations={isRefetchingIntegrations}
               />
             ))}
           </Stack>

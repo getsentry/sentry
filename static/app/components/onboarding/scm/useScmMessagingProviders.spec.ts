@@ -221,6 +221,62 @@ describe('useScmMessagingProviders', () => {
     expect(msteams?.permissionLimitedIntegration).toBeUndefined();
   });
 
+  it('returns isError when a provider config query fails', async () => {
+    // discord config query fails; the other two config queries succeed.
+    ['slack', 'msteams'].forEach(key => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/config/integrations/`,
+        body: {providers: [GitHubIntegrationProviderFixture({key})]},
+        match: [MockApiClient.matchQuery({provider_key: key})],
+      });
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({provider_key: 'discord'})],
+    });
+    mockIntegrations([]);
+
+    const {result} = renderProviders();
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(result.current.isError).toBe(true);
+    expect(result.current.providers).toHaveLength(0);
+  });
+
+  it('retry() refetches provider config queries and clears the error', async () => {
+    ['slack', 'msteams'].forEach(key => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/config/integrations/`,
+        body: {providers: [GitHubIntegrationProviderFixture({key})]},
+        match: [MockApiClient.matchQuery({provider_key: key})],
+      });
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({provider_key: 'discord'})],
+    });
+    mockIntegrations([]);
+
+    const {result} = renderProviders();
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // Fix the failing endpoint and call retry() — all query sets refetch.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [GitHubIntegrationProviderFixture({key: 'discord'})]},
+      match: [MockApiClient.matchQuery({provider_key: 'discord'})],
+    });
+
+    result.current.retry();
+
+    await waitFor(() => expect(result.current.isError).toBe(false));
+    expect(result.current.providers).toHaveLength(3);
+  });
+
   it('preserves provider order matching SCM_MESSAGING_PROVIDER_KEYS', async () => {
     mockProviders();
     mockIntegrations([]);

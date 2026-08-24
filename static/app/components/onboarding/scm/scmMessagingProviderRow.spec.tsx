@@ -103,6 +103,7 @@ function renderRow(
   viewModel: ScmMessagingProviderViewModel,
   messagingSetup: ScmMessagingSetup = UNCONFIGURED_SCM_MESSAGING_SETUP,
   overrides: {
+    isRefetchingIntegrations?: boolean;
     onInstallComplete?: jest.Mock;
     onMessagingSetupChange?: jest.Mock;
     organization?: Partial<Organization>;
@@ -121,6 +122,7 @@ function renderRow(
       onInstallComplete={onInstallComplete}
       onMessagingSetupChange={onMessagingSetupChange}
       renderChannelPicker={renderChannelPicker}
+      isRefetchingIntegrations={overrides.isRefetchingIntegrations ?? false}
     />,
     {organization: org}
   );
@@ -295,6 +297,45 @@ describe('ScmMessagingProviderRow', () => {
         screen.getByText('Installation failed. Please try again.')
       ).toBeInTheDocument();
     });
+
+    it('clears the error when the integration surfaces via a shared refetch', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {results: []},
+      });
+      const {callbacks} = mockPipeline();
+
+      const {rerender} = render(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      act(() => callbacks.onError?.('OAuth failed'));
+
+      expect(screen.getByText('OAuth failed')).toBeInTheDocument();
+
+      // The integrations query is shared: another row's successful install
+      // refetches it and reveals this provider's integration despite the local
+      // error. The row must drop the error instead of offering a Try again that
+      // would reinstall an existing integration.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={connectedSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />
+      );
+
+      expect(screen.queryByText('OAuth failed')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /Try again/})).not.toBeInTheDocument();
+    });
   });
 
   describe('cancelled without error', () => {
@@ -310,10 +351,11 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('loading state', () => {
-    it('shows a spinner after install completes while the view model is still stale', async () => {
+    it('shows a spinner after install completes while integrations are refetching', async () => {
       const {callbacks} = mockPipeline();
       const onInstallComplete = jest.fn();
-      renderRow(installableSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+      // Simulate the parent's refetch being in-flight after install.
+      const {rerender} = renderRow(installableSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
         onInstallComplete,
       });
 
@@ -321,7 +363,119 @@ describe('ScmMessagingProviderRow', () => {
       act(() => callbacks.onComplete?.(slackIntegration));
 
       expect(onInstallComplete).toHaveBeenCalledTimes(1);
+
+      // Parent signals that refetch is now active.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={onInstallComplete}
+          onMessagingSetupChange={jest.fn()}
+          isRefetchingIntegrations
+        />
+      );
+
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
+
+    it('stops spinning when the installed integration resolves to permission-limited', async () => {
+      const {callbacks} = mockPipeline();
+      const installableMsteams: ScmMessagingProviderViewModel = {
+        providerKey: 'msteams',
+        provider: msteamsProvider,
+        status: 'installable',
+        integration: undefined,
+      };
+
+      const {rerender} = render(
+        <ScmMessagingProviderRow
+          viewModel={installableMsteams}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+          isRefetchingIntegrations={false}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      act(() => callbacks.onComplete?.(msteamsIntegration));
+
+      // Simulate parent refetch starting.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={installableMsteams}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+          isRefetchingIntegrations
+        />
+      );
+
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+      // The refetched view model settles to a tenant (permission-limited) result.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={permissionLimitedMsteams}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+          isRefetchingIntegrations={false}
+        />
+      );
+
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByText(/tenant-level connection/)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Connect/})).toBeDisabled();
+    });
+
+    it('shows Connect once the refetch settles even when no integration surfaced', async () => {
+      // Regression: previously the awaitingInstall latch was only cleared when
+      // the integration appeared, so a refetch that returned nothing left the
+      // row spinning forever with no way to retry.
+      const {callbacks} = mockPipeline();
+
+      const {rerender} = render(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+          isRefetchingIntegrations={false}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      act(() => callbacks.onComplete?.(slackIntegration));
+
+      // Simulate parent refetch starting (spinner should show).
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+          isRefetchingIntegrations
+        />
+      );
+
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+      // Refetch settles but still no integration — must fall back to Connect.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+          isRefetchingIntegrations={false}
+        />
+      );
+
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Connect/})).toBeInTheDocument();
     });
   });
 
