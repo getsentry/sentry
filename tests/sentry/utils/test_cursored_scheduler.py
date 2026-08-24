@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +13,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursored_scheduler import (
     BATCH_SIZE_CACHE_KEY_PREFIX,
     CURSOR_CACHE_KEY_PREFIX,
+    EMPTY_CYCLE_CACHE_KEY_PREFIX,
     PK_LIST_CACHE_KEY_PREFIX,
     TICK_INTERVAL_CACHE_KEY_PREFIX,
     CursoredScheduler,
@@ -46,10 +48,12 @@ class CursoredSchedulerTest(TestCase):
         self.batch_size_key = f"{BATCH_SIZE_CACHE_KEY_PREFIX}:test_scheduler"
         self.pk_list_key = f"{PK_LIST_CACHE_KEY_PREFIX}:test_scheduler"
         self.tick_interval_key = f"{TICK_INTERVAL_CACHE_KEY_PREFIX}:test_scheduler"
+        self.empty_cycle_key = f"{EMPTY_CYCLE_CACHE_KEY_PREFIX}:test_scheduler"
         self.redis_client = redis_clusters.get("default")
         cache.delete(self.cache_key)
         cache.delete(self.batch_size_key)
         cache.delete(self.tick_interval_key)
+        cache.delete(self.empty_cycle_key)
         self.redis_client.delete(self.pk_list_key)
 
     _oi_counter = 0
@@ -155,6 +159,47 @@ class CursoredSchedulerTest(TestCase):
 
         assert has_more is False
         self.mock_task.delay.assert_not_called()
+
+    def test_empty_cycle_is_not_reinitialized_every_tick(self):
+        """An empty queryset runs the cycle-start query once, not on every tick."""
+        scheduler = self._make_scheduler()
+
+        with patch.object(
+            scheduler, "_prevalidated_pks", wraps=scheduler._prevalidated_pks
+        ) as prevalidated_pks:
+            for _ in range(5):
+                assert scheduler.tick() is False
+
+            assert prevalidated_pks.call_count == 1
+
+    def test_empty_cycle_is_retried_after_the_cycle_duration(self):
+        scheduler = self._make_scheduler()
+        scheduler.tick()
+
+        cache.set(
+            self.empty_cycle_key,
+            time.time() - scheduler.cycle_duration.total_seconds() - 1,
+            scheduler.cache_ttl,
+        )
+        self._create_org_integrations(3)
+
+        assert scheduler.tick() is True
+        assert self.mock_task.delay.call_count == 1
+
+    def test_a_non_empty_cycle_clears_the_empty_marker(self):
+        scheduler = self._make_scheduler()
+        scheduler.tick()
+        assert cache.get(self.empty_cycle_key) is not None
+
+        cache.set(
+            self.empty_cycle_key,
+            time.time() - scheduler.cycle_duration.total_seconds() - 1,
+            scheduler.cache_ttl,
+        )
+        self._create_org_integrations(3)
+        scheduler.tick()
+
+        assert cache.get(self.empty_cycle_key) is None
 
     def test_batch_size_cached_across_ticks(self):
         """Batch size is calculated once at cycle start, not every tick."""

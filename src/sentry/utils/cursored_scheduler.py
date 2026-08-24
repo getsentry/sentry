@@ -79,6 +79,10 @@ cycle-start query load full rows instead of the PK column alone.
 By default, the scheduler snapshots PKs in ascending PK order. Set
 preserve_queryset_order=True to retain an explicit, deterministic ordering on
 the queryset instead.
+
+A cycle that snapshots nothing is retried once per cycle_duration rather than on
+every tick, so an empty queryset costs one cycle-start query per cycle instead of
+one per tick interval.
 """
 
 from __future__ import annotations
@@ -109,6 +113,7 @@ BATCH_SIZE_CACHE_KEY_PREFIX = "cursored_scheduler_batch_size"
 CYCLE_START_CACHE_KEY_PREFIX = "cursored_scheduler_cycle_start"
 PK_LIST_CACHE_KEY_PREFIX = "cursored_scheduler_pks"
 TICK_INTERVAL_CACHE_KEY_PREFIX = "cursored_scheduler_tick_interval"
+EMPTY_CYCLE_CACHE_KEY_PREFIX = "cursored_scheduler_empty_cycle"
 LOCK_PREFIX = "cursored_scheduler_lock"
 DEFAULT_LOCK_DURATION_SECONDS = 120
 MIN_BATCH_SIZE = 1
@@ -181,6 +186,7 @@ class CursoredScheduler[M: Model]:
         self.cycle_start_cache_key = f"{CYCLE_START_CACHE_KEY_PREFIX}:{name}"
         self.pk_list_cache_key = f"{PK_LIST_CACHE_KEY_PREFIX}:{name}"
         self.tick_interval_cache_key = f"{TICK_INTERVAL_CACHE_KEY_PREFIX}:{name}"
+        self.empty_cycle_cache_key = f"{EMPTY_CYCLE_CACHE_KEY_PREFIX}:{name}"
         self.lock_key = f"{LOCK_PREFIX}:{name}"
         self.queryset = queryset
         self.task = task
@@ -232,6 +238,9 @@ class CursoredScheduler[M: Model]:
         cursor = self._get_cursor()
 
         if cursor == 0:
+            if self._is_in_empty_cycle_backoff():
+                metrics.incr("cursored_scheduler.empty_cycle_backoff", tags=self._metric_tags)
+                return False
             batch_size = self._initialize_cycle()
         elif self._has_tick_interval_changed():
             batch_size = self._recalculate_batch_size(cursor)
@@ -297,6 +306,7 @@ class CursoredScheduler[M: Model]:
             queryset = queryset.order_by("pk")
 
         all_pks = self._prevalidated_pks(queryset)
+        self._record_cycle_emptiness(not all_pks)
 
         if self.shuffle:
             random.shuffle(all_pks)
@@ -329,6 +339,24 @@ class CursoredScheduler[M: Model]:
         )
 
         return batch_size
+
+    def _record_cycle_emptiness(self, was_empty: bool) -> None:
+        if was_empty:
+            cache.set(self.empty_cycle_cache_key, time.time(), self.cache_ttl)
+        else:
+            cache.delete(self.empty_cycle_cache_key)
+
+    def _is_in_empty_cycle_backoff(self) -> bool:
+        """
+        A cycle that snapshots no PKs finalizes on the tick that starts it, so the cursor is
+        back at 0 for the next tick and the cycle-start query runs again. For a queryset that
+        stays empty that repeats every tick interval. Retrying once per cycle_duration instead
+        keeps an empty queryset at the same cost as a full one.
+        """
+        last_empty_at = cache.get(self.empty_cycle_cache_key)
+        if last_empty_at is None:
+            return False
+        return time.time() - float(last_empty_at) < self.cycle_duration.total_seconds()
 
     def _finalize_cycle(self):
         """Reset cursor, batch size, and PK list, starting a new cycle on the next tick."""
