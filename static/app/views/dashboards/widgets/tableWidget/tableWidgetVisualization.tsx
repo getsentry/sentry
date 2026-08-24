@@ -1,6 +1,5 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {auto} from '@popperjs/core';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -356,8 +355,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       }}
       stickyHeader={scrollable}
       height={scrollable ? '100%' : undefined}
+      // GridEditable scrollable prop has conflicting styles with frameless tables, so we override scrolling here
       bodyStyle={
-        frameless ? {...FRAMELESS_STYLES, overflowY: scrollable ? auto : 'hidden'} : {}
+        frameless ? {...FRAMELESS_STYLES, overflowY: scrollable ? 'auto' : 'hidden'} : {}
       }
       resizable={resizable}
     />

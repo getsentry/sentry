@@ -47,7 +47,9 @@ export default Storybook.story('TableWidgetVisualization', story => {
           Below is the the most basic example of the table which requires
           <code>tableData</code> to populate the headers and body of the table
         </p>
-        <TableWidgetVisualization tableData={sampleHTTPRequestTableData} />
+        <div>
+          <TableWidgetVisualization tableData={sampleHTTPRequestTableData} />
+        </div>
       </Fragment>
     );
   });
@@ -74,7 +76,9 @@ ${JSON.stringify(tableWithEmptyData)}
           `}
         </CodeBlock>
         <p>Then the table renders empty like this:</p>
-        <TableWidgetVisualization tableData={tableWithEmptyData} />
+        <div>
+          <TableWidgetVisualization tableData={tableWithEmptyData} />
+        </div>
         <p>
           The table columns use the type <code>TabularColumn[]</code> which is based off
           of <code>GridColumnOrder</code> from <Storybook.JSXNode name="GridEditable" />.
@@ -82,10 +86,12 @@ ${JSON.stringify(tableWithEmptyData)}
           from the table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
         <p>For example, this prop can be used for reordering columns:</p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          columns={customColumns}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            columns={customColumns}
+          />
+        </div>
         <CodeBlock language="json">
           {`
 ${JSON.stringify(customColumns)}
@@ -102,10 +108,12 @@ ${JSON.stringify(customColumns)}
           Below is an example of setting aliases to make column headers more human
           readable.
         </p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          aliases={aliases}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            aliases={aliases}
+          />
+        </div>
         <CodeBlock language="json">
           {`
 ${JSON.stringify(aliases)}
@@ -193,10 +201,12 @@ columns={[{
             Clear sort parameter
           </LinkButton>
         </ButtonContainer>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          columns={sortableColumns}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            columns={sortableColumns}
+          />
+        </div>
         <p>
           If the sort is not stored in the parameter, then pass the <code>sort</code> prop
           to correctly display the sort arrow direction. Similarly to the default
@@ -205,11 +215,13 @@ columns={[{
           and note how the arrow doesn't change in the table below.
         </p>
         <br />
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          sort={{field: 'http.request_method', kind: 'desc'}}
-          columns={sortableColumns}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            sort={{field: 'http.request_method', kind: 'desc'}}
+            columns={sortableColumns}
+          />
+        </div>
 
         <p>
           The default action when a sortable column header is clicked is to update the
@@ -226,12 +238,14 @@ columns={[{
             <code>{sort?.kind ?? 'undefined'}</code> order
           </b>
         </p>
-        <TableWidgetVisualization
-          columns={sortableColumns}
-          tableData={data}
-          sort={sort}
-          onChangeSort={(newSort: Sort) => onChangeSort(newSort)}
-        />
+        <div>
+          <TableWidgetVisualization
+            columns={sortableColumns}
+            tableData={data}
+            sort={sort}
+            onChangeSort={(newSort: Sort) => onChangeSort(newSort)}
+          />
+        </div>
         <CodeBlock language="tsx">
           {`
 const [data, setData] = useState<TabularData>(...);
@@ -285,11 +299,13 @@ function onChangeSort(newSort: Sort) {
           If a table is not column resizable, but needs custom widths, set the{' '}
           <code>width</code> field. For example:
         </p>
-        <TableWidgetVisualization
-          columns={customWidthsColumns}
-          tableData={sampleHTTPRequestTableData}
-          resizable={false}
-        />
+        <div>
+          <TableWidgetVisualization
+            columns={customWidthsColumns}
+            tableData={sampleHTTPRequestTableData}
+            resizable={false}
+          />
+        </div>
         <p>
           Also by default, is <Storybook.JSXNode name="TableWidgetVisualization" />{' '}
           managing column widths and resizing via <code>width</code> URL parameters. E.g.,{' '}
@@ -313,10 +329,12 @@ function onChangeSort(newSort: Sort) {
             Clear width parameters
           </LinkButton>
         </ButtonContainer>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          columns={noWidthColumns}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            columns={noWidthColumns}
+          />
+        </div>
         <p>
           If you wish to override default behavior of updating the URL, pass the callback
           function <code>onResizeColumn</code>, which accepts <code>TabularColumn[]</code>{' '}
@@ -327,11 +345,13 @@ function onChangeSort(newSort: Sort) {
           Current widths are{' '}
           <b>[{columns.map(column => column.width ?? 'undefined').toString()}]</b>
         </p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          columns={columns}
-          onResizeColumn={newColumns => setColumns(newColumns)}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            columns={columns}
+            onResizeColumn={newColumns => setColumns(newColumns)}
+          />
+        </div>
       </Fragment>
     );
   });
@@ -346,10 +366,12 @@ function onChangeSort(newSort: Sort) {
           the entire table, use the <code>allowedCellActions</code> prop. For example,
           passing <code>[]</code> will disable actions completely:
         </p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          allowedCellActions={[]}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            allowedCellActions={[]}
+          />
+        </div>
         <p>
           If a custom list of cell actions is supplied, then pass the{' '}
           <code>onTriggerCellAction</code> prop to add behavior when the action is
@@ -360,24 +382,26 @@ function onChangeSort(newSort: Sort) {
         <p>
           Current filter: <b>[{filter.toString()}]</b>
         </p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          allowedCellActions={[Actions.ADD, Actions.EXCLUDE]}
-          onTriggerCellAction={(actions: Actions, value: string | number) => {
-            switch (actions) {
-              case Actions.ADD:
-                if (!filter.includes(value)) {
-                  setFilter([...filter, value]);
-                }
-                break;
-              case Actions.EXCLUDE:
-                setFilter(filter.filter(_value => _value !== value));
-                break;
-              default:
-                break;
-            }
-          }}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            allowedCellActions={[Actions.ADD, Actions.EXCLUDE]}
+            onTriggerCellAction={(actions: Actions, value: string | number) => {
+              switch (actions) {
+                case Actions.ADD:
+                  if (!filter.includes(value)) {
+                    setFilter([...filter, value]);
+                  }
+                  break;
+                case Actions.EXCLUDE:
+                  setFilter(filter.filter(_value => _value !== value));
+                  break;
+                default:
+                  break;
+              }
+            }}
+          />
+        </div>
         <CodeBlock language="tsx">
           {`
 const [filter, setFilter] = useState<Array<string | number>>([]);
@@ -400,16 +424,18 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
           There are also default actions defined in <code>ALLOWED_CELL_ACTIONS</code>,
           it's recommended to use them as a base.
         </p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          allowedCellActions={cellInfo => {
-            if (cellInfo.column.type === 'integer') {
-              return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
-            }
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            allowedCellActions={cellInfo => {
+              if (cellInfo.column.type === 'integer') {
+                return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+              }
 
-            return [Actions.ADD, Actions.EXCLUDE];
-          }}
-        />
+              return [Actions.ADD, Actions.EXCLUDE];
+            }}
+          />
+        </div>
         <CodeBlock language="tsx">
           {`
 <TableWidgetVisualization
@@ -468,10 +494,12 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
           In the below example, a custom renderer is used to wrap HTTP methods in a{' '}
           <code>Tag</code> element.
         </p>
-        <TableWidgetVisualization
-          tableData={sampleHTTPRequestTableData}
-          getRenderer={getRenderer}
-        />
+        <div>
+          <TableWidgetVisualization
+            tableData={sampleHTTPRequestTableData}
+            getRenderer={getRenderer}
+          />
+        </div>
         <CodeBlock language="tsx">
           {`
 function getRenderer(fieldName: string) {
@@ -500,7 +528,9 @@ function getRenderer(fieldName: string) {
           <Storybook.JSXNode name="TableWidgetVisualization.LoadingPlaceholder" /> can be
           used as a loading placeholder
         </p>
-        <TableWidgetVisualization.LoadingPlaceholder />
+        <div>
+          <TableWidgetVisualization.LoadingPlaceholder />
+        </div>
         <p>
           Optionally, you can pass the
           <code>columns</code>
@@ -508,9 +538,11 @@ function getRenderer(fieldName: string) {
           <code>aliases</code> to apply custom names to columns. Note: sorting and
           resizing are disabled in the loading placeholder.
         </p>
-        <TableWidgetVisualization.LoadingPlaceholder
-          columns={customColumns.map(column => ({...column, width: -1}))}
-        />
+        <div>
+          <TableWidgetVisualization.LoadingPlaceholder
+            columns={customColumns.map(column => ({...column, width: -1}))}
+          />
+        </div>
       </Fragment>
     );
   });
