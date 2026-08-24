@@ -358,10 +358,23 @@ class GreenCheckSuiteContext:
     head_sha: str
 
 
+def pr_iteration_enabled(organization: Organization) -> bool:
+    """Whether any PR-iteration behaviour is enabled for this org."""
+    return (
+        features.has(REVIEW_REQUEST_FLAG, organization)
+        or features.has("organizations:autofix-pr-iteration", organization)
+        or features.has("organizations:autofix-pr-iteration-manual", organization)
+    )
+
+
 def resolve_green_check_suite(
     check_suite_event: CheckSuiteEvent,
 ) -> ResolvedGreenCheckSuite | None:
-    """Parse, flag-gate, and resolve the Autofix run (no SCM)."""
+    """Parse, flag-gate, and resolve the Autofix run (no SCM).
+
+    The gate here is only the coarse "does this org do PR iteration at all" one
+    (see ``pr_iteration_enabled``); callers gate their own side effects.
+    """
     try:
         raw = orjson.loads(check_suite_event.subscription_event["event"])
         event = GithubCheckSuiteEvent.parse_obj(raw)
@@ -379,8 +392,10 @@ def resolve_green_check_suite(
             except Organization.DoesNotExist:
                 continue
             organizations[repo.organization_id] = organization
-        if features.has(REVIEW_REQUEST_FLAG, organization):
+
+        if pr_iteration_enabled(organization):
             flagged_repos.append(repo)
+
     if not flagged_repos:
         return None
 
@@ -391,6 +406,7 @@ def resolve_green_check_suite(
     )
     if autofix_run is None:
         return None
+
     organization = organizations[autofix_run.repository.organization_id]
 
     log_extra: dict[str, Any] = {
@@ -425,10 +441,20 @@ def resolve_green_check_suite(
     )
 
 
-def confirm_green_check_suite(
+@dataclass(frozen=True)
+class InspectedCheckSuiteHead:
+    """Live PR head + check-run sweep. CI may still be red."""
+
+    scm: SourceCodeManager
+    pull_request: ActionResult[PullRequest]
+    head_sha: str
+    sweep: CheckRunsSweep
+
+
+def inspect_check_suite_head(
     resolved: ResolvedGreenCheckSuite,
-) -> GreenCheckSuiteContext | None:
-    """SCM live-head match + check-run sweep. Call only when a side effect is needed."""
+) -> InspectedCheckSuiteHead | None:
+    """SCM live-head match + check-run sweep. Does not require the tip to be green."""
     # Importing the SCM factory while the check-suite listener module is
     # initialized pulls in integration handlers before options init.
     from sentry.scm.factory import new as make_scm
@@ -458,17 +484,37 @@ def confirm_green_check_suite(
         _skip("stale_head", {**resolved.log_extra, "head_sha": head_match.head_sha})
         return None
 
-    sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=resolved.log_extra)
+    sweep = sweep_check_runs(
+        scm,
+        head_match.head_sha,
+        log_extra={**resolved.log_extra, "caller": "inspect_check_suite_head"},
+    )
     if sweep is None:
         _skip("sweep_failed", resolved.log_extra)
         return None
-    if not sweep.is_green:
+
+    return InspectedCheckSuiteHead(
+        scm=scm,
+        pull_request=pull_request,
+        head_sha=head_match.head_sha,
+        sweep=sweep,
+    )
+
+
+def confirm_green_check_suite(
+    resolved: ResolvedGreenCheckSuite,
+) -> GreenCheckSuiteContext | None:
+    """SCM live-head match + check-run sweep. Call only when a side effect is needed."""
+    inspected = inspect_check_suite_head(resolved)
+    if inspected is None:
+        return None
+    if not inspected.sweep.is_green:
         _skip(
             "not_green",
             {
                 **resolved.log_extra,
-                "incomplete_count": sweep.incomplete,
-                "failed_count": sweep.failed,
+                "incomplete_count": inspected.sweep.incomplete,
+                "failed_count": inspected.sweep.failed,
             },
         )
         return None
@@ -476,10 +522,19 @@ def confirm_green_check_suite(
     metrics.incr("autofix.pr_iteration.green_check_suite.confirmed")
     return GreenCheckSuiteContext(
         resolved=resolved,
-        scm=scm,
-        pull_request=pull_request,
-        head_sha=head_match.head_sha,
+        scm=inspected.scm,
+        pull_request=inspected.pull_request,
+        head_sha=inspected.head_sha,
     )
+
+
+def green_review_side_effects_enabled(resolved: ResolvedGreenCheckSuite) -> bool:
+    """Whether undraft / request-review may run for this run's org."""
+    if features.has(REVIEW_REQUEST_FLAG, resolved.organization):
+        return True
+
+    _skip("review_request_disabled", resolved.log_extra)
+    return False
 
 
 def _skip(reason: str, log_extra: dict[str, Any]) -> None:

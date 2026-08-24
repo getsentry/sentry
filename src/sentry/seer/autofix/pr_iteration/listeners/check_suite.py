@@ -4,6 +4,7 @@ import orjson
 import sentry_sdk
 from pydantic import ValidationError
 
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -13,20 +14,90 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GREEN_CONCLUSIONS,
     READY_FOR_REVIEW_EXTRA,
     REVIEW_REQUESTS_EXTRA,
+    ResolvedGreenCheckSuite,
     confirm_green_check_suite,
+    green_review_side_effects_enabled,
     resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
 )
-from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
+from sentry.seer.autofix.pr_iteration.queue import (
+    peek_queued_autofix_feedback,
+    try_enqueue_autofix_feedback,
+)
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _retrigger_deferred_iteration(resolved: ResolvedGreenCheckSuite) -> None:
+    """Pull forward consume if this head has parked check-suite feedback.
+
+    A failing suite defers consume by an hour while other checks are still
+    running (``CheckSuiteFeedbackSource.should_trigger``). Bail on
+    rate-limit-sensitive orgs before the peek, since the sweep is the only
+    reason to look; otherwise peek first so there is no GitHub call unless the
+    queue already holds check-suite feedback on this head.
+    ``should_trigger`` then re-sweeps and answers Now vs Later; only Now
+    schedules, since the original deferred task already covers Later and
+    re-scheduling per green suite would pile up one consume per CI app.
+    ``should_consume`` drops items whose head no longer matches the run.
+    """
+    if is_github_rate_limit_sensitive(resolved.organization.slug):
+        metrics.incr(
+            "autofix.pr_iteration.green_check_suite.deferred_iteration",
+            tags={"outcome": "rate_limit_sensitive"},
+        )
+        return
+
+    run_id = resolved.autofix_run.run_state.run_id
+    head_sha = resolved.event.check_suite.head_sha
+    queued = peek_queued_autofix_feedback(run_id)
+    parked = next(
+        (
+            item
+            for item in queued
+            if item.feedback.source.type == "check-suite"
+            and item.feedback.source.event.check_suite.head_sha == head_sha
+        ),
+        None,
+    )
+    if parked is None:
+        metrics.incr(
+            "autofix.pr_iteration.green_check_suite.deferred_iteration",
+            tags={"outcome": "no_parked"},
+        )
+        return
+
+    run_state = resolved.autofix_run.run_state
+    task = parked.feedback.source.should_trigger(run_state)
+    if task is not ConsumeTask.Now:
+        metrics.incr(
+            "autofix.pr_iteration.green_check_suite.deferred_iteration",
+            tags={"outcome": "later" if task is not None else "skip"},
+        )
+        return
+
+    from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
+
+    metrics.incr(
+        "autofix.pr_iteration.green_check_suite.deferred_iteration",
+        tags={"outcome": "now"},
+    )
+    trigger_consume_pr_iteration_feedback(
+        run_id=run_id,
+        organization_id=resolved.organization.id,
+        feedback=parked.feedback,
+        run_state=run_state,
+        bypass=True,
+    )
 
 
 @scm_event_stream.listen_for(event_type="check_suite")
@@ -36,13 +107,29 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
 
     conclusion = check_suite_event.check_suite["conclusion"]
     if conclusion in GREEN_CONCLUSIONS:
+        resolved = resolve_green_check_suite(check_suite_event)
+        if resolved is None:
+            return None
+
+        # Peek the queue for parked check-suite feedback on this head, then
+        # ``should_trigger`` (GitHub sweep) only if something is waiting.
+        # Isolated so a failure cannot swallow undraft / review-request below.
+        try:
+            _retrigger_deferred_iteration(resolved)
+        except Exception:
+            logger.warning(
+                "autofix.pr_iteration.green_check_suite.retrigger_deferred_consume_failed",
+                extra=resolved.log_extra,
+                exc_info=True,
+            )
+
+        if not green_review_side_effects_enabled(resolved):
+            return None
+
         # Cheap resolve → read markers once → skip SCM if both done → confirm
         # green → run only the missing side effects. Undraft before
         # review-request: GitHub may CODEOWNERS-request after undraft; see TODO
         # on ``request_review_from_context``.
-        resolved = resolve_green_check_suite(check_suite_event)
-        if resolved is None:
-            return None
         ready_for_review_marker = get_run_marker(
             resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name
         )

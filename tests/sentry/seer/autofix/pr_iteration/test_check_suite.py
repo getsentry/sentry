@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -8,8 +9,10 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
     GithubCheckSuiteEvent,
+    pr_iteration_enabled,
     resolve_check_suite_autofix_run,
 )
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -22,6 +25,7 @@ from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
@@ -106,6 +110,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         pr_iteration_from_check_suite_listener(self._event(conclusion="cancelled"))
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
     @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -120,6 +126,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         _mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
         resolved = MagicMock()
@@ -139,6 +147,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert call_order == ["ready", "review"]
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
     @patch(f"{CHECK_PATH}.get_run_marker")
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -153,6 +163,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
     ) -> None:
         from sentry.seer.autofix.pr_iteration.check_suites import (
             READY_FOR_REVIEW_EXTRA,
@@ -177,6 +189,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert mock_marker.call_args_list[1].args[1] == REVIEW_REQUESTS_EXTRA
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
     @patch(f"{CHECK_PATH}.get_run_marker", return_value={"marked": True})
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -191,6 +205,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         _mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
     ) -> None:
         mock_resolve.return_value = MagicMock()
 
@@ -201,6 +217,35 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_request_review.assert_not_called()
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=False)
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_green_conclusion_skips_side_effects_when_review_request_disabled(
+        self,
+        mock_resolve: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        mock_marker: MagicMock,
+        _mock_enabled: MagicMock,
+        _mock_peek: MagicMock,
+    ) -> None:
+        """The resolve no longer implies the review-request flag; the caller checks it."""
+        mock_resolve.return_value = MagicMock()
+
+        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+
+        mock_marker.assert_not_called()
+        mock_confirm.assert_not_called()
+        mock_mark_ready.assert_not_called()
+        mock_request_review.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
     @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -215,6 +260,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         _mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
     ) -> None:
         mock_resolve.return_value = MagicMock()
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
@@ -400,6 +447,271 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _, kwargs = mock_enqueue.call_args
         assert kwargs["organization_id"] == self.organization.id
         mock_trigger_consume.assert_called_once()
+
+
+class GreenCheckSuiteDeferredIterationTest(TestCase):
+    """Green suite retriggers consume only if parked check-suite feedback matches this head."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _event(self) -> CheckSuiteEvent:
+        return CheckSuiteEvent(
+            action="completed",
+            check_suite={
+                "id": "1",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "",
+                "pull_request_ids": [],
+            },
+            subscription_event={
+                "event": orjson.dumps(
+                    {
+                        "check_suite": {
+                            "id": 1,
+                            "head_sha": "abc",
+                            "check_runs_url": "https://github.com/owner/repo/check-runs",
+                            "app": {"name": "CI"},
+                            "updated_at": "2024-01-01T00:00:00Z",
+                            "pull_requests": [],
+                        },
+                        "repository": {"html_url": "https://github.com/owner/repo"},
+                    }
+                ).decode(),
+                "event_type_hint": "check_suite",
+                "extra": {},
+                "received_at": 0,
+                "sentry_meta": None,
+                "type": "github",
+            },
+        )
+
+    def _run_state(self) -> SeerRunState:
+        return SeerRunState(
+            run_id=67890,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+            metadata={"group_id": self.group.id},
+        )
+
+    def _resolved(self) -> MagicMock:
+        resolved = MagicMock()
+        resolved.organization = self.organization
+        resolved.event.check_suite.head_sha = "abc"
+        resolved.autofix_run.run_state = self._run_state()
+        resolved.autofix_run.group_id = self.group.id
+        resolved.log_extra = {"run_id": 67890}
+        return resolved
+
+    def _parked_check_suite(
+        self, *, head_sha: str = "abc", task: object = ConsumeTask.Now
+    ) -> MagicMock:
+        source = MagicMock()
+        source.type = "check-suite"
+        source.event.check_suite.head_sha = head_sha
+        source.should_trigger.return_value = task
+        item = MagicMock()
+        item.feedback.source = source
+        return item
+
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_parked_check_suite_on_this_head_triggers_consume(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+    ) -> None:
+        resolved = self._resolved()
+        parked = self._parked_check_suite()
+        mock_resolve.return_value = resolved
+        mock_peek.return_value = [parked]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_called_once_with(
+            run_id=67890,
+            organization_id=self.organization.id,
+            feedback=parked.feedback,
+            run_state=resolved.autofix_run.run_state,
+            bypass=True,
+        )
+        parked.feedback.source.should_trigger.assert_called_once_with(
+            resolved.autofix_run.run_state
+        )
+        mock_confirm.assert_not_called()
+        mock_mark_ready.assert_not_called()
+        mock_request_review.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_empty_queue_does_not_trigger_consume(
+        self,
+        mock_resolve: MagicMock,
+        _mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_other_feedback_does_not_trigger_consume(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [MagicMock()]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_check_suite_on_other_head_does_not_trigger_consume(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite(head_sha="old")]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_incomplete_sweep_leaves_the_existing_deferral_alone(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        """Later means other checks are still running: the parked 1h task covers it.
+
+        Re-scheduling here would queue one duplicate consume per CI app on the head.
+        """
+        mock_resolve.return_value = self._resolved()
+        parked = self._parked_check_suite(task=ConsumeTask.Later(timedelta(hours=1)))
+        mock_peek.return_value = [parked]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        parked.feedback.source.should_trigger.assert_called_once()
+        mock_trigger.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_rate_limit_sensitive_org_skips_the_sweep_entirely(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        """The opt-out lands before the peek: the sweep is the only reason to look."""
+        mock_resolve.return_value = self._resolved()
+        parked = self._parked_check_suite()
+        mock_peek.return_value = [parked]
+
+        with override_options({"github-app.rate-limit-sensitive-orgs": [self.organization.slug]}):
+            pr_iteration_from_check_suite_listener(self._event())
+
+        mock_peek.assert_not_called()
+        parked.feedback.source.should_trigger.assert_not_called()
+        mock_trigger.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value={"marked": True})
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_triggers_consume_even_when_both_markers_set(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+        mock_confirm: MagicMock,
+        _mock_marker: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite()]
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_called_once()
+        mock_confirm.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(TRIGGER_CONSUME_PATH, side_effect=ValueError("broker down"))
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_failing_consume_schedule_still_runs_review_side_effects(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        _mock_marker: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite()]
+        ctx = MagicMock()
+        mock_confirm.return_value = ctx
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            pr_iteration_from_check_suite_listener(self._event())
+
+        mock_mark_ready.assert_called_once_with(ctx)
+        mock_request_review.assert_called_once_with(ctx)
+
+
+class PrIterationEnabledTest(TestCase):
+    """The coarse gate on the green resolve: any PR-iteration behaviour admits."""
+
+    def test_disabled_without_any_flag(self) -> None:
+        assert not pr_iteration_enabled(self.organization)
+
+    def test_enabled_by_review_request_flag(self) -> None:
+        with self.feature(REVIEW_REQUEST_FLAG):
+            assert pr_iteration_enabled(self.organization)
+
+    def test_enabled_by_automated_iteration_flag(self) -> None:
+        with self.feature("organizations:autofix-pr-iteration"):
+            assert pr_iteration_enabled(self.organization)
+
+    def test_enabled_by_manual_iteration_flag(self) -> None:
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            assert pr_iteration_enabled(self.organization)
 
 
 class ResolveCheckSuiteAutofixRunTest(TestCase):
