@@ -6,7 +6,6 @@ import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsL
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -62,10 +61,6 @@ export function OrganizationFeatureFlagsAuditLogTable({
 
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>();
 
-  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
-    columns: BASE_COLUMNS,
-  });
-
   const handleMouseOver = useCallback((_dataRow: RawFlag, key: number) => {
     setActiveRowKey(key);
   }, []);
@@ -82,16 +77,16 @@ export function OrganizationFeatureFlagsAuditLogTable({
         )}
       </TextBlock>
       <FeatureFlagsLogTable
-        columns={columns}
+        columns={BASE_COLUMNS}
         fit="max-content"
         flags={flags?.data ?? []}
         isPending={isPending}
         error={error}
         onRowMouseOver={handleMouseOver}
         onRowMouseOut={handleMouseOut}
-        onResizeColumn={handleResizeColumn}
         highlightedRowKey={activeRowKey}
         pageLinks={pageLinks}
+        resizable={false}
       />
     </Fragment>
   );

@@ -28,6 +28,7 @@ interface FeatureFlagsLogTableProps {
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
   onRowMouseOver?: (dataRow: RawFlag, key: number) => void;
+  resizable?: boolean;
   scrollable?: boolean;
 }
 
@@ -43,6 +44,7 @@ export function FeatureFlagsLogTable({
   onRowMouseOver,
   onRowMouseOut,
   highlightedRowKey,
+  resizable,
   scrollable = false,
 }: FeatureFlagsLogTableProps) {
   const organization = useOrganization();
@@ -80,6 +82,7 @@ export function FeatureFlagsLogTable({
         onRowMouseOver={onRowMouseOver}
         onRowMouseOut={onRowMouseOut}
         highlightedRowKey={highlightedRowKey}
+        resizable={resizable}
         scrollable={scrollable}
         data-test-id="audit-log-table"
       />
