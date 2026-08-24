@@ -136,6 +136,48 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert org_without_projects.id not in org_ids
         assert org_with_inactive_project.id not in org_ids
 
+    def _scheduled_org_ids(self) -> set[int]:
+        """The organizations the scheduler's queryset would page through."""
+        with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
+            MockScheduler.return_value.tick.return_value = False
+            schedule_per_org_calculations()
+
+            queryset = MockScheduler.call_args.kwargs["queryset"]
+            return set(queryset.values_list("id", flat=True))
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_queryset_is_filtered_by_the_cached_orgs(self) -> None:
+        cached = self.create_organization()
+        self.create_project(organization=cached)
+        uncached = self.create_organization()
+        self.create_project(organization=uncached)
+
+        with patch(f"{SCHEDULER}.get_orgs_with_dynamic_sampling", return_value=[cached.id]):
+            org_ids = self._scheduled_org_ids()
+
+        assert cached.id in org_ids
+        assert uncached.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_a_cold_cache_falls_back_to_every_candidate_org(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+
+        with patch(f"{SCHEDULER}.get_orgs_with_dynamic_sampling", return_value=None):
+            org_ids = self._scheduled_org_ids()
+
+        assert org.id in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_an_empty_cached_set_schedules_nothing(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+
+        with patch(f"{SCHEDULER}.get_orgs_with_dynamic_sampling", return_value=[]):
+            org_ids = self._scheduled_org_ids()
+
+        assert org_ids == set()
+
     def _prevalidated_org_ids(self) -> set[int]:
         """Run the real prevalidate_batch callback over every org in the queryset."""
         with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
