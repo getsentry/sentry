@@ -1282,9 +1282,16 @@ describe('AutofixOverview', () => {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/pull-requests/42/files/`,
+      body: {files: []},
+    });
+
     renderPage();
 
     expect(await screen.findByText('src/sentry/new.py')).toBeInTheDocument();
+    // The renamed file is the 4th, hidden behind the collapse toggle by default.
+    await userEvent.click(screen.getByRole('button', {name: /show 1 more file/i}));
     expect(screen.getByText('Added')).toBeInTheDocument();
     expect(screen.getByText('Deleted')).toBeInTheDocument();
     expect(screen.getByText('Renamed')).toBeInTheDocument();
