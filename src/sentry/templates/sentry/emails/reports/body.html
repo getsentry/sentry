@@ -227,10 +227,10 @@
 {% block content %}
 
 <div class="container">
-  {# Opaque white content card so the shared body pattern doesn't bleed through text in email clients that drop table/div backgrounds. Report-local only; avoid class="inner" because its table padding/margin rules would restyle charts. #}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color: #ffffff; border: 1px solid #c7d0d4; border-radius: 4px; border-collapse: separate; border-spacing: 0;">
+  {# Opaque white fill so the shared body pattern doesn't bleed through text. Keep this layout-neutral: no nested border/padding (that expands past .main). Avoid class="inner" because its table padding/margin rules restyle charts. .main remains the visual card. #}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width: 100%; max-width: 100%; table-layout: fixed; background-color: #ffffff; border-collapse: collapse;">
     <tr>
-      <td bgcolor="#ffffff" style="background-color: #ffffff; border-radius: 4px; padding: 20px;">
+      <td bgcolor="#ffffff" style="background-color: #ffffff; width: 100%; max-width: 100%;">
 
   <div class="project-breakdown">
     {% with height=110 %}
