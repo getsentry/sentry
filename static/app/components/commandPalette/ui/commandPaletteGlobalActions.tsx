@@ -1076,7 +1076,7 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
 
-        {(NODE_ENV === 'development' || user.isStaff) && (
+        {organization.features.includes('seer-xray') && (
           <CMDKAction
             display={{
               label: xrayModeEnabled
