@@ -667,7 +667,7 @@ function InboxIssueCard({
   const organization = useOrganization();
   const {title} = getTitle(group);
   const message = getMessage(group);
-  const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
+  const prefetchHoverProps = useInboxPreviewPrefetch(group);
   const suggestedAssignees = useIssueSuggestedAssignees(group);
 
   return (
