@@ -92,9 +92,9 @@ dependencies = [
   "sentry-ophio>=1.1.3",
   # sentry-options is only used in getsentry for now
   "sentry-options>=1.2.6",
-  "sentry-protos>=0.62.1",
+  "sentry-protos>=0.63.1",
   "sentry-redis-tools>=0.5.0",
-  "sentry-relay>=0.9.27",
+  "sentry-relay>=0.9.28",
   "sentry-scm==1.5.0",
   "sentry-sdk[http2]>=2.68.0",
   "sentry-usage-accountant>=0.0.10",
@@ -116,7 +116,7 @@ dependencies = [
   # note: we cannot resolve urllib3[brotli] but brotli is installed
   #       and will be used
   "urllib3>=2.7.0",
-  "vroomrs>=0.1.23",
+  "vroomrs>=0.1.24",
   "xmlsec>=1.3.17",
   "zstandard>=0.18.0",
   # [begin] getsentry
@@ -1279,17 +1279,12 @@ module = [
     "sentry.seer.supergroups.*",
     "sentry.seer.utils",
     "sentry.seer.vendored",
-    "sentry.sentry_apps",
     "sentry.sentry_apps.alert_rule_action_creator",
     "sentry.sentry_apps.api.bases.*",
     "sentry.sentry_apps.api.endpoints.*",
     "sentry.sentry_apps.api.parsers.*",
     "sentry.sentry_apps.api.serializers.*",
-    "sentry.sentry_apps.components",
-    "sentry.sentry_apps.external_requests.*",
-    "sentry.sentry_apps.installations",
     "sentry.sentry_apps.logic",
-    "sentry.sentry_apps.metrics",
     "sentry.sentry_apps.models.*",
     "sentry.sentry_apps.tasks.*",
     "sentry.sentry_metrics",

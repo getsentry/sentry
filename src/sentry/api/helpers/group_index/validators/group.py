@@ -70,17 +70,17 @@ class GroupValidator(serializers.Serializer[Group]):
     # These fields are not documented in the API docs. #
     ####################################################
     # These are already covered by the `statusDetails` serializer field.
-    ignoreDuration = serializers.IntegerField()
-    ignoreCount = serializers.IntegerField()
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
-    ignoreUserCount = serializers.IntegerField()
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
+    ignoreDuration = serializers.IntegerField(min_value=0)
+    ignoreCount = serializers.IntegerField(min_value=0)
+    ignoreWindow = serializers.IntegerField(min_value=0, max_value=7 * 24 * 60)
+    ignoreUserCount = serializers.IntegerField(min_value=0)
+    ignoreUserWindow = serializers.IntegerField(min_value=0, max_value=7 * 24 * 60)
     # The `inboxDetails`` field is empty.
     inboxDetails = InboxDetailsValidator()
     # The `snooze` field is deprecated.
     # TODO(dcramer): remove in 9.0
     # for the moment, the CLI sends this for any issue update, so allow nulls
-    snoozeDuration = serializers.IntegerField(allow_null=True)
+    snoozeDuration = serializers.IntegerField(allow_null=True, min_value=0)
 
     def validate_assignedTo(self, value: Actor | None) -> Actor | None:
         if not value:

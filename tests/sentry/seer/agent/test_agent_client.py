@@ -104,6 +104,33 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @override_options({"seer.explorer.context-engine-rollout": 1.0})
+    def test_start_run_context_engine_follows_rollout(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["is_context_engine_enabled"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @override_options({"seer.explorer.context-engine-rollout": 1.0})
+    def test_start_run_force_ce_overrides_rollout(self, mock_post, mock_access):
+        """force_ce=False keeps the context engine off even at full rollout."""
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query", force_ce=False)
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["is_context_engine_enabled"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_request(self, mock_collect_context, mock_post, mock_access):
         """Test starting a new run passes request object to collect_user_org_context"""

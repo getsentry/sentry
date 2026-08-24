@@ -7,7 +7,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -25,9 +24,7 @@ const EMPTY_STATS: readonly TimeseriesValue[] = [];
 type Props = {
   stats: readonly TimeseriesValue[];
   groupStatus?: string;
-  height?: number;
   hideZeros?: boolean;
-  loading?: boolean;
   secondaryStats?: readonly TimeseriesValue[];
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
@@ -36,8 +33,6 @@ type Props = {
 export function GroupStatusChart({
   stats,
   groupStatus,
-  height = 24,
-  loading = false,
   hideZeros = false,
   secondaryStats = EMPTY_STATS,
   showMarkLine = false,
@@ -110,29 +105,25 @@ export function GroupStatusChart({
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (
-    <LazyRender containerHeight={showMarkLine ? 26 : height}>
+    <LazyRender containerHeight={showMarkLine ? 26 : 24}>
       <Stack>
-        {loading ? (
-          <Placeholder height="36px" />
-        ) : (
-          <ChartAnimationWrapper>
-            <MiniBarChart
-              animateBars
-              showXAxisLine
-              hideZeros={hideZeros}
-              markLineLabelSide="right"
-              barOpacity={1}
-              height={showMarkLine ? 36 : height}
-              isGroupedByDate
-              showTimeInTooltip
-              series={graphOptions.series}
-              colors={graphOptions.colors}
-              emphasisColors={graphOptions.emphasisColors}
-              hideDelay={50}
-              showMarkLineLabel={showMarkLine}
-            />
-          </ChartAnimationWrapper>
-        )}
+        <ChartAnimationWrapper>
+          <MiniBarChart
+            animateBars
+            showXAxisLine
+            hideZeros={hideZeros}
+            markLineLabelSide="right"
+            barOpacity={1}
+            height={showMarkLine ? 36 : 24}
+            isGroupedByDate
+            showTimeInTooltip
+            series={graphOptions.series}
+            colors={graphOptions.colors}
+            emphasisColors={graphOptions.emphasisColors}
+            hideDelay={50}
+            showMarkLineLabel={showMarkLine}
+          />
+        </ChartAnimationWrapper>
         <GraphText>{groupStatus}</GraphText>
       </Stack>
     </LazyRender>

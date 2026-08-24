@@ -281,6 +281,9 @@ from sentry.integrations.api.endpoints.organization_integration_serverless_funct
 from sentry.integrations.api.endpoints.organization_integrations_index import (
     OrganizationIntegrationsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_pull_request_files import (
+    OrganizationPullRequestFilesEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_repositories import (
     OrganizationRepositoriesEndpoint,
 )
@@ -296,8 +299,18 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
+from sentry.investigations.endpoints.organization_breached_metric_investigations import (
+    OrganizationBreachedMetricInvestigationLaunchEndpoint,
+    OrganizationBreachedMetricInvestigationStatusEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
+    OrganizationInvestigationBlockExecutionDetailsEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_block_executions import (
+    OrganizationInvestigationBlockExecutionsEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_block_index import (
     OrganizationInvestigationBlocksEndpoint,
@@ -319,6 +332,9 @@ from sentry.investigations.endpoints.organization_investigation_index import (
 )
 from sentry.investigations.endpoints.organization_investigation_parameters import (
     OrganizationInvestigationParametersEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_title_generation import (
+    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -2268,6 +2284,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-sent-first-event",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pull-requests/(?P<pull_request_id>[^/]+)/files/$",
+        OrganizationPullRequestFilesEndpoint.as_view(),
+        name="sentry-api-0-organization-pull-request-files",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/repos/$",
         OrganizationRepositoriesEndpoint.as_view(),
         name="sentry-api-0-organization-repositories",
@@ -2409,6 +2430,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigations",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/status/$",
+        OrganizationBreachedMetricInvestigationStatusEndpoint.as_view(),
+        name="sentry-api-0-organization-breached-metric-investigation-status",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/launch/$",
+        OrganizationBreachedMetricInvestigationLaunchEndpoint.as_view(),
+        name="sentry-api-0-organization-breached-metric-investigation-launch",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",
         OrganizationInvestigationsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-details",
@@ -2429,6 +2460,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-block-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/$",
+        OrganizationInvestigationBlockExecutionsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-block-executions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/(?P<execution_id>[^/]+)/$",
+        OrganizationInvestigationBlockExecutionDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-block-execution-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/favorite/$",
         OrganizationInvestigationsFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-favorite",
@@ -2437,6 +2478,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
         OrganizationInvestigationsDuplicateEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-duplicate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/title-generation/$",
+        OrganizationInvestigationTitleGenerationEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-title-generation",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/parameters/$",

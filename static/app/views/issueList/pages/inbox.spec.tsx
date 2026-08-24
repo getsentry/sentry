@@ -31,11 +31,11 @@ jest.mock('sentry/utils/useMedia');
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
   const seerOrganization = organization;
   const aiOnlyOrganization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'gen-ai-features'],
+    features: ['issue-inbox', 'gen-ai-features'],
   });
   const project = ProjectFixture({
     id: '1',
@@ -939,6 +939,7 @@ describe('InboxPage', () => {
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     expect(within(preview).getByRole('button', {name: 'Find Root Cause'})).toBeDisabled();
+    expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
     await waitFor(() =>
       expect(startAutofixRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -961,6 +962,34 @@ describe('InboxPage', () => {
     expect(
       within(preview).getByRole('button', {name: 'Find Root Cause'})
     ).toBeInTheDocument();
+  });
+
+  it('shows root cause generation after starting Autofix for an assigned issue', async () => {
+    mockAssignedPreview(AutofixSetupFixture({}));
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    const startAutofixRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+    await userEvent.click(
+      await within(preview).findByRole('button', {name: 'Find Root Cause'})
+    );
+
+    expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
+    await waitFor(() => expect(startAutofixRequest).toHaveBeenCalledTimes(1));
+
+    // Immediately sets "find root cause" button to busy state.
+    const startButton = within(preview).getByRole('button', {name: 'Find Root Cause'});
+    expect(startButton).toBeDisabled();
+    expect(startButton).toHaveAttribute('aria-busy', 'true');
   });
 
   it('waits for Seer setup before showing assigned issue actions', async () => {

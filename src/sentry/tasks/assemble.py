@@ -10,7 +10,7 @@ from typing import IO, TYPE_CHECKING, NamedTuple
 import orjson
 import sentry_sdk
 from django.conf import settings
-from django.db import router
+from django.db import router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -580,74 +580,83 @@ class ArtifactBundlePostAssembler:
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
     ) -> tuple[ArtifactBundle, bool]:
-        existing_artifact_bundles = list(
-            ArtifactBundle.objects.filter(organization_id=self.organization.id, bundle_id=bundle_id)
-        )
-
-        if len(existing_artifact_bundles) == 0:
-            existing_artifact_bundle = None
-        else:
-            existing_artifact_bundle = existing_artifact_bundles.pop()
-            # We want to remove all the duplicate artifact bundles that have the same bundle_id.
-            self._remove_duplicate_artifact_bundles(
-                ids=list(map(lambda value: value.id, existing_artifact_bundles))
+        with transaction.atomic(using=router.db_for_write(ArtifactBundle)):
+            existing_artifact_bundles = list(
+                ArtifactBundle.objects.filter(
+                    organization_id=self.organization.id, bundle_id=bundle_id
+                ).select_for_update()
             )
 
-        # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
-        if existing_artifact_bundle is None:
-            file = self.assemble_result.bundle
+            if len(existing_artifact_bundles) == 0:
+                existing_artifact_bundle = None
+            else:
+                existing_artifact_bundle = existing_artifact_bundles.pop()
+                # We want to remove all the duplicate artifact bundles that have the same bundle_id.
+                self._remove_duplicate_artifact_bundles(
+                    ids=list(map(lambda value: value.id, existing_artifact_bundles))
+                )
 
-            metrics.distribution(
-                "storage.put.size",
-                file.size,
-                tags={"usecase": "artifact-bundles", "compression": "none"},
-                unit="byte",
-            )
+            # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
+            if existing_artifact_bundle is None:
+                file = self.assemble_result.bundle
 
-            artifact_bundle = ArtifactBundle.objects.create(
-                organization_id=self.organization.id,
-                bundle_id=bundle_id,
-                file=file,
-                artifact_count=self.archive.artifact_count,
-                # By default, a bundle is not indexed.
-                indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-                # "date_added" and "date_uploaded" will have the same value, but they will diverge once renewal is
-                # performed by other parts of Sentry. Renewal is required since we want to expire unused bundles
-                # after ~90 days.
-                date_added=date_added,
-                date_uploaded=date_added,
-                # When creating a new bundle by default its last modified date corresponds to the creation date.
-                date_last_modified=date_added,
-            )
+                metrics.distribution(
+                    "storage.put.size",
+                    file.size,
+                    tags={"usecase": "artifact-bundles", "compression": "none"},
+                    unit="byte",
+                )
 
-            return artifact_bundle, True
-        else:
-            # We store a reference to the previous file to which the bundle was pointing to.
-            existing_file = existing_artifact_bundle.file
-
-            # FIXME: We might want to get this error, but it currently blocks deploys
-            # if existing_file.checksum != self.assemble_result.bundle.checksum:
-            #    logger.error("Detected duplicated `ArtifactBundle` with differing checksums")
-
-            # Only if the file objects are different we want to update the database, otherwise we will end up deleting
-            # a newly bound file.
-            if existing_file != self.assemble_result.bundle:
-                # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying File
-                # model with its corresponding artifact count and also update the dates.
-                existing_artifact_bundle.update(
-                    file=self.assemble_result.bundle,
+                artifact_bundle = ArtifactBundle.objects.create(
+                    organization_id=self.organization.id,
+                    bundle_id=bundle_id,
+                    file=file,
                     artifact_count=self.archive.artifact_count,
+                    # By default, a bundle is not indexed.
+                    indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+                    # "date_added" and "date_uploaded" will have the same value, but they will diverge once renewal is
+                    # performed by other parts of Sentry. Renewal is required since we want to expire unused bundles
+                    # after ~90 days.
                     date_added=date_added,
-                    # If you upload a bundle which already exists, we track this as a modification since our goal is
-                    # to show first all the bundles that have had the most recent activity.
+                    date_uploaded=date_added,
+                    # When creating a new bundle by default its last modified date corresponds to the creation date.
                     date_last_modified=date_added,
                 )
 
-                # We now delete that file, in order to avoid orphan files in the database.
-                existing_file.delete()
-            # else: are we leaking the `assemble_result.bundle` in this case?
+                return artifact_bundle, True
+            else:
+                # We store a reference to the previous file to which the bundle was pointing to.
+                # Guard against a race where a concurrent worker already deleted this file.
+                try:
+                    existing_file = existing_artifact_bundle.file
+                except File.DoesNotExist:
+                    # File was already deleted by a concurrent worker; nothing to clean up.
+                    existing_file = None
 
-            return existing_artifact_bundle, False
+                # FIXME: We might want to get this error, but it currently blocks deploys
+                # if existing_file.checksum != self.assemble_result.bundle.checksum:
+                #    logger.error("Detected duplicated `ArtifactBundle` with differing checksums")
+
+                # Only if the file objects are different we want to update the database, otherwise we will end up
+                # deleting a newly bound file.
+                if existing_file != self.assemble_result.bundle:
+                    # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying
+                    # File model with its corresponding artifact count and also update the dates.
+                    existing_artifact_bundle.update(
+                        file=self.assemble_result.bundle,
+                        artifact_count=self.archive.artifact_count,
+                        date_added=date_added,
+                        # If you upload a bundle which already exists, we track this as a modification since our goal
+                        # is to show first all the bundles that have had the most recent activity.
+                        date_last_modified=date_added,
+                    )
+
+                    if existing_file is not None:
+                        # We now delete that file, in order to avoid orphan files in the database.
+                        existing_file.delete()
+                # else: are we leaking the `assemble_result.bundle` in this case?
+
+                return existing_artifact_bundle, False
 
     def _remove_duplicate_artifact_bundles(self, ids: list[int]):
         # In case there are no ids to delete, we don't want to run the query, otherwise it will result in a deletion of

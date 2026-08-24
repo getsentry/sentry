@@ -46,7 +46,7 @@ export function IssueContext(props: BaseContextProps) {
       organizationSlug: organization.slug,
       // The link to issue details doesn't seem to currently pass selected environments
       environments: [],
-      expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+      expandDerivedData: organization.features.includes('issue-inbox'),
     })
   );
 

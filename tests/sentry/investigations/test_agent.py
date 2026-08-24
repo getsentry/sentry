@@ -305,6 +305,38 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once()
 
+    @patch("sentry.investigations.agent.interrupt_run")
+    def test_a_terminal_execution_is_never_rewritten(self, interrupt_run: MagicMock) -> None:
+        # A cancelled run must keep the outcome the user asked for, even when Seer later
+        # reports a still-processing state that breaks the tool policy.
+        self.execution.update(status=InvestigationBlockExecutionStatus.CANCELLED)
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="unsafe",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args='{"code":"sentry.get_issue(issue_id=1)"}',
+                            )
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        synchronize_execution(self.execution, run_state)
+
+        self.execution.refresh_from_db()
+        assert self.execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert self.execution.error is None
+        interrupt_run.assert_not_called()
+
     def test_text_mode_rejects_and_hides_tool_results(self) -> None:
         run_state = state(
             status="processing",
