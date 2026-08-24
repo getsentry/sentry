@@ -79,19 +79,13 @@ const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   all: '',
 };
 const ASSIGNMENT_COUNT_QUERY =
-  'issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved';
+  'issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved';
 interface InboxSectionContext {
-  assignmentFilter: AssignmentFilter;
   hasSeer: boolean;
 }
 
 interface InboxSectionConfig {
-  analyticsKey:
-    | 'num_fix_proposed'
-    | 'num_diagnosed'
-    | 'num_assigned'
-    | 'num_identified'
-    | 'num_fix_applied';
+  analyticsKey: 'num_fix_proposed' | 'num_diagnosed' | 'num_assigned' | 'num_fix_applied';
   emptyMessage: string;
   key: string;
   label: string;
@@ -122,19 +116,10 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     analyticsKey: 'num_assigned',
     key: 'assigned',
     label: t('Assigned'),
-    query: 'issue.progress:assigned is:unresolved',
+    query: 'issue.progress:[assigned,identified] is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
     hidden: ({hasSeer}) => !hasSeer,
-  },
-  {
-    analyticsKey: 'num_identified',
-    key: 'identified',
-    label: t('Identified'),
-    query: 'issue.progress:identified is:unresolved',
-    emptyMessage: t('No identified issues'),
-    progress: ProgressState.IDENTIFIED,
-    hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter === 'all',
   },
   {
     analyticsKey: 'num_fix_applied',
@@ -316,9 +301,7 @@ function InboxContent() {
     parseAsString.withOptions({history: 'replace'})
   );
   const assignmentCounts = useAssignmentCounts();
-  const sections = SECTIONS.filter(
-    section => !section.hidden?.({assignmentFilter, hasSeer})
-  );
+  const sections = SECTIONS.filter(section => !section.hidden?.({hasSeer}));
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
