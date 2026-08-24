@@ -45,7 +45,7 @@ export function CardHeader({
     <Grid
       columns={{zero: '1fr', md: '1fr max-content'}}
       align="center"
-      gap={{zero: 'xl', md: 'md'}}
+      gap="md"
       marginBottom="md"
     >
       <Stack gap="2xs">
