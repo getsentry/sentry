@@ -22,6 +22,8 @@ from sentry.investigations.models import (
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     InvestigationValidationError,
+    investigation_filters,
+    investigation_source,
     lock_investigation,
 )
 from sentry.investigations.services.parameters import (
@@ -263,7 +265,8 @@ def build_block_execution_snapshot(
         )
     snapshot: dict[str, Any] = {
         "prompt": prompt,
-        "filters": block.investigation.filters,
+        "source": investigation_source(block.investigation),
+        "filters": investigation_filters(block.investigation),
         "parameters": parameters,
         "dependencies": dependencies,
         "context": context,
