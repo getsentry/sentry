@@ -33,11 +33,14 @@ import {
 export function isProjectNameManuallyModified(
   projectDetailsForm: ProjectDetailsFormState | undefined
 ): boolean {
+  if (!projectDetailsForm) {
+    return false;
+  }
+  if (projectDetailsForm.wasNameManuallyModified !== undefined) {
+    return projectDetailsForm.wasNameManuallyModified;
+  }
   // Sessions stored before this flag existed contain an explicit project name.
-  return (
-    projectDetailsForm?.wasNameManuallyModified ??
-    projectDetailsForm?.projectName !== undefined
-  );
+  return projectDetailsForm.projectName !== undefined;
 }
 
 export function getSubmitTooltipText({

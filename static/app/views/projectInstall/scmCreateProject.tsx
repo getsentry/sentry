@@ -154,16 +154,15 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   const handlePlatformChange = useCallback(
     (platform: OnboardingSelectedSDK | undefined) => {
       setState(s => {
-        const currentProjectDetailsForm = s.projectDetailsForm;
+        const form = s.projectDetailsForm;
+        // A manual name survives a platform change; an untouched name tracks
+        // the platform default, so drop it and let the hook re-derive it.
+        const shouldResetName = !!form && !isProjectNameManuallyModified(form);
 
         return {
           ...s,
           selectedPlatform: platform,
-          projectDetailsForm:
-            !currentProjectDetailsForm ||
-            isProjectNameManuallyModified(currentProjectDetailsForm)
-              ? currentProjectDetailsForm
-              : {...currentProjectDetailsForm, projectName: undefined},
+          projectDetailsForm: shouldResetName ? {...form, projectName: undefined} : form,
         };
       });
     },
