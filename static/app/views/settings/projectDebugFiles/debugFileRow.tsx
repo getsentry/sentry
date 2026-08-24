@@ -53,9 +53,9 @@ export function DebugFileRow({
         </div>
         <Text as="div" size="sm" variant="muted">
           <Flex
-            direction={{zero: 'column', md: 'row'}}
-            align={{zero: 'start', md: 'center'}}
-            gap={{zero: 'xs', md: 'md'}}
+            direction={{zero: 'column', lg: 'row'}}
+            align={{zero: 'start', lg: 'center'}}
+            gap={{zero: 'xs', lg: 'md'}}
             marginTop="md"
             width="100%"
           >
