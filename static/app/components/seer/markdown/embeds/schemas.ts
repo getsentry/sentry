@@ -595,13 +595,16 @@ export const SEER_EMBED_SCHEMAS = {
           mode: 'aggregate',
           yAxes: ['p95(value)'],
           statsPeriod: '24h',
+        },
+      },
+    ],
+  },
   autofixRef: {
     featureFlag: 'organizations:seer-agent-autofix',
     description:
       'Render a live view of one Seer Autofix step (root cause, solution, code ' +
-      'changes, or PR iteration) that fetches and updates itself in the browser — ' +
-      'unlike the `autofix` embed, it takes no write-up text. Emit this ' +
-      'immediately after starting or continuing an autofix step via RPC, in ' +
+      'changes, or PR iteration) that fetches and updates itself in the browser. ' +
+      'Emit this immediately after starting or continuing an autofix step via RPC, in ' +
       'place of polling for the result yourself and writing it up: the embed ' +
       'shows progress while the step runs, then the result once it completes, ' +
       'with buttons to continue to the next step or retry on error. `id` and ' +
@@ -625,10 +628,6 @@ export const SEER_EMBED_SCHEMAS = {
           shortId: 'EXMPL-123',
           runId: '018f2c1a-6b7e-7c3e-9a2f-3e6b1a2c3d4e',
           step: 'root_cause' as const,
-        },
-      },
-    ],
-  },
         },
       },
     ],
