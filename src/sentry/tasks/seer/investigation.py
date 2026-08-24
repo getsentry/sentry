@@ -7,7 +7,10 @@ from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
 )
-from sentry.investigations.services import mark_block_execution_dispatch_failed
+from sentry.investigations.services import (
+    mark_block_execution_dispatch_failed,
+    mark_block_execution_dispatch_started,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.service import user_service
@@ -25,7 +28,7 @@ def dispatch_investigation_execution(execution_id: int) -> None:
         .filter(id=execution_id, status=InvestigationBlockExecutionStatus.PENDING)
         .first()
     )
-    if execution is None:
+    if execution is None or not mark_block_execution_dispatch_started(execution):
         return
     user = (
         user_service.get_user(user_id=execution.triggered_by_id)

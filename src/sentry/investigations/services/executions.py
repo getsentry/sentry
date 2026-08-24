@@ -468,6 +468,16 @@ def mark_block_execution_dispatched(
     return updated == 1
 
 
+def mark_block_execution_dispatch_started(execution: InvestigationBlockExecution) -> bool:
+    updated = InvestigationBlockExecution.objects.filter(
+        id=execution.id, status=InvestigationBlockExecutionStatus.PENDING
+    ).update(
+        status=InvestigationBlockExecutionStatus.RUNNING,
+        started_at=timezone.now(),
+    )
+    return updated == 1
+
+
 def mark_block_execution_resumed(execution: InvestigationBlockExecution) -> bool:
     updated = InvestigationBlockExecution.objects.filter(
         id=execution.id, status=InvestigationBlockExecutionStatus.AWAITING_INPUT

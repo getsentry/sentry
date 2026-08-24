@@ -9,6 +9,7 @@ from sentry.investigations.models import (
     InvestigationBlockKind,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
+from sentry.tasks.seer.investigation import dispatch_investigation_execution
 from sentry.testutils.cases import TestCase
 
 
@@ -105,3 +106,19 @@ class InvestigationAutoRunTest(TestCase):
         assert self.root.current_execution_id == execution_id
         assert InvestigationBlockExecution.objects.filter(block=self.root).count() == 1
         dispatch.delay.assert_called_once_with(execution_id)
+
+    @mock.patch("sentry.tasks.seer.investigation.start_execution_run")
+    def test_duplicate_dispatches_only_start_one_run(self, start_execution_run: mock.Mock) -> None:
+        with self.captureOnCommitCallbacks(execute=False):
+            schedule_eligible_auto_run_blocks(
+                investigation_id=self.investigation.id,
+                user_id=self.user.id,
+            )
+        self.root.refresh_from_db()
+        execution_id = self.root.current_execution_id
+        assert execution_id is not None
+
+        dispatch_investigation_execution(execution_id)
+        dispatch_investigation_execution(execution_id)
+
+        start_execution_run.assert_called_once()
