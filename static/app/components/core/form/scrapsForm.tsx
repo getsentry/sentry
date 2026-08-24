@@ -157,6 +157,10 @@ export const defaultFormValidators = createValidators([
         trigger: 'change',
         when: ({formApi}) => formApi.state.submissionAttempts > 0,
       },
+      {
+        trigger: 'blur',
+        when: ({formApi}) => formApi.state.submissionAttempts > 0,
+      },
     ],
   },
 ]);
