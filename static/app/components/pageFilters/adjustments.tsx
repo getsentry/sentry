@@ -13,7 +13,7 @@ export enum PageFilterAdjustmentReason {
   MAX_DATE_RANGE = 'max_date_range',
 }
 
-export type ProjectsAdjustment =
+type ProjectsAdjustment =
   | {reason: PageFilterAdjustmentReason.INVALID_PROJECTS}
   | {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}
   | {
@@ -21,11 +21,11 @@ export type ProjectsAdjustment =
       reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED;
     };
 
-export type EnvironmentsAdjustment = {
+type EnvironmentsAdjustment = {
   reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS;
 };
 
-export type DatetimeAdjustment = {
+type DatetimeAdjustment = {
   days: number;
   reason:
     | PageFilterAdjustmentReason.MAX_PICKABLE_DAYS
