@@ -88,14 +88,13 @@ def _merge_rust_enhancements(
     """
     merged_rust_enhancements = RustEnhancements.empty()
     for base_id in bases:
-        base = ENHANCEMENT_BASES.get(base_id)
-        if base:
-            base_rust_enhancements = (
-                base.classifier_rust_enhancements
-                if type == "classifier"
-                else base.contributes_rust_enhancements
-            )
-            merged_rust_enhancements.extend_from(base_rust_enhancements)
+        base = ENHANCEMENT_BASES[base_id]
+        base_rust_enhancements = (
+            base.classifier_rust_enhancements
+            if type == "classifier"
+            else base.contributes_rust_enhancements
+        )
+        merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
     return merged_rust_enhancements
 
