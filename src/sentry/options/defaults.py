@@ -2332,6 +2332,14 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TTL in minutes of the recalibration factor stored in Redis.
+register(
+    "dynamic-sampling.recalibration.factor-ttl-minutes",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
@@ -2513,10 +2521,22 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Providers whose mailbox drains skip a failed message and keep going instead of
+# aborting. Only safe for providers whose cell-side handlers tolerate reordering,
+# since a skipped message is retried after the ones behind it. Aborting is not a
+# strict-ordering guarantee to begin with: drain_mailbox_parallel delivers a whole
+# batch concurrently before it consults this list, and dispatch to it is chosen on
+# backlog depth alone (PARALLEL_DRAIN_THRESHOLD), for every provider.
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
-    default=["github"],
+    default=[
+        "github",
+        "github_enterprise",
+        "bitbucket",
+        "bitbucket_server",
+        "gitlab",
+    ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Drops GitHub check webhooks that reference no pull request based in their own
