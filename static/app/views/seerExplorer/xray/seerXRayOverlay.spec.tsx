@@ -146,6 +146,37 @@ describe('SeerXRayOverlay', () => {
     expect(panelEl).toHaveStyle({minWidth: '420px', minHeight: '320px'});
   });
 
+  it('flips the label below the box when there is no room above it', async () => {
+    setXRayModeEnabled(true);
+    Range.prototype.getBoundingClientRect = jest.fn().mockReturnValue(rect({top: 0}));
+
+    const {unmount} = render(
+      <LLMContextProvider>
+        <ContextWidget title="Error Rate" />
+        <SeerXRayOverlay />
+      </LLMContextProvider>,
+      {organization}
+    );
+    const flippedLabel = await screen.findByText('widget');
+    const flippedClassName = flippedLabel.className;
+    unmount();
+
+    // Same node, far enough from the viewport's top edge that the label has
+    // room to sit above the box as usual — the two must style differently,
+    // proving the flip is actually driven by `node.rect.top`.
+    Range.prototype.getBoundingClientRect = jest.fn().mockReturnValue(rect({top: 200}));
+    render(
+      <LLMContextProvider>
+        <ContextWidget title="Error Rate" />
+        <SeerXRayOverlay />
+      </LLMContextProvider>,
+      {organization}
+    );
+    const normalLabel = await screen.findByText('widget');
+
+    expect(normalLabel).not.toHaveClass(flippedClassName, {exact: true});
+  });
+
   it('reacts to the store toggling on after mount', async () => {
     setXRayModeEnabled(false);
     render(

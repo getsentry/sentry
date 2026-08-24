@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,6 +36,13 @@ const DEPTH_COLORS = ['blue400', 'pink400', 'yellow400', 'green400'] as const;
 const PANEL_MIN_WIDTH = 420;
 const PANEL_MIN_HEIGHT = 320;
 
+// Approximate rendered height of NodeLabel (font-size xs * line-height 1.5 +
+// vertical padding + border). Below this much room above a node's box, the
+// label has nowhere to go if placed above it, so it flips to render below
+// instead — otherwise it renders off-screen and unclickable for anything
+// pinned near the top of the viewport (e.g. primary/secondary nav).
+const LABEL_HEIGHT_PX = 20;
+
 interface MeasuredNode extends LLMContextOverlayNode {
   depth: number;
   rect: DOMRect;
@@ -53,14 +61,25 @@ function measureRect(el: Element): DOMRect | null {
 function computeDepths(nodes: LLMContextOverlayNode[]): Map<string, number> {
   const byId = new Map(nodes.map(node => [node.nodeId, node]));
   const depths = new Map<string, number>();
+  // Registration always threads `parentId` from the nearest ANCESTOR in the
+  // render tree, so a cycle can't arise from normal usage — this guards
+  // against it anyway, since a stray cycle would otherwise recurse forever
+  // and crash the whole overlay instead of just mis-rendering one node.
+  const visiting = new Set<string>();
 
   function depthOf(nodeId: string): number {
     const cached = depths.get(nodeId);
     if (cached !== undefined) {
       return cached;
     }
+    if (visiting.has(nodeId)) {
+      depths.set(nodeId, 0);
+      return 0;
+    }
+    visiting.add(nodeId);
     const node = byId.get(nodeId);
     const depth = node?.parentId ? depthOf(node.parentId) + 1 : 0;
+    visiting.delete(nodeId);
     depths.set(nodeId, depth);
     return depth;
   }
@@ -159,6 +178,7 @@ export function SeerXRayOverlay() {
           >
             <NodeLabel
               color={color}
+              flip={node.rect.top < LABEL_HEIGHT_PX}
               onClick={() => setSelectedNodeId(isSelected ? null : node.nodeId)}
             >
               {node.nodeType}
@@ -218,15 +238,23 @@ const NodeBox = styled('div')<{color: (typeof DEPTH_COLORS)[number]}>`
   background: ${p => p.theme.colors[p.color]}1a;
 `;
 
-const NodeLabel = styled('button')<{color: (typeof DEPTH_COLORS)[number]}>`
+const NodeLabel = styled('button')<{color: (typeof DEPTH_COLORS)[number]; flip: boolean}>`
   position: absolute;
-  top: 0;
   left: 0;
-  transform: translateY(-100%);
+  ${p =>
+    p.flip
+      ? css`
+          top: 100%;
+          border-radius: 0 0 ${p.theme.radius.xs} ${p.theme.radius.xs};
+        `
+      : css`
+          top: 0;
+          transform: translateY(-100%);
+          border-radius: ${p.theme.radius.xs} ${p.theme.radius.xs} 0 0;
+        `}
   pointer-events: auto;
   cursor: pointer;
   border: none;
-  border-radius: ${p => p.theme.radius.xs} ${p => p.theme.radius.xs} 0 0;
   padding: 1px 6px;
   background: ${p => p.theme.colors[p.color]};
   color: ${p => p.theme.colors.white};
