@@ -293,7 +293,7 @@ export function ScmMessagingProviderRow({
                   )}
                   {viewModel.status === 'connected' && visualState !== 'removing' && (
                     <Tag variant="success" icon={<IconCheckmark />}>
-                      {t('Connected')}
+                      {isConfigured ? t('Destination added') : t('Connected')}
                     </Tag>
                   )}
                 </Flex>

@@ -104,14 +104,6 @@ export function ScmMessaging({
             {t("We couldn't check the saved destination. Reload the page to try again.")}
           </Alert>
         )}
-        {validation.isPending && (
-          <Text variant="muted">{t('Checking saved destination')}</Text>
-        )}
-        {validation.isValid && (
-          <Text variant="success" bold>
-            {t('Destination selected')}
-          </Text>
-        )}
 
         <Flex align="center" gap="sm">
           <IconMail size="sm" variant="muted" />

@@ -508,6 +508,15 @@ describe('ScmMessagingProviderRow', () => {
       );
     });
 
+    it('shows the Connected tag before a destination is added', () => {
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+        renderChannelPicker: jest.fn(() => <div>channel-picker</div>),
+      });
+
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    });
+
     it('passes only eligible integrations to the picker when a provider has mixed installations', () => {
       const msteamsTeamIntegration = OrganizationIntegrationsFixture({
         id: 'msteams-team',
@@ -632,10 +641,11 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.getByRole('button', {name: /Remove/})).toBeInTheDocument();
     });
 
-    it('shows the Connected tag', () => {
+    it('shows the Destination added tag', () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
-      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.getByText('Destination added')).toBeInTheDocument();
+      expect(screen.queryByText('Connected')).not.toBeInTheDocument();
     });
 
     it('enters configuring state when Edit is clicked and passes onCancel to the picker', async () => {
