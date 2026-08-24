@@ -212,6 +212,39 @@ def test_extract_failed_checks() -> None:
     )
 
 
+def test_extract_failed_checks_drops_non_http_urls() -> None:
+    # Check URLs come straight from provider/CI data; a javascript:/data: link must
+    # not survive to be rendered as an anchor href by a consumer.
+    result = extract_pull_request_status_from_response(
+        response(
+            {
+                "state": "FAILURE",
+                "contexts": {
+                    "nodes": [
+                        {
+                            "__typename": "CheckRun",
+                            "name": "xss",
+                            "conclusion": "FAILURE",
+                            "detailsUrl": "javascript:alert(document.cookie)",
+                        },
+                        {
+                            "__typename": "StatusContext",
+                            "context": "legacy-xss",
+                            "state": "FAILURE",
+                            "targetUrl": "data:text/html,<script>alert(1)</script>",
+                        },
+                    ]
+                },
+            }
+        )
+    )
+
+    assert result.failed_checks == (
+        FailedCheck(name="xss", url=None),
+        FailedCheck(name="legacy-xss", url=None),
+    )
+
+
 def test_extract_failed_checks_skips_partial_nodes() -> None:
     result = extract_pull_request_status_from_response(
         response(

@@ -3,6 +3,17 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
+
+
+def _http_url_or_none(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        scheme = urlparse(value).scheme
+    except ValueError:
+        return None
+    return value if scheme in ("http", "https") else None
 
 
 class StatusCheckStatus(str, enum.Enum):
@@ -70,6 +81,11 @@ class FailedCheck:
 
     name: str
     url: str | None = None
+
+    def __post_init__(self) -> None:
+        # url is provider/CI-controlled; drop non-http(s) schemes so a javascript:
+        # link can never reach a rendered anchor href.
+        object.__setattr__(self, "url", _http_url_or_none(self.url))
 
 
 @dataclass(frozen=True)

@@ -188,7 +188,8 @@ def _extract_failed_checks(pull_request: Any) -> tuple[FailedCheck, ...]:
         else:
             continue
         if failing and isinstance(name, str):
-            failed.append(FailedCheck(name=name, url=url if isinstance(url, str) else None))
+            # FailedCheck drops any non-http(s) url.
+            failed.append(FailedCheck(name=name, url=url))
     return tuple(failed)
 
 
