@@ -7,7 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -285,7 +285,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
           </HeaderBreadcrumbs>
         </Layout.Title>
         <NotebookHeader>
-          <NotebookHeaderContent>
+          <Grid
+            columns="minmax(0, 1fr) auto"
+            align="start"
+            gap="lg"
+            width="100%"
+            maxWidth="885px"
+            margin="0 auto"
+          >
             <Stack gap="xs" minWidth={0}>
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
@@ -311,7 +318,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               </Badge>
               <IconSeer size="sm" />
             </Flex>
-          </NotebookHeaderContent>
+          </Grid>
         </NotebookHeader>
         <Layout.Body>
           <Layout.Main width="full">
@@ -523,15 +530,6 @@ const NotebookHeader = styled('header')`
   width: 100%;
   padding: ${p => p.theme.space.xl};
   border-bottom: 1px solid #f8f8fa;
-`;
-
-const NotebookHeaderContent = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: ${p => p.theme.space.lg};
-  width: min(100%, 885px);
-  margin: 0 auto;
 `;
 
 const NotebookTitleInput = styled(Input)`

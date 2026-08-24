@@ -5,7 +5,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
@@ -746,7 +746,7 @@ function Transcript({
           visibleBlocks[index + 1]?.timestamp ?? completedAt ?? (active ? now : null);
         const duration = getElapsedMilliseconds(block.timestamp, end);
         return (
-          <TranscriptRow key={block.id}>
+          <Grid key={block.id} columns="minmax(0, 1fr) auto" align="start" gap="md">
             <BlockComponent
               block={block}
               blockIndex={index}
@@ -755,7 +755,7 @@ function Transcript({
               showThinking
             />
             {duration === null ? null : <ElapsedDuration milliseconds={duration} />}
-          </TranscriptRow>
+          </Grid>
         );
       })}
     </TraceSurface>
@@ -1036,11 +1036,4 @@ const TraceSurface = styled(Stack)`
   & * {
     font-family: ${p => p.theme.font.family.mono};
   }
-`;
-
-const TranscriptRow = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: ${p => p.theme.space.md};
 `;
