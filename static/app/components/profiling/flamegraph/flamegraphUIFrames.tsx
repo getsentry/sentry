@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';

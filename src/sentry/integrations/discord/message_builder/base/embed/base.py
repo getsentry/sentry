@@ -29,6 +29,11 @@ class DiscordMessageEmbedDict(TypedDict):
     image: NotRequired[DiscordMessageEmbedImageDict]
 
 
+# Discord embed title hard limit.
+# https://docs.discord.com/developers/resources/message#embed-object
+DISCORD_EMBED_TITLE_MAX_LENGTH = 256
+
+
 class DiscordMessageEmbed:
     """
     Represents a rich embed object.
@@ -62,7 +67,8 @@ class DiscordMessageEmbed:
         embed: DiscordMessageEmbedDict = {}
 
         if self.title is not None:
-            embed["title"] = self.title
+            # Discord rejects embeds when title exceeds 256 chars.
+            embed["title"] = self.title[:DISCORD_EMBED_TITLE_MAX_LENGTH]
         if self.description is not None:
             embed["description"] = self.description
         if self.url is not None:

@@ -228,6 +228,7 @@ def _process_verdicts(
                     referrer=referrer,
                     stopping_point=stopping_point_by_project_id[group.project_id],
                     user_context=user_context,
+                    allow_free_cohort=True,
                 )
             except Exception:
                 logger.exception(

@@ -175,11 +175,6 @@ type Props = {
    * Time, in seconds, when the video should start
    */
   initialTimeOffsetMs?: ReturnType<typeof useInitialTimeOffsetMs>;
-
-  /**
-   * Override return fields for testing
-   */
-  value?: Partial<ReplayPlayerContextProps>;
 };
 
 function useCurrentTime(callback: () => number) {
@@ -195,7 +190,6 @@ export function Provider({
   isFetching,
   replay,
   autoStart,
-  value = {},
 }: Props) {
   const user = useUser();
   const organization = useOrganization();
@@ -657,7 +651,6 @@ export function Provider({
           setCurrentTime,
           togglePlayPause,
           getMirror: () => replayerRef.current?.getMirror() ?? null,
-          ...value,
         }}
       >
         {children}

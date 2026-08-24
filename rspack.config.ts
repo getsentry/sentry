@@ -392,7 +392,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|mp4)$/,
         type: 'asset',
       },
     ],

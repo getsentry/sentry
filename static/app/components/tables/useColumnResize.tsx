@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 
 interface UseColumnResizeOptions<T extends HTMLElement> {
   /**
@@ -12,35 +12,36 @@ interface UseColumnResizeOptions<T extends HTMLElement> {
   gridRef: React.RefObject<T | null>;
 
   /**
-   * Persist the finalized width once the drag ends (`mouseup`).
+   * Persist the finalized width once the resize ends.
    */
   onColumnResizeEnd?: (columnIndex: number, newWidth: number) => void;
-
-  /**
-   * Whether to set the `--grid-editable-resizer-height` CSS var to the rendered height after writing.
-   */
-  writeResizerHeightVar?: boolean;
 }
 
 interface ColumnResizeState {
   columnIndex: number;
-  startWidth: number;
-  startX: number;
+  moved: boolean;
+  width: number;
 }
 
 /**
- * Shared column-resize drag mechanic for the sanctioned table shells. Owns the
- * pointer lifecycle (`mousedown` -> window `mousemove`/`mouseup` -> cleanup) and the
- * imperative write to the grid's `gridTemplateColumns`.
+ * Shared column-resize mechanic for the sanctioned table shells. Owns the width
+ * accumulation and the imperative write to the grid's `gridTemplateColumns`; the
+ * handles themselves own the interaction and report movement as a delta.
  */
 export function useColumnResize<T extends HTMLElement>({
   gridRef,
   getResizeTemplate,
   onColumnResizeEnd,
-  writeResizerHeightVar = false,
 }: UseColumnResizeOptions<T>) {
   const resizeStateRef = useRef<ColumnResizeState | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const frameRef = useRef<number | null>(null);
+
+  const cancelPendingFrame = useCallback(() => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+  }, []);
 
   const applyTemplate = useCallback(
     (template: string) => {
@@ -50,77 +51,59 @@ export function useColumnResize<T extends HTMLElement>({
       }
 
       grid.style.gridTemplateColumns = template;
-
-      if (writeResizerHeightVar) {
-        grid.style.setProperty(
-          '--grid-editable-resizer-height',
-          `${grid.offsetHeight}px`
-        );
-      }
     },
-    [gridRef, writeResizerHeightVar]
+    [gridRef]
   );
 
-  const onResizeMouseDown = useCallback(
-    (event: React.MouseEvent, columnIndex = -1) => {
-      event.stopPropagation();
-      event.preventDefault();
+  const onResizeStart = useCallback((columnIndex: number, cell: HTMLElement | null) => {
+    resizeStateRef.current = {columnIndex, moved: false, width: cell?.offsetWidth ?? 0};
+  }, []);
 
-      // Block right-click and other funky stuff.
-      if (columnIndex === -1 || event.type === 'contextmenu') {
+  const onResizeMove = useCallback(
+    (delta: number) => {
+      const state = resizeStateRef.current;
+      if (!state) {
         return;
       }
 
-      // The resize handle is expected to be nested 1 level down from the head cell.
-      const cell = event.currentTarget.parentElement;
-      if (!cell) {
-        return;
-      }
+      // Accumulated at full precision, but reported rounded: pointer deltas are
+      // fractional on a scaled display, and a consumer may persist the width.
+      state.width += delta;
+      state.moved = true;
 
-      resizeStateRef.current = {
-        columnIndex,
-        startWidth: cell.offsetWidth,
-        startX: event.clientX,
-      };
+      // Several pointer moves can land in one frame, and they would all write the
+      // same template, so only the newest is kept.
+      cancelPendingFrame();
 
-      const onMouseMove = (e: MouseEvent) => {
-        const state = resizeStateRef.current;
-        if (!state) {
-          return;
-        }
-
-        const newWidth = state.startWidth + (e.clientX - state.startX);
-
-        window.requestAnimationFrame(() =>
-          applyTemplate(getResizeTemplate(state.columnIndex, newWidth))
-        );
-      };
-
-      const onMouseUp = (e: MouseEvent) => {
-        const state = resizeStateRef.current;
-        if (state) {
-          onColumnResizeEnd?.(
-            state.columnIndex,
-            state.startWidth + (e.clientX - state.startX)
-          );
-        }
-        resizeStateRef.current = null;
-        abortControllerRef.current?.abort();
-      };
-
-      abortControllerRef.current?.abort();
-
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
-      const {signal} = abortController;
-      window.addEventListener('mousemove', onMouseMove, {signal});
-      window.addEventListener('mouseup', onMouseUp, {signal});
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = null;
+        applyTemplate(getResizeTemplate(state.columnIndex, Math.round(state.width)));
+      });
     },
-    [applyTemplate, getResizeTemplate, onColumnResizeEnd]
+    [applyTemplate, cancelPendingFrame, getResizeTemplate]
   );
 
-  useEffect(() => () => abortControllerRef.current?.abort(), []);
+  const onResizeEnd = useCallback(() => {
+    const state = resizeStateRef.current;
+    if (!state) {
+      return;
+    }
 
-  return {onResizeMouseDown, applyTemplate};
+    // Written synchronously rather than left to the dropped frame: consumers that only
+    // track widths through `getResizeTemplate` have no other chance to see the last one.
+    cancelPendingFrame();
+    resizeStateRef.current = null;
+
+    // A drag that never travelled along the axis has nothing to commit, and committing
+    // would pin an auto-sized column to the width it happened to have.
+    if (!state.moved) {
+      return;
+    }
+
+    const width = Math.round(state.width);
+    applyTemplate(getResizeTemplate(state.columnIndex, width));
+    onColumnResizeEnd?.(state.columnIndex, width);
+  }, [applyTemplate, cancelPendingFrame, getResizeTemplate, onColumnResizeEnd]);
+
+  return {applyTemplate, onResizeEnd, onResizeMove, onResizeStart};
 }

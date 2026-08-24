@@ -450,7 +450,7 @@ function Highlights({
                 },
               }}
             >
-              {t('Open Agent Timeline')}
+              {t('Open Agent Activity')}
             </OpenInAIFocusButton>
           )}
           {!hidePanelAndBreakdown && (

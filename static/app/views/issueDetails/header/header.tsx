@@ -241,7 +241,7 @@ function HeaderActions({group}: {group: Group}) {
         : 'issue_details_n_plus_one_api_calls';
   const feedbackOptions = {
     messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
-    tags: {['feedback.source']: feedbackSource},
+    tags: {'feedback.source': feedbackSource},
   };
   const feedbackLabel = t('Give feedback on the issue Sentry detected');
 

@@ -18,7 +18,6 @@ interface DisclosureProps
   extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>, Omit<StackProps, 'as'> {
   children: NonNullable<React.ReactNode>;
   as?: 'section' | 'div';
-  disabled?: boolean;
   expanded?: boolean;
   ref?: React.Ref<HTMLDivElement | null>;
   size?: 'xs' | 'sm' | 'md';
@@ -66,7 +65,7 @@ function DisclosureComponent({
   });
 
   const {buttonProps, panelProps} = useDisclosure(
-    {...props, onExpandedChange, isDisabled: props.disabled, isExpanded: props.expanded},
+    {...props, onExpandedChange, isExpanded: props.expanded},
     state,
     panelRef
   );

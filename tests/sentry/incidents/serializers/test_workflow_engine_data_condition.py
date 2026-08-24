@@ -19,6 +19,7 @@ from sentry.workflow_engine.models import (
     Action,
     DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -104,6 +105,36 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         expected_trigger = self.expected_triggers[0].copy()
         expected_trigger["actions"] = expected_actions
         assert serialized_data_condition == expected_trigger
+
+    def test_targetless_webhook_action(self) -> None:
+        webhook_action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={
+                "target_identifier": "webhooks",
+                "target_display": None,
+                "target_type": None,
+            },
+        )
+        action_filter = DataConditionGroupAction.objects.get(
+            action=self.critical_action
+        ).condition_group
+        self.create_data_condition_group_action(
+            action=webhook_action,
+            condition_group=action_filter,
+        )
+
+        serialized_data_condition = serialize(
+            self.critical_detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+
+        serialized_webhook_action = next(
+            action
+            for action in serialized_data_condition["actions"]
+            if action["type"] == Action.Type.WEBHOOK
+        )
+        assert serialized_webhook_action["targetType"] is None
 
     def test_action_filter_without_priority_condition(self) -> None:
         """

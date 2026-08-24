@@ -1,5 +1,5 @@
 import {useLayoutEffect} from 'react';
-import type Fuse from 'fuse.js';
+import type {RangeTuple} from 'fuse.js/basic';
 import {mat3, vec2} from 'gl-matrix';
 
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -318,7 +318,7 @@ export function safeGetContext(
 
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {
-    return Rect.Empty();
+    return Rect.empty();
   }
 
   const context = ctx || getContext(document.createElement('canvas'), '2d');
@@ -510,9 +510,9 @@ export function computeClampedConfigView(
  * or shifted based on the results of a trim operation
  */
 export function computeHighlightedBounds(
-  bounds: Fuse.RangeTuple,
+  bounds: RangeTuple,
   trim: TrimTextCenter
-): Fuse.RangeTuple {
+): RangeTuple {
   if (!trim.length) {
     return bounds;
   }

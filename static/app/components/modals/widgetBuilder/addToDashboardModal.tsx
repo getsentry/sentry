@@ -362,7 +362,7 @@ function AddToDashboardModal({
       widgets: [...selectedDashboard.widgets, ...normalizeWidgets(widgetsWithLayouts)],
     };
 
-    await updateDashboard(api, organization.slug, newDashboard);
+    await updateDashboard(organization.slug, newDashboard);
   }
 
   const canSubmit = selectedDashboardId !== null;

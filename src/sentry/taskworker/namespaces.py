@@ -171,6 +171,16 @@ issues_merge_tasks = app.taskregistry.create_namespace(
     app_feature="issueplatform",
 )
 
+issues_reprocessing_tasks = app.taskregistry.create_namespace(
+    "issues.reprocessing",
+    app_feature="issueplatform",
+)
+
+issues_long_tasks = app.taskregistry.create_namespace(
+    "issues.long",
+    app_feature="issueplatform",
+)
+
 integrations_tasks = app.taskregistry.create_namespace(
     "integrations",
     app_feature="integrations",
@@ -223,6 +233,14 @@ profiling_tasks = app.taskregistry.create_namespace(
 
 relay_tasks = app.taskregistry.create_namespace(
     "relay",
+    app_feature="shared",
+)
+# Namespace used for lower priority project config invalidations.
+#
+# Project configs requested by Relay must be computed as soon as possible to serve traffic,
+# invalidations can be slightly delayed.
+relay_invalidation_tasks = app.taskregistry.create_namespace(
+    "relay.invalidation",
     app_feature="shared",
 )
 

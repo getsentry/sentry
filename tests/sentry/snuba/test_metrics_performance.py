@@ -11,7 +11,13 @@ from sentry.snuba.metrics_performance import timeseries_query
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.skips import requires_snuba
 
-pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    requires_snuba,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @pytest.mark.snuba_ci

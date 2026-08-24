@@ -4,7 +4,10 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 
-from sentry.models.pullrequest import PullRequestLifecycleState
+from sentry.models.pullrequest import (
+    PullRequestLifecycleState,
+    is_abandoned_pull_request_state,
+)
 from sentry.seer.models.run import (
     SeerRun,
     SeerRunMilestone,
@@ -57,8 +60,16 @@ def milestones_from_state(state: SeerRunState) -> dict[str, SeerRunMilestoneExtr
         result[SeerRunMilestoneType.SOLUTION] = (
             {"solution_artifact": {"one_line_summary": summary}} if isinstance(summary, str) else {}
         )
-    if state.get_diffs_by_repo():
-        result[SeerRunMilestoneType.CODE_CHANGES] = {}
+    diffs_by_repo = state.get_diffs_by_repo()
+    if diffs_by_repo:
+        result[SeerRunMilestoneType.CODE_CHANGES] = {
+            "code_changes_artifact": {
+                "diffs_by_repo": {
+                    repo_name: [patch.dict() for patch in patches]
+                    for repo_name, patches in diffs_by_repo.items()
+                }
+            }
+        }
     if _has_pull_request(state):
         result[SeerRunMilestoneType.HAS_PULL_REQUEST] = {}
     return result
@@ -120,8 +131,11 @@ def reconcile_pull_requests_merged_milestone(seer_run: SeerRun) -> bool:
             milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED,
         )
 
-        all_prs_merged = bool(states) and all(
-            state == PullRequestLifecycleState.MERGED for state in states
+        # An abandoned PR (closed/superseded) doesn't count against "all merged"; a run
+        # counts as merged when every PR Seer still has in play merged.
+        relevant_states = [s for s in states if not is_abandoned_pull_request_state(s)]
+        all_prs_merged = bool(relevant_states) and all(
+            state == PullRequestLifecycleState.MERGED for state in relevant_states
         )
         if not all_prs_merged:
             milestone.delete()

@@ -307,6 +307,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["occurrence"]["id"] == occurrence.id
 
 
+@pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
 class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-event-details"
 

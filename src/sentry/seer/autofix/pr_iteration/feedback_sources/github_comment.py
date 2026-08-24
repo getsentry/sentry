@@ -35,6 +35,7 @@ class GithubPullRequestReviewComment(GithubIssueComment):
     line: int | None = None
     start_line: int | None = None
     diff_hunk: str | None = None
+    unique_id: str | None = None
 
 
 def _blocks_feedback(blocks: Sequence[Any]) -> list[Any]:

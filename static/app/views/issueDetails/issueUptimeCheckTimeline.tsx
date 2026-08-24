@@ -16,8 +16,8 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
-import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndicator';
+import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {
   checkStatusPrecedent,
   statusToText,
