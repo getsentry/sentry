@@ -6,14 +6,31 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {providerDetails} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
-export type StaleDestinationReason = 'channel' | 'inactiveIntegration' | 'integration';
+export type StaleDestinationReason =
+  | 'channel'
+  | 'inactiveIntegration'
+  | 'ineligibleIntegration'
+  | 'integration';
 
 export function isIntegrationActive(integration: OrganizationIntegration): boolean {
   return (
     integration.status === 'active' &&
     integration.organizationIntegrationStatus === 'active'
   );
+}
+
+/**
+ * Returns true when the integration can receive Issue Alert actions.
+ * MS Teams "tenant" installations route notifications differently and
+ * cannot be used as an issue-alert destination.
+ */
+export function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
+  if (integration.provider.key !== 'msteams') {
+    return true;
+  }
+  return integration.configData?.installationType !== 'tenant';
 }
 
 /**
@@ -33,7 +50,8 @@ function resolveSavedIntegration(
   if (
     candidate.id !== messagingSetup.integrationId ||
     candidate.provider.key !== messagingSetup.providerKey ||
-    !isIntegrationActive(candidate)
+    !isIntegrationActive(candidate) ||
+    !isEligibleForIssueAlerts(candidate)
   ) {
     return undefined;
   }
@@ -42,20 +60,17 @@ function resolveSavedIntegration(
 }
 
 /**
- * Returns the value to send as the `channel` query param to channel-validate/.
- *
- * Slack and msteams resolve channels by name; Discord resolves by ID.
- * Returns undefined when the required field is absent (e.g. msteams data
- * written before channelName was required).
+ * Returns the value to send as the `channel` query param to channel-validate/,
+ * reading the field this provider validates by from the provider table.
+ * Returns undefined when that field is absent (e.g. legacy msteams data written
+ * before channelName was required).
  */
 function channelValidateParam(messagingSetup: ScmMessagingSetup): string | undefined {
   if (messagingSetup.mode !== 'selected') {
     return undefined;
   }
-  // Discord takes the numeric channel ID; Slack and msteams take the display name.
-  return messagingSetup.providerKey === 'discord'
-    ? messagingSetup.channelId
-    : messagingSetup.channelName || undefined;
+  const {channelValidatedBy} = providerDetails[messagingSetup.providerKey];
+  return messagingSetup[channelValidatedBy] || undefined;
 }
 
 interface UseScmMessagingSetupValidationParams {
@@ -100,6 +115,8 @@ export function useScmMessagingSetupValidation({
   const fetchedIntegration = isMissingIntegration ? undefined : integrationQuery.data;
   const hasInactiveIntegration =
     fetchedIntegration !== undefined && !isIntegrationActive(fetchedIntegration);
+  const hasIneligibleIntegration =
+    fetchedIntegration !== undefined && !isEligibleForIssueAlerts(fetchedIntegration);
   const integration = resolveSavedIntegration(fetchedIntegration, messagingSetup);
 
   // A 404 settles the query as conclusively as a successful fetch does; any
@@ -145,7 +162,13 @@ export function useScmMessagingSetupValidation({
     }
 
     if (!integration) {
-      setStaleReason(hasInactiveIntegration ? 'inactiveIntegration' : 'integration');
+      setStaleReason(
+        hasInactiveIntegration
+          ? 'inactiveIntegration'
+          : hasIneligibleIntegration
+            ? 'ineligibleIntegration'
+            : 'integration'
+      );
       onMessagingSetupChange({mode: 'unconfigured'});
       return;
     }
@@ -168,6 +191,7 @@ export function useScmMessagingSetupValidation({
   }, [
     channelValidateQuery.data,
     hasInactiveIntegration,
+    hasIneligibleIntegration,
     integration,
     isChannelSettled,
     isIntegrationSettled,
