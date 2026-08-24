@@ -6,6 +6,7 @@ from jsonschema import ValidationError
 from sentry.rules.conditions.level import LevelCondition
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.match import MatchType
+from sentry.workflow_engine.handlers.condition.level_handler import LevelConditionHandler
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -83,6 +84,29 @@ class TestLevelCondition(ConditionTestCase):
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": 30, "hello": "world"})
         with pytest.raises(ValidationError):
             self.dc.save()
+
+        # NOT_EQUAL is a valid MatchType generally, but not for level conditions.
+        self.dc.comparison.update({"match": MatchType.NOT_EQUAL, "level": 20})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+    def test_render_label(self) -> None:
+        assert (
+            LevelConditionHandler.render_label(
+                {"id": LevelFilter.id, "match": MatchType.EQUAL, "level": "20"},
+                self.organization.id,
+            )
+            == "The event's level is equal to info"
+        )
+
+        # Unexpected/legacy match values should not raise while listing rules.
+        assert (
+            LevelConditionHandler.render_label(
+                {"id": LevelFilter.id, "match": MatchType.NOT_EQUAL, "level": "20"},
+                self.organization.id,
+            )
+            == f"The event's level is {MatchType.NOT_EQUAL} info"
+        )
 
     def test_equals(self) -> None:
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": 20})
