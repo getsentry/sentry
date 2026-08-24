@@ -47,15 +47,15 @@ export function DebugFileRow({
 
   return (
     <Fragment>
-      <Stack align="start">
+      <Stack align="stretch" width="100%">
         <div>
           <DebugId>{debugId || uuid}</DebugId>
         </div>
         <Text as="div" size="sm" variant="muted">
           <Flex
-            direction={{zero: 'column', lg: 'row'}}
-            align={{zero: 'start', lg: 'center'}}
-            gap={{zero: 'xs', lg: 'md'}}
+            direction={{zero: 'column', md: 'row'}}
+            align={{zero: 'start', md: 'center'}}
+            gap={{zero: 'xs', md: 'md'}}
             marginTop="md"
             width="100%"
           >
