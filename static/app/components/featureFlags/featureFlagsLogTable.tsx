@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -22,7 +21,6 @@ interface FeatureFlagsLogTableProps {
   isPending: boolean;
   pageLinks: string | null;
   cursorKeyName?: string;
-  fit?: 'max-content';
   highlightedRowKey?: number;
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
@@ -36,7 +34,6 @@ export function FeatureFlagsLogTable({
   flags,
   isPending,
   error,
-  fit,
   pageLinks,
   onResizeColumn,
   onRowMouseOver,
@@ -64,14 +61,13 @@ export function FeatureFlagsLogTable({
   );
 
   return (
-    <Container minWidth={0} width="100%">
+    <div>
       <GridEditable
         error={error}
         isLoading={isPending}
         data={flags ?? []}
         columnOrder={columns}
         columnSortBy={[]}
-        fit={fit}
         grid={{
           renderBodyCell,
           onResizeColumn,
@@ -84,7 +80,7 @@ export function FeatureFlagsLogTable({
       />
 
       <PaginationNoMargin pageLinks={pageLinks} onCursor={handlePageChange} />
-    </Container>
+    </div>
   );
 }
 

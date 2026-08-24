@@ -1,8 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {useResponsivePropValue} from '@sentry/scraps/layout';
-
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
@@ -18,7 +16,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},
-  {key: 'flag', name: t('Feature Flag'), minWidth: 600},
+  {key: 'flag', name: t('Feature Flag'), width: 600},
   {key: 'action', name: t('Action')},
   {key: 'createdAt', name: t('Date')},
 ];
@@ -63,14 +61,10 @@ export function OrganizationFeatureFlagsAuditLogTable({
   const pageLinks = data?.headers.Link ?? null;
 
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>();
-  const isNarrow = useResponsivePropValue({zero: true, xl: false});
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
   });
-  const responsiveColumns = columns.map(column =>
-    column.key === 'flag' ? {...column, grow: isNarrow} : column
-  );
 
   const handleMouseOver = useCallback((_dataRow: RawFlag, key: number) => {
     setActiveRowKey(key);
@@ -88,8 +82,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
         )}
       </TextBlock>
       <FeatureFlagsLogTable
-        columns={responsiveColumns}
-        fit={isNarrow ? 'max-content' : undefined}
+        columns={columns}
         flags={flags?.data ?? []}
         isPending={isPending}
         error={error}

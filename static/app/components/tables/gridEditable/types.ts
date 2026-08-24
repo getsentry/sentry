@@ -10,9 +10,6 @@ export type ColumnAlign = 'left' | 'right';
 
 export type GridColumn<K = ObjectKey> = {
   key: K;
-  /** Allow this column to consume remaining table width without shrinking its content. */
-  grow?: boolean;
-  minWidth?: number;
   width?: number;
 };
 
