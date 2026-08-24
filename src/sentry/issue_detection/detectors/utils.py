@@ -1,6 +1,8 @@
 import hashlib
 import logging
+import math
 import re
+import sys
 from datetime import timedelta
 from typing import Any, TypedDict
 from urllib.parse import ParseResult, parse_qs, urlparse
@@ -455,3 +457,98 @@ def log_invalid_span_data(
             **(extra_data or {}),
         },
     )
+
+
+def _presumably_safe_ensure_numeric_type[T: (int, float)](
+    value: Any, desired_type: type[T]
+) -> tuple[bool, T | None, str | None]:
+    """
+    Attempt to coerce `value` to be either an int or float. Returns a tuple of the form `(True,
+    new_value, None)` if conversion is successful, and `(False, None, failure_reason)` if it's not,
+    where `failure_reason` is a string describing the kind of invalid value found.
+
+    Rejects bools, `NaN`, and `inf` because they don't represent usable numbers, even if they
+    technically would pass a typecheck. Also rejects non-integral floats and oversize ints, because
+    conversion would be lossy or raise errors, respectively.
+
+    Note: This theoretically covers all of the ways a value can be invalid, and therefore shouldn't
+    ever error out. That said, it purposefully doesn't wrap the final conversion in a try-except, so
+    that if a new way to be wrong ever does show up, it'll be noisier than just a warning log and
+    we'll know to come and fix this helper. Thus "presumably safe" rather than "safe."
+    """
+    # Strings are the one non-number type we might be able to use. If we find one, first try
+    # converting it into a number before doing the other checks/the final conversion. We use `float`
+    # here because it will accept both stringified floats and stringified ints, whereas `int` only
+    # accepts the latter.
+    if isinstance(value, str):
+        try:
+            value = float(value)
+        except Exception:
+            return (False, None, "non_number_string")
+
+    # Not a number at all
+    if not isinstance(value, (int, float)):
+        return (False, None, type(value).__name__)
+
+    # Technically a number, typecheck-wise, but not a true numerical value
+    if isinstance(value, bool):
+        return (False, None, "bool")
+    if isinstance(value, float) and not math.isfinite(value):
+        return (False, None, "non_number_float")
+
+    # A real numerical value, but not one we can convert to the type we want
+    if desired_type is int and not value.is_integer():
+        return (False, None, "non_integer_float")
+    if desired_type is float and abs(value) > sys.float_info.max:
+        return (False, None, "oversize_int")
+
+    # If we get here, we've got a value which is both valid and convertible. To save ourselves a
+    # bunch more typechecking, we unconditionally apply the conversion function, even though it'll
+    # end up just being a pass-through for values which are already the right type.
+    return (True, desired_type(value), None)
+
+
+def get_numeric_value_from_span[T: (int, float)](
+    span: Span,
+    keys: list[str],  # A list of keys under which to look for the data
+    detector: str,  # Detector identifier to use in invalid data logs
+    number_type: type[T],  # `int` or `float`, used for converting string values
+    default: T | None = None,  # Optional default value to return instead of None
+) -> T | None:
+    """
+    Pull a numeric value from a span's `data` attribute, attempting to convert it to the desired
+    type if necessary. Tracks invalid values using the `log_invalid_span_data` util. Returns `None`
+    (or the optional default, if given) for missing or invalid values.
+    """
+    if not keys:  # Failsafe - shouldn't happen
+        return default
+
+    data = span.get("data")
+    if not data:
+        return default
+
+    # Some data might exist under multiple potential keys
+    for key in keys:
+        value = data.get(key)
+        if value is not None:
+            break
+
+    if value is None:
+        return default
+
+    # Check value type and attempt to convert if necessary
+    success, result, bad_value_type = _presumably_safe_ensure_numeric_type(value, number_type)
+
+    if success:
+        return result
+    else:
+        log_invalid_span_data(
+            span,
+            detector=detector,
+            key=key,
+            value=value,
+            error=ValueError(
+                f"Couldn't convert <{bad_value_type}> to <{number_type.__name__}>. Invalid value: {value}"
+            ),
+        )
+        return default

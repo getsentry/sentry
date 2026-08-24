@@ -206,6 +206,31 @@ class LoginTest(TestCase):
         mock_metric.assert_called_once_with("session_login")
 
 
+@control_silo_test
+class ActiveOrganizationTest(TestCase):
+    def test_clear_active_org(self) -> None:
+        request = HttpRequest()
+        request.session = SessionBase()
+        request.session["activeorg"] = "acme"
+
+        sentry.utils.auth.clear_active_org(request)
+
+        assert "activeorg" not in request.session
+
+    def test_clear_active_org_without_active_org(self) -> None:
+        request = HttpRequest()
+        request.session = SessionBase()
+
+        sentry.utils.auth.clear_active_org(request)
+
+        assert "activeorg" not in request.session
+
+    def test_clear_active_org_without_session(self) -> None:
+        request = HttpRequest()
+
+        sentry.utils.auth.clear_active_org(request)
+
+
 def test_sso_expiry_default() -> None:
     value = sentry.utils.auth._sso_expiry_from_env(None)
     # make sure no accidental changes affect sso timeout
