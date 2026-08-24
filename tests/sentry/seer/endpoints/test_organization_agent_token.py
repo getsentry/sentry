@@ -1851,6 +1851,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         payload: dict[str, Any],
         authentication: MatrixAuthentication,
         *,
+        agent_bearer: str | None = None,
         user_token_scopes: frozenset[str] | None = None,
     ) -> Response:
         with assume_test_silo_mode(SiloMode.MONOLITH):
@@ -1863,6 +1864,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 path,
                 payload,
                 authentication,
+                agent_bearer=agent_bearer,
                 user_token_scopes=user_token_scopes,
             )
         finally:
@@ -2066,7 +2068,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             response = (
                 baseline
                 if authentication is MatrixAuthentication.SESSION
-                else self._mutation_request(
+                else self._rolled_back_mutation_request(
                     endpoint,
                     path,
                     payload,
@@ -2231,7 +2233,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 MatrixAuthentication.USER_TOKEN,
                 user_token_scopes=elevated_scopes,
             )
-            response = self._mutation_request(
+            response = self._rolled_back_mutation_request(
                 endpoint,
                 path,
                 payload,
