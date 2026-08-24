@@ -50,7 +50,11 @@ import type {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
-import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {
+  getFieldsForConstructedQuery,
+  normalizeCompareQueryParts,
+  type ReadableExploreQueryParts,
+} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
@@ -163,14 +167,25 @@ function getExploreUrlFromSavedQueryUrl({
           ? visualize.chartType
           : undefined;
 
-        return {
-          ...q,
+        const normalized = normalizeCompareQueryParts({
           chartType,
           yAxes: (visualize?.yAxes ?? []).slice(),
           groupBys: groupBys ?? [],
+          query: q.query ?? '',
           sortBys: decodeSorts(q.orderby),
           caseInsensitive: q.caseInsensitive ? '1' : null,
-        };
+        });
+        const yAxes = normalized.yAxes ?? [];
+
+        return {
+          chartType: normalized.chartType,
+          yAxes,
+          groupBys: [...(normalized.groupBys ?? groupBys ?? [])],
+          query: normalized.query ?? '',
+          sortBys: [...(normalized.sortBys ?? decodeSorts(q.orderby))],
+          fields: getFieldsForConstructedQuery(yAxes),
+          caseInsensitive: normalized.caseInsensitive,
+        } satisfies ReadableExploreQueryParts;
       }),
       title: savedQuery.name,
       selection: {

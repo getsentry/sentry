@@ -217,7 +217,9 @@ describe('useExploreAggregatesTable', () => {
     expect(mockRequest).not.toHaveBeenCalled();
     expect(result.current.result.isPending).toBe(false);
     expect(result.current.result.isError).toBe(true);
-    expect(result.current.result.error).toEqual(new Error('Invalid series filter'));
+    expect(result.current.result.error).toEqual(
+      new Error('Aggregates cannot be used in conditional filters')
+    );
   });
 
   it('does not order by a dropped invalid series when another series remains', async () => {

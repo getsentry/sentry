@@ -1075,6 +1075,57 @@ describe('ExploreToolbar', () => {
       });
     });
 
+    it('opens compare queries with series filters moved into the query filter', async () => {
+      const {router} = render(<ExploreToolbar />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              query: 'span.status:ok',
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({
+                  yAxes: ['count_if(`span.op:db`,span.duration)'],
+                  chartType: 1,
+                }),
+                JSON.stringify({
+                  yAxes: ['avg_if(`span.op:http`,span.duration)'],
+                  chartType: 1,
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      const section = screen.getByTestId('section-save-as');
+      await userEvent.click(within(section).getByText(/Compare Queries/));
+
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/explore/traces/compare/'
+      );
+      expect(router.location.query.queries).toEqual([
+        JSON.stringify({
+          chartType: 1,
+          fields: ['id', 'span.duration', 'timestamp'],
+          groupBys: [],
+          query: 'span.status:ok span.op:db',
+          sortBys: ['-timestamp'],
+          yAxes: ['count(span.duration)'],
+        }),
+        JSON.stringify({
+          chartType: 1,
+          fields: ['id', 'span.duration', 'timestamp'],
+          groupBys: [],
+          query: 'span.status:ok span.op:http',
+          sortBys: ['-timestamp'],
+          yAxes: ['avg(span.duration)'],
+        }),
+      ]);
+    });
+
     it('drops the filter when the feature is off', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
@@ -1161,8 +1212,8 @@ describe('ExploreToolbar', () => {
     expect(router.location.query).toEqual(
       expect.objectContaining({
         queries: [
-          '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":0,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":0,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
         ],
       })
     );

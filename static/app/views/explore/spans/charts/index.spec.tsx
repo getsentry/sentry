@@ -134,6 +134,8 @@ describe('ExploreCharts', () => {
       {organization: OrganizationFixture()}
     );
 
-    expect(await screen.findByText('Invalid series filter')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Aggregates cannot be used in conditional filters')
+    ).toBeInTheDocument();
   });
 });

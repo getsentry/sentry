@@ -27,7 +27,40 @@ export const CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE = t(
 /**
  * Chart / table error when a series `_if` filter is invalid and querying is skipped.
  */
-export const CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE = t('Invalid series filter');
+const CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE = t('Invalid series filter');
+
+/**
+ * Error message when an invalid series `_if` filter includes a visualize aggregate.
+ */
+export function getConditionalFilterInvalidSeriesMessage(filter: string): string {
+  if (filterContainsVisualizeAggregateKey(filter)) {
+    return CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE;
+  }
+  return CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE;
+}
+
+export function getConditionalFilterInvalidSeriesMessageForYAxis(yAxis: string): string {
+  const filter = parseConditionalAggregate(yAxis)?.filter;
+  if (!filter) {
+    return CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE;
+  }
+  return getConditionalFilterInvalidSeriesMessage(filter);
+}
+
+export function getConditionalFilterInvalidSeriesMessageForVisualizes(
+  visualizes: readonly Visualize[]
+): string {
+  for (const visualize of visualizes) {
+    if (isVisualizeEquation(visualize)) {
+      continue;
+    }
+    const filter = parseConditionalAggregate(visualize.yAxis)?.filter;
+    if (filter && filterContainsVisualizeAggregateKey(filter)) {
+      return CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE;
+    }
+  }
+  return CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE;
+}
 
 /**
  * Span aggregates that the EAP `_if` combinator is generated for. Everything else

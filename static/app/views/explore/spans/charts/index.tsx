@@ -41,7 +41,7 @@ import {
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {
-  CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE,
+  getConditionalFilterInvalidSeriesMessageForYAxis,
   isConditionalAggregateYAxisValid,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {
@@ -208,7 +208,9 @@ function Chart({
         ? timeseriesResult
         : {
             ...timeseriesResult,
-            error: new Error(CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE),
+            error: new Error(
+              getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
+            ),
             isError: true,
             isPending: false,
             isLoading: false,

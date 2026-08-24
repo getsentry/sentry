@@ -21,7 +21,7 @@ import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   areAllVisualizesInvalidConditionalFilters,
-  CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE,
+  getConditionalFilterInvalidSeriesMessageForVisualizes,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -117,6 +117,14 @@ function useExploreAggregatesTableImp({
     [unvalidatedAggregateFields]
   );
 
+  const invalidConditionalFilterMessage = useMemo(
+    () =>
+      getConditionalFilterInvalidSeriesMessageForVisualizes(
+        unvalidatedAggregateFields.filter(isVisualize)
+      ),
+    [unvalidatedAggregateFields]
+  );
+
   // Drop orderbys that point at series removed by validation (e.g. invalid `_if`),
   // otherwise the remaining query can fail. Fall back to the first valid y-axis.
   const resolvedSortBys = useMemo(() => {
@@ -166,7 +174,7 @@ function useExploreAggregatesTableImp({
         result: {
           ...result,
           data: [],
-          error: new QueryError(CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE),
+          error: new QueryError(invalidConditionalFilterMessage),
           isError: true,
           isFetched: true,
           isFetching: false,
@@ -178,5 +186,11 @@ function useExploreAggregatesTableImp({
       };
     }
     return {eventView, fields, result};
-  }, [eventView, fields, result, skippedForInvalidConditionalFilter]);
+  }, [
+    eventView,
+    fields,
+    invalidConditionalFilterMessage,
+    result,
+    skippedForInvalidConditionalFilter,
+  ]);
 }

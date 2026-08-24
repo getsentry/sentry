@@ -7,6 +7,8 @@ import {
   areAllVisualizesInvalidConditionalFilters,
   buildConditionalAggregate,
   escapeConditionalFilter,
+  getConditionalFilterInvalidSeriesMessage,
+  getConditionalFilterInvalidSeriesMessageForYAxis,
   isConditionalAggregateFilterValid,
   isConditionalAggregateYAxisValid,
   parseConditionalAggregate,
@@ -235,6 +237,28 @@ describe('isConditionalAggregateYAxisValid', () => {
         'count_if(`span.category:db _pi_file_io_main_thread:492262d12c82474e p95(span.duration):>300ms`,span.duration)'
       )
     ).toBe(false);
+  });
+});
+
+describe('getConditionalFilterInvalidSeriesMessage', () => {
+  it('mentions aggregates when the filter includes a visualize aggregate', () => {
+    expect(getConditionalFilterInvalidSeriesMessage('p95(span.duration):>100')).toBe(
+      'Aggregates cannot be used in conditional filters'
+    );
+  });
+
+  it('uses the generic message for other invalid filters', () => {
+    expect(getConditionalFilterInvalidSeriesMessage('span.op:')).toBe(
+      'Invalid series filter'
+    );
+  });
+
+  it('uses the aggregate message for yAxes with aggregate filters', () => {
+    expect(
+      getConditionalFilterInvalidSeriesMessageForYAxis(
+        'count_if(`p95(span.duration):>100`,span.duration)'
+      )
+    ).toBe('Aggregates cannot be used in conditional filters');
   });
 });
 
