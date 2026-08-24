@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -8,6 +8,7 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -21,13 +22,11 @@ import {
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
-import {
-  useQueryParamsSearch,
-  useSetQueryParamsQuery,
-} from 'sentry/views/explore/queryParams/context';
+import {useSetQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {EXCLUDE_SPAN_METRICS_QUERY} from 'sentry/views/performance/newTraceDetails/traceMetricsSearch';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type UseTraceViewMetricsDataProps = {
@@ -111,13 +110,24 @@ export function TraceViewMetricsSection() {
 
 function MetricsSectionContent() {
   const setMetricsQuery = useSetQueryParamsQuery();
-  const metricsSearch = useQueryParamsSearch();
   const frozenSearch = useMetricsFrozenSearch();
   const frozenTracePeriod = useMetricsFrozenTracePeriod();
   const {selection} = usePageFilters();
-  const initialQuery = metricsSearch.formatString();
+  const [isQueryInitialized, setIsQueryInitialized] = useState(false);
+  const [visibleQuery, setVisibleQuery] = useState('');
   const placeholder = t('Search application metrics for this trace');
-  const attributeQuery = frozenSearch?.formatString();
+  useEffect(() => {
+    setMetricsQuery(EXCLUDE_SPAN_METRICS_QUERY);
+    setIsQueryInitialized(true);
+  }, [setMetricsQuery]);
+  const attributeQuery = useMemo(() => {
+    const search = frozenSearch?.copy();
+    if (!search) {
+      return;
+    }
+    search.tokens.push(...new MutableSearch(EXCLUDE_SPAN_METRICS_QUERY).tokens);
+    return search.formatString();
+  }, [frozenSearch]);
   const datetime = useMemo(
     () =>
       frozenTracePeriod
@@ -164,16 +174,21 @@ function MetricsSectionContent() {
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
-      initialQuery,
+      initialQuery: visibleQuery,
       placeholder,
       searchSource: 'tracemetrics',
-      onSearch: (query: string) => setMetricsQuery(query),
+      onSearch: (query: string) => {
+        setVisibleQuery(query);
+        const search = new MutableSearch(query);
+        search.tokens.push(...new MutableSearch(EXCLUDE_SPAN_METRICS_QUERY).tokens);
+        setMetricsQuery(search.formatString());
+      },
       hiddenAttributeKeys: HiddenTraceMetricTraceViewSearchFields,
       attributeQuery,
       disableRecentSearches: true,
       datetime,
     };
-  }, [attributeQuery, datetime, initialQuery, placeholder, setMetricsQuery]);
+  }, [attributeQuery, datetime, placeholder, setMetricsQuery, visibleQuery]);
 
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps(
     traceMetricsSearchQueryBuilderProps
@@ -185,7 +200,7 @@ function MetricsSectionContent() {
         <TraceItemSearchQueryBuilder {...traceMetricsSearchQueryBuilderProps} />
       </SearchQueryBuilderProvider>
       <TableContainer>
-        <MetricsSamplesTable source="traceWaterfall" />
+        {isQueryInitialized ? <MetricsSamplesTable source="traceWaterfall" /> : null}
       </TableContainer>
     </Fragment>
   );

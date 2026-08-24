@@ -17,6 +17,7 @@ import {
 describe('TraceViewMetricsSection', () => {
   const organization = OrganizationFixture();
   const traceId = '1234567890abcdef1234567890abcdef';
+  let eventsRequest: jest.Mock;
   let recentSearchesRequest: jest.Mock;
 
   function mockTraceMetricAttributes() {
@@ -53,7 +54,7 @@ describe('TraceViewMetricsSection', () => {
   }
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
+    eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
@@ -116,6 +117,34 @@ describe('TraceViewMetricsSection', () => {
     expect(recentSearchesRequest).not.toHaveBeenCalled();
   });
 
+  it('excludes span-sourced metrics from the samples query', async () => {
+    mockTraceMetricAttributes();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/metric.name/values/`,
+      method: 'GET',
+      body: [],
+    });
+    render(
+      <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+        <TraceViewMetricsSection />
+      </TraceViewMetricsProviderWrapper>,
+      {organization}
+    );
+
+    const search = await screen.findByRole('combobox', {name: 'Add a search term'});
+    await userEvent.type(search, 'metric.name:duration{enter}');
+
+    await waitFor(() => {
+      expect(eventsRequest).toHaveBeenCalledTimes(2);
+    });
+    for (const call of eventsRequest.mock.calls) {
+      expect(call[1]?.query?.query).toContain(
+        '( !has:sentry.metric.source OR !sentry.metric.source:span )'
+      );
+    }
+    expect(eventsRequest.mock.calls.at(-1)?.[1]?.query?.query).toContain('duration');
+  });
+
   it('scopes attribute and value autocomplete requests to the trace', async () => {
     setWindowLocation(
       'http://localhost/organizations/org-slug/performance/trace/trace-id/?timestamp=1700000000'
@@ -149,7 +178,7 @@ describe('TraceViewMetricsSection', () => {
         `/organizations/${organization.slug}/trace-items/attributes/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            query: `trace:[${traceId}]`,
+            query: `trace:[${traceId}] ( !has:sentry.metric.source OR !sentry.metric.source:span )`,
             start: '2023-11-14T19:13:20.000',
             end: '2023-11-15T01:13:20.000',
           }),
@@ -159,7 +188,7 @@ describe('TraceViewMetricsSection', () => {
         `/organizations/${organization.slug}/trace-items/attributes/metric.name/values/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            query: `trace:[${traceId}]`,
+            query: `trace:[${traceId}] ( !has:sentry.metric.source OR !sentry.metric.source:span )`,
             start: '2023-11-14T19:13:20.000',
             end: '2023-11-15T01:13:20.000',
           }),
