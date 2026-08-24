@@ -233,7 +233,6 @@ def _fetch_and_score(
         SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
         SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
         SearchFilter(SearchKey("issue.type"), "=", SearchValue(type_ids)),
-        SearchFilter(SearchKey("last_seen"), ">=", SearchValue(occurrence_cutoff)),
     ]
 
     scored: list[ScoredCandidate] = []

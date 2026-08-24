@@ -1390,12 +1390,6 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
         expected_cutoff = datetime(2026, 8, 24, 12, tzinfo=UTC) - NIGHT_SHIFT_OCCURRENCE_LOOKBACK
         assert mock_query.call_args.kwargs["date_from"] == expected_cutoff
-        filters = {
-            search_filter.key.name: search_filter
-            for search_filter in mock_query.call_args.kwargs["search_filters"]
-        }
-        assert filters["last_seen"].operator == ">="
-        assert filters["last_seen"].value.raw_value == expected_cutoff
 
     def test_includes_low_value_span_issues_in_search(self) -> None:
         project = self.create_project()
