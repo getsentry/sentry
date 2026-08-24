@@ -236,9 +236,7 @@ function IssuePreviewContent() {
         </Flex>
       </Flex>
       <Dividers>
-        {linkedPullRequests.isPending ? (
-          <Placeholder height="78px" />
-        ) : linkedPullRequests.data?.pullRequests.length ? (
+        {linkedPullRequests.data?.pullRequests.length ? (
           <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
             <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
             <IssuePreviewSection.Content>

@@ -11,7 +11,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-const PREFETCH_DELAY_MS = 100;
+const GROUP_PREFETCH_DELAY_MS = 100;
+const SECONDARY_PREFETCH_DELAY_MS = 300;
 
 /**
  * Warms each of the preview's independent requests as soon as a user shows
@@ -22,38 +23,56 @@ export function useInboxPreviewPrefetch(group: Group) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const environments = useEnvironmentsFromUrl();
-  const shouldPrefetchAutofix =
-    !organization.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    getConfigForIssueType(group, group.project).autofix;
-  const queryParams = {
+  const issueParams = {
     groupId: group.id,
     organizationSlug: organization.slug,
   };
-  const prefetchDebouncer = useDebouncer(
+  const groupPrefetchDebouncer = useDebouncer(
     () => {
       void queryClient.prefetchQuery(
         groupApiOptions({
-          ...queryParams,
+          ...issueParams,
           environments,
           expandDerivedData: organization.features.includes('issue-inbox'),
         })
       );
-      void queryClient.prefetchQuery(linkedPullRequestsApiOptions(queryParams));
-      void queryClient.prefetchQuery(autofixSetupApiOptions(queryParams));
+    },
+    {wait: GROUP_PREFETCH_DELAY_MS}
+  );
+  const secondaryPrefetchDebouncer = useDebouncer(
+    () => {
+      void queryClient.prefetchQuery({
+        ...linkedPullRequestsApiOptions(issueParams),
+        retry: false,
+      });
+
+      const shouldPrefetchAutofix =
+        !organization.hideAiFeatures &&
+        organization.features.includes('gen-ai-features') &&
+        getConfigForIssueType(group, group.project).autofix;
       if (shouldPrefetchAutofix) {
+        void queryClient.prefetchQuery({
+          ...autofixSetupApiOptions(issueParams),
+          retry: false,
+        });
         void queryClient.prefetchQuery({
           ...explorerAutofixApiOptions(organization.slug, group.id),
           retry: false,
         });
       }
     },
-    {wait: PREFETCH_DELAY_MS}
+    {wait: SECONDARY_PREFETCH_DELAY_MS}
   );
 
   const {hoverProps} = useHover({
-    onHoverStart: () => prefetchDebouncer.maybeExecute(),
-    onHoverEnd: () => prefetchDebouncer.cancel(),
+    onHoverStart: () => {
+      groupPrefetchDebouncer.maybeExecute();
+      secondaryPrefetchDebouncer.maybeExecute();
+    },
+    onHoverEnd: () => {
+      groupPrefetchDebouncer.cancel();
+      secondaryPrefetchDebouncer.cancel();
+    },
   });
 
   return hoverProps;
