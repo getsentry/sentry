@@ -43,7 +43,8 @@ prek is the single entrypoint for all lint, format, and type-checking tools. Bef
 
 ```bash
 SENTRY_MYPY_PRE_PUSH=1 .venv/bin/prek run -q mypy --files src/sentry/foo/bar.py --stage pre-push
-.venv/bin/prek run -q ruff --files src/sentry/foo/bar.py
+.venv/bin/prek run -q ruff-check --files src/sentry/foo/bar.py
+.venv/bin/prek run -q ruff-format --files src/sentry/foo/bar.py
 ```
 
 If a hook fails, fix the issues, stage changes, then re-run until it passes.
