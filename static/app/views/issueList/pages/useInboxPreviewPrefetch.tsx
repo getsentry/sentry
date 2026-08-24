@@ -1,5 +1,4 @@
-import {useHover} from '@react-aria/interactions';
-import {useDebouncer} from '@tanstack/react-pacer';
+import {useFocus, useHover} from '@react-aria/interactions';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {autofixSetupApiOptions} from 'sentry/components/events/autofix/useAutofixSetup';
@@ -11,11 +10,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-const PREFETCH_DELAY_MS = 300;
-
 /**
- * Warms the preview's requests on hover so clicking renders from cache. Reuses
- * the preview's own options factories so the query keys match.
+ * Warms each of the preview's independent requests as soon as a user shows
+ * intent to open an issue. Reuses the preview's own options factories so the
+ * query keys match.
  */
 export function useInboxPreviewPrefetch(group: Group) {
   const organization = useOrganization();
@@ -25,42 +23,44 @@ export function useInboxPreviewPrefetch(group: Group) {
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features') &&
     getConfigForIssueType(group, group.project).autofix;
-  const prefetchDebouncer = useDebouncer(
-    () => {
-      void queryClient.prefetchQuery(
-        groupApiOptions({
-          groupId: group.id,
-          organizationSlug: organization.slug,
-          environments,
-          expandDerivedData: organization.features.includes('issue-inbox'),
-        })
-      );
-      void queryClient.prefetchQuery(
-        linkedPullRequestsApiOptions({
-          groupId: group.id,
-          organizationSlug: organization.slug,
-        })
-      );
-      void queryClient.prefetchQuery(
-        autofixSetupApiOptions({
-          groupId: group.id,
-          organizationSlug: organization.slug,
-        })
-      );
-      if (shouldPrefetchAutofix) {
-        void queryClient.prefetchQuery({
-          ...explorerAutofixApiOptions(organization.slug, group.id),
-          retry: false,
-        });
-      }
-    },
-    {wait: PREFETCH_DELAY_MS}
-  );
+  const prefetch = () => {
+    void queryClient.prefetchQuery(
+      groupApiOptions({
+        groupId: group.id,
+        organizationSlug: organization.slug,
+        environments,
+        expandDerivedData: organization.features.includes('issue-inbox'),
+      })
+    );
+    void queryClient.prefetchQuery(
+      linkedPullRequestsApiOptions({
+        groupId: group.id,
+        organizationSlug: organization.slug,
+      })
+    );
+    void queryClient.prefetchQuery(
+      autofixSetupApiOptions({
+        groupId: group.id,
+        organizationSlug: organization.slug,
+      })
+    );
+    if (shouldPrefetchAutofix) {
+      void queryClient.prefetchQuery({
+        ...explorerAutofixApiOptions(organization.slug, group.id),
+        retry: false,
+      });
+    }
+  };
 
   const {hoverProps} = useHover({
-    onHoverStart: () => prefetchDebouncer.maybeExecute(),
-    onHoverEnd: () => prefetchDebouncer.cancel(),
+    onHoverStart: prefetch,
+  });
+  const {focusProps} = useFocus({
+    onFocus: prefetch,
   });
 
-  return hoverProps;
+  return {
+    ...hoverProps,
+    ...focusProps,
+  };
 }

@@ -841,7 +841,7 @@ describe('InboxPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('prefetches preview details on hover so opening it needs no new request', async () => {
+  it('prefetches preview details immediately on hover so opening it needs no new request', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
     const groupRequest = MockApiClient.addMockResponse({
@@ -874,12 +874,10 @@ describe('InboxPage', () => {
     ).findByRole('link', {name: /Fix proposed issue/});
     await userEvent.hover(issueLink);
 
-    await waitFor(() => {
-      expect(groupRequest).toHaveBeenCalledTimes(1);
-      expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
-      expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
-      expect(autofixRequest).toHaveBeenCalledTimes(1);
-    });
+    expect(groupRequest).toHaveBeenCalledTimes(1);
+    expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
+    expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
+    expect(autofixRequest).toHaveBeenCalledTimes(1);
 
     // Reads the warmed caches, which only hold if all query keys match.
     await userEvent.click(issueLink);
@@ -894,18 +892,21 @@ describe('InboxPage', () => {
     expect(autofixRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('renders available content while the Autofix prefetch is still loading', async () => {
+  it('renders group content while independent preview requests are still loading', async () => {
     mockSuccessfulSections();
-    mockIssuePreview();
+    const pendingRequest = new Promise(() => {});
+    mockIssuePreview({autofixSetupDelay: pendingRequest});
     const autofixRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
       match: [MockApiClient.matchQuery({mode: 'explorer', llmFormat: 'markdown'})],
-      body: new Promise(() => {}),
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+      asyncDelay: pendingRequest,
     });
     const pullRequestsRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
       match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
       body: {pullRequests: []},
+      asyncDelay: pendingRequest,
     });
 
     render(<InboxPage />, {
@@ -921,6 +922,10 @@ describe('InboxPage', () => {
     await userEvent.click(issueLink);
 
     const preview = screen.getByRole('complementary', {name: 'Issue preview'});
+    expect(
+      await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
+    ).toBeInTheDocument();
+    expect(within(preview).getByText('Fix proposed message')).toBeInTheDocument();
     expect(
       await within(preview).findByRole('heading', {name: 'Activity'})
     ).toBeInTheDocument();
