@@ -21,7 +21,7 @@ import {memberUsersQueryOptions} from 'sentry/utils/members/shared';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
-interface MentionComposerProps {
+interface CreateComposerProps {
   initialValue?: string;
   minHeight?: number;
   onSubmit?: (data: NoteType) => Promise<void>;
@@ -30,7 +30,7 @@ interface MentionComposerProps {
   variant?: 'compact' | 'full';
 }
 
-interface MentionEditorProps {
+interface EditComposerProps {
   initialValue: string;
   onCancel: () => void;
   onSubmit: (data: NoteType) => Promise<void>;
@@ -39,21 +39,13 @@ interface MentionEditorProps {
   variant?: 'compact' | 'full';
 }
 
+type MentionComposerProps =
+  | ({mode: 'create'} & CreateComposerProps)
+  | ({mode: 'edit'} & EditComposerProps);
+
 type EditorMode = 'write' | 'preview';
 
 type MentionEntity = {kind: 'member'; user: User} | {kind: 'team'; team: Team};
-
-export function MentionComposer(props: MentionComposerProps) {
-  const sources = useMentionSources();
-
-  return <Composer {...props} sources={sources} />;
-}
-
-export function MentionEditor(props: MentionEditorProps) {
-  const sources = useMentionSources();
-
-  return <Composer {...props} isEditing sources={sources} />;
-}
 
 function useMentionSources() {
   const organization = useOrganization();
@@ -173,21 +165,16 @@ function serializeNoteMentions(value: MentionInputValue): string {
   return text;
 }
 
-function Composer({
-  sources,
-  initialValue = '',
-  isEditing = false,
-  minHeight = 140,
-  onCancel,
-  onValueChange,
-  onSubmit,
-  placeholder = t('Add a comment.\nTag users with @, or teams with #'),
-  variant = 'full',
-}: MentionComposerProps & {
-  sources: ReadonlyArray<MentionSource<MentionEntity>>;
-  isEditing?: boolean;
-  onCancel?: () => void;
-}) {
+export function MentionComposer(props: MentionComposerProps) {
+  const {
+    initialValue = '',
+    minHeight = 140,
+    onSubmit,
+    placeholder = t('Add a comment.\nTag users with @, or teams with #'),
+    variant = 'full',
+  } = props;
+  const sources = useMentionSources();
+  const isEditing = props.mode === 'edit';
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
   const [hasFocusedEditor, setHasFocusedEditor] = useState(isEditing);
   const initialEditorValue: MentionInputValue = {text: initialValue, mentions: []};
@@ -232,7 +219,9 @@ function Composer({
                   placeholder={placeholder}
                   onChange={nextValue => {
                     field.handleChange(nextValue);
-                    onValueChange?.(nextValue.text);
+                    if (props.mode === 'create') {
+                      props.onValueChange?.(nextValue.text);
+                    }
                   }}
                   onFocus={() => setHasFocusedEditor(true)}
                   onKeyDown={event => {
@@ -282,10 +271,10 @@ function Composer({
             />
           )}
           <Flex align="center" gap="sm">
-            {isEditing && (
+            {props.mode === 'edit' && (
               <form.Subscribe selector={state => state.isSubmitting}>
                 {isSubmitting => (
-                  <Button size="xs" onClick={onCancel} disabled={isSubmitting}>
+                  <Button size="xs" onClick={props.onCancel} disabled={isSubmitting}>
                     {t('Cancel')}
                   </Button>
                 )}

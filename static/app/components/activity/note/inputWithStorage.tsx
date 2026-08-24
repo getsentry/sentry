@@ -123,6 +123,7 @@ function NoteInputWithStorage({
     <MentionComposer
       initialValue={value}
       minHeight={minHeight}
+      mode="create"
       placeholder={placeholder}
       onSubmit={handleCreate}
       onValueChange={save}

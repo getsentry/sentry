@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
-import {MentionEditor} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
@@ -122,9 +122,10 @@ function ActivityNoteEditor({
   );
   return (
     <ActivityInputFrame>
-      <MentionEditor
+      <MentionComposer
         initialValue={activity.data.text}
         minHeight={96}
+        mode="edit"
         onCancel={onCancel}
         onSubmit={handleUpdate}
         variant={inputVariant}

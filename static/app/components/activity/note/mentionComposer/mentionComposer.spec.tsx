@@ -4,10 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  MentionComposer,
-  MentionEditor,
-} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 function getEditor(name = 'Add a comment') {
@@ -32,7 +29,7 @@ describe('MentionComposer', () => {
   });
 
   it('shows editor controls after focusing the editor', async () => {
-    render(<MentionComposer />);
+    render(<MentionComposer mode="create" />);
 
     expect(screen.queryByRole('radio', {name: 'Write'})).not.toBeInTheDocument();
 
@@ -54,7 +51,7 @@ describe('MentionComposer', () => {
       match: [MockApiClient.matchQuery({query: 'alice'})],
     });
 
-    render(<MentionComposer />);
+    render(<MentionComposer mode="create" />);
     await userEvent.type(getEditor(), '@alice');
 
     const option = await screen.findByRole('option', {
@@ -67,7 +64,7 @@ describe('MentionComposer', () => {
 
   it('submits serialized markdown and structured mention IDs', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
-    render(<MentionComposer onSubmit={onSubmit} />);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, 'Thanks @ali');
@@ -84,7 +81,7 @@ describe('MentionComposer', () => {
 
   it('keeps normal multiline text and submits with Ctrl+Enter', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
-    render(<MentionComposer onSubmit={onSubmit} />);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, 'First line{Enter}Second line{Control>}{Enter}');
@@ -96,7 +93,7 @@ describe('MentionComposer', () => {
   });
 
   it('renders selected mentions in Markdown preview', async () => {
-    render(<MentionComposer />);
+    render(<MentionComposer mode="create" />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
@@ -110,8 +107,9 @@ describe('MentionComposer', () => {
     const onCancel = jest.fn();
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(
-      <MentionEditor
+      <MentionComposer
         initialValue="Existing comment"
+        mode="edit"
         onCancel={onCancel}
         onSubmit={onSubmit}
       />
