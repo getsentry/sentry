@@ -1914,6 +1914,17 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state",
                 return_value=None,
             )
+        elif endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
+            downstream_scope = patch(
+                "sentry.api.endpoints.organization_trace_item_attributes."
+                "OrganizationTraceItemAttributesEndpoint.query_trace_attributes",
+                return_value=([], None),
+            )
+        elif endpoint.endpoint_name == "OrganizationTraceItemStatsEndpoint":
+            downstream_scope = patch(
+                "sentry.api.endpoints.organization_trace_item_stats.Spans.run_table_query",
+                return_value={"data": []},
+            )
         elif endpoint.endpoint_name in {
             "OrganizationProfilingChunksEndpoint",
             "OrganizationProfilingFlamegraphEndpoint",
