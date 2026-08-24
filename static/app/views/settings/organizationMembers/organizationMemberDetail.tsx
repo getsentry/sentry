@@ -95,7 +95,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const [orgRole, setOrgRole] = useState(member.orgRole);
   const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
-  const isNarrow = useResponsivePropValue({zero: true, xl: false});
+  const isNarrow = useResponsivePropValue({zero: true, lg: false});
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -280,8 +280,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         <PanelBody>
           <PanelItem>
             <Grid
-              columns={{zero: 'auto', xl: '2fr 1fr 1fr'}}
-              flow={{zero: 'row', xl: 'column'}}
+              columns={{zero: 'auto', lg: '2fr 1fr 1fr'}}
+              flow={{zero: 'row', lg: 'column'}}
               gap="xl"
               width="100%"
             >
