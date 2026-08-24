@@ -1,9 +1,11 @@
-import {Fragment} from 'react';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Form} from 'sentry/components/forms/form';
 import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
@@ -17,6 +19,7 @@ type ModalProps = Props & ModalRenderProps;
 
 function SpendAllocationModal({
   Body,
+  Footer,
   Header,
   closeModal,
   api,
@@ -24,43 +27,51 @@ function SpendAllocationModal({
   orgId,
   spendAllocationEnabled: isCurrentlyEnabled,
 }: ModalProps) {
-  const onSubmit = async () => {
-    const shouldEnableAllocations = !isCurrentlyEnabled;
-    const method = shouldEnableAllocations ? 'POST' : 'DELETE';
-    try {
-      await api.requestPromise(`/organizations/${orgId}/spend-allocations/toggle/`, {
-        method,
-      });
-      // Create root allocations
-      await api.requestPromise(`/organizations/${orgId}/spend-allocations/index/`, {
-        method,
-      });
-      onUpdated({spendAllocationEnabled: shouldEnableAllocations});
-    } catch (error) {
-      onUpdated({error});
-    }
-    closeModal();
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {},
+    onSubmit: async () => {
+      const shouldEnableAllocations = !isCurrentlyEnabled;
+      const method = shouldEnableAllocations ? 'POST' : 'DELETE';
+      try {
+        await api.requestPromise(`/organizations/${orgId}/spend-allocations/toggle/`, {
+          method,
+        });
+        // Create root allocations
+        await api.requestPromise(`/organizations/${orgId}/spend-allocations/index/`, {
+          method,
+        });
+        onUpdated({spendAllocationEnabled: shouldEnableAllocations});
+      } catch (error) {
+        onUpdated({error});
+      }
+      closeModal();
+    },
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header>Toggle Spend Allocations</Header>
       <Body>
-        <Form
-          onSubmit={onSubmit}
-          submitLabel={isCurrentlyEnabled ? 'Disable' : 'Enable'}
-          onCancel={closeModal}
-        >
-          Access to spend allocations is currently{' '}
-          <strong>{isCurrentlyEnabled ? 'enabled' : 'disabled'}</strong> for this
-          organization.
-          <p>
+        <Stack gap="md">
+          <Text as="p">
+            Access to spend allocations is currently{' '}
+            <Text as="span" bold>
+              {isCurrentlyEnabled ? 'enabled' : 'disabled'}
+            </Text>{' '}
+            for this organization.
+          </Text>
+          <Text as="p">
             Would you like to {isCurrentlyEnabled ? 'disable' : 'enable'} access to spend
             allocations?
-          </p>
-        </Form>
+          </Text>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Button onClick={closeModal}>Cancel</Button>
+        <form.SubmitButton>{isCurrentlyEnabled ? 'Disable' : 'Enable'}</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }
 
