@@ -18,7 +18,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},
-  {key: 'flag', name: t('Feature Flag')},
+  {key: 'flag', name: t('Feature Flag'), minWidth: 600},
   {key: 'action', name: t('Action')},
   {key: 'createdAt', name: t('Date')},
 ];

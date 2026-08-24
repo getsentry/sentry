@@ -130,7 +130,7 @@ export function GridEditable<
       const prepend = prependColumns.join(' ');
       const widths = columnOrder.map((item, index) => {
         if (item.grow) {
-          return 'minmax(max-content, 1fr)';
+          return `minmax(${item.minWidth ?? minimumColWidth}px, 1fr)`;
         }
         if (item.width === COL_WIDTH_UNDEFINED) {
           return `minmax(${minimumColWidth}px, auto)`;
