@@ -1,5 +1,5 @@
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL
+from sentry.dynamic_sampling.tasks.constants import adjusted_factor_ttl_ms
 from sentry.utils import metrics
 
 
@@ -17,7 +17,7 @@ def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         redis_client.set(cache_key, adjusted_factor)
         # Since we don't want any error to cause the system to drift significantly from the target sample rate, we want
         # to set a small TTL for the adjusted factor.
-        redis_client.pexpire(cache_key, ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL)
+        redis_client.pexpire(cache_key, adjusted_factor_ttl_ms())
         metrics.distribution(
             "dynamic_sampling.tasks.recalibrate_orgs.set_guarded_adjusted_factor", adjusted_factor
         )
@@ -25,20 +25,23 @@ def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         delete_adjusted_factor(org_id)
 
 
-def get_adjusted_factor(org_id: int) -> float:
+def get_adjusted_factor(org_id: int, source: str) -> float:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
 
+    factor = None
     try:
         value = redis_client.get(cache_key)
         if value is not None:
-            return float(value)
+            factor = float(value)
     except (TypeError, ValueError):
-        # By default, the previous factor is equal to the identity of the multiplication and this is done because
-        # the recalibration rule will be a factor rule and thus multiplied with the first sample rate rule that will
-        # match after this.
         pass
-    return 1.0
+
+    metrics.incr(
+        "dynamic_sampling.tasks.recalibrate_orgs.get_adjusted_factor",
+        tags={"source": source, "result": "hit" if factor is not None else "miss"},
+    )
+    return 1.0 if factor is None else factor
 
 
 def delete_adjusted_factor(org_id: int) -> None:
@@ -63,7 +66,7 @@ def set_guarded_adjusted_project_factor(project_id: int, adjusted_factor: float)
         redis_client.set(cache_key, adjusted_factor)
         # Since we don't want any error to cause the system to drift significantly from the target sample rate, we want
         # to set a small TTL for the adjusted factor.
-        redis_client.pexpire(cache_key, ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL)
+        redis_client.pexpire(cache_key, adjusted_factor_ttl_ms())
         metrics.distribution(
             "dynamic_sampling.tasks.recalibrate_projects.set_guarded_adjusted_project_factor",
             adjusted_factor,
@@ -72,20 +75,23 @@ def set_guarded_adjusted_project_factor(project_id: int, adjusted_factor: float)
         delete_adjusted_project_factor(project_id)
 
 
-def get_adjusted_project_factor(project_id: int) -> float:
+def get_adjusted_project_factor(project_id: int, source: str) -> float:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_recalibrate_projects_cache_key(project_id)
 
+    factor = None
     try:
         value = redis_client.get(cache_key)
         if value is not None:
-            return float(value)
+            factor = float(value)
     except (TypeError, ValueError):
-        # By default, the previous factor is equal to the identity of the multiplication and this is done because
-        # the recalibration rule will be a factor rule and thus multiplied with the first sample rate rule that will
-        # match after this.
         pass
-    return 1.0
+
+    metrics.incr(
+        "dynamic_sampling.tasks.recalibrate_projects.get_adjusted_project_factor",
+        tags={"source": source, "result": "hit" if factor is not None else "miss"},
+    )
+    return 1.0 if factor is None else factor
 
 
 def delete_adjusted_project_factor(project_id: int) -> None:

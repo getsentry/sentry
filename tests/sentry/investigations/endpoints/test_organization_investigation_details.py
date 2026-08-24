@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
+    InvestigationBlockExecutionStatus,
     InvestigationProject,
     InvestigationSourceType,
     InvestigationStatus,
@@ -72,6 +73,38 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["status"] == "active"
+
+    def test_archive_rejects_an_active_block_run(self) -> None:
+        created = self.client.post(
+            self.collection_url, data={"title": "Running investigation"}, format="json"
+        ).data
+        investigation = Investigation.objects.get(id=created["id"])
+        block = self.create_investigation_block(investigation=investigation, kind="text")
+        self.create_investigation_block_execution(
+            block=block,
+            executor="text_generation",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=block.version,
+            input_snapshot={},
+        )
+        detail_url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        response = self.client.delete(
+            detail_url,
+            data={"investigationVersion": investigation.version},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": "Stop active block runs before archiving this investigation."
+        }
 
     def test_metadata_update_persists_and_stale_version_rolls_back(self) -> None:
         created = self.client.post(

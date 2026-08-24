@@ -189,6 +189,10 @@ class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
     # Deep link to the agent's session on the provider's own site (e.g. Cursor).
     # Not every provider supplies one.
     agent_url: str | None
+    # `Repository.external_id` of the repo the agent was launched against. Known only at
+    # launch -- the agent reports its PR back under a repo *name*, which resolves the row
+    # ambiguously at best, and for GitLab never at all.
+    repo_external_id: str | None
 
 
 @cell_silo_model

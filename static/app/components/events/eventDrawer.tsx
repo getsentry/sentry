@@ -108,13 +108,7 @@ export const EventNavigator = styled('div')`
 export const EventDrawerBody = styled(DrawerBody)`
   overflow: auto;
   overscroll-behavior: contain;
-  /* Move the scrollbar to the left edge */
-  scroll-margin: 0 ${p => p.theme.space.xl};
   display: flex;
   gap: ${p => p.theme.space.xl};
   flex-direction: column;
-  direction: rtl;
-  * {
-    direction: ltr;
-  }
 `;

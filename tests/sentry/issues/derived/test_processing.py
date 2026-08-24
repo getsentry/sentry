@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
@@ -25,6 +26,14 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived import processing
 from sentry.issues.derived.aggregators import AGGREGATORS
+from sentry.issues.derived.check import (
+    CheckFailure,
+    CheckInvalidated,
+    CheckPassed,
+    CheckTimeout,
+    FeatureDifference,
+    check_derived_data,
+)
 from sentry.issues.derived.features import (
     BLOCKER,
     HAS_OPEN_FIX_PR,
@@ -39,6 +48,7 @@ from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
     Pipeline,
+    State,
     StateUpdate,
     StateView,
     aggregator,
@@ -128,6 +138,137 @@ class ProcessGroupLogTest(TestCase):
 
         derived = process_group_log(group.id)
         assert derived.date_updated == old_updated
+
+    def test_check_derived_data_matches_replayed_state(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+
+        assert check_derived_data(derived, PIPELINE) == CheckPassed()
+
+    def test_check_derived_data_reports_different_features(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        derived.view_count = 0
+
+        assert check_derived_data(derived, PIPELINE) == CheckFailure(
+            group_id=group.id,
+            cursor_date=derived.cursor_date,
+            cursor_id=derived.cursor_id,
+            differences={
+                VIEW_COUNT: FeatureDifference(expected=1, actual=0),
+            },
+        )
+
+    def test_check_derived_data_skips_stale_pipeline(self) -> None:
+        group = self.create_group()
+        derived = process_group_log(group.id)
+        derived.pipeline_hash = "stale"
+
+        assert check_derived_data(derived, PIPELINE) == CheckInvalidated()
+
+    def test_check_derived_data_can_resume_after_timeout(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+
+        with pytest.raises(CheckTimeout) as exc_info:
+            check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
+
+        assert (
+            check_derived_data(
+                derived,
+                PIPELINE,
+                timeout=timedelta(minutes=1),
+                check_id=exc_info.value.check_id,
+                batch_size=1,
+            )
+            == CheckPassed()
+        )
+
+    def test_check_derived_data_uses_invocation_scoped_checkpoints(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+
+        with pytest.raises(CheckTimeout) as first_timeout:
+            check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
+        with pytest.raises(CheckTimeout) as second_timeout:
+            check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
+
+        assert (
+            first_timeout.value.check_id.invocation_id
+            != second_timeout.value.check_id.invocation_id
+        )
+
+        for check_id in (first_timeout.value.check_id, second_timeout.value.check_id):
+            assert (
+                check_derived_data(
+                    derived,
+                    PIPELINE,
+                    timeout=timedelta(minutes=1),
+                    check_id=check_id,
+                    batch_size=1,
+                )
+                == CheckPassed()
+            )
+
+    def test_check_derived_data_stops_after_partial_batch(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        entries = list(GroupActionLogEntry.objects.filter(group_id=group.id))
+
+        with patch(
+            "sentry.issues.derived.check._entries_through_target_cursor", side_effect=[entries]
+        ) as get:
+            assert check_derived_data(derived, PIPELINE, batch_size=2) == CheckPassed()
+
+        get.assert_called_once()
+
+    def test_check_derived_data_does_not_resume_across_generations(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+
+        with pytest.raises(CheckTimeout) as exc_info:
+            check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
+
+        GroupDerivedData.objects.filter(group_id=group.id).update(
+            generated_at=derived.generated_at + timedelta(seconds=1)
+        )
+        derived.refresh_from_db()
+
+        assert (
+            check_derived_data(
+                derived,
+                PIPELINE,
+                timeout=timedelta(minutes=1),
+                check_id=exc_info.value.check_id,
+                batch_size=1,
+            )
+            == CheckInvalidated()
+        )
+
+    def test_check_derived_data_skips_row_invalidated_during_replay(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        original_run = PIPELINE.run
+
+        def run_and_invalidate(
+            entries: Iterable[GroupActionLogEntry], state: State | None = None
+        ) -> State:
+            result = original_run(entries, state=state)
+            GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash=None)
+            return result
+
+        with patch.object(PIPELINE, "run", side_effect=run_and_invalidate):
+            assert check_derived_data(derived, PIPELINE) == CheckInvalidated()
 
     def test_process_group_log_only_affects_target(self) -> None:
         group_a = self.create_group()

@@ -328,10 +328,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": uptime_options(),
         "pass_consumer_group": True,
     },
-    "billing-metrics-consumer": {
-        "topic": Topic.SNUBA_GENERIC_METRICS,
-        "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
-    },
     # Known differences to 'sentry run occurrences-ingest-consumer':
     # - ingest_consumer_types metric tag is missing. Use the kafka_topic and
     #   group_id tags provided by run_basic_consumer instead

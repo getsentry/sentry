@@ -9,6 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features, options, roles
 from sentry import ratelimits as ratelimiter
@@ -37,6 +38,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.search.utils import tokenize_query
+from sentry.seer.agent_token import is_agent_auth
 from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
@@ -58,6 +60,13 @@ from sentry.utils import metrics
 from sentry.utils.pagination_factory import PaginatorLike
 
 logger = logging.getLogger(__name__)
+
+
+class OrganizationIndexPermission(OrganizationPermission):
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.method == "POST" and is_agent_auth(request.auth):
+            return False
+        return super().has_permission(request, view)
 
 
 class OrganizationPostSerializer(BaseOrganizationSerializer):
@@ -122,7 +131,7 @@ class OrganizationIndexEndpoint(Endpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (OrganizationPermission,)
+    permission_classes = (OrganizationIndexPermission,)
 
     @extend_schema(
         operation_id="listOrganizations",
@@ -159,22 +168,23 @@ class OrganizationIndexEndpoint(Endpoint):
         metrics.incr("api.organization_index.get", tags={"silo": "cell"}, sample_rate=1.0)
 
         owner_only = request.GET.get("owner") in ("1", "true")
+        agent_organization_id = None
+        if is_agent_auth(request.auth):
+            agent_organization_id = request.auth.organization_id
+            if agent_organization_id is None:
+                raise PermissionDenied
 
         queryset = Organization.objects.distinct()
 
-        if request.auth and not request.user.is_authenticated:
-            if hasattr(request.auth, "project"):
-                queryset = queryset.filter(id=request.auth.project.organization_id)
-            elif request.auth.organization_id is not None:
-                queryset = queryset.filter(id=request.auth.organization_id)
-
-        elif owner_only and request.user.is_authenticated:
+        if owner_only and request.user.is_authenticated:
             # This is used when closing an account
 
             # also fetches organizations in which you are a member of an owner team
             queryset = Organization.objects.get_organizations_where_user_is_owner(
                 user_id=request.user.id
             )
+            if agent_organization_id is not None:
+                queryset = queryset.filter(id=agent_organization_id)
             org_results = []
             for org in sorted(queryset, key=lambda x: x.name):
                 # O(N) query
@@ -183,6 +193,14 @@ class OrganizationIndexEndpoint(Endpoint):
                 )
 
             return Response(org_results)
+
+        if agent_organization_id is not None:
+            queryset = queryset.filter(id=agent_organization_id)
+        elif request.auth and not request.user.is_authenticated:
+            if hasattr(request.auth, "project"):
+                queryset = queryset.filter(id=request.auth.project.organization_id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             queryset = queryset.filter(
@@ -259,6 +277,11 @@ class OrganizationIndexEndpoint(Endpoint):
         metrics.incr("api.organization_index.get", tags={"silo": "control"}, sample_rate=1.0)
 
         owner_only = request.GET.get("owner") in ("1", "true")
+        agent_organization_id = None
+        if is_agent_auth(request.auth):
+            agent_organization_id = request.auth.organization_id
+            if agent_organization_id is None:
+                raise PermissionDenied
 
         # owner=1 (used by the account-close flow) means "orgs I own", which is
         # defined by the user's membership. A userless token (org auth token or
@@ -267,11 +290,16 @@ class OrganizationIndexEndpoint(Endpoint):
         if owner_only:
             if not request.user.is_authenticated:
                 raise PermissionDenied
-            return self._get_owned_from_control(request)
+            return self._get_owned_from_control(
+                request,
+                organization_id=agent_organization_id,
+            )
 
         queryset = OrganizationMapping.objects.distinct()
 
-        if request.auth and not request.user.is_authenticated:
+        if agent_organization_id is not None:
+            queryset = queryset.filter(organization_id=agent_organization_id)
+        elif request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(organization_id=request.auth.project.organization_id)
             elif request.auth.organization_id is not None:
@@ -369,7 +397,9 @@ class OrganizationIndexEndpoint(Endpoint):
             paginator_cls=paginator_cls,
         )
 
-    def _get_owned_from_control(self, request: Request) -> Response:
+    def _get_owned_from_control(
+        self, request: Request, *, organization_id: int | None = None
+    ) -> Response:
         assert request.user.id is not None
         owner_role = roles.get_top_dog().id
 
@@ -378,12 +408,13 @@ class OrganizationIndexEndpoint(Endpoint):
             role=owner_role,
         ).values_list("organization_id", flat=True)
 
-        org_mappings = list(
-            OrganizationMapping.objects.filter(
-                organization_id__in=owner_org_ids,
-                status=OrganizationStatus.ACTIVE,
-            ).order_by("name")
+        org_mappings_query = OrganizationMapping.objects.filter(
+            organization_id__in=owner_org_ids,
+            status=OrganizationStatus.ACTIVE,
         )
+        if organization_id is not None:
+            org_mappings_query = org_mappings_query.filter(organization_id=organization_id)
+        org_mappings = list(org_mappings_query.order_by("name"))
 
         owner_counts = (
             OrganizationMemberMapping.objects.filter(

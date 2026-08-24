@@ -175,7 +175,7 @@ def build_step_prompt(
     group: Group,
     user_context: str | None = None,
     run_state: SeerRunState | None = None,
-    enable_bash_tools: bool = False,
+    should_run_repo_checks: bool = False,
 ) -> str:
     """
     Build the prompt for a step using issue details.
@@ -184,7 +184,7 @@ def build_step_prompt(
         step: The autofix step to build prompt for
         group: The Sentry group (issue) being analyzed
         run_state: The current run state, used to surface PR links for iteration
-        enable_bash_tools: Whether bash tools are available to the run
+        should_run_repo_checks: Whether to steer the run to verify changes with the repo's own checks
 
     Returns:
         Formatted prompt string
@@ -196,7 +196,7 @@ def build_step_prompt(
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
         run_state=run_state,
-        enable_bash_tools=enable_bash_tools,
+        should_run_repo_checks=should_run_repo_checks,
     )
 
     parts = [prompt]
@@ -506,6 +506,7 @@ def trigger_autofix_agent(
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
+    allow_free_cohort: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -515,17 +516,22 @@ def trigger_autofix_agent(
         step: Which autofix step to run
         run_id: Existing run ID to continue, or None for new run
         stopping_point: Where to stop the automated pipeline (only used for new runs)
+        allow_free_cohort: Internal-only flag set by night shift to bypass
+            quota for free cohort orgs. Not exposed via the API.
     """
     # check billing quota for triggering a new autofix run
-    # Free cohort orgs have no Subscription so check_seer_quota returns False.
-    # Bypass the check for them — they get autofix without billing.
-    if run_id is None and not is_free_cohort_org(group.organization):
-        has_budget: bool = quotas.backend.check_seer_quota(
-            org_id=group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
-        )
-        if not has_budget:
-            raise NoSeerQuotaException()
+    # Free cohort orgs bypass quota only when called from night shift
+    # (allow_free_cohort=True). The API endpoint never sets this flag,
+    # so manual triggers still require quota.
+    if run_id is None:
+        skip_quota = allow_free_cohort and is_free_cohort_org(group.organization)
+        if not skip_quota:
+            has_budget: bool = quotas.backend.check_seer_quota(
+                org_id=group.organization.id,
+                data_category=DataCategory.SEER_AUTOFIX,
+            )
+            if not has_budget:
+                raise NoSeerQuotaException()
 
     use_seer_rca_feature = features.has(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
@@ -539,6 +545,7 @@ def trigger_autofix_agent(
             referrer=referrer,
             user_context=user_context,
             stopping_point=stopping_point,
+            allow_free_cohort=allow_free_cohort,
         )
         feature_run_id = feature_run.seer_run_state_id
         if feature_run_id is None:
@@ -604,7 +611,9 @@ def trigger_autofix_agent(
         group,
         user_context,
         run_state=run_state,
-        enable_bash_tools=client.enable_bash_tools,
+        should_run_repo_checks=features.has(
+            "organizations:autofix-should-run-repo-checks", group.organization
+        ),
     )
     prompt_metadata = {
         "step": step.value,
@@ -645,6 +654,7 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
+            force_ce=False,
         )
         run_id = run.seer_run_state_id
 
@@ -950,7 +960,7 @@ def trigger_push_changes(
     client.push_changes(
         run_id,
         repo_name=repo_name,
-        pr_description_suffix=build_pr_description_suffix(group),
+        pr_description_suffix=build_pr_description_suffix(group, run_id),
         ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
@@ -963,7 +973,13 @@ def trigger_push_changes(
     )
 
 
-def build_pr_description_suffix(group: Group) -> str | None:
+# Kept in sync with the automated SeerAutomationSource entries in issue_summary.referrer_map.
+AUTOMATED_AUTOFIX_REFERRERS = frozenset(
+    {AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY, AutofixReferrer.NIGHT_SHIFT}
+)
+
+
+def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
     lines = []
 
     if group.qualified_short_id:
@@ -990,6 +1006,25 @@ def build_pr_description_suffix(group: Group) -> str | None:
         lines.append(
             "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
         )
+
+    seer_run = SeerRun.objects.filter(
+        organization_id=group.organization.id, seer_run_state_id=run_id
+    ).first()
+    is_automated_run = seer_run is not None and seer_run.referrer in AUTOMATED_AUTOFIX_REFERRERS
+    if is_automated_run:
+        settings_url = group.organization.absolute_url(
+            f"/settings/{group.organization.slug}/projects/{group.project.slug}/seer/"
+        )
+        if is_free_cohort_org(group.organization):
+            lines.append(
+                f"\n<sub>This PR was automatically generated by Sentry at no cost. "
+                f"You can [adjust this setting]({settings_url}) at any time.</sub>"
+            )
+        else:
+            lines.append(
+                f"\n<sub>This PR was automatically generated by Sentry. "
+                f"You can [adjust this setting]({settings_url}) at any time.</sub>"
+            )
 
     if lines:
         return "\n".join(lines)

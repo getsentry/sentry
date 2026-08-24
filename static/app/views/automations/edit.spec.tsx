@@ -1,4 +1,8 @@
-import {ActionFilterFixture, AutomationFixture} from 'sentry-fixture/automations';
+import {
+  ActionFilterFixture,
+  AutomationFixture,
+  DataConditionFixture,
+} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -10,9 +14,14 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 import AutomationEdit from 'sentry/views/automations/edit';
 
 jest.mock('sentry/utils/useParams');
@@ -210,7 +219,7 @@ describe('EditAutomation', () => {
       frequency_minutes: 1440,
       environment: 'production',
       detectors_count: 1,
-      trigger_conditions_count: 0,
+      trigger_conditions_count: 1,
       actions_count: 1,
       success: true,
     });
@@ -220,5 +229,115 @@ describe('EditAutomation', () => {
         `/organizations/${organization.slug}/monitors/alerts/${automation.id}/`
       )
     );
+  });
+
+  describe('initial trigger conditions', () => {
+    const everyEventLabel = dataConditionNodesMap.get(
+      DataConditionType.EVERY_EVENT
+    )?.label;
+
+    if (!everyEventLabel) {
+      throw new Error('Every event label not found');
+    }
+
+    /**
+     * Mock opening the edit form with the given triggers and saving it
+     * Returns what the API received
+     */
+    async function getSubmittedTriggers(triggers: Automation['triggers']) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+        method: 'GET',
+        body: {...automation, triggers},
+      });
+
+      const mockUpdateAutomation = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+        method: 'PUT',
+        body: automation,
+      });
+
+      render(<AutomationEdit />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+      await waitFor(() => expect(mockUpdateAutomation).toHaveBeenCalled());
+
+      return mockUpdateAutomation.mock.calls[0][1].data.triggers;
+    }
+
+    it('adds an every_event trigger when the automation has no trigger conditions', async () => {
+      const submittedTriggers = await getSubmittedTriggers({
+        id: '1',
+        logicType: DataConditionGroupLogicType.ANY,
+        conditions: [],
+      });
+
+      expect(submittedTriggers).toEqual(
+        expect.objectContaining({
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {
+              type: DataConditionType.EVERY_EVENT,
+              comparison: true,
+              conditionResult: true,
+            },
+          ],
+        })
+      );
+
+      expect(screen.getByText(everyEventLabel)).toBeInTheDocument();
+    });
+
+    it('adds an every_event trigger when the automation has no trigger group', async () => {
+      const submittedTriggers = await getSubmittedTriggers(null);
+
+      expect(submittedTriggers).toEqual(
+        expect.objectContaining({
+          logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+          conditions: [
+            {
+              type: DataConditionType.EVERY_EVENT,
+              comparison: true,
+              conditionResult: true,
+            },
+          ],
+        })
+      );
+
+      expect(screen.getByText(everyEventLabel)).toBeInTheDocument();
+    });
+
+    it('leaves existing trigger conditions untouched', async () => {
+      const submittedTriggers = await getSubmittedTriggers({
+        id: '1',
+        logicType: DataConditionGroupLogicType.ALL,
+        conditions: [
+          DataConditionFixture({
+            type: DataConditionType.FIRST_SEEN_EVENT,
+            comparison: true,
+          }),
+        ],
+      });
+
+      expect(submittedTriggers).toEqual(
+        expect.objectContaining({
+          logicType: DataConditionGroupLogicType.ALL,
+          conditions: [{type: DataConditionType.FIRST_SEEN_EVENT, comparison: true}],
+        })
+      );
+
+      const firstSeenEventText = dataConditionNodesMap.get(
+        DataConditionType.FIRST_SEEN_EVENT
+      )?.label;
+
+      if (!firstSeenEventText) {
+        throw new Error('First seen event text not found');
+      }
+
+      expect(screen.getByText(firstSeenEventText)).toBeInTheDocument();
+
+      expect(screen.queryByText(everyEventLabel)).not.toBeInTheDocument();
+    });
   });
 });
