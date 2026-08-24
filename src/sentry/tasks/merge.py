@@ -103,11 +103,13 @@ def merge_groups(
     from sentry.models.groupassignee import GroupAssignee
     from sentry.models.groupenvironment import GroupEnvironment
     from sentry.models.grouphash import GroupHash
+    from sentry.models.grouplink import GroupLink
     from sentry.models.groupmeta import GroupMeta
     from sentry.models.groupredirect import GroupRedirect
     from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.groupsubscription import GroupSubscription
     from sentry.models.userreport import UserReport
+    from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
     if not (from_object_ids and to_object_id):
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
@@ -178,6 +180,8 @@ def merge_groups(
             GroupAssignee,
             GroupEnvironment,
             GroupHash,
+            GroupLink,
+            PlatformExternalIssue,
             GroupRuleStatus,
             GroupSubscription,
             EventAttachment,

@@ -25,6 +25,23 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class MergeGroupTest(TestCase, SnubaTestCase):
+    def test_merge_platform_external_issue(self) -> None:
+        source = self.create_group(project=self.project)
+        destination = self.create_group(project=self.project)
+        external_issue = self.create_platform_external_issue(
+            group=source,
+            service_type="example",
+            display_name="EX-1",
+            web_url="https://example.com/issues/1",
+        )
+        self.project.update_option("sentry:similarity_backfill_completed", True)
+
+        with self.tasks():
+            merge_groups([source.id], destination.id)
+
+        external_issue.refresh_from_db()
+        assert external_issue.group_id == destination.id
+
     @patch("sentry.eventstream.backend")
     def test_merge_calls_eventstream(self, mock_eventstream) -> None:
         group1 = self.create_group(self.project)
