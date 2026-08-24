@@ -30,9 +30,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -48,7 +45,6 @@ import {
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
@@ -201,11 +197,9 @@ function useHiddenItems({
   filterValue,
   maxOptions,
   shouldFilterResults,
-  showAskSeerOption,
 }: {
   filterValue: string;
   items: Array<SelectOptionOrSectionWithKey<string>>;
-  showAskSeerOption: boolean;
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
@@ -216,21 +210,13 @@ function useHiddenItems({
       maxOptions
     );
 
-    if (showAskSeerOption) {
-      hidden.add(ASK_SEER_ITEM_KEY);
-    }
-
     return hidden;
-  }, [filterValue, items, maxOptions, shouldFilterResults, showAskSeerOption]);
+  }, [filterValue, items, maxOptions, shouldFilterResults]);
 
-  const disabledKeys = useMemo(() => {
-    const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
-    return showAskSeerOption
-      ? baseDisabledKeys.filter(
-          key => key !== ASK_SEER_ITEM_KEY && key !== ASK_SEER_CONSENT_ITEM_KEY
-        )
-      : baseDisabledKeys;
-  }, [hiddenOptions, items, showAskSeerOption]);
+  const disabledKeys = useMemo(
+    () => [...getDisabledOptions(items), ...hiddenOptions],
+    [hiddenOptions, items]
+  );
 
   return {
     hiddenOptions,
@@ -318,10 +304,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
-  const organization = useOrganization();
   const anyItemsShowing = totalOptions > hiddenOptions.size;
-  const showAskSeerFooter =
-    enableAISearch && organization.features.includes('gen-ai-ask-seer-ux-rework');
 
   if (customMenu) {
     return customMenu({
@@ -364,12 +347,10 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : null}
-        {showAskSeerFooter ? (
+        {enableAISearch ? (
           <Flex padding="sm" borderTop="muted">
             <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onTabForward} />
           </Flex>
-        ) : enableAISearch ? (
-          <AskSeer state={state} />
         ) : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
@@ -419,7 +400,6 @@ export function SearchQueryBuilderCombobox<
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
-  const {enableAISearch} = useSearchQueryBuilderAI();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -431,7 +411,6 @@ export function SearchQueryBuilderCombobox<
     filterValue,
     maxOptions,
     shouldFilterResults,
-    showAskSeerOption: enableAISearch,
   });
 
   const onValueChange = useCallback(
@@ -581,16 +560,7 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (
-        popoverRef.current?.contains(el) ||
-        wrapperRef.current?.contains(el) ||
-        // We don't want to close the menu when clicking on an anchor element that is
-        // located inside of a tooltip, as the tooltip is technically outside of the
-        // combobox. This is required to enable the Ask Seer tooltip link to work.
-        //
-        // Source: static/app/components/searchQueryBuilder/askSeer/askSeerOption.tsx:71
-        el instanceof HTMLAnchorElement
-      ) {
+      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
         return false;
       }
 

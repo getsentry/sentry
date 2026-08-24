@@ -15,7 +15,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -63,9 +62,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
-
         # Parse query parameters (shared between both implementations)
         projects = self.get_projects(request, organization)
         envs = self.get_environments(request, organization)
