@@ -1159,7 +1159,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
         "schedule": timedelta(seconds=10),
     },
-    "dynamic-sampling-refresh-orgs-with-dynamic-sampling": {
+    "dynamic-sampling-cache-dynamic-sampling-feature-flags": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.refresh_orgs_with_dynamic_sampling",
         "schedule": crontab("0", "*", "*", "*", "*"),
     },
