@@ -105,9 +105,7 @@ class ObjectstoreEndpoint(Endpoint):
                         head_response.headers.get("Content-Encoding", "").strip().lower()
                     )
                     forward_range = 200 <= head_response.status_code < 300 and (
-                        not content_encoding
-                        or "*" in accepted_encodings
-                        or content_encoding in accepted_encodings
+                        not content_encoding or content_encoding in accepted_encodings
                     )
             except requests.RequestException:
                 # Without reliable metadata, fall back to a decodable full response.
@@ -131,7 +129,6 @@ class ObjectstoreEndpoint(Endpoint):
         decode_content = (
             response.status_code != 206
             and bool(content_encoding)
-            and "*" not in accepted_encodings
             and content_encoding not in accepted_encodings
         )
 
