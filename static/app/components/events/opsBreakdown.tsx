@@ -47,7 +47,6 @@ type Props = {
   event: Event | AggregateEventTransaction;
   operationNameFilters: ActiveOperationFilter;
   hideHeader?: boolean;
-  topN?: number;
 };
 
 export function generateStats(
@@ -226,12 +225,7 @@ export function generateStats(
   return breakdown;
 }
 
-export function OpsBreakdown({
-  event,
-  operationNameFilters,
-  hideHeader = false,
-  topN = TOP_N_SPANS,
-}: Props) {
+export function OpsBreakdown({event, operationNameFilters, hideHeader = false}: Props) {
   const theme = useTheme();
   const transactionEvent =
     event.type === 'transaction' || event.type === 'aggregateTransaction'
@@ -242,7 +236,7 @@ export function OpsBreakdown({
     return null;
   }
 
-  const breakdown = generateStats(transactionEvent, operationNameFilters, topN);
+  const breakdown = generateStats(transactionEvent, operationNameFilters, TOP_N_SPANS);
 
   const contents = breakdown.map(currOp => {
     const {name, percentage, totalInterval} = currOp;

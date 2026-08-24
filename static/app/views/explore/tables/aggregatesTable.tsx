@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,11 +9,7 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {
-  getAriaSort,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
+import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -35,8 +31,6 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
-  TableStatus,
-  useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -105,19 +99,12 @@ export function AggregatesTable({
     [aggregateFields]
   );
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleAggregateFields.map(aggregateField => {
-      if (isGroupBy(aggregateField)) {
-        return aggregateField.groupBy;
-      }
-      return aggregateField.yAxis;
-    }),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-    }
+  const visibleFields = useMemo(
+    () =>
+      visibleAggregateFields.map(aggregateField =>
+        isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
+      ),
+    [visibleAggregateFields]
   );
 
   const meta = useMemo(
@@ -152,7 +139,11 @@ export function AggregatesTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles}>
+      <Table
+        fields={visibleFields}
+        minimumColumnWidth={50}
+        prefixColumnWidth="min-content"
+      >
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false} />
@@ -180,23 +171,13 @@ export function AggregatesTable({
               return (
                 <TableHeadCell
                   align={align}
-                  aria-sort={getAriaSort(direction)}
+                  columnIndex={i}
                   key={i}
                   isFirst={i === 0}
+                  onSort={updateSort}
+                  sort={direction}
                 >
-                  <SortableHeaderCell direction={direction} onSort={updateSort}>
-                    {label}
-                  </SortableHeaderCell>
-                  {i !== visibleAggregateFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
-                    />
-                  )}
+                  {label}
                 </TableHeadCell>
               );
             })}
@@ -204,13 +185,13 @@ export function AggregatesTable({
         </TableHead>
         <TableBody>
           {result.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : result.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const menuItems: MenuItemProps[] = [
@@ -290,11 +271,11 @@ export function AggregatesTable({
               );
             })
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>

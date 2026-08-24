@@ -318,7 +318,7 @@ export function safeGetContext(
 
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {
-    return Rect.Empty();
+    return Rect.empty();
   }
 
   const context = ctx || getContext(document.createElement('canvas'), '2d');

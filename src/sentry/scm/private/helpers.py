@@ -1,28 +1,20 @@
-import time
 from typing import cast
 
 import sentry_sdk
 from django.db.models import Q
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
-from scm.rate_limit import RateLimitProvider
 from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
-from sentry.integrations.github.client import GITHUB_RATE_LIMIT_WINDOW, REFERRER_ALLOCATION
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 
 
-def fetch_service_provider(
-    organization_id: int,
-    repository: Repository,
-    rate_limit_provider: RateLimitProvider | None = None,
-) -> Provider | None:
+def fetch_service_provider(organization_id: int, repository: Repository) -> Provider | None:
     integration = integration_service.get_integration(
         integration_id=repository["integration_id"],
         organization_id=organization_id,
@@ -36,15 +28,7 @@ def fetch_service_provider(
         return None
 
     if integration.provider in ("github", "github_enterprise"):
-        rate_limiter = DynamicRateLimiter(
-            get_time_in_seconds=lambda: int(time.time()),
-            integration_id=integration.id,
-            provider=integration.provider,
-            rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
-            rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
-            referrer_allocation=REFERRER_ALLOCATION,
-        )
-        return GitHubProvider(client, organization_id, repository, rate_limiter=rate_limiter)
+        return GitHubProvider(client, organization_id, repository)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
     else:

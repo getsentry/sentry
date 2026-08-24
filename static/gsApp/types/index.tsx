@@ -2,7 +2,6 @@ import type {StripeConstructor} from '@stripe/stripe-js';
 
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
-import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
@@ -400,49 +399,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-};
-
-type DiscountInfo = {
-  amount: number;
-  billingInterval: 'monthly' | 'annual';
-  billingPeriods: number;
-  // TODO: better typing
-  creditCategory: InvoiceItemType | null;
-  disclaimerText: string;
-  discountType: 'percentPoints' | 'events';
-  durationText: string;
-  maxCentsPerPeriod: number;
-  modalDisclaimerText: string;
-  planRequirement: 'business' | 'paid' | null;
-  reminderText: string;
-};
-
-export type Promotion = {
-  autoOptIn: boolean;
-  discountInfo: DiscountInfo;
-  endDate: string;
-  name: string;
-  promptActivityTrigger: string | null;
-  showDiscountInfo: boolean;
-  slug: string;
-  startDate: string;
-  timeLimit: string;
-};
-
-export type PromotionClaimed = {
-  dateClaimed: string;
-  dateCompleted: string;
-  dateExpired: string;
-  freeEventCreditDaysLeft: number;
-  isLastCycleForFreeEvents: boolean;
-  promotion: Promotion;
-  claimant?: User;
-};
-
-export type PromotionData = {
-  activePromotions: PromotionClaimed[];
-  availablePromotions: Promotion[];
-  completedPromotions: PromotionClaimed[];
 };
 
 export type Feature = {

@@ -37,17 +37,16 @@ function Gridlines({
 type Props = {
   durationMs: number;
   width: number;
-  minWidth?: number;
 };
 
-export function MajorGridlines({durationMs, minWidth = 50, width}: Props) {
-  const {cols, remaining} = countColumns(durationMs, width, minWidth);
+export function MajorGridlines({durationMs, width}: Props) {
+  const {cols, remaining} = countColumns(durationMs, width, 50);
 
   return <Gridlines cols={cols} lineStyle="solid" remaining={remaining} />;
 }
 
-export function MinorGridlines({durationMs, minWidth = 20, width}: Props) {
-  const {cols, remaining} = countColumns(durationMs, width, minWidth);
+export function MinorGridlines({durationMs, width}: Props) {
+  const {cols, remaining} = countColumns(durationMs, width, 20);
 
   return <Gridlines cols={cols} lineStyle="dotted" remaining={remaining} />;
 }
