@@ -5,8 +5,6 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
-from django.db.models import F
-from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry import features
@@ -304,14 +302,11 @@ def schedule_per_org_calculations() -> None:
     scheduler = CursoredScheduler(
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
-        queryset=organizations.annotate(_order_bucket=Mod(F("id"), 10)).order_by(
-            "_order_bucket", "id"
-        ),
+        queryset=organizations,
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
         prevalidate_batch=keep_orgs_with_dynamic_sampling,
-        preserve_queryset_order=True,
     )
     scheduler.tick()
 
