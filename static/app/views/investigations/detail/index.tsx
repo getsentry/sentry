@@ -30,7 +30,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
-  investigationDetailQueryOptions,
+  getInvestigationDetailQueryOptions,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -69,7 +69,7 @@ function ClosedMembershipPage() {
 
 function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigationId
   );
@@ -110,7 +110,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const {copy} = useCopyToClipboard();
   const [draftTitle, setDraftTitle] = useState(investigation.title);
   const persistedTitle = useRef(investigation.title);
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );

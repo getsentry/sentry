@@ -13,7 +13,7 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
-import {investigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import type {
   InvestigationDetail,
   InvestigationListItem,
@@ -220,7 +220,7 @@ describe('Explore Investigations', () => {
     });
 
     const {queryClient, router} = renderView();
-    const unrelatedOptions = investigationDetailQueryOptions('org-slug', 'existing');
+    const unrelatedOptions = getInvestigationDetailQueryOptions('org-slug', 'existing');
     const unrelatedDetail = InvestigationFixture({id: 'existing'});
     queryClient.setQueryData(unrelatedOptions.queryKey, {
       headers: {},
@@ -310,7 +310,7 @@ describe('Explore Investigations', () => {
     });
 
     const {queryClient} = renderView();
-    const detailOptions = investigationDetailQueryOptions('org-slug', '1');
+    const detailOptions = getInvestigationDetailQueryOptions('org-slug', '1');
     queryClient.setQueryData(detailOptions.queryKey, {
       headers: {Link: 'preserved'},
       json: investigation satisfies InvestigationDetail,
@@ -339,7 +339,7 @@ describe('Explore Investigations', () => {
     });
 
     const {queryClient} = renderView();
-    const unrelatedOptions = investigationDetailQueryOptions('org-slug', 'existing');
+    const unrelatedOptions = getInvestigationDetailQueryOptions('org-slug', 'existing');
     const unrelatedDetail = InvestigationFixture({id: 'existing'});
     queryClient.setQueryData(unrelatedOptions.queryKey, {
       headers: {},
@@ -435,7 +435,7 @@ describe('Explore Investigations', () => {
     });
 
     const {queryClient} = renderView();
-    const detailOptions = investigationDetailQueryOptions('org-slug', '1');
+    const detailOptions = getInvestigationDetailQueryOptions('org-slug', '1');
     queryClient.setQueryData(detailOptions.queryKey, {
       headers: {},
       json: investigation satisfies InvestigationDetail,

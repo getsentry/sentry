@@ -38,7 +38,7 @@ export function investigationListQueryOptions({
   );
 }
 
-export function investigationDetailQueryOptions(
+export function getInvestigationDetailQueryOptions(
   organizationSlug: string,
   investigationId: string
 ) {
@@ -210,7 +210,7 @@ export function useRenameInvestigationMutation(
   options?: MutationOptions<InvestigationDetail, string>
 ) {
   const queryClient = useQueryClient();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organizationSlug,
     investigationId
   );
@@ -259,7 +259,7 @@ export function useAddInvestigationBlockMutation(
   options?: MutationOptions<InvestigationBlock, AddBlockVariables>
 ) {
   const queryClient = useQueryClient();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organizationSlug,
     investigationId
   );
@@ -305,7 +305,7 @@ export function useDuplicateInvestigationBlockMutation(
   options?: MutationOptions<InvestigationBlock, BlockIdVariables>
 ) {
   const queryClient = useQueryClient();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organizationSlug,
     investigationId
   );
@@ -365,7 +365,7 @@ export function useDeleteInvestigationBlockMutation(
   options?: MutationOptions<void, BlockIdVariables>
 ) {
   const queryClient = useQueryClient();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organizationSlug,
     investigationId
   );
@@ -422,7 +422,7 @@ export function useRunInvestigationBlockMutation(
   options?: MutationOptions<InvestigationBlockExecutionStart, RunBlockVariables>
 ) {
   const queryClient = useQueryClient();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organizationSlug,
     investigationId
   );
@@ -480,7 +480,7 @@ export function useUpdateInvestigationBlockPromptMutation(
   options?: MutationOptions<InvestigationBlock, UpdateBlockPromptVariables>
 ) {
   const queryClient = useQueryClient();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organizationSlug,
     investigationId
   );
@@ -529,7 +529,7 @@ export function useRenameInvestigationBlockMutation(
   options?: MutationOptions<RenameBlockResult, RenameBlockVariables>
 ) {
   const queryClient = useQueryClient();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organizationSlug,
     investigationId
   );
@@ -620,7 +620,7 @@ export function useStopInvestigationExecutionMutation(
   options?: MutationOptions<void, StopExecutionVariables>
 ) {
   const queryClient = useQueryClient();
-  const detailOptions = investigationDetailQueryOptions(
+  const detailOptions = getInvestigationDetailQueryOptions(
     organizationSlug,
     investigationId
   );

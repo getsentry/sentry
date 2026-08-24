@@ -14,7 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {investigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import type {
   InvestigationBlock,
@@ -884,7 +884,7 @@ describe('Investigation detail', () => {
     const queryClient = makeTestQueryClient();
 
     await queryClient.prefetchQuery(
-      investigationDetailQueryOptions('org-slug', 'investigation-1')
+      getInvestigationDetailQueryOptions('org-slug', 'investigation-1')
     );
     renderView(organization, queryClient);
 
@@ -1015,7 +1015,7 @@ describe('Investigation detail', () => {
 
   it('retains cached data when a background refetch fails', async () => {
     const queryClient = makeTestQueryClient();
-    const options = investigationDetailQueryOptions('org-slug', 'investigation-1');
+    const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
     queryClient.setQueryData(options.queryKey, {
       headers: {},
       json: InvestigationDetailFixture(),

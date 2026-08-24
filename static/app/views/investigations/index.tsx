@@ -37,7 +37,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  investigationDetailQueryOptions,
+  getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
   useCreateInvestigationMutation,
   useDeleteInvestigationMutation,
@@ -148,7 +148,7 @@ function InvestigationsPage() {
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
     onSuccess: (_data, investigation) => {
       queryClient.removeQueries({
-        queryKey: investigationDetailQueryOptions(organization.slug, investigation.id)
+        queryKey: getInvestigationDetailQueryOptions(organization.slug, investigation.id)
           .queryKey,
         exact: true,
       });
@@ -223,7 +223,7 @@ function InvestigationsPage() {
               to={getInvestigationPath(organization.slug, investigation.id)}
               onClick={() =>
                 void queryClient.prefetchQuery(
-                  investigationDetailQueryOptions(organization.slug, investigation.id)
+                  getInvestigationDetailQueryOptions(organization.slug, investigation.id)
                 )
               }
             >

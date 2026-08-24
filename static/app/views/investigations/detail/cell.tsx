@@ -12,6 +12,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
@@ -27,7 +28,7 @@ import {
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  investigationDetailQueryOptions,
+  getInvestigationDetailQueryOptions,
   investigationExecutionDetailQueryOptions,
   useDeleteInvestigationBlockMutation,
   useDuplicateInvestigationBlockMutation,
@@ -466,7 +467,7 @@ function RefinementPanel({
   useEffect(() => {
     if (status && !isExecutionActive(status) && status !== 'notRun') {
       void queryClient.invalidateQueries({
-        queryKey: investigationDetailQueryOptions(organizationSlug, investigation.id)
+        queryKey: getInvestigationDetailQueryOptions(organizationSlug, investigation.id)
           .queryKey,
       });
     }
@@ -514,7 +515,7 @@ function RefinementPanel({
             <IconSeer size="xs" />
             <Text monospace>{t('Ask Seer to refine')}</Text>
           </Flex>
-          {elapsed ? <TimerText monospace>{elapsed}</TimerText> : null}
+          {elapsed === null ? null : <ElapsedDuration milliseconds={elapsed} />}
         </Flex>
         <Stack gap="md">
           <RefinementPrompt>
@@ -563,7 +564,7 @@ function RefinementPanel({
         leadingItems={<IconSeer size="xs" animation={active ? 'waiting' : undefined} />}
         trailingItems={
           <Flex align="center" gap="sm">
-            {elapsed ? <TimerText monospace>{elapsed}</TimerText> : null}
+            {elapsed === null ? null : <ElapsedDuration milliseconds={elapsed} />}
             <Button
               size="xs"
               variant="transparent"
@@ -652,11 +653,17 @@ function Transcript({
   }
 
   return (
-    <TraceSurface data-test-id="investigation-transcript">
+    <TraceSurface
+      gap="md"
+      padding="md"
+      background="secondary"
+      radius="lg"
+      data-test-id="investigation-transcript"
+    >
       {explorerBlocks.map((block, index) => {
         const end =
           visibleBlocks[index + 1]?.timestamp ?? completedAt ?? (active ? now : null);
-        const duration = formatDurationBetween(block.timestamp, end);
+        const duration = getElapsedMilliseconds(block.timestamp, end);
         return (
           <TranscriptRow key={block.id}>
             <BlockComponent
@@ -666,7 +673,7 @@ function Transcript({
               readOnly
               showThinking
             />
-            {duration ? <TimerText monospace>{duration}</TimerText> : null}
+            {duration === null ? null : <ElapsedDuration milliseconds={duration} />}
           </TranscriptRow>
         );
       })}
@@ -733,7 +740,7 @@ function adaptTranscriptBlock(block: InvestigationTranscriptBlock): Block {
 
 function useElapsedTime(start: string | null, end: string | null, active: boolean) {
   const now = useNow(active);
-  return formatDurationBetween(start, end ?? (active ? now : null));
+  return getElapsedMilliseconds(start, end ?? (active ? now : null));
 }
 
 function useNow(active: boolean) {
@@ -748,7 +755,7 @@ function useNow(active: boolean) {
   return now;
 }
 
-function formatDurationBetween(start: string | null, end: string | null) {
+function getElapsedMilliseconds(start: string | null, end: string | null) {
   if (!start || !end) {
     return null;
   }
@@ -756,7 +763,15 @@ function formatDurationBetween(start: string | null, end: string | null) {
   if (!Number.isFinite(duration) || duration < 0) {
     return null;
   }
-  return `${(duration / 1000).toFixed(1)}s`;
+  return duration;
+}
+
+function ElapsedDuration({milliseconds}: {milliseconds: number}) {
+  return (
+    <Text monospace variant="muted">
+      <Duration seconds={milliseconds / 1000} fixedDigits={1} abbreviation />
+    </Text>
+  );
 }
 
 function getExecutionTitle(status: InvestigationExecutionStatus | undefined) {
@@ -936,11 +951,6 @@ const RefinementDisclosureContent = styled(Disclosure.Content)`
 `;
 
 const TraceSurface = styled(Stack)`
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md};
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: ${p => p.theme.radius.lg};
-
   &,
   & * {
     font-family: ${p => p.theme.font.family.mono};
@@ -952,9 +962,4 @@ const TranscriptRow = styled('div')`
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: ${p => p.theme.space.md};
-`;
-
-const TimerText = styled(Text)`
-  flex-shrink: 0;
-  color: ${p => p.theme.tokens.content.secondary};
 `;
