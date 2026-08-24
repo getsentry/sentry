@@ -24,7 +24,6 @@ class SdkConfig(TypedDict):
     transport_queue_size: NotRequired[int]
     before_send: NotRequired[Callable[[Event, Hint], Event | None]]
     before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
-    enable_logs: NotRequired[bool]
     before_send_log: NotRequired[Callable[[Log, Hint], Log | None]]
     profiles_sample_rate: NotRequired[float]
     profiles_sampler: NotRequired[Callable[[dict[str, Any]], float]]

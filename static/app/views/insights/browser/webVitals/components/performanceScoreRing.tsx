@@ -8,7 +8,7 @@ type TextProps = {
   textCss?: Props['textCss'];
 };
 
-type Props = React.HTMLAttributes<SVGSVGElement> & {
+type Props = {
   backgroundColors: readonly string[];
   segmentColors: readonly string[];
   text: React.ReactNode;
@@ -23,10 +23,6 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    */
   barWidth?: number;
   onUnhover?: () => void;
-  /**
-   * Endcaps on the progress bar
-   */
-  progressEndcaps?: React.SVGAttributes<SVGCircleElement>['strokeLinecap'];
   size?: number;
   /**
    * The css to apply to the center text. A function may be provided to compute
@@ -60,7 +56,6 @@ export function PerformanceScoreRing({
   textCss,
   segmentColors,
   backgroundColors,
-  progressEndcaps,
   onUnhover,
   ...p
 }: Props) {
@@ -111,10 +106,9 @@ export function PerformanceScoreRing({
         <RingBar
           key={`ring-bar-${key}`}
           strokeDashoffset={progressOffset}
-          strokeLinecap={progressEndcaps}
-          circumference={circumference}
           r={radius}
           barWidth={barWidth}
+          circumference={circumference}
           cx={cx}
           cy={cx}
           color={segmentColors[index]!}
@@ -129,7 +123,6 @@ export function PerformanceScoreRing({
     barWidth,
     circumference,
     onUnhover,
-    progressEndcaps,
     radius,
     segmentColors,
     values,

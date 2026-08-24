@@ -112,15 +112,17 @@ export default function ApiApplications() {
     <SentryDocumentTitle title={t('API Applications')}>
       <SettingsPageHeader title="API Applications" action={action} />
 
-      <ApplicationsTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Application Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="age">
-            {t('Age')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="actions" />
-        </SimpleTable.Header>
-
+      <ApplicationsTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Application Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="age">
+              {t('Age')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="actions" />
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isEmpty ? (
           <SimpleTable.Empty data-test-id="empty-message">
             {t("You haven't created any applications yet.")}

@@ -3065,6 +3065,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
         assert sorted(response.data["projects"]) == [project1.id, project2.id]
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_save_widget_with_custom_measurement_in_equation_tables(self) -> None:
         BaseMetricsTestCase.store_metric(
             self.organization.id,
@@ -3117,6 +3118,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_save_widget_with_custom_measurement_in_equation_line_chart(self) -> None:
         BaseMetricsTestCase.store_metric(
             self.organization.id,

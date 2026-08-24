@@ -8,7 +8,7 @@ import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {DateString} from 'sentry/types/core';
@@ -92,7 +92,7 @@ export interface ReleaseSeriesProps {
   query?: string;
   queryExtra?: Query;
   releases?: ReleaseMetaBasic[] | null;
-  tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
+  tooltip?: Exclude<Parameters<typeof createMarkLine>[0], undefined>['tooltip'];
   utc?: boolean | null;
 }
 
@@ -252,7 +252,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       query.statsPeriod = period || undefined;
     }
 
-    const markLine = MarkLine({
+    const markLine = createMarkLine({
       animation: false,
       lineStyle: {
         color: theme.tokens.dataviz.semantic.release,

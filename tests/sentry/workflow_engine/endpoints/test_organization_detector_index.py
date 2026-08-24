@@ -991,7 +991,8 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
                 snuba_query=disallowed_sq,
             )
 
-            # PerformanceMetrics dataset — requires on-demand-metrics-extraction
+            # PerformanceMetrics dataset — requires on-demand-metrics-extraction.
+            # Persist the subscription without building a generic s/g/d query.
             allowed_sq = create_snuba_query(
                 query_type=SnubaQuery.Type.PERFORMANCE,
                 dataset=Dataset.PerformanceMetrics,
@@ -1002,12 +1003,12 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
                 environment=self.environment,
                 event_types=(),
             )
-            allowed_sub = create_snuba_subscription(
+            allowed_sub = QuerySubscription.objects.create(
                 project=self.project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 snuba_query=allowed_sq,
+                status=QuerySubscription.Status.ACTIVE.value,
             )
-
         disallowed_ds = self.create_data_source(
             organization=self.organization, source_id=disallowed_sub.id
         )

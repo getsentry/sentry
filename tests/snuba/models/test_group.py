@@ -366,7 +366,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_recommended(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_recommended(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range
@@ -456,7 +456,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_latest(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_latest(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range
@@ -486,7 +486,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range

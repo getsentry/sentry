@@ -75,7 +75,6 @@ interface StructuredDataProps extends BaseProps {
   maxDefaultDepth: NonNullable<BaseProps['maxDefaultDepth']>;
   withAnnotatedText: boolean;
   autoCollapseLimit?: BaseProps['autoCollapseLimit'];
-  objectKey?: string;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
@@ -88,7 +87,6 @@ export function StructuredData({
   maxDefaultDepth,
   autoCollapseLimit,
   meta,
-  objectKey,
   onToggleExpand,
   value = null,
   withAnnotatedText,
@@ -115,7 +113,6 @@ export function StructuredData({
       <RecursiveStructuredData
         config={config}
         meta={meta}
-        objectKey={objectKey}
         path="$"
         value={value}
         withAnnotatedText={withAnnotatedText}

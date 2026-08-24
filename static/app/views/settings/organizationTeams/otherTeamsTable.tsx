@@ -65,15 +65,18 @@ export function OtherTeamsTable({
   };
 
   return (
-    <TeamsTable>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Other Teams')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="role" />
-        <SimpleTable.HeaderCell data-column-name="projects">
-          {t('Projects')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="actions" />
-      </SimpleTable.Header>
+    <TeamsTable
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Other Teams')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="role" />
+          <SimpleTable.HeaderCell data-column-name="projects">
+            {t('Projects')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="actions" />
+        </SimpleTable.HeaderRow>
+      }
+    >
       {teams.length === 0
         ? renderEmptyState()
         : teams.map(team => (
@@ -124,7 +127,7 @@ function OtherTeamRow({team, openMembership, projects}: OtherTeamRowProps) {
 
   return (
     <SimpleTable.Row>
-      {canViewTeam && <InteractionStateLayer />}
+      {canViewTeam && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell>
         {canViewTeam ? (
           <TeamLink
