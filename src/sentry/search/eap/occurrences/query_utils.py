@@ -1,4 +1,3 @@
-import re
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from datetime import datetime
 from typing import Any
@@ -18,11 +17,24 @@ from sentry.models.project import Project
 from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_filters
 from sentry.search.events.types import SnubaParams
 
-# A `*` preceded by an odd-length run of backslashes. Escaping such a `*` grows the
-# run to an even length, which is exactly what `event_search.WILDCARD_CHARS` reads as
-# "escaped backslashes followed by a wildcard", so the `*` stays a wildcard no matter
-# how it is written. See `_escape_search_query_value`.
-_ODD_BACKSLASH_RUN_BEFORE_WILDCARD = re.compile(r"(?<!\\)(?:\\\\)*\\\*")
+
+def _has_odd_backslash_run_before_wildcard(value: str) -> bool:
+    """Whether `value` contains a `*` preceded by an odd-length run of backslashes.
+
+    Escaping such a `*` grows the run to an even length, which is exactly what
+    `event_search.WILDCARD_CHARS` reads as "escaped backslashes followed by a
+    wildcard", so the `*` stays a wildcard no matter how it is written. See
+    `_escape_search_query_value`.
+    """
+    run = 0
+    for char in value:
+        if char == "\\":
+            run += 1
+        else:
+            if char == "*" and run % 2 == 1:
+                return True
+            run = 0
+    return False
 
 
 def _escape_search_query_value(field: str, value: str) -> str:
@@ -37,7 +49,7 @@ def _escape_search_query_value(field: str, value: str) -> str:
         # The trailing backslash would escape the term's own closing quote.
         raise InvalidSearchQuery(f"Cannot filter on a {field} value ending in a backslash.")
 
-    if _ODD_BACKSLASH_RUN_BEFORE_WILDCARD.search(value):
+    if _has_odd_backslash_run_before_wildcard(value):
         raise InvalidSearchQuery(
             f"Cannot filter on a {field} value containing a backslash directly before a `*`."
         )
