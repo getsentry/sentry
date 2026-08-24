@@ -21,6 +21,7 @@ interface FeatureFlagsLogTableProps {
   isPending: boolean;
   pageLinks: string | null;
   cursorKeyName?: string;
+  fit?: 'max-content';
   highlightedRowKey?: number;
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
@@ -34,6 +35,7 @@ export function FeatureFlagsLogTable({
   flags,
   isPending,
   error,
+  fit,
   pageLinks,
   onResizeColumn,
   onRowMouseOver,
@@ -68,6 +70,7 @@ export function FeatureFlagsLogTable({
         data={flags ?? []}
         columnOrder={columns}
         columnSortBy={[]}
+        fit={fit}
         grid={{
           renderBodyCell,
           onResizeColumn,
