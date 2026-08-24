@@ -47,7 +47,5 @@ def dispatch_investigation_execution(execution_id: int) -> None:
         )
     except Exception:
         logger.exception("investigations.execution.dispatch_failed")
-        if mark_block_execution_dispatch_failed(
-            execution, dispatch_claimed_at=dispatch_claimed_at
-        ):
+        if mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=dispatch_claimed_at):
             cancel_investigation_executions_after_failure(execution)
