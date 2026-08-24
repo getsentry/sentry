@@ -415,7 +415,9 @@ describe('ScmMessagingChannelPicker', () => {
         {organization}
       );
 
-      // The saved workspace (id 10) seeds the channel; selectedIntegrationId stays undefined.
+      // The saved workspace (id 10) seeds the channel. The user never explicitly
+      // switched workspaces, so selectedIntegrationId is initialized to '10' and
+      // remains at its initial value throughout.
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
       });

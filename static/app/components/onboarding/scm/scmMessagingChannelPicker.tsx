@@ -44,7 +44,6 @@ export function ScmMessagingChannelPicker({
   existingSetup,
   providerKey,
 }: ScmMessagingChannelPickerProps) {
-  const firstIntegration = eligibleIntegrations[0];
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any. Drives both the dropdown seed
@@ -54,18 +53,13 @@ export function ScmMessagingChannelPicker({
       ? existingSetup
       : undefined;
 
-  const defaultIntegration =
-    eligibleIntegrations.find(i => i.id === savedSelection?.integrationId) ??
-    firstIntegration;
-
-  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | undefined>(
-    undefined
+  const [selectedIntegrationId, setSelectedIntegrationId] = useState(
+    savedSelection?.integrationId
   );
 
   const selectedIntegration =
-    eligibleIntegrations.find(
-      i => i.id === (selectedIntegrationId ?? defaultIntegration?.id)
-    ) ?? firstIntegration;
+    eligibleIntegrations.find(i => i.id === selectedIntegrationId) ??
+    eligibleIntegrations[0];
 
   // Keep the chosen channel bound to the workspace it was chosen for. It only
   // surfaces (and is only saved) while its workspace is the selected one, so a
