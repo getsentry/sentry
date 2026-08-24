@@ -5,6 +5,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
@@ -50,13 +51,26 @@ export function DebugFileRow({
         <div>
           <DebugId>{debugId || uuid}</DebugId>
         </div>
-        <TimeAndSizeWrapper>
-          <StyledFileSize bytes={size} />
-          <TimeWrapper>
-            <IconClock size="xs" />
-            <TimeSince date={dateCreated} />
-          </TimeWrapper>
-        </TimeAndSizeWrapper>
+        <Text as="div" size="sm" variant="muted">
+          <Flex
+            direction={{zero: 'column', md: 'row'}}
+            align={{zero: 'start', md: 'center'}}
+            marginTop="md"
+            width="100%"
+          >
+            <StyledFileSize bytes={size} />
+            <Grid
+              columns="min-content 1fr"
+              flex={2}
+              align="center"
+              gap="xs"
+              paddingLeft="xs"
+            >
+              <IconClock size="xs" />
+              <TimeSince date={dateCreated} />
+            </Grid>
+          </Flex>
+        </Text>
       </Stack>
       <Stack align="start">
         <Name>
@@ -150,26 +164,8 @@ const DebugId = styled('code')`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-const TimeAndSizeWrapper = styled('div')`
-  width: 100%;
-  display: flex;
-  font-size: ${p => p.theme.font.size.sm};
-  margin-top: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.secondary};
-  align-items: center;
-`;
-
 const StyledFileSize = styled(FileSize)`
   flex: 1;
-  padding-left: ${p => p.theme.space.xs};
-`;
-
-const TimeWrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  grid-template-columns: min-content 1fr;
-  flex: 2;
-  align-items: center;
   padding-left: ${p => p.theme.space.xs};
 `;
 
