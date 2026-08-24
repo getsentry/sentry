@@ -96,16 +96,18 @@ function RepoGroup({
         );
       })}
       {hiddenCount > 0 ? (
-        <Flex borderTop="primary" padding="0 xs">
+        <Flex justify="center" borderTop="primary" padding="xs">
           <Button
             size="sm"
-            variant="link"
+            variant="transparent"
             aria-expanded={showAll}
             onClick={() => setShowAll(prev => !prev)}
           >
-            {showAll
-              ? t('Show fewer')
-              : tn('Show %s more file', 'Show %s more files', hiddenCount)}
+            <Text size="sm" variant="muted">
+              {showAll
+                ? t('Show fewer')
+                : tn('Show %s more file', 'Show %s more files', hiddenCount)}
+            </Text>
           </Button>
         </Flex>
       ) : null}
