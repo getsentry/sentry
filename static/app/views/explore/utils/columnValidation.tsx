@@ -78,27 +78,38 @@ export function getValidatedColumnData({
       continue;
     }
 
-    if (item.attrType === 'boolean') {
-      fieldTypes[item.name] = FieldValueType.BOOLEAN;
-    }
+    // The attributes endpoint types arrays authoritatively (gated behind the
+    // array feature flag). Trust it even when the validate endpoint reports a
+    // scalar type for the same attribute, so a picked array column keeps its
+    // array type regardless of whether the backend validate change has shipped
+    // yet. When the flag is off, attributes.array is empty and this is a no-op.
+    const isArrayAttribute =
+      item.attrType === 'array' || Boolean(attributes.array?.[item.name]);
 
-    if (item.attrType === 'number') {
-      fieldTypes[item.name] = FieldValueType.NUMBER;
-    }
-
-    if (item.attrType === 'string') {
-      fieldTypes[item.name] = FieldValueType.STRING;
-    }
-
-    if (item.attrType === 'array') {
+    if (isArrayAttribute) {
       fieldTypes[item.name] = FieldValueType.ARRAY;
+    } else if (item.attrType === 'boolean') {
+      fieldTypes[item.name] = FieldValueType.BOOLEAN;
+    } else if (item.attrType === 'number') {
+      fieldTypes[item.name] = FieldValueType.NUMBER;
+    } else if (item.attrType === 'string') {
+      fieldTypes[item.name] = FieldValueType.STRING;
     }
 
     if (aggregateExpressions.has(item.name)) {
       continue;
     }
 
-    if (item.attrType === 'boolean') {
+    if (isArrayAttribute) {
+      delete validatedAttributes.boolean[item.name];
+      delete validatedAttributes.number[item.name];
+      delete validatedAttributes.string[item.name];
+      validatedAttributes.array[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.ARRAY,
+      };
+    } else if (item.attrType === 'boolean') {
       delete validatedAttributes.number[item.name];
       delete validatedAttributes.string[item.name];
       delete validatedAttributes.array[item.name];
@@ -107,9 +118,7 @@ export function getValidatedColumnData({
         name: prettifyAttributeName(item.name),
         kind: FieldKind.BOOLEAN,
       };
-    }
-
-    if (item.attrType === 'number') {
+    } else if (item.attrType === 'number') {
       delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.string[item.name];
       delete validatedAttributes.array[item.name];
@@ -118,9 +127,7 @@ export function getValidatedColumnData({
         name: prettifyAttributeName(item.name),
         kind: FieldKind.MEASUREMENT,
       };
-    }
-
-    if (item.attrType === 'string') {
+    } else if (item.attrType === 'string') {
       delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.number[item.name];
       delete validatedAttributes.array[item.name];
@@ -128,17 +135,6 @@ export function getValidatedColumnData({
         key: item.name,
         name: prettifyAttributeName(item.name),
         kind: FieldKind.TAG,
-      };
-    }
-
-    if (item.attrType === 'array') {
-      delete validatedAttributes.boolean[item.name];
-      delete validatedAttributes.number[item.name];
-      delete validatedAttributes.string[item.name];
-      validatedAttributes.array[item.name] ??= {
-        key: item.name,
-        name: prettifyAttributeName(item.name),
-        kind: FieldKind.ARRAY,
       };
     }
   }
