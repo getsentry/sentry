@@ -12,7 +12,7 @@ import {
 
 import {t} from 'sentry/locale';
 
-export {getRelativeDate, type UnitStyle};
+export {getRelativeDate};
 
 interface Props extends Omit<
   React.TimeHTMLAttributes<HTMLTimeElement>,
