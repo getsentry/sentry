@@ -112,12 +112,6 @@ class RepoPRState(BaseModel):
     commit_sha: str | None = None
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
-    # Attributed cause of a push failure, when seer could determine one. Both
-    # values mean the push carried a `.github/workflows/` entry, which the
-    # GitHub App is not allowed to write: "workflow_patch" when the run's own
-    # changes touch a workflow file, "workflow_drift" when the base branch moved
-    # past our pinned commit with a workflow change of someone else's.
-    pr_creation_error_reason: Literal["workflow_patch", "workflow_drift"] | None = None
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None

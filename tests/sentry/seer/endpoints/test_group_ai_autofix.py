@@ -423,7 +423,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 "owner/repo": RepoPRState(
                     repo_name="owner/repo",
                     pr_creation_status="error",
-                    pr_creation_error_reason="workflow_patch",
                 )
             },
         )
@@ -456,7 +455,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     pr_number=7,
                     pr_url="https://github.com/owner/repo/pull/7",
                     pr_creation_status="error",
-                    pr_creation_error_reason="workflow_drift",
                 )
             },
         )
@@ -715,7 +713,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     pr_number=7,
                     pr_url="https://github.com/owner/repo/pull/7",
                     pr_creation_status="error",
-                    pr_creation_error_reason="workflow_drift",
                 )
             },
         )
