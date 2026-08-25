@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sentry.dynamic_sampling.per_org.results import RecalibrationOutcome
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import adjusted_factor_ttl_ms
+from sentry.dynamic_sampling.tasks.constants import (
+    MAX_REBALANCE_FACTOR,
+    MIN_REBALANCE_FACTOR,
+    adjusted_factor_ttl_ms,
+)
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -22,13 +25,13 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
     sample rates are still served from the legacy pipeline, and this pass only compares
     against them.
     """
-    results = config.results
-    if (
-        results.recalibration_outcome is RecalibrationOutcome.APPLIED
-        and results.recalibration_factor is not None
-    ):
-        set_guarded_adjusted_factor(config.organization.id, results.recalibration_factor)
-    elif results.recalibration_outcome is RecalibrationOutcome.OUT_OF_BOUNDS:
+    factor = config.results.recalibration_factor
+    if factor is None:
+        return
+
+    if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
+        set_guarded_adjusted_factor(config.organization.id, factor)
+    else:
         # A factor outside the rebalance bounds clears the cached one, so that a stale
         # factor cannot keep being applied.
         delete_adjusted_factor(config.organization.id)

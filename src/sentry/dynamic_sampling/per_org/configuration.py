@@ -11,10 +11,7 @@ from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
-from sentry.dynamic_sampling.per_org.results import (
-    DynamicSamplingResults,
-    RecalibrationOutcome,
-)
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
@@ -24,7 +21,6 @@ from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
 )
-from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
@@ -121,16 +117,15 @@ class BaseDynamicSamplingConfiguration(ABC):
         ``get_recalibration_organization_volume``.
 
         The factor lands on ``results.recalibration_factor``, and stays None when there is
-        not enough volume to compute one or when the computed one falls outside the
-        rebalance bounds. ``results.recalibration_outcome`` tells those apart, so that
-        ``write_caches`` can clear a stale cached factor in the second case.
+        not enough volume to compute one. A factor outside the rebalance bounds is recorded
+        like any other, so that the comparison log reports what this pass computed;
+        ``write_caches`` decides what to do with it.
 
         Nothing is written here. The cached factor is read as the seed of the calculation,
         and rewritten at the end of the pass.
         """
         results = self.results
         results.recalibration_factor = None
-        results.recalibration_outcome = RecalibrationOutcome.NOT_RUN
 
         if not self.projects or self.get_sample_rate() is None:
             return
@@ -138,20 +133,11 @@ class BaseDynamicSamplingConfiguration(ABC):
         results.previous_recalibration_factor = per_org_recalibration_cache.get_adjusted_factor(
             self.organization.id, source="task"
         )
-        adjusted_factor = calculate_recalibration_factor(
+        results.recalibration_factor = calculate_recalibration_factor(
             org_volume,
             results.previous_recalibration_factor,
             self.get_sample_rate(),
         )
-        if adjusted_factor is None:
-            results.recalibration_outcome = RecalibrationOutcome.NO_FACTOR
-            return
-        if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
-            results.recalibration_outcome = RecalibrationOutcome.OUT_OF_BOUNDS
-            return
-
-        results.recalibration_outcome = RecalibrationOutcome.APPLIED
-        results.recalibration_factor = adjusted_factor
 
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):

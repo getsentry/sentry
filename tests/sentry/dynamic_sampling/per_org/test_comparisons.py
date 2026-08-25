@@ -19,7 +19,7 @@ from sentry.dynamic_sampling.per_org.comparisons import (
     is_within_relative_tolerance,
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
-from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults, RecalibrationOutcome
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.helpers import (
@@ -312,11 +312,6 @@ class RecalibrationFactorComparisonTest(TestCase):
                 recalibration_volume=org_volume,
                 recalibration_factor=factor,
                 previous_recalibration_factor=previous_factor,
-                recalibration_outcome=(
-                    RecalibrationOutcome.NO_FACTOR
-                    if factor is None
-                    else RecalibrationOutcome.APPLIED
-                ),
             ),
         )
 
@@ -468,20 +463,27 @@ class EmitComparisonsTest(TestCase):
         mocks[COMPARE_TRANSACTIONS].assert_not_called()
         mocks[COMPARE_FACTOR].assert_not_called()
 
-    def test_the_recalibration_comparison_covers_a_factor_that_was_not_stored(self) -> None:
-        config = mock_configuration(
-            self.organization,
-            results=DynamicSamplingResults(
-                recalibration_outcome=RecalibrationOutcome.OUT_OF_BOUNDS,
-            ),
-        )
+    @override_options({"dynamic-sampling.per_org.recalibration-rollout-rate": 1.0})
+    def test_the_recalibration_comparison_covers_a_pass_that_produced_no_factor(self) -> None:
+        config = mock_configuration(self.organization, sample_rate=0.5)
 
         with patch_configuration(ALL_COMPARISONS) as mocks:
             emit_comparisons(config)
 
-        # A factor that was computed and rejected is still worth reporting next to the
-        # legacy one; only a stage that never ran is skipped.
+        # No factor still reports the legacy one, which is how a pass where only EAP came up
+        # short is told apart from one where neither pipeline had the volume.
         mocks[COMPARE_FACTOR].assert_called_once_with(config)
+
+    @override_options({"dynamic-sampling.per_org.recalibration-rollout-rate": 1.0})
+    def test_the_recalibration_comparison_skips_an_org_without_a_sample_rate(self) -> None:
+        # Project-mode custom sampling has no organization sample rate, so recalibrate()
+        # bails and there is nothing to compare against.
+        config = mock_configuration(self.organization, sample_rate=None)
+
+        with patch_configuration(ALL_COMPARISONS) as mocks:
+            emit_comparisons(config)
+
+        mocks[COMPARE_FACTOR].assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate": 1.0})
     def test_the_summary_log_covers_a_pass_that_reached_project_volumes(self) -> None:

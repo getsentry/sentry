@@ -4,8 +4,9 @@ from unittest.mock import DEFAULT, MagicMock
 
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.cache import write_caches
-from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults, RecalibrationOutcome
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers import (
     recalibrate_orgs as legacy_recalibration_cache,
 )
@@ -59,35 +60,28 @@ class WriteCachesTest(TestCase):
             write_caches(config)
         return mocks
 
-    def test_an_applied_factor_is_stored(self) -> None:
-        mocks = self._write(
-            DynamicSamplingResults(
-                recalibration_factor=1.5,
-                recalibration_outcome=RecalibrationOutcome.APPLIED,
-            )
-        )
+    def test_a_factor_within_the_rebalance_bounds_is_stored(self) -> None:
+        mocks = self._write(DynamicSamplingResults(recalibration_factor=1.5))
 
         mocks[SET_FACTOR].assert_called_once_with(self.organization.id, 1.5)
         mocks[DELETE_FACTOR].assert_not_called()
 
+    def test_a_factor_at_the_rebalance_bounds_is_stored(self) -> None:
+        for factor in (MIN_REBALANCE_FACTOR, MAX_REBALANCE_FACTOR):
+            mocks = self._write(DynamicSamplingResults(recalibration_factor=factor))
+
+            mocks[SET_FACTOR].assert_called_once_with(self.organization.id, factor)
+            mocks[DELETE_FACTOR].assert_not_called()
+
     def test_a_factor_out_of_bounds_clears_the_stored_one(self) -> None:
-        mocks = self._write(
-            DynamicSamplingResults(recalibration_outcome=RecalibrationOutcome.OUT_OF_BOUNDS)
-        )
+        for factor in (MIN_REBALANCE_FACTOR / 2, MAX_REBALANCE_FACTOR * 2):
+            mocks = self._write(DynamicSamplingResults(recalibration_factor=factor))
 
-        # A stale factor must not keep being applied once the new one is rejected.
-        mocks[DELETE_FACTOR].assert_called_once_with(self.organization.id)
-        mocks[SET_FACTOR].assert_not_called()
+            # A stale factor must not keep being applied once the new one is rejected.
+            mocks[DELETE_FACTOR].assert_called_once_with(self.organization.id)
+            mocks[SET_FACTOR].assert_not_called()
 
-    def test_a_pass_without_enough_volume_leaves_the_stored_factor_alone(self) -> None:
-        mocks = self._write(
-            DynamicSamplingResults(recalibration_outcome=RecalibrationOutcome.NO_FACTOR)
-        )
-
-        mocks[SET_FACTOR].assert_not_called()
-        mocks[DELETE_FACTOR].assert_not_called()
-
-    def test_a_pass_that_never_recalibrated_writes_nothing(self) -> None:
+    def test_a_pass_without_a_factor_leaves_the_stored_one_alone(self) -> None:
         mocks = self._write(DynamicSamplingResults())
 
         mocks[SET_FACTOR].assert_not_called()

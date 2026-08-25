@@ -10,7 +10,6 @@ from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts
-from sentry.dynamic_sampling.per_org.results import RecalibrationOutcome
 from sentry.dynamic_sampling.per_org.scheduler import (
     run_calculations_per_org_task,
     schedule_per_org_calculations,
@@ -480,7 +479,6 @@ class RunCalculationsPerOrgTest(TestCase):
         assert mocks[RECALIBRATION_VOLUME].call_args.args[1] is org_volume
         assert config.results.recalibration_volume is recalibration_volume
         assert config.results.recalibration_factor == 4.0
-        assert config.results.recalibration_outcome == RecalibrationOutcome.APPLIED
         mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
         # The comparison reads the same results, so it runs after the last stage.
         _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
@@ -518,7 +516,6 @@ class RunCalculationsPerOrgTest(TestCase):
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         # One missing source leaves no effective sample rate, so there is no factor.
         assert config.results.recalibration_factor is None
-        assert config.results.recalibration_outcome == RecalibrationOutcome.NO_FACTOR
         mocks[SET_FACTOR].assert_not_called()
         # The comparison still runs, so the legacy factor is reported next to no EAP factor.
         _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
@@ -552,7 +549,6 @@ class RunCalculationsPerOrgTest(TestCase):
         assert result is None
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         assert config.results.recalibration_factor is None
-        assert config.results.recalibration_outcome == RecalibrationOutcome.NOT_RUN
         mocks[RECALIBRATION_VOLUME].assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
