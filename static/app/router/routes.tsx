@@ -302,10 +302,16 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/stories/*',
+      path: '/scraps/*',
       withOrgPath: true,
       // eslint-disable-next-line boundaries/dependencies -- storybook entrypoint
       component: make(() => import('sentry/stories/view/index')),
+    },
+    {
+      path: '/stories/*',
+      withOrgPath: true,
+      // eslint-disable-next-line boundaries/dependencies -- storybook redirect
+      component: make(() => import('sentry/stories/view/legacyStoriesRedirect')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
