@@ -207,6 +207,20 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert pr.external_id == 555
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_returns_when_the_provider_id_is_not_an_integer(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "not-a-number"}}
+        pr = self._stored_pr()
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        pr.refresh_from_db()
+        assert pr.external_id is None
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_returns_when_get_pull_request_fails(
         self,
         mock_get_state: MagicMock,

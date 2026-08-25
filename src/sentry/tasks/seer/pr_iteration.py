@@ -521,7 +521,7 @@ def _comment_pr_iteration_ineligible(
         pass
 
 
-def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> int:
+def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> int | None:
     """Recover a PR's provider-global id from its repo-scoped number.
 
     The fallback behind ``PullRequest.objects.get_or_fetch_external_id``, so it
@@ -529,9 +529,23 @@ def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> int:
     async, meaning the PR may have been deleted or made private, or the provider
     may return a transient error, between webhook receipt and execution —
     ``SCMError`` propagates to the caller, which is where the drop is logged.
+
+    ``internal_id`` is typed as a string id across providers, so a payload that
+    isn't a base-10 integer is possible in principle and is not storable in
+    ``external_id``. Treated as a miss rather than an exception: the caller
+    already handles ``None`` as "no id available", and a crashing task would
+    retry into the same unparseable payload.
     """
     pull_request = scm_actions.get_pull_request(scm, str(pr_number))
-    return int(pull_request["data"]["internal_id"])
+    internal_id = pull_request["data"]["internal_id"]
+    try:
+        return int(internal_id)
+    except (TypeError, ValueError):
+        logger.warning(
+            "autofix.pr_iteration.pr_id.unparseable_internal_id",
+            extra={"pr_number": pr_number, "internal_id": internal_id},
+        )
+        return None
 
 
 @instrumented_task(
