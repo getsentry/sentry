@@ -9,12 +9,12 @@ from django.utils import timezone
 
 from sentry import options as real_options
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.tasks.backfill_group_action_log import (
-    GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
     _reset_project,
     backfill_group_action_log_for_all_projects,
     backfill_group_action_log_for_group,
