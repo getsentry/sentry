@@ -249,6 +249,64 @@ describe('CronDetectorDetails - check-ins', () => {
     });
   });
 
+  describe('clock display', () => {
+    it('writes check-in times on the viewer 24 hour clock', async () => {
+      const defaultDataSource = CronMonitorDataSourceFixture();
+      const dataSouce = CronMonitorDataSourceFixture({
+        queryObj: {
+          ...defaultDataSource.queryObj,
+          environments: [
+            CronMonitorEnvironmentFixture({lastCheckIn: '2025-01-01T00:00:01Z'}),
+          ],
+        },
+      });
+
+      const detectorWithCheckIn = CronDetectorFixture({dataSources: [dataSouce]});
+
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/checkins/`,
+        body: [CheckInFixture()],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.id}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/processing-errors/`,
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/detectors/${detectorWithCheckIn.id}/`,
+        body: detectorWithCheckIn,
+      });
+
+      // A viewer in New York who has chosen the 24 hour clock.
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = true;
+      ConfigStore.set('user', user);
+
+      render(
+        <SentryDateTimeProvider>
+          <CronDetectorDetails detector={detectorWithCheckIn} project={project} />
+        </SentryDateTimeProvider>
+      );
+
+      const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
+      const container = recentCheckInsHeading.closest('section')!;
+      const checkInTable = await within(container).findByRole('table');
+
+      const headers = within(checkInTable).getAllByRole('columnheader');
+      const startedColumnIndex = headers.findIndex(h => h.textContent === 'Started');
+
+      const rows = within(checkInTable).getAllByRole('row');
+      const cells = within(rows[1]!).getAllByRole('cell');
+      const timeCell = cells[startedColumnIndex]!;
+
+      // The timezone override subtree has to carry the viewer's clock through
+      // rather than substituting a default of its own.
+      expect(timeCell).toHaveTextContent('Dec 31, 2024 19:00:01 EST');
+    });
+  });
+
   describe('setup docs button', () => {
     it('shows setup docs button when monitor has checked in', async () => {
       MockApiClient.addMockResponse({
