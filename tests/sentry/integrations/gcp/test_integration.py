@@ -288,13 +288,13 @@ class GcpIntegrationTest(TestCase):
         assert data["projects"] == "project-a, project-b, project-c"
 
     def test_get_config_data_empty_without_config(self) -> None:
-        installation = self._create_installed_integration()
+        self._create_installed_integration()
         oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)
         oi.update(config={})
 
-        installation = oi.integration.get_installation(organization_id=self.organization.id)
-        assert isinstance(installation, GcpIntegration)
-        assert installation.get_config_data() == {}
+        reinstalled = oi.integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(reinstalled, GcpIntegration)
+        assert reinstalled.get_config_data() == {}
 
     # -- Uninstall: SA deletion --
 
