@@ -5,9 +5,9 @@ import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
@@ -87,6 +87,7 @@ export function CodeBlock({
   selectedTab,
   tabs,
 }: CodeBlockProps) {
+  const {t} = useTranslation();
   const ref = useRef<HTMLModElement | null>(null);
   const theme = useTheme();
 
