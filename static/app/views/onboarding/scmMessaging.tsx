@@ -255,7 +255,7 @@ function validateActiveRow(
     return null;
   }
   const viewModel = providers.find(p => p.providerKey === activeRow.providerKey);
-  if (!viewModel || viewModel.status !== 'connected') {
+  if (viewModel?.status !== 'connected') {
     return null;
   }
   if (activeRow.mode === 'removing') {

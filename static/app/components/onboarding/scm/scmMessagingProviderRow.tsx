@@ -239,13 +239,9 @@ export function ScmMessagingProviderRow({
     onInstallComplete,
   ]);
 
-  const handleChooseDestination = () =>
-    onActiveRowChange({providerKey: viewModel.providerKey, mode: 'configuring'});
-  const handleEditDestination = () =>
-    onActiveRowChange({providerKey: viewModel.providerKey, mode: 'configuring'});
+  const activateRow = (mode: 'configuring' | 'removing') =>
+    onActiveRowChange({providerKey: viewModel.providerKey, mode});
   const handleCancelConfiguring = () => onActiveRowChange(null);
-  const handleStartRemoving = () =>
-    onActiveRowChange({providerKey: viewModel.providerKey, mode: 'removing'});
   const handleCancelRemoving = () => onActiveRowChange(null);
   const handleConfirmRemove = () => {
     onMessagingSetupChange({mode: 'unconfigured'});
@@ -319,9 +315,9 @@ export function ScmMessagingProviderRow({
                 visualState={visualState}
                 viewModel={viewModel}
                 onConnect={handleConnect}
-                onChooseDestination={handleChooseDestination}
-                onEditDestination={handleEditDestination}
-                onStartRemoving={handleStartRemoving}
+                onChooseDestination={() => activateRow('configuring')}
+                onEditDestination={() => activateRow('configuring')}
+                onStartRemoving={() => activateRow('removing')}
                 onCancelRemoving={handleCancelRemoving}
                 onConfirmRemove={handleConfirmRemove}
               />
