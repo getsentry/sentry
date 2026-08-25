@@ -253,35 +253,16 @@ describe('Tooltip', () => {
       expect(await contentRules('0')).toContain(`padding: ${theme.space['0']};`);
     });
 
-    it('drops the content padding when the title composes sections', async () => {
-      // Sections pad themselves so they can span the overlay, so composing them
-      // is by itself the signal that the shared padding has to go.
+    it('keeps the padding when the title composes sections', async () => {
+      // Sections pad themselves, so a tooltip built from them wants `'0'`. It
+      // is passed rather than inferred: inferring it would mean inspecting
+      // children, which cannot see sections behind a component boundary anyway.
       expect(
         await contentRules(undefined, <Tooltip.Header>test</Tooltip.Header>)
-      ).toContain(`padding: ${theme.space['0']};`);
+      ).toContain(`padding: ${theme.space.md} ${theme.space.lg};`);
     });
 
-    it('sees sections through the fragment they are usually siblings under', async () => {
-      expect(
-        await contentRules(
-          undefined,
-          <Fragment>
-            <Tooltip.Header>test</Tooltip.Header>
-            <Tooltip.Footer>UTC</Tooltip.Footer>
-          </Fragment>
-        )
-      ).toContain(`padding: ${theme.space['0']};`);
-    });
-
-    it('cannot see sections a component of its own renders', async () => {
-      // The case <TimeSince> is in: the sections are behind a component
-      // boundary, so the tooltip has no way to know they are there.
-      expect(await contentRules(undefined, <SectionCard />)).toContain(
-        `padding: ${theme.space.md} ${theme.space.lg};`
-      );
-    });
-
-    it('lets that component opt out with the prop instead', async () => {
+    it('lets a component that renders sections opt out with the prop', async () => {
       expect(await contentRules('0', <SectionCard />)).toContain(
         `padding: ${theme.space['0']};`
       );

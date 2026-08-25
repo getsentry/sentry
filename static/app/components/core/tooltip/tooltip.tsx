@@ -1,12 +1,4 @@
-import {
-  Children,
-  createContext,
-  Fragment,
-  isValidElement,
-  useContext,
-  useLayoutEffect,
-  useMemo,
-} from 'react';
+import {createContext, Fragment, useContext, useLayoutEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {SerializedStyles} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -67,42 +59,14 @@ export interface TooltipProps extends UseHoverOverlayProps {
   /**
    * Padding around the tooltip content.
    *
-   * Composing `Tooltip.Header`, `Tooltip.Grid` or `Tooltip.Footer` directly into
-   * `title` drops this to `'0'` on its own — each section applies its own
-   * padding so that it can span the full width of the overlay, which a shared
-   * outer padding would prevent.
+   * Set this to `'0'` when `title` is built from `Tooltip.Header`,
+   * `Tooltip.Grid` or `Tooltip.Footer`. Those sections apply their own padding
+   * so that they can span the full width of the overlay, which a shared outer
+   * padding would prevent.
    *
-   * Set it explicitly when the sections are rendered by a component of your own
-   * rather than passed here as elements. `title={<RelativeTime />}` is one
-   * element as far as this tooltip can see, so it cannot tell that the sections
-   * are in there.
-   *
-   * @default 'md lg', or '0' when `title` composes sections
+   * @default 'md lg'
    */
   padding?: ContainerProps['padding'];
-}
-
-/**
- * Whether `title` composes the section components directly, in which case the
- * overlay's own padding has to get out of their way.
- *
- * Only sees what this tooltip was handed. A component that renders sections
- * internally is opaque from here, so it passes `padding` itself.
- */
-function composesSections(node: React.ReactNode): boolean {
-  return Children.toArray(node).some(child => {
-    if (!isValidElement(child)) {
-      return false;
-    }
-
-    // Sections are almost always siblings under a fragment, which is one child
-    // from out here.
-    if (child.type === Fragment) {
-      return composesSections((child.props as {children?: React.ReactNode}).children);
-    }
-
-    return TOOLTIP_SECTIONS.has(child.type as React.ElementType);
-  });
 }
 
 function TooltipComponent({
@@ -111,13 +75,11 @@ function TooltipComponent({
   title,
   disabled = false,
   maxWidth,
-  padding,
+  padding = 'md lg',
   isHoverable = true,
   ...hoverOverlayProps
 }: TooltipProps) {
   const theme = useTheme();
-  const sectioned = useMemo(() => composesSections(title), [title]);
-  const resolvedPadding = padding ?? (sectioned ? '0' : 'md lg');
   const {container} = useContext(TooltipContext);
   const {
     wrapTrigger,
@@ -181,7 +143,7 @@ function TooltipComponent({
                 <TooltipContent
                   animated
                   maxWidth={maxWidth}
-                  padding={resolvedPadding}
+                  padding={padding}
                   arrowProps={arrowProps}
                   originPoint={arrowData}
                   placement={placement}
@@ -357,28 +319,16 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
 }
 
 /**
- * The sections, as a set, so that a tooltip can recognize them in its own
- * `title` and drop its content padding. Declared after them because a `const`
- * is not hoisted; `composesSections` only runs during render, by which point
- * this is initialized.
- */
-const TOOLTIP_SECTIONS = new Set<React.ElementType>([
-  TooltipHeader,
-  TooltipGrid,
-  TooltipRow,
-  TooltipFooter,
-]);
-
-/**
  * Tooltips show contextual information about an element on hover.
  *
  * For content that is a row of labelled values rather than a sentence, compose
- * it from the sections rather than passing a block of markup. Composing them
- * here drops the overlay's content padding, so that each section can apply its
- * own and span the full width:
+ * it from the sections rather than passing a block of markup. Pass
+ * `padding="0"` alongside them, so that each section can apply its own and span
+ * the full width:
  *
  * ```tsx
  * <Tooltip
+ *   padding="0"
  *   title={
  *     <Fragment>
  *       <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
@@ -394,8 +344,8 @@ const TOOLTIP_SECTIONS = new Set<React.ElementType>([
  * </Tooltip>
  * ```
  *
- * A component that renders the sections internally is opaque from out here, so
- * it has to pass `padding="0"` itself.
+ * That holds wherever the sections are rendered from. A component that renders
+ * them internally passes `padding="0"` on the tooltip it owns, the same way.
  *
  * Sections set their own text alignment, because a tooltip centers its content
  * by default — right for a sentence, wrong for a row of labelled values. Cells

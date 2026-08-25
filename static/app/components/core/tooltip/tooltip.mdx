@@ -202,9 +202,9 @@ Tooltips can display rich content including formatted text, multiple lines, and 
 ## Structured Content
 
 When a tooltip carries labelled values rather than a sentence, compose it out of
-`Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Footer`. Each section applies its own
-padding so that it spans the full width of the overlay, and composing them is by itself
-what drops the overlay's shared content padding — there is nothing to opt out of by hand.
+`Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Footer`, and pass `padding="0"` alongside
+them. Each section applies its own padding so that it spans the full width of the
+overlay, which the overlay's own shared padding would prevent.
 
 `Tooltip.Row` takes `leadingItems` and `trailingItems` either side of its main cell, and
 renders all three directly into the column tracks declared by `Tooltip.Grid`. That is what
@@ -212,12 +212,13 @@ keeps a column aligned across every row — below, the two dates line up even th
 and `UTC` are different widths. A row that owned its own grid would only align against
 itself.
 
-A component that renders these sections internally is opaque to the tooltip, so it does
-have to pass `padding="0"` itself.
+That holds wherever the sections are rendered from. A component that renders them
+internally passes `padding="0"` on the tooltip it owns, the same way.
 
 <Storybook.Demo>
   <Tooltip
     maxWidth={280}
+    padding="0"
     forceVisible
     title={
       <Fragment>
@@ -245,6 +246,7 @@ have to pass `padding="0"` itself.
 ```jsx
 <Tooltip
   maxWidth={280}
+  padding="0"
   title={
     <Fragment>
       <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
