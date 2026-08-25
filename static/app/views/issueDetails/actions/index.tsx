@@ -101,16 +101,9 @@ interface GroupActionsProps {
   event: Event | null;
   group: Group;
   project: Project;
-  visibleActions?: 'all' | 'resolve-only';
 }
 
-export function GroupActions({
-  group,
-  project,
-  disabled,
-  event,
-  visibleActions = 'all',
-}: GroupActionsProps) {
+export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
   const {openModal} = useModal();
 
   const theme = useTheme();
@@ -394,27 +387,6 @@ export function GroupActions({
       onClick(innerEvent);
     };
   };
-
-  if (visibleActions === 'resolve-only') {
-    return (
-      <Flex align="center" gap="xs">
-        {resolveCap.enabled && !isResolved && !isIgnored && (
-          <ResolveActions
-            disableResolveInRelease={!resolveInReleaseCap.enabled}
-            disabled={disabled}
-            disableDropdown={disabled}
-            hasRelease={hasRelease}
-            latestRelease={project.latestRelease}
-            hasSemverReleaseFeature={hasSemverReleaseFeature}
-            onUpdate={onUpdate}
-            project={project}
-            size="sm"
-            priority="primary"
-          />
-        )}
-      </Flex>
-    );
-  }
 
   return (
     <Fragment>

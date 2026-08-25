@@ -334,14 +334,29 @@ describe('IssuePreview', () => {
         ],
       },
     });
+    const resolveRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/issues/`,
+      method: 'PUT',
+      body: {...fixAppliedGroup, status: 'resolved'},
+    });
 
     render(<IssuePreview groupId={group.id} />, {organization});
 
-    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+    const resolveButton = await screen.findByRole('button', {name: 'Resolve'});
+    expect(resolveButton).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/${group.id}/`
     );
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+
+    await userEvent.click(resolveButton);
+
+    expect(resolveRequest).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/issues/`,
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
+    );
   });
 });

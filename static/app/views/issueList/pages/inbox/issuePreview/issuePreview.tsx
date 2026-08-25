@@ -45,6 +45,7 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {IssuePreviewActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
+import {IssuePreviewResolveActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewResolveActions';
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
@@ -230,12 +231,10 @@ function IssuePreviewContent() {
       >
         {isFixApplied ? (
           <Flex gap="sm">
-            <GroupActions
+            <IssuePreviewResolveActions
               group={group}
               project={project}
               disabled={disableActions}
-              event={null}
-              visibleActions="resolve-only"
             />
             <OpenIssueButton group={group} to={issueDetailsUrl} size="sm" />
           </Flex>
