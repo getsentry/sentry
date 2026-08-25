@@ -50,6 +50,15 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert "provider_key" not in resp.context
         assert resp.context["join_request_link"]
 
+    def test_renders_react_template_with_cookie(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+        self.assertTemplateNotUsed(response, "sentry/organization-login.html")
+
     def test_cannot_get_request_join_link_with_setting_disabled(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             OrganizationOption.objects.create(

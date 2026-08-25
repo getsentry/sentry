@@ -9,7 +9,7 @@ import {Input} from '@sentry/scraps/input';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {Group} from 'sentry/types/group';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -89,17 +89,27 @@ function IssueOwnerDebbuging() {
           </Button>
         </SearchContainer>
       </form>
-      <PanelTable headers={['Type', 'Rule']} isEmpty={!ruleMatches.length}>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>Type</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>Rule</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {ruleMatches.length === 0 && (
+          <SimpleTable.Empty>There are no items to display</SimpleTable.Empty>
+        )}
         {ruleMatches.map(({source, rule}, index) => (
-          <Fragment key={rule}>
-            <div>{source}</div>
-            <div>
+          <SimpleTable.Row key={rule}>
+            <SimpleTable.RowCell>{source}</SimpleTable.RowCell>
+            <SimpleTable.RowCell gap="md">
               <span>{rule}</span>
               {!index && <StyledTag variant="success">Assigned Rule</StyledTag>}
-            </div>
-          </Fragment>
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
         ))}
-      </PanelTable>
+      </SimpleTable>
     </Fragment>
   );
 }

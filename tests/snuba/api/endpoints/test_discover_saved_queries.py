@@ -295,7 +295,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         with (
             self.feature(self.feature_name),
-            self.feature("organizations:discover-saved-queries-deprecation"),
+            self.feature("organizations:deprecate-discover"),
         ):
             response = self.client.get(self.url)
 

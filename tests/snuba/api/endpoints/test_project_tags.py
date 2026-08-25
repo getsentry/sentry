@@ -26,7 +26,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
 
         data = {v["key"]: v for v in response.data}
-        assert len(data) == 3
+        assert len(data) == 4
 
         assert data["foo"]["canDelete"]
         assert data["foo"]["uniqueValues"] == 1
@@ -51,7 +51,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         )
 
         data = {v["key"]: v for v in response.data}
-        assert len(data) == 3
+        assert len(data) == 4
 
         assert data["foo"]["canDelete"]
         assert "uniqueValues" not in data["foo"]

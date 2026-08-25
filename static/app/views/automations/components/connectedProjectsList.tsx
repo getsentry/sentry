@@ -81,10 +81,13 @@ export function ConnectedProjectsList({automationId}: Props) {
 
   return (
     <Container>
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isPending && (
           <Fragment>
             {Array.from({length: LIMIT}).map((_, i) => (

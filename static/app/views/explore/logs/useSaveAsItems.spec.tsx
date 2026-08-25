@@ -211,7 +211,7 @@ describe('useSaveAsItems', () => {
     expect(saveAsItems.some(item => item.key === 'save-query')).toBe(true);
   });
 
-  it('disables the alert option with an upsell tooltip when metric alerts are unavailable', () => {
+  it('enables the alert option when there are aggregates', () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: createWrapper(),
       initialProps: {
@@ -225,37 +225,10 @@ describe('useSaveAsItems', () => {
     });
 
     const alertItem = result.current.find(item => item.key === 'create-alert') as
-      | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
-      | undefined;
-
-    expect(alertItem?.disabled).toBe(true);
-    expect(alertItem?.tooltip).toBe('Monitors are not available on your current plan.');
-    expect(alertItem?.children).toEqual([]);
-  });
-
-  it('enables the alert option when the org has metric alerts', () => {
-    const orgWithAlerts = OrganizationFixture({
-      features: ['ourlogs-enabled', 'incidents'],
-    });
-
-    const {result} = renderHookWithProviders(useSaveAsItems, {
-      additionalWrapper: createWrapper(orgWithAlerts),
-      initialProps: {
-        visualizes: [new VisualizeFunction('count()')],
-        groupBys: ['message.template'],
-        interval: '5m',
-        mode: Mode.AGGREGATE,
-        search: new MutableSearch('message:"test error"'),
-        sortBys: [{field: 'timestamp', kind: 'desc'}],
-      },
-    });
-
-    const alertItem = result.current.find(item => item.key === 'create-alert') as
-      | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
+      | {children: unknown[]; disabled: boolean}
       | undefined;
 
     expect(alertItem?.disabled).toBe(false);
-    expect(alertItem?.tooltip).toBeUndefined();
     expect(alertItem?.children).toHaveLength(1);
   });
 
