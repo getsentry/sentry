@@ -20,8 +20,9 @@ function InboxCountBadge() {
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
-  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const hasInbox = hasProgressUi && orgHasSeerAccess(organization);
+  const hasIssueInbox = organization.features.includes('issue-inbox');
+  const hasInbox = hasIssueInbox && orgHasSeerAccess(organization);
+  const hasSeerNightShift = organization.features.includes('seer-night-shift-ui');
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -87,20 +88,34 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {!hasProgressUi && (
+        {(hasSeerNightShift || !hasIssueInbox) && (
           <Fragment>
             <SecondaryNavigation.Separator />
             <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
               <SecondaryNavigation.List>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/autofix/recent/`}
-                    analyticsItemName="issues_autofix"
-                    end
-                  >
-                    {t('Recently Run')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
+                {hasSeerNightShift && (
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/autofix/overview/`}
+                      analyticsItemName="issues_autofix_overview"
+                      end
+                      trailingItems={<FeatureBadge type="new" />}
+                    >
+                      {t('Overview')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                )}
+                {!hasIssueInbox && (
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/autofix/recent/`}
+                      analyticsItemName="issues_autofix"
+                      end
+                    >
+                      {t('Recently Run')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                )}
               </SecondaryNavigation.List>
             </SecondaryNavigation.Section>
           </Fragment>

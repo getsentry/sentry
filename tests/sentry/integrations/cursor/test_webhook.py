@@ -161,7 +161,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(self._build_status_payload(status="FINISHED"))
         headers = self._signed_headers(body)
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             response = self._post_with_headers(body, headers)
 
         assert response.status_code == 204
@@ -213,7 +213,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(self._build_status_payload(status="FINISHED"))
         headers = self._signed_headers(body)
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             response = self._post_with_headers(body, headers)
 
         assert response.status_code == 204
@@ -225,7 +225,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(self._build_status_payload(status="ERROR", pr_url=None))
         headers = self._signed_headers(body)
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             response = self._post_with_headers(body, headers)
 
         assert response.status_code == 204
@@ -239,7 +239,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=None))
         headers = self._signed_headers(body)
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             response = self._post_with_headers(body, headers)
 
         assert response.status_code == 204
@@ -257,7 +257,7 @@ class TestCursorWebhook(APITestCase):
             known_to_seer=False, run_id=None, group_id=None
         )
         body = orjson.dumps(self._build_status_payload(status="FINISHED"))
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             assert self._post_with_headers(body, self._signed_headers(body)).status_code == 204
         extra = self._skip_log_extra(mock_logger)
         assert extra["known_to_seer"] is False
@@ -269,7 +269,7 @@ class TestCursorWebhook(APITestCase):
             known_to_seer=True, run_id=None, group_id=None
         )
         body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=None))
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             assert self._post_with_headers(body, self._signed_headers(body)).status_code == 204
         extra = self._skip_log_extra(mock_logger)
         assert extra["known_to_seer"] is True
@@ -281,7 +281,7 @@ class TestCursorWebhook(APITestCase):
         body = orjson.dumps(self._build_status_payload(status="FINISHED"))
         headers = self._signed_headers(body)
 
-        with self.feature({"organizations:pr-metrics-attribution": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             response = self._post_with_headers(body, headers)
 
         assert response.status_code == 204
@@ -426,7 +426,7 @@ class TestCursorWebhook(APITestCase):
             body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=bad_url))
             headers = self._signed_headers(body)
 
-            with self.feature("organizations:pr-metrics-attribution"):
+            with self.feature(["organizations:pr-metrics"]):
                 response = self._post_with_headers(body, headers)
 
             assert response.status_code == 204, bad_url

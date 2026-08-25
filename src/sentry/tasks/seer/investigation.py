@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 
 from sentry.investigations.agent import start_execution_run
-from sentry.investigations.models import (
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
+from sentry.investigations.models import InvestigationBlockExecution
+from sentry.investigations.services import (
+    mark_block_execution_dispatch_failed,
+    mark_block_execution_dispatch_started,
 )
-from sentry.investigations.services import mark_block_execution_dispatch_failed
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.service import user_service
@@ -22,10 +22,13 @@ logger = logging.getLogger(__name__)
 def dispatch_investigation_execution(execution_id: int) -> None:
     execution = (
         InvestigationBlockExecution.objects.select_related("block__investigation__organization")
-        .filter(id=execution_id, status=InvestigationBlockExecutionStatus.PENDING)
+        .filter(id=execution_id)
         .first()
     )
     if execution is None:
+        return
+    dispatch_claimed_at = mark_block_execution_dispatch_started(execution)
+    if dispatch_claimed_at is None:
         return
     user = (
         user_service.get_user(user_id=execution.triggered_by_id)
@@ -37,7 +40,8 @@ def dispatch_investigation_execution(execution_id: int) -> None:
             execution,
             execution.block.investigation.organization,
             user,
+            dispatch_claimed_at=dispatch_claimed_at,
         )
     except Exception:
         logger.exception("investigations.execution.dispatch_failed")
-        mark_block_execution_dispatch_failed(execution)
+        mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=dispatch_claimed_at)
