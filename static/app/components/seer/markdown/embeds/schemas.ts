@@ -157,14 +157,17 @@ export const SEER_EMBED_SCHEMAS = {
     description:
       'The ONLY way to reference a Sentry Session Replay. ' +
       'Use the replay ID, not the legacy project-slug:replay-id form. ' +
-      'Provide eventTimestamp when the replay should open around a relevant event. ' +
+      'Provide eventTimestamp as an ISO 8601 timestamp with a timezone offset ' +
+      '(for example, Z or +00:00) when the replay should open around a relevant event. ' +
       'Inline: renders a compact link. ' +
       'Block: renders a standalone replay reference. ' +
       'Never use a markdown link for replay references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      eventTimestamp: isoTimestampSchema.optional(),
+      eventTimestamp: isoTimestampSchema
+        .describe('ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)')
+        .optional(),
     }),
     examples: [
       {

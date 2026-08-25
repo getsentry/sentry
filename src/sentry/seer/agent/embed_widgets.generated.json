@@ -218,7 +218,7 @@
   },
   {
     "name": "replay",
-    "description": "The ONLY way to reference a Sentry Session Replay. Use the replay ID, not the legacy project-slug:replay-id form. Provide eventTimestamp when the replay should open around a relevant event. Inline: renders a compact link. Block: renders a standalone replay reference. Never use a markdown link for replay references.",
+    "description": "The ONLY way to reference a Sentry Session Replay. Use the replay ID, not the legacy project-slug:replay-id form. Provide eventTimestamp as an ISO 8601 timestamp with a timezone offset (for example, Z or +00:00) when the replay should open around a relevant event. Inline: renders a compact link. Block: renders a standalone replay reference. Never use a markdown link for replay references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -231,7 +231,8 @@
         "eventTimestamp": {
           "type": "string",
           "format": "date-time",
-          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+          "description": "ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)"
         }
       },
       "required": ["id"],
