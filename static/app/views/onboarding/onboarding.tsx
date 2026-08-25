@@ -28,8 +28,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-// DEV: restore when fixture pass is done
-// import {useExperiment} from 'sentry/utils/useExperiment';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -49,8 +48,7 @@ import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 // Genuine new-org onboarding happens shortly after org creation. Existing orgs
 // only reach /onboarding via stale links + login replay and are far older than
 // this window, so gating exposure on org age keeps them out of the experiment.
-// DEV: restore when fixture pass is done
-// const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
@@ -297,26 +295,23 @@ export function OnboardingWithoutContext() {
   // otherwise contaminate the experiment population. reportExposure does not
   // affect the returned `inExperiment` assignment, so step selection below still
   // works for everyone.
-  // DEV: restore when fixture pass is done
-  // const [isNewOrgOnboarding] = useState(
-  //   () =>
-  //     Date.now() - new Date(organization.dateCreated).getTime() <
-  //     NEW_ORG_ONBOARDING_WINDOW_MS
-  // );
-  //
-  // const {inExperiment: hasScmOnboarding} = useExperiment({
-  //   feature: 'onboarding-scm-experiment',
-  //   reportExposure: isNewOrgOnboarding,
-  // });
-  //
-  // // VDY-146 owns treatment exposure and interaction analytics. For now the
-  // // host consumes the nested assignment without reporting it.
-  // const {inExperiment: hasScmMessaging} = useExperiment({
-  //   feature: 'onboarding-scm-messaging-experiment',
-  //   reportExposure: false,
-  // });
-  const hasScmOnboarding = true; // DEV: force SCM onboarding
-  const hasScmMessaging = true; // DEV: force messaging step
+  const [isNewOrgOnboarding] = useState(
+    () =>
+      Date.now() - new Date(organization.dateCreated).getTime() <
+      NEW_ORG_ONBOARDING_WINDOW_MS
+  );
+
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+    reportExposure: isNewOrgOnboarding,
+  });
+
+  // VDY-146 owns treatment exposure and interaction analytics. For now the
+  // host consumes the nested assignment without reporting it.
+  const {inExperiment: hasScmMessaging} = useExperiment({
+    feature: 'onboarding-scm-messaging-experiment',
+    reportExposure: false,
+  });
 
   const onboardingSteps = getOnboardingSteps({hasScmOnboarding, hasScmMessaging});
 
