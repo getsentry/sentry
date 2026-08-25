@@ -24,20 +24,22 @@ URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
     # The full hostname - everything between the `//` after the scheme and the `/` which marks the
     # start of the path
     (?P<full_hostname>
+        # One or more copies of a bracketed value, optionally surrounded by non-bracketed characters
         (
-            # Zero or more non-bracket, non-slash, legal hostname characters
+            # Zero or more non-bracket, non-slash, legal hostname characters. (To avoid lots of
+            # typing, let's call them NB-NS-LH characters.)
             [^\[\]/'"`\\<>{}|\^\s?#]*
             (?P<value_with_brackets>
                 \[
                 (?P<bracketed_value>
-                    # One or more such characters. Allows spaces in order to catch values like
-                    # `[Filtered UUID]` and `[REDACTED IP]`.
+                    # At least one NB-NS-LH character. Also allows spaces in order to catch values
+                    # like `[Filtered UUID]` and `[REDACTED IP]`.
                     [^\[\]/'"`\\<>{}|\^?#]+
                 )
                 \]
             )
-            # Zero or more such characters
-            [^\[\]/'"`\\<>{}|\^\s?#]* # Zero or more such characters
+            # Another set of zero or more NB-NS-LH characters
+            [^\[\]/'"`\\<>{}|\^\s?#]*
         )+
     )
     # The rest of the URL (path, query string, and fragment) is technically optional
