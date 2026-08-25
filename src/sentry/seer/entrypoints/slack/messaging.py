@@ -21,7 +21,7 @@ from sentry.notifications.platform.service import (
     serialize_notification_data,
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+from sentry.notifications.platform.slack.renderers.seer import SeerAutofixUpdateSlackRenderer
 from sentry.notifications.platform.templates.seer import SeerAgentResponse, SeerAutofixUpdate
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -273,7 +273,7 @@ def update_existing_message(
 
         parsed_blocks = [Block.parse(block) for block in blocks]
         footer_extra_text = f"(ty <@{slack_user_id}>)" if slack_user_id else None
-        footer_blocks = SeerSlackRenderer.render_footer_blocks(
+        footer_blocks = SeerAutofixUpdateSlackRenderer.render_footer_blocks(
             data=data, extra_text=footer_extra_text, has_complete_stage=has_complete_stage
         )
         parsed_blocks.extend(footer_blocks)

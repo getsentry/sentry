@@ -32,7 +32,9 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
@@ -85,29 +87,8 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
 }
 
 
-class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
-    @classmethod
-    def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
-    ) -> SlackRenderable:
-        if isinstance(data, SeerAutofixTrigger):
-            autofix_button = cls._render_autofix_button(data)
-            return SlackRenderable(
-                blocks=[ActionsBlock(elements=[autofix_button])],
-                text="Seer Autofix Trigger",
-            )
-        elif isinstance(data, SeerAutofixError):
-            return cls._render_autofix_error(data)
-        elif isinstance(data, SeerAutofixUpdate):
-            return cls._render_autofix_update(data)
-        elif isinstance(data, SeerAgentError):
-            return cls._render_agent_error(data)
-        elif isinstance(data, SeerAgentResponse):
-            if data.write_approval_scopes:
-                return cls._render_agent_write_approval(data)
-            return cls._render_agent_response(data)
-        else:
-            raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
+class _SeerSlackRenderer:
+    provider_key = NotificationProviderKey.SLACK
 
     @classmethod
     def create_first_block_id(cls, group_id: int, run_id: int | None) -> str:
@@ -435,3 +416,100 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             )
         )
+
+
+class SeerAutofixTriggerSlackRenderer(_SeerSlackRenderer, NotificationRenderer[SlackRenderable]):
+    @classmethod
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> SlackRenderable:
+        if not isinstance(data, SeerAutofixTrigger):
+            raise ValueError(
+                f"SeerAutofixTriggerSlackRenderer does not support {data.__class__.__name__}"
+            )
+        return SlackRenderable(
+            blocks=[ActionsBlock(elements=[cls._render_autofix_button(data)])],
+            text="Seer Autofix Trigger",
+        )
+
+
+class SeerAutofixErrorSlackRenderer(_SeerSlackRenderer, NotificationRenderer[SlackRenderable]):
+    @classmethod
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> SlackRenderable:
+        if not isinstance(data, SeerAutofixError):
+            raise ValueError(
+                f"SeerAutofixErrorSlackRenderer does not support {data.__class__.__name__}"
+            )
+        return cls._render_autofix_error(data)
+
+
+class SeerAutofixUpdateSlackRenderer(_SeerSlackRenderer, NotificationRenderer[SlackRenderable]):
+    @classmethod
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> SlackRenderable:
+        if not isinstance(data, SeerAutofixUpdate):
+            raise ValueError(
+                f"SeerAutofixUpdateSlackRenderer does not support {data.__class__.__name__}"
+            )
+        return cls._render_autofix_update(data)
+
+
+class SeerAgentErrorSlackRenderer(_SeerSlackRenderer, NotificationRenderer[SlackRenderable]):
+    @classmethod
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> SlackRenderable:
+        if not isinstance(data, SeerAgentError):
+            raise ValueError(
+                f"SeerAgentErrorSlackRenderer does not support {data.__class__.__name__}"
+            )
+        return cls._render_agent_error(data)
+
+
+class SeerAgentResponseSlackRenderer(_SeerSlackRenderer, NotificationRenderer[SlackRenderable]):
+    @classmethod
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> SlackRenderable:
+        if not isinstance(data, SeerAgentResponse):
+            raise ValueError(
+                f"SeerAgentResponseSlackRenderer does not support {data.__class__.__name__}"
+            )
+        return cls._render_agent_response(data)
+
+
+class SeerAgentWriteApprovalSlackRenderer(
+    _SeerSlackRenderer, NotificationRenderer[SlackRenderable]
+):
+    @classmethod
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> SlackRenderable:
+        if not isinstance(data, SeerAgentResponse) or not data.write_approval_scopes:
+            raise ValueError(
+                f"SeerAgentWriteApprovalSlackRenderer does not support {data.__class__.__name__}"
+            )
+        return cls._render_agent_write_approval(data)
+
+
+_SEER_SLACK_RENDERERS: dict[NotificationSource, type[NotificationRenderer[SlackRenderable]]] = {
+    NotificationSource.SEER_AUTOFIX_TRIGGER: SeerAutofixTriggerSlackRenderer,
+    NotificationSource.SEER_AUTOFIX_ERROR: SeerAutofixErrorSlackRenderer,
+    NotificationSource.SEER_AUTOFIX_UPDATE: SeerAutofixUpdateSlackRenderer,
+    NotificationSource.SEER_AGENT_ERROR: SeerAgentErrorSlackRenderer,
+    NotificationSource.SEER_AGENT_RESPONSE: SeerAgentResponseSlackRenderer,
+}
+
+
+def get_seer_slack_renderer(
+    data: NotificationData,
+) -> type[NotificationRenderer[SlackRenderable]]:
+    if isinstance(data, SeerAgentResponse) and data.write_approval_scopes:
+        return SeerAgentWriteApprovalSlackRenderer
+    try:
+        return _SEER_SLACK_RENDERERS[data.source]
+    except KeyError:
+        raise ValueError(f"No Seer Slack renderer registered for {data.source}") from None
