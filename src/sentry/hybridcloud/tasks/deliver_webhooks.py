@@ -571,11 +571,21 @@ def schedule_webhook_delivery() -> None:
         .values("id", "mailbox_name")
     )
 
+    records = list(scheduled_mailboxes[:BATCH_SIZE])
+    # The dispatch batch already answers the metric for every normal cycle. Only
+    # when it fills is the real number unknown, and only then is re-running the
+    # head-of-line discovery worth it -- those wide cycles are the ones worth seeing.
+    # `source` records which branch produced the value, so the share of cycles
+    # still paying for the count query is visible rather than inferred.
+    batch_full = len(records) == BATCH_SIZE
+    mailbox_count = scheduled_mailboxes.count() if batch_full else len(records)
     metrics.distribution(
-        "hybridcloud.schedule_webhook_delivery.mailbox_count", scheduled_mailboxes.count()
+        "hybridcloud.schedule_webhook_delivery.mailbox_count",
+        mailbox_count,
+        tags={"source": "count_query" if batch_full else "batch"},
     )
 
-    for record in scheduled_mailboxes[:BATCH_SIZE]:
+    for record in records:
         mailbox_name = record["mailbox_name"]
         if not _use_claim_dispatch(mailbox_name):
             # Lease-mode mailbox (the legacy path): skip anything a push-triggered
