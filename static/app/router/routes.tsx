@@ -1,5 +1,5 @@
 import type {RouteObject} from 'react-router-dom';
-import {Navigate, Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
@@ -11,7 +11,6 @@ import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
-import {useLocation} from 'sentry/utils/useLocation';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
@@ -52,24 +51,6 @@ import {type SentryRouteObject} from './types';
 const routeHook = (name: OverrideName): SentryRouteObject => {
   return getOverride(name)?.() ?? {};
 };
-
-export function LegacyStoriesRedirect() {
-  const location = useLocation();
-
-  return (
-    <Navigate
-      replace
-      to={{
-        pathname: location.pathname.replace(
-          /^(\/organizations\/[^/]+)?\/stories(?=\/|$)/,
-          '$1/scraps'
-        ),
-        search: location.search,
-        hash: location.hash,
-      }}
-    />
-  );
-}
 
 function buildRoutes(): RouteObject[] {
   // Read this to understand where to add new routes, how / why the routing
@@ -329,7 +310,9 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/stories/*',
       withOrgPath: true,
-      component: LegacyStoriesRedirect,
+      // A redirectTo cannot preserve the wildcard deep link, query, or hash.
+      // eslint-disable-next-line boundaries/dependencies -- storybook redirect
+      component: make(() => import('sentry/stories/view/legacyStoriesRedirect')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
