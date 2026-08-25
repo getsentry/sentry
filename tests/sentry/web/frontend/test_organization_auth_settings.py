@@ -13,6 +13,7 @@ from sentry.auth.providers.dummy import (
     DummySAML2Provider,
     dummy_provider_config,
 )
+from sentry.auth.providers.saml2.activedirectory.provider import ActiveDirectorySAML2Provider
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
@@ -697,6 +698,18 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
             om.save()
         return om
 
+    def test_settings_form_includes_x509cert(self) -> None:
+        organization, _auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+
+        self.login_as(self.user, organization_id=organization.id)
+        with self.feature("organizations:sso-basic"):
+            resp = self.client.get(path)
+
+        assert resp.status_code == 200
+        assert "x509cert" in resp.context["form"].fields
+
     def test_edit_sso_settings(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
@@ -777,6 +790,17 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
             organization_id=self.organization.id,
         )
 
+    def test_settings_form_does_not_duplicate_x509cert(self) -> None:
+        self.login_as(self.user, organization_id=self.organization.id)
+        configure_path = reverse(
+            "sentry-organization-auth-provider-settings", args=[self.organization.slug]
+        )
+        resp = self.client.get(configure_path)
+        assert resp.status_code == 200
+        assert "x509cert" not in resp.context["form"].fields
+        assert b"x509 public certificate" in resp.content
+        assert resp.content.count(b"x509 public certificate") == 1
+
     def test_update_generic_saml2_config(self) -> None:
         self.login_as(self.user, organization_id=self.organization.id)
 
@@ -811,6 +835,13 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
 
         assert actual.provider == self.auth_provider_inst.provider
         assert actual.flags == self.auth_provider_inst.flags
+
+@control_silo_test
+class OrganizationAuthSettingsActiveDirectoryTest(OrganizationAuthSettingsGenericSAML2Test):
+    """Azure/Entra uses Active Directory, which inherits GenericSAML2Provider."""
+
+    provider = ActiveDirectorySAML2Provider
+    provider_name = "active-directory"
 
 
 @control_silo_test
