@@ -571,7 +571,6 @@ describe('ScmMessagingProviderRow', () => {
 
       act(() => capturedOnCancel?.());
 
-      // Picker animates out (ScmCollapsibleReveal 200ms exit); wait for it to leave.
       await waitFor(() =>
         expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
       );
@@ -694,7 +693,6 @@ describe('ScmMessagingProviderRow', () => {
         />
       );
 
-      // Picker animates out (ScmCollapsibleReveal 200ms exit); wait for it to leave.
       await waitFor(() =>
         expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
       );

@@ -56,8 +56,7 @@ type RowVisualState =
   | 'permission-limited'
   /**
    * Integration is connected but no destination has been saved yet, and the
-   * user has not explicitly opened the picker. Shows the Connected pill and a
-   * "+ Choose destination" CTA.
+   * user has not explicitly opened the picker.
    */
   | 'choose-destination'
   /** Destination is being configured (channel picker rendered inline). */

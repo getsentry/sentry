@@ -168,7 +168,6 @@ describe('ScmMessaging', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
     );
-    // The alert animates out (ScmCollapsibleReveal 200ms exit); wait for it to leave.
     await waitFor(() => expect(screen.queryByText(warning)).not.toBeInTheDocument());
   });
 
