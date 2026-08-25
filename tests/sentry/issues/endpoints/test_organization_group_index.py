@@ -420,21 +420,24 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(project_id=[-1])
         assert response.status_code == 200
 
-    def test_boolean_search_feature_flag(self) -> None:
+    def test_boolean_search_not_supported(self) -> None:
         self.login_as(user=self.user)
+        expected_detail = (
+            'Error parsing search query: Boolean statements containing "OR" or "AND" are not '
+            "supported in this search"
+        )
+
         response = self.get_response(sort_by="date", query="title:hello OR title:goodbye")
         assert response.status_code == 400
-        assert (
-            response.data["detail"]
-            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
-        )
+        assert response.data["detail"] == expected_detail
 
         response = self.get_response(sort_by="date", query="title:hello AND title:goodbye")
         assert response.status_code == 400
-        assert (
-            response.data["detail"]
-            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
-        )
+        assert response.data["detail"] == expected_detail
+
+        response = self.get_response(sort_by="date", query="has:[title,message]")
+        assert response.status_code == 400
+        assert response.data["detail"] == expected_detail
 
     def test_invalid_query(self) -> None:
         now = timezone.now()
@@ -4169,6 +4172,22 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+    def test_rejects_negative_snooze_count(self) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED)
+
+        self.login_as(user=self.user)
+
+        self.get_error_response(
+            qs_params={"id": group.id},
+            status="ignored",
+            ignoreCount=-1,
+            status_code=400,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        assert not GroupSnooze.objects.filter(group=group).exists()
 
     def test_snooze_user_count(self) -> None:
         for i in range(10):

@@ -13,6 +13,8 @@ from sentry.hybridcloud.tasks.deliver_from_outbox import (
     enqueue_outbox_jobs,
     enqueue_outbox_jobs_control,
 )
+from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -41,16 +43,20 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
     yield
     from sentry.testutils.helpers.task_runner import TaskRunner
 
+    outbox_models = [
+        OutboxBase.from_outbox_name(outbox_name)
+        for outbox_names in settings.SENTRY_OUTBOX_MODELS.values()
+        for outbox_name in outbox_names
+    ]
+    outbox_models.append(GroupActionLogOutbox)
+
     with TaskRunner(), assume_test_silo_mode(SiloMode.MONOLITH):
-        for i in range(10):
+        for _ in range(10):
             enqueue_outbox_jobs(concurrency=1, process_outbox_backfills=False)
             enqueue_outbox_jobs_control(concurrency=1, process_outbox_backfills=False)
+            enqueue_group_action_log_outbox_jobs(concurrency=1)
 
-            if not any(
-                OutboxBase.from_outbox_name(outbox_name).find_scheduled_shards()
-                for outbox_names in settings.SENTRY_OUTBOX_MODELS.values()
-                for outbox_name in outbox_names
-            ):
+            if not any(outbox_model.find_scheduled_shards() for outbox_model in outbox_models):
                 break
         else:
             raise OutboxRecursionLimitError

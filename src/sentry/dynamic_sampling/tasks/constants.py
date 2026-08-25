@@ -1,9 +1,16 @@
 from datetime import timedelta
 
+from sentry import options
+
 # TTL in milliseconds for values persisted by the dynamic sampling tasks.
 DEFAULT_REDIS_CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # 24 hours
-# TTL in milliseconds for the adjusted factor value persisted by the recalibrate org task.
-ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL = 10 * 60 * 1000  # 10 minutes
+
+ADJUSTED_FACTOR_TTL_MINUTES_OPTION = "dynamic-sampling.recalibration.factor-ttl-minutes"
+
+
+def adjusted_factor_ttl_ms() -> int:
+    return int(options.get(ADJUSTED_FACTOR_TTL_MINUTES_OPTION)) * 60 * 1000
+
 
 # Parameters to bound the queries run in Snuba.
 MAX_ORGS_PER_QUERY = 80

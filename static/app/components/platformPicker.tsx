@@ -55,15 +55,10 @@ export type Platform = PlatformIntegration & {
 interface PlatformPickerProps {
   setPlatform: (props: Platform | null) => void;
   defaultCategory?: Category;
-  listClassName?: string;
-  listProps?: React.HTMLAttributes<HTMLDivElement>;
   loading?: boolean;
-  modal?: boolean;
-  navClassName?: string;
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
-  showFilterBar?: boolean;
   showOther?: boolean;
   source?: string;
   /**
@@ -82,15 +77,11 @@ export function PlatformPicker({
   noAutoFilter,
   platform,
   setPlatform,
-  listProps,
-  listClassName,
-  navClassName,
   organization,
   source,
   variant,
   visibleSelection = true,
   loading = false,
-  showFilterBar = true,
   showOther = true,
 }: PlatformPickerProps) {
   const {isSelfHosted} = useLegacyStore(ConfigStore);
@@ -217,7 +208,7 @@ export function PlatformPicker({
 
   return (
     <Fragment>
-      <NavContainer className={navClassName}>
+      <NavContainer>
         <Container marginBottom="xl">
           <Tabs
             value={category}
@@ -239,19 +230,17 @@ export function PlatformPicker({
             </TabList>
           </Tabs>
         </Container>
-        {showFilterBar && (
-          <StyledSearchBar
-            size="sm"
-            query={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={val => {
-              setFilter(val);
-              debounceSearch();
-            }}
-          />
-        )}
+        <StyledSearchBar
+          size="sm"
+          query={filter}
+          placeholder={t('Filter Platforms')}
+          onChange={val => {
+            setFilter(val);
+            debounceSearch();
+          }}
+        />
       </NavContainer>
-      <PlatformList className={listClassName} {...listProps}>
+      <PlatformList>
         {platformList.map(item => {
           return (
             <div key={item.id} style={{position: 'relative'}}>

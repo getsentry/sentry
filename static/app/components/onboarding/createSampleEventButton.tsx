@@ -23,7 +23,6 @@ type CreateSampleEventButtonProps = ButtonProps & {
   source: string;
   hasScmOnboarding?: boolean;
   onClick?: () => void;
-  onCreateSampleGroup?: () => void;
   project?: Project;
 };
 
@@ -34,7 +33,6 @@ export function CreateSampleEventButton({
   source,
   hasScmOnboarding,
   onClick,
-  onCreateSampleGroup,
   project,
   ...buttonProps
 }: CreateSampleEventButtonProps) {
@@ -69,9 +67,7 @@ export function CreateSampleEventButton({
         return;
       }
 
-      if (onCreateSampleGroup) {
-        onCreateSampleGroup();
-      } else if (hasScmOnboarding) {
+      if (hasScmOnboarding) {
         trackAnalytics('onboarding.scm_view_sample_event_clicked', {
           platform: project.platform,
           organization,

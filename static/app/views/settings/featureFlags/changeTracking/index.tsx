@@ -11,8 +11,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -173,21 +173,31 @@ function OrganizationFeatureFlagsChangeTracking() {
           'Look below for a list of the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
         )}
       </TextBlock>
-      <ResponsivePanelTable
-        isLoading={isPending || isError}
-        isEmpty={!isPending && !secretList?.data?.length}
-        loader={
-          isError ? (
+      <ResponsiveSimpleTable
+        data-test-id="secrets-table"
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Provider')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Created by')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {isError && (
+          <SimpleTable.Empty>
             <LoadingError
               message={t('Failed to load secrets and providers for the organization.')}
               onRetry={refetchSecretList}
             />
-          ) : undefined
-        }
-        emptyMessage={t("You haven't linked any providers yet.")}
-        headers={[t('Provider'), t('Created'), t('Created by'), '']}
-        data-test-id="secrets-table"
-      >
+          </SimpleTable.Empty>
+        )}
+        {!isError && isPending && <SimpleTable.Loading />}
+        {!isError && !isPending && !secretList?.data?.length && (
+          <SimpleTable.Empty>
+            {t("You haven't linked any providers yet.")}
+          </SimpleTable.Empty>
+        )}
         {!isError && !isPending && !!secretList?.data?.length && (
           <SecretList
             secretList={secretList.data}
@@ -195,7 +205,7 @@ function OrganizationFeatureFlagsChangeTracking() {
             removeSecret={hasDeleteAccess ? handleRemoveSecret : undefined}
           />
         )}
-      </ResponsivePanelTable>
+      </ResponsiveSimpleTable>
 
       <OrganizationFeatureFlagsAuditLogTable />
     </Fragment>
@@ -210,12 +220,18 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
   );
 }
 
-const ResponsivePanelTable = styled(PanelTable)`
+const ResponsiveSimpleTable = styled(SimpleTable)`
+  grid-template-columns: auto auto auto auto;
+
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 
-    > *:nth-child(4n + 2),
-    > *:nth-child(4n + 3) {
+    /* Hide "Created" and "Created by"; the flat nth-child(4n + x) form this
+       replaced counted cells across the whole grid. */
+    [role='columnheader']:nth-child(2),
+    [role='columnheader']:nth-child(3),
+    [role='cell']:nth-child(2),
+    [role='cell']:nth-child(3) {
       display: none;
     }
   }

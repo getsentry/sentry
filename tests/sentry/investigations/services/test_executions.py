@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -17,11 +18,13 @@ from sentry.investigations.models import (
     InvestigationBlockExecutor,
     InvestigationBlockKind,
     InvestigationParameterType,
+    InvestigationSourceType,
 )
 from sentry.investigations.services.executions import (
     build_block_execution_snapshot,
     create_block_execution,
     mark_block_execution_dispatch_failed,
+    mark_block_execution_dispatch_started,
     mark_block_execution_dispatched,
 )
 from sentry.investigations.services.investigations import (
@@ -103,6 +106,82 @@ class InvestigationExecutionServiceTest(TestCase):
         ]
         assert execution.input_snapshot["blockVersion"] == target.version
         assert "datasetHint" not in execution.input_snapshot
+
+    def test_source_snapshot_is_captured_separately_from_mutable_filters(self) -> None:
+        source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": {"groupId": "1", "openPeriodId": "2"},
+            "snapshot": {
+                "monitor": {"name": "Checkout errors"},
+                "analysisWindow": {"breachStart": "2026-08-01T00:00:00+00:00"},
+            },
+        }
+        self.investigation.update(
+            source=source,
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_ref=source["ref"],
+            source_key="legacy-key",
+            source_revision=1,
+            filters={"environment": ["production"], "breachedMetric": source["snapshot"]},
+        )
+        block = self.create_block()
+
+        execution, created = self.run_block(block)
+
+        assert created
+        assert execution.input_snapshot["source"] == source
+        assert execution.input_snapshot["filters"] == {"environment": ["production"]}
+
+    def test_query_refinement_snapshots_its_previous_chart(self) -> None:
+        block = self.create_block(title="Error volume")
+        previous = self.create_execution(
+            block,
+            result={
+                "schemaVersion": 1,
+                "tableMarkdown": "| day | errors |\n| --- | ---: |\n| Aug 11 | 17 |",
+                "chart": {
+                    "title": "Issue volume",
+                    "subtitle": "Last 7 days | 17 total errors",
+                    "visualization": "line",
+                    "x_axis": "time",
+                    "y_axis_unit": "number",
+                    "series": [
+                        {
+                            "name": "Errors",
+                            "data": [{"x": "2026-08-11T00:00:00+00:00", "y": 17}],
+                        }
+                    ],
+                },
+                "preferredView": "chart",
+                "isEmpty": False,
+                "chartUnavailableReason": None,
+                "queryLinks": [],
+            },
+        )
+        previous.data_projects.add(self.project)
+        empty_refinement = self.create_execution(
+            block,
+            result={
+                "schemaVersion": 1,
+                "tableMarkdown": "| Note |\n| --- |\n| No prior chart data found |",
+                "chart": None,
+                "preferredView": "table",
+                "isEmpty": True,
+                "chartUnavailableReason": "No prior chart data found.",
+                "queryLinks": [],
+            },
+        )
+        block.result_execution = empty_refinement
+        block.save(update_fields=["result_execution"])
+
+        execution, created = self.run_block(block)
+
+        assert created
+        current_context = execution.input_snapshot["context"][0]
+        assert current_context["currentBlock"] is True
+        assert current_context["visibleExecutionId"] == str(previous.id)
+        assert current_context["result"]["chart"]["visualization"] == "line"
+        assert execution.input_snapshot["contextDataProjectIds"] == [self.project.id]
 
     def test_rejects_invalid_query_dataset_hint(self) -> None:
         block = self.create_block(config={"datasetHint": "invalid"})
@@ -259,14 +338,15 @@ class InvestigationExecutionServiceTest(TestCase):
         assert execution.status == InvestigationBlockExecutionStatus.FAILED
         assert execution.seer_run_id is None
 
-    def test_dispatch_failure_accepts_running_but_not_terminal_execution(self) -> None:
+    def test_dispatch_failure_does_not_overwrite_dispatched_or_terminal_execution(self) -> None:
         block = self.create_block()
         execution, _ = self.run_block(block)
         seer_run = self.create_seer_run(organization=self.organization)
         assert mark_block_execution_dispatched(execution, seer_run_id=seer_run.id)
-        assert mark_block_execution_dispatch_failed(execution)
+        assert not mark_block_execution_dispatch_failed(execution)
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert execution.seer_run_id == seer_run.id
 
         execution.status = InvestigationBlockExecutionStatus.COMPLETED
         execution.error = None
@@ -275,6 +355,29 @@ class InvestigationExecutionServiceTest(TestCase):
         execution.refresh_from_db()
         assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert execution.error is None
+
+    def test_stale_dispatch_claim_fences_the_previous_worker(self) -> None:
+        block = self.create_block()
+        execution, _ = self.run_block(block)
+        first_claim = mark_block_execution_dispatch_started(execution)
+        assert first_claim is not None
+        execution.update(started_at=timezone.now() - timedelta(minutes=6))
+        second_claim = mark_block_execution_dispatch_started(execution)
+        assert second_claim is not None
+        seer_run = self.create_seer_run(organization=self.organization)
+
+        assert not mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=first_claim)
+        assert not mark_block_execution_dispatched(
+            execution,
+            seer_run_id=seer_run.id,
+            dispatch_claimed_at=first_claim,
+        )
+        assert mark_block_execution_dispatched(
+            execution,
+            seer_run_id=seer_run.id,
+            dispatch_claimed_at=second_claim,
+        )
+        assert not mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=second_claim)
 
     def test_notebook_context_query_count_is_constant(self) -> None:
         one_query_count = self._snapshot_query_count(1)

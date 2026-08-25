@@ -127,7 +127,9 @@ function makeAutofix(
     runState,
     autofixFormatted: null,
     isLoading: false,
+    isWaitingForRun: false,
     isPolling: false,
+    isProcessing: false,
     // Async no-ops — none of these are invoked by the static examples below.
     startStep: () => Promise.resolve(0),
     createPR: () => Promise.resolve(),

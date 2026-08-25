@@ -86,21 +86,9 @@ interface TabbedCodeSnippetProps {
    * An array of tabs to be displayed
    */
   tabs: CodeSnippetTab[];
-  /**
-   * A callback to be invoked when the configuration is copied to the clipboard
-   */
-  onCopy?: () => void;
-  /**
-   * A callback to be invoked when the configuration is selected and copied to the clipboard
-   */
-  onSelectAndCopy?: () => void;
 }
 
-export function TabbedCodeSnippet({
-  tabs,
-  onCopy,
-  onSelectAndCopy,
-}: TabbedCodeSnippetProps) {
+export function TabbedCodeSnippet({tabs}: TabbedCodeSnippetProps) {
   const [selectedTabValue, setSelectedTabValue] = useRegisteredTabSelection(tabs);
   const resolvedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
   const {code, language, filename} = resolvedTab;
@@ -108,8 +96,6 @@ export function TabbedCodeSnippet({
   return (
     <OnboardingCodeSnippet
       language={language}
-      onCopy={onCopy}
-      onSelectAndCopy={onSelectAndCopy}
       tabs={tabs}
       selectedTab={selectedTabValue}
       onTabClick={setSelectedTabValue}

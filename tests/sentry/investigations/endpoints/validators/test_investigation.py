@@ -41,27 +41,27 @@ class TestInvestigationCreateValidator:
                 data={
                     "templateKey": "breached_metric",
                     "templateVersion": 1,
-                    "sourceRef": {"openPeriodId": "1"},
+                    "source": {"type": "metric_open_period", "ref": {"openPeriodId": "1"}},
                 }
             )
         )
 
         assert data["template_key"] == "breached_metric"
 
-    def test_requires_a_source_ref_with_a_template(self) -> None:
+    def test_requires_a_source_with_a_template(self) -> None:
         validator = InvestigationCreateValidator(
             data={"templateKey": "breached_metric", "templateVersion": 1}
         )
 
         assert not validator.is_valid()
-        assert "sourceRef" in validator.errors
+        assert "source" in validator.errors
 
     def test_rejects_caller_supplied_projects_with_a_template(self) -> None:
         validator = InvestigationCreateValidator(
             data={
                 "templateKey": "breached_metric",
                 "templateVersion": 1,
-                "sourceRef": {"openPeriodId": "1"},
+                "source": {"type": "metric_open_period", "ref": {"openPeriodId": "1"}},
                 "projectIds": [1],
             }
         )
@@ -69,13 +69,13 @@ class TestInvestigationCreateValidator:
         assert not validator.is_valid()
         assert "projectIds" in validator.errors
 
-    def test_rejects_a_source_ref_without_a_template(self) -> None:
+    def test_rejects_a_source_without_a_template(self) -> None:
         validator = InvestigationCreateValidator(
-            data={"title": "T", "sourceRef": {"openPeriodId": "1"}}
+            data={"title": "T", "source": {"type": "metric_open_period", "ref": {}}}
         )
 
         assert not validator.is_valid()
-        assert "sourceRef" in validator.errors
+        assert "source" in validator.errors
 
     def test_rejects_duplicate_project_ids(self) -> None:
         validator = InvestigationCreateValidator(data={"title": "T", "projectIds": [1, 1]})
@@ -83,18 +83,21 @@ class TestInvestigationCreateValidator:
         assert not validator.is_valid()
         assert "projectIds" in validator.errors
 
-    def test_preserves_camel_case_keys_inside_the_source_ref(self) -> None:
+    def test_preserves_camel_case_keys_inside_the_source(self) -> None:
         data = assert_valid(
             InvestigationCreateValidator(
                 data={
                     "templateKey": "breached_metric",
                     "templateVersion": 1,
-                    "sourceRef": {"openPeriodId": "1", "detectorId": "2"},
+                    "source": {
+                        "type": "metric_open_period",
+                        "ref": {"openPeriodId": "1", "detectorId": "2"},
+                    },
                 }
             )
         )
 
-        assert data["source_ref"] == {"openPeriodId": "1", "detectorId": "2"}
+        assert data["source"]["ref"] == {"openPeriodId": "1", "detectorId": "2"}
 
 
 class TestInvestigationUpdateValidator:

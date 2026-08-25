@@ -6,6 +6,7 @@ from typing import Any
 from django.http.request import HttpRequest
 
 from sentry import audit_log
+from sentry.audit_log.metadata import AGENT_DELEGATION_DATA_KEY, SEER_AGENT_DELEGATION
 from sentry.audit_log.services.log import log_service
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -24,6 +25,7 @@ from sentry.silo.base import cell_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import ActorType, get_viewer_context
 
 
 def create_audit_entry(
@@ -34,11 +36,11 @@ def create_audit_entry(
     data: dict[str, Any],
     **kwargs: Any,
 ) -> AuditLogEntry:
+    auth = getattr(request, "auth", None)
     user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
     if user is None:
         # An agent token acts on behalf of a member but authenticates as a non-user actor,
         # so attribute the audit entry to the delegating user.
-        auth = getattr(request, "auth", None)
         if auth is not None and is_agent_auth(auth) and auth.user_id is not None:
             user = user_service.get_user(user_id=auth.user_id)
     api_key = get_api_key_for_audit_log(request)
@@ -50,7 +52,14 @@ def create_audit_entry(
         kwargs["actor_label"] = org_auth_token.name
 
     return create_audit_entry_from_user(
-        user, api_key, request.META["REMOTE_ADDR"], transaction_id, logger, data=data, **kwargs
+        user,
+        api_key,
+        request.META["REMOTE_ADDR"],
+        transaction_id,
+        logger,
+        data=data,
+        agent_delegation=SEER_AGENT_DELEGATION if is_agent_auth(auth) else None,
+        **kwargs,
     )
 
 
@@ -84,10 +93,22 @@ def create_audit_entry_from_user(
     organization_id: int | None = None,
     *,
     data: dict[str, Any],
+    agent_delegation: str | None = None,
     **kwargs: Any,
 ) -> AuditLogEntry:
     organization_id = _org_id(organization, organization_id)
     assert user is not None or api_key is not None or ip_address is not None
+
+    if agent_delegation is None:
+        viewer_context = get_viewer_context()
+        if viewer_context is not None and viewer_context.actor_type == ActorType.AGENT:
+            agent_delegation = SEER_AGENT_DELEGATION
+
+    data = dict(data)
+    if agent_delegation is None:
+        data.pop(AGENT_DELEGATION_DATA_KEY, None)
+    else:
+        data[AGENT_DELEGATION_DATA_KEY] = agent_delegation
 
     entry = AuditLogEntry(
         actor_id=user.id if user else None,
