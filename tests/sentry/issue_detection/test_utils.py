@@ -121,7 +121,7 @@ class TestDetectorUtils:
         assert span_has_obfuscated_hostname(span) == test_case.is_obfuscated
 
     @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
-    def test_safe_urlparse(self, test_case: URLTestCase) -> None:
+    def test_safer_urlparse(self, test_case: URLTestCase) -> None:
         assert safer_urlparse(test_case.url).netloc == test_case.netloc
 
     @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
