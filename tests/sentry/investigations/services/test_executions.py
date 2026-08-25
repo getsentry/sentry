@@ -338,14 +338,15 @@ class InvestigationExecutionServiceTest(TestCase):
         assert execution.status == InvestigationBlockExecutionStatus.FAILED
         assert execution.seer_run_id is None
 
-    def test_dispatch_failure_accepts_running_but_not_terminal_execution(self) -> None:
+    def test_dispatch_failure_does_not_overwrite_dispatched_or_terminal_execution(self) -> None:
         block = self.create_block()
         execution, _ = self.run_block(block)
         seer_run = self.create_seer_run(organization=self.organization)
         assert mark_block_execution_dispatched(execution, seer_run_id=seer_run.id)
-        assert mark_block_execution_dispatch_failed(execution)
+        assert not mark_block_execution_dispatch_failed(execution)
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert execution.seer_run_id == seer_run.id
 
         execution.status = InvestigationBlockExecutionStatus.COMPLETED
         execution.error = None
@@ -376,7 +377,7 @@ class InvestigationExecutionServiceTest(TestCase):
             seer_run_id=seer_run.id,
             dispatch_claimed_at=second_claim,
         )
-        assert mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=second_claim)
+        assert not mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=second_claim)
 
     def test_notebook_context_query_count_is_constant(self) -> None:
         one_query_count = self._snapshot_query_count(1)

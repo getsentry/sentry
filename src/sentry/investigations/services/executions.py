@@ -556,11 +556,13 @@ def mark_block_execution_dispatch_failed(
             status__in=[
                 InvestigationBlockExecutionStatus.PENDING,
                 InvestigationBlockExecutionStatus.RUNNING,
-            ]
+            ],
+            seer_run_id__isnull=True,
         )
     else:
         candidates = candidates.filter(
             status=InvestigationBlockExecutionStatus.RUNNING,
+            seer_run_id__isnull=True,
             started_at=dispatch_claimed_at,
         )
     updated = candidates.update(
