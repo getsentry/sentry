@@ -244,9 +244,10 @@ describe('trimCommonAffixes', () => {
     it('does not trim when only the separator itself is common', () => {
       // Common prefix '/' (1 char). Snap: '/' at index 0 → snappedPrefix = 0.
       // 0 is not > anything, so no trim — there's nothing before the separator.
-      expect(
-        trimCommonAffixes(['/xxxx', '/yyyy'], {separator: '/'})
-      ).toEqual(['/xxxx', '/yyyy']);
+      expect(trimCommonAffixes(['/xxxx', '/yyyy'], {separator: '/'})).toEqual([
+        '/xxxx',
+        '/yyyy',
+      ]);
     });
 
     it('handles consecutive separators in paths', () => {

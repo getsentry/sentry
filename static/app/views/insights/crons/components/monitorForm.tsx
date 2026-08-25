@@ -167,12 +167,7 @@ function mapMonitorFormErrors(responseJson?: any) {
   return {...responseRest, ...configErrors};
 }
 
-export function MonitorForm({
-  monitor,
-  apiEndpoint,
-  apiMethod,
-  onSubmitSuccess,
-}: Props) {
+export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
   const form = useRef(

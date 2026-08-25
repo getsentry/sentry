@@ -2770,7 +2770,6 @@ describe('EventView.sortOnField()', () => {
       sorts: [{field: 'title', kind: 'desc'}],
     });
   });
-
 });
 
 describe('EventView.withSorts()', () => {

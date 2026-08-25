@@ -42,5 +42,4 @@ describe('TextCopyInput', () => {
 
     expect(selectSpy).toHaveBeenCalled();
   });
-
 });

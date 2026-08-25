@@ -29,10 +29,7 @@ type Props = {
   variant?: 'scm' | 'legacy';
 };
 
-export function SetupMessagingIntegrationButton({
-  analyticsView,
-  variant,
-}: Props) {
+export function SetupMessagingIntegrationButton({analyticsView, variant}: Props) {
   const {openModal} = useModal();
 
   const organization = useOrganization();

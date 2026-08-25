@@ -52,13 +52,7 @@ describe('JsonForm', () => {
           ],
         },
       ];
-      render(
-        <JsonForm
-          forms={forms}
-          collapsible
-          initiallyCollapsed
-        />
-      );
+      render(<JsonForm forms={forms} collapsible initiallyCollapsed />);
 
       expect(screen.getByText('Form1 title')).toBeInTheDocument();
       expect(screen.getByText('Form2 title')).toBeInTheDocument();
@@ -95,13 +89,7 @@ describe('JsonForm', () => {
           initiallyCollapsed: false, // Prevents this form group from being collapsed
         },
       ];
-      render(
-        <JsonForm
-          forms={forms}
-          collapsible
-          initiallyCollapsed
-        />
-      );
+      render(<JsonForm forms={forms} collapsible initiallyCollapsed />);
 
       expect(screen.getByText('Form1 title')).toBeInTheDocument();
       expect(screen.getByText('Form2 title')).toBeInTheDocument();

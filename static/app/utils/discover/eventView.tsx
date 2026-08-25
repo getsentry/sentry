@@ -1321,7 +1321,9 @@ export class EventView {
       const currentSort = this.sorts[needleIndex]!;
 
       const sorts = [...newEventView.sorts];
-      sorts[needleIndex] = kind ? setSortOrder(currentSort, kind) : reverseSort(currentSort);
+      sorts[needleIndex] = kind
+        ? setSortOrder(currentSort, kind)
+        : reverseSort(currentSort);
 
       newEventView.sorts = sorts;
 

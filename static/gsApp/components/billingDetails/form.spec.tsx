@@ -83,9 +83,7 @@ describe('BillingDetailsForm', () => {
       taxNumber: '123456789',
     });
 
-    render(
-      <BillingDetailsForm {...defaultProps} initialData={detailsWithTax} />
-    );
+    render(<BillingDetailsForm {...defaultProps} initialData={detailsWithTax} />);
 
     await screen.findByRole('textbox', {name: /VAT Number/i});
   });

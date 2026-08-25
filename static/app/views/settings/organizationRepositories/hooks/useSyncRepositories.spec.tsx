@@ -138,11 +138,9 @@ describe('useSyncRepositories', () => {
       body: {},
     });
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useSyncRepositories(integration),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(() => useSyncRepositories(integration), {
+      organization,
+    });
 
     await waitFor(() => expect(result.current.syncNow).toBeDefined());
 
@@ -171,11 +169,9 @@ describe('useSyncRepositories', () => {
       body: {},
     });
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useSyncRepositories(integration),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(() => useSyncRepositories(integration), {
+      organization,
+    });
 
     await waitFor(() => expect(result.current.syncNow).toBeDefined());
 

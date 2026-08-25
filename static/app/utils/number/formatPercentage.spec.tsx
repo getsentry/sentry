@@ -27,5 +27,4 @@ describe('formatPercentage()', () => {
     // @ts-expect-error we are testing invalid inputs
     expect(formatPercentage(undefined)).toBe('0%');
   });
-
 });

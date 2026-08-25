@@ -387,5 +387,4 @@ describe('getDurationUnit()', () => {
     const durationUnit = getDurationUnit(series);
     expect(durationUnit).toBe(MILLISECOND);
   });
-
 });

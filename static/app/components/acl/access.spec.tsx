@@ -149,14 +149,9 @@ describe('Access', () => {
         })
       );
 
-      render(
-        <Access access={[]}>
-          {childrenMock}
-        </Access>,
-        {
-          organization,
-        }
-      );
+      render(<Access access={[]}>{childrenMock}</Access>, {
+        organization,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -171,14 +166,9 @@ describe('Access', () => {
         })
       );
 
-      render(
-        <Access access={[]}>
-          {childrenMock}
-        </Access>,
-        {
-          organization,
-        }
-      );
+      render(<Access access={[]}>{childrenMock}</Access>, {
+        organization,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,

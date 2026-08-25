@@ -30,6 +30,7 @@ describe('useEventWaiter', () => {
           eventType: 'error',
           organization: org,
           project,
+          pollInterval: 100,
         }),
       {organization: org}
     );
@@ -167,6 +168,7 @@ describe('useEventWaiter', () => {
           eventType: 'transaction',
           organization: org,
           project,
+          pollInterval: 100,
         }),
       {organization: org}
     );

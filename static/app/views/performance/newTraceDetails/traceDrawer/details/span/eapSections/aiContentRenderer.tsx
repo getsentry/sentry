@@ -235,9 +235,7 @@ export function AIContentRenderer({
 
     case 'markdown-with-xml':
       if (inline) {
-        return (
-          <MarkdownWithXmlRenderer text={text} collapsibleXmlTags />
-        );
+        return <MarkdownWithXmlRenderer text={text} collapsibleXmlTags />;
       }
       return (
         <TraceDrawerComponents.MultilineText
