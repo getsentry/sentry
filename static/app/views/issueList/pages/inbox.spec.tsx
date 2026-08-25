@@ -10,6 +10,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -21,6 +22,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {ProgressState} from 'sentry/types/group';
 import {useMedia} from 'sentry/utils/useMedia';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
@@ -155,6 +157,7 @@ describe('InboxPage', () => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     localStorage.removeItem('inbox-split-size');
+    TeamStore.reset();
   });
 
   function mockSection(
@@ -391,6 +394,8 @@ describe('InboxPage', () => {
       'src',
       'https://example.com/avatar.jpg?s=120'
     );
+    await userEvent.hover(within(fixSection).getByTitle('Jane Doe'));
+    expect(await screen.findByText('Assigned to: Jane Doe')).toBeInTheDocument();
     expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
     expect(within(fixSection).queryByRole('checkbox')).not.toBeInTheDocument();
     const lastProgressedTime = fixSection.querySelector('time');
@@ -474,12 +479,30 @@ describe('InboxPage', () => {
 
   it('shows suggested owners on inbox cards', async () => {
     const suggestedOwner = UserFixture({id: '11', name: 'John Smith'});
+    const secondSuggestedOwner = UserFixture({id: '12', name: 'Maya Chen'});
+    const suggestedTeam = TeamFixture({
+      id: '13',
+      isMember: false,
+      name: 'frontend',
+      slug: 'frontend',
+    });
+    TeamStore.loadInitialData([suggestedTeam]);
     const groupWithSuggestedOwner = GroupFixture({
       ...diagnosedGroup,
       owners: [
         {
           type: 'seerSuggested',
           owner: `user:${suggestedOwner.id}`,
+          date_added: '',
+        },
+        {
+          type: 'seerSuggested',
+          owner: `user:${secondSuggestedOwner.id}`,
+          date_added: '',
+        },
+        {
+          type: 'seerSuggested',
+          owner: `team:${suggestedTeam.id}`,
           date_added: '',
         },
       ],
@@ -495,18 +518,55 @@ describe('InboxPage', () => {
     mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
     const suggestedOwnerRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      match: [MockApiClient.matchQuery({query: `user.id:${suggestedOwner.id}`})],
-      body: [MemberFixture({id: suggestedOwner.id, user: suggestedOwner})],
+      match: [
+        MockApiClient.matchQuery({
+          query: `user.id:${suggestedOwner.id} user.id:${secondSuggestedOwner.id}`,
+        }),
+      ],
+      body: [
+        MemberFixture({id: suggestedOwner.id, user: suggestedOwner}),
+        MemberFixture({id: secondSuggestedOwner.id, user: secondSuggestedOwner}),
+      ],
     });
     mockIssuePreview({group: groupWithSuggestedOwner});
 
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const issueCard = await screen.findByRole('link', {name: /Diagnosed issue/});
+    const suggestedAvatarStack = await within(issueCard).findByTestId(
+      'suggested-avatar-stack'
+    );
+    const firstSuggestedAvatar = within(suggestedAvatarStack).getByText('JS');
+    expect(within(suggestedAvatarStack).getByText('MC')).toBeInTheDocument();
+    await userEvent.hover(firstSuggestedAvatar);
     expect(
-      await within(issueCard).findByTestId('suggested-avatar-stack')
-    ).toHaveTextContent('JS');
+      await screen.findByText('Suggested assignees: John Smith, Maya Chen, #frontend')
+    ).toBeInTheDocument();
     expect(suggestedOwnerRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefixes assigned team names in tooltips', async () => {
+    const assignedTeam = TeamFixture({id: '13', name: 'frontend', slug: 'frontend'});
+    const teamAssignedGroup = GroupFixture({
+      ...fixProposedGroup,
+      assignedTo: {id: assignedTeam.id, name: assignedTeam.name, type: 'team'},
+    });
+    TeamStore.loadInitialData([assignedTeam]);
+    mockSection('issue.progress:fix_proposed is:unresolved assigned_or_suggested:me', [
+      teamAssignedGroup,
+    ]);
+    mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', []);
+    mockSection(
+      'issue.progress:[assigned,identified] is:unresolved assigned_or_suggested:me',
+      []
+    );
+    mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    await userEvent.hover(await within(fixSection).findByTitle('frontend'));
+    expect(await screen.findByText('Assigned to: #frontend')).toBeInTheDocument();
   });
 
   it('restores the persisted Inbox pane width', () => {
