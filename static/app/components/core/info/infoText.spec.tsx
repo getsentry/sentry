@@ -75,7 +75,7 @@ describe('InfoText', () => {
 
   it('forwards padding to the tooltip', async () => {
     // InfoText forwards an explicit list of tooltip props, so a tooltip built
-    // out of Tooltip.Header/Body/Row can only opt out of the shared content
+    // out of Tooltip.Header/Grid/Row can only opt out of the shared content
     // padding if `padding` is on that list.
     render(
       <InfoText title="Tooltip content" padding="0">
