@@ -1356,6 +1356,54 @@ describe('InboxPage', () => {
       expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
     });
 
+    it('links to the team inbox when the personal inbox is empty', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-count/',
+        body: {
+          [`issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 0,
+          [`issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 2,
+          [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 3,
+        },
+      });
+
+      const {router} = render(<InboxPage />, {
+        organization: seerOrganization,
+        initialRouterConfig,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'View team inbox'}));
+
+      expect(router.location.query.assignment).toBe('my_teams');
+    });
+
+    it('links to the all inbox when the team inbox is empty', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-count/',
+        body: {
+          [`issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 0,
+          [`issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 0,
+          [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 3,
+        },
+      });
+
+      const {router} = render(<InboxPage />, {
+        organization: seerOrganization,
+        initialRouterConfig,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'View all inbox'}));
+
+      expect(router.location.query.assignment).toBe('all');
+    });
+
     it('follows section order even when a later section resolves first', async () => {
       // Diagnosed resolves immediately, Fix Proposed only after a delay. Both
       // have issues, so taking whichever result arrives first would select the

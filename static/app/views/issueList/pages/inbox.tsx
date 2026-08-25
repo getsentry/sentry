@@ -308,6 +308,12 @@ function InboxContent() {
   const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(section => !section.hidden?.({hasSeer}));
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
+  const alternateInbox =
+    assignmentFilter === 'me' && assignmentCounts?.my_teams
+      ? {filter: 'my_teams' as const, label: t('View team inbox')}
+      : assignmentFilter !== 'all' && assignmentCounts?.all
+        ? {filter: 'all' as const, label: t('View all inbox')}
+        : null;
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
     INBOX_DEFAULT_SIZE
@@ -422,7 +428,23 @@ function InboxContent() {
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
           {!selectedIssueId && isInboxEmpty && (
-            <InboxEmptyState assignmentFilter={assignmentFilter} />
+            <InboxEmptyState
+              assignmentFilter={assignmentFilter}
+              alternateInbox={
+                alternateInbox
+                  ? {
+                      label: alternateInbox.label,
+                      onClick: () => {
+                        trackAnalytics('issue_inbox.assignment_filter_changed', {
+                          organization,
+                          assignment_filter: alternateInbox.filter,
+                        });
+                        void setAssignmentFilter(alternateInbox.filter);
+                      },
+                    }
+                  : undefined
+              }
+            />
           )}
         </Stack>
       </Grid>
