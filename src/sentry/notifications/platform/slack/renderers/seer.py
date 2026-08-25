@@ -103,6 +103,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
+            if data.write_approval_scopes:
+                return cls._render_agent_write_approval(data)
             return cls._render_agent_response(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
@@ -256,11 +258,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.models.organization import Organization
         from sentry.seer.endpoints.utils import get_seer_run
 
-        blocks: list[Block]
-        if data.write_approval_scopes:
-            blocks = cls._render_agent_write_approval(data)
-        else:
-            blocks = [MarkdownBlock(text=data.summary)]
+        blocks: list[Block] = [MarkdownBlock(text=data.summary)]
         try:
             organization = Organization.objects.get_from_cache(id=data.organization_id)
         except Organization.DoesNotExist:
@@ -285,18 +283,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.missing_scope_settings_url:
             blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
 
-        if data.write_approval_status == "approved":
-            fallback_text = "Seer write access approved"
-        elif data.write_approval_status == "rejected":
-            fallback_text = "Seer write access not approved"
-        elif data.write_approval_scopes:
-            fallback_text = "Seer needs approval to make a change"
-        else:
-            fallback_text = "Seer Agent has finished"
-        return SlackRenderable(blocks=blocks, text=fallback_text)
+        return SlackRenderable(blocks=blocks, text="Seer Agent has finished")
 
     @classmethod
-    def _render_agent_write_approval(cls, data: SeerAgentResponse) -> list[Block]:
+    def _render_agent_write_approval(cls, data: SeerAgentResponse) -> SlackRenderable:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
@@ -304,8 +294,16 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.write_approval_status:
             scope_access = ", ".join(cls._get_agent_write_scope_access(scope) for scope in scopes)
             if data.write_approval_status == "approved":
-                return [MarkdownBlock(text=f":white_check_mark: Access granted for {scope_access}")]
-            return [MarkdownBlock(text=f":x: Access not granted for {scope_access}")]
+                return SlackRenderable(
+                    blocks=[
+                        MarkdownBlock(text=f":white_check_mark: Access granted for {scope_access}")
+                    ],
+                    text="Seer write access approved",
+                )
+            return SlackRenderable(
+                blocks=[MarkdownBlock(text=f":x: Access not granted for {scope_access}")],
+                text="Seer write access not approved",
+            )
         if not data.write_approval_input_id:
             raise ValueError("Pending agent write approval is missing its input ID")
 
@@ -346,7 +344,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ]
             ),
         ]
-        return blocks
+        return SlackRenderable(blocks=blocks, text="Seer needs approval to make a change")
 
     @staticmethod
     def _get_agent_write_scope_access(scope: str) -> str:

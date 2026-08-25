@@ -23,6 +23,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
 )
+from sentry.notifications.platform.types import NotificationRenderedTemplate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 
@@ -314,7 +315,10 @@ class SeerSlackRendererAgentTest(TestCase):
             summary="Found a spike in 500 errors from the auth service."
         )
         with self.feature("organizations:seer-run-id-in-slack"):
-            renderable = SeerSlackRenderer._render_agent_response(data)
+            renderable = SeerSlackRenderer.render(
+                data=data,
+                rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+            )
 
         assert renderable["text"] == "Seer Agent has finished"
         blocks = renderable["blocks"]
@@ -348,7 +352,10 @@ class SeerSlackRendererAgentTest(TestCase):
         data = self._create_agent_response(
             summary="Found a spike in 500 errors from the auth service."
         )
-        renderable = SeerSlackRenderer._render_agent_response(data)
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
 
         assert renderable["text"] == "Seer Agent has finished"
         blocks = renderable["blocks"]
@@ -364,7 +371,10 @@ class SeerSlackRendererAgentTest(TestCase):
             summary="Some analysis",
             missing_scope_settings_url="https://sentry.io/settings/test/integrations/slack/",
         )
-        renderable = SeerSlackRenderer._render_agent_response(data)
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
 
         blocks = renderable["blocks"]
         assert len(blocks) == 2
@@ -380,7 +390,10 @@ class SeerSlackRendererAgentTest(TestCase):
     def test_render_agent_response_no_footer_when_url_not_set(self) -> None:
         data = self._create_agent_response(summary="Some analysis")
         assert data.missing_scope_settings_url is None
-        renderable = SeerSlackRenderer._render_agent_response(data)
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
 
         for block in renderable["blocks"]:
             assert block.type != "context"
@@ -394,7 +407,10 @@ class SeerSlackRendererAgentTest(TestCase):
             write_approval_scopes=["org:write", "future:write"],
         )
 
-        renderable = SeerSlackRenderer._render_agent_response(data)
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
 
         assert renderable["text"] == "Seer needs approval to make a change"
         blocks = renderable["blocks"]
@@ -429,7 +445,10 @@ class SeerSlackRendererAgentTest(TestCase):
             write_approval_status="approved",
         )
 
-        renderable = SeerSlackRenderer._render_agent_response(data)
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
 
         assert renderable["text"] == "Seer write access approved"
         blocks = renderable["blocks"]
@@ -448,7 +467,10 @@ class SeerSlackRendererAgentTest(TestCase):
             write_approval_status="rejected",
         )
 
-        renderable = SeerSlackRenderer._render_agent_response(data)
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
 
         assert renderable["text"] == "Seer write access not approved"
         blocks = renderable["blocks"]
@@ -465,7 +487,10 @@ class SeerSlackRendererAgentTest(TestCase):
             write_approval_status="approved",
         )
 
-        renderable = SeerSlackRenderer._render_agent_response(data)
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
 
         blocks = renderable["blocks"]
         assert len(blocks) == 1
@@ -474,7 +499,6 @@ class SeerSlackRendererAgentTest(TestCase):
 
     def test_render_dispatches_to_agent_response(self) -> None:
         data = self._create_agent_response(summary="Test")
-        from sentry.notifications.platform.types import NotificationRenderedTemplate
 
         renderable = SeerSlackRenderer.render(
             data=data,
