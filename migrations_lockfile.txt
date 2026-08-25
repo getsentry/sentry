@@ -9,7 +9,7 @@ ai_monitoring: 0001_create_ai_conversation_metadata
 
 discover: 0001_squashed_0003_discover_json_field
 
-explore: 0012_remove_project_from_metric_context
+explore: 0013_delete_project_column_from_metric_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
