@@ -548,6 +548,15 @@ class TeamMembersResponse(_DictProxyMixin):
     members: list[IssueOwner]
 
 
+class UserIdentity(BaseModel):
+    id: int
+    username: str
+
+
+class GroupAssigneesResponse(_DictProxyMixin):
+    assignees: dict[int, UserIdentity]
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK
