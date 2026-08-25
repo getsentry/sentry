@@ -91,9 +91,7 @@ export function PreprodSearchBar({
   searchSource = 'preprod',
 }: PreprodSearchBarProps) {
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   // When using allowedKeys, we fetch all attributes then filter to the allowlist.
   // Otherwise, we use HIDDEN_PREPROD_ATTRIBUTES to hide internal fields.
   const hiddenKeys = allowedKeys ? undefined : HIDDEN_PREPROD_ATTRIBUTES;
