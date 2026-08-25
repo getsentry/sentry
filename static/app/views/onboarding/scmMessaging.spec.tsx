@@ -411,19 +411,21 @@ describe('ScmMessaging', () => {
     expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
   });
 
-  it('Continue is not rendered while revalidation is in flight', async () => {
+  it('Continue is disabled while revalidation is in flight', async () => {
     mockIntegration();
     mockChannelValidate(true);
     renderMessaging(jest.fn(), selectedMessagingSetup);
 
-    // Revalidation is still in flight on first paint — Continue is hidden.
-    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+    // Revalidation is still in flight on first paint — Continue is visible but disabled.
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
 
-    // Once revalidation passes, Continue appears.
-    expect(await screen.findByRole('button', {name: 'Continue'})).toBeInTheDocument();
+    // Once revalidation passes, Continue becomes enabled.
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
   });
 
-  it('Continue is not rendered while the saved channel is stale', async () => {
+  it('Continue is disabled while the saved channel is stale', async () => {
     mockIntegration();
     mockChannelValidate(false);
     renderMessaging(jest.fn(), selectedMessagingSetup);
@@ -433,10 +435,10 @@ describe('ScmMessaging', () => {
         "We couldn't verify the saved channel. Choose a destination again."
       )
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 
-  it('Continue is not rendered when the saved destination cannot be checked', async () => {
+  it('Continue is disabled when the saved destination cannot be checked', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/',
       statusCode: 500,
@@ -448,7 +450,7 @@ describe('ScmMessaging', () => {
         "We couldn't check the saved destination. Reload the page to try again."
       )
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 
   it('Continue calls onComplete', async () => {
@@ -457,8 +459,9 @@ describe('ScmMessaging', () => {
     const onComplete = jest.fn();
     renderMessaging(jest.fn(), selectedMessagingSetup, onComplete);
 
-    // Continue only renders once revalidation succeeds.
-    const continueButton = await screen.findByRole('button', {name: 'Continue'});
+    // Continue is visible immediately but disabled until revalidation succeeds.
+    const continueButton = screen.getByRole('button', {name: 'Continue'});
+    await waitFor(() => expect(continueButton).toBeEnabled());
 
     await userEvent.click(continueButton);
     expect(onComplete).toHaveBeenCalledTimes(1);
@@ -504,7 +507,7 @@ describe('ScmMessaging', () => {
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
     expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 
   describe('exclusive mode (activeRow)', () => {

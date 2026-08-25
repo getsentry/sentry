@@ -61,10 +61,11 @@ export function ScmMessaging({
 
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
 
-  // Continue creates the project and alert rules, so it must wait for a
-  // conclusively revalidated destination — not merely the absence of a
-  // problem, which is briefly true before the stale-check effect runs.
+  // Continue creates the project and alert rules. It renders as soon as a
+  // destination is selected so Set up later does not shift, but stays disabled
+  // until the destination is conclusively revalidated.
   const canContinue = validation.isValid;
+  const showContinue = messagingSetup.mode === 'selected';
 
   const handleContinue = () => onComplete?.();
 
@@ -217,10 +218,11 @@ export function ScmMessaging({
                 >
                   {t('Set up later')}
                 </Button>
-                {canContinue && (
+                {showContinue && (
                   <Button
                     size="sm"
                     variant="primary"
+                    disabled={!canContinue}
                     analyticsEventKey="onboarding.scm_messaging_continue_clicked"
                     analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
                     onClick={handleContinue}
