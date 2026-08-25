@@ -149,7 +149,7 @@ export function AssigneeSelector({
         handleAssigneeChange(assignedActor)
       }
       onClear={() => handleAssigneeChange(null)}
-      trigger={(props, isOpen) => (
+      trigger={(props, isOpen, suggestedAssignees) => (
         <StyledTrigger
           {...props}
           data-avatar-shape={
@@ -170,6 +170,7 @@ export function AssigneeSelector({
             avatarOnly={avatarOnly}
             loading={assigneeLoading}
             showLabel={showLabel}
+            suggestedAssignees={suggestedAssignees}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
         </StyledTrigger>
