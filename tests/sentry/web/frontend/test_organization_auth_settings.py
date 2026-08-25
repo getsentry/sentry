@@ -836,6 +836,7 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
         assert actual.provider == self.auth_provider_inst.provider
         assert actual.flags == self.auth_provider_inst.flags
 
+
 @control_silo_test
 class OrganizationAuthSettingsActiveDirectoryTest(OrganizationAuthSettingsGenericSAML2Test):
     """Azure/Entra uses Active Directory, which inherits GenericSAML2Provider."""
