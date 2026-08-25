@@ -1823,6 +1823,9 @@ def get_column_from_aggregate(
     allow_eap: bool = False,
     match: Match[str] | None = None,
 ) -> str | None:
+    if is_equation(aggregate):
+        return None
+
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
