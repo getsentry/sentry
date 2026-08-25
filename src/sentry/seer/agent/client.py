@@ -894,7 +894,7 @@ class SeerAgentClient:
             .first()
         )
 
-    def get_latest_run_state(self, *, group_id: int | None = None) -> SeerRunState | None:
+    def fetch_latest_run_state(self, *, group_id: int | None = None) -> SeerRunState | None:
         """The remote state of the latest live run mirror for this client, or None."""
         run = self.latest_run(group_id=group_id)
         if run is None:

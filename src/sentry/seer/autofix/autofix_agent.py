@@ -698,7 +698,7 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_key="autofix",
         category_value=str(group_id),
     )
-    return client.get_latest_run_state(group_id=group_id)
+    return client.fetch_latest_run_state(group_id=group_id)
 
 
 def generate_autofix_handoff_prompt(
