@@ -46,20 +46,22 @@ interface SeerDrawerNextStepProps {
 
 export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextStepProps) {
   const runId = getAutofixRunId(autofix.runState);
-  const lastSection = sections[sections.length - 1];
-  const repoPrStates = autofix.runState?.repo_pr_states;
-  // A failed create still appends a pull_request section (Retry PR). That is
-  // not a PR — skip it so we don't offer iteration feedback.
-  const failedCreateOnly =
-    defined(lastSection) &&
-    isPullRequestsSection(lastSection) &&
-    defined(repoPrStates) &&
-    Object.keys(repoPrStates).length > 0 &&
-    !hasCreatedPullRequests(repoPrStates);
-  const section = failedCreateOnly ? sections[sections.length - 2] : lastSection;
+  const section = sections[sections.length - 1];
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!defined(runId) || !defined(section)) {
+    return null;
+  }
+
+  // Failed create still renders the PR card (Retry PR). That is the next
+  // action — don't offer iteration feedback or "draft a PR" again.
+  const repoPrStates = autofix.runState?.repo_pr_states;
+  if (
+    isPullRequestsSection(section) &&
+    defined(repoPrStates) &&
+    Object.keys(repoPrStates).length > 0 &&
+    !hasCreatedPullRequests(repoPrStates)
+  ) {
     return null;
   }
 

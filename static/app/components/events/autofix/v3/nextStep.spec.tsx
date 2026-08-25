@@ -930,11 +930,7 @@ describe('SeerDrawerNextStep', () => {
       jest.mocked(trackAnalytics).mockClear();
     });
 
-    it('does not show the feedback form when PR creation failed', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/1/autofix/repos/',
-        body: {repos: [{has_write_access: true}]},
-      });
+    it('does not show a next step when PR creation failed', () => {
       const autofix = makePrIterationAutofix({
         runState: {
           run_id: 1,
@@ -956,7 +952,7 @@ describe('SeerDrawerNextStep', () => {
           },
         } as any,
       });
-      render(
+      const {container} = render(
         <SeerDrawerNextStep
           group={GroupFixture()}
           sections={[makeSection('code_changes'), makeSection('pull_request')]}
@@ -964,12 +960,7 @@ describe('SeerDrawerNextStep', () => {
         />,
         {organization: prIterationOrganization}
       );
-      expect(
-        screen.queryByText('Anything else you want to see on your PR?')
-      ).not.toBeInTheDocument();
-      expect(
-        await screen.findByText('Are you happy with these code changes?')
-      ).toBeInTheDocument();
+      expect(container).toBeEmptyDOMElement();
     });
 
     it('returns null when the run is not valid for PR iteration', () => {

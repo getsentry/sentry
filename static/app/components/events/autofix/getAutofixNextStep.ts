@@ -40,7 +40,7 @@ export function getAutofixNextStep({
   if (isPullRequestsSection(section)) {
     const artifact = getAutofixArtifactFromSection(section);
     if (isPullRequestsArtifact(artifact) && !artifact.some(isCreatedPullRequestState)) {
-      return getAutofixNextStep({sections: sections.slice(0, -1)});
+      return null;
     }
     return {action: 'pr_iteration', section};
   }
