@@ -547,8 +547,7 @@ class SeerAgentOperator[CachePayloadT]:
                 return None
 
             try:
-                # Discovery is served by the local run mirror; only the actual
-                # continue/start call goes to Seer.
+                # Discovery uses the local run mirror; continue/start stays remote.
                 existing_run = latest_run_for_source(
                     organization.id,
                     category_key,

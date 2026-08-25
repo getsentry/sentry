@@ -704,10 +704,9 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_value=str(group_id),
     )
 
-    # Discovery is served by the local run mirror; only the detailed state is
-    # fetched remotely from Seer.
+    # Discovery uses the local run mirror; detailed state stays remote.
     run = latest_run_for_source(organization.id, source="autofix", group_id=group_id)
-    if run is None or run.run.seer_run_state_id is None:
+    if run is None:
         return None
 
     # Return the most recent run's state
