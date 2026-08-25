@@ -489,7 +489,12 @@ def _record_signals(
     )
 
     for module in insights_modules(
-        [FilterSpan.from_span_attributes(span.get("attributes") or {}) for span in spans]
+        [
+            FilterSpan.from_span_attributes(
+                span.get("attributes") or {}, is_segment=span.get("is_segment")
+            )
+            for span in spans
+        ]
     ):
         set_project_flag_and_signal(
             project,

@@ -1869,7 +1869,7 @@ class PullRequestEventWebhookTest(APITestCase):
         # engagement, while the PR row still looked correct.
         repo = self._create_integration_and_repo()
 
-        with self.feature("organizations:pr-metrics-emit"):
+        with self.feature(["organizations:pr-metrics"]):
             merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
             merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
             merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
@@ -2039,6 +2039,62 @@ class PullRequestEventWebhookTest(APITestCase):
         self._post_pull_request_event(json.dumps(closed).encode())
 
         assert not SeerRunMilestone.objects.filter(seer_run=seer_run).exists()
+
+    def test_closing_last_pull_request_records_milestone_when_sibling_merged(self) -> None:
+        repo = self._repo_for_pull_request_events()
+        seer_run = self.create_seer_run(organization=self.organization)
+        merged_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        merged_pr.update(state=PullRequestLifecycleState.MERGED)
+        self.create_seer_run_pull_request(run=seer_run, pull_request=merged_pr)
+        closing_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="2"
+        )
+        self.create_seer_run_pull_request(run=seer_run, pull_request=closing_pr)
+
+        closed = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        closed["pull_request"]["number"] = 2
+        closed["pull_request"]["state"] = "closed"
+        closed["pull_request"]["merged"] = False
+        self._post_pull_request_event(json.dumps(closed).encode())
+
+        assert SeerRunMilestone.objects.filter(
+            seer_run=seer_run, milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED
+        ).exists()
+
+    def test_reopening_a_pull_request_removes_a_stale_merged_milestone(self) -> None:
+        repo = self._repo_for_pull_request_events()
+        seer_run = self.create_seer_run(organization=self.organization)
+        merged_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        merged_pr.update(state=PullRequestLifecycleState.MERGED)
+        self.create_seer_run_pull_request(run=seer_run, pull_request=merged_pr)
+        other_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="2"
+        )
+        self.create_seer_run_pull_request(run=seer_run, pull_request=other_pr)
+
+        closed = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        closed["pull_request"]["number"] = 2
+        closed["pull_request"]["state"] = "closed"
+        closed["pull_request"]["merged"] = False
+        self._post_pull_request_event(json.dumps(closed).encode())
+        assert SeerRunMilestone.objects.filter(
+            seer_run=seer_run, milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED
+        ).exists()
+
+        reopened = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        reopened["action"] = "reopened"
+        reopened["pull_request"]["number"] = 2
+        reopened["pull_request"]["state"] = "open"
+        reopened["pull_request"]["merged"] = False
+        self._post_pull_request_event(json.dumps(reopened).encode())
+
+        assert not SeerRunMilestone.objects.filter(
+            seer_run=seer_run, milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED
+        ).exists()
 
     @patch("sentry.integrations.github.webhook.track_contributor_seat")
     def test_pr_lifecycle_activities_are_attributed_to_acting_user(

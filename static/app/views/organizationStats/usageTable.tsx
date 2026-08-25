@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -11,7 +12,7 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IdBadge} from 'sentry/components/idBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
@@ -81,80 +82,82 @@ class UsageTable extends Component<Props> {
     const {project, total, accepted, accepted_stored, filtered, invalid, rate_limited} =
       stat;
 
-    return [
-      <CellProject key={0}>
-        <Link to={stat.projectLink}>
-          <StyledIdBadge
-            avatarSize={16}
-            disableLink
-            hideOverflow
-            project={project}
-            displayName={project.slug}
-          />
-        </Link>
-      </CellProject>,
-      <CellStat key={1}>
-        {formatUsageWithUnits(
-          total,
-          dataCategory.plural,
-          getFormatUsageOptions(dataCategory.plural)
-        )}
-      </CellStat>,
-      <CellStat key={2}>
-        {formatUsageWithUnits(
-          accepted,
-          dataCategory.plural,
-          getFormatUsageOptions(dataCategory.plural)
-        )}
-        {showStoredOutcome && (
-          <SubText>
-            {`(${formatUsageWithUnits(
-              accepted_stored,
-              dataCategory.plural,
-              getFormatUsageOptions(dataCategory.plural)
-            )})`}
-          </SubText>
-        )}
-      </CellStat>,
-      <CellStat key={3}>
-        {formatUsageWithUnits(
-          filtered,
-          dataCategory.plural,
-          getFormatUsageOptions(dataCategory.plural)
-        )}
-      </CellStat>,
-      <CellStat key={4}>
-        {formatUsageWithUnits(
-          rate_limited,
-          dataCategory.plural,
-          getFormatUsageOptions(dataCategory.plural)
-        )}
-      </CellStat>,
-      <CellStat key={5}>
-        {formatUsageWithUnits(
-          invalid,
-          dataCategory.plural,
-          getFormatUsageOptions(dataCategory.plural)
-        )}
-      </CellStat>,
-      <CellStat key={6}>
-        <Grid flow="column" align="center" gap="md">
-          <Button
-            icon={<IconGraph type="bar" />}
-            data-test-id={project.slug}
-            size="xs"
-            onClick={() => {
-              this.loadProject(parseInt(stat.project.id, 10));
-            }}
-          >
-            {t('View Project Stats')}
-          </Button>
-          <LinkButton icon={<IconSettings />} size="xs" to={stat.projectSettingsLink}>
-            {t('Project Settings')}
-          </LinkButton>
-        </Grid>
-      </CellStat>,
-    ];
+    return (
+      <SimpleTable.Row key={project.id}>
+        <RowCellProject>
+          <Link to={stat.projectLink}>
+            <StyledIdBadge
+              avatarSize={16}
+              disableLink
+              hideOverflow
+              project={project}
+              displayName={project.slug}
+            />
+          </Link>
+        </RowCellProject>
+        <RowCellStat>
+          {formatUsageWithUnits(
+            total,
+            dataCategory.plural,
+            getFormatUsageOptions(dataCategory.plural)
+          )}
+        </RowCellStat>
+        <RowCellStat>
+          {formatUsageWithUnits(
+            accepted,
+            dataCategory.plural,
+            getFormatUsageOptions(dataCategory.plural)
+          )}
+          {showStoredOutcome && (
+            <SubText>
+              {`(${formatUsageWithUnits(
+                accepted_stored,
+                dataCategory.plural,
+                getFormatUsageOptions(dataCategory.plural)
+              )})`}
+            </SubText>
+          )}
+        </RowCellStat>
+        <RowCellStat>
+          {formatUsageWithUnits(
+            filtered,
+            dataCategory.plural,
+            getFormatUsageOptions(dataCategory.plural)
+          )}
+        </RowCellStat>
+        <RowCellStat>
+          {formatUsageWithUnits(
+            rate_limited,
+            dataCategory.plural,
+            getFormatUsageOptions(dataCategory.plural)
+          )}
+        </RowCellStat>
+        <RowCellStat>
+          {formatUsageWithUnits(
+            invalid,
+            dataCategory.plural,
+            getFormatUsageOptions(dataCategory.plural)
+          )}
+        </RowCellStat>
+        <RowCellStat>
+          <Grid flow="column" align="center" gap="md">
+            <Button
+              icon={<IconGraph type="bar" />}
+              data-test-id={project.slug}
+              size="xs"
+              onClick={() => {
+                this.loadProject(parseInt(stat.project.id, 10));
+              }}
+            >
+              {t('View Project Stats')}
+            </Button>
+            <LinkButton icon={<IconSettings />} size="xs" to={stat.projectSettingsLink}>
+              {t('Project Settings')}
+            </LinkButton>
+          </Grid>
+        </RowCellStat>
+      </SimpleTable.Row>
+    );
   }
 
   render() {
@@ -169,9 +172,21 @@ class UsageTable extends Component<Props> {
     }
 
     return (
-      <StyledPanelTable isLoading={isLoading} isEmpty={isEmpty} headers={headers}>
-        {usageStats.map(s => this.renderTableRow(s))}
-      </StyledPanelTable>
+      <StyledSimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            {headers.map((header, i) => (
+              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+            ))}
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {isLoading && <SimpleTable.Loading />}
+        {!isLoading && isEmpty && (
+          <SimpleTable.Empty>{t('No data available')}</SimpleTable.Empty>
+        )}
+        {!isLoading && usageStats.map(s => this.renderTableRow(s))}
+      </StyledSimpleTable>
     );
   }
 }
@@ -188,21 +203,37 @@ function UsageTableWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
 // eslint-disable-next-line @sentry/no-default-exports
 export default UsageTableWithHooks;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: repeat(7, auto);
   @container (min-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr repeat(6, minmax(0, auto));
   }
 `;
 
-export const CellStat = styled('div')`
+const cellStatStyle = css`
   display: flex;
   align-items: center;
   font-variant-numeric: tabular-nums;
   justify-content: right;
 `;
 
+/**
+ * Header cells; `usageStatsProjects` builds the `headers` array out of these, so
+ * they stay plain elements rather than table cells.
+ */
+export const CellStat = styled('div')`
+  ${cellStatStyle}
+`;
+
 export const CellProject = styled(CellStat)`
+  justify-content: left;
+`;
+
+const RowCellStat = styled(SimpleTable.RowCell)`
+  ${cellStatStyle}
+`;
+
+const RowCellProject = styled(RowCellStat)`
   justify-content: left;
 `;
 

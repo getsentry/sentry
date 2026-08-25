@@ -880,6 +880,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -916,6 +917,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.action_log.tasks",
     "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
@@ -1077,6 +1079,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "hybridcloud:sentry.tasks.enqueue_outbox_jobs",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
+    "deliver-group-action-log-outbox": {
+        "task": "issues.action_log:sentry.issues.action_log.tasks.enqueue_group_action_log_outbox_jobs",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
     "update-user-reports": {
         "task": "issues:sentry.feedback.tasks.update_user_reports",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
@@ -1157,6 +1163,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
         "schedule": timedelta(seconds=10),
+    },
+    "dynamic-sampling-cache-dynamic-sampling-feature-flags": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",

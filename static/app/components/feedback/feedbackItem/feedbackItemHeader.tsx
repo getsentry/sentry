@@ -63,7 +63,7 @@ export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Prop
       {eventData && feedbackItem.project ? (
         <ErrorBoundary mini>
           <Flex wrap="wrap" justify="between" align="center" gap="md">
-            <Flex direction="row" gap="md">
+            <Flex direction="row" gap="md" flex="1 1 auto">
               <ExternalIssueList
                 group={feedbackItem as unknown as Group}
                 event={eventData}

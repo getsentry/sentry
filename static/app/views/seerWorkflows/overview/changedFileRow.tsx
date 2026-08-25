@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {TagVariant} from 'sentry/utils/theme';
@@ -31,22 +31,11 @@ export function ChangedFileRow({
   path: string;
 }) {
   return (
-    <FileRow>
+    <FileRow padding="0 xs">
       <Disclosure size="sm" expanded={expanded} onExpandedChange={onExpandedChange}>
         <Disclosure.Title
           trailingItems={
-            changeTag ? (
-              <Tag variant={changeTag.variant}>{changeTag.label}</Tag>
-            ) : undefined
-          }
-        >
-          <Grid
-            columns="minmax(60px, auto) minmax(0, 1fr)"
-            gap="xl"
-            align="center"
-            width="100%"
-          >
-            <Flex gap="md" align="center">
+            <Flex gap="xs" align="center">
               <Text size="sm" monospace variant="success">
                 +{additions}
               </Text>
@@ -54,10 +43,16 @@ export function ChangedFileRow({
                 -{deletions}
               </Text>
             </Flex>
-            <FilePath size="sm" monospace ellipsis title={path}>
-              {path}
-            </FilePath>
-          </Grid>
+          }
+        >
+          <Flex gap="md" align="center" minWidth="0" width="100%">
+            <Container minWidth="0" flexShrink={1}>
+              <FilePath size="sm" monospace variant="secondary" ellipsis title={path}>
+                {path}
+              </FilePath>
+            </Container>
+            {changeTag ? <Tag variant={changeTag.variant}>{changeTag.label}</Tag> : null}
+          </Flex>
         </Disclosure.Title>
         <Disclosure.Content>{children}</Disclosure.Content>
       </Disclosure>
@@ -65,7 +60,7 @@ export function ChangedFileRow({
   );
 }
 
-const FileRow = styled('div')`
+const FileRow = styled(Container)`
   & + & {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from sentry.seer.agent.client_models import FilePatch
 
@@ -13,6 +13,11 @@ class PullRequestFilePayload(TypedDict):
     changeType: str
 
 
+class FailedCheckPayload(TypedDict):
+    name: str
+    url: str | None
+
+
 class PullRequestPayload(TypedDict):
     id: str
     number: int
@@ -22,13 +27,15 @@ class PullRequestPayload(TypedDict):
     reviewStatus: str | None
     repoName: str | None
     files: list[PullRequestFilePayload]
-    failedChecks: list[str]
+    failedCheckDetails: list[FailedCheckPayload]
 
 
 class IssueProjectPayload(TypedDict):
     id: str
     slug: str
     platform: str | None
+    hasReposConnected: NotRequired[bool]
+    hasNonGithubRepo: NotRequired[bool]
 
 
 class IssuePayload(TypedDict):
@@ -44,6 +51,12 @@ class IssuePayload(TypedDict):
     assignedTo: dict | None
     owners: list
     project: IssueProjectPayload
+
+
+class ProjectConfigPayload(TypedDict):
+    id: str
+    slug: str
+    hasReposConnected: bool
 
 
 class CodeChangeFilePayload(TypedDict):
@@ -70,8 +83,10 @@ class RunPayload(TypedDict):
     pullRequests: list[PullRequestPayload]
     codeChanges: list[CodeChangeFilePayload]
     issue: IssuePayload
+    status: str | None
 
 
 class OverviewResponse(TypedDict):
     runsByMilestone: dict[str, list[RunPayload]]
     truncatedMilestones: list[str]
+    projectConfig: NotRequired[list[ProjectConfigPayload]]

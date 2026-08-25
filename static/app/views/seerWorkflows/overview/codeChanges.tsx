@@ -1,3 +1,5 @@
+import {useRef} from 'react';
+
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
@@ -10,9 +12,9 @@ import {
 } from './changedFilesSection';
 import type {OverviewCodeChangeFile} from './types';
 
-const DIFF_TYPE_TAG: Record<DiffFileType, FileChangeTag> = {
+const DIFF_TYPE_TAG: Record<DiffFileType, FileChangeTag | null> = {
   [DiffFileType.ADDED]: {label: t('Added'), variant: 'success'},
-  [DiffFileType.MODIFIED]: {label: t('Modified'), variant: 'muted'},
+  [DiffFileType.MODIFIED]: null,
   [DiffFileType.DELETED]: {label: t('Deleted'), variant: 'danger'},
 };
 
@@ -33,13 +35,27 @@ function groupByRepo(codeChanges: OverviewCodeChangeFile[]): RepoFileGroup[] {
   return [...groups.values()];
 }
 
-export function CodeChanges({codeChanges}: {codeChanges: OverviewCodeChangeFile[]}) {
+export function CodeChanges({
+  codeChanges,
+  onFirstExpand,
+}: {
+  codeChanges: OverviewCodeChangeFile[];
+  onFirstExpand?: () => void;
+}) {
   const {expandedKeys, toggle} = useExpandedKeys();
+  const firedRef = useRef(false);
+  const handleToggle = (key: string, expanded: boolean) => {
+    if (expanded && !firedRef.current) {
+      firedRef.current = true;
+      onFirstExpand?.();
+    }
+    toggle(key, expanded);
+  };
   return (
     <ChangedFilesSection
       groups={groupByRepo(codeChanges)}
       expandedKeys={expandedKeys}
-      onToggle={toggle}
+      onToggle={handleToggle}
     />
   );
 }
