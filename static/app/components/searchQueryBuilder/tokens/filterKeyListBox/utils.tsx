@@ -2,11 +2,9 @@ import styled from '@emotion/styled';
 
 import {getEscapedKey, HighlightText} from '@sentry/scraps/compactSelect';
 
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
-  AskSeerItem,
   ConvertHumanizedItem,
   FilterValueItem,
   KeyItem,
@@ -271,17 +269,6 @@ export function createRecentQueryItem({
         fieldDefinitionGetter={getFieldDefinition}
       />
     ),
-    hideCheck: true,
-  };
-}
-
-export function createAskSeerItem(): AskSeerItem {
-  return {
-    key: getEscapedKey(ASK_SEER_ITEM_KEY),
-    value: ASK_SEER_ITEM_KEY,
-    textValue: 'Ask AI to build your query',
-    type: 'ask-seer' as const,
-    label: t('Ask AI to build your query'),
     hideCheck: true,
   };
 }

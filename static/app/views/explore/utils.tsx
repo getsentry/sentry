@@ -435,12 +435,16 @@ export function viewSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return getTargetWithReadableQueryParams(location, {
+  const target = getTargetWithReadableQueryParams(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
     query: newSearch.formatString(),
     sortBys: newSortBys,
   });
+
+  delete target.query.table;
+
+  return target;
 }
 
 export function getDefaultExploreRoute(organization: Organization) {

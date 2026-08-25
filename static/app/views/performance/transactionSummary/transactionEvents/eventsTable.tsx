@@ -14,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -509,13 +508,11 @@ export function EventsTable({
       (col: TableColumn<string | number>) => col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
     );
 
-  const {columns, handleResizeColumn} = useStateBasedColumnResize({
-    columns: eventView.getColumns(),
-  });
-
-  const columnOrder = columns.filter((col: TableColumn<string | number>) =>
-    shouldRenderColumn(containsSpanOpsBreakdown, col.name)
-  );
+  const columnOrder = eventView
+    .getColumns()
+    .filter((col: TableColumn<string | number>) =>
+      shouldRenderColumn(containsSpanOpsBreakdown, col.name)
+    );
 
   if (customColumns?.includes('attachments') && attachments.length) {
     columnOrder.push({
@@ -604,7 +601,6 @@ export function EventsTable({
                         columnOrder={columnOrder}
                         columnSortBy={eventView.getSorts()}
                         grid={{
-                          onResizeColumn: handleResizeColumn,
                           renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
                           renderBodyCell: renderBodyCellWithData(tableData) as any,
                         }}

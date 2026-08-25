@@ -84,7 +84,6 @@ interface SearchQueryBuilderLayoutContextData {
 }
 
 interface SearchQueryBuilderAIContextData {
-  aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitFromCurrentQuery: boolean;
@@ -164,7 +163,6 @@ const SearchQueryBuilderProviderContext = createContext(false);
 
 export function SearchQueryBuilderProvider({
   children,
-  aiSearchBadgeType = 'beta',
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
@@ -215,9 +213,7 @@ export function SearchQueryBuilderProvider({
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
   const defaultToAskSeerOnFreeTextSearch =
-    enableAISearch &&
-    Boolean(defaultToAskSeerOnFreeTextSearchProp) &&
-    organization.features.includes('gen-ai-default-to-ask-seer');
+    enableAISearch && Boolean(defaultToAskSeerOnFreeTextSearchProp);
 
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
@@ -464,7 +460,6 @@ export function SearchQueryBuilderProvider({
 
   const aiValue = useMemo((): SearchQueryBuilderAIContextData => {
     return {
-      aiSearchBadgeType,
       askSeerNLQueryRef,
       askSeerSuggestedQueryRef,
       autoSubmitFromCurrentQuery,
@@ -480,7 +475,6 @@ export function SearchQueryBuilderProvider({
       skipNextSearchQueryBuilderAutoFocusRef,
     };
   }, [
-    aiSearchBadgeType,
     askSeerNLQueryRef,
     askSeerSuggestedQueryRef,
     autoSubmitFromCurrentQuery,

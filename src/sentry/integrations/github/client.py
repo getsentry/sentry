@@ -1239,7 +1239,7 @@ class GitHubBaseClient(
         if pull_request.include_files:
             cache_key_data["include_files"] = True
         cache_data = orjson.dumps(cache_key_data).decode()
-        return self.get_cache_key("/graphql/pull-request-status", "", cache_data)
+        return self.get_cache_key("/graphql/pull-request-status/v2", "", cache_data)
 
     def get_pull_request_statuses(
         self, pull_requests: Sequence[PullRequestStatusRequest]

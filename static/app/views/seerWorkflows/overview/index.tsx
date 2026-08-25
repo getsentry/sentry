@@ -24,6 +24,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -31,6 +32,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
@@ -46,6 +48,7 @@ import {
 } from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
+import {useOverviewAnalytics} from './useOverviewAnalytics';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
 const SeerTrialCTA = OverrideOrDefault({
@@ -58,6 +61,23 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
   {value: 'events', label: t('Most events')},
   {value: 'users', label: t('Most users')},
 ];
+
+// Buckets the assignee filter value (a raw `type:id` actor string) for
+// analytics, avoiding actor-id PII/cardinality. Null means the filter was
+// cleared back to all assignees.
+function bucketAssignee(value: string | null, currentUserId: string): string {
+  if (!value) {
+    return 'all';
+  }
+  if (value === 'unassigned') {
+    return 'unassigned';
+  }
+  const [type, id] = value.split(':');
+  if (type === 'team') {
+    return 'team';
+  }
+  return id === currentUserId ? 'me' : 'user';
+}
 
 export default function AutofixOverview() {
   const organization = useOrganization();
@@ -94,6 +114,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   const {initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
   const navigate = useNavigate();
+  const user = useUser();
   useOverviewSeerDrawer();
   const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
     'seer-autofix-overview:collapsed-groups',
@@ -116,6 +137,16 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       {replace: true}
     );
 
+  const trackFilterChanged = (
+    filterType: 'sort' | 'assignee' | 'activity' | 'view_tab',
+    value: string
+  ) =>
+    trackAnalytics('autofix.overview.filter_changed', {
+      organization,
+      filter_type: filterType,
+      value,
+    });
+
   const {
     data,
     projectConfig,
@@ -134,6 +165,14 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   useMilestoneAdvanceToasts(data, enrichedSettled);
   const unconfiguredProjects =
     projectConfig?.filter(project => !project.hasReposConnected) ?? [];
+  useOverviewAnalytics({
+    data,
+    isPending,
+    numProjectsSelected: selection.projects.length,
+    numUnconfiguredProjects: unconfiguredProjects.length,
+    projectConfigPending,
+    statsPeriod: selection.datetime.period,
+  });
   const allUnconfigured =
     unconfiguredProjects.length > 0 &&
     unconfiguredProjects.length === projectConfig?.length;
@@ -207,6 +246,9 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           <ProjectFilterSkeleton />
         )}
         <DatePageFilter
+          onChange={update =>
+            trackFilterChanged('activity', update.relative ?? 'absolute')
+          }
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
           )}
@@ -214,15 +256,19 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         <AssigneeFilter
           runs={allRuns}
           value={assignee}
-          onChange={next => setQueryParam('assignee', next ?? undefined)}
+          onChange={next => {
+            trackFilterChanged('assignee', bucketAssignee(next, user.id));
+            setQueryParam('assignee', next ?? undefined);
+          }}
           loading={isPending}
         />
         <CompactSelect
           value={sort}
           options={SORT_OPTIONS}
-          onChange={selected =>
-            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value)
-          }
+          onChange={selected => {
+            trackFilterChanged('sort', selected.value);
+            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value);
+          }}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
@@ -266,9 +312,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <Fragment>
               <Tabs
                 value={view}
-                onChange={next =>
-                  setQueryParam('view', next === 'all' ? undefined : next)
-                }
+                onChange={next => {
+                  trackFilterChanged('view_tab', next);
+                  setQueryParam('view', next === 'all' ? undefined : next);
+                }}
               >
                 <TabList>
                   <TabList.Item key="all">

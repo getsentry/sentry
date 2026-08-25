@@ -50,7 +50,6 @@ export function ChartContextMenu({
       const yAxis = visualizeYAxes[0]!.yAxis;
       menuItems.push(
         getSaveAsAlertMenuItem({
-          organization,
           disabled: isVisualizeEquation(visualizeYAxes[0]!),
           to: getAlertsUrl({
             project,
@@ -97,7 +96,6 @@ export function ChartContextMenu({
 
       menuItems.push(
         getSaveAsAlertMenuItem({
-          organization,
           alertsUrls,
           submenu: true,
           label: getCreateAlertForLabel(),
