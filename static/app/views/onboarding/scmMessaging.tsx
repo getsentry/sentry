@@ -176,7 +176,7 @@ export function ScmMessaging({
                 animate={{opacity: 1}}
                 exit={{opacity: 0}}
                 transition={{duration: 0.15}}
-                gap="md"
+                gap="lg"
               >
                 {providers.map(viewModel => (
                   <ScmCollapsibleReveal
