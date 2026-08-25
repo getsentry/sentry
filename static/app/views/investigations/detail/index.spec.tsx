@@ -1248,6 +1248,18 @@ describe('Investigation detail', () => {
     const investigation = InvestigationDetailFixture();
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
     MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-running/`,
+      body: {
+        id: 'execution-running',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+    MockApiClient.addMockResponse({
       url: detailUrl,
       method: 'PUT',
       body: () => {
@@ -1329,6 +1341,10 @@ describe('Investigation detail', () => {
 
   it('polls for and displays a generated title after block execution finishes', async () => {
     let requestCount = 0;
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'completed', preview: null},
+    });
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: () => {
