@@ -2110,9 +2110,9 @@ describe('Visualize', () => {
       body: {
         data: [
           {
-            ['metric.name']: 'alpha_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
           },
         ],
       },

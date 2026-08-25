@@ -215,7 +215,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         objects from URI params, we're applying the same logic for a param in
         the request body.
         """
-        if not request.data:
+        if request.method != "POST":
             return (args, kwargs)
 
         context = self._get_org_context(request)
@@ -541,6 +541,37 @@ class SentryAppStatsPermission(SentryPermission):
         if owner_app is None:
             logger.error(
                 "sentry_app_stats.permission_org_not_found",
+                extra={
+                    "sentry_app_id": sentry_app.id,
+                    "owner_org_id": sentry_app.owner_id,
+                    "user_id": request.user.id,
+                },
+            )
+            return False
+        self.determine_access(request, owner_app)
+
+        if is_active_superuser(request):
+            return True
+
+        assert request.method, "method must be present in request to get permissions"
+        return ensure_scoped_permission(request, self.scope_map.get(request.method))
+
+
+class SentryAppWebhookRequestsPermission(SentryPermission):
+    scope_map = {
+        "GET": ("org:admin", "org:integrations"),
+    }
+
+    def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):
+        if not hasattr(request, "user") or not request.user:
+            return False
+
+        owner_app = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id
+        )
+        if owner_app is None:
+            logger.error(
+                "sentry_app_webhook_requests.permission_org_not_found",
                 extra={
                     "sentry_app_id": sentry_app.id,
                     "owner_org_id": sentry_app.owner_id,

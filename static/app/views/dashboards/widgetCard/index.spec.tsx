@@ -655,7 +655,8 @@ describe('Dashboards > WidgetCard', () => {
         widgetLimitReached={false}
         isPreview
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      ['performance-transaction-deprecation-banner']
     );
 
     expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();

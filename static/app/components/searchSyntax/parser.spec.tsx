@@ -9,10 +9,17 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {
   BooleanOperator,
+  FilterType,
   InvalidReason,
   parseSearch,
+  TermOperator,
   Token,
 } from 'sentry/components/searchSyntax/parser';
+import {
+  getKeyLabel,
+  getKeyName,
+  stringifyToken,
+} from 'sentry/components/searchSyntax/utils';
 
 type TestCase = {
   /**
@@ -485,8 +492,8 @@ describe('searchSyntax/parser', () => {
     });
   });
 
-  describe('array typed tags', () => {
-    it('parses an array typed tag with the [*] membership suffix', () => {
+  describe('array membership filters', () => {
+    it('parses an explicit array typed tag with the [*] membership suffix', () => {
       const result = parseSearch('tags[csv_headers,array][*]:foo');
 
       if (result === null) {
@@ -494,18 +501,106 @@ describe('searchSyntax/parser', () => {
       }
 
       const filter = result.find(token => token.type === Token.FILTER);
+      if (filter?.type !== Token.FILTER) {
+        throw new Error('Expected a filter token');
+      }
 
       expect(filter).toEqual(
         expect.objectContaining({
           type: Token.FILTER,
+          filter: FilterType.ARRAY_INCLUDES,
+          negated: false,
+          operator: TermOperator.DEFAULT,
           key: expect.objectContaining({
-            type: Token.KEY_EXPLICIT_ARRAY_TAG,
-            text: 'tags[csv_headers,array][*]',
+            type: Token.KEY_ARRAY_INCLUDES,
+            index: '*',
+            key: expect.objectContaining({
+              type: Token.KEY_EXPLICIT_ARRAY_TAG,
+              text: 'tags[csv_headers,array]',
+              key: expect.objectContaining({
+                type: Token.KEY_SIMPLE,
+                value: 'csv_headers',
+              }),
+            }),
+          }),
+          value: expect.objectContaining({type: Token.VALUE_TEXT, value: 'foo'}),
+        })
+      );
+
+      // Identity keeps the backend tag form (so the query stays annotated); the
+      // label prettifies to the root name; the query text carries the `[*]`.
+      expect(getKeyName(filter.key)).toBe('tags[csv_headers,array]');
+      expect(getKeyLabel(filter.key)).toBe('csv_headers');
+      expect(stringifyToken(filter.key)).toBe('tags[csv_headers,array][*]');
+      // The whole filter round-trips without an operator sentinel.
+      expect(stringifyToken(filter)).toBe('tags[csv_headers,array][*]:foo');
+    });
+
+    it('does not treat the tags[...,array] form without [*] as membership', () => {
+      // `[*]` is the required membership operator; without it the key is not an
+      // array-includes filter (it falls through to an ordinary text filter).
+      const result = parseSearch('tags[csv_headers,array]:foo');
+
+      const filter = result?.find(token => token.type === Token.FILTER);
+
+      expect(filter?.filter).not.toBe(FilterType.ARRAY_INCLUDES);
+    });
+
+    it('parses a plain attribute key with the [*] membership suffix', () => {
+      const result = parseSearch('csv_headers[*]:foo');
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      const filter = result.find(token => token.type === Token.FILTER);
+      if (filter?.type !== Token.FILTER) {
+        throw new Error('Expected a filter token');
+      }
+
+      expect(filter).toEqual(
+        expect.objectContaining({
+          type: Token.FILTER,
+          filter: FilterType.ARRAY_INCLUDES,
+          operator: TermOperator.DEFAULT,
+          key: expect.objectContaining({
+            type: Token.KEY_ARRAY_INCLUDES,
+            index: '*',
             key: expect.objectContaining({type: Token.KEY_SIMPLE, value: 'csv_headers'}),
           }),
           value: expect.objectContaining({type: Token.VALUE_TEXT, value: 'foo'}),
         })
       );
+
+      expect(getKeyName(filter.key)).toBe('csv_headers');
+      expect(getKeyLabel(filter.key)).toBe('csv_headers');
+      expect(stringifyToken(filter.key)).toBe('csv_headers[*]');
+      expect(stringifyToken(filter)).toBe('csv_headers[*]:foo');
+    });
+
+    it('marks a negated membership filter as does-not-include', () => {
+      const result = parseSearch('!csv_headers[*]:foo');
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      const filter = result.find(token => token.type === Token.FILTER);
+      if (filter?.type !== Token.FILTER) {
+        throw new Error('Expected a filter token');
+      }
+
+      expect(filter).toEqual(
+        expect.objectContaining({
+          type: Token.FILTER,
+          filter: FilterType.ARRAY_INCLUDES,
+          negated: true,
+          operator: TermOperator.DEFAULT,
+        })
+      );
+
+      // Negation round-trips as `!…[*]`, not a DoesNotInclude sentinel.
+      expect(stringifyToken(filter)).toBe('!csv_headers[*]:foo');
     });
   });
 });

@@ -26,6 +26,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {comparePlatformNames} from 'sentry/utils/platform';
 
 const PlatformList = styled('div')`
   display: grid;
@@ -42,10 +43,6 @@ const selectablePlatforms = platforms.filter(platform =>
   createablePlatforms.has(platform.id)
 );
 
-function startsWithPunctuation(name: string) {
-  return /^\p{P}/u.test(name);
-}
-
 export type Category = (typeof categoryList)[number]['id'];
 
 export type Platform = PlatformIntegration & {
@@ -55,15 +52,10 @@ export type Platform = PlatformIntegration & {
 interface PlatformPickerProps {
   setPlatform: (props: Platform | null) => void;
   defaultCategory?: Category;
-  listClassName?: string;
-  listProps?: React.HTMLAttributes<HTMLDivElement>;
   loading?: boolean;
-  modal?: boolean;
-  navClassName?: string;
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
-  showFilterBar?: boolean;
   showOther?: boolean;
   source?: string;
   /**
@@ -82,15 +74,11 @@ export function PlatformPicker({
   noAutoFilter,
   platform,
   setPlatform,
-  listProps,
-  listClassName,
-  navClassName,
   organization,
   source,
   variant,
   visibleSelection = true,
   loading = false,
-  showFilterBar = true,
   showOther = true,
 }: PlatformPickerProps) {
   const {isSelfHosted} = useLegacyStore(ConfigStore);
@@ -146,15 +134,7 @@ export function PlatformPicker({
     }
 
     // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
-    return filtered.sort((a, b) => {
-      if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
-        return 1;
-      }
-      if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
-        return -1;
-      }
-      return a.name.localeCompare(b.name);
-    });
+    return filtered.sort((a, b) => comparePlatformNames(a.name, b.name));
   }, [filter, category, availablePlatforms, showOther]);
 
   const latestValuesRef = useRef({
@@ -217,7 +197,7 @@ export function PlatformPicker({
 
   return (
     <Fragment>
-      <NavContainer className={navClassName}>
+      <NavContainer>
         <Container marginBottom="xl">
           <Tabs
             value={category}
@@ -239,19 +219,17 @@ export function PlatformPicker({
             </TabList>
           </Tabs>
         </Container>
-        {showFilterBar && (
-          <StyledSearchBar
-            size="sm"
-            query={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={val => {
-              setFilter(val);
-              debounceSearch();
-            }}
-          />
-        )}
+        <StyledSearchBar
+          size="sm"
+          query={filter}
+          placeholder={t('Filter Platforms')}
+          onChange={val => {
+            setFilter(val);
+            debounceSearch();
+          }}
+        />
       </NavContainer>
-      <PlatformList className={listClassName} {...listProps}>
+      <PlatformList>
         {platformList.map(item => {
           return (
             <div key={item.id} style={{position: 'relative'}}>

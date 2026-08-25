@@ -1,7 +1,13 @@
-import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'react';
+import {
+  type ComponentProps,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -48,6 +54,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -65,29 +72,37 @@ const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
+interface AssignmentCounts {
+  all: number;
+  me: number;
+  my_teams: number;
+}
+
+interface AlternateInbox {
+  filter: Exclude<AssignmentFilter, 'me'>;
+  label: string;
+}
+
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned_or_suggested:me',
   my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
+const ASSIGNMENT_COUNT_QUERY =
+  'issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved';
+const ALL_ASSIGNMENT_COUNT_QUERY =
+  'issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved';
 interface InboxSectionContext {
-  assignmentFilter: AssignmentFilter;
   hasSeer: boolean;
 }
 
 interface InboxSectionConfig {
-  analyticsKey:
-    | 'num_fix_proposed'
-    | 'num_diagnosed'
-    | 'num_assigned'
-    | 'num_identified'
-    | 'num_fix_applied';
-  defaultExpanded: boolean;
+  analyticsKey: 'num_fix_proposed' | 'num_diagnosed' | 'num_assigned' | 'num_fix_applied';
   emptyMessage: string;
   key: string;
   label: string;
   progress: ProgressState;
-  query: string;
+  query: string | ((assignmentFilter: AssignmentFilter) => string);
   hidden?: (context: InboxSectionContext) => boolean;
 }
 
@@ -99,7 +114,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:fix_proposed is:unresolved',
     emptyMessage: t('No issues with a proposed fix'),
     progress: ProgressState.FIX_PROPOSED,
-    defaultExpanded: true,
   },
   {
     analyticsKey: 'num_diagnosed',
@@ -108,27 +122,18 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
-    defaultExpanded: true,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
     analyticsKey: 'num_assigned',
     key: 'assigned',
     label: t('Assigned'),
-    query: 'issue.progress:assigned is:unresolved',
+    query: assignmentFilter =>
+      assignmentFilter === 'all'
+        ? 'issue.progress:assigned is:unresolved'
+        : 'issue.progress:[assigned,identified] is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
-    defaultExpanded: false,
-    hidden: ({hasSeer}) => !hasSeer,
-  },
-  {
-    analyticsKey: 'num_identified',
-    key: 'identified',
-    label: t('Identified'),
-    query: 'issue.progress:identified is:unresolved',
-    emptyMessage: t('No identified issues'),
-    progress: ProgressState.IDENTIFIED,
-    defaultExpanded: false,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -138,15 +143,14 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:fix_applied is:unresolved',
     emptyMessage: t('No issues with an applied fix'),
     progress: ProgressState.FIX_APPLIED,
-    defaultExpanded: false,
   },
 ];
 
 export default function InboxPage() {
   const organization = useOrganization();
-  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
+  const hasIssueInbox = organization.features.includes('issue-inbox');
 
-  if (!hasProgressUi || !orgHasSeerAccess(organization)) {
+  if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
     return <NotFound />;
   }
 
@@ -204,6 +208,101 @@ function useSelectFirstLoadedIssue({
   };
 }
 
+// Fetch counts for the assignment filter tabs (my/my teams/all)
+function useAssignmentCounts(): AssignmentCounts | null {
+  const organization = useOrganization();
+  const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const allQuery = `${ALL_ASSIGNMENT_COUNT_QUERY}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+
+  const {data} = useQuery({
+    ...apiOptions.as<Record<string, number>>()(
+      '/organizations/$organizationIdOrSlug/issues-count/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {query: [meQuery, myTeamsQuery, allQuery]},
+        staleTime: 180_000,
+      }
+    ),
+  });
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    me: data[meQuery] ?? 0,
+    my_teams: data[myTeamsQuery] ?? 0,
+    all: data[allQuery] ?? 0,
+  };
+}
+
+function getAlternateInbox(
+  assignmentFilter: AssignmentFilter,
+  assignmentCounts: AssignmentCounts | null
+): AlternateInbox | null {
+  if (assignmentFilter === 'me' && assignmentCounts?.my_teams) {
+    return {filter: 'my_teams', label: t('View team inbox')};
+  }
+
+  if (assignmentFilter !== 'all' && assignmentCounts?.all) {
+    return {filter: 'all', label: t('View all inbox')};
+  }
+
+  return null;
+}
+
+function AssignmentTabs({
+  assignmentFilter,
+  onChange,
+}: {
+  assignmentFilter: AssignmentFilter;
+  onChange: (filter: AssignmentFilter) => void;
+}) {
+  const assignmentCounts = useAssignmentCounts();
+
+  useRouteAnalyticsParams(
+    assignmentCounts
+      ? {
+          assignment_filter: assignmentFilter,
+          count_me: assignmentCounts.me,
+          count_my_teams: assignmentCounts.my_teams,
+          count_all: assignmentCounts.all,
+        }
+      : {
+          assignment_filter: assignmentFilter,
+        }
+  );
+
+  return (
+    <SegmentedControl
+      aria-label={t('Issue assignee')}
+      size="xs"
+      value={assignmentFilter}
+      onChange={onChange}
+    >
+      <SegmentedControl.Item key="me" textValue={t('Me')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('Me')}
+          <AssignmentCountBadge count={assignmentCounts?.me} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="my_teams" textValue={t('My Teams')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('My Teams')}
+          <AssignmentCountBadge count={assignmentCounts?.my_teams} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="all" textValue={t('All')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('All')}
+          <AssignmentCountBadge count={assignmentCounts?.all} />
+        </Flex>
+      </SegmentedControl.Item>
+    </SegmentedControl>
+  );
+}
+
 function InboxContent() {
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
@@ -222,9 +321,10 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
-  const sections = SECTIONS.filter(
-    section => !section.hidden?.({assignmentFilter, hasSeer})
-  );
+  const assignmentCounts = useAssignmentCounts();
+  const sections = SECTIONS.filter(section => !section.hidden?.({hasSeer}));
+  const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
+  const alternateInbox = getAlternateInbox(assignmentFilter, assignmentCounts);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
     INBOX_DEFAULT_SIZE
@@ -251,6 +351,13 @@ function InboxContent() {
     });
     setAssignmentFilter(filter);
   };
+
+  const alternateInboxAction = alternateInbox
+    ? {
+        label: alternateInbox.label,
+        onClick: () => handleAssignmentFilterChange(alternateInbox.filter),
+      }
+    : undefined;
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -284,23 +391,15 @@ function InboxContent() {
             <Heading as="h2" size="md">
               {t('Issues')}
             </Heading>
-            <SegmentedControl
-              aria-label={t('Issue assignee')}
-              size="xs"
-              value={assignmentFilter}
+            <AssignmentTabs
+              assignmentFilter={assignmentFilter}
               onChange={handleAssignmentFilterChange}
-            >
-              <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="my_teams">
-                {t('My Teams')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
-            </SegmentedControl>
+            />
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {sections.map(section => (
               <InboxSection
-                key={section.key}
+                key={`${assignmentFilter}:${section.key}`}
                 section={section}
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
@@ -354,9 +453,27 @@ function InboxContent() {
             </Container>
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+          {!selectedIssueId && isInboxEmpty && (
+            <InboxEmptyState
+              assignmentFilter={assignmentFilter}
+              alternateInbox={alternateInboxAction}
+            />
+          )}
         </Stack>
       </Grid>
     </Stack>
+  );
+}
+
+function AssignmentCountBadge({count}: {count: number | undefined}) {
+  if (count === undefined) {
+    return <Placeholder width="24px" height="20px" />;
+  }
+
+  return (
+    <Badge variant="muted">
+      <QueryCount count={count} max={99} hideIfEmpty={false} hideParens />
+    </Badge>
   );
 }
 
@@ -374,11 +491,13 @@ function InboxSection({
   selectedIssueId,
 }: InboxSectionProps) {
   const organization = useOrganization();
+  const sectionQuery =
+    typeof section.query === 'function' ? section.query(assignmentFilter) : section.query;
   const queryResult = useInfiniteQuery({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
+        query: `${sectionQuery}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
@@ -389,6 +508,8 @@ function InboxSection({
     refetchOnWindowFocus: true,
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
+  const hasIssues = groups.length > 0;
+  const [expanded, setExpanded] = useState<boolean>();
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   useRouteAnalyticsParams({[section.analyticsKey]: count});
@@ -413,7 +534,8 @@ function InboxSection({
     <Disclosure
       as="section"
       aria-label={section.label}
-      defaultExpanded={section.defaultExpanded}
+      expanded={expanded ?? (!queryResult.isSuccess || hasIssues)}
+      onExpandedChange={setExpanded}
       size="sm"
     >
       <StickySectionHeader
@@ -548,6 +670,10 @@ function useIssueSuggestedAssignees(group: Group): Actor[] {
   );
 }
 
+function getActorLabel(actor: Actor) {
+  return actor.type === 'team' ? `#${actor.name}` : actor.name;
+}
+
 function InboxIssueCard({
   assignmentFilter,
   assignedUser,
@@ -627,19 +753,28 @@ function InboxIssueCard({
                 <UserAvatar
                   user={assignedUser ?? group.assignedTo}
                   size={18}
-                  hasTooltip={false}
+                  hasTooltip
+                  tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />
               ) : (
                 <ActorAvatar
                   actor={group.assignedTo}
                   size={18}
-                  hasTooltip={false}
+                  hasTooltip
+                  tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />
               ))}
             {!group.assignedTo && suggestedAssignees.length > 0 && (
-              <SuggestedAvatarStack size={18} owners={suggestedAssignees} />
+              <SuggestedAvatarStack
+                size={18}
+                owners={suggestedAssignees}
+                tooltip={t(
+                  'Suggested assignees: %s',
+                  suggestedAssignees.map(getActorLabel).join(', ')
+                )}
+              />
             )}
           </Stack>
         </Grid>
@@ -659,8 +794,11 @@ const PULL_REQUEST_BADGE_VARIANTS = {
 
 function InboxPullRequestBadges({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
+  const pullRequests = data?.pullRequests.filter(
+    pullRequest => pullRequest.status !== 'closed'
+  );
 
-  if (!data?.pullRequests.length) {
+  if (!pullRequests?.length) {
     return null;
   }
 
@@ -669,7 +807,7 @@ function InboxPullRequestBadges({group}: {group: Group}) {
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
         <span />
         <Flex align="center" gap="xs">
-          {data.pullRequests.slice(0, 2).map(pullRequest => (
+          {pullRequests.slice(0, 2).map(pullRequest => (
             <PullRequestBadgeLink
               key={`${pullRequest.repository.id}:${pullRequest.id}`}
               aria-label={t(

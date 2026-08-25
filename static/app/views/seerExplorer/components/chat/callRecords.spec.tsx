@@ -1,12 +1,9 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   callRecordDetail,
   callRecordLabel,
   callRecordStatus,
-  callRecordLink,
 } from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
@@ -171,14 +168,51 @@ describe('call record rendering', () => {
     expect(screen.queryByText('Retrieving details')).not.toBeInTheDocument();
   });
 
-  it('keeps a lib row that made no api calls of its own', () => {
-    // code_search never touches the transport, so its row is the only trace it leaves.
+  it('keeps get_span_details over its less-specific trace child', () => {
+    // The only HTTP call under get_span_details is the trace endpoint. The lib row carries span_id
+    // and is the better destination, so the child is suppressed rather than the parent.
     const block = codeModeBlock([
-      {id: 1, parent: null, kind: 'lib', name: 'code_search'},
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'get_span_details',
+        title: 'Retrieving span abc in trace def',
+        params: {trace_id: 'def', span_id: 'abc'},
+      },
+      apiRecord({
+        id: 2,
+        parent: 1,
+        path: '/api/0/organizations/{organization_id_or_slug}/trace/{trace_id}/',
+        path_params: {organization_id_or_slug: 'acme', trace_id: 'def'},
+        title: 'Retrieving waterfall for trace def',
+      }),
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.getByText('Searched code')).toBeInTheDocument();
+    expect(screen.getByText('Retrieving span abc in trace def')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Retrieving waterfall for trace def')
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a lib row that made no api calls of its own', () => {
+    // code_search never touches the transport, so its row is the only trace it leaves. Seer titles
+    // it, as it does every call — nothing in the frontend renames a row.
+    const block = codeModeBlock([
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'code_search',
+        title: 'Searching code in repository getsentry/sentry',
+      },
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(
+      screen.getByText('Searching code in repository getsentry/sentry')
+    ).toBeInTheDocument();
   });
 
   it('renders calls from separate tool calls the same as calls from one', () => {
@@ -307,15 +341,17 @@ describe('callRecordStatus', () => {
 });
 
 describe('callRecordLabel', () => {
-  it('prefers a registered handler over the shipped title', () => {
-    const label = callRecordLabel({
-      id: 1,
-      kind: 'lib',
-      name: 'code_search',
-      title: 'Should not win',
-    });
-
-    expect(label).toBe('Searched code');
+  // Only the title. A rule in `links.tsx` may name the row instead, and where that wins over the
+  // shipped title is settled in `links.spec.tsx` — not here.
+  it('reports the shipped title verbatim, whatever the call was', () => {
+    expect(
+      callRecordLabel({
+        id: 1,
+        kind: 'lib',
+        name: 'code_search',
+        title: 'Ran a code search',
+      })
+    ).toBe('Ran a code search');
   });
 
   it('uses the shipped title when no handler matches', () => {
@@ -330,150 +366,6 @@ describe('callRecordLabel', () => {
 
   it('treats a blank title as absent', () => {
     expect(callRecordLabel(apiRecord({title: '   '}))).toBeNull();
-  });
-});
-
-/** The destination a record links to, or null — the shape these cases assert on. */
-function urlFor(...args: Parameters<typeof callRecordLink>) {
-  return callRecordLink(...args)?.url ?? null;
-}
-
-describe('callRecordLink', () => {
-  const organization = OrganizationFixture();
-
-  it('builds an issue URL from an issue_id path param', () => {
-    const url = urlFor(
-      apiRecord({path_params: {organization_id_or_slug: 'acme', issue_id: '42'}}),
-      organization
-    );
-
-    expect(url).not.toBeNull();
-  });
-
-  it('scopes an org-less path to the organization', () => {
-    // A bare `/issues/42/` only resolves under a customer domain, so it 404s on a plain host.
-    const url = urlFor(apiRecord({path_params: {issue_id: '42'}}), organization);
-
-    expect(url).toEqual(
-      expect.objectContaining({
-        pathname: `/organizations/${organization.slug}/issues/42/`,
-      })
-    );
-  });
-
-  it('does not double-prefix a path that is already org-scoped', () => {
-    const url = urlFor(
-      apiRecord({
-        path: '/api/0/organizations/{organization_id_or_slug}/replays/{replay_id}/',
-        path_params: {organization_id_or_slug: 'acme', replay_id: 'r1'},
-      }),
-      organization
-    );
-
-    expect(JSON.stringify(url)).not.toContain('/organizations/acme/organizations/');
-  });
-
-  it('prefers the event URL when a record names both an issue and an event', () => {
-    const url = urlFor(
-      apiRecord({
-        path_params: {issue_id: '42', event_id: 'abc123'},
-      }),
-      organization
-    );
-
-    expect(JSON.stringify(url)).toContain('abc123');
-  });
-
-  it('returns null when only scope params are present', () => {
-    // organization/project slugs say where a call went, not what it points at.
-    expect(
-      urlFor(
-        apiRecord({
-          path_params: {organization_id_or_slug: 'acme', project_id_or_slug: 'web'},
-        }),
-        organization
-      )
-    ).toBeNull();
-  });
-
-  it('returns null when a record has no path params', () => {
-    expect(urlFor(apiRecord({path_params: undefined}), organization)).toBeNull();
-  });
-
-  describe('only the route its own subject', () => {
-    // Without this, get_issue_details' three requests all link to the issue page — three rows
-    // pointing at the same place, which reads as arbitrary.
-    const issueRoutes = [
-      ['/api/0/issues/{issue_id}/', true],
-      ['/api/0/issues/{issue_id}/events/latest/', false],
-      ['/api/0/issues/{issue_id}/tags/', false],
-    ] as const;
-
-    it.each(issueRoutes)('%s links: %s', (path, shouldLink) => {
-      const url = urlFor(apiRecord({path, path_params: {issue_id: '54'}}), organization);
-
-      expect(url === null).toBe(!shouldLink);
-    });
-
-    it('gives one link across a lib call and its children', () => {
-      const linked = issueRoutes
-        .map(([path]) =>
-          urlFor(apiRecord({path, path_params: {issue_id: '54'}}), organization)
-        )
-        .filter(Boolean);
-
-      expect(linked).toHaveLength(1);
-    });
-  });
-  describe('api-only aliases', () => {
-    // The API resolves `latest`/`oldest`/`recommended` server-side, but the UI route needs a
-    // concrete id — linking the alias straight through produces a dead page.
-    it('does not link an event alias as if it were an event id', () => {
-      const url = urlFor(
-        apiRecord({
-          path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/{event_id}/',
-          path_params: {
-            organization_id_or_slug: 'sentry',
-            issue_id: '54',
-            event_id: 'latest',
-          },
-        }),
-        organization
-      );
-
-      expect(JSON.stringify(url)).not.toContain('latest');
-    });
-
-    it('falls back to the issue when the event is an alias', () => {
-      const url = urlFor(
-        apiRecord({path_params: {issue_id: '54', event_id: 'latest'}}),
-        organization
-      );
-
-      expect(url).toEqual(
-        expect.objectContaining({
-          pathname: `/organizations/${organization.slug}/issues/54/`,
-        })
-      );
-    });
-
-    it.each(['latest', 'oldest', 'recommended'])('rejects %s as an event id', alias => {
-      const url = urlFor(
-        apiRecord({path_params: {issue_id: '54', event_id: alias}}),
-        organization
-      );
-
-      expect(JSON.stringify(url)).not.toContain(alias);
-    });
-
-    it('still links a real event id', () => {
-      const url = urlFor(
-        apiRecord({path_params: {issue_id: '54', event_id: 'abc123'}}),
-        organization
-      );
-
-      expect(JSON.stringify(url)).toContain('abc123');
-    });
   });
 });
 

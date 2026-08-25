@@ -1,14 +1,12 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -97,32 +95,34 @@ export function CodeOwnerFileTable({
   };
 
   return (
-    <StyledPanelTable
-      headers={[
-        t('codeowners'),
-        t('Stack Trace Root'),
-        t('Source Code Root'),
-        t('Last Synced'),
-        t('File'),
-        '',
-      ]}
+    <StyledSimpleTable
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('codeowners')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Stack Trace Root')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Source Code Root')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Last Synced')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('File')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell />
+        </SimpleTable.HeaderRow>
+      }
     >
       {codeowners.map(codeowner => (
-        <Fragment key={codeowner.id}>
-          <Flex align="center" gap="md">
+        <SimpleTable.Row key={codeowner.id}>
+          <SimpleTable.RowCell gap="md">
             {getCodeOwnerIcon(codeowner.provider)}
             {codeowner.codeMapping?.repoName}
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             <code>{codeowner.codeMapping?.stackRoot}</code>
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             <code>{codeowner.codeMapping?.sourceRoot}</code>
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             <TimeSince date={codeowner.dateSynced ?? codeowner.dateUpdated} />
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             {codeowner.codeOwnersUrl === 'unknown' ? null : (
               <StyledExternalLink href={codeowner.codeOwnersUrl}>
                 <IconOpen size="xs" />
@@ -132,8 +132,8 @@ export function CodeOwnerFileTable({
                 )}
               </StyledExternalLink>
             )}
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             <DropdownMenu
               items={[
                 {
@@ -163,14 +163,14 @@ export function CodeOwnerFileTable({
               }}
               disabledKeys={disabled ? ['sync', 'delete'] : []}
             />
-          </Flex>
-        </Fragment>
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
       ))}
-    </StyledPanelTable>
+    </StyledSimpleTable>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr 1fr auto min-content min-content;
   position: static;
   overflow: auto;

@@ -93,6 +93,7 @@ interface ActivitySectionProps {
    * Activity to render instead of the activity embedded in the group response.
    */
   activities?: GroupActivity[];
+  enableMentionComposer?: boolean;
   /**
    * Whether to filter the activity to only show comments.
    */
@@ -120,6 +121,7 @@ export function ActivitySection({
   variant = 'sidebar',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
+  enableMentionComposer = false,
 }: ActivitySectionProps) {
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
@@ -171,12 +173,6 @@ export function ActivitySection({
   const displayedActivities = buildActivityFeedItems({
     activities,
     filterComments,
-    showSeerActivities: organization.features.includes(
-      'display-seer-actions-as-issue-activities'
-    ),
-    showStatusFlappingRollups: organization.features.includes(
-      'issue-activity-status-flapping-rollup'
-    ),
   });
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
@@ -202,6 +198,7 @@ export function ActivitySection({
         setInputId(uniqueId());
       }}
       variant={inputVariant}
+      enableMentionComposer={enableMentionComposer}
       {...noteProps}
     />
   );

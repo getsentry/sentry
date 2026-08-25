@@ -844,11 +844,11 @@ describe('TraceTree', () => {
       ]);
       expect(TraceTree.VisibleParent(childTransactionA)).toBe(rootTransaction);
       expect(TraceTree.VisibleParent(childTransactionB)).toBe(rootTransaction);
-      expect(TraceTree.Depth(childTransactionA)).toBe(
-        TraceTree.Depth(rootTransaction) + 1
+      expect(TraceTree.depth(childTransactionA)).toBe(
+        TraceTree.depth(rootTransaction) + 1
       );
-      expect(TraceTree.Depth(childTransactionB)).toBe(
-        TraceTree.Depth(rootTransaction) + 1
+      expect(TraceTree.depth(childTransactionB)).toBe(
+        TraceTree.depth(rootTransaction) + 1
       );
       expect(TraceTree.IsLastVisibleChild(childTransactionA)).toBe(false);
       expect(TraceTree.IsLastVisibleChild(childTransactionB)).toBe(true);
@@ -865,8 +865,8 @@ describe('TraceTree', () => {
       expect(childTransactionB.parent).toBe(spanB);
       expect(TraceTree.VisibleParent(childTransactionA)).toBe(spanA);
       expect(TraceTree.VisibleParent(childTransactionB)).toBe(spanB);
-      expect(TraceTree.Depth(childTransactionA)).toBe(TraceTree.Depth(spanA) + 1);
-      expect(TraceTree.Depth(childTransactionB)).toBe(TraceTree.Depth(spanB) + 1);
+      expect(TraceTree.depth(childTransactionA)).toBe(TraceTree.depth(spanA) + 1);
+      expect(TraceTree.depth(childTransactionB)).toBe(TraceTree.depth(spanB) + 1);
       expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 5)).toEqual([
         rootTransaction,
         spanA,

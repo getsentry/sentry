@@ -9,7 +9,6 @@ from typing import (
     Any,
     ClassVar,
     Generic,
-    Literal,
     Sequence,
     TypeAlias,
     TypedDict,
@@ -90,8 +89,6 @@ class ConditionError:
 
 
 type DetectorResult = IssueOccurrence | StatusChangeMessage | None
-type WorkflowEvaluationDeferred = Literal["deferred"]
-type WorkflowEvaluationResult = Sequence[Action] | WorkflowEvaluationDeferred
 
 
 class _WorkflowEventLocalCache(TypedDict, total=False):

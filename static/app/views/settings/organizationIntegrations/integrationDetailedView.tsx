@@ -7,10 +7,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -109,6 +111,12 @@ function makeIntegrationQueryKey({
 }
 
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
+const tabsWithoutFeatures = tabs.filter(tab => tab !== 'features');
+const tabTitles: Record<IntegrationTab, string> = {
+  overview: t('Overview'),
+  configurations: t('Configurations'),
+  features: t('Features'),
+};
 
 export default function IntegrationDetailedView() {
   const queryClient = useQueryClient();
@@ -157,6 +165,10 @@ export default function IntegrationDetailedView() {
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
+  const displayTabs =
+    !provider || integrationFeatures.includes(provider.key) ? tabs : tabsWithoutFeatures;
+  const displayedTab = displayTabs.includes(activeTab) ? activeTab : 'overview';
+
   const description = provider?.metadata.description ?? '';
   const author = provider?.metadata.author ?? '';
   const resourceLinks = useMemo(() => {
@@ -208,6 +220,11 @@ export default function IntegrationDetailedView() {
     return 'Not Installed';
   }, [configurations]);
   const integrationName = provider?.name ?? '';
+  const navigationTabTitle = (
+    <Layout.Title>
+      <Text as="span">{tabTitles[displayedTab]}</Text>
+    </Layout.Title>
+  );
   const featureData = useMemo(() => {
     return provider?.metadata.features ?? [];
   }, [provider]);
@@ -228,18 +245,14 @@ export default function IntegrationDetailedView() {
   );
 
   const renderTabs = useCallback(() => {
-    const displayTabs = integrationFeatures.includes(provider?.key ?? '')
-      ? tabs
-      : tabs.filter(tab => tab !== 'features');
-
     return (
       <IntegrationLayout.Tabs
         tabs={displayTabs}
-        activeTab={activeTab}
+        activeTab={displayedTab}
         onTabChange={onTabChange}
       />
     );
-  }, [provider, activeTab, onTabChange]);
+  }, [displayTabs, displayedTab, onTabChange]);
 
   useAutoOpenPermissionsModal({
     provider,
@@ -527,7 +540,12 @@ export default function IntegrationDetailedView() {
   }, [organization, provider, configurations, orgMutationOptions]);
 
   if (isInformationPending || isConfigurationsPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        {navigationTabTitle}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isInformationError || isConfigurationsError) {
@@ -589,6 +607,7 @@ export default function IntegrationDetailedView() {
 
   return (
     <SentryDocumentTitle title={integrationName}>
+      {navigationTabTitle}
       <IntegrationLayout.Body
         integrationName={integrationName}
         alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}
@@ -613,7 +632,7 @@ export default function IntegrationDetailedView() {
         }
         tabs={renderTabs()}
         content={
-          activeTab === 'overview' ? (
+          displayedTab === 'overview' ? (
             <IntegrationLayout.InformationCard
               integrationSlug={integrationSlug}
               description={description}
@@ -632,7 +651,7 @@ export default function IntegrationDetailedView() {
               resourceLinks={resourceLinks}
               permissions={null}
             />
-          ) : activeTab === 'configurations' ? (
+          ) : displayedTab === 'configurations' ? (
             renderConfigurations()
           ) : (
             renderFeatures()

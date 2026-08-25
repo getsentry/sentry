@@ -318,5 +318,14 @@ class IntegrationService(RpcService):
     ) -> RpcIntegration | None:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_gcp_service_account_email(
+        self,
+        *,
+        organization_id: int,
+    ) -> str | None:
+        pass
+
 
 integration_service = IntegrationService.create_delegation()
