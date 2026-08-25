@@ -5,12 +5,13 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -33,6 +34,13 @@ type FetchOrgAuthTokensParameters = {
 type RevokeTokenQueryVariables = {
   token: OrgAuthToken;
 };
+
+const TOKEN_COLUMNS: TableColumnConfig[] = [
+  {key: 'token', width: 'auto'},
+  {key: 'created', width: 'auto'},
+  {key: 'lastAccess', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 export const makeFetchOrgAuthTokensForOrgQueryKey = ({
   orgSlug,
@@ -190,20 +198,31 @@ function OrganizationAuthTokensIndex() {
             }
           />
 
-          <ResponsivePanelTable
-            isLoading={isPending || isError}
-            isEmpty={!isPending && !tokenList?.length}
-            loader={
-              isError ? (
+          <ResponsiveSimpleTable
+            columns={TOKEN_COLUMNS}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Last access')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell />
+              </SimpleTable.HeaderRow>
+            }
+          >
+            {isError && (
+              <SimpleTable.Empty>
                 <LoadingError
                   message={t('Failed to load organization tokens.')}
                   onRetry={refetchTokenList}
                 />
-              ) : undefined
-            }
-            emptyMessage={t("You haven't created any authentication tokens yet.")}
-            headers={[t('Token'), t('Created'), t('Last access'), '']}
-          >
+              </SimpleTable.Empty>
+            )}
+            {!isError && isPending && <SimpleTable.Loading />}
+            {!isError && !isPending && !tokenList?.length && (
+              <SimpleTable.Empty>
+                {t("You haven't created any authentication tokens yet.")}
+              </SimpleTable.Empty>
+            )}
             {!isError && !isPending && !!tokenList?.length && (
               <TokenList
                 organization={organization}
@@ -212,7 +231,7 @@ function OrganizationAuthTokensIndex() {
                 revokeToken={hasAccess ? handleRevokeToken : undefined}
               />
             )}
-          </ResponsivePanelTable>
+          </ResponsiveSimpleTable>
         </Fragment>
       )}
     </Access>
@@ -223,12 +242,16 @@ export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
   return `${tokenPrefix}************${tokenLastCharacters}`;
 }
 
-const ResponsivePanelTable = styled(PanelTable)`
+const ResponsiveSimpleTable = styled(SimpleTable)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 
-    > *:nth-child(4n + 2),
-    > *:nth-child(4n + 3) {
+    /* Hide the "Created" and "Last access" columns; the flat nth-child(4n + x)
+       form this replaced counted cells across the whole grid. */
+    [role='columnheader']:nth-child(2),
+    [role='columnheader']:nth-child(3),
+    [role='cell']:nth-child(2),
+    [role='cell']:nth-child(3) {
       display: none;
     }
   }

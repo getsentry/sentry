@@ -5,7 +5,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -68,9 +67,6 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         # be removed and this override eliminated in favour of a WE-aware IncidentEndpoint.
         args, kwargs = OrganizationEndpoint.convert_args(self, request, *args, **kwargs)
         organization = kwargs["organization"]
-
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
 
         if request.method == "GET":
             gop: GroupOpenPeriod | None = None

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
 from django.db import router, transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -22,6 +24,8 @@ from sentry.investigations.models import (
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     InvestigationValidationError,
+    investigation_filters,
+    investigation_source,
     lock_investigation,
 )
 from sentry.investigations.services.parameters import (
@@ -34,6 +38,7 @@ from sentry.utils import json
 MAX_CONTEXT_BLOCKS = 20
 MAX_CONTEXT_TEXT_CHARS = 50_000
 MAX_CONTEXT_BYTES = 512 * 1024
+DISPATCH_CLAIM_TIMEOUT = timedelta(minutes=5)
 
 
 def _fingerprint(snapshot: dict[str, Any]) -> str:
@@ -53,9 +58,39 @@ def _compact_query_context(
     return {
         "schemaVersion": validated["schemaVersion"],
         "tableMarkdown": validated["tableMarkdown"][:max_text_chars],
+        "chart": validated.get("chart"),
+        "preferredView": validated["preferredView"],
         "isEmpty": validated["isEmpty"],
+        "chartUnavailableReason": validated.get("chartUnavailableReason"),
         "queryLinks": validated["queryLinks"],
     }
+
+
+def _has_usable_query_data(result: Any) -> bool:
+    try:
+        validated = validate_query_result(result)
+    except ValidationError:
+        return False
+    return not validated["isEmpty"] and bool(
+        validated.get("chart") or validated["tableMarkdown"].strip()
+    )
+
+
+def _query_refinement_context_execution(
+    block: InvestigationBlock,
+) -> InvestigationBlockExecution | None:
+    current = block.result_execution
+    if current is not None and _has_usable_query_data(current.result):
+        return current
+
+    completed = block.executions.filter(status=InvestigationBlockExecutionStatus.COMPLETED)
+    if current is not None:
+        assert current.id is not None
+        completed = completed.exclude(id=current.id)
+    for execution in completed.order_by("-date_added")[:20]:
+        if _has_usable_query_data(execution.result):
+            return execution
+    return current
 
 
 def _materialize_dependency_context(
@@ -261,9 +296,38 @@ def build_block_execution_snapshot(
         dependencies, context, context_project_ids = _materialize_dependency_context(
             block, accessible_project_ids=accessible_project_ids
         )
+        previous_execution = _query_refinement_context_execution(block)
+        if (
+            previous_execution is not None
+            and previous_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        ):
+            previous_project_ids = set(
+                previous_execution.data_projects.values_list("id", flat=True)
+            )
+            if not previous_project_ids.issubset(accessible_project_ids):
+                raise InvestigationValidationError(
+                    {"context": "The previous query result uses inaccessible project data."}
+                )
+            context.insert(
+                0,
+                {
+                    "block_id": str(block.id),
+                    "kind": block.kind,
+                    "title": block.title,
+                    "currentBlock": True,
+                    "visibleExecutionId": str(previous_execution.id),
+                    "result": _compact_query_context(previous_execution.result),
+                },
+            )
+            context_project_ids = sorted(set(context_project_ids).union(previous_project_ids))
+            if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
+                raise InvestigationValidationError(
+                    {"context": "The query context is too large to send to the agent."}
+                )
     snapshot: dict[str, Any] = {
         "prompt": prompt,
-        "filters": block.investigation.filters,
+        "source": investigation_source(block.investigation),
+        "filters": investigation_filters(block.investigation),
         "parameters": parameters,
         "dependencies": dependencies,
         "context": context,
@@ -395,16 +459,67 @@ def create_block_execution(
 
 
 def mark_block_execution_dispatched(
-    execution: InvestigationBlockExecution, *, seer_run_id: int
+    execution: InvestigationBlockExecution,
+    *,
+    seer_run_id: int,
+    dispatch_claimed_at: datetime | None = None,
 ) -> bool:
-    updated = InvestigationBlockExecution.objects.filter(
-        id=execution.id, status=InvestigationBlockExecutionStatus.PENDING
-    ).update(
+    candidates = InvestigationBlockExecution.objects.filter(id=execution.id)
+    if dispatch_claimed_at is None:
+        candidates = candidates.filter(status=InvestigationBlockExecutionStatus.PENDING)
+    else:
+        candidates = candidates.filter(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            seer_run_id__isnull=True,
+            started_at=dispatch_claimed_at,
+        )
+    updated = candidates.update(
         seer_run_id=seer_run_id,
         status=InvestigationBlockExecutionStatus.RUNNING,
-        started_at=timezone.now(),
+        started_at=dispatch_claimed_at or timezone.now(),
     )
     return updated == 1
+
+
+def mark_block_execution_dispatch_started(
+    execution: InvestigationBlockExecution,
+) -> datetime | None:
+    stale_before = timezone.now() - DISPATCH_CLAIM_TIMEOUT
+    claimed_at = timezone.now()
+    updated = (
+        InvestigationBlockExecution.objects.filter(id=execution.id)
+        .filter(
+            Q(status=InvestigationBlockExecutionStatus.PENDING)
+            | Q(
+                status=InvestigationBlockExecutionStatus.RUNNING,
+                seer_run_id__isnull=True,
+                started_at__lte=stale_before,
+            )
+            | Q(
+                status=InvestigationBlockExecutionStatus.RUNNING,
+                seer_run_id__isnull=True,
+                started_at__isnull=True,
+            )
+        )
+        .update(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            started_at=claimed_at,
+        )
+    )
+    return claimed_at if updated == 1 else None
+
+
+def block_execution_needs_dispatch(execution: InvestigationBlockExecution) -> bool:
+    if execution.status == InvestigationBlockExecutionStatus.PENDING:
+        return True
+    return (
+        execution.status == InvestigationBlockExecutionStatus.RUNNING
+        and execution.seer_run_id is None
+        and (
+            execution.started_at is None
+            or execution.started_at <= timezone.now() - DISPATCH_CLAIM_TIMEOUT
+        )
+    )
 
 
 def mark_block_execution_resumed(execution: InvestigationBlockExecution) -> bool:
@@ -432,14 +547,25 @@ def mark_block_execution_cancelled(execution: InvestigationBlockExecution) -> bo
     return updated == 1
 
 
-def mark_block_execution_dispatch_failed(execution: InvestigationBlockExecution) -> bool:
-    updated = InvestigationBlockExecution.objects.filter(
-        id=execution.id,
-        status__in=[
-            InvestigationBlockExecutionStatus.PENDING,
-            InvestigationBlockExecutionStatus.RUNNING,
-        ],
-    ).update(
+def mark_block_execution_dispatch_failed(
+    execution: InvestigationBlockExecution, *, dispatch_claimed_at: datetime | None = None
+) -> bool:
+    candidates = InvestigationBlockExecution.objects.filter(id=execution.id)
+    if dispatch_claimed_at is None:
+        candidates = candidates.filter(
+            status__in=[
+                InvestigationBlockExecutionStatus.PENDING,
+                InvestigationBlockExecutionStatus.RUNNING,
+            ],
+            seer_run_id__isnull=True,
+        )
+    else:
+        candidates = candidates.filter(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            seer_run_id__isnull=True,
+            started_at=dispatch_claimed_at,
+        )
+    updated = candidates.update(
         status=InvestigationBlockExecutionStatus.FAILED,
         error={
             "code": "dispatch_failed",

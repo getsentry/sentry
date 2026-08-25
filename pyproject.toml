@@ -86,13 +86,13 @@ dependencies = [
   "rfc3986-validator>=0.1.1",
   # [end] jsonschema format validators
   "sentry-arroyo>=2.42.2",
-  "sentry-conventions>=0.19.0",
+  "sentry-conventions>=0.20.0",
   "sentry-forked-email-reply-parser>=0.5.12.post1",
   "sentry-kafka-schemas>=2.2.0",
   "sentry-ophio>=1.1.3",
   # sentry-options is only used in getsentry for now
   "sentry-options>=1.2.6",
-  "sentry-protos>=0.63.0",
+  "sentry-protos>=0.64.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.28",
   "sentry-scm==1.5.0",
@@ -279,6 +279,7 @@ markers = [
   "sentry_metrics: test requires access to sentry metrics",
   "symbolicator: test requires access to symbolicator",
   "querybuilder: smoke tests for QueryBuilders",
+  "seer_agent_token_matrix: API authentication and permission matrix",
   "thread_leak_allowlist: temporarily allow known-issue thread leaks",
 ]
 filterwarnings = [
@@ -314,7 +315,7 @@ num_workers = 5
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]
-exclude = ["^.venv/", "^venv/", "^self-hosted/"]
+exclude = ["^.venv/", "^venv/", "^self-hosted/", "^bin/"]
 
 # minimal strictness settings
 check_untyped_defs = true
@@ -402,7 +403,6 @@ disable_error_code = [
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "bin.*",
     "bitfield.*",
     "django_picklefield.*",
     "fixtures.apidocs_test_case",
@@ -476,7 +476,6 @@ module = [
     "sentry.api.endpoints.internal.*",
     "sentry.api.endpoints.oauth_userinfo",
     "sentry.api.endpoints.organization_access_request_details",
-    "sentry.api.endpoints.organization_ai_conversation_details",
     "sentry.api.endpoints.organization_ai_conversations",
     "sentry.api.endpoints.organization_api_key_details",
     "sentry.api.endpoints.organization_api_key_index",
@@ -1270,7 +1269,6 @@ module = [
     "sentry.seer.entrypoints.*",
     "sentry.seer.explorer.*",
     "sentry.seer.issue_detection",
-    "sentry.seer.math",
     "sentry.seer.migrations.*",
     "sentry.seer.models.*",
     "sentry.seer.seer_setup",
@@ -1278,7 +1276,6 @@ module = [
     "sentry.seer.signed_seer_api",
     "sentry.seer.supergroups.*",
     "sentry.seer.utils",
-    "sentry.seer.vendored",
     "sentry.sentry_apps.alert_rule_action_creator",
     "sentry.sentry_apps.api.bases.*",
     "sentry.sentry_apps.api.endpoints.*",
@@ -2033,7 +2030,6 @@ module = [
     "tests.sentry.seer.supergroups.*",
     "tests.sentry.seer.test_breakpoints",
     "tests.sentry.seer.test_issue_detection",
-    "tests.sentry.seer.test_math",
     "tests.sentry.seer.test_signed_seer_api",
     "tests.sentry.seer.test_test_generation",
     "tests.sentry.seer.test_utils",

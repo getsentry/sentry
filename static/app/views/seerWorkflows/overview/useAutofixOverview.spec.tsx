@@ -1,6 +1,7 @@
 import type {AutofixOverviewResponse, OverviewRun, RunStatus} from './types';
 import {
   detectMilestoneAdvances,
+  isSameScope,
   overlayStatus,
   sectionSignature,
   shouldRefetchEnriched,
@@ -159,5 +160,37 @@ describe('shouldRefetchEnriched', () => {
     const poll = response({has_pull_request: [run('r1')]});
     const enriched = response({autofix_root_cause: [run('r1')]});
     expect(shouldRefetchEnriched(poll, enriched)).toBe(true);
+  });
+});
+
+describe('isSameScope', () => {
+  const scope = {project: [2], statsPeriod: '14d'};
+
+  it('is true across a sort or expand change', () => {
+    expect(
+      isSameScope(
+        {...scope, expand: ['status']},
+        {...scope, sort: 'events', expand: ['scmInfo', 'issueStats', 'status']}
+      )
+    ).toBe(true);
+  });
+
+  it('is false when the projects change', () => {
+    expect(isSameScope(scope, {...scope, project: [2, 3]})).toBe(false);
+  });
+
+  it('is false when the time window changes', () => {
+    expect(isSameScope(scope, {...scope, statsPeriod: '24h'})).toBe(false);
+    expect(
+      isSameScope(scope, {
+        project: [2],
+        start: '2026-07-01T00:00:00',
+        end: '2026-07-02T00:00:00',
+      })
+    ).toBe(false);
+  });
+
+  it('is false with no previous query', () => {
+    expect(isSameScope(undefined, scope)).toBe(false);
   });
 });

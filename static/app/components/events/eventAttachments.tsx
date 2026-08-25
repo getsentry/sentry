@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 
 import {
   useDeleteEventAttachmentOptimistic,
@@ -11,7 +10,7 @@ import {
 import {EventAttachmentActions} from 'sentry/components/events/eventAttachmentActions';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, IssueAttachment} from 'sentry/types/group';
@@ -101,10 +100,6 @@ function EventAttachmentsContent({
 
   const title = t('Attachments (%s)', attachments.length);
 
-  const lastAttachment = attachments.at(-1);
-  const lastAttachmentPreviewed =
-    lastAttachment && attachmentPreviewIsOpen(attachmentPreviews, lastAttachment);
-
   const togglePreview = (attachment: IssueAttachment) => {
     setAttachmentPreviews(previewsMap => ({
       ...previewsMap,
@@ -128,56 +123,64 @@ function EventAttachmentsContent({
       )}
 
       {attachments.length > 0 && (
-        <StyledPanelTable
-          headers={[
-            <Name key="name">{t('File Name')}</Name>,
-            <Size key="size">{t('Size')}</Size>,
-            t('Actions'),
-          ]}
+        <StyledSimpleTable
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>
+                <Name>{t('File Name')}</Name>
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>
+                <Size>{t('Size')}</Size>
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
         >
           {attachments.map(attachment => (
             <Fragment key={attachment.id}>
-              <Flex align="center">
-                <Name>{attachment.name}</Name>
-              </Flex>
+              <SimpleTable.Row>
+                <SimpleTable.RowCell>
+                  <Name>{attachment.name}</Name>
+                </SimpleTable.RowCell>
 
-              <Size>
-                <FileSize bytes={attachment.size} />
-              </Size>
-              <div>
-                <EventAttachmentActions
-                  withPreviewButton
-                  attachment={attachment}
-                  projectSlug={project.slug}
-                  onDelete={() =>
-                    deleteAttachment({
-                      orgSlug: organization.slug,
-                      projectSlug: project.slug,
-                      eventId: event.id,
-                      attachmentId: attachment.id,
-                    })
-                  }
-                  onPreviewClick={() => togglePreview(attachment)}
-                  previewIsOpen={attachmentPreviewIsOpen(attachmentPreviews, attachment)}
-                />
-              </div>
+                <SimpleTable.RowCell>
+                  <Size>
+                    <FileSize bytes={attachment.size} />
+                  </Size>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <EventAttachmentActions
+                    withPreviewButton
+                    attachment={attachment}
+                    projectSlug={project.slug}
+                    onDelete={() =>
+                      deleteAttachment({
+                        orgSlug: organization.slug,
+                        projectSlug: project.slug,
+                        eventId: event.id,
+                        attachmentId: attachment.id,
+                      })
+                    }
+                    onPreviewClick={() => togglePreview(attachment)}
+                    previewIsOpen={attachmentPreviewIsOpen(
+                      attachmentPreviews,
+                      attachment
+                    )}
+                  />
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
               {attachmentPreviewIsOpen(attachmentPreviews, attachment) ? (
-                <InlineEventAttachment
-                  attachment={attachment}
-                  eventId={event.id}
-                  projectSlug={project.slug}
-                />
+                <SimpleTable.FullWidthRow>
+                  <InlineEventAttachment
+                    attachment={attachment}
+                    eventId={event.id}
+                    projectSlug={project.slug}
+                  />
+                </SimpleTable.FullWidthRow>
               ) : null}
-              {/* XXX: hack to deal with table grid borders */}
-              {lastAttachmentPreviewed && (
-                <Fragment>
-                  <div style={{display: 'none'}} />
-                  <div style={{display: 'none'}} />
-                </Fragment>
-              )}
             </Fragment>
           ))}
-        </StyledPanelTable>
+        </StyledSimpleTable>
       )}
     </FoldSection>
   );
@@ -193,7 +196,7 @@ export function EventAttachments(props: EventAttachmentsProps) {
   return <EventAttachmentsContent {...props} />;
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr auto auto;
 `;
 
