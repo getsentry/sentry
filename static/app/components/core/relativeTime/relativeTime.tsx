@@ -70,8 +70,8 @@ interface RelativeTimeProps {
  *
  * This is tooltip content rather than a standalone element. `TimeSince` renders
  * it for you; reach for it directly only when you are building the tooltip
- * yourself, in which case the sections it composes need the overlay to drop its
- * padding:
+ * yourself, in which case pass `padding="0"` so the sections it composes can
+ * apply their own:
  *
  * ```tsx
  * <Tooltip

@@ -118,8 +118,8 @@ export function TimeSince({
 
   const dateObj = getDateObj(date);
 
-  // A caller that supplies its own body owns the whole overlay, so the card's
-  // sizing and its opt-out of the shared padding do not apply to it.
+  // A caller that supplies its own body owns the whole overlay, so neither the
+  // card's width nor its padding override applies to it.
   const showsCard = !tooltipBody;
 
   return (
@@ -128,8 +128,8 @@ export function TimeSince({
       dateTime={dateObj?.toISOString()}
       variant={variant}
       maxWidth={maxWidth ?? (showsCard ? RELATIVE_TIME_MAX_WIDTH : undefined)}
-      // The card's sections are behind this component boundary, so the tooltip
-      // cannot see them and take their padding out of the way on its own.
+      // The card's sections pad themselves, so the overlay's shared padding
+      // has to get out of their way.
       padding={showsCard ? '0' : undefined}
       title={
         disabledAbsoluteTooltip
