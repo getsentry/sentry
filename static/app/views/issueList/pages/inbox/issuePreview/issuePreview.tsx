@@ -24,7 +24,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -126,7 +125,6 @@ function IssuePreviewContent() {
   const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
-  const isFixApplied = group.derivedData?.progress === ProgressState.FIX_APPLIED;
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
@@ -204,36 +202,16 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        {isFixApplied ? (
-          <IssuePreviewActions
-            autofix={previewSeer.autofix}
-            group={group}
-            project={project}
-            disabled={disableActions}
-            onContinueInSeer={() => {
-              navigate({pathname: issueDetailsUrl, query: {seerDrawer: 'true'}});
-            }}
-            onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
-          />
-        ) : previewSeer.isLoading ? (
-          <Placeholder width="120px" height="32px" />
-        ) : previewSeer.shouldShowSeerActions ? (
-          <IssuePreviewActions
-            autofix={previewSeer.autofix}
-            group={group}
-            project={project}
-            disabled={disableActions}
-            onContinueInSeer={() => openSeerDrawer()}
-            onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
-          />
-        ) : (
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={null}
-          />
-        )}
+        <IssuePreviewActions
+          autofix={previewSeer.autofix}
+          group={group}
+          project={project}
+          disabled={disableActions}
+          isLoading={previewSeer.isLoading}
+          shouldShowSeerActions={previewSeer.shouldShowSeerActions}
+          onContinueInSeer={() => openSeerDrawer()}
+          onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
+        />
         <Flex align="center" wrap="wrap" gap="lg">
           <GroupPriority group={group} />
           <GroupHeaderAssigneeSelector

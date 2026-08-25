@@ -51,6 +51,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 
@@ -64,19 +65,24 @@ function hasCodeChanges(section: AutofixSection): boolean {
 interface IssuePreviewActionsProps {
   autofix: ExplorerAutofix;
   group: Group;
+  isLoading: boolean;
   onContinueInSeer: () => void;
   onRetryCodeChanges: () => void;
   project: Project;
+  shouldShowSeerActions: boolean;
   disabled?: boolean;
 }
 
-interface AutofixActionProps {
+interface AutofixActionsProps {
   autofix: ExplorerAutofix;
   group: Group;
-  linkedPullRequestsData: ReturnType<typeof useLinkedPullRequests>['data'];
   onContinueInSeer: () => void;
   onRetryCodeChanges: () => void;
   disabled?: boolean;
+}
+
+interface AutofixActionProps extends AutofixActionsProps {
+  linkedPullRequestsData: ReturnType<typeof useLinkedPullRequests>['data'];
 }
 
 interface AutofixActionButtonProps {
@@ -698,7 +704,7 @@ function AutofixActions({
   group,
   onContinueInSeer,
   onRetryCodeChanges,
-}: Omit<IssuePreviewActionsProps, 'project'>) {
+}: AutofixActionsProps) {
   const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
     useLinkedPullRequests({group});
 
@@ -724,12 +730,24 @@ export function IssuePreviewActions({
   autofix,
   disabled = false,
   group,
+  isLoading,
   onContinueInSeer,
   onRetryCodeChanges,
   project,
+  shouldShowSeerActions,
 }: IssuePreviewActionsProps) {
   if (group.derivedData?.progress === ProgressState.FIX_APPLIED) {
     return <FixAppliedActions disabled={disabled} group={group} project={project} />;
+  }
+
+  if (isLoading) {
+    return <Placeholder width="120px" height="32px" />;
+  }
+
+  if (!shouldShowSeerActions) {
+    return (
+      <GroupActions group={group} project={project} disabled={disabled} event={null} />
+    );
   }
 
   return (
