@@ -309,9 +309,7 @@ def post_snapshot_pr_comment_task(
                         extra={**extra, "will_retry": True},
                     )
                 else:
-                    logger.exception(
-                        "preprod.snapshot_pr_comments.post.failed", extra=extra
-                    )
+                    logger.exception("preprod.snapshot_pr_comments.post.failed", extra=extra)
                 api_error = e
 
             if api_error is not None:
