@@ -1,6 +1,13 @@
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
 
 const DYNAMIC_TRANSLATION_FNS = ['td'];
+
+function unwrapTsNonNull(node: TSESTree.Node | undefined): TSESTree.Node | undefined {
+  while (node?.type === 'TSNonNullExpression') {
+    node = node.expression;
+  }
+  return node;
+}
 
 export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
@@ -29,7 +36,7 @@ export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
-        const translationArg = node.arguments?.[0];
+        const translationArg = unwrapTsNonNull(node.arguments?.[0]);
         if (!translationArg) {
           return;
         }
@@ -37,16 +44,13 @@ export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
         // Check if it's ATTRIBUTE_SEARCH_METADATA[...].brief
         if (translationArg.type === 'MemberExpression') {
           const property = translationArg.property;
-          const object =
-            translationArg.object.type === 'TSNonNullExpression'
-              ? translationArg.object.expression
-              : translationArg.object;
+          const object = unwrapTsNonNull(translationArg.object);
 
           // Must be accessing .brief
           if (property.type === 'Identifier' && property.name === 'brief') {
             // Object must be ATTRIBUTE_SEARCH_METADATA[...]
             if (
-              object.type === 'MemberExpression' &&
+              object?.type === 'MemberExpression' &&
               object.object.type === 'Identifier' &&
               object.object.name === 'ATTRIBUTE_SEARCH_METADATA'
             ) {
