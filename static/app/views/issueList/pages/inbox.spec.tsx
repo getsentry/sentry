@@ -896,64 +896,10 @@ describe('InboxPage', () => {
       await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
     ).toBeInTheDocument();
     expect(within(preview).getByText('Fix proposed message')).toBeInTheDocument();
-    expect(within(preview).getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
     expect(groupRequest).toHaveBeenCalledTimes(1);
     expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
     expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
     expect(autofixRequest).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders inbox group information before the full preview group loads', async () => {
-    mockSuccessfulSections();
-    mockIssuePreview();
-    const groupDelay = Promise.withResolvers<void>();
-    const pendingDetailsRequest = new Promise(() => {});
-    const groupRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
-      body: fixProposedGroup,
-      asyncDelay: groupDelay.promise,
-    });
-    const pullRequestsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
-      match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
-      asyncDelay: pendingDetailsRequest,
-    });
-    const autofixSetupRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
-      asyncDelay: pendingDetailsRequest,
-    });
-    const autofixRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
-      match: [MockApiClient.matchQuery({mode: 'explorer', llmFormat: 'markdown'})],
-      asyncDelay: pendingDetailsRequest,
-    });
-
-    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
-
-    const issueLink = await within(
-      screen.getByRole('region', {name: 'Fix Proposed'})
-    ).findByRole('link', {name: /Fix proposed issue/});
-    await userEvent.click(issueLink);
-
-    const preview = screen.getByRole('complementary', {name: 'Issue preview'});
-    expect(
-      await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
-    ).toBeInTheDocument();
-    expect(within(preview).getByText('Fix proposed message')).toBeInTheDocument();
-    expect(groupRequest).toHaveBeenCalledTimes(1);
-    expect(pullRequestsRequest).not.toHaveBeenCalled();
-    expect(autofixSetupRequest).not.toHaveBeenCalled();
-    expect(autofixRequest).not.toHaveBeenCalled();
-    expect(
-      within(preview).queryByText('There was a problem rendering this component')
-    ).not.toBeInTheDocument();
-
-    groupDelay.resolve();
-
-    await waitFor(() => expect(pullRequestsRequest).toHaveBeenCalledTimes(1));
-    expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
-    expect(autofixRequest).toHaveBeenCalledTimes(1);
-    expect(within(preview).getByText('Fix proposed message')).toBeInTheDocument();
   });
 
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {

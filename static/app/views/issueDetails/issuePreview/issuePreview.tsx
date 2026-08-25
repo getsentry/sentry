@@ -54,7 +54,6 @@ import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 
 interface IssuePreviewProps {
   groupId: string;
-  initialGroup?: Group;
 }
 
 function useMarkPreviewedGroupSeen(group: Group | undefined) {
@@ -68,9 +67,8 @@ function useMarkPreviewedGroupSeen(group: Group | undefined) {
   }, [groupId, markGroupSeen]);
 }
 
-export function IssuePreview({groupId, initialGroup}: IssuePreviewProps) {
-  const {data: fetchedGroup, isPending, isError} = useGroup({groupId});
-  const group = fetchedGroup ?? initialGroup;
+export function IssuePreview({groupId}: IssuePreviewProps) {
+  const {data: group, isPending, isError} = useGroup({groupId});
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
@@ -116,16 +114,12 @@ export function IssuePreview({groupId, initialGroup}: IssuePreviewProps) {
         overscrollBehavior="contain"
         padding="lg 2xl"
       >
-        {isPending && !group && <LoadingIndicator />}
-        {isError && !group && <LoadingError />}
+        {isPending && <LoadingIndicator />}
+        {isError && <LoadingError />}
         {group && project && (
           <GroupDataContextProvider group={group} project={project}>
-            <ErrorBoundary key={fetchedGroup ? 'full' : 'initial'} mini>
-              {fetchedGroup ? (
-                <IssuePreviewContent />
-              ) : (
-                <IssuePreviewGroupInfo group={group} project={project} />
-              )}
+            <ErrorBoundary mini>
+              <IssuePreviewContent />
             </ErrorBoundary>
           </GroupDataContextProvider>
         )}
@@ -140,6 +134,8 @@ function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer(group, project);
   const linkedPullRequests = useLinkedPullRequests({group});
+  const {title: primaryTitle} = getTitle(group);
+  const secondaryTitle = getMessage(group);
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
@@ -150,7 +146,57 @@ function IssuePreviewContent() {
   );
   return (
     <IssueDetailsContextProvider>
-      <IssuePreviewGroupInfo group={group} project={project} />
+      <Container paddingBottom="sm">
+        <Stack gap="xs">
+          <Container>
+            <Flex align="center" justify="between" gap="md">
+              <Flex align="center" gap="md" minWidth={0}>
+                <Tooltip
+                  title={primaryTitle}
+                  skipWrapper
+                  isHoverable
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
+                  <TitleLink
+                    to={issueDetailsUrl}
+                    analyticsEventKey="issue_inbox.open_issue_clicked"
+                    analyticsEventName="Issue Inbox: Open Issue Clicked"
+                    analyticsParams={{
+                      group_id: group.id,
+                      progress: group.derivedData?.progress,
+                      source: 'title',
+                    }}
+                  >
+                    <Container flex="1" minWidth={0}>
+                      <Heading as="h3" size="lg" ellipsis>
+                        {primaryTitle}
+                      </Heading>
+                    </Container>
+                    <Flex align="center" flexShrink={0}>
+                      <IconOpen size="xs" variant="muted" />
+                    </Flex>
+                  </TitleLink>
+                </Tooltip>
+              </Flex>
+              <IssueSeenTimes group={group} />
+            </Flex>
+            <EventMessage
+              level={group.level}
+              message={secondaryTitle}
+              type={group.type}
+            />
+          </Container>
+          <Flex justify="between" align="center" gap="md">
+            <Flex flex="1" minWidth={0}>
+              <GroupStatusSubtitle group={group} project={project} />
+            </Flex>
+            <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
+              <EventUserCounts group={group} project={project} />
+            </Flex>
+          </Flex>
+        </Stack>
+      </Container>
       <Flex
         paddingTop="sm"
         paddingBottom="lg"
@@ -189,110 +235,48 @@ function IssuePreviewContent() {
           />
         </Flex>
       </Flex>
-      <Dividers>
-        {linkedPullRequests.data?.pullRequests.length ? (
-          <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
-            <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
-            <IssuePreviewSection.Content>
-              <LinkedPullRequests group={group} showEmptyState={false} />
-            </IssuePreviewSection.Content>
-          </IssuePreviewSection>
-        ) : null}
-        {previewSeer.isLoading ? (
-          <Placeholder height="120px" />
-        ) : previewSeer.hasAutofix ? (
-          <IssuePreviewSeerContent
-            key={group.id}
-            group={group}
-            project={project}
-            previewSeer={previewSeer}
-          />
-        ) : null}
-        <Container>
-          <ErrorBoundary mini>
-            <FoldSection
-              title={
-                <Heading as="h3" size="md">
-                  {t('Activity')}
-                </Heading>
-              }
-              sectionKey={SectionKey.ACTIVITY}
-            >
-              <ActivitySection
-                group={group}
-                variant="standalone"
-                placeholder={t('Add a comment. Tag users with @, or teams with #')}
-              />
-            </FoldSection>
-          </ErrorBoundary>
-        </Container>
-      </Dividers>
-    </IssueDetailsContextProvider>
-  );
-}
-
-function IssuePreviewGroupInfo({
-  group,
-  project,
-}: {
-  group: Group;
-  project: Group['project'];
-}) {
-  const organization = useOrganization();
-  const {title: primaryTitle} = getTitle(group);
-  const secondaryTitle = getMessage(group);
-  const issueDetailsUrl = normalizeUrl(
-    `/organizations/${organization.slug}/issues/${group.id}/`
-  );
-
-  return (
-    <Container paddingBottom="sm">
-      <Stack gap="xs">
-        <Container>
-          <Flex align="center" justify="between" gap="md">
-            <Flex align="center" gap="md" minWidth={0}>
-              <Tooltip
-                title={primaryTitle}
-                skipWrapper
-                isHoverable
-                showOnlyOnOverflow
-                delay={1000}
+      {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
+      {previewSeer.isLoading || linkedPullRequests.isPending ? (
+        <LoadingIndicator />
+      ) : (
+        <Dividers>
+          {linkedPullRequests.data?.pullRequests.length ? (
+            <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
+              <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
+              <IssuePreviewSection.Content>
+                <LinkedPullRequests group={group} showEmptyState={false} />
+              </IssuePreviewSection.Content>
+            </IssuePreviewSection>
+          ) : null}
+          {previewSeer.hasAutofix && (
+            <IssuePreviewSeerContent
+              key={group.id}
+              group={group}
+              project={project}
+              previewSeer={previewSeer}
+            />
+          )}
+          <Container>
+            <ErrorBoundary mini>
+              <FoldSection
+                title={
+                  <Heading as="h3" size="md">
+                    {t('Activity')}
+                  </Heading>
+                }
+                sectionKey={SectionKey.ACTIVITY}
               >
-                <TitleLink
-                  to={issueDetailsUrl}
-                  analyticsEventKey="issue_inbox.open_issue_clicked"
-                  analyticsEventName="Issue Inbox: Open Issue Clicked"
-                  analyticsParams={{
-                    group_id: group.id,
-                    progress: group.derivedData?.progress,
-                    source: 'title',
-                  }}
-                >
-                  <Container flex="1" minWidth={0}>
-                    <Heading as="h3" size="lg" ellipsis>
-                      {primaryTitle}
-                    </Heading>
-                  </Container>
-                  <Flex align="center" flexShrink={0}>
-                    <IconOpen size="xs" variant="muted" />
-                  </Flex>
-                </TitleLink>
-              </Tooltip>
-            </Flex>
-            <IssueSeenTimes group={group} />
-          </Flex>
-          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
-        </Container>
-        <Flex justify="between" align="center" gap="md">
-          <Flex flex="1" minWidth={0}>
-            <GroupStatusSubtitle group={group} project={project} />
-          </Flex>
-          <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
-            <EventUserCounts group={group} project={project} />
-          </Flex>
-        </Flex>
-      </Stack>
-    </Container>
+                <ActivitySection
+                  group={group}
+                  variant="standalone"
+                  placeholder={t('Add a comment. Tag users with @, or teams with #')}
+                />
+              </FoldSection>
+            </ErrorBoundary>
+          </Container>
+        </Dividers>
+      )}
+    </IssueDetailsContextProvider>
   );
 }
 
