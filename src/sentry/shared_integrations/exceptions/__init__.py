@@ -223,7 +223,7 @@ class IntegrationDeletionInProgressError(IntegrationError):
     Error when an integration cannot be installed for an organization because a
     previous uninstall is still being processed.
 
-    This is transient: the deletion removes the existing row shortly, after which
+    This is transient. The deletion removes the existing row shortly, after which
     installing again succeeds. Callers should tell the user to retry rather than
     reporting a permanent failure.
     """
