@@ -73,8 +73,17 @@ class InvestigationSerializerTest(TestCase):
             self.create_investigation_favorite(investigation=investigation, user=self.user)
 
         first_batch = list(Investigation.objects.filter(organization=self.organization))
+        serialize(
+            first_batch,
+            self.user,
+            InvestigationSerializer(accessible_project_ids={self.project.id}),
+        )
         with CaptureQueriesContext(connection) as first_queries:
-            serialize(first_batch, self.user, InvestigationSerializer())
+            serialize(
+                first_batch,
+                self.user,
+                InvestigationSerializer(accessible_project_ids={self.project.id}),
+            )
 
         for index in range(3, 12):
             investigation = self.create_investigation(
@@ -85,7 +94,11 @@ class InvestigationSerializerTest(TestCase):
 
         second_batch = list(Investigation.objects.filter(organization=self.organization))
         with CaptureQueriesContext(connection) as second_queries:
-            results = serialize(second_batch, self.user, InvestigationSerializer())
+            results = serialize(
+                second_batch,
+                self.user,
+                InvestigationSerializer(accessible_project_ids={self.project.id}),
+            )
 
         assert len(second_batch) > len(first_batch)
         assert len(second_queries.captured_queries) == len(first_queries.captured_queries)
