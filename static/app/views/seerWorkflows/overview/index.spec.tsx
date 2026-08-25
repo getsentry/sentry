@@ -792,23 +792,16 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps the list up silently while a sort change reloads', async () => {
-    const {statusPollRequest} = mockOverview({
-      base: {autofix_root_cause: [rootCauseRun]},
-    });
+  it('shows the skeleton while a sort change reloads', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
 
-    // The events sort returns a different run; hold its enrichment open to keep
-    // the reloading state on screen.
-    const eventsEnriched = deferEnriched();
+    // A sort change is a new scope, so previous data is dropped instead of held.
+    // Hold the events-sorted response open to keep the skeleton on screen.
+    const events = deferEnriched();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
-      match: [
-        MockApiClient.matchQuery({
-          sort: 'events',
-          expand: ['scmInfo', 'issueStats', 'status'],
-        }),
-      ],
-      asyncDelay: eventsEnriched.promise,
+      match: [MockApiClient.matchQuery({sort: 'events'})],
+      asyncDelay: events.promise,
       body: {runsByMilestone: {...emptyMilestones, autofix_solution: [solutionRun]}},
     });
 
@@ -817,29 +810,25 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(statusPollRequest).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole('button', {name: /Sort/}));
     await userEvent.click(screen.getByRole('option', {name: 'Most events'}));
 
-    // The status poll refetches for the new sort, but the old list stays up
-    // silently (keepPreviousData) while the enriched request reloads — no spinner
-    // and no skeleton.
-    await waitFor(() => expect(statusPollRequest).toHaveBeenCalledTimes(2));
+    // The old list drops out and the skeleton shows while the reordered results
+    // load — matching a project or date change.
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
     expect(
-      screen.getByRole('link', {name: 'TypeError in checkout cart'})
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
 
-    eventsEnriched.resolve();
+    events.resolve();
 
     expect(
       await screen.findByRole('link', {name: 'KeyError in proxy handler'})
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
   });
 
   it('shows the skeleton again when the selected project changes', async () => {
