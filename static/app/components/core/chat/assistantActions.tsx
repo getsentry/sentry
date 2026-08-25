@@ -1,8 +1,8 @@
 import {Button, ButtonBar, type ButtonBarProps} from '@sentry/scraps/button';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {IconThumb} from 'sentry/icons';
-import {t} from 'sentry/locale';
 
 type AssistantFeedback = 'positive' | 'negative';
 
@@ -47,6 +47,8 @@ export function AssistantActions({
   size = 'xs',
   ...props
 }: AssistantActionsProps) {
+  const {t} = useTranslation();
+
   return (
     <ButtonBar size={size} {...props}>
       <FeedbackButton
@@ -83,6 +85,7 @@ function FeedbackButton({
   disabled?: boolean;
   onClick?: (feedback: AssistantFeedback) => void;
 }) {
+  const {t} = useTranslation();
   const isPositive = feedback === 'positive';
   const label = disabled
     ? t('Feedback submitted')

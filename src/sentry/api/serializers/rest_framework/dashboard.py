@@ -30,6 +30,7 @@ from sentry.models.dashboard_widget import (
     DatasetSourcesTypes,
     get_max_widget_limit,
 )
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
@@ -44,6 +45,7 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.tracing import set_span_data, start_span
 
@@ -282,10 +284,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
+        validation_projects = self._get_validation_projects()
         params: ParamsType = {
             "start": datetime.now() - timedelta(days=1),
             "end": datetime.now(),
-            "project_id": [p.id for p in self.context["projects"]],
+            "project_id": [project.id for project in validation_projects],
+            "project_objects": validation_projects,
             "organization_id": self.context["organization"].id,
             "environment": self.context.get("environment", []),
         }
@@ -333,6 +337,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         except InvalidSearchQuery as err:
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
+        except UnqualifiedQueryError:
+            # Fixed message: sibling SnubaError types leak Snuba internals.
+            data["discover_query_error"] = {
+                "conditions": ["Could not validate query: no project available."]
+            }
+            return data
 
         # TODO(dam): Add validation for metrics fields/queries
         try:
@@ -350,6 +360,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
+
+    def _get_validation_projects(self) -> list[Project]:
+        """Projects for the query builder. Non-request callers supply only `projects`."""
+        projects = self.context.get("validation_projects")
+        if projects is None:
+            projects = self.context["projects"]
+        return projects
 
     def _get_attr(self, data, attr, empty_value=None):
         value = data.get(attr)

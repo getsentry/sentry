@@ -629,12 +629,10 @@ def backfill_group_action_log_for_all_projects(
     project_options = list(
         ProjectOption.objects.filter(
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
-            value=False,
-            project__status=ObjectStatus.ACTIVE,
             id__gt=last_project_option_id,
         )
         .order_by("id")
-        .values_list("id", "project_id")[:batch_size]
+        .values_list("id", "project_id", "value")[:batch_size]
     )
 
     if not project_options:
@@ -644,7 +642,9 @@ def backfill_group_action_log_for_all_projects(
         )
         return
 
-    for _, project_id in project_options:
+    for _, project_id, value in project_options:
+        if value is not False:
+            continue
         backfill_group_action_log_for_project.apply_async(
             kwargs={
                 "project_id": project_id,

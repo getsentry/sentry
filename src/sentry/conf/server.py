@@ -880,6 +880,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -1162,6 +1163,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
         "schedule": timedelta(seconds=10),
+    },
+    "dynamic-sampling-cache-dynamic-sampling-feature-flags": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1574,6 +1579,9 @@ SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for the ingest-replay-recordings task
 SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
+
+# sample rate for the ingest-monitors per-check-in transaction
+SENTRY_MONITORS_CHECKIN_APM_SAMPLING = 1 if DEBUG else 0
 
 # ----
 # end APM config

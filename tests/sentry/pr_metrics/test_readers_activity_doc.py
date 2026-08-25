@@ -83,7 +83,7 @@ def _group(**overrides: Any) -> dict[str, Any]:
 
 
 @cell_silo_test
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 class ActivityDocumentReadersTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(

@@ -71,7 +71,11 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             paginator_cls=DateTimePaginator,
             order_by="-date_updated",
             on_results=lambda values: serialize(
-                list(values), request.user, InvestigationSerializer()
+                list(values),
+                request.user,
+                InvestigationSerializer(
+                    accessible_project_ids=request.access.accessible_project_ids
+                ),
             ),
         )
 
@@ -95,14 +99,12 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         accessible_project_ids=project_ids,
                         title=values.get("title"),
                     )
-                    if created:
-                        schedule_eligible_auto_run_blocks(
-                            investigation_id=investigation.id,
-                            user_id=user_id(request),
-                        )
-                        investigation.refresh_from_db()
-                    else:
+                    if not created:
                         require_investigation_project_access(investigation, project_ids)
+                    schedule_eligible_auto_run_blocks(
+                        investigation_id=investigation.id,
+                        user_id=user_id(request),
+                    )
             else:
                 created = True
                 requested_project_ids = values.get("project_ids", [])

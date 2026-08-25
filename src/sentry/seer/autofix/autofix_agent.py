@@ -581,6 +581,12 @@ def trigger_autofix_agent(
     ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
+    # If autofix-should-run-repo-checks is enabled,
+    # we should force bash tools on as it is dependent on bash tools
+    enable_bash_tools = enable_bash_tools or features.has(
+        "organizations:autofix-should-run-repo-checks", group.organization
+    )
+
     client = get_autofix_agent_client(
         group,
         enable_bash_tools=enable_bash_tools,
@@ -611,9 +617,7 @@ def trigger_autofix_agent(
         group,
         user_context,
         run_state=run_state,
-        should_run_repo_checks=features.has(
-            "organizations:autofix-should-run-repo-checks", group.organization
-        ),
+        should_run_repo_checks=enable_bash_tools,
     )
     prompt_metadata = {
         "step": step.value,
@@ -689,10 +693,6 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
     """
     Get the current state of an agent-based autofix run for a group.
 
-    Args:
-        organization: The organization
-        group_id: The group ID to get state for
-
     Returns:
         SeerRunState if a run exists, None otherwise
     """
@@ -702,13 +702,7 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_key="autofix",
         category_value=str(group_id),
     )
-
-    runs = client.get_runs(category_key="autofix", category_value=str(group_id))
-    if not runs:
-        return None
-
-    # Return the most recent run's state
-    return client.get_run(runs[0].run_id)
+    return client.fetch_latest_run_state(group_id=group_id)
 
 
 def generate_autofix_handoff_prompt(
