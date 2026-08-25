@@ -3,6 +3,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -21,6 +22,7 @@ import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
@@ -1824,6 +1826,91 @@ describe('AutofixOverview', () => {
       await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
 
       expect(await screen.findByRole('option', {name: /#squad/})).toBeInTheDocument();
+    });
+
+    it('batches team avatar fetches into a single request across cards', async () => {
+      act(() => {
+        TeamStore.loadInitialData([]);
+      });
+      const teamOne: Actor = {type: 'team', id: '8', name: 'team-eight'};
+      const teamTwo: Actor = {type: 'team', id: '9', name: 'team-nine'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {
+              ...rootCauseRun,
+              groupId: '2',
+              seerRunId: 'run-1',
+              title: 'First team issue',
+              issue: issueFixture({assignedTo: teamOne}),
+            },
+            {
+              ...rootCauseRun,
+              groupId: '3',
+              seerRunId: 'run-2',
+              title: 'Second team issue',
+              issue: issueFixture({assignedTo: teamTwo}),
+            },
+          ],
+        },
+      });
+      const teamsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [
+          TeamFixture({id: '8', slug: 'team-eight'}),
+          TeamFixture({id: '9', slug: 'team-nine'}),
+        ],
+      });
+
+      renderPage();
+
+      expect(await screen.findByText('First team issue')).toBeInTheDocument();
+      expect(await screen.findByText('Second team issue')).toBeInTheDocument();
+
+      // Both assignee teams should resolve via one batched request, not one per team.
+      await waitFor(() => {
+        const batched = teamsMock.mock.calls.find(([, options]: any) => {
+          const query = options?.query?.query ?? '';
+          return query.includes('id:8') && query.includes('id:9');
+        });
+        expect(batched).toBeDefined();
+      });
+      expect(teamsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('restores a usable assignee control when an assigned team never resolves', async () => {
+      act(() => {
+        TeamStore.loadInitialData([]);
+      });
+      const deletedTeam: Actor = {type: 'team', id: '404', name: 'gone'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {
+              ...rootCauseRun,
+              groupId: '2',
+              seerRunId: 'run-1',
+              title: 'Orphaned issue',
+              issue: issueFixture({assignedTo: deletedTeam}),
+            },
+          ],
+        },
+      });
+      // The batched request omits the assigned team (deleted / inaccessible),
+      // so it never enters the resolved set.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
+      });
+
+      renderPage();
+
+      expect(await screen.findByText('Orphaned issue')).toBeInTheDocument();
+      // Once the batch settles, the card must fall back to the interactive
+      // assignee control rather than hang on a placeholder.
+      expect(
+        await screen.findByRole('button', {name: 'Modify issue assignee'})
+      ).toBeInTheDocument();
     });
 
     it('clears the filter and restores all sections', async () => {
