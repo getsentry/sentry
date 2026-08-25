@@ -50,6 +50,8 @@ import type {
 } from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
+const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
+
 function FeatureDisabledPage() {
   return (
     <Stack flex={1} padding="2xl 3xl">
@@ -118,9 +120,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
-  const displayedTitle = draftTitle ?? investigation.title;
   const persistedTitle = useRef(investigation.title);
-  const titleEditedByUser = useRef(false);
   const titleGenerationSettled = useRef(false);
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
@@ -132,29 +132,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     refetchInterval: query =>
       isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
   });
-
-  useEffect(() => {
-    const generatedTitle = titleGenerationQuery.data?.preview;
-    if (!generatedTitle || titleEditedByUser.current) {
-      return;
-    }
-    setDraftTitle(generatedTitle);
-    updateInvestigationCache(
-      queryClient,
-      organization.slug,
-      investigation.id,
-      current => ({...current, title: generatedTitle})
-    );
-    if (titleGenerationQuery.data?.status === 'completed') {
-      persistedTitle.current = generatedTitle;
-    }
-  }, [
-    investigation.id,
-    organization.slug,
-    queryClient,
-    titleGenerationQuery.data?.preview,
-    titleGenerationQuery.data?.status,
-  ]);
+  const generatedTitlePreview =
+    draftTitle === null &&
+    investigation.title === DEFAULT_INVESTIGATION_TITLE &&
+    isTitleGenerationActive(titleGenerationQuery.data?.status)
+      ? titleGenerationQuery.data?.preview
+      : null;
+  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -167,14 +151,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       !titleGenerationSettled.current
     ) {
       titleGenerationSettled.current = true;
-      void Promise.all([
-        queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
-        queryClient.invalidateQueries({
-          queryKey: investigationListQueryOptions({
-            organizationSlug: organization.slug,
-          }).queryKey,
-        }),
-      ]);
+      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      void queryClient.invalidateQueries({
+        queryKey: investigationListQueryOptions({
+          organizationSlug: organization.slug,
+        }).queryKey,
+      });
     }
   }, [
     detailOptions.queryKey,
@@ -204,14 +186,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 
   useEffect(() => {
-    if (
-      draftTitle === persistedTitle.current &&
-      investigation.title !== persistedTitle.current
-    ) {
+    if (draftTitle === null) {
       persistedTitle.current = investigation.title;
-      // Keep an in-progress user edit, but adopt a generated title while the draft is clean.
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setDraftTitle(investigation.title);
     }
   }, [draftTitle, investigation.title]);
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
@@ -240,7 +216,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 
   function handleTitleChange(nextTitle: string) {
-    titleEditedByUser.current = true;
     setDraftTitle(nextTitle);
     updateInvestigationCache(
       queryClient,
@@ -253,9 +228,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 
   function handleTitleBlur() {
     renameDebouncer.cancel();
-    const title = displayedTitle.trim();
+    if (draftTitle === null) {
+      return;
+    }
+    const title = draftTitle.trim();
     if (title) {
-      if (title !== displayedTitle) {
+      if (title !== draftTitle) {
         setDraftTitle(title);
         updateInvestigationCache(
           queryClient,
@@ -273,13 +251,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   const blocks = investigation.blocks ?? [];
-  const failedBlock = blocks.find(block => block.currentExecution?.status === 'failed');
-  const hasFailureCancellation = blocks.some(
-    block =>
-      block.currentExecution?.status === 'cancelled' &&
-      block.currentExecution.error?.code === 'investigation_execution_failed'
-  );
-  const investigationExecutionFailed = Boolean(failedBlock || hasFailureCancellation);
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
 
@@ -397,22 +368,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
-              {investigationExecutionFailed ? (
-                <InvestigationFailureAlert data-test-id="investigation-execution-failed">
-                  <Alert variant="danger">
-                    <strong>
-                      {failedBlock
-                        ? t('%s failed.', failedBlock.title || t('A cell'))
-                        : t('The investigation failed.')}
-                    </strong>{' '}
-                    {failedBlock?.currentExecution?.error?.message ||
-                      t('The agent run failed.')}{' '}
-                    {t(
-                      'The investigation was stopped and remaining cells were cancelled.'
-                    )}
-                  </Alert>
-                </InvestigationFailureAlert>
-              ) : null}
               <NotebookSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
@@ -584,10 +539,6 @@ const InvestigationCanvas = styled(Stack)`
 `;
 
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const InvestigationFailureAlert = styled(Alert.Container)`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 

@@ -440,9 +440,7 @@ function getCellProgressState(
   ) {
     return null;
   }
-  if (
-    blocks.some(candidate => isInvestigationFailureExecution(candidate.currentExecution))
-  ) {
+  if (hasFailedDependency(block, blocks)) {
     return 'blockedByFailure';
   }
   if (hasCancelledDependency(block, blocks)) {
@@ -467,6 +465,30 @@ function isInvestigationFailureExecution(
     (execution?.status === 'cancelled' &&
       execution.error?.code === 'investigation_execution_failed')
   );
+}
+
+function hasFailedDependency(
+  block: InvestigationBlock,
+  blocks: InvestigationBlock[],
+  visited = new Set<string>()
+): boolean {
+  for (const dependencyId of block.dependencies) {
+    if (visited.has(dependencyId)) {
+      continue;
+    }
+    visited.add(dependencyId);
+    const dependency = blocks.find(candidate => candidate.id === dependencyId);
+    if (!dependency) {
+      continue;
+    }
+    if (isInvestigationFailureExecution(dependency.currentExecution)) {
+      return true;
+    }
+    if (hasFailedDependency(dependency, blocks, visited)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function hasCancelledDependency(

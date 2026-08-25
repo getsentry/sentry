@@ -59,6 +59,7 @@ import {
   getInvestigationDetailQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
+import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -622,12 +623,14 @@ function SeerInvestigationSection({
         const investigation = query.state.data?.json;
         if (
           !investigation ||
-          (investigation.summary && investigation.summaryDescription) ||
-          investigation.titleGeneration?.status === 'failed'
+          (investigation.summary && investigation.summaryDescription)
         ) {
           return false;
         }
-        return 2000;
+        return shouldPollInvestigationBlocks(investigation.blocks ?? []) ||
+          isTitleGenerationActive(investigation.titleGeneration?.status)
+          ? 2000
+          : false;
       },
     });
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
@@ -713,6 +716,10 @@ function SeerInvestigationSection({
       )}
     </FoldSection>
   );
+}
+
+function isTitleGenerationActive(status: string | null | undefined) {
+  return status === 'pending' || status === 'running';
 }
 
 export function MetricIssueSeerInvestigationSection({

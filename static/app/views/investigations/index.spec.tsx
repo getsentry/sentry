@@ -519,7 +519,8 @@ describe('Explore Investigations', () => {
       ],
     });
     queryClient.setQueryData(candidateOptions.queryKey, {
-      items: [{status: 'view', investigationId: '1'}],
+      json: {items: [{status: 'view', investigationId: '1'}]},
+      headers: {},
     });
     await userEvent.click(
       await screen.findByLabelText('More options for Database latency investigation')

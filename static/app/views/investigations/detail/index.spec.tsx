@@ -271,6 +271,28 @@ describe('Investigation detail', () => {
     );
   });
 
+  it('does not replace an investigation title that was renamed before mount', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Manually renamed investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    const titleRequest = MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'running', preview: 'Generated title preview'},
+    });
+
+    renderView();
+
+    await waitFor(() => expect(titleRequest).toHaveBeenCalled());
+    expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
+      'Manually renamed investigation'
+    );
+    expect(screen.queryByDisplayValue('Generated title preview')).not.toBeInTheDocument();
+  });
+
   it('renders the persisted title when completion has no preview', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -454,6 +476,63 @@ describe('Investigation detail', () => {
     expect(await screen.findByTestId('cell-execution-failed')).toHaveTextContent(
       'Query failed'
     );
+  });
+
+  it('only blocks cells that depend on a failed branch', async () => {
+    const investigation = InvestigationDetailFixture();
+    const textBlock = investigation.blocks[0]!;
+    const queryBlock = investigation.blocks[1]!;
+    investigation.blocks = [
+      {
+        ...textBlock,
+        outputStatus: 'failed',
+        currentExecution: {
+          id: 'execution-failed',
+          status: 'failed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: {message: 'Summary failed'},
+        },
+      },
+      {
+        ...queryBlock,
+        config: {autoRun: true},
+        dependencies: ['block-1'],
+      },
+      {
+        ...textBlock,
+        id: 'block-3',
+        position: 2,
+        title: 'Independent analysis',
+        outputStatus: 'completed',
+        currentExecution: {
+          id: 'execution-completed',
+          status: 'completed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: null,
+        },
+      },
+      {
+        ...queryBlock,
+        id: 'block-4',
+        position: 3,
+        title: 'Independent follow-up',
+        config: {autoRun: true},
+        dependencies: ['block-3'],
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(
+      await screen.findByText('Cancelled because a previous cell failed.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Waiting for previous cells…')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('investigation-execution-failed')
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the refinement composer expanded while editing', async () => {
