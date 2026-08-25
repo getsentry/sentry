@@ -337,6 +337,16 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for PullRequest deletions across all concurrent
+# deletion tasks. 0 disables rate limiting. Sized to sit well above the
+# steady-state deletion rate while keeping any backlog drain gentle, so it
+# needs no tuning around deploys.
+register(
+    "deletions.pull-request.rate-limit",
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -2332,6 +2342,14 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TTL in minutes of the recalibration factor stored in Redis.
+register(
+    "dynamic-sampling.recalibration.factor-ttl-minutes",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
@@ -2513,19 +2531,41 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Remove the rows a claim-bounded drain finishes with — delivered, attempts
+# exhausted, or stale — in batches instead of one DELETE per row. Such a drain
+# stays inside a claim reserved for its whole run, so deferring deletes cannot
+# hand rows to a concurrent drain; a crashed worker reprocesses at most one
+# unflushed batch, which redelivers the delivered rows and re-discards the rest.
+register(
+    "hybridcloud.webhookpayload.drain_batch_deletes",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Providers whose mailbox drains skip a failed message and keep going instead of
+# aborting. Only safe for providers whose cell-side handlers tolerate reordering,
+# since a skipped message is retried after the ones behind it. Aborting is not a
+# strict-ordering guarantee to begin with: drain_mailbox_parallel delivers a whole
+# batch concurrently before it consults this list, and dispatch to it is chosen on
+# backlog depth alone (PARALLEL_DRAIN_THRESHOLD), for every provider.
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
-    default=["github"],
+    default=[
+        "github",
+        "github_enterprise",
+        "bitbucket",
+        "bitbucket_server",
+        "gitlab",
+    ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Drops GitHub check webhooks that reference no pull request based in their own
-# repo (see ActionFilter.own_repo_pr_actions). Ships off: unlike the other parser
-# drops this one keys off payload shape rather than a header, so it needs a switch
-# that stops the loss immediately if the predicate turns out to be wrong.
+# repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape
+# rather than a header, so it keeps a switch: setting this false stops the drop
+# without a deploy.
 register(
     "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
@@ -3275,7 +3315,7 @@ register(
 register(
     "spans.buffer.process-segments-task-rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3505,12 +3545,26 @@ register(
     default=0.1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Workflows for which to always try to record evaluation logs.
+register(
+    "workflow_engine.evaluation_log_target_workflow_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Whether to directly log workflow evaluation logs to Sentry instead of using the stdlib
 # logger (which also logs to Sentry).
 register(
     "workflow_engine.evaluation_logs_direct_to_sentry",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.process_workflows_debug_workflow_ids",
+    type=Sequence,
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Safe default limit for workflows. Should be high enough to cover almost all orgs,

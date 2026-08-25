@@ -86,7 +86,10 @@ class OrganizationInvestigationIndexTest(APITestCase):
             data={
                 "templateKey": "breached_metric",
                 "templateVersion": 1,
-                "sourceRef": {"groupId": "1", "openPeriodId": "1"},
+                "source": {
+                    "type": "metric_open_period",
+                    "ref": {"groupId": "1", "openPeriodId": "1"},
+                },
                 "parameters": {"unexpected": True},
             },
             format="json",
@@ -102,7 +105,10 @@ class OrganizationInvestigationIndexTest(APITestCase):
             data={
                 "templateKey": "breached_metric",
                 "templateVersion": 999,
-                "sourceRef": {"groupId": "1", "openPeriodId": "1"},
+                "source": {
+                    "type": "metric_open_period",
+                    "ref": {"groupId": "1", "openPeriodId": "1"},
+                },
                 "parameters": {},
             },
             format="json",
@@ -114,7 +120,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
         template = InvestigationTemplateSpec(
             key="cyclic",
             version=1,
-            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
             parameters=(),
             blocks=(
                 TemplateBlockSpec(key="one", kind="text", title="One", dependencies=("two",)),
@@ -131,7 +137,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
                 data={
                     "templateKey": "cyclic",
                     "templateVersion": 1,
-                    "sourceRef": {"groupId": "1"},
+                    "source": {"type": "metric_open_period", "ref": {"groupId": "1"}},
                     "parameters": {},
                 },
                 format="json",
@@ -146,7 +152,10 @@ class OrganizationInvestigationIndexTest(APITestCase):
             data={
                 "templateKey": "breached_metric",
                 "templateVersion": 1,
-                "sourceRef": {"groupId": str(group.id), "openPeriodId": "1"},
+                "source": {
+                    "type": "metric_open_period",
+                    "ref": {"groupId": str(group.id), "openPeriodId": "1"},
+                },
                 "parameters": {},
             },
             format="json",
@@ -157,12 +166,17 @@ class OrganizationInvestigationIndexTest(APITestCase):
         lineage = {
             "organization": self.organization,
             "created_by": self.user,
-            "source_type": InvestigationSourceType.ISSUE,
-            "source_key": "issue:123",
+            "source": {"type": "issue", "ref": {"groupId": "123"}},
+            "source_type": "issue",
             "source_ref": {"groupId": "123"},
+            "source_key": "issue:123",
+            "lineage_key": "issue:123",
         }
         first = self.create_investigation(
-            title="First revision", source_revision=1, status=InvestigationStatus.ACTIVE, **lineage
+            title="First revision",
+            source_revision=1,
+            status=InvestigationStatus.ARCHIVED,
+            **lineage,
         )
         second = self.create_investigation(
             title="Second revision", source_revision=2, status=InvestigationStatus.ACTIVE, **lineage
@@ -196,7 +210,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
             == 204
         )
         assert not Investigation.objects.filter(
-            source_key="issue:123", status=InvestigationStatus.ACTIVE
+            lineage_key="issue:123", status=InvestigationStatus.ACTIVE
         ).exists()
 
         third = self.create_investigation(
@@ -204,6 +218,23 @@ class OrganizationInvestigationIndexTest(APITestCase):
         )
         response = self.client.get(self.collection_url)
         assert [item["id"] for item in response.data] == [str(third.id)]
+
+    def test_legacy_only_lineage_lists_only_the_latest_revision(self) -> None:
+        lineage = {
+            "organization": self.organization,
+            "created_by": self.user,
+            "source_type": InvestigationSourceType.BREACHED_METRIC,
+            "source_ref": {"groupId": "123", "openPeriodId": "456"},
+            "source_key": "legacy-lineage",
+            "status": InvestigationStatus.ARCHIVED,
+        }
+        self.create_investigation(title="First revision", source_revision=1, **lineage)
+        second = self.create_investigation(title="Second revision", source_revision=2, **lineage)
+
+        response = self.client.get(self.collection_url, {"status": "archived"})
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(second.id)]
 
     def test_org_auth_token_can_list_investigations(self) -> None:
         self.create_investigation(

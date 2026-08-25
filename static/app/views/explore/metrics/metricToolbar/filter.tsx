@@ -291,7 +291,6 @@ export function Filter({
       key={traceMetric.name}
       {...searchQueryBuilderProviderProps}
       enableAISearch={hasTranslateEndpoint && hasMetricsAISearch}
-      aiSearchBadgeType="alpha"
     >
       <MetricsSearchBar
         tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}

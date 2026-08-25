@@ -1488,29 +1488,23 @@ function DiscoverPageFilters({
       </PageFilterBar>
       <Flex gap="md" align="center">
         {!shouldHideCreateAlert && (
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) =>
-              hasFeature && (
-                <GuideAnchor target="create_alert_from_discover">
-                  <CreateAlertFromViewButton
-                    eventView={buttonEventView}
-                    organization={organization}
-                    projects={projects}
-                    onClick={() => {
-                      trackAnalytics('discover_v2.create_alert_clicked', {
-                        organization,
-                        status: 'success',
-                      });
-                    }}
-                    referrer="discover"
-                    size="sm"
-                    data-test-id="discover2-create-from-discover"
-                    alertType={alertType}
-                  />
-                </GuideAnchor>
-              )
-            }
-          </Feature>
+          <GuideAnchor target="create_alert_from_discover">
+            <CreateAlertFromViewButton
+              eventView={buttonEventView}
+              organization={organization}
+              projects={projects}
+              onClick={() => {
+                trackAnalytics('discover_v2.create_alert_clicked', {
+                  organization,
+                  status: 'success',
+                });
+              }}
+              referrer="discover"
+              size="sm"
+              data-test-id="discover2-create-from-discover"
+              alertType={alertType}
+            />
+          </GuideAnchor>
         )}
         <DiscoverContextMenu
           organization={organization}

@@ -40,7 +40,6 @@ interface Props<ListItem, Response = Array<ApiResult<ListItem[]>>> {
   estimateSize?: () => number;
   loadingCompleteMessage?: () => React.ReactNode;
   loadingMoreMessage?: () => React.ReactNode;
-  overscan?: number;
 }
 
 export function InfiniteListItems<ListItem, Response = Array<ApiResult<ListItem[]>>>({
@@ -50,7 +49,6 @@ export function InfiniteListItems<ListItem, Response = Array<ApiResult<ListItem[
   itemRenderer,
   loadingCompleteMessage = LoadingCompleteMessage,
   loadingMoreMessage = LoadingMoreMessage,
-  overscan,
   queryResult,
 }: Props<ListItem, Response>) {
   const {data, hasNextPage, isFetchingNextPage, fetchNextPage} = queryResult;
@@ -61,7 +59,7 @@ export function InfiniteListItems<ListItem, Response = Array<ApiResult<ListItem[
     count: hasNextPage ? loadedRows.length + 1 : loadedRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: estimateSize ?? (() => 100),
-    overscan: overscan ?? 5,
+    overscan: 5,
   });
   const items = rowVirtualizer.getVirtualItems();
 

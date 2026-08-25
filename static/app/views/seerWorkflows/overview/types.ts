@@ -146,6 +146,11 @@ export interface OverviewPullRequestFile {
   path: string;
 }
 
+interface FailedCheckDetail {
+  name: string;
+  url: string | null;
+}
+
 export interface OverviewPullRequest {
   checksStatus: PullRequestChecksStatus | null;
   files: OverviewPullRequestFile[];
@@ -154,7 +159,7 @@ export interface OverviewPullRequest {
   reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus | null;
   url: string | null;
-  failedChecks?: string[];
+  failedCheckDetails?: FailedCheckDetail[];
   repoName?: string | null;
 }
 

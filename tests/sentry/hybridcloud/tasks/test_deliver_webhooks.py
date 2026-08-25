@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -111,6 +112,25 @@ class ScheduleWebhooksTest(TestCase):
         mock_deliver.delay.assert_called_with(
             webhook_one.id, dispatcher=Dispatcher.SCHEDULER, mode=DispatchMode.LEASE
         )
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_head_in_backoff_blocks_mailbox(self, mock_deliver: MagicMock) -> None:
+        # The mailbox head (lowest id) is in a backoff window while a later
+        # message is due. The whole mailbox must be skipped — scheduling the
+        # later message would break head-of-line delivery ordering.
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        webhook_two = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+        )
+        assert webhook_two.schedule_for < timezone.now()
+
+        schedule_webhook_delivery()
+        assert mock_deliver.delay.call_count == 0
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_updates_mailbox_attributes(self, mock_deliver: MagicMock) -> None:
@@ -369,6 +389,36 @@ def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list
     return created
 
 
+def assert_drain_skips_failed_message(drain: Callable[[int], None], provider: str) -> None:
+    """
+    Drain a 5 message mailbox where the second delivery fails.
+
+    Asserts the provider is allowlisted in
+    `hybridcloud.webhookpayload.skip_on_failure_providers`: every message is
+    attempted and only the failed one is left behind for a later retry. The
+    provider string is used verbatim for `WebhookPayload.provider`, so a value
+    that doesn't match the registered default fails here instead of silently
+    behaving as a non-allowlisted provider.
+    """
+    url = f"http://us.testserver/extensions/{provider}/webhook/"
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=500, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    responses.add(responses.POST, url, status=200, body="")
+    records = create_payloads(5, f"{provider}:123", provider=provider)
+
+    drain(records[0].id)
+
+    assert len(responses.calls) == 5
+    assert WebhookPayload.objects.count() == 1
+
+    remaining = WebhookPayload.objects.get()
+    assert remaining.provider == provider
+    assert remaining.attempts == 1
+    assert remaining.schedule_for > timezone.now()
+
+
 @control_silo_test
 class DrainMailboxTest(TestCase):
     @responses.activate
@@ -472,6 +522,161 @@ class DrainMailboxTest(TestCase):
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_github_enterprise(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "github_enterprise")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "bitbucket")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket_server(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "bitbucket_server")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_gitlab(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox, "gitlab")
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_batch_deletes_delivered_rows(self) -> None:
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(4, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox(records[0].id, claimed_count=4)
+
+        assert len(responses.calls) == 4
+        assert WebhookPayload.objects.count() == 0
+        # Delivered rows are removed at the slice boundary in one statement
+        # instead of one DELETE per delivered webhook.
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_batch_deletes_flush_when_drain_stops_on_failure(self) -> None:
+        url = "http://us.testserver/extensions/jira/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        records = create_payloads(5, "jira:123", provider="jira")
+
+        drain_mailbox(records[0].id, claimed_count=5)
+
+        # jira requires strict ordering: the drain stops at the failure, but the
+        # two messages delivered before it must still have their rows removed.
+        assert len(responses.calls) == 3
+        remaining = set(WebhookPayload.objects.values_list("id", flat=True))
+        assert remaining == {records[2].id, records[3].id, records[4].id}
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_batch_deletes_discarded_rows(self) -> None:
+        # Discards are the other half of a drain's delete traffic, and on a
+        # backlogged mailbox the larger half: they must share the batch rather
+        # than issue a DELETE per row alongside it.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        stale = Factories.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            request_path="/extensions/github/webhook/",
+            date_added=timezone.now() - timedelta(days=4),
+        )
+        exhausted = Factories.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            request_path="/extensions/github/webhook/",
+            attempts=MAX_ATTEMPTS,
+        )
+        create_payloads(2, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox(stale.id, claimed_count=4)
+
+        # Only the two fresh rows are delivered; the stale and attempts-exhausted
+        # rows are discarded without a request.
+        assert len(responses.calls) == 2
+        assert not WebhookPayload.objects.filter(id__in=[stale.id, exhausted.id]).exists()
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    @patch.object(deliver_webhooks, "DELETE_BATCH_SIZE", 2)
+    def test_drain_batch_deletes_are_bounded(self) -> None:
+        # A crash strands whatever has not been flushed, so batches must stay
+        # bounded rather than growing for the drain's whole run.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(5, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox(records[0].id, claimed_count=5)
+
+        assert WebhookPayload.objects.count() == 0
+        # Two full batches during the walk plus the remainder at the end.
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_unbounded_keeps_per_row_deletes(self) -> None:
+        # The lease-mode scheduler dispatches without a claimed_count, so the
+        # drain runs on past its claim into rows that are still due. Holding a
+        # delivered row unflushed there keeps the mailbox head due, letting the
+        # next scheduler cycle rediscover it and redeliver what was already sent.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options(
+        {
+            "hybridcloud.webhookpayload.drain_batch_deletes": True,
+            "hybridcloud.webhookpayload.push_drain_trigger": True,
+        }
+    )
+    def test_drain_lease_mode_keeps_per_row_deletes(self) -> None:
+        # A lease drain's lock outlives a crash by only DRAIN_LOCK_TTL, after
+        # which another drain would redeliver any delivered-but-unflushed rows —
+        # so lease mode must not defer deletes even with the option enabled.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox(records[0].id, mailbox_name="github:123")
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
 
     @responses.activate
     @override_cells(cell_config)
@@ -836,6 +1041,95 @@ class DrainMailboxParallelTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_batch_deletes_span_threadpool_batches(self) -> None:
+        # The batch belongs to the drain, not to one threadpool batch: a
+        # threadpool only runs worker_threads (4) rows at a time, so accumulating
+        # per threadpool batch would cap every DELETE at that width.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(8, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox_parallel(records[0].id, claimed_count=8)
+
+        assert len(responses.calls) == 8
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_batch_deletes_discarded_rows(self) -> None:
+        # Stale rows are discarded before the threadpool runs, so they would
+        # otherwise be the one delete path the batch never covers.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        stale = [
+            Factories.create_webhook_payload(
+                mailbox_name="github:123",
+                cell_name="us",
+                provider="github",
+                request_path="/extensions/github/webhook/",
+                date_added=timezone.now() - timedelta(days=4),
+            )
+            for _ in range(2)
+        ]
+        create_payloads(2, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox_parallel(stale[0].id, claimed_count=4)
+
+        assert len(responses.calls) == 2
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_unbounded_keeps_per_row_deletes(self) -> None:
+        # Mirrors DrainMailboxTest: without a claimed_count the drain walks past
+        # its claim, and parallel delivery never bumps schedule_for, so an
+        # unflushed delivered row stays due and rediscoverable.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox_parallel(records[0].id)
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options(
+        {
+            "hybridcloud.webhookpayload.drain_batch_deletes": True,
+            "hybridcloud.webhookpayload.push_drain_trigger": True,
+        }
+    )
+    def test_drain_lease_mode_keeps_per_row_deletes(self) -> None:
+        # Mirrors DrainMailboxTest: a lease drain's lock outlives a crash by only
+        # DRAIN_LOCK_TTL, so it must not defer deletes even with the option on.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox_parallel(records[0].id, mailbox_name="github:123")
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
+
+    @responses.activate
+    @override_cells(cell_config)
     def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
         url = "http://us.testserver/extensions/jira/webhook/"
         responses.add(responses.POST, url, status=200, body="")
@@ -853,6 +1147,26 @@ class DrainMailboxParallelTest(TestCase):
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_github_enterprise(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "github_enterprise")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "bitbucket")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_bitbucket_server(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "bitbucket_server")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_gitlab(self) -> None:
+        assert_drain_skips_failed_message(drain_mailbox_parallel, "gitlab")
 
     @responses.activate
     @override_cells(cell_config)

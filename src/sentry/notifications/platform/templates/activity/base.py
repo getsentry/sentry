@@ -185,7 +185,7 @@ def build_activity_notification_data(
     issue_url = group.get_absolute_url()
     if ActivityType(activity.type) in SEER_ACTIVITY_TYPES:
         issue_url = group.get_absolute_url(params={"seerDrawer": "true"})
-        if features.has("organizations:issue-stream-progress-ui", organization):
+        if features.has("organizations:issue-inbox", organization):
             issue_url = organization.absolute_url(
                 f"organizations/{organization.slug}/issues/inbox/",
                 query=urlencode({"project": project.id, "preview": group.id}),

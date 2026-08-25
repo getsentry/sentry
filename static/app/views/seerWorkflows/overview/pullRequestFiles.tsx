@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
@@ -79,12 +79,23 @@ function FileDiff({
 export function PullRequestFiles({
   orgSlug,
   pullRequest,
+  onFirstExpand,
 }: {
   orgSlug: string;
   pullRequest: OverviewPullRequest;
+  onFirstExpand?: () => void;
 }) {
   const files = pullRequest.files;
   const {expandedKeys, toggle} = useExpandedKeys();
+  const [shouldFetch, setShouldFetch] = useState(false);
+  const firedRef = useRef(false);
+  const handleToggle = (key: string, expanded: boolean) => {
+    if (expanded && !firedRef.current) {
+      firedRef.current = true;
+      onFirstExpand?.();
+    }
+    toggle(key, expanded);
+  };
 
   const {data, isPending, isError} = useQuery({
     ...apiOptions.as<PullRequestFilesResponse>()(
@@ -94,7 +105,7 @@ export function PullRequestFiles({
         staleTime: QUERY_STALE_TIME,
       }
     ),
-    enabled: expandedKeys.size > 0,
+    enabled: shouldFetch || expandedKeys.size > 0,
   });
 
   const diffByPath = useMemo(
@@ -123,6 +134,11 @@ export function PullRequestFiles({
   ];
 
   return (
-    <ChangedFilesSection groups={groups} expandedKeys={expandedKeys} onToggle={toggle} />
+    <ChangedFilesSection
+      groups={groups}
+      expandedKeys={expandedKeys}
+      onToggle={handleToggle}
+      onMouseEnter={() => setShouldFetch(true)}
+    />
   );
 }

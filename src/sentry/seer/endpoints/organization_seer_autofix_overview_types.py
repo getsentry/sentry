@@ -13,6 +13,11 @@ class PullRequestFilePayload(TypedDict):
     changeType: str
 
 
+class FailedCheckPayload(TypedDict):
+    name: str
+    url: str | None
+
+
 class PullRequestPayload(TypedDict):
     id: str
     number: int
@@ -22,7 +27,7 @@ class PullRequestPayload(TypedDict):
     reviewStatus: str | None
     repoName: str | None
     files: list[PullRequestFilePayload]
-    failedChecks: list[str]
+    failedCheckDetails: list[FailedCheckPayload]
 
 
 class IssueProjectPayload(TypedDict):

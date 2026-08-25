@@ -8,7 +8,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 pytestmark = [requires_snuba]
@@ -247,9 +246,9 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             "project_id": 1,
             "date": str(now) + "+00:00",
             "error_id": "abc123",
-            "request_body": json.dumps(self.mock_request.body),
+            "request_body": self.mock_request.body,
             "request_headers": {"Content-Type": "application/json"},
-            "response_body": json.dumps(self.mock_response.content),
+            "response_body": self.mock_response.content,
             "organization": {"name": self.org.name, "id": self.org.id, "slug": self.org.slug},
         }
 

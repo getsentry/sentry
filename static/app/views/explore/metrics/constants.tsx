@@ -202,6 +202,14 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
       value: 'avg',
     },
     {
+      label: 'sum',
+      value: 'sum',
+    },
+    {
+      label: 'count',
+      value: 'count',
+    },
+    {
       label: 'per_second',
       value: 'per_second',
     },
@@ -271,6 +279,20 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
           label: 'avg',
           value: 'avg',
           trailingItems: <Text size="xs">{t('Default')}</Text>,
+        },
+      ],
+    },
+    {
+      key: 'math',
+      label: t('Math'),
+      options: [
+        {
+          label: 'sum',
+          value: 'sum',
+        },
+        {
+          label: 'count',
+          value: 'count',
         },
       ],
     },

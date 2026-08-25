@@ -26,8 +26,15 @@ from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
 )
-from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
+from sentry.preprod.snapshots.image_diff.compare import (
+    DIFF_ALGORITHM_VERSION,
+    MAX_DIFF_PIXELS,
+    compare_images_batch,
+    get_comparison_size,
+    read_image_size,
+)
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
+from sentry.preprod.snapshots.image_diff.types import ImageSize
 from sentry.preprod.snapshots.manifest import (
     ChunkAssignment,
     ChunkCandidate,
@@ -52,7 +59,6 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
-MAX_DIFF_PIXELS = 40_000_000
 MAX_PIXELS_PER_BATCH = 40_000_000
 
 CHUNK_PROCESSING_DEADLINE = 120  # seconds; one ~40M-px batch finishes well under this
@@ -482,9 +488,9 @@ def _build_comparison_plan(
 
         head_meta = head_meta_by_hash[head_hash]
         base_meta = base_meta_by_hash[base_hash]
-        head_pixels = head_meta.width * head_meta.height
-        base_pixels = base_meta.width * base_meta.height
-        pixel_count = max(head_pixels, base_pixels)
+        head_size = ImageSize(head_meta.width, head_meta.height)
+        base_size = ImageSize(base_meta.width, base_meta.height)
+        pixel_count = get_comparison_size(head_size, base_size).pixel_count
 
         if pixel_count > MAX_DIFF_PIXELS:
             non_diff_images[name] = ComparisonImageResult(
@@ -589,17 +595,73 @@ def _process_chunk(
 
         fetch_cache, failed_hashes = _fetch_batch_images(session, image_key_prefix, unique_hashes)
 
+        actual_sizes: dict[str, ImageSize | None] = {}
+        for image_hash, image_data in fetch_cache.items():
+            try:
+                actual_sizes[image_hash] = read_image_size(image_data)
+            except Exception as error:
+                actual_sizes[image_hash] = None
+                metrics.incr("preprod.snapshots.image_diff.header_read_failed")
+                logger.warning(
+                    "preprod.snapshots.image_diff.header_read_failed",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "image_hash": image_hash,
+                        "error_type": type(error).__name__,
+                    },
+                )
+
+        current_batch_pixels = 0
         for candidate in assignment.candidates:
             if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
-                images[candidate.name] = ComparisonImageResult(
-                    status="errored",
-                    head_hash=candidate.head_hash,
-                    base_hash=candidate.base_hash,
-                    reason="image_fetch_failed",
-                )
+                images[candidate.name] = _errored_result(candidate, "image_fetch_failed")
                 continue
+
+            head_size = actual_sizes[candidate.head_hash]
+            base_size = actual_sizes[candidate.base_hash]
+            if head_size is None or base_size is None:
+                images[candidate.name] = _errored_result(candidate, "image_processing_failed")
+                continue
+
             head_data = fetch_cache[candidate.head_hash]
             base_data = fetch_cache[candidate.base_hash]
+            comparison_size = get_comparison_size(head_size, base_size)
+            comparison_pixels = comparison_size.pixel_count
+            if comparison_pixels > MAX_DIFF_PIXELS:
+                images[candidate.name] = _errored_result(candidate, "exceeds_pixel_limit")
+                metrics.incr("preprod.snapshots.image_diff.exceeds_pixel_limit")
+                logger.warning(
+                    "preprod.snapshots.image_diff.exceeds_pixel_limit",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "head_hash": candidate.head_hash,
+                        "base_hash": candidate.base_hash,
+                        "width": comparison_size.width,
+                        "height": comparison_size.height,
+                    },
+                )
+                continue
+
+            next_batch_pixels = current_batch_pixels + comparison_pixels
+            if next_batch_pixels > MAX_PIXELS_PER_BATCH:
+                images[candidate.name] = _errored_result(candidate, "exceeds_batch_pixel_limit")
+                metrics.incr("preprod.snapshots.image_diff.exceeds_batch_pixel_limit")
+                logger.warning(
+                    "preprod.snapshots.image_diff.exceeds_batch_pixel_limit",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "head_hash": candidate.head_hash,
+                        "base_hash": candidate.base_hash,
+                        "current_batch_pixels": current_batch_pixels,
+                        "comparison_pixels": comparison_pixels,
+                    },
+                )
+                continue
+
+            current_batch_pixels = next_batch_pixels
             diff_pairs.append((base_data, head_data))
             batch_names.append(candidate.name)
             batch_hashes.append((candidate.head_hash, candidate.base_hash))

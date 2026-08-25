@@ -13,19 +13,13 @@ type Edge = 'right' | 'bottom' | 'corner';
 interface ResizableWindowProps {
   children?: ReactNode;
   className?: string;
-  onResize?: (size: {height: number; width: number}) => void;
   ref?: Ref<HTMLDivElement>;
 }
 
-export function ResizableWindow({
-  children,
-  className,
-  onResize,
-  ref,
-}: ResizableWindowProps) {
+export function ResizableWindow({children, className, ref}: ResizableWindowProps) {
   const innerRef = useRef<HTMLDivElement>(null);
   const getMergedRef = useStableMergeRef(innerRef);
-  const {handlePointerDown, dragging} = useDragResize(innerRef, onResize);
+  const {handlePointerDown, dragging} = useDragResize(innerRef);
 
   return (
     <WindowRoot
@@ -47,13 +41,8 @@ export function ResizableWindow({
   );
 }
 
-function useDragResize(
-  containerRef: React.RefObject<HTMLElement | null>,
-  onResize?: (size: {height: number; width: number}) => void
-) {
+function useDragResize(containerRef: React.RefObject<HTMLElement | null>) {
   const [dragging, setDragging] = useState<Edge | false>(false);
-  const onResizeRef = useRef(onResize);
-  onResizeRef.current = onResize;
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, edge: Edge) => {
@@ -78,7 +67,6 @@ function useDragResize(
         if (edge === 'bottom' || edge === 'corner') {
           el.style.height = `${Math.max(MIN_HEIGHT, startH + dy)}px`;
         }
-        onResizeRef.current?.({width: el.offsetWidth, height: el.offsetHeight});
       };
 
       const onPointerUp = () => {
