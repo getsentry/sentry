@@ -21,6 +21,7 @@ const productionEntryPoints = [
   'static/app/components/core/revealOnHover/*.tsx',
   // TODO: Remove when wired into Seer Explorer
   'static/app/components/core/chat/thinkingBlock.tsx',
+  'static/app/components/core/chat/toolCall.tsx',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
@@ -31,6 +32,10 @@ const productionEntryPoints = [
   'static/app/components/connectRepository/**/*.{ts,tsx}',
   // TODO: Remove when wired into the React authentication flow
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
+  // TODO: Remove when wired into the agentic onboarding flow
+  'static/app/views/onboarding/agenticProgress/agenticProgressList.tsx',
+  'static/app/views/onboarding/agenticProgress/useAgenticProgress.ts',
+  'static/app/views/onboarding/agenticProgress/useAgenticProgressInit.ts',
   // https://github.com/getsentry/sentry/pull/121178
   'static/app/components/core/table/*.tsx',
   'static/app/components/core/dragHandle/*.tsx',

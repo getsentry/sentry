@@ -385,7 +385,7 @@ function IssueVitals({
   statsPeriod: string | null;
 }) {
   const eventCount = run.issue.count ? Number(run.issue.count) : null;
-  const userCount = run.issue.userCount ?? 0;
+  const userCount = run.issue.userCount ?? null;
   const windowLabel = periodWindowLabel(statsPeriod);
   return (
     <Fragment>
@@ -393,6 +393,10 @@ function IssueVitals({
         <Fragment>
           <Flex gap="xs" align="center">
             <IconGraph size="xs" variant="muted" aria-hidden />
+            <Placeholder height="1rem" width="4rem" />
+          </Flex>
+          <Flex gap="xs" align="center">
+            <IconUser size="xs" variant="muted" aria-hidden />
             <Placeholder height="1rem" width="4rem" />
           </Flex>
           <Flex gap="xs" align="center">
@@ -420,7 +424,7 @@ function IssueVitals({
               </InfoText>
             </Flex>
           )}
-          {userCount > 0 && (
+          {userCount !== null && (
             <Flex gap="xs" align="center">
               <IconUser size="xs" variant="muted" aria-hidden />
               <InfoText
@@ -676,7 +680,7 @@ export function OverviewCardSkeleton() {
         <Stack minWidth="0" gap="xs">
           <TextLineSkeleton size="lg" width="70%" />
           <Flex wrap="wrap" gap="md" align="center">
-            {['4.5rem', '4rem', '5rem', '5rem'].map((width, index) => (
+            {['4.5rem', '4rem', '4rem', '5rem', '5rem'].map((width, index) => (
               <TextLineSkeleton key={index} size="sm" width={width} />
             ))}
           </Flex>

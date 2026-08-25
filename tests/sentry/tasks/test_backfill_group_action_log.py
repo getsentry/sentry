@@ -739,16 +739,60 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         ):
             backfill_group_action_log_for_all_projects()
 
-        mock_apply.assert_called_once_with(
-            kwargs={
-                "project_id": incomplete_project.id,
-                "reset": False,
-                "chain_pr_lifecycle": True,
-            },
-            headers={"sentry-propagate-traces": False},
-        )
+        dispatched_project_ids = {
+            call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
+        }
+        assert dispatched_project_ids == {incomplete_project.id, inactive_project.id}
         assert project_without_option.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
         mock_coordinator_apply.assert_not_called()
+
+    def test_complete_options_still_advance_cursor(self) -> None:
+        complete_project_1 = self.create_project(organization=self.organization)
+        complete_project_2 = self.create_project(organization=self.organization)
+        incomplete_project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(complete_project_1, True)
+        complete_option_2 = self._set_backfill_complete(complete_project_2, True)
+        self._set_backfill_complete(incomplete_project, False)
+
+        with (
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 2}),
+            patch.object(
+                backfill_group_action_log_for_project, "apply_async"
+            ) as mock_project_apply,
+            patch.object(
+                backfill_group_action_log_for_all_projects, "apply_async"
+            ) as mock_coordinator_apply,
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        mock_project_apply.assert_not_called()
+        assert mock_coordinator_apply.call_args.kwargs["kwargs"]["last_project_option_id"] == (
+            complete_option_2.id
+        )
+
+    def test_logs_coordinator_phases(self) -> None:
+        project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(project, False)
+
+        with (
+            self.assertLogs("sentry.tasks.backfill_group_action_log", level="INFO") as logs,
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        events = [record.getMessage() for record in logs.records]
+        assert events == [
+            "backfill_group_action_log.coordinator.started",
+            "backfill_group_action_log.coordinator.query_started",
+            "backfill_group_action_log.coordinator.query_completed",
+            "backfill_group_action_log.coordinator.dispatch_started",
+            "backfill_group_action_log.coordinator.batch_dispatched",
+            "backfill_group_action_log.coordinator.completed",
+        ]
+        query_completed = logs.records[2]
+        assert query_completed.__dict__["duration_ms"] >= 0
+        assert query_completed.__dict__["incomplete_option_count"] == 1
+        assert query_completed.__dict__["option_count"] == 1
 
     def test_self_chains_when_more_projects_remain(self) -> None:
         for _ in range(3):

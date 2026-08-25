@@ -4,21 +4,13 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHead,
-  TableHeadCell,
-  TableRow,
-} from 'sentry/views/explore/components/table';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {
@@ -75,13 +67,17 @@ export function SpansTable({
 
   return (
     <Fragment>
-      <Table data-test-id="spans-table" fields={visibleFields} minimumColumnWidth={50}>
-        <TableHead>
-          <TableRow>
+      <DataTable
+        data-test-id="spans-table"
+        fields={visibleFields}
+        minimumColumnWidth={50}
+      >
+        <DataTable.Head>
+          <DataTable.Row>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <DataTable.HeadCell key={i} isFirst={i === 0} />;
               }
 
               const fieldType = meta.fields?.[field];
@@ -99,7 +95,7 @@ export function SpansTable({
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell
+                <DataTable.HeadCell
                   align={align}
                   columnIndex={i}
                   key={i}
@@ -108,46 +104,46 @@ export function SpansTable({
                   sort={direction}
                 >
                   {label}
-                </TableHeadCell>
+                </DataTable.HeadCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
           {result.isPending ? (
-            <GridStatus>
+            <DataTable.Status>
               <LoadingIndicator />
-            </GridStatus>
+            </DataTable.Status>
           ) : result.isError ? (
-            <GridStatus>
+            <DataTable.Status>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </GridStatus>
+            </DataTable.Status>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
-              <TableRow key={i}>
+              <DataTable.Row key={i}>
                 {visibleFields.map((field, j) => {
                   return (
-                    <TableBodyCell key={j}>
+                    <DataTable.Cell key={j}>
                       <FieldRenderer
                         column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
                       />
-                    </TableBodyCell>
+                    </DataTable.Cell>
                   );
                 })}
-              </TableRow>
+              </DataTable.Row>
             ))
           ) : (
-            <GridStatus>
+            <DataTable.Status>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </GridStatus>
+            </DataTable.Status>
           )}
-        </TableBody>
-      </Table>
+        </DataTable.Body>
+      </DataTable>
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
