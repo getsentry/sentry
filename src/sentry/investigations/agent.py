@@ -1027,13 +1027,14 @@ def _parse_completion_metadata(content: str) -> dict[str, str] | None:
         payload = json.loads(content)
     except ValueError:
         return None
-    if not isinstance(payload, dict) or set(payload) != {
+    required_keys = {
         "title",
         "summary",
         "summary_description",
-    }:
+    }
+    if not isinstance(payload, dict) or not required_keys.issubset(payload):
         return None
-    if not all(isinstance(value, str) for value in payload.values()):
+    if not all(isinstance(payload[key], str) for key in required_keys):
         return None
     title = " ".join(payload["title"].split())
     summary = " ".join(payload["summary"].split())

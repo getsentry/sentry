@@ -56,6 +56,21 @@ def test_completion_metadata_accepts_concise_variable_summary_lengths() -> None:
         _parse_completion_metadata(completion_metadata(summary="Error threshold exceeded"))
         is not None
     )
+
+
+def test_completion_metadata_ignores_extra_keys() -> None:
+    payload = json.loads(completion_metadata())
+    payload["confidence"] = 0.9
+
+    metadata = _parse_completion_metadata(json.dumps(payload))
+
+    assert metadata == {
+        "title": "Daily error volume spike",
+        "summary": "Error volume crossed threshold",
+        "summary_description": (
+            "One endpoint drove most errors.\nRoll back the latest endpoint change."
+        ),
+    }
     assert (
         _parse_completion_metadata(
             completion_metadata(summary="Error volume crossed the configured alert threshold")
