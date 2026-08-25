@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import DEFAULT, patch
+from unittest.mock import DEFAULT, Mock, patch
 
 import orjson
 import pytest
@@ -303,7 +303,7 @@ class RecalibrationFactorComparisonTest(TestCase):
         factor: float | None,
         previous_factor: float,
         organization_volume: OrganizationDataVolume | None = None,
-    ) -> object:
+    ) -> Mock:
         return mock_configuration(
             self.organization,
             sample_rate=0.5,
