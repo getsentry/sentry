@@ -18,11 +18,11 @@ import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
+import {TrialEnded} from './trial/trialEnded';
 import {BillingPlatformMigrationAlert} from './billingPlatformMigrationAlert';
 import {OnDemandDisabled} from './ondemandDisabled';
 import {RecurringCredits} from './recurringCredits';
 import {SubscriptionHeader} from './subscriptionHeader';
-import {TrialEnded} from './trial/trialEnded';
 import {UsageAlert} from './usageAlert';
 
 type Props = {

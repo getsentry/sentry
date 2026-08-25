@@ -1,9 +1,9 @@
 import {Alert} from '@sentry/scraps/alert';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
