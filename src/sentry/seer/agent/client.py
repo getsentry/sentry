@@ -871,14 +871,7 @@ class SeerAgentClient:
         return state
 
     def latest_run(self, *, group_id: int | None = None) -> SeerAgentRun | None:
-        """The most recent live run mirror for this client's source.
-
-        Recency is ``SeerRun.last_triggered_at`` — which ``continue_run()`` updates —
-        not the immutable ``SeerAgentRun.date_added``, so a continued run can become
-        current again. Filters by the client's ``category_value``, or by ``group_id``
-        when the caller supplies it. Only mirrors with a non-null ``seer_run_state_id``
-        are eligible, since that is the id Seer acts on.
-        """
+        """Most recent run for this source; ordering by last_triggered_at keeps a continued run current."""
         qs = SeerAgentRun.objects.filter(
             run__organization_id=self.organization.id,
             source=self.category_key or "",
