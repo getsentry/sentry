@@ -17,6 +17,7 @@ from sentry.issues.action_log.types import (
     ReconcileStatusAction,
 )
 from sentry.issues.constants import cache_key_for_issue_view
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
@@ -481,6 +482,27 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+
+    @with_feature("projects:issue-action-log-write-to-db")
+    @mock.patch("sentry.issues.endpoints.group_details.logger")
+    def test_backfilled_project_logs_without_reconciliation_flag(
+        self, mock_logger: mock.MagicMock
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.create(group=group, data={"status": "closed"})
+
+        self._get(group)
+
+        mock_logger.info.assert_called_once_with(
+            "issues.status_reconciliation.diverged",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "derived_status": "closed",
+                "expected_status": "open",
+            },
+        )
 
 
 class GroupUpdateTest(APITestCase):

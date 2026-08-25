@@ -54,6 +54,7 @@ from sentry.issues.constants import (
     get_issue_tsdb_group_model,
 )
 from sentry.issues.derived.features import STATUS, IssueStatus
+from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -135,7 +136,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
         This is a best-effort, non-essential side effect on a read path; callers
         must ensure a failure here never breaks the group view.
         """
-        if not features.has("projects:issue-status-reconciliation", group.project):
+        if not (
+            features.has("projects:issue-status-reconciliation", group.project)
+            or derived_should_be_correct(group.project)
+        ):
             return
 
         expected_status = _GROUP_STATUS_TO_DERIVED_STATUS.get(group.status)

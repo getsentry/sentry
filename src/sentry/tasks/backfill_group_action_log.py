@@ -11,6 +11,7 @@ from sentry.issues.action_log.backfill import (
     bulk_insert_action_log_entries,
 )
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -32,8 +33,6 @@ _TASK_KEY = "backfill_group_action_log_for_project"
 _COORDINATOR_TASK_KEY = "backfill_group_action_log_coordinator"
 _ENROLLMENT_TASK_KEY = "enroll_projects_for_group_action_log_backfill"
 _ORGANIZATION_ENROLLMENT_TASK_KEY = "enroll_organization_projects_for_group_action_log_backfill"
-GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION = "sentry:group_action_log_backfill_completed"
-
 _GROUP_ACTION_LOG_WRITE_FEATURE = "projects:issue-action-log-write-to-db"
 
 
