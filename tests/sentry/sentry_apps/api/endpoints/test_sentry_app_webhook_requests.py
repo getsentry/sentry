@@ -234,6 +234,16 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert response.data[0]["request_headers"] == {"Content-Type": "application/json"}
         assert response.data[0]["response_body"] == self.mock_response.content
 
+    def test_member_cannot_post_owned_internal_requests(self) -> None:
+        member = self.create_user(email="member@example.com")
+        self.create_member(user=member, organization=self.org, role="member")
+        self.login_as(user=member)
+
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.internal_app.slug])
+        response = self.client.post(url, format="json")
+
+        assert response.status_code == 403
+
     def test_event_type_filter(self) -> None:
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
