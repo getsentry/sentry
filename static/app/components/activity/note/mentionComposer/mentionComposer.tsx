@@ -201,7 +201,13 @@ export function MentionComposer(props: MentionComposerProps) {
       await onSubmit(data);
 
       if (props.mode === 'create') {
-        form.reset({value: {text: '', mentions: []}});
+        form.reset(
+          {value: {text: '', mentions: []}},
+          {
+            // Prevent a saved draft from being restored after reset.
+            keepDefaultValues: true,
+          }
+        );
         setEditorMode('write');
         setHasFocusedEditor(false);
       }

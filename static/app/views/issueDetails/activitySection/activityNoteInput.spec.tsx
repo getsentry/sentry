@@ -53,9 +53,11 @@ describe('ActivityNoteInput', () => {
       <ActivityNoteInput itemKey="item1" onSubmit={onSubmit} storageKey="storage" />
     );
 
-    await userEvent.type(getEditor(), 'new comment{Control>}{enter}{/Control}');
+    const editor = getEditor();
+    await userEvent.type(editor, 'new comment{Control>}{enter}{/Control}');
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    await waitFor(() => expect(editor).toBeEmptyDOMElement());
     expect(localStorageWrapper.getItem('storage')).toBe(
       JSON.stringify({item2: 'item2', item3: 'item3'})
     );
