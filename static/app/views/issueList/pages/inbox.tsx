@@ -70,7 +70,6 @@ const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
-const ASSIGNMENT_BADGE_WIDTH = '27px';
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
 interface AssignmentCounts {
@@ -466,18 +465,15 @@ function InboxContent() {
   );
 }
 
-// To avoid pop-in we ensure that the badge has the same width (which is enough to contain 99+)
 function AssignmentCountBadge({count}: {count: number | undefined}) {
+  if (count === undefined) {
+    return <Placeholder width="24px" height="20px" />;
+  }
+
   return (
-    <Flex as="span" width={ASSIGNMENT_BADGE_WIDTH} justify="end" align="center">
-      {count === undefined ? (
-        <Placeholder width={ASSIGNMENT_BADGE_WIDTH} height="16px" />
-      ) : (
-        <AssignmentBadge variant="muted">
-          <QueryCount count={count} max={99} hideIfEmpty={false} hideParens />
-        </AssignmentBadge>
-      )}
-    </Flex>
+    <Badge variant="muted">
+      <QueryCount count={count} max={99} hideIfEmpty={false} hideParens />
+    </Badge>
   );
 }
 
@@ -900,11 +896,4 @@ const IssueCardLink = styled(Link)`
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const AssignmentBadge = styled(Badge)`
-  min-width: ${ASSIGNMENT_BADGE_WIDTH};
-  height: 16px;
-  font-size: ${p => p.theme.font.size.xs};
-  justify-content: center;
 `;
