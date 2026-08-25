@@ -33,35 +33,6 @@ def latest_run_for_group(group_id: int, source: str) -> SeerAgentRun | None:
     return runs_for_group(group_id, source).order_by("-date_added").first()
 
 
-def latest_run_for_source(
-    organization_id: int,
-    source: str,
-    *,
-    group_id: int | None = None,
-    category_value: str | None = None,
-) -> SeerAgentRun | None:
-    """The most recent live run mirror for a source, ordered by remote activity.
-
-    Replaces the Seer ``get_runs()`` discovery call for callers that only need the
-    run id to continue a session or fetch detailed state. Recency is ``SeerRun
-    .last_triggered_at`` — which ``continue_run()`` updates — not the immutable
-    ``SeerAgentRun.date_added``, so a continued run can become current again. Only
-    mirrors with a non-null ``seer_run_state_id`` are eligible, since that is the id
-    Seer acts on.
-    """
-    qs = SeerAgentRun.objects.filter(run__organization_id=organization_id, source=source)
-    if group_id is not None:
-        qs = qs.filter(group_id=group_id)
-    if category_value is not None:
-        qs = qs.filter(extras__category_value=category_value)
-    return (
-        qs.select_related("run")
-        .filter(run__seer_run_state_id__isnull=False)
-        .order_by("-run__last_triggered_at")
-        .first()
-    )
-
-
 def encrypt_access_token_for_seer(access_token: str) -> str | None:
     """Fernet-encrypt an access token for transport to Seer."""
     if not settings.SEER_GHE_ENCRYPT_KEY:

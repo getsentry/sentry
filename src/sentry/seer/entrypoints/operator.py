@@ -32,7 +32,6 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.utils import latest_run_for_source
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -548,11 +547,7 @@ class SeerAgentOperator[CachePayloadT]:
 
             try:
                 # Discovery uses the local run mirror; continue/start stays remote.
-                existing_run = latest_run_for_source(
-                    organization.id,
-                    category_key,
-                    category_value=category_value,
-                )
+                existing_run = client.latest_run()
 
                 if existing_run is not None:
                     run_id = client.continue_run(

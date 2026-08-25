@@ -1188,6 +1188,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_slack_code_mode_enabled(self, mock_client_cls):
         mock_client = Mock()
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
+        mock_client.latest_run.return_value = None
         mock_client_cls.return_value = mock_client
 
         with self.feature("organizations:seer-slack-code-mode"):
@@ -1206,6 +1207,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_slack_code_mode_disabled(self, mock_client_cls):
         mock_client = Mock()
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
+        mock_client.latest_run.return_value = None
         mock_client_cls.return_value = mock_client
 
         self.operator.trigger_agent(
@@ -1223,6 +1225,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_non_slack_category_ignores_flag(self, mock_client_cls):
         mock_client = Mock()
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
+        mock_client.latest_run.return_value = None
         mock_client_cls.return_value = mock_client
 
         with self.feature("organizations:seer-slack-code-mode"):
