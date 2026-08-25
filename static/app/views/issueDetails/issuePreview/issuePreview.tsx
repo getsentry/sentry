@@ -120,8 +120,12 @@ export function IssuePreview({groupId, initialGroup}: IssuePreviewProps) {
         {isError && !group && <LoadingError />}
         {group && project && (
           <GroupDataContextProvider group={group} project={project}>
-            <ErrorBoundary mini>
-              <IssuePreviewContent />
+            <ErrorBoundary key={fetchedGroup ? 'full' : 'initial'} mini>
+              {fetchedGroup ? (
+                <IssuePreviewContent />
+              ) : (
+                <IssuePreviewGroupInfo group={group} project={project} />
+              )}
             </ErrorBoundary>
           </GroupDataContextProvider>
         )}
@@ -136,8 +140,6 @@ function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer(group, project);
   const linkedPullRequests = useLinkedPullRequests({group});
-  const {title: primaryTitle} = getTitle(group);
-  const secondaryTitle = getMessage(group);
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
@@ -148,57 +150,7 @@ function IssuePreviewContent() {
   );
   return (
     <IssueDetailsContextProvider>
-      <Container paddingBottom="sm">
-        <Stack gap="xs">
-          <Container>
-            <Flex align="center" justify="between" gap="md">
-              <Flex align="center" gap="md" minWidth={0}>
-                <Tooltip
-                  title={primaryTitle}
-                  skipWrapper
-                  isHoverable
-                  showOnlyOnOverflow
-                  delay={1000}
-                >
-                  <TitleLink
-                    to={issueDetailsUrl}
-                    analyticsEventKey="issue_inbox.open_issue_clicked"
-                    analyticsEventName="Issue Inbox: Open Issue Clicked"
-                    analyticsParams={{
-                      group_id: group.id,
-                      progress: group.derivedData?.progress,
-                      source: 'title',
-                    }}
-                  >
-                    <Container flex="1" minWidth={0}>
-                      <Heading as="h3" size="lg" ellipsis>
-                        {primaryTitle}
-                      </Heading>
-                    </Container>
-                    <Flex align="center" flexShrink={0}>
-                      <IconOpen size="xs" variant="muted" />
-                    </Flex>
-                  </TitleLink>
-                </Tooltip>
-              </Flex>
-              <IssueSeenTimes group={group} />
-            </Flex>
-            <EventMessage
-              level={group.level}
-              message={secondaryTitle}
-              type={group.type}
-            />
-          </Container>
-          <Flex justify="between" align="center" gap="md">
-            <Flex flex="1" minWidth={0}>
-              <GroupStatusSubtitle group={group} project={project} />
-            </Flex>
-            <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
-              <EventUserCounts group={group} project={project} />
-            </Flex>
-          </Flex>
-        </Stack>
-      </Container>
+      <IssuePreviewGroupInfo group={group} project={project} />
       <Flex
         paddingTop="sm"
         paddingBottom="lg"
@@ -276,6 +228,71 @@ function IssuePreviewContent() {
         </Container>
       </Dividers>
     </IssueDetailsContextProvider>
+  );
+}
+
+function IssuePreviewGroupInfo({
+  group,
+  project,
+}: {
+  group: Group;
+  project: Group['project'];
+}) {
+  const organization = useOrganization();
+  const {title: primaryTitle} = getTitle(group);
+  const secondaryTitle = getMessage(group);
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${group.id}/`
+  );
+
+  return (
+    <Container paddingBottom="sm">
+      <Stack gap="xs">
+        <Container>
+          <Flex align="center" justify="between" gap="md">
+            <Flex align="center" gap="md" minWidth={0}>
+              <Tooltip
+                title={primaryTitle}
+                skipWrapper
+                isHoverable
+                showOnlyOnOverflow
+                delay={1000}
+              >
+                <TitleLink
+                  to={issueDetailsUrl}
+                  analyticsEventKey="issue_inbox.open_issue_clicked"
+                  analyticsEventName="Issue Inbox: Open Issue Clicked"
+                  analyticsParams={{
+                    group_id: group.id,
+                    progress: group.derivedData?.progress,
+                    source: 'title',
+                  }}
+                >
+                  <Container flex="1" minWidth={0}>
+                    <Heading as="h3" size="lg" ellipsis>
+                      {primaryTitle}
+                    </Heading>
+                  </Container>
+                  <Flex align="center" flexShrink={0}>
+                    <IconOpen size="xs" variant="muted" />
+                  </Flex>
+                </TitleLink>
+              </Tooltip>
+            </Flex>
+            <IssueSeenTimes group={group} />
+          </Flex>
+          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
+        </Container>
+        <Flex justify="between" align="center" gap="md">
+          <Flex flex="1" minWidth={0}>
+            <GroupStatusSubtitle group={group} project={project} />
+          </Flex>
+          <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
+            <EventUserCounts group={group} project={project} />
+          </Flex>
+        </Flex>
+      </Stack>
+    </Container>
   );
 }
 
