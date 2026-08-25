@@ -137,7 +137,7 @@ class TestDetectorUtils:
 
 class TestGetNumericValueFromSpan:
     @pytest.mark.parametrize(
-        ("value", "number_type", "expected_result"),
+        "test_case",
         [
             # Values which are already the type we want
             (1121, int, 1121),
@@ -176,11 +176,15 @@ class TestGetNumericValueFromSpan:
     )
     def test_value_found(
         self,
-        value: Any,
-        number_type: type[int] | type[float],
-        expected_result: int | float | type[Exception],
+        test_case: tuple[
+            Any,  # value
+            type[int] | type[float],  # number_type
+            int | float | type[Exception],  # expected result
+        ],
         mock_log_invalid_data: MagicMock,
     ) -> None:
+        value, number_type, expected_result = test_case
+
         span = create_span("do.dog.stuff", data={"dogs_are_great": value})
         keys = ["dogs_are_great"]
         default = 0 if number_type is int else 0.0
