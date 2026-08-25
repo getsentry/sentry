@@ -1,7 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
@@ -38,14 +37,16 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {
+  IssuePreviewActions,
+  OpenIssueButton,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {IssuePreviewActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
-import {IssuePreviewResolveActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewResolveActions';
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
@@ -55,32 +56,6 @@ import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 
 interface IssuePreviewProps {
   groupId: string;
-}
-
-function OpenIssueButton({
-  group,
-  to,
-  size = 'xs',
-}: {
-  group: Group;
-  to: string;
-  size?: 'xs' | 'sm';
-}) {
-  return (
-    <LinkButton
-      to={to}
-      size={size}
-      analyticsEventKey="issue_inbox.open_issue_clicked"
-      analyticsEventName="Issue Inbox: Open Issue Clicked"
-      analyticsParams={{
-        group_id: group.id,
-        progress: group.derivedData?.progress,
-        source: 'button',
-      }}
-    >
-      {t('Open Issue')}
-    </LinkButton>
-  );
 }
 
 function useMarkPreviewedGroupSeen(group: Group | undefined) {
@@ -230,20 +205,23 @@ function IssuePreviewContent() {
         gap="md"
       >
         {isFixApplied ? (
-          <Flex gap="sm">
-            <IssuePreviewResolveActions
-              group={group}
-              project={project}
-              disabled={disableActions}
-            />
-            <OpenIssueButton group={group} to={issueDetailsUrl} size="sm" />
-          </Flex>
+          <IssuePreviewActions
+            autofix={previewSeer.autofix}
+            group={group}
+            project={project}
+            disabled={disableActions}
+            onContinueInSeer={() => {
+              navigate({pathname: issueDetailsUrl, query: {seerDrawer: 'true'}});
+            }}
+            onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
+          />
         ) : previewSeer.isLoading ? (
           <Placeholder width="120px" height="32px" />
         ) : previewSeer.shouldShowSeerActions ? (
           <IssuePreviewActions
             autofix={previewSeer.autofix}
             group={group}
+            project={project}
             disabled={disableActions}
             onContinueInSeer={() => openSeerDrawer()}
             onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}

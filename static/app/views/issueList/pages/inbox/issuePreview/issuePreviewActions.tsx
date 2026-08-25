@@ -1,9 +1,13 @@
-import {Fragment, useState, type ReactNode} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
+import {bulkUpdate} from 'sentry/actionCreators/group';
+import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {ResolveActions} from 'sentry/components/actions/resolve';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
@@ -34,9 +38,21 @@ import {
 } from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
+import {ProgressState, type Group, type GroupStatusResolution} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {getAnalyicsDataForProject} from 'sentry/utils/projects';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -50,6 +66,7 @@ interface IssuePreviewActionsProps {
   group: Group;
   onContinueInSeer: () => void;
   onRetryCodeChanges: () => void;
+  project: Project;
   disabled?: boolean;
 }
 
@@ -68,6 +85,119 @@ interface AutofixActionButtonProps {
   group: Group;
   analyticsAction?: string;
   analyticsParams?: ButtonProps['analyticsParams'];
+}
+
+export function OpenIssueButton({
+  group,
+  to,
+  size = 'xs',
+}: {
+  group: Group;
+  to: string;
+  size?: 'xs' | 'sm';
+}) {
+  return (
+    <LinkButton
+      to={to}
+      size={size}
+      analyticsEventKey="issue_inbox.open_issue_clicked"
+      analyticsEventName="Issue Inbox: Open Issue Clicked"
+      analyticsParams={{
+        group_id: group.id,
+        progress: group.derivedData?.progress,
+        source: 'button',
+      }}
+    >
+      {t('Open Issue')}
+    </LinkButton>
+  );
+}
+
+function FixAppliedActions({
+  disabled,
+  group,
+  project,
+}: {
+  disabled: boolean;
+  group: Group;
+  project: Project;
+}) {
+  const api = useApi({persistInFlight: true});
+  const organization = useOrganization();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const hasRelease = !!project.features?.includes('releases');
+  const hasSemverReleaseFeature = useProjectReleaseVersionIsSemver({
+    version: project.latestRelease?.version,
+    enabled: true,
+  });
+  const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
+  const {resolve: resolveCap, resolveInRelease: resolveInReleaseCap} = config.actions;
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${group.id}/`
+  );
+
+  function handleUpdate(data: GroupStatusResolution) {
+    bulkUpdate(
+      api,
+      {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data,
+      },
+      {
+        complete: () => {
+          clearIndicators();
+          addSuccessMessage(t('Issue resolved'));
+          queryClient.invalidateQueries({
+            queryKey: groupQueryKey({
+              organizationSlug: organization.slug,
+              groupId: group.id,
+            }),
+          });
+        },
+      }
+    );
+
+    const {alert_date, alert_rule_id, alert_type} = location.query;
+    trackAnalytics('issue_details.action_clicked', {
+      organization,
+      action_type: data.status,
+      action_substatus: data.substatus ?? undefined,
+      action_status_details: Object.keys(data.statusDetails || {})[0],
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      ...getAnalyticsDataForGroup(group),
+      ...getAnalyicsDataForProject(project),
+      org_streamline_only: organization.streamlineOnly ?? undefined,
+    });
+    IssueListCacheStore.reset();
+  }
+
+  return (
+    <Flex gap="sm">
+      {resolveCap.enabled &&
+        group.status !== 'resolved' &&
+        group.status !== 'ignored' && (
+          <ResolveActions
+            disableResolveInRelease={!resolveInReleaseCap.enabled}
+            disabled={disabled}
+            disableDropdown={disabled}
+            hasRelease={hasRelease}
+            latestRelease={project.latestRelease}
+            hasSemverReleaseFeature={hasSemverReleaseFeature}
+            onUpdate={handleUpdate}
+            project={project}
+            size="sm"
+            priority="primary"
+          />
+        )}
+      <OpenIssueButton group={group} to={issueDetailsUrl} size="sm" />
+    </Flex>
+  );
 }
 
 function getAutofixActionProps({
@@ -562,13 +692,13 @@ function ActionButtons({
   );
 }
 
-export function IssuePreviewActions({
+function AutofixActions({
   autofix,
   disabled,
   group,
   onContinueInSeer,
   onRetryCodeChanges,
-}: IssuePreviewActionsProps) {
+}: Omit<IssuePreviewActionsProps, 'project'>) {
   const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
     useLinkedPullRequests({group});
 
@@ -587,5 +717,28 @@ export function IssuePreviewActions({
         onRetryCodeChanges={onRetryCodeChanges}
       />{' '}
     </Flex>
+  );
+}
+
+export function IssuePreviewActions({
+  autofix,
+  disabled = false,
+  group,
+  onContinueInSeer,
+  onRetryCodeChanges,
+  project,
+}: IssuePreviewActionsProps) {
+  if (group.derivedData?.progress === ProgressState.FIX_APPLIED) {
+    return <FixAppliedActions disabled={disabled} group={group} project={project} />;
+  }
+
+  return (
+    <AutofixActions
+      autofix={autofix}
+      disabled={disabled}
+      group={group}
+      onContinueInSeer={onContinueInSeer}
+      onRetryCodeChanges={onRetryCodeChanges}
+    />
   );
 }
