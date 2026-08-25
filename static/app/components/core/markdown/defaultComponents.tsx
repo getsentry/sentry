@@ -73,6 +73,7 @@ export function DefaultCodeBlock({children, lang}: {children: string; lang?: str
 }
 
 export function DefaultHtmlBlock({html}: {html: string}) {
+  // eslint-disable-next-line @sentry/no-trusted-types-sinks -- callers pass sanitizeHtml() output; see token.tsx
   return <span dangerouslySetInnerHTML={{__html: html}} />;
 }
 

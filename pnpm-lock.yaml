@@ -17,6 +17,9 @@ patchedDependencies:
   zod@4.3.5:
     hash: 2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76
     path: patches/zod@4.3.5.patch
+  zrender@6.1.0:
+    hash: a5b5e574364a10d3bbfef07def8f1f327eb54709ca887b1b9681bf949df0f89d
+    path: patches/zrender@6.1.0.patch
 
 importers:
 
@@ -534,7 +537,7 @@ importers:
         version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
       zrender:
         specifier: 6.1.0
-        version: 6.1.0
+        version: 6.1.0(patch_hash=a5b5e574364a10d3bbfef07def8f1f327eb54709ca887b1b9681bf949df0f89d)
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
@@ -13708,7 +13711,7 @@ snapshots:
   echarts@6.1.0:
     dependencies:
       tslib: 2.3.0
-      zrender: 6.1.0
+      zrender: 6.1.0(patch_hash=a5b5e574364a10d3bbfef07def8f1f327eb54709ca887b1b9681bf949df0f89d)
 
   editorconfig@3.0.2:
     dependencies:
@@ -18876,7 +18879,7 @@ snapshots:
 
   zod@4.4.3: {}
 
-  zrender@6.1.0:
+  zrender@6.1.0(patch_hash=a5b5e574364a10d3bbfef07def8f1f327eb54709ca887b1b9681bf949df0f89d):
     dependencies:
       tslib: 2.3.0
 
