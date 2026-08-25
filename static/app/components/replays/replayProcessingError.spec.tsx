@@ -7,8 +7,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 
-function renderProcessingError() {
-  const replay = ReplayReader.factory({
+function makeReplay() {
+  return ReplayReader.factory({
     attachments: RRWebInitFrameEventsFixture({
       timestamp: new Date('2023-12-25T00:02:00'),
     }),
@@ -16,8 +16,10 @@ function renderProcessingError() {
     fetching: false,
     replayRecord: ReplayRecordFixture(),
   });
+}
 
-  return render(<ReplayProcessingError replay={replay} />);
+function renderProcessingError() {
+  return render(<ReplayProcessingError replay={makeReplay()} />);
 }
 
 describe('ReplayProcessingError', () => {
@@ -33,5 +35,14 @@ describe('ReplayProcessingError', () => {
     renderProcessingError();
 
     expect(captureMessage).toHaveBeenCalledWith('Replay processing error');
+  });
+
+  it('reports only once when the reader is rebuilt', () => {
+    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+    const {rerender} = render(<ReplayProcessingError replay={makeReplay()} />);
+
+    rerender(<ReplayProcessingError replay={makeReplay()} />);
+
+    expect(captureMessage).toHaveBeenCalledTimes(1);
   });
 });

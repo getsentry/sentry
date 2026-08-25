@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -16,8 +16,16 @@ interface Props {
 export function ReplayProcessingError({className, replay}: Props) {
   const {sdk} = replay?.getReplay() || {};
   const processingErrors = replay?.processingErrors();
+  const hasReported = useRef(false);
 
   useEffect(() => {
+    // The reader is rebuilt as attachment pages settle, so this can run more
+    // than once for a single view. Report the replay once instead.
+    if (hasReported.current) {
+      return;
+    }
+    hasReported.current = true;
+
     Sentry.withScope(scope => {
       scope.setLevel('warning');
       scope.setFingerprint(['replay-processing-error']);
