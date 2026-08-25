@@ -117,6 +117,47 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert response.data[0]["sentryAppSlug"] == self.published_app.slug
         assert response.data[0]["responseCode"] == 200
 
+    def test_member_does_not_see_owned_published_requests(self) -> None:
+        member = self.create_user(email="member@example.com")
+        self.create_member(user=member, organization=self.org, role="member")
+        self.login_as(user=member)
+
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_manager_sees_owned_published_requests(self) -> None:
+        manager = self.create_user(email="manager@example.com")
+        self.create_member(user=manager, organization=self.org, role="manager")
+        self.login_as(user=manager)
+
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["organization"]["slug"] == self.org.slug
+        assert response.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert response.data[0]["responseCode"] == 200
+
     def test_user_does_not_see_unowned_published_requests(self) -> None:
         self.login_as(user=self.user)
 
