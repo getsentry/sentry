@@ -230,8 +230,7 @@ class GitHubStatusCheckProvider(StatusCheckProvider):
                 )
                 raise IntegrationConfigurationError(
                     f"GitHub API returned {e.code} client error when creating check run: "
-                    "the integration credentials are invalid or expired. "
-                    "Please reconfigure the GitHub integration."
+                    "invalid or expired integration credentials."
                 ) from e
             except ApiRateLimitedError as e:
                 lifecycle.record_halt(e)
