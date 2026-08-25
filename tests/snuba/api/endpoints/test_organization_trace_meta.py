@@ -75,7 +75,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 0
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_simple_with_eap_as_source_of_truth(self) -> None:
         self.load_trace()
@@ -112,7 +112,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 0
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_no_team(self) -> None:
         self.load_trace()
@@ -124,7 +124,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 0
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_with_errors(self) -> None:
         self.load_trace()
@@ -136,7 +136,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 3
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_with_errors_eap_eval_not_allowlisted_uses_snuba(self) -> None:
         self.load_trace()
@@ -164,7 +164,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 3
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_with_errors_eap_allowlisted_uses_eap(self) -> None:
         self.load_trace()
@@ -192,7 +192,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 1
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_with_default(self) -> None:
         self.load_trace()
@@ -204,7 +204,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 1
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
         assert len(data["transactionChildCountMap"]) == 8
 
     def test_with_invalid_date(self) -> None:

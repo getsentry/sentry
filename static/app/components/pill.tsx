@@ -8,7 +8,6 @@ type Props = {
   children?: React.ReactNode;
   className?: string;
   name?: React.ReactNode;
-  type?: PillType;
   value?: number | string | boolean | null;
 };
 
@@ -16,7 +15,6 @@ export const Pill = memo(function PillComponent({
   name,
   value,
   children,
-  type,
   className,
 }: Props) {
   const getTypeAndValue = (): Partial<{renderValue: string; valueType: PillType}> => {
@@ -54,7 +52,7 @@ export const Pill = memo(function PillComponent({
   const {valueType, renderValue} = getTypeAndValue();
 
   return (
-    <StyledPill type={type ?? valueType} className={className}>
+    <StyledPill type={valueType} className={className}>
       <PillName>{name}</PillName>
       <PillValue>{children ?? renderValue}</PillValue>
     </StyledPill>

@@ -20,7 +20,7 @@ const MOCK_CULTURE_CONTEXT: CultureContext = {
 };
 
 const MOCK_REDACTION = {
-  ['timezone']: {
+  timezone: {
     '': {
       chunks: [
         {

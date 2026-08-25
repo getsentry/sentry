@@ -34,6 +34,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
+    REACT_AUTH_COOKIE,
     construct_link_with_query,
     get_login_redirect,
     has_user_registration,
@@ -47,8 +48,10 @@ from sentry.utils.urls import add_params_to_url
 from sentry.web.client_config import get_client_config
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView, control_silo_view, determine_active_organization
+from sentry.web.frontend.react_page import ReactMixin
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
+REACT_AUTH_URL_NAMES = frozenset({"sentry-login", "sentry-auth-organization"})
 
 logger = logging.getLogger("sentry.auth")
 
@@ -81,8 +84,17 @@ class AdditionalContext:
 additional_context = AdditionalContext()
 
 
+def should_render_react_auth(request: HttpRequest) -> bool:
+    return bool(
+        request.method == "GET"
+        and request.resolver_match
+        and request.resolver_match.url_name in REACT_AUTH_URL_NAMES
+        and request.COOKIES.get(REACT_AUTH_COOKIE) == "1"
+    )
+
+
 @control_silo_view
-class AuthLoginView(BaseView):
+class AuthLoginView(BaseView, ReactMixin):
     auth_required = False
 
     enforce_rate_limit = True
@@ -105,6 +117,9 @@ class AuthLoginView(BaseView):
         return super().handle(request, *args, **kwargs)
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+        if should_render_react_auth(request):
+            return self.handle_react(request)
+
         next_uri = self.get_next_uri(request=request)
         if request.user.is_authenticated:
             return self.redirect_authenticated_user(request=request, next_uri=next_uri)

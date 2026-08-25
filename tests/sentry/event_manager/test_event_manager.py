@@ -2698,9 +2698,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_transaction_indexed_outcome_accepted(self) -> None:
         """
         With metrics extraction, we count the number of accepted transaction
-        events in the TRANSACTION_INDEXED data category. The TRANSACTION data
-        category contains the number of metrics from
-        ``billing_metrics_consumer``.
+        events in the TRANSACTION_INDEXED data category.
         """
 
         timestamp = before_now(minutes=5).isoformat()

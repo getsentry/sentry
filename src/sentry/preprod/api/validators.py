@@ -24,10 +24,9 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         required=False,
         help_text=(
             "Current build number. Accepts a plain integer (e.g. 42) or a version "
-            "string of two to three period-separated integers (e.g. 1.2.3), each up "
-            "to 6 digits — the format used by build identifiers such as Apple's "
-            "CFBundleVersion. Either this or mainBinaryIdentifier must be provided "
-            "when buildVersion is set."
+            "string of two or more period-separated integers (e.g. 1.2.3), each up "
+            "to 6 digits. Groups beyond the third are dropped. Either this or "
+            "mainBinaryIdentifier must be provided when buildVersion is set."
         ),
     )
     mainBinaryIdentifier = serializers.CharField(
@@ -50,8 +49,9 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         parsed = parse_build_number(value)
         if parsed is None:
             raise serializers.ValidationError(
-                "buildNumber must be an integer or two to three period-separated "
-                "integers of up to 6 digits each (e.g. 42 or 1.2.3)."
+                "buildNumber must be an integer or two or more period-separated "
+                "integers of up to 6 digits each (e.g. 42 or 1.2.3); groups beyond "
+                "the third are dropped."
             )
         return parsed
 

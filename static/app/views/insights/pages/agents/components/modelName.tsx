@@ -9,12 +9,11 @@ import type {SpaceSize} from 'sentry/utils/theme';
 interface ModelNameProps {
   modelId: string | null;
   gap?: SpaceSize;
-  provider?: string;
   size?: number;
 }
 
-export function ModelName({modelId, provider, size = 16, gap = 'md'}: ModelNameProps) {
-  const platform = getModelPlatform(modelId, provider);
+export function ModelName({modelId, size = 16, gap = 'md'}: ModelNameProps) {
+  const platform = getModelPlatform(modelId);
 
   return (
     <Flex gap={gap}>

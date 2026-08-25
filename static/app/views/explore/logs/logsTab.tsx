@@ -167,7 +167,6 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
   return (
     <SearchQueryBuilderProvider
       enableAISearch={hasTranslateEndpoint}
-      aiSearchBadgeType="beta"
       {...searchQueryBuilderProviderProps}
     >
       <ExploreBodySearch>
@@ -315,6 +314,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       boolean: validatedBooleanAttributes,
       number: validatedNumberAttributes,
       string: validatedStringAttributes,
+      array: validatedArrayAttributes,
     },
     fieldTypes: validatedFieldTypes,
     fields: validatedFields,
@@ -362,6 +362,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
           stringTags={validatedStringAttributes}
           numberTags={validatedNumberAttributes}
           booleanTags={validatedBooleanAttributes}
+          arrayTags={validatedArrayAttributes}
           validatedFieldTypes={validatedFieldTypes}
           hiddenKeys={HiddenColumnEditorLogFields}
           traceItemType={TraceItemDataset.LOGS}

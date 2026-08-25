@@ -64,7 +64,7 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_build_includes_manifest_when_requested(self, mock_session, mock_email):
+    def test_build_includes_manifest(self, mock_session, mock_email):
         session = self._session()
         mock_session.return_value = session
         build_snapshot_images_zip(
@@ -72,7 +72,6 @@ class BuildSnapshotImagesZipTest(TestCase):
             project_id=self.project.id,
             artifact_id=self.artifact.id,
             user_id=self.user.id,
-            include_manifest=True,
         )
         session.initiate_multipart_upload.assert_called_once()
         kwargs = session.initiate_multipart_upload.call_args.kwargs
@@ -92,28 +91,7 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_build_omits_manifest_by_default(self, mock_session, mock_email):
-        session = self._session()
-        mock_session.return_value = session
-
-        build_snapshot_images_zip(
-            org_id=self.org.id,
-            project_id=self.project.id,
-            artifact_id=self.artifact.id,
-            user_id=self.user.id,
-        )
-
-        kwargs = session.initiate_multipart_upload.call_args.kwargs
-        assert kwargs["key"] == f"snapshot_archives/{self.artifact.id}.zip"
-        upload = session.initiate_multipart_upload.return_value
-        archive_bytes = b"".join(call.args[0] for call in upload.put_part.call_args_list)
-        with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
-            assert archive.namelist() == ["a.png"]
-        assert mock_email.call_args.kwargs["ready"] is True
-
-    @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
-    @patch(SESSION_TARGET)
-    def test_reuses_existing_archive_when_manifest_requested(self, mock_session, mock_email):
+    def test_reuses_existing_archive(self, mock_session, mock_email):
         session = self._session(existing_archive_key=f"snapshot_archives/{self.artifact.id}.zip")
         mock_session.return_value = session
         build_snapshot_images_zip(
@@ -121,7 +99,6 @@ class BuildSnapshotImagesZipTest(TestCase):
             project_id=self.project.id,
             artifact_id=self.artifact.id,
             user_id=self.user.id,
-            include_manifest=True,
         )
         session.initiate_multipart_upload.assert_not_called()
         mock_email.assert_called_once()

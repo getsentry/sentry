@@ -1,11 +1,9 @@
-from unittest import mock
-
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.defaults.detectors import (
     ensure_default_all_projects_detector,
     ensure_default_detectors,
-    ensure_default_organization_detectors,
 )
 from sentry.workflow_engine.defaults.workflows import (
     connect_workflows_to_issue_stream,
@@ -204,9 +202,7 @@ class TestEnsureDefaultWorkflows(TestCase):
 
 class TestCreateAndConnectPullRequestWorkflow(TestCase):
     def setUp(self) -> None:
-        self.all_projects_detector = ensure_default_organization_detectors(self.organization)[
-            IssueStreamGroupType.slug
-        ]
+        self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
     def test_creates_workflow_with_correct_name(self) -> None:
         workflow = create_and_connect_pull_request_workflow(
@@ -283,9 +279,7 @@ class TestCreateAndConnectPullRequestWorkflow(TestCase):
 
 class TestEnsurePullRequestWorkflow(TestCase):
     def setUp(self) -> None:
-        self.all_projects_detector = ensure_default_organization_detectors(self.organization)[
-            IssueStreamGroupType.slug
-        ]
+        self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
     def test_creates_and_connects_workflow(self) -> None:
         workflow = ensure_pull_request_workflow(self.organization, self.all_projects_detector)
@@ -323,8 +317,8 @@ class TestEnsurePullRequestWorkflow(TestCase):
 
 
 class TestEnsureDefaultOrganizationWorkflows(TestCase):
-    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
-    def test_creates_and_connects_workflows(self, mock_is_self_hosted: mock.MagicMock) -> None:
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
+    def test_creates_and_connects_workflows(self) -> None:
         workflows = ensure_default_organization_workflows(self.organization)
 
         assert len(workflows) == 1
@@ -337,8 +331,8 @@ class TestEnsureDefaultOrganizationWorkflows(TestCase):
         assert connection.detector.project is None
         assert connection.detector.config["organization_id"] == self.organization.id
 
-    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
-    def test_uses_existing_all_projects_detector(self, mock_is_self_hosted: mock.MagicMock) -> None:
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
+    def test_uses_existing_all_projects_detector(self) -> None:
         existing_detector = ensure_default_all_projects_detector(self.organization.id)
         workflows = ensure_default_organization_workflows(self.organization)
 
@@ -354,15 +348,12 @@ class TestEnsureDefaultOrganizationWorkflows(TestCase):
             == 1
         )
 
-    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
-    def test_returns_workflows_list(self, mock_is_self_hosted: mock.MagicMock) -> None:
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
+    def test_returns_workflows_list(self) -> None:
         workflows = ensure_default_organization_workflows(self.organization)
         assert isinstance(workflows, list)
         assert all(isinstance(w, Workflow) for w in workflows)
 
-    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=True)
-    def test_skips_pull_request_workflow_when_self_hosted(
-        self, mock_is_self_hosted: mock.MagicMock
-    ) -> None:
+    def test_skips_pull_request_workflow_when_option_disabled(self) -> None:
         workflows = ensure_default_organization_workflows(self.organization)
         assert workflows == []

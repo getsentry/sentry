@@ -20,6 +20,7 @@ function makeAutofix(
 ): ReturnType<typeof useExplorerAutofix> {
   const base: ReturnType<typeof useExplorerAutofix> = {
     runState: {run_id: 1} as any,
+    autofixFormatted: null,
     startStep: jest.fn(),
     createPR: jest.fn(),
     reset: jest.fn(),
@@ -28,7 +29,9 @@ function makeAutofix(
     dismissCodingAgentError: jest.fn(),
     warnings: [],
     isLoading: false,
+    isWaitingForRun: false,
     isPolling: false,
+    isProcessing: false,
   };
   return {...base, ...overrides};
 }

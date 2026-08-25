@@ -30,14 +30,12 @@ type Props = {
    * `project_creation.*` names without a variant guess.
    */
   projectCreationVariant?: ProjectCreationVariant;
-  title?: string;
 };
 
 export function PlatformDocHeader({
   platform,
   projectSlug,
   projectCreationVariant,
-  title,
 }: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -118,9 +116,7 @@ export function PlatformDocHeader({
 
   return (
     <StyledPageHeader>
-      <h2>
-        {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
-      </h2>
+      <h2>{t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}</h2>
       <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"

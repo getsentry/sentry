@@ -11,8 +11,8 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {
@@ -270,18 +270,19 @@ function SpikeProtectionProjects({subscription}: Props) {
           {AllProjectsAction(true)}
         </ButtonBar>
       </Flex>
-      <StyledPanelTable
-        disablePadding={
-          organization.features.includes('notification-actions') ? true : false
+      <StyledSimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>
+              <Text variant="muted">{t('Projects')}</Text>
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
         }
-        isEmpty={!projects.length}
-        headers={[
-          <Text variant="muted" key={0}>
-            {t('Projects')}
-          </Text>,
-        ]}
-        isLoading={isLoading || isFetchingProjects}
       >
+        {(isLoading || isFetchingProjects) && <SimpleTable.Loading />}
+        {!isLoading && !isFetchingProjects && !projects.length && (
+          <SimpleTable.Empty>There are no items to display</SimpleTable.Empty>
+        )}
         {projects?.map(project => {
           const hasProjectWrite = project.access.includes('project:write');
           const accordionTitle = renderAccordionTitle(project);
@@ -289,8 +290,8 @@ function SpikeProtectionProjects({subscription}: Props) {
           const isAccordionDisabled = !isSpikeProtectionEnabled(project);
 
           return (
-            <Fragment key={project.id}>
-              <Flex
+            <SimpleTable.Row key={project.id}>
+              <SimpleTable.RowCell
                 gap="xl"
                 padding="xl"
                 data-test-id={`${project.slug}-accordion-row${
@@ -312,11 +313,11 @@ function SpikeProtectionProjects({subscription}: Props) {
                     fetchProjectNotificationActions(project, notificationActionsById)
                   }
                 />
-              </Flex>
-            </Fragment>
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
           );
         })}
-      </StyledPanelTable>
+      </StyledSimpleTable>
       {pageLinks && <Pagination pageLinks={pageLinks} onCursor={setCurrentCursor} />}
     </Fragment>
   );
@@ -328,9 +329,13 @@ const StyledSearch = styled(SearchBar)`
   flex: 1;
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   align-items: center;
   overflow: visible;
+
+  [role='cell'] {
+    padding: 0;
+  }
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`

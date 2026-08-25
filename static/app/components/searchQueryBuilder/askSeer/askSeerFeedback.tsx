@@ -6,14 +6,13 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
-import {IconSeer, IconThumb} from 'sentry/icons';
+import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AskSeerFeedback() {
   const organization = useOrganization();
-  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const analyticsArea = useAnalyticsArea();
   const {setDisplayAskSeerFeedback, askSeerNLQueryRef, askSeerSuggestedQueryRef} =
     useSearchQueryBuilderAI();
@@ -28,28 +27,14 @@ export function AskSeerFeedback() {
     });
     askSeerNLQueryRef.current = null;
     askSeerSuggestedQueryRef.current = null;
-    if (hasAskSeerUxRework) {
-      addSuccessMessage(t('Thanks for the feedback!'));
-    }
+    addSuccessMessage(t('Thanks for the feedback!'));
     setDisplayAskSeerFeedback(false);
   };
 
   return (
-    <Flex
-      align="center"
-      justify={hasAskSeerUxRework ? undefined : 'between'}
-      gap="md"
-      flex={hasAskSeerUxRework ? undefined : '1'}
-    >
+    <Flex align="center" gap="md">
       <AskSeerLabel fontWeight="normal">
-        {hasAskSeerUxRework ? null : <IconSeer />}
-        {hasAskSeerUxRework ? (
-          <Text variant="primary">{t('How did we do?')}</Text>
-        ) : (
-          <Text variant="primary">
-            {t('We loaded the results. Does this look right?')}
-          </Text>
-        )}
+        <Text variant="primary">{t('How did we do?')}</Text>
       </AskSeerLabel>
 
       <Flex align="center" gap="sm">
@@ -58,17 +43,13 @@ export function AskSeerFeedback() {
           icon={<IconThumb />}
           onClick={() => handleClick('positive')}
           aria-label="Yep, correct results"
-        >
-          {hasAskSeerUxRework ? null : t('Yep')}
-        </Button>
+        />
         <Button
           size="zero"
           icon={<IconThumb direction="down" />}
           onClick={() => handleClick('negative')}
           aria-label="Nope, incorrect results"
-        >
-          {hasAskSeerUxRework ? null : t('No')}
-        </Button>
+        />
       </Flex>
     </Flex>
   );

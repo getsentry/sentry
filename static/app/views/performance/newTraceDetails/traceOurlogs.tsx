@@ -26,18 +26,17 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-type ProviderProps = {
+type PageDataProviderProps = {
   children: React.ReactNode;
-};
-
-type PageDataProviderProps = ProviderProps & {
-  disabled?: boolean;
 };
 
 export function TraceViewLogsQueryParamsProvider({
   traceSlug,
   children,
-}: ProviderProps & {traceSlug: string}) {
+}: {
+  children: React.ReactNode;
+  traceSlug: string;
+}) {
   const {timestamp} = useTraceQueryParams();
 
   return (
@@ -51,11 +50,8 @@ export function TraceViewLogsQueryParamsProvider({
   );
 }
 
-export function TraceViewLogsPageDataProvider({
-  children,
-  disabled,
-}: PageDataProviderProps) {
-  return <LogsPageDataProvider disabled={disabled}>{children}</LogsPageDataProvider>;
+export function TraceViewLogsPageDataProvider({children}: PageDataProviderProps) {
+  return <LogsPageDataProvider>{children}</LogsPageDataProvider>;
 }
 
 interface TraceViewLogsSectionProps {

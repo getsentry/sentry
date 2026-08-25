@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
@@ -203,22 +202,18 @@ export function TransactionHeader({
       }),
       headerActions: (
         <Fragment>
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) =>
-              hasFeature && !metricsCardinality?.isLoading ? (
-                <CreateAlertFromViewButton
-                  size="sm"
-                  eventView={eventView}
-                  organization={organization}
-                  projects={projects}
-                  onClick={handleCreateAlertSuccess}
-                  referrer="performance"
-                  alertType="trans_duration"
-                  aria-label={t('Create Alert')}
-                />
-              ) : null
-            }
-          </Feature>
+          {metricsCardinality?.isLoading ? null : (
+            <CreateAlertFromViewButton
+              size="sm"
+              eventView={eventView}
+              organization={organization}
+              projects={projects}
+              onClick={handleCreateAlertSuccess}
+              referrer="performance"
+              alertType="trans_duration"
+              aria-label={t('Create Alert')}
+            />
+          )}
           <TeamKeyTransactionButton
             eventView={eventView}
             organization={organization}
@@ -274,23 +269,17 @@ export function TransactionHeader({
         />
       </TopBar.Slot>
       <TopBar.Slot name="actions">
-        <Feature organization={organization} features="incidents">
-          {({hasFeature}) =>
-            hasFeature &&
-            !metricsCardinality?.isLoading &&
-            !deprecateTransactionAlerts(organization) ? (
-              <CreateAlertFromViewButton
-                eventView={eventView}
-                organization={organization}
-                projects={projects}
-                onClick={handleCreateAlertSuccess}
-                referrer="performance"
-                alertType="trans_duration"
-                aria-label={t('Create Alert')}
-              />
-            ) : null
-          }
-        </Feature>
+        {!metricsCardinality?.isLoading && !deprecateTransactionAlerts(organization) ? (
+          <CreateAlertFromViewButton
+            eventView={eventView}
+            organization={organization}
+            projects={projects}
+            onClick={handleCreateAlertSuccess}
+            referrer="performance"
+            alertType="trans_duration"
+            aria-label={t('Create Alert')}
+          />
+        ) : null}
         <TeamKeyTransactionButton
           transactionName={transactionName}
           eventView={eventView}
