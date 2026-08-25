@@ -1,4 +1,11 @@
-import {type ComponentProps, Fragment, type ReactNode, useMemo} from 'react';
+import {
+  type ComponentProps,
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -25,6 +32,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
@@ -39,6 +47,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
@@ -205,6 +214,37 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     enabled: memberProjectIds.length > 0,
   });
   const membersByProject = useMemo(() => indexMembersByProject(members), [members]);
+  // Sorted so a given id set yields a stable key regardless of run ordering.
+  const assigneeTeamIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allRuns
+            .map(run => run.issue.assignedTo)
+            .filter((actor): actor is Actor => actor?.type === 'team')
+            .map(actor => actor.id)
+        )
+      ).sort(),
+    [allRuns]
+  );
+  const {teams: prefetchedTeams, isLoading: teamsLoading} = useTeamsById({
+    ids: assigneeTeamIds,
+  });
+  const resolvedTeamIds = useMemo(
+    () => new Set(prefetchedTeams.map(team => team.id)),
+    [prefetchedTeams]
+  );
+  // Effect-deferred so it lands no earlier than the team-store prime: releasing
+  // this gate during render would beat the prime by a frame and refire the N+1.
+  const teamIdsKey = assigneeTeamIds.join(',');
+  const [settledTeamIdsKey, setSettledTeamIdsKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!teamsLoading) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      setSettledTeamIdsKey(teamIdsKey);
+    }
+  }, [teamsLoading, teamIdsKey]);
+  const teamsSettled = teamIdsKey !== '' && settledTeamIdsKey === teamIdsKey;
   const passesAssignee = (run: OverviewRun) =>
     assignee === null || matchesAssignee(run, assignee);
   const assigneeRuns = allRuns.filter(passesAssignee);
@@ -359,6 +399,8 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   statsPeriod={selection.datetime.period}
                   enrichmentPending={enrichmentPending}
                   membersByProject={membersByProject}
+                  resolvedTeamIds={resolvedTeamIds}
+                  teamsSettled={teamsSettled}
                 />
               )}
             </Fragment>
@@ -377,14 +419,18 @@ function OverviewSectionList({
   statsPeriod,
   enrichmentPending,
   membersByProject,
+  resolvedTeamIds,
+  teamsSettled,
 }: {
   collapsedGroups: StatusGroupKey[];
   enrichmentPending: boolean;
   membersByProject: IndexedMembersByProject;
   onToggle: (groupKey: StatusGroupKey, expanded: boolean) => void;
   orgSlug: string;
+  resolvedTeamIds: Set<string>;
   sections: Array<(typeof OVERVIEW_SECTIONS)[number] & {runs: OverviewRun[]}>;
   statsPeriod: ComponentProps<typeof OverviewCard>['statsPeriod'];
+  teamsSettled: boolean;
 }) {
   return (
     <Stack gap="lg">
@@ -412,17 +458,25 @@ function OverviewSectionList({
             </GroupHeader>
             <Disclosure.Content>
               <Stack gap="md" paddingTop="sm">
-                {runs.map(run => (
-                  <OverviewCard
-                    key={run.seerRunId}
-                    run={run}
-                    orgSlug={orgSlug}
-                    sectionKey={key}
-                    statsPeriod={statsPeriod}
-                    enrichmentPending={enrichmentPending}
-                    memberList={membersByProject.get(run.issue.project.slug) ?? []}
-                  />
-                ))}
+                {runs.map(run => {
+                  const assignee = run.issue.assignedTo;
+                  const assigneeReady =
+                    assignee?.type !== 'team' ||
+                    resolvedTeamIds.has(assignee.id) ||
+                    teamsSettled;
+                  return (
+                    <OverviewCard
+                      key={run.seerRunId}
+                      run={run}
+                      orgSlug={orgSlug}
+                      sectionKey={key}
+                      statsPeriod={statsPeriod}
+                      enrichmentPending={enrichmentPending}
+                      memberList={membersByProject.get(run.issue.project.slug) ?? []}
+                      assigneeReady={assigneeReady}
+                    />
+                  );
+                })}
               </Stack>
             </Disclosure.Content>
           </StatusGroup>
