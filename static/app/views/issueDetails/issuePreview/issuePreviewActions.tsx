@@ -469,36 +469,50 @@ function ActionButtons({
   linkedPullRequestsData,
   onContinueInSeer,
 }: AutofixActionProps) {
-  const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
-    .filter(
-      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
-    )
-    .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated))[0];
+  const openPullRequests =
+    linkedPullRequestsData?.pullRequests
+      .filter(
+        pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+      )
+      .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated)) ?? [];
+  const autofixPullRequests = openPullRequests.filter(
+    pullRequest => pullRequest.attribution?.type === 'seer'
+  );
+  const hasMultipleAutofixPullRequests = autofixPullRequests.length > 1;
+  const displayedPullRequests = hasMultipleAutofixPullRequests
+    ? autofixPullRequests.slice(0, 2)
+    : openPullRequests.slice(0, 1);
 
-  if (latestOpenPullRequest) {
+  if (displayedPullRequests.length > 0) {
     return (
       <Fragment>
-        <LinkButton
-          {...getAutofixActionProps({
-            analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-            analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
-            analyticsParams: {destination: 'pull_request'},
-            group,
-          })}
-          external
-          disabled={disabled}
-          href={latestOpenPullRequest.externalUrl}
-          icon={<IconGithub data-test-id="pull-request-github" />}
-        >
-          {t('View PR')}
-        </LinkButton>
-        <NextAutofixStepButton
-          autofix={autofix}
-          disabled={disabled}
-          group={group}
-          onContinueInSeer={onContinueInSeer}
-          variant="secondary"
-        />
+        {displayedPullRequests.map((pullRequest, index) => (
+          <LinkButton
+            key={pullRequest.externalUrl}
+            {...getAutofixActionProps({
+              analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+              analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+              analyticsParams: {destination: 'pull_request'},
+              group,
+            })}
+            external
+            disabled={disabled}
+            href={pullRequest.externalUrl}
+            icon={<IconGithub data-test-id="pull-request-github" />}
+            variant={index === 0 ? 'primary' : 'secondary'}
+          >
+            {hasMultipleAutofixPullRequests ? t('PR #%s', pullRequest.id) : t('View PR')}
+          </LinkButton>
+        ))}
+        {!hasMultipleAutofixPullRequests && (
+          <NextAutofixStepButton
+            autofix={autofix}
+            disabled={disabled}
+            group={group}
+            onContinueInSeer={onContinueInSeer}
+            variant="secondary"
+          />
+        )}
       </Fragment>
     );
   }
