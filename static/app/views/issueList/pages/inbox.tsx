@@ -516,9 +516,9 @@ function InboxSection({
         <Container width="100%" padding="sm" background="secondary" radius="sm">
           <Disclosure.Title
             trailingItems={
-              <Badge variant="muted">
+              <CountBadge variant="muted">
                 <QueryCount count={count} max={maxCount} hideIfEmpty={false} hideParens />
-              </Badge>
+              </CountBadge>
             }
           >
             <Flex align="center" gap="sm">
@@ -850,7 +850,11 @@ const IssueCardLink = styled(Link)`
   }
 `;
 
-const AssignmentBadge = styled(Badge)`
+const CountBadge = styled(Badge)`
+  padding: 0 ${p => p.theme.space.xs};
+`;
+
+const AssignmentBadge = styled(CountBadge)`
   min-width: ${ASSIGNMENT_BADGE_WIDTH};
   height: 16px;
   font-size: ${p => p.theme.font.size.xs};
