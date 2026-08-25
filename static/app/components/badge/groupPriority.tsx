@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {DropdownMenuProps, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -32,7 +32,7 @@ type GroupPriorityDropdownProps = {
   value: PriorityLevel;
   disabled?: boolean;
   lastEditedBy?: 'system' | AvatarUser;
-  triggerVariant?: 'badge' | 'button';
+  trigger?: DropdownMenuProps['trigger'];
 };
 
 type GroupPriorityBadgeProps = {
@@ -48,10 +48,6 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 };
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
-
-function getPriorityBars(priority: PriorityLevel): 1 | 2 | 3 {
-  return priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
-}
 
 function useLastEditedBy({
   groupId,
@@ -106,10 +102,12 @@ export function GroupPriorityBadge({
   showLabel = true,
   children,
 }: GroupPriorityBadgeProps) {
+  const bars =
+    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
-    <StyledTag variant="muted" icon={<IconCellSignal bars={getPriorityBars(priority)} />}>
+    <StyledTag variant="muted" icon={<IconCellSignal bars={bars} />}>
       {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
@@ -194,7 +192,7 @@ export function GroupPriorityDropdown({
   onChange,
   lastEditedBy,
   disabled = false,
-  triggerVariant = 'badge',
+  trigger,
 }: GroupPriorityDropdownProps) {
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
@@ -210,33 +208,26 @@ export function GroupPriorityDropdown({
         </Flex>
       }
       minMenuWidth={230}
-      trigger={(triggerProps, isOpen) => {
-        const commonProps = {
-          ...triggerProps,
-          'aria-label': t('Modify issue priority'),
-          disabled,
-          tooltipProps: {
-            title: disabled
-              ? t('You cannot manually update the priority of a metric issue.')
-              : t('Update the priority of this issue.'),
-          },
-        };
-
-        return triggerVariant === 'button' ? (
-          <Button
-            {...commonProps}
-            icon={<IconCellSignal bars={getPriorityBars(value)} />}
+      trigger={
+        trigger ??
+        ((triggerProps, isOpen) => (
+          <DropdownButton
+            {...triggerProps}
+            aria-label={t('Modify issue priority')}
             size="zero"
-            variant="secondary"
-          />
-        ) : (
-          <DropdownButton {...commonProps} size="zero">
+            disabled={disabled}
+            tooltipProps={{
+              title: disabled
+                ? t('You cannot manually update the priority of a metric issue.')
+                : t('Update the priority of this issue.'),
+            }}
+          >
             <GroupPriorityBadge showLabel={false} priority={value}>
               <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
             </GroupPriorityBadge>
           </DropdownButton>
-        );
-      }}
+        ))
+      }
       items={options}
       menuFooter={
         <Fragment>

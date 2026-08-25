@@ -7,6 +7,7 @@ import {MenuComponents} from '@sentry/scraps/compactSelect';
 
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import type {AssignmentDetails} from 'sentry/components/assigneeBadge';
+import type {AssigneeSelectorTrigger} from 'sentry/components/assigneeSelectorDropdown';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
   AssigneeSelector,
@@ -34,11 +35,11 @@ interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
   group: Group;
   project: Project;
-  avatarOnly?: boolean;
   /**
    * Show the assignee name next to the avatar. Defaults to true.
    */
   showLabel?: boolean;
+  trigger?: AssigneeSelectorTrigger;
 }
 
 function getCurrentAssignmentActivity(group: Group): GroupActivityAssigned | undefined {
@@ -102,8 +103,8 @@ export function GroupHeaderAssigneeSelector({
   group,
   project,
   event,
-  avatarOnly,
   showLabel = true,
+  trigger,
 }: GroupHeaderAssigneeSelectorProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -136,8 +137,8 @@ export function GroupHeaderAssigneeSelector({
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
-      avatarOnly={avatarOnly}
       showLabel={showLabel}
+      trigger={trigger}
       useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
         <MenuComponents.CTAButton

@@ -10,6 +10,7 @@ import {
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
+import type {DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {PriorityLevel, type Group} from 'sentry/types/group';
@@ -22,7 +23,7 @@ import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 type GroupDetailsPriorityProps = {
   group: Group;
   onChange?: (priority: PriorityLevel) => void;
-  triggerVariant?: 'badge' | 'button';
+  trigger?: DropdownMenuProps['trigger'];
 };
 
 const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
@@ -84,11 +85,7 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
   };
 }
 
-export function GroupPriority({
-  group,
-  onChange,
-  triggerVariant,
-}: GroupDetailsPriorityProps) {
+export function GroupPriority({group, onChange, trigger}: GroupDetailsPriorityProps) {
   const onChangePriority = useChangePriority(group, onChange);
 
   // We can assume that when there is not `priorityLockedAt`, there were no
@@ -102,7 +99,7 @@ export function GroupPriority({
       onChange={onChangePriority}
       value={group.priority ?? PriorityLevel.MEDIUM}
       lastEditedBy={lastEditedBy}
-      triggerVariant={triggerVariant}
+      trigger={trigger}
     />
   );
 }

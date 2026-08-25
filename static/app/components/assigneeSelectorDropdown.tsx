@@ -63,6 +63,18 @@ export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
   project: Pick<Group['project'], 'id' | 'slug'>;
 };
 
+export interface AssigneeSelectorTriggerContext {
+  assignedTo: Actor | null | undefined;
+  avatar: React.ReactNode;
+  suggestedActors: SuggestedAssignee[];
+}
+
+export type AssigneeSelectorTrigger = (
+  props: TriggerProps,
+  isOpen: boolean,
+  context: AssigneeSelectorTriggerContext
+) => React.ReactNode;
+
 interface AssigneeSelectorDropdownProps {
   /**
    * The group (issue) that the assignee selector is for
@@ -77,10 +89,6 @@ interface AssigneeSelectorDropdownProps {
    * Additional items to render in the menu footer
    */
   additionalMenuFooterItems?: React.ReactNode;
-  /**
-   * Render the default trigger as a bare avatar control.
-   */
-  avatarOnly?: boolean;
   /**
    * Additional styles to apply to the dropdown
    */
@@ -111,7 +119,7 @@ interface AssigneeSelectorDropdownProps {
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
-  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
+  trigger?: AssigneeSelectorTrigger;
 }
 
 function AssigneeAvatar({
@@ -213,7 +221,6 @@ function AssigneeAvatar({
 }
 
 export function AssigneeSelectorDropdown({
-  avatarOnly = false,
   className,
   group,
   loading,
@@ -484,13 +491,20 @@ export function AssigneeSelectorDropdown({
     return options;
   };
 
-  const makeTrigger = (props: TriggerProps) => {
+  const makeTrigger = (props: TriggerProps, isOpen: boolean) => {
+    const suggestedActors = getSuggestedAssignees();
     const avatarElement = (
-      <AssigneeAvatar
-        assignedTo={group.assignedTo}
-        suggestedActors={getSuggestedAssignees()}
-      />
+      <AssigneeAvatar assignedTo={group.assignedTo} suggestedActors={suggestedActors} />
     );
+
+    if (trigger) {
+      return trigger(props, isOpen, {
+        assignedTo: group.assignedTo,
+        avatar: avatarElement,
+        suggestedActors,
+      });
+    }
+
     return (
       <Fragment>
         {loading && (
@@ -499,11 +513,8 @@ export function AssigneeSelectorDropdown({
         {!loading && (
           <AssigneeTrigger
             aria-label={t('Modify issue assignee')}
-            data-avatar-only={avatarOnly || undefined}
             variant="transparent"
             data-test-id="assignee-selector"
-            showChevron={!avatarOnly}
-            size={avatarOnly ? 'zero' : undefined}
             {...props}
           >
             {avatarElement}
@@ -531,7 +542,7 @@ export function AssigneeSelectorDropdown({
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
-        trigger={trigger ?? makeTrigger}
+        trigger={makeTrigger}
         menuFooter={({closeOverlay}) => (
           <Flex gap="md">
             <MenuComponents.CTAButton
@@ -566,14 +577,6 @@ const AssigneeTrigger = styled(OverlayTrigger.Button)`
   z-index: 0;
   padding-left: ${p => p.theme.space.xs};
   padding-right: ${p => p.theme.space.xs};
-
-  &[data-avatar-only='true'] {
-    padding: 0;
-
-    &:hover {
-      background: transparent;
-    }
-  }
 `;
 
 const StyledIconUser = styled(IconUser)`

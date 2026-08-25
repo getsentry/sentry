@@ -33,8 +33,6 @@ import {
   GroupDataContextProvider,
   useGroupData,
 } from 'sentry/views/issueDetails/groupDataContext';
-import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
@@ -44,6 +42,7 @@ import {
   IssuePreviewSeerContent,
   useIssuePreviewSeer,
 } from 'sentry/views/issueDetails/issuePreview/issuePreviewSeer';
+import {IssuePreviewSelectorControls} from 'sentry/views/issueDetails/issuePreview/issuePreviewSelectorControls';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
@@ -225,16 +224,7 @@ function IssuePreviewContent() {
             event={null}
           />
         )}
-        <Flex align="center" wrap="wrap" gap="md">
-          <GroupPriority group={group} triggerVariant="button" />
-          <GroupHeaderAssigneeSelector
-            avatarOnly
-            group={group}
-            project={project}
-            event={null}
-            showLabel={false}
-          />
-        </Flex>
+        <IssuePreviewSelectorControls group={group} project={project} />
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
       {previewSeer.isLoading || linkedPullRequests.isPending ? (
