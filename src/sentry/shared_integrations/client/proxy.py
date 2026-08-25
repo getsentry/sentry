@@ -160,8 +160,11 @@ class IntegrationProxyClient(ApiClient):
         if SiloMode.get_current_mode() == SiloMode.CELL:
             return build_session(
                 is_ipaddress_permitted=is_control_silo_ip_address,
+                # read=0: a read-timed-out request may have already run provider-side, so a
+                # retry risks a duplicate side effect and can blow the upstream 30s proxy budget.
                 max_retries=Retry(
                     total=options.get("hybridcloud.integrationproxy.retries"),
+                    read=0,
                     backoff_factor=0.1,
                     status_forcelist=[503],
                     allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],

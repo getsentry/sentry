@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from pytest import raises
 from requests import Request
+from requests.adapters import HTTPAdapter
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.net.http import Session
 from sentry.shared_integrations.client.proxy import (
@@ -63,6 +65,16 @@ class IntegrationProxyClientTest(TestCase):
         second_inference = infer_org_integration(integration_id=integration.id)
         assert second_inference is not org_integration_invalid.id
         assert second_inference is None
+
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    def test_build_session_does_not_retry_read_timeouts(self) -> None:
+        session = self.client_cls().build_session()
+        adapter = session.get_adapter(self.base_url)
+        assert isinstance(adapter, HTTPAdapter)
+        retry = adapter.max_retries
+        assert retry.read == 0
+        assert retry.status_forcelist == [503]
+        assert retry.total == options.get("hybridcloud.integrationproxy.retries")
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_authorize_request_noop(self) -> None:
