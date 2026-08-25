@@ -84,6 +84,13 @@ describe('getPollInterval', () => {
       1000
     );
   });
+
+  it('polls faster while feedback is queued', () => {
+    const state = makeState({
+      queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+    });
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
+  });
 });
 
 describe('isRootCauseArtifact', () => {
@@ -714,6 +721,32 @@ describe('isLastStepPrIteration', () => {
 
 const GROUP_ID = '123';
 const MOCK_GROUP = GroupFixture({id: GROUP_ID});
+
+describe('useExplorerAutofix - polling state', () => {
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+
+  it('polls for queued feedback without reporting user-initiated processing', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          run_id: 42,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+        },
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+    expect(result.current.isPolling).toBe(true);
+    expect(result.current.isProcessing).toBe(false);
+  });
+});
 
 describe('useExplorerAutofix - createPR', () => {
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;

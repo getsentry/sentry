@@ -47,6 +47,11 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     path: '/api/0/organizations/{organization_id_or_slug}/trace/{trace_id}/',
     params: {trace_id: 'trace1'},
   },
+  get_span_details: {
+    kind: 'lib',
+    name: 'get_span_details',
+    params: {trace_id: 'trace1', span_id: 'span1'},
+  },
   get_replay_details: {
     kind: 'api',
     method: 'GET',
@@ -379,16 +384,102 @@ describe('search links', () => {
     ).toBeNull();
   });
 
-  // Same name on both channels, and only the link carries the query. The row records that a search
-  // ran and carries nothing to re-run it with, so the rule declines rather than manufacturing a
-  // destination out of the name alone.
-  it('does not link a search row, only the link seer emitted alongside it', () => {
+  // A search row starts with only dataset + question. Without the translated query the rule
+  // declines rather than manufacturing a destination out of the name alone; residual bus links
+  // still cover older runs.
+  it('does not link a search row that has no translated query yet', () => {
     const subject = subjectFromCallRecord({
       id: 1,
       kind: 'lib',
       name: 'telemetry_live_search',
+      params: {dataset: 'spans', question: 'top pageloads'},
     });
     expect(resolveLink(subject, ctx)).toBeNull();
+  });
+
+  it('links a search row once seer stamped the translated query onto it', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'lib',
+        name: 'telemetry_live_search',
+        title:
+          'Querying issues for unresolved issues related to logs page in the last 7 days',
+        params: {
+          dataset: 'issues',
+          question: 'unresolved issues related to logs page in the last 7 days',
+          query: 'is:unresolved logs',
+          stats_period: '7d',
+        },
+      }),
+      ctx
+    );
+
+    expect(result).toEqual({
+      id: 'telemetry_live_search',
+      label:
+        'Querying issues for unresolved issues related to logs page in the last 7 days',
+      url: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          query: 'is:unresolved logs',
+          project: null,
+          statsPeriod: '7d',
+        },
+      },
+    });
+  });
+
+  it('builds one Explore link with every project_slug selected', () => {
+    const result = resolveLink(
+      subjectFromToolLink({
+        kind: 'telemetry_live_search',
+        params: {
+          dataset: 'spans',
+          query: 'transaction.op:pageload',
+          project_slugs: ['javascript', 'python'],
+          stats_period: '24h',
+        },
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        label: 'View spans',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/traces/',
+          query: expect.objectContaining({
+            query: 'transaction.op:pageload',
+            project: ['2', '3'],
+            statsPeriod: '24h',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('links a span lib call into the trace waterfall node', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'lib',
+        name: 'get_span_details',
+        params: {trace_id: 'trace1', span_id: 'span1'},
+        title: 'Retrieving span span1 in trace trace1',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual({
+      id: 'get_span_details',
+      label: 'Retrieving span span1 in trace trace1',
+      url: {
+        pathname: '/organizations/org-slug/explore/traces/trace/trace1/',
+        query: {node: 'span-span1'},
+      },
+    });
   });
 });
 
@@ -410,8 +501,9 @@ describe('subjectFromCallRecord', () => {
     );
   });
 
-  it('does not pass a lib call’s own arguments off as route params', () => {
-    // Otherwise a lib call carrying `issue_id` would link through a route rule it never requested.
+  it('keeps lib scalar args for name-matched rules, not for route matchers', () => {
+    // Route match predicates key on `path`, which lib calls lack — so passing scalar args is safe
+    // for name-matched helpers like get_span_details, and cannot fire a path-matched issue rule.
     expect(
       subjectFromCallRecord({
         id: 1,
@@ -419,6 +511,24 @@ describe('subjectFromCallRecord', () => {
         name: 'code_search',
         params: {issue_id: '54'},
       })
-    ).toEqual(expect.objectContaining({kind: 'lib', name: 'code_search', params: {}}));
+    ).toEqual(
+      expect.objectContaining({
+        kind: 'lib',
+        name: 'code_search',
+        params: {issue_id: '54'},
+        path: undefined,
+      })
+    );
+    expect(
+      resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'lib',
+          name: 'code_search',
+          params: {issue_id: '54'},
+        }),
+        ctx
+      )
+    ).toBeNull();
   });
 });

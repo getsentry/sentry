@@ -219,6 +219,18 @@ describe('Table', () => {
     expect(onColumnResize).not.toHaveBeenCalled();
   });
 
+  it('keeps the in-progress width when an unrelated re-render lands mid-drag', async () => {
+    const {rerender} = render(<TestTable aria-label="before" />);
+
+    dragHandle(resizers()[0]!, {from: 100, to: 400, release: false});
+    await waitFor(() => expect(gridTemplate()).toBe('300px 150px minmax(90px, auto)'));
+
+    rerender(<TestTable columns={[...COLUMNS]} aria-label="after" />);
+
+    expect(screen.getByRole('table')).toHaveAttribute('aria-label', 'after');
+    expect(gridTemplate()).toBe('300px 150px minmax(90px, auto)');
+  });
+
   it('leaves consumer-provided tracks alone when no columns are described', () => {
     render(
       <Table style={{gridTemplateColumns: '1fr 2fr'}}>

@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -18,12 +17,13 @@ import {
 } from 'sentry/views/automations/hooks';
 
 interface AutomationsTableActionsProps {
-  allResultsVisible: boolean;
+  allInQuerySelected: boolean;
   canDisable: boolean;
   canEnable: boolean;
   pageSelected: boolean;
   queryCount: string;
   selected: Set<string>;
+  setAllInQuerySelected: (allInQuerySelected: boolean) => void;
   togglePageSelected: (pageSelected: boolean) => void;
 }
 
@@ -32,11 +32,11 @@ export function AutomationsTableActions({
   pageSelected,
   togglePageSelected,
   queryCount,
-  allResultsVisible,
+  allInQuerySelected,
+  setAllInQuerySelected,
   canEnable,
   canDisable,
 }: AutomationsTableActionsProps) {
-  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const anySelected = selected.size > 0;
 
   const {selection} = usePageFilters();
@@ -132,9 +132,9 @@ export function AutomationsTableActions({
   };
 
   return (
-    <Fragment>
-      <SimpleTable.Header>
-        <Flex align="center" padding="0 xl" gap="md" width="100%" column="1 / -1">
+    <SimpleTable.HeaderRow>
+      <SimpleTable.HeaderCell variant="full-width" divider={false}>
+        <Flex align="center" padding="0 xl" gap="md" width="100%">
           <Checkbox
             checked={pageSelected || (anySelected ? 'indeterminate' : false)}
             onChange={s => {
@@ -164,35 +164,56 @@ export function AutomationsTableActions({
             {t('Delete')}
           </Button>
         </Flex>
-      </SimpleTable.Header>
-      {pageSelected && !allResultsVisible && (
-        <FullWidthAlert variant="warning" system showIcon={false}>
-          <Flex justify="center" wrap="wrap" gap="md">
-            {allInQuerySelected ? (
-              tct('Selected all [count] alerts that match this search query.', {
-                count: queryCount,
-              })
-            ) : (
-              <Fragment>
-                {tn(
-                  '%s alert on this page selected.',
-                  '%s alerts on this page selected.',
-                  selected.size
-                )}
-                <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
-                  {tct('Select all [count] alerts that match this search query.', {
-                    count: queryCount,
-                  })}
-                </Button>
-              </Fragment>
-            )}
-          </Flex>
-        </FullWidthAlert>
-      )}
-    </Fragment>
+      </SimpleTable.HeaderCell>
+    </SimpleTable.HeaderRow>
   );
 }
 
-const FullWidthAlert = styled(Alert)`
-  grid-column: 1 / -1;
-`;
+interface AutomationsTableActionsBannerProps {
+  allInQuerySelected: boolean;
+  allResultsVisible: boolean;
+  pageSelected: boolean;
+  queryCount: string;
+  selected: Set<string>;
+  setAllInQuerySelected: (allInQuerySelected: boolean) => void;
+}
+
+export function AutomationsTableActionsBanner({
+  selected,
+  pageSelected,
+  allResultsVisible,
+  queryCount,
+  allInQuerySelected,
+  setAllInQuerySelected,
+}: AutomationsTableActionsBannerProps) {
+  if (!pageSelected || allResultsVisible) {
+    return null;
+  }
+
+  return (
+    <SimpleTable.FullWidthRow>
+      <Alert variant="warning" system showIcon={false}>
+        <Flex justify="center" wrap="wrap" gap="md">
+          {allInQuerySelected ? (
+            tct('Selected all [count] alerts that match this search query.', {
+              count: queryCount,
+            })
+          ) : (
+            <Fragment>
+              {tn(
+                '%s alert on this page selected.',
+                '%s alerts on this page selected.',
+                selected.size
+              )}
+              <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
+                {tct('Select all [count] alerts that match this search query.', {
+                  count: queryCount,
+                })}
+              </Button>
+            </Fragment>
+          )}
+        </Flex>
+      </Alert>
+    </SimpleTable.FullWidthRow>
+  );
+}

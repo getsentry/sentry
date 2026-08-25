@@ -54,7 +54,6 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
       getTagValues={getTagValues}
       searchSource="main_search"
       enableAISearch={hasTranslateEndpoint}
-      aiSearchBadgeType="beta"
       onSearch={onSearch}
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators

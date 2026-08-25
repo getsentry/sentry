@@ -49,6 +49,13 @@ def is_open_pull_request_state(state: str | None) -> bool:
     )
 
 
+def is_abandoned_pull_request_state(state: str | None) -> bool:
+    return state in (
+        PullRequestLifecycleState.CLOSED,
+        PullRequestLifecycleState.SUPERSEDED,
+    )
+
+
 class PullRequestAttributionSignalType(models.TextChoices):
     SENTRY_APP = "sentry_app"
     SEER_DELEGATED_CURSOR = "seer_delegated:cursor"

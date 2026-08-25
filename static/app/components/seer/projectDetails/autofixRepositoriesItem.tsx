@@ -11,13 +11,14 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {overrideHasAllValues} from 'sentry/components/seer/projectDetails/overrideHasAllValues';
 import {overrideHasAnyValue} from 'sentry/components/seer/projectDetails/overrideHasAnyValue';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -109,78 +110,74 @@ export function AutofixRepositoriesItem({
 
   return (
     <Fragment>
-      <Flex
-        align="center"
-        gap="sm"
-        height="100%"
-        position="relative"
-        padding="0"
-        style={isExpanded ? {borderBottom: 'none'} : {}}
-      >
-        <RowButton
-          icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
-          onClick={() => setIsExpanded(!isExpanded)}
-          aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          size="zero"
-          variant="transparent"
+      <SimpleTable.Row style={isExpanded ? {borderBottom: 'none'} : undefined}>
+        <SimpleTable.RowCell
+          align="center"
+          gap="sm"
+          height="100%"
+          position="relative"
+          padding="0"
         >
-          <Text size="md">
-            {[repository.owner, repository.name].filter(Boolean).join('/')}
-          </Text>
-        </RowButton>
-      </Flex>
-
-      <Flex
-        gap="lg"
-        align="center"
-        justify="end"
-        style={isExpanded ? {borderBottom: 'none'} : {}}
-      >
-        <Flex align="center" gap="sm">
-          <RepoProviderIcon provider={repository.provider} size="sm" />
-          <Text size="sm">{providerDisplayName}</Text>
-        </Flex>
-      </Flex>
-
-      <Flex align="center" style={isExpanded ? {borderBottom: 'none'} : {}}>
-        <Confirm
-          disabled={!canWrite}
-          onConfirm={() => onRemoveRepo({repoId: repository.repositoryId})}
-          header={
-            <Heading as="h4">
-              {tct('Are you sure you want to remove [repo] from Autofix?', {
-                repo: <code>{repository.name}</code>,
-              })}
-            </Heading>
-          }
-          message={
-            repositories.length > 1
-              ? tn(
-                  'There will still be %s other repository connected to this project for Autofix to use.',
-                  'There will still be %s other repositories connected to this project for Autofix to use.',
-                  repositories.length - 1
-                )
-              : t('Autofix will be disabled for issues in this project.')
-          }
-          confirmText={
-            <Flex align="center" gap="md">
-              <IconDelete size="sm" />
-              {t('Disconnect')}
-            </Flex>
-          }
-          priority="danger"
-        >
-          <Button
-            aria-label={t('Disconnect Repository')}
-            icon={<IconDelete />}
-            size="xs"
+          <RowButton
+            icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+            onClick={() => setIsExpanded(!isExpanded)}
+            aria-label={isExpanded ? t('Collapse') : t('Expand')}
+            size="zero"
             variant="transparent"
-          />
-        </Confirm>
-      </Flex>
+          >
+            <Text size="md">
+              {[repository.owner, repository.name].filter(Boolean).join('/')}
+            </Text>
+          </RowButton>
+        </SimpleTable.RowCell>
+
+        <SimpleTable.RowCell gap="lg" align="center" justify="end">
+          <Flex align="center" gap="sm">
+            <RepoProviderIcon provider={repository.provider} size="sm" />
+            <Text size="sm">{providerDisplayName}</Text>
+          </Flex>
+        </SimpleTable.RowCell>
+
+        <SimpleTable.RowCell>
+          <Confirm
+            disabled={!canWrite}
+            onConfirm={() => onRemoveRepo({repoId: repository.repositoryId})}
+            header={
+              <Heading as="h4">
+                {tct('Are you sure you want to remove [repo] from Autofix?', {
+                  repo: <code>{repository.name}</code>,
+                })}
+              </Heading>
+            }
+            message={
+              repositories.length > 1
+                ? tn(
+                    'There will still be %s other repository connected to this project for Autofix to use.',
+                    'There will still be %s other repositories connected to this project for Autofix to use.',
+                    repositories.length - 1
+                  )
+                : t('Autofix will be disabled for issues in this project.')
+            }
+            confirmText={
+              <Flex align="center" gap="md">
+                <IconDelete size="sm" />
+                {t('Disconnect')}
+              </Flex>
+            }
+            priority="danger"
+          >
+            <Button
+              aria-label={t('Disconnect Repository')}
+              icon={<IconDelete />}
+              size="xs"
+              variant="transparent"
+            />
+          </Confirm>
+        </SimpleTable.RowCell>
+      </SimpleTable.Row>
 
       {isExpanded && (
-        <Container padding="lg xl" column="1 / -1">
+        <SimpleTable.FullWidthRow>
           <Stack gap="lg" justify="between" paddingTop="0" paddingLeft="xl">
             <Flex align="center" justify="between">
               <Heading as="h4">
@@ -339,7 +336,7 @@ export function AutofixRepositoriesItem({
               </AutoSaveForm>
             )}
           </Stack>
-        </Container>
+        </SimpleTable.FullWidthRow>
       )}
     </Fragment>
   );

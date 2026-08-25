@@ -12,7 +12,7 @@ import moment from 'moment-timezone';
 import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {lineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {UsageChartProps} from 'sentry/views/organizationStats/usageChart';
@@ -57,7 +57,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
       }
     );
 
-    return LineSeries({
+    return lineSeries({
       name: t('Spike Protection Threshold'),
       lineStyle: {type: 'dotted'},
       color: theme.colors.gray400,

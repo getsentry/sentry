@@ -326,19 +326,3 @@ class GroupAIAutofixSetupFreeCohortTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data["billing"]["hasAutofixQuota"] is False
-
-    @patch(
-        "sentry.seer.endpoints.group_autofix_setup_check.is_free_cohort_org",
-        return_value=True,
-    )
-    def test_free_cohort_org_has_seer_repos_linked(self, mock_is_free_cohort: MagicMock) -> None:
-        """Free cohort orgs always get seerReposLinked: True — night shift
-        handles repo resolution at runtime via the ProjectRepository fallback,
-        so the setup prompt is not relevant."""
-        group = self.create_group()
-        self.login_as(user=self.user)
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["seerReposLinked"] is True

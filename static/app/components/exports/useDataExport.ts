@@ -3,6 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {createExportFilename} from 'sentry/components/exports/createExportFilename';
+import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {t} from 'sentry/locale';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -47,7 +48,7 @@ export interface ExploreQueryInfo {
   environment?: string[];
   sampling?: EventsQuerySamplingMode;
   start?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | StatsPeriodRange;
 }
 
 interface DataExportPayloadBase {
@@ -113,6 +114,24 @@ function handleDataExportResponse(
   addSuccessMessage(t("Downloading '%s' to your browser.", data.fileName));
 }
 
+function isStatsPeriodRange(value: unknown): value is StatsPeriodRange {
+  return typeof value === 'object' && value !== null && 'statsPeriodStart' in value;
+}
+
+export function flattenStatsPeriod<T>(statsPeriod: T | StatsPeriodRange) {
+  return isStatsPeriodRange(statsPeriod)
+    ? {statsPeriod: undefined, ...statsPeriod}
+    : {statsPeriod, statsPeriodStart: undefined, statsPeriodEnd: undefined};
+}
+
+function serializeQueryInfo(queryInfo: DataExportPayload['queryInfo']) {
+  const statsPeriod = 'statsPeriod' in queryInfo ? queryInfo.statsPeriod : undefined;
+
+  return isStatsPeriodRange(statsPeriod)
+    ? {...queryInfo, ...flattenStatsPeriod(statsPeriod)}
+    : queryInfo;
+}
+
 export function useDataExport() {
   const organization = useOrganization();
 
@@ -134,7 +153,7 @@ export function useDataExport() {
         data: {
           format,
           limit,
-          query_info: queryInfo,
+          query_info: serializeQueryInfo(queryInfo),
           query_type: queryType,
         },
       });

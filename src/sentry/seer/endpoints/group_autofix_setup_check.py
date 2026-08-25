@@ -98,7 +98,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
 
         # Free cohort orgs have no subscription — quota check always fails. Return hasAutofixQuota
         # True only when a run exists (so they see results), False otherwise (shows paywall).
-        # Also set seerReposLinked=True since night shift resolves repos at runtime.
         is_free_cohort = is_free_cohort_org(org)
         if is_free_cohort:
             # Night shift can go through either the regular autofix path (source="autofix") or
@@ -113,9 +112,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             )
 
         seer_repos_linked = False
-        if is_free_cohort:
-            seer_repos_linked = True
-        elif integration_check is None:
+        if integration_check is None:
             try:
                 seer_repos_linked = has_project_connected_repos(org, group.project)
             except Exception as e:
