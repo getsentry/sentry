@@ -54,6 +54,7 @@ function makeCompressedContext(): TraceViewCalculationContext {
     timeCompression: TraceTimeCompression.FromVisibleItems({
       enabled: true,
       traceSpace: [0, 1000],
+      viewSpace: [0, 1000],
       physicalWidth: 1000,
       nodes: [
         {type: 'transaction', space: [0, 100]} as unknown as BaseNode,

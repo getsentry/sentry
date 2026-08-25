@@ -2,10 +2,11 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {isZeroDurationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/utils';
 
-const COLLAPSE_THRESHOLD_RATIO = 0.05;
 export const COLLAPSED_GAP_WIDTH_PX = 28;
+const MIN_COLLAPSIBLE_GAP_WIDTH_PX = COLLAPSED_GAP_WIDTH_PX * 2;
+const COMPARISON_EPSILON = 1e-9;
 const DURATION_LABEL_BUFFER_PX = 48;
-const MARKER_PADDING_RATIO = 0.01;
+const MARKER_PADDING_PX = 10;
 const MARKER_PADDING_MAX_MS = 500;
 
 type Interval = [start: number, end: number];
@@ -25,6 +26,7 @@ type TraceTimeCompressionOptions = {
   nodes: BaseNode[];
   physicalWidth: number;
   traceSpace: [start: number, duration: number];
+  viewSpace?: [start: number, duration: number];
 };
 
 export class TraceTimeCompression {
@@ -60,44 +62,68 @@ export class TraceTimeCompression {
 
   static FromVisibleItems(options: TraceTimeCompressionOptions): TraceTimeCompression {
     const [traceStart, traceDuration] = options.traceSpace;
+    const [viewStart, viewDuration] = options.viewSpace ?? options.traceSpace;
 
-    if (!options.enabled || traceDuration <= 0 || options.physicalWidth <= 0) {
+    if (
+      !options.enabled ||
+      traceDuration <= 0 ||
+      viewDuration <= 0 ||
+      options.physicalWidth <= 0
+    ) {
       return TraceTimeCompression.Disabled(options.traceSpace);
     }
 
     const intervals = collectVisibleIntervals(options);
     const mergedIntervals = mergeIntervals(intervals);
-    const collapsibleGaps = collectCollapsibleGaps(
-      mergedIntervals,
-      traceStart,
-      traceDuration
+    const traceEnd = traceStart + traceDuration;
+    const viewEnd = viewStart + viewDuration;
+    const timestampComparisonEpsilon = Math.max(
+      traceDuration * COMPARISON_EPSILON,
+      Number.EPSILON
     );
+    const isZoomedView =
+      viewStart > traceStart + timestampComparisonEpsilon ||
+      viewEnd < traceEnd - timestampComparisonEpsilon;
+    const collapsibleGaps = collectGaps(mergedIntervals, traceStart, traceDuration)
+      .map(gap => ({
+        gap,
+        visibleDuration: getIntersectionDuration(gap, viewStart, viewEnd),
+      }))
+      .filter(
+        ({gap: [gapStart, gapEnd], visibleDuration}) =>
+          (visibleDuration / viewDuration) * options.physicalWidth >=
+            MIN_COLLAPSIBLE_GAP_WIDTH_PX - COMPARISON_EPSILON &&
+          (!isZoomedView ||
+            (gapStart > viewStart + timestampComparisonEpsilon &&
+              gapEnd < viewEnd - timestampComparisonEpsilon))
+      );
 
     if (collapsibleGaps.length === 0) {
       return TraceTimeCompression.Disabled(options.traceSpace);
     }
 
-    const collapsedGapPx = Math.min(
-      COLLAPSED_GAP_WIDTH_PX,
-      options.physicalWidth / (collapsibleGaps.length + 1)
-    );
-    const collapsedGapWidthRatio = collapsedGapPx / options.physicalWidth;
-    const collapsedDuration = collapsibleGaps.reduce(
-      (sum, gap) => sum + (gap[1] - gap[0]),
+    const collapsedVisibleDuration = collapsibleGaps.reduce(
+      (sum, {visibleDuration}) => sum + visibleDuration,
       0
     );
-    const activeDuration = traceDuration - collapsedDuration;
-    const denominator = 1 - collapsedGapWidthRatio * collapsibleGaps.length;
+    const activeVisibleDuration = viewDuration - collapsedVisibleDuration;
+    const collapsedGapWidthRatio = COLLAPSED_GAP_WIDTH_PX / options.physicalWidth;
+    const visibleGapFractionSum = collapsibleGaps.reduce(
+      (sum, {gap, visibleDuration}) =>
+        sum + visibleDuration / Math.max(gap[1] - gap[0], Number.EPSILON),
+      0
+    );
+    const denominator = 1 - collapsedGapWidthRatio * visibleGapFractionSum;
 
-    if (denominator <= 0 || activeDuration <= 0) {
+    if (denominator <= 0 || activeVisibleDuration <= 0) {
       return TraceTimeCompression.Disabled(options.traceSpace);
     }
 
-    const compressedDuration = activeDuration / denominator;
-    const retainedDuration = compressedDuration * collapsedGapWidthRatio;
+    const compressedViewDuration = activeVisibleDuration / denominator;
+    const retainedDuration = compressedViewDuration * collapsedGapWidthRatio;
     let removedBefore = 0;
 
-    const gaps = collapsibleGaps.map(([start, end]) => {
+    const gaps = collapsibleGaps.map(({gap: [start, end]}) => {
       const duration = end - start;
       const compressedStart = start - traceStart - removedBefore;
       const compressedEnd = compressedStart + retainedDuration;
@@ -112,6 +138,9 @@ export class TraceTimeCompression {
         compressedEnd,
       };
     });
+    const compressedDuration =
+      traceDuration -
+      gaps.reduce((sum, gap) => sum + gap.duration - gap.retainedDuration, 0);
 
     return new TraceTimeCompression({
       start: traceStart,
@@ -174,19 +203,17 @@ export class TraceTimeCompression {
 
 function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval[] {
   const [traceStart, traceDuration] = options.traceSpace;
+  const [, viewDuration] = options.viewSpace ?? options.traceSpace;
   const traceEnd = traceStart + traceDuration;
+  const durationPerPixel = viewDuration / options.physicalWidth;
   const markerPadding = Math.min(
-    traceDuration * MARKER_PADDING_RATIO,
+    durationPerPixel * MARKER_PADDING_PX,
     MARKER_PADDING_MAX_MS
   );
   const durationLabelBuffer =
-    options.physicalWidth > 0
-      ? (traceDuration / options.physicalWidth) * DURATION_LABEL_BUFFER_PX
-      : 0;
+    options.physicalWidth > 0 ? durationPerPixel * DURATION_LABEL_BUFFER_PX : 0;
   const zeroDurationBuffer =
-    options.physicalWidth > 0
-      ? (traceDuration / options.physicalWidth) * COLLAPSED_GAP_WIDTH_PX
-      : 0;
+    options.physicalWidth > 0 ? durationPerPixel * COLLAPSED_GAP_WIDTH_PX : 0;
   const intervals: Interval[] = [];
 
   for (const node of options.nodes) {
@@ -246,28 +273,31 @@ function mergeIntervals(intervals: Interval[]): Interval[] {
   return merged;
 }
 
-function collectCollapsibleGaps(
+function collectGaps(
   intervals: Interval[],
   traceStart: number,
   traceDuration: number
 ): Interval[] {
   const traceEnd = traceStart + traceDuration;
-  const threshold = traceDuration * COLLAPSE_THRESHOLD_RATIO;
   const gaps: Interval[] = [];
   let previousEnd = traceStart;
 
   for (const [start, end] of intervals) {
-    if (start - previousEnd >= threshold) {
+    if (start > previousEnd) {
       gaps.push([previousEnd, start]);
     }
     previousEnd = Math.max(previousEnd, end);
   }
 
-  if (traceEnd - previousEnd >= threshold) {
+  if (traceEnd > previousEnd) {
     gaps.push([previousEnd, traceEnd]);
   }
 
   return gaps;
+}
+
+function getIntersectionDuration(interval: Interval, start: number, end: number): number {
+  return Math.max(0, Math.min(interval[1], end) - Math.max(interval[0], start));
 }
 
 function clampTimestamp(timestamp: number, min: number, max: number): number {
