@@ -75,6 +75,7 @@ class RequestTimingMiddleware(MiddlewareMixin):
             "rate_limit_type": (
                 getattr(rate_limit_type, "value", None) if rate_limit_type else None
             ),
+            "rate_limit_category": getattr(request, "rate_limit_category", None),
             "url_name": url_name,
         }
         metrics.incr("view.response", instance=view_path, tags=tags, skip_internal=False)

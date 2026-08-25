@@ -65,8 +65,10 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
@@ -269,6 +271,15 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
+
+    # Issue search is expensive enough that a script fanning out parallel requests can exhaust a
+    # user's shared concurrency budget and 429 their browsing session. Only USER_API is declared;
+    # every other category keeps falling back to the group default.
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {RateLimitCategory.USER_API: RateLimit(limit=20, window=1, concurrent_limit=10)},
+        },
+    )
 
     def _search(
         self,

@@ -32,6 +32,10 @@ def is_frontend_request(request: HttpRequest | Request) -> bool:
     Users could make backend requests directly with cookies which would be counted here. The
     belief is that that's a fraction of the total requests. Either way, this function should not be
     used expecting it to be 100% accurate. We are using it only for statistics.
+
+    When the answer is enforced against rather than counted, use
+    `sentry.ratelimits.utils.is_session_request` instead — it keys off resolved auth rather than
+    cookie presence, so a client cannot choose which side of it to land on.
     """
     return bool(request.COOKIES) and getattr(request, "auth", None) is None
 

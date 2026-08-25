@@ -34,6 +34,11 @@ SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory,
             1,
             settings.SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI,
         ),
+        RateLimitCategory.USER_API: RateLimit(
+            settings.SENTRY_RATELIMITER_GROUP_CLI,
+            1,
+            settings.SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI,
+        ),
         RateLimitCategory.ORGANIZATION: RateLimit(
             settings.SENTRY_RATELIMITER_GROUP_CLI,
             1,
@@ -71,11 +76,27 @@ def get_default_rate_limits_for_group(group_name: str, category: RateLimitCatego
 
 @dataclass(frozen=True)
 class RateLimitConfig:
+    """Rate limits for an endpoint, resolved per (http_method, category).
+
+    A category with no entry in ``limit_overrides`` falls back to the group default, so a config
+    only needs to spell out the categories it actually wants to change. Declaring a
+    ``RateLimitCategory.USER_API`` override is how an endpoint opts into a separate bucket for
+    token-authenticated traffic; it takes effect only once the view is also listed in the
+    ``api.rate-limit.user-api-split-views`` option.
+
+    Note that ``rate_limits`` is inherited by endpoint subclasses, overrides included.
+    """
+
     group: str = field(default="default")
     limit_overrides: RateLimitOverrideDict | _sentinel = field(default=_sentinel())
 
     def has_custom_limit(self) -> bool:
         return not isinstance(self.limit_overrides, _sentinel)
+
+    def has_user_api_override(self, http_method: str) -> bool:
+        if isinstance(self.limit_overrides, _sentinel):
+            return False
+        return RateLimitCategory.USER_API in self.limit_overrides.get(http_method, {})
 
     def get_rate_limit(self, http_method: str, category: RateLimitCategory) -> RateLimit:
         if isinstance(self.limit_overrides, _sentinel):

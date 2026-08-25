@@ -16,6 +16,7 @@ from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_fo
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_value
 from sentry.testutils.cases import APITestCase, BaseTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -635,3 +636,137 @@ class TestConcurrentRateLimiter(APITestCase):
                 int(response["X-Sentry-Rate-Limit-ConcurrentRemaining"])
                 == CONCURRENT_RATE_LIMIT - 1
             )
+
+
+SPLIT_VIEWS_OPTION = "api.rate-limit.user-api-split-views"
+
+
+class SplitEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.USER: RateLimit(limit=10, window=100, concurrent_limit=10),
+                RateLimitCategory.USER_API: RateLimit(limit=1, window=100, concurrent_limit=1),
+            }
+        }
+    )
+
+    def get(self, request: HttpRequest) -> Response:
+        raise NotImplementedError
+
+
+class UnsplitEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+    enforce_rate_limit = True
+
+    def get(self, request: HttpRequest) -> Response:
+        raise NotImplementedError
+
+
+@all_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
+class UserAPISplitMiddlewareTest(TestCase, BaseTestCase):
+    middleware = RatelimitMiddleware(lambda request: sentinel.response)
+
+    _split_endpoint = SplitEndpoint.as_view()
+    _unsplit_endpoint = UnsplitEndpoint.as_view()
+
+    def setUp(self) -> None:
+        with assume_test_silo_mode_of(User):
+            self.token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+
+    def _token_request(self) -> HttpRequest:
+        request = RequestFactory().get("/")
+        request.user = self.user
+        request.auth = self.token
+        return request
+
+    def _session_request(self) -> HttpRequest:
+        request = RequestFactory().get("/")
+        request.session = {}
+        request.user = self.user
+        return request
+
+    @override_options({SPLIT_VIEWS_OPTION: ["SplitEndpoint"]})
+    def test_token_and_session_do_not_share_a_counter(self) -> None:
+        with freeze_time("2000-01-01"):
+            assert (
+                self.middleware.process_view(self._token_request(), self._split_endpoint, [], {})
+                is None
+            )
+
+            exhausted = self._token_request()
+            response = self.middleware.process_view(exhausted, self._split_endpoint, [], {})
+            assert isinstance(response, HttpResponse)
+            assert response.status_code == 429
+
+            session_request = self._session_request()
+            assert (
+                self.middleware.process_view(session_request, self._split_endpoint, [], {}) is None
+            )
+            assert session_request.rate_limit_key.startswith("user:")
+
+    @override_options({SPLIT_VIEWS_OPTION: ["SplitEndpoint"]})
+    @override_settings(ENFORCE_CONCURRENT_RATE_LIMITS=True)
+    def test_concurrency_is_isolated(self) -> None:
+        with freeze_time("2000-01-01"):
+            self.middleware.process_view(self._token_request(), self._split_endpoint, [], {})
+
+            # The first request never released its slot, so the second exceeds concurrent_limit=1.
+            concurrent = self._token_request()
+            response = self.middleware.process_view(concurrent, self._split_endpoint, [], {})
+            assert isinstance(response, HttpResponse)
+            assert response.status_code == 429
+
+            assert (
+                self.middleware.process_view(self._session_request(), self._split_endpoint, [], {})
+                is None
+            )
+
+    @override_options({SPLIT_VIEWS_OPTION: ["SplitEndpoint"]})
+    def test_category_and_limit(self) -> None:
+        request = self._token_request()
+        self.middleware.process_view(request, self._split_endpoint, [], {})
+
+        assert request.rate_limit_category == RateLimitCategory.USER_API
+        assert request.rate_limit_key == (f"user_api:default:SplitEndpoint:GET:{self.user.id}")
+        assert request.rate_limit_metadata.limit == 1
+
+    @override_options({SPLIT_VIEWS_OPTION: []})
+    def test_view_not_listed_falls_back_to_user(self) -> None:
+        request = self._token_request()
+        self.middleware.process_view(request, self._split_endpoint, [], {})
+
+        assert request.rate_limit_category == RateLimitCategory.USER
+        assert request.rate_limit_key == f"user:default:SplitEndpoint:GET:{self.user.id}"
+        assert request.rate_limit_metadata.limit == 10
+
+    @override_options({SPLIT_VIEWS_OPTION: ["UnsplitEndpoint"]})
+    def test_impersonation_does_not_opt_an_endpoint_in(self) -> None:
+        # Impersonation rewrites the config with an override for every method and category, so an
+        # endpoint that never declared USER_API must not be split by it.
+        request = self._token_request()
+        request.actual_user = self.create_user(email="impersonator@example.com")
+
+        self.middleware.process_view(request, self._unsplit_endpoint, [], {})
+
+        assert request.rate_limit_category == RateLimitCategory.USER
+        assert request.rate_limit_key.startswith("user:")
+
+    @patch("sentry.middleware.ratelimit.finish_request")
+    def test_concurrent_slot_released_with_the_stored_key(
+        self, finish_request_mock: MagicMock
+    ) -> None:
+        request = self._token_request()
+        with override_options({SPLIT_VIEWS_OPTION: ["SplitEndpoint"]}):
+            self.middleware.process_view(request, self._split_endpoint, [], {})
+
+        with override_options({SPLIT_VIEWS_OPTION: []}):
+            self.middleware.process_response(request, HttpResponse())
+
+        assert finish_request_mock.call_args.args == (
+            f"user_api:default:SplitEndpoint:GET:{self.user.id}",
+            request.rate_limit_uid,
+        )

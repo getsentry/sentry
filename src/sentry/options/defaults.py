@@ -308,6 +308,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# View class names whose token-authenticated traffic is routed to the RateLimitCategory.USER_API
+# bucket instead of USER. Only takes effect on endpoints that also declare a USER_API limit
+# override; delisting a view is a complete revert of the tighter limit.
+register(
+    "api.rate-limit.user-api-split-views",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 register(
