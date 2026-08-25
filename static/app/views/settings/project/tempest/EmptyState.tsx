@@ -5,11 +5,13 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {EmptyState as TableEmptyState} from '@sentry/scraps/emptyState';
 import {Stack} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
@@ -32,6 +34,14 @@ interface EmptyStateProps {
   removingCredentialId?: number;
   tempestCredentials?: TempestCredentials[];
 }
+
+const CREDENTIAL_COLUMNS: TableColumnConfig[] = [
+  {key: 'clientId', width: 'auto'},
+  {key: 'status', width: 'auto'},
+  {key: 'createdAt', width: 'auto'},
+  {key: 'createdBy', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 export function EmptyState({
   project,
@@ -86,29 +96,41 @@ export function EmptyState({
                 )}
               </DescriptionWrapper>
               <Stack align="end" gap="xl">
-                <StyledPanelTable
-                  headers={[
-                    t('Client ID'),
-                    t('Status'),
-                    t('Created At'),
-                    t('Created By'),
-                    '',
-                  ]}
-                  isEmpty={!tempestCredentials?.length}
-                  emptyMessage={t('No credentials found')}
-                  emptyAction={
-                    <AddCredentialsButton project={project} origin="project-settings" />
+                <StyledSimpleTable
+                  columns={CREDENTIAL_COLUMNS}
+                  header={
+                    <SimpleTable.HeaderRow>
+                      <SimpleTable.HeaderCell>{t('Client ID')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Created At')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell />
+                    </SimpleTable.HeaderRow>
                   }
                 >
-                  {tempestCredentials?.map(credential => (
-                    <CredentialRow
-                      key={credential.id}
-                      credential={credential}
-                      isRemoving={isRemoving && removingCredentialId === credential.id}
-                      removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
-                    />
-                  ))}
-                </StyledPanelTable>
+                  {tempestCredentials?.length ? (
+                    tempestCredentials.map(credential => (
+                      <CredentialRow
+                        key={credential.id}
+                        credential={credential}
+                        isRemoving={isRemoving && removingCredentialId === credential.id}
+                        removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
+                      />
+                    ))
+                  ) : (
+                    <SimpleTable.Empty>
+                      <TableEmptyState
+                        title={t('No credentials found')}
+                        action={
+                          <AddCredentialsButton
+                            project={project}
+                            origin="project-settings"
+                          />
+                        }
+                      />
+                    </SimpleTable.Empty>
+                  )}
+                </StyledSimpleTable>
               </Stack>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
@@ -199,7 +221,7 @@ const BodyTitle = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   width: 100%;
   margin-bottom: 0;
 `;

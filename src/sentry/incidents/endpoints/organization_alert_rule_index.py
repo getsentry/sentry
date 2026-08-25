@@ -30,7 +30,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.helpers.deprecation import deprecated
@@ -157,9 +156,6 @@ VALID_COMBINED_RULE_SORT_KEYS = {"date_added", "name", "incident_status", "date_
 def create_metric_alert(
     request: Request, organization: Organization, project: Project | None = None
 ) -> HttpResponseBase:
-    if not features.has("organizations:incidents", organization, actor=request.user):
-        raise ResourceDoesNotExist
-
     data = deepcopy(request.data)
 
     if features.has("organizations:discover-saved-queries-deprecation", organization) and data.get(
@@ -235,9 +231,6 @@ class AlertRuleFetchMixin(Endpoint):
         organization: Organization,
         projects: Sequence[Project],
     ) -> HttpResponseBase:
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
-
         if "latestIncident" in request.GET.getlist("expand", []) and not is_frontend_request(
             request
         ):

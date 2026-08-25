@@ -337,6 +337,16 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for PullRequest deletions across all concurrent
+# deletion tasks. 0 disables rate limiting. Sized to sit well above the
+# steady-state deletion rate while keeping any backlog drain gentle, so it
+# needs no tuning around deploys.
+register(
+    "deletions.pull-request.rate-limit",
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -2540,12 +2550,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Drops GitHub check webhooks that reference no pull request based in their own
-# repo (see ActionFilter.own_repo_pr_actions). Ships off: unlike the other parser
-# drops this one keys off payload shape rather than a header, so it needs a switch
-# that stops the loss immediately if the predicate turns out to be wrong.
+# repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape
+# rather than a header, so it keeps a switch: setting this false stops the drop
+# without a deploy.
 register(
     "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls

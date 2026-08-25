@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -75,6 +75,7 @@ export function ConnectedAutomationsList({
   openInNewTab,
   ...props
 }: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
   const canEdit = Boolean(
     connectedAutomationIds && typeof toggleConnected === 'function'
@@ -107,17 +108,20 @@ export function ConnectedAutomationsList({
 
   return (
     <Container containerType="inline-size" {...props}>
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="last-triggered">
-            {t('Last Triggered')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="action-filters">
-            {t('Actions')}
-          </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
-        </SimpleTable.Header>
+      <SimpleTableWithColumns
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="last-triggered">
+              {t('Last Triggered')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="action-filters">
+              {t('Actions')}
+            </SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && (
           <Skeletons
             canEdit={canEdit}

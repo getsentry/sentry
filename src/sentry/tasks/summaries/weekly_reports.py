@@ -76,6 +76,9 @@ class WeeklyReportProgressTracker:
 
     REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
 
+    # 3 days to outlive all possible retries of a weekly report schedule run
+    MIN_ORG_ID_TTL: Final[timedelta] = timedelta(days=3)
+
     def __init__(self, timestamp: float | None = None, duration: int | None = None):
         if timestamp is None:
             # The time that the report was generated
@@ -101,7 +104,7 @@ class WeeklyReportProgressTracker:
         return int(min_org_id_from_redis) if min_org_id_from_redis else None
 
     def set_last_processed_org_id(self, org_id: int) -> None:
-        self._redis_connection.set(self.min_org_id_redis_key, org_id)
+        self._redis_connection.set(self.min_org_id_redis_key, org_id, ex=self.MIN_ORG_ID_TTL)
 
     def delete_min_org_id(self) -> None:
         self._redis_connection.delete(self.min_org_id_redis_key)

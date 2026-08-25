@@ -1,6 +1,6 @@
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
-import {investigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
 
@@ -20,7 +20,7 @@ const investigation: InvestigationDetail = {
 describe('updateInvestigationCache', () => {
   it('immutably updates the response JSON and preserves headers', () => {
     const queryClient = makeTestQueryClient();
-    const options = investigationDetailQueryOptions('org-slug', 'investigation-1');
+    const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
     const cachedResponse = {
       headers: {Link: 'preserved'},
       json: investigation,
@@ -44,7 +44,7 @@ describe('updateInvestigationCache', () => {
 
   it('does not seed a partial investigation when the query is not cached', () => {
     const queryClient = makeTestQueryClient();
-    const options = investigationDetailQueryOptions('org-slug', 'investigation-1');
+    const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
     const update = jest.fn((current: InvestigationDetail) => current);
 
     updateInvestigationCache(queryClient, 'org-slug', 'investigation-1', update);

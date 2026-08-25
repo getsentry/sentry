@@ -16,9 +16,9 @@ import {
   useScrapsForm,
   type BoundFieldComponents,
 } from '@sentry/scraps/form/scrapsForm';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import {t} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -146,6 +146,7 @@ export function AutoSaveForm<
   TFieldName extends SchemaFieldName<TSchema>,
 >(props: AutoSaveFormProps<TData, TContext, TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
+  const {t} = useTranslation();
   const id = useId();
   const mutation = useMutation(mutationOptions);
   // Track pending confirmation to prevent duplicate modals

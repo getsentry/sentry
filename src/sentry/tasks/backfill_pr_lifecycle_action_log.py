@@ -22,8 +22,8 @@ _TASK_KEY = "backfill_pr_lifecycle_action_log_for_project"
     name=(
         "sentry.tasks.backfill_pr_lifecycle_action_log.backfill_pr_lifecycle_action_log_for_group"
     ),
-    namespace=issues_long_tasks,
-    alias_namespace=issues_tasks,
+    namespace=issues_tasks,
+    alias_namespace=issues_long_tasks,
     silo_mode=SiloMode.CELL,
 )
 def backfill_pr_lifecycle_action_log_for_group(
@@ -67,8 +67,8 @@ def backfill_pr_lifecycle_action_log_for_group(
     name=(
         "sentry.tasks.backfill_pr_lifecycle_action_log.backfill_pr_lifecycle_action_log_for_project"
     ),
-    namespace=issues_long_tasks,
-    alias_namespace=issues_tasks,
+    namespace=issues_tasks,
+    alias_namespace=issues_long_tasks,
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )

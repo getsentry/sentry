@@ -117,7 +117,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         assert self.browser.find_element(
             by=By.XPATH,
-            value='//p[contains(text(), "You haven\'t created any authentication tokens yet.")]',
+            value='//*[contains(text(), "You haven\'t created any authentication tokens yet.")]',
         )
 
     def test_add_tokens_internal_app(self) -> None:

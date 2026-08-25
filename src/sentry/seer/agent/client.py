@@ -398,6 +398,7 @@ class SeerAgentClient:
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
         override_ce_enable: bool = True,
+        force_ce: bool | None = None,
         ui_tools: str | None = None,
         record_in_history: bool = True,
         on_run_created: Callable[[SeerRun], None] | None = None,
@@ -413,6 +414,8 @@ class SeerAgentClient:
             metadata: Optional metadata to store with the run (e.g., stopping_point). group_id is
                 added automatically when the client was constructed with a group.
             request: Optional rest_framework Request object from endpoints.
+            force_ce: If set, forces the context engine on/off for this run, ignoring
+                the org flag and rollout.
 
         Returns:
             SeerRun: The mirror row for the run. Its seer_run_state_id is the id
@@ -496,6 +499,7 @@ class SeerAgentClient:
         agent_run_options.update(
             self._build_agent_run_options(
                 override_ce_enable=override_ce_enable,
+                force_ce=force_ce,
             )
         )
 
