@@ -292,6 +292,10 @@ describe('ScmCreateProject', () => {
   });
 
   it('hides the repository section for members without a connected integration', async () => {
+    const integrationsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+    });
     const memberOrganization = OrganizationFixture({
       features: ['performance-view'],
       access: ['org:read', 'project:read', 'team:read'],
@@ -300,6 +304,9 @@ describe('ScmCreateProject', () => {
     render(<ScmCreateProject />, {organization: memberOrganization});
 
     expect(await screen.findByRole('heading', {name: 'Platform'})).toBeInTheDocument();
+    // Wait for the integrations fetch so the section's absence reflects the
+    // settled empty result, not the pending state.
+    await waitFor(() => expect(integrationsRequest).toHaveBeenCalled());
     expect(screen.queryByRole('heading', {name: 'Repository'})).not.toBeInTheDocument();
   });
 
