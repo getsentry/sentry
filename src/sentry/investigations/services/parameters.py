@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Set as AbstractSet
 from datetime import timedelta
 from typing import Any
 
@@ -20,7 +21,7 @@ def validate_parameter_value(
     parameter_type: str,
     value: Any,
     constraints: dict[str, Any],
-    accessible_project_ids: set[int] | None = None,
+    accessible_project_ids: AbstractSet[int] | None = None,
 ) -> Any:
     if parameter_type == InvestigationParameterType.STRING:
         if not isinstance(value, str):
@@ -114,7 +115,7 @@ def validate_template_parameters(
     specs: tuple[TemplateParameterSpec, ...],
     supplied: dict[str, Any],
     *,
-    accessible_project_ids: set[int] | None = None,
+    accessible_project_ids: AbstractSet[int] | None = None,
 ) -> dict[str, Any]:
     declared = {spec.key: spec for spec in specs}
     extra = sorted(set(supplied) - set(declared))

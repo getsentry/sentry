@@ -330,6 +330,9 @@ export function generateTargetQuery({
 
   // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
+    if (!groupBy) {
+      continue;
+    }
     const value = row[groupBy];
     // some fields require special handling so make sure to handle it here
     if (groupBy === 'project' && typeof value === 'string') {
@@ -453,12 +456,16 @@ export function viewSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return getTargetWithReadableQueryParams(location, {
+  const target = getTargetWithReadableQueryParams(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
     query: newSearch.formatString(),
     sortBys: newSortBys,
   });
+
+  delete target.query.table;
+
+  return target;
 }
 
 export function getDefaultExploreRoute(organization: Organization) {

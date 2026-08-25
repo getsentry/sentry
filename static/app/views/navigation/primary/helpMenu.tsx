@@ -199,7 +199,7 @@ export function PrimaryNavigationHelpMenu({
           onAction() {
             openForm?.({
               tags: {
-                ['feedback.source']: 'navigation_sidebar',
+                'feedback.source': 'navigation_sidebar',
               },
             });
           },

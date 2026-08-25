@@ -193,7 +193,9 @@ def launch_coding_agents(
             }
         )
 
-        create_seer_run_coding_agent_handoff(organization, run_id, coding_agent_state)
+        create_seer_run_coding_agent_handoff(
+            organization, run_id, coding_agent_state, repo_external_id=repo.external_id
+        )
 
     # Store the coding agent states to Seer
     try:

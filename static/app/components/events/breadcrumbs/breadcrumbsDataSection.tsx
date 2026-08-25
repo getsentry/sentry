@@ -39,14 +39,12 @@ interface BreadcrumbsDataSectionProps {
   event: Event;
   group: Group;
   project: Project;
-  initialCollapse?: boolean;
 }
 
 export function BreadcrumbsDataSection({
   event,
   group,
   project,
-  initialCollapse,
 }: BreadcrumbsDataSectionProps) {
   const theme = useTheme();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
@@ -167,7 +165,6 @@ export function BreadcrumbsDataSection({
       sectionKey={SectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       actions={actions}
-      initialCollapse={initialCollapse}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
         <div ref={setContainer}>

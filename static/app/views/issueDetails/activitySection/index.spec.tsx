@@ -871,6 +871,34 @@ describe('ActivitySection', () => {
     expect(screen.queryByText(newUser.name)).not.toBeInTheDocument();
   });
 
+  it('renders a sentry app as the source instead of the actor', async () => {
+    const activityGroup = GroupFixture({
+      id: 'sentry-app-activity',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-by-sentry-app',
+          data: {},
+          dateCreated: '2020-01-01T00:00:00',
+          sentry_app: SentryAppFixture({name: 'Linear'}),
+          user: UserFixture({name: 'sentry-app-proxy-user-abcd123'}),
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
+      'Resolved via Linear'
+    );
+    expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
+  });
+
   it('renders note but does not allow for deletion if written by someone else', async () => {
     const updatedActivityGroup = GroupFixture({
       id: '1338',

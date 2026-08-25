@@ -15,7 +15,6 @@ interface UpsellFooterProps {
   onCloseModal: () => void;
   organization: Organization;
   subscription: Subscription;
-  showTrialResetContent?: boolean;
   source?: string;
 }
 
@@ -24,7 +23,6 @@ export function Footer({
   organization,
   source,
   onCloseModal,
-  showTrialResetContent,
 }: UpsellFooterProps) {
   const buttonProps = {
     subscription,
@@ -39,7 +37,7 @@ export function Footer({
     <Flex align="end" gap="md">
       <UpgradeOrTrialButton data-test-id="upgrade-or-trial" {...buttonProps} />
       {/* if the trial was reset, just show them a maybe later button */}
-      {canTrial && !showTrialResetContent ? (
+      {canTrial ? (
         <UpgradeOrTrialButton
           data-test-id="upgrade-plan"
           variant="secondary"

@@ -4,6 +4,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -27,6 +28,12 @@ import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+const ENVIRONMENT_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'minmax(0, 1fr)'},
+  {key: 'toggle', width: 'max-content'},
+  {key: 'action', width: 'max-content'},
+];
 
 interface EnvironmentRowProps {
   name: React.ReactNode;
@@ -218,21 +225,25 @@ export default function ProjectEnvironments() {
       </TabsContainer>
       <ProjectPermissionAlert project={project} />
 
-      <EnvironmentTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>
-            {isHidden ? t('Hidden') : t('Active Environments')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>
-            <InfoText
-              title={t('Count of all error events from the last 30 days')}
-              variant="muted"
-            >
-              {t('Recent Error Events')}
-            </InfoText>
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        columns={ENVIRONMENT_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>
+              {isHidden ? t('Hidden') : t('Active Environments')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <InfoText
+                title={t('Count of all error events from the last 30 days')}
+                variant="muted"
+              >
+                {t('Recent Error Events')}
+              </InfoText>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isPending ? (
           <EnvironmentTableSkeleton isHidden={isHidden} />
         ) : isError ? (
@@ -276,15 +287,11 @@ export default function ProjectEnvironments() {
               : t("You don't have any environments yet.")}
           </SimpleTable.Empty>
         )}
-      </EnvironmentTable>
+      </SimpleTable>
     </div>
   );
 }
 
 const TabsContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const EnvironmentTable = styled(SimpleTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
 `;

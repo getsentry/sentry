@@ -29,8 +29,19 @@ export function IssuePreviewAutofixSummary({
   const planSection = sections.findLast(isSolutionSection);
   const rootCauseSection = sections.findLast(isRootCauseSection);
 
-  if (!runState) {
+  if (!runState && !autofix.isWaitingForRun) {
     return null;
+  }
+
+  if (!runState) {
+    return (
+      <IssuePreviewAutofixRootCauseSection
+        autofix={autofix}
+        defaultExpanded
+        groupId={groupId}
+        section={{artifacts: [], blocks: [], status: 'processing', step: 'root_cause'}}
+      />
+    );
   }
 
   const defaultExpandedSection = proposalSection

@@ -32,12 +32,6 @@ export const OP_LABELS = {
   [TermOperator.DOES_NOT_END_WITH]: 'does not end with',
 };
 
-export const ARRAY_OP_LABELS = {
-  ...OP_LABELS,
-  [TermOperator.CONTAINS]: 'includes',
-  [TermOperator.DOES_NOT_CONTAIN]: 'does not include',
-};
-
 export const DATE_OP_LABELS = {
   [TermOperator.GREATER_THAN]: 'is after',
   [TermOperator.GREATER_THAN_EQUAL]: 'is on or after',

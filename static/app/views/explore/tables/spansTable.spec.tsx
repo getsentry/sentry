@@ -35,6 +35,15 @@ describe('addValidatedFieldTypesToMeta', () => {
     expect(meta.fields?.['span.duration']).toBe(FieldValueType.DURATION);
   });
 
+  it('types array columns from validated field types', () => {
+    const meta = addValidatedFieldTypesToMeta({
+      meta: {fields: {}},
+      validatedFieldTypes: {'tags[my.tags,array]': FieldValueType.ARRAY},
+    });
+
+    expect(meta.fields?.['tags[my.tags,array]']).toBe(FieldValueType.ARRAY);
+  });
+
   it('passes validated field types to table column metadata', () => {
     const eventView = EventView.fromLocation(
       LocationFixture({query: {field: ['sentry.duration']}})

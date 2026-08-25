@@ -120,10 +120,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the explore > metrics tab
     manager.add("organizations:gen-ai-explore-metrics-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable defaulting to ask seer from free text search
-    manager.add("organizations:gen-ai-default-to-ask-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable ask seer ux rework
-    manager.add("organizations:gen-ai-ask-seer-ux-rework", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the issues page
     manager.add("organizations:gen-ai-issues-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable LLM-generated title and description for external issue details
@@ -216,20 +212,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-transaction-deprecation-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Create issue activities for pull request lifecycle events
     manager.add("organizations:pr-lifecycle-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Write PullRequestActivity rows from GitHub PR lifecycle webhooks
-    manager.add("organizations:pr-metrics-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Fold PR activity into a single PullRequestActivityLog document instead of one row per event
-    manager.add("organizations:pr-metrics-activity-document", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Record PullRequestAttribution from webhook and seer.pr_created events
-    manager.add("organizations:pr-metrics-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Emit the BigQuery row on a tracked PR's close/merge (PR Merge Live Metrics rollout)
-    manager.add("organizations:pr-metrics-emit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Forward a terminal PR event that needs a judge to Seer (PR Merge Live Metrics judge path)
-    manager.add("organizations:pr-metrics-judge", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable preprod_artifact webhook subscription UI in Sentry App settings
-    manager.add("organizations:preprod-artifact-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable preprod PR comments for build distribution
-    manager.add("organizations:preprod-build-distribution-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable enforcement of preprod distribution quota checks (when disabled, distribution quota checks always return True)
     manager.add("organizations:preprod-enforce-distribution-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod PR comments for size analysis
@@ -275,11 +257,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-smart-assignment-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Auto-assign the top Seer smart assignment pick when a verdict is delivered
     manager.add("organizations:seer-smart-assignment-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Display nightshift settings
-    manager.add("organizations:seer-night-shift-settings", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display the Seer Night Shift UI
     manager.add("organizations:seer-night-shift-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Route autofix RCA through the Seer autofix_rca feature
+    # Route autofix RCA through the Seer autofix feature
     manager.add("organizations:autofix-rca-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     manager.add("organizations:seer-explorer-structured-context-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -303,8 +283,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-slack-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the thinking blocks toggle in the Seer Agent top bar
     manager.add("organizations:seer-explorer-thinking-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable client-side UI tools for Seer Agent
-    manager.add("organizations:seer-explorer-ui-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer to generate rich component embeds from an adjusted prompt
     manager.add("organizations:seer-explorer-embeds", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Seer Agent autofix embed widget + run_autofix tool (name kept in
@@ -334,6 +312,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the pr content verification prior to opening a PR
     manager.add("organizations:autofix-verify-pr-content", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Steer autofix to run the repo's linter and tests over its changes
+    manager.add("organizations:autofix-should-run-repo-checks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing seer in a persistent sidebar
@@ -349,8 +329,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-disable-coding-setting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GitLab as a supported SCM provider for Seer
     manager.add("organizations:seer-gitlab-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Run Seer agents inside the sandbox execution environment
-    manager.add("organizations:seer-use-agent-sandbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Append a "text" summary to SentryApp webhooks sent to Claude Code routine fire URLs
     manager.add("organizations:sentry-apps-claude-routine-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable prefill templates on the internal integration creation page
@@ -363,6 +341,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable core Session Replay link in the sidebar
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
+    # Enable the mention input in the issue activity drawer
+    manager.add("organizations:issue-activity-mention-input", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Collapse repetitive status changes in the issue activity feed
     manager.add("organizations:issue-activity-status-flapping-rollup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new stack trace component for issue details
@@ -372,15 +352,13 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Fetch CI check status from the provider for pull requests linked to an issue
     manager.add("organizations:issue-pr-checks-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Merge issue platform category searches into a single Snuba query
-    manager.add("organizations:issue-search-merged-generic-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:issue-search-merged-generic-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Enables the shared issue/event formatter module (markdown/xml output for LLMs)
     manager.add("organizations:issue-standardized-markdown-for-llm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Batch latest-event attachment lookups in the issue stream
-    manager.add("organizations:issue-stream-batched-latest-event-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:issue-stream-batched-latest-event-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable new issue stream progress views
-    manager.add("organizations:issue-stream-progress-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "recommended" sort as an option in the issue stream sort dropdown
     manager.add("organizations:issue-stream-recommended-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Make the "recommended" sort the default sort in the issue stream
@@ -405,6 +383,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Roll out issue action log writes to organizations with Seer access
     manager.add("organizations:issue-action-log-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Specific flag for rolling out issue inbox UI to organization with Seer access
+    manager.add("organizations:issue-inbox-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # General use issue inbox flag
+    manager.add("organizations:issue-inbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables auto-conversion of number operators for search query builder
     manager.add("organizations:search-query-builder-number-operator-conversion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Organizations on the new seat-based Seer plan
@@ -484,10 +466,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-waterfall-version-message", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Conversation focused views in AI Insights
     manager.add("organizations:gen-ai-conversations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable selectable/filterable columns for the AI Conversations table
-    manager.add("organizations:gen-ai-conversations-columns", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the redesigned Conversations product experience
-    manager.add("organizations:gen-ai-conversations-redesign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI conversation title generation from gen_ai spans
     manager.add("organizations:gen-ai-conversation-title-generation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables Conduit demo endpoint and UI
@@ -550,9 +528,15 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     manager.add("organizations:claude-code-vault-reuse", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
-    # seer feature flags for assisted query agent org scoped
-    manager.add("organizations:assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    manager.add("organizations:assisted-query-project-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Assisted query agent feature flags — forwarded to Seer
+    # Enable cross-event queries for the Traces strategy
+    manager.add("organizations:seer-assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable LLM project expansion feature
+    manager.add("organizations:seer-assisted-query-project-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable reflection step feature
+    manager.add("organizations:seer-assisted-query-reflection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Run the agent in code mode
+    manager.add("organizations:seer-assisted-query-codemode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Enable humanized string to ESQ conversion
     manager.add("organizations:search-query-builder-humanized-esq", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

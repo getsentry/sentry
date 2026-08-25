@@ -324,22 +324,25 @@ const getDetectionType = (type: string | undefined): string | null => {
   }
 };
 
+function makeCreateRedirectPath(orgSlug: string, alertType: string | undefined) {
+  const detectorType = getDetectionType(alertType);
+
+  return detectorType
+    ? makeMonitorCreatePathname(orgSlug) + `?detectorType=${detectorType}`
+    : makeMonitorCreatePathname(orgSlug);
+}
+
 export function MonitorCreateRedirect() {
   const organization = useOrganization();
   const {alertType} = useParams();
 
-  const detectorType = getDetectionType(alertType);
-  const redirectPath = detectorType
-    ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
-    : makeMonitorCreatePathname(organization.slug);
-
-  return <Redirect to={redirectPath} />;
+  return <Redirect to={makeCreateRedirectPath(organization.slug, alertType)} />;
 }
 
-export function withDetectorCreateRedirect<P extends Record<string, any>>(
-  _Component: React.ComponentType<P>
-) {
-  return MonitorCreateRedirect;
+export function UptimeMonitorCreateRedirect() {
+  const organization = useOrganization();
+
+  return <Redirect to={makeCreateRedirectPath(organization.slug, 'uptime')} />;
 }
 
 export function withOpenPeriodRedirect<P extends Record<string, any>>(

@@ -15,6 +15,11 @@ from sentry.types.activity import ActivityType
 CLIENT_PATH = "sentry.seer.smart_assignment.trigger.SeerAgentClient"
 SCORING_METRICS_PATH = "sentry.seer.smart_assignment.scoring.metrics"
 
+RUN_FLAG = "organizations:seer-smart-assignment-run"
+SEER_ADDED = "organizations:seer-added"
+SEAT_BASED_SEER = "organizations:seat-based-seer-enabled"
+RUN_FEATURES = [RUN_FLAG, SEER_ADDED]
+
 SEER_START_ACTIVITY_TYPES = (
     ActivityType.SEER_RCA_STARTED,
     ActivityType.SEER_SOLUTION_STARTED,
@@ -91,7 +96,7 @@ class TriggerSmartAssignmentTest(TestCase):
     @patch(CLIENT_PATH)
     def test_dispatch_creates_run_mirror(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
             )
@@ -100,19 +105,42 @@ class TriggerSmartAssignmentTest(TestCase):
         assert len(mirrors) == 1
         # The dispatch trigger (raw ActivityType name) is seeded on the extras for scoring.
         assert mirrors[0].extras["trigger"] == ActivityType.SEER_RCA_STARTED.name
+        assert "referrer" not in mock_client_cls.return_value.start_feature_run.call_args.kwargs
         # A Seer AI-step start carries no ground truth.
         assert "actual_assignee_user_id" not in mirrors[0].extras
 
     @patch(CLIENT_PATH)
     def test_flag_disabled_is_noop(self, mock_client_cls: MagicMock) -> None:
-        trigger_smart_assignment(self.group, ActivityType.SEER_RCA_STARTED, self._seer_started())
+        with self.feature(SEER_ADDED):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
         assert self._mirrors() == []
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
     @patch(CLIENT_PATH)
+    def test_no_seer_customer_flag_is_noop(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        with self.feature(RUN_FLAG):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+        assert self._mirrors() == []
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_dispatches_with_seat_based_seer(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        with self.feature([RUN_FLAG, SEAT_BASED_SEER]):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+        assert len(self._mirrors()) == 1
+
+    @patch(CLIENT_PATH)
     def test_dedup_skips_second_dispatch(self, mock_client_cls: MagicMock) -> None:
         self._mirror(trigger=ActivityType.SEER_RCA_STARTED.name)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
             )
@@ -126,7 +154,7 @@ class TriggerSmartAssignmentTest(TestCase):
             group=self.group, project=self.group.project, user_id=assignee.id
         )
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
         ):
             trigger_smart_assignment(
@@ -147,7 +175,7 @@ class TriggerSmartAssignmentTest(TestCase):
         team = self.create_team(organization=self.organization)
         GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
         ):
             trigger_smart_assignment(
@@ -163,7 +191,7 @@ class TriggerSmartAssignmentTest(TestCase):
         self._wire_client(mock_client_cls)
         resolver = self.create_user()
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
         ):
             trigger_smart_assignment(
@@ -181,7 +209,7 @@ class TriggerSmartAssignmentTest(TestCase):
     def test_dispatch_stamps_triggering_activity(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         activity = self._seer_started()
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(self.group, ActivityType.SEER_RCA_STARTED, activity)
 
         mirror = self._mirrors()[0]
@@ -196,7 +224,7 @@ class TriggerSmartAssignmentTest(TestCase):
     def test_org_rate_limit_skips_dispatch(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.max_dispatches_per_org_per_day": 0}),
         ):
             trigger_smart_assignment(
@@ -211,7 +239,7 @@ class TriggerSmartAssignmentTest(TestCase):
         self._wire_client(mock_client_cls)
         # Org cap is generous; the global cap is what trips here.
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.max_dispatches_per_day": 0}),
         ):
             trigger_smart_assignment(
@@ -231,7 +259,7 @@ class TriggerSmartAssignmentTest(TestCase):
             group=self.group, project=self.group.project, user_id=assignee.id
         )
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.eval_sample_rate": 0.0}),
         ):
             trigger_smart_assignment(
@@ -245,7 +273,7 @@ class TriggerSmartAssignmentTest(TestCase):
     def test_eval_sample_rate_does_not_gate_seer_starts(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.eval_sample_rate": 0.0}),
         ):
             trigger_smart_assignment(
@@ -265,7 +293,7 @@ class TriggerSmartAssignmentTest(TestCase):
             group=self.group, project=self.group.project, user_id=assignee.id
         )
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.eval_sample_rate": 0.10}),
         ):
             trigger_smart_assignment(
@@ -285,7 +313,7 @@ class TriggerSmartAssignmentTest(TestCase):
             group=self.group, project=self.group.project, user_id=assignee.id
         )
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.eval_sample_rate": 0.10}),
         ):
             trigger_smart_assignment(
@@ -305,7 +333,7 @@ class TriggerSmartAssignmentTest(TestCase):
             group=self.group, project=self.group.project, user_id=assignee.id
         )
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options(
                 {
                     "seer.smart_assignment.max_dispatches_per_org_per_day": 0,
@@ -329,7 +357,7 @@ class TriggerSmartAssignmentTest(TestCase):
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=assignee.id
         )
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group,
                 ActivityType.ASSIGNED,
@@ -346,7 +374,7 @@ class TriggerSmartAssignmentTest(TestCase):
         self._wire_client(mock_client_cls)
         team = self.create_team(organization=self.organization)
         GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group,
                 ActivityType.ASSIGNED,
@@ -365,7 +393,7 @@ class TriggerSmartAssignmentTest(TestCase):
         self._mirror(trigger=ActivityType.SEER_RCA_STARTED.name)
         team = self.create_team(organization=self.organization)
         GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group,
                 ActivityType.ASSIGNED,
@@ -388,7 +416,7 @@ class TriggerSmartAssignmentTest(TestCase):
         team = self.create_team(organization=self.organization)
         GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
         self._assigned_activity(team.id, "team", integration=ActivityIntegration.CODEOWNERS.value)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
             )
@@ -410,7 +438,7 @@ class TriggerSmartAssignmentTest(TestCase):
         )
         human = self.create_user()
         with (
-            self.feature("organizations:seer-smart-assignment-run"),
+            self.feature(RUN_FEATURES),
             self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
         ):
             trigger_smart_assignment(
@@ -443,7 +471,7 @@ class TriggerSmartAssignmentTest(TestCase):
             assignee = self.create_user()
             GroupAssignee.objects.create(group=group, project=group.project, user_id=assignee.id)
             self._assigned_activity(assignee.id, group=group)
-            with self.feature("organizations:seer-smart-assignment-run"):
+            with self.feature(RUN_FEATURES):
                 trigger_smart_assignment(
                     group,
                     activity_type,
@@ -463,7 +491,7 @@ class TriggerSmartAssignmentTest(TestCase):
         team = self.create_team(organization=self.organization)
         GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
         self._assigned_activity(team.id, "team")
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
             )
@@ -483,7 +511,7 @@ class TriggerSmartAssignmentTest(TestCase):
             group=self.group, project=self.group.project, user_id=assignee.id
         )
         self._assigned_activity(assignee.id)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             for activity_type in (
                 ActivityType.SEER_RCA_STARTED,
                 ActivityType.SEER_SOLUTION_STARTED,
@@ -516,7 +544,7 @@ class TriggerSmartAssignmentTest(TestCase):
             group=self.group, project=self.group.project, user_id=assignee.id
         )
         self._assigned_activity(assignee.id)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
             )
@@ -536,7 +564,7 @@ class TriggerSmartAssignmentTest(TestCase):
     @patch(CLIENT_PATH)
     def test_automatic_resolution_is_skipped(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group, ActivityType.SET_RESOLVED, self._activity(ActivityType.SET_RESOLVED)
             )
@@ -549,7 +577,7 @@ class TriggerSmartAssignmentTest(TestCase):
     def test_integration_resolution_is_skipped(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         proxy_user = self.create_user(is_sentry_app=True)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with self.feature(RUN_FEATURES):
             trigger_smart_assignment(
                 self.group,
                 ActivityType.SET_RESOLVED_IN_RELEASE,

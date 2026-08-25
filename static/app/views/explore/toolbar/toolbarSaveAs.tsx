@@ -168,7 +168,7 @@ export function ToolbarSaveAs() {
     },
   });
 
-  items.push(getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true}));
+  items.push(getSaveAsAlertMenuItem({alertsUrls, submenu: true}));
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 

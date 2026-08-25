@@ -31,7 +31,7 @@ from sentry.models.repository import Repository
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
-    from sentry.models.repository import RepoResolution
+    from sentry.models.repository import RepoLookup, RepoResolution
 
 
 class PullRequestLifecycleState(models.TextChoices):
@@ -46,6 +46,13 @@ def is_open_pull_request_state(state: str | None) -> bool:
     return state is None or state in (
         PullRequestLifecycleState.OPEN,
         PullRequestLifecycleState.LOCKED,
+    )
+
+
+def is_abandoned_pull_request_state(state: str | None) -> bool:
+    return state in (
+        PullRequestLifecycleState.CLOSED,
+        PullRequestLifecycleState.SUPERSEDED,
     )
 
 
@@ -106,16 +113,17 @@ _KNOWN_SCM_PROVIDERS = frozenset(
 class ResolvedPullRequest(NamedTuple):
     """Result of resolving an externally-reported PR to its canonical ``PullRequest``.
 
-    ``pull_request`` is None when the reported ``(repo_name, provider)`` doesn't map to
-    exactly one active ``Repository``; ``repo_resolution`` says why, and
-    ``provider_unmappable`` flags a *present* provider string we don't map (an empty or
-    ``"unknown"`` provider is treated as absent, not unmappable). Callers decide how (and
-    whether) to log these under their own namespace.
+    ``pull_request`` is None when the reported identity doesn't map to exactly one active
+    ``Repository``; ``repo_resolution`` says why, ``resolved_by`` names the identity that
+    worked (None if nothing did), and ``provider_unmappable`` flags a *present* provider
+    string we don't map (an empty or ``"unknown"`` provider is treated as absent, not
+    unmappable). Callers decide how (and whether) to log these under their own namespace.
     """
 
     pull_request: PullRequest | None
     repo_resolution: RepoResolution
     provider_unmappable: bool
+    resolved_by: RepoLookup | None = None
 
 
 class ParsedPullRequestUrl(NamedTuple):
@@ -211,30 +219,54 @@ class PullRequestManager(BaseManager["PullRequest"]):
         repo_name: str,
         provider: str | None,
         key: int | str,
+        repo_external_id: str | None = None,
     ) -> ResolvedPullRequest:
-        """Resolve an externally-reported ``(repo_name, provider, key)`` to its canonical PR.
+        """Resolve an externally-reported repo reference and PR ``key`` to its canonical PR.
 
-        Resolves the org-scoped active ``Repository`` (via ``RepositoryManager.resolve_active``),
-        then find-or-creates the ``PullRequest`` keyed on ``key`` (the PR number). The
-        find-or-create may run before the SCM ``opened`` webhook arrives, so the row can be
-        a shell (no title/body) the webhook fills in later — we never overwrite it here.
+        Resolves the org-scoped active ``Repository``, then find-or-creates the
+        ``PullRequest`` keyed on ``key`` (the PR number). The find-or-create may run before
+        the SCM ``opened`` webhook arrives, so the row can be a shell (no title/body) the
+        webhook fills in later — we never overwrite it here.
+
+        ``repo_external_id`` resolves exactly; pass it whenever the reporter has it.
+        ``repo_name`` is the weaker fallback — ambiguous across duplicate rows, and for
+        GitLab never equal to the stored name at all.
 
         Returns a ``ResolvedPullRequest``; ``pull_request`` is None when the repo can't be
-        uniquely resolved. Does not log or swallow errors — callers own observability and
-        error handling. Shared by every path that learns of a PR by repo name + provider
-        rather than through an SCM installation (e.g. Seer-created and delegated-agent
-        attribution).
+        uniquely resolved, and ``repo_resolution`` then describes the last identity tried.
+        Does not log or swallow errors — callers own observability and error handling.
+        Shared by every path that learns of a PR from a reporting source rather than
+        through an SCM installation (e.g. Seer-created and delegated-agent attribution).
         """
         normalized_provider = normalize_scm_provider(provider)
         provider_unmappable = (
             normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS
         )
 
-        repository, resolution = Repository.objects.resolve_active(
-            organization_id=organization_id,
-            name=repo_name,
-            normalized_provider=normalized_provider,
-        )
+        repository: Repository | None = None
+        resolution: RepoResolution = "not_found"
+        resolved_by: RepoLookup | None = None
+
+        if repo_external_id:
+            repository, resolution = Repository.objects.resolve_active_by_external_id(
+                organization_id=organization_id,
+                external_id=repo_external_id,
+                normalized_provider=normalized_provider,
+            )
+            if repository is not None:
+                resolved_by = "external_id"
+
+        # Fall back so a reporter without an external id — or with a stale one, e.g. a
+        # repo re-added under a new id — is no worse off than before.
+        if repository is None:
+            repository, resolution = Repository.objects.resolve_active(
+                organization_id=organization_id,
+                name=repo_name,
+                normalized_provider=normalized_provider,
+            )
+            if repository is not None:
+                resolved_by = "name"
+
         if repository is None:
             return ResolvedPullRequest(None, resolution, provider_unmappable)
 
@@ -245,7 +277,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
             repository_id=repository.id,
             key=str(key),
         )
-        return ResolvedPullRequest(pull_request, "resolved", provider_unmappable)
+        return ResolvedPullRequest(pull_request, "resolved", provider_unmappable, resolved_by)
 
     def for_provider_pr(
         self, *, external_id: str, integration_id: int, key: int | str
@@ -351,35 +383,21 @@ class PullRequest(Model):
         """
         Returns a Q object that filters for unused PRs.
         This is the inverse of what makes a PR "in use".
+
+        Every keep condition must be bounded, either by ``cutoff_date`` or by the
+        lifetime of the object referencing the PR. A condition bounded by neither
+        makes the PR immortal and must say why that is intended.
         """
         from sentry.models.grouplink import GroupLink
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-        # Subquery for checking if there's a valid GroupLink
+        # Bounded by the group's lifetime: GroupLink is deleted along with its Group.
         grouplink_exists = Exists(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.pull_request,
                 linked_id=OuterRef("id"),
                 group__project__isnull=False,
-            )
-        )
-
-        # Subquery for checking if comment has valid group_ids
-        # Note: Django aliases the table as U0 in the EXISTS subquery
-        comment_has_valid_group = Exists(
-            PullRequestComment.objects.filter(
-                pull_request_id=OuterRef("id"),
-                group_ids__isnull=False,
-            )
-            .exclude(group_ids__len=0)
-            .extra(
-                where=[
-                    """EXISTS (
-                        SELECT 1 FROM sentry_groupedmessage g
-                        WHERE g.id = ANY(U0.group_ids)
-                    )"""
-                ]
             )
         )
 
@@ -389,6 +407,11 @@ class PullRequest(Model):
             ).filter(Q(created_at__gte=cutoff_date) | Q(updated_at__gte=cutoff_date))
         )
 
+        # Bounded by the release's lifetime, deliberately: a PR whose commit shipped
+        # in a release is part of that release's provenance (CommitSerializer attaches
+        # it to the release's commits), so it lives as long as the release — the same
+        # condition under which CommitDeletionTask keeps the commit itself. Releases
+        # at the tail are effectively immortal, and these PRs are too, by choice.
         commit_in_release = Exists(ReleaseCommit.objects.filter(commit_id=OuterRef("commit_id")))
         commit_in_head = Exists(ReleaseHeadCommit.objects.filter(commit_id=OuterRef("commit_id")))
         commit_exists = Exists(
@@ -400,10 +423,9 @@ class PullRequest(Model):
         # Define what makes a PR "in use" (should be kept)
         keep_conditions = (
             Q(date_added__gte=cutoff_date)
-            | recent_comment_exists
-            | commit_exists
-            | grouplink_exists
-            | comment_has_valid_group
+            | Q(recent_comment_exists)
+            | Q(commit_exists)
+            | Q(grouplink_exists)
         )
 
         # Return the inverse - we want PRs that DON'T meet any keep conditions

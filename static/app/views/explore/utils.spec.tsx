@@ -47,6 +47,36 @@ describe('viewSamplesTarget', () => {
     });
   });
 
+  it('does not add a filter for an empty group by', () => {
+    const location = LocationFixture({
+      query: {
+        aggregateField: [
+          JSON.stringify({groupBy: ''}),
+          JSON.stringify({yAxes: ['count(span.duration)']}),
+        ],
+        aggregateSort: '-count(span.duration)',
+        groupBy: '',
+        visualize: JSON.stringify({yAxes: ['count(span.duration)']}),
+      },
+    });
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: [''],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {},
+      projects,
+    });
+
+    expect(target.query.aggregateField).toEqual(location.query.aggregateField);
+    expect(target.query.aggregateSort).toBe('-count(span.duration)');
+    expect(target.query.groupBy).toBe('');
+    expect(target.query.visualize).toBe(location.query.visualize);
+    expect(target.query.query).toBe('');
+  });
+
   it('simple drill down with single group by', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
@@ -268,6 +298,31 @@ describe('viewSamplesTarget', () => {
         field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '!has:user.id',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('clears table param so it lands on span samples tab', () => {
+    const location = LocationFixture({
+      query: {table: 'attribute_breakdowns'},
+    });
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {bar: 'bar_value', 'count(span.duration)': 10},
+      projects,
+    });
+    expect(target.query.table).toBeUndefined();
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'bar:bar_value',
         sort: ['-span.duration'],
       },
     });
