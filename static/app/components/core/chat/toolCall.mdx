@@ -16,10 +16,11 @@ import * as Storybook from 'sentry/stories';
 export const documentation = import('!!type-loader!@sentry/scraps/chat/toolCall');
 
 The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`.
-Like `ThinkingBlock`, it is an outline `Disclosure`: a leading glyph communicates
-lifecycle `status` (a spinner while running, a semantic icon once settled — see
-`ToolCallIndicator`), the `title` is the toggle, and any `children` expand into
-the panel below.
+Like `ThinkingBlock`, it is built on an outline `Disclosure`: a leading glyph
+communicates lifecycle `status` (a spinner while running, a semantic icon once
+settled — see `ToolCallIndicator`), and the `title` is the toggle. A call only
+renders as an actual (toggleable) `Disclosure` when it has `children` to reveal
+— see [Detail](#detail); otherwise it's a plain row with no toggle affordance.
 
 ## Anatomy
 
@@ -32,11 +33,6 @@ A tool call collapses to a single title line, with an optional trailing
       title="Read trace waterfall"
       status="success"
       reference={{label: 'Trace', value: 'a3805648'}}
-    />
-    <ToolCall
-      title="Read trace with span details"
-      status="success"
-      reference={{label: 'Span', value: 'a469c305'}}
     />
   </Container>
 </Storybook.Demo>
