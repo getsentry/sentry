@@ -717,19 +717,28 @@ function InboxIssueCard({
                 <UserAvatar
                   user={assignedUser ?? group.assignedTo}
                   size={18}
-                  hasTooltip={false}
+                  hasTooltip
+                  tooltip={t('Assigned to: %s', group.assignedTo.name)}
                   title={group.assignedTo.name}
                 />
               ) : (
                 <ActorAvatar
                   actor={group.assignedTo}
                   size={18}
-                  hasTooltip={false}
+                  hasTooltip
+                  tooltip={t('Assigned to: %s', group.assignedTo.name)}
                   title={group.assignedTo.name}
                 />
               ))}
             {!group.assignedTo && suggestedAssignees.length > 0 && (
-              <SuggestedAvatarStack size={18} owners={suggestedAssignees} />
+              <SuggestedAvatarStack
+                size={18}
+                owners={suggestedAssignees}
+                tooltip={t(
+                  'Suggested assignees: %s',
+                  suggestedAssignees.map(owner => owner.name).join(', ')
+                )}
+              />
             )}
           </Stack>
         </Grid>

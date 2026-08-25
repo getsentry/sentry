@@ -391,6 +391,8 @@ describe('InboxPage', () => {
       'src',
       'https://example.com/avatar.jpg?s=120'
     );
+    await userEvent.hover(within(fixSection).getByTitle('Jane Doe'));
+    expect(await screen.findByText('Assigned to: Jane Doe')).toBeInTheDocument();
     expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
     expect(within(fixSection).queryByRole('checkbox')).not.toBeInTheDocument();
     const lastProgressedTime = fixSection.querySelector('time');
@@ -474,12 +476,18 @@ describe('InboxPage', () => {
 
   it('shows suggested owners on inbox cards', async () => {
     const suggestedOwner = UserFixture({id: '11', name: 'John Smith'});
+    const secondSuggestedOwner = UserFixture({id: '12', name: 'Maya Chen'});
     const groupWithSuggestedOwner = GroupFixture({
       ...diagnosedGroup,
       owners: [
         {
           type: 'seerSuggested',
           owner: `user:${suggestedOwner.id}`,
+          date_added: '',
+        },
+        {
+          type: 'seerSuggested',
+          owner: `user:${secondSuggestedOwner.id}`,
           date_added: '',
         },
       ],
@@ -495,17 +503,30 @@ describe('InboxPage', () => {
     mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
     const suggestedOwnerRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      match: [MockApiClient.matchQuery({query: `user.id:${suggestedOwner.id}`})],
-      body: [MemberFixture({id: suggestedOwner.id, user: suggestedOwner})],
+      match: [
+        MockApiClient.matchQuery({
+          query: `user.id:${suggestedOwner.id} user.id:${secondSuggestedOwner.id}`,
+        }),
+      ],
+      body: [
+        MemberFixture({id: suggestedOwner.id, user: suggestedOwner}),
+        MemberFixture({id: secondSuggestedOwner.id, user: secondSuggestedOwner}),
+      ],
     });
     mockIssuePreview({group: groupWithSuggestedOwner});
 
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const issueCard = await screen.findByRole('link', {name: /Diagnosed issue/});
+    const suggestedAvatarStack = await within(issueCard).findByTestId(
+      'suggested-avatar-stack'
+    );
+    const firstSuggestedAvatar = within(suggestedAvatarStack).getByText('JS');
+    expect(within(suggestedAvatarStack).getByText('MC')).toBeInTheDocument();
+    await userEvent.hover(firstSuggestedAvatar);
     expect(
-      await within(issueCard).findByTestId('suggested-avatar-stack')
-    ).toHaveTextContent('JS');
+      await screen.findByText('Suggested assignees: John Smith, Maya Chen')
+    ).toBeInTheDocument();
     expect(suggestedOwnerRequest).toHaveBeenCalledTimes(1);
   });
 
