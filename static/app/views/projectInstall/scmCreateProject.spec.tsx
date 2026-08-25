@@ -291,6 +291,31 @@ describe('ScmCreateProject', () => {
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
 
+  it('hides the repository section for members without a connected integration', async () => {
+    const memberOrganization = OrganizationFixture({
+      features: ['performance-view'],
+      access: ['org:read', 'project:read', 'team:read'],
+      allowMemberProjectCreation: true,
+    });
+    render(<ScmCreateProject />, {organization: memberOrganization});
+
+    expect(await screen.findByRole('heading', {name: 'Platform'})).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Repository'})).not.toBeInTheDocument();
+  });
+
+  it('keeps the repository section for members when an integration is connected', async () => {
+    mockExistingGithubRepository();
+    const memberOrganization = OrganizationFixture({
+      features: ['performance-view'],
+      access: ['org:read', 'project:read', 'team:read'],
+      allowMemberProjectCreation: true,
+    });
+    render(<ScmCreateProject />, {organization: memberOrganization});
+
+    expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
+    expect(await screen.findByText('Search repositories')).toBeInTheDocument();
+  });
+
   it('shows a tooltip on the disabled Create CTA explaining what is missing', async () => {
     render(<ScmCreateProject />, {organization});
 
