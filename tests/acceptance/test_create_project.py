@@ -3,6 +3,7 @@ from unittest import mock
 from sentry.integrations.github.integration import GitHubOAuthLoginResult
 from sentry.integrations.models.integration import Integration
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -108,6 +109,11 @@ class ScmCreateProjectTest(AcceptanceTestCase):
         )
         integration.add_organization(self.org, self.user)
         return integration
+
+    def login_as_member(self) -> None:
+        member_user = self.create_user("scm-member@example.com")
+        self.create_member(user=member_user, organization=self.org, role="member")
+        self.login_as(member_user)
 
     def load_project_creation_page(self) -> None:
         self.browser.get(self.path)
@@ -280,3 +286,53 @@ class ScmCreateProjectTest(AcceptanceTestCase):
 
             self.select_repository()
             self.create_scm_project("Django", "python-django")
+
+    def test_member_creates_project_without_integration(self) -> None:
+        self.login_as_member()
+
+        with self.feature(
+            {
+                "organizations:onboarding-scm-project-creation": True,
+            }
+        ):
+            self.browser.get(self.path)
+            self.browser.wait_until(xpath='//h1[text()="Create a project"]')
+            assert not self.browser.element_exists(xpath='//h4[text()="Repository"]')
+
+            platform_input = self.browser.element('input[aria-autocomplete="list"]')
+            platform_input.send_keys("React")
+            self.browser.wait_until(
+                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
+            )
+            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            self.create_scm_project("React", "javascript-react")
+
+    def test_member_creates_project_with_existing_integration(self) -> None:
+        self.create_github_integration()
+        self.login_as_member()
+
+        with (
+            self.feature(
+                {
+                    "organizations:onboarding-scm-project-creation": True,
+                }
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=self.mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
+                return_value=self.mock_platforms,
+            ),
+        ):
+            self.load_project_creation_page()
+            self.browser.wait_until(xpath='//button[contains(., "getsentry")]')
+
+            self.select_repository()
+            project = self.create_scm_project("Django", "python-django")
+            assert ProjectRepository.objects.filter(project_id=project.id).exists()
