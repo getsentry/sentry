@@ -32,6 +32,7 @@ const productionEntryPoints = [
   // TODO: Remove when wired into the React authentication flow
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
   // TODO: Remove when wired into the agentic onboarding flow
+  'static/app/views/onboarding/agenticProgress/agenticProgressList.tsx',
   'static/app/views/onboarding/agenticProgress/useAgenticProgress.ts',
   'static/app/views/onboarding/agenticProgress/useAgenticProgressInit.ts',
   // https://github.com/getsentry/sentry/pull/121178
