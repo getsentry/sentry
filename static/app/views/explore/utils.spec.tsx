@@ -302,6 +302,31 @@ describe('viewSamplesTarget', () => {
       },
     });
   });
+
+  it('clears table param so it lands on span samples tab', () => {
+    const location = LocationFixture({
+      query: {table: 'attribute_breakdowns'},
+    });
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {bar: 'bar_value', 'count(span.duration)': 10},
+      projects,
+    });
+    expect(target.query.table).toBeUndefined();
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'bar:bar_value',
+        sort: ['-span.duration'],
+      },
+    });
+  });
 });
 
 describe('findSuggestedColumns', () => {

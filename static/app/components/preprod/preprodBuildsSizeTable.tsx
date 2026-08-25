@@ -1,6 +1,4 @@
 import type {ReactNode} from 'react';
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -17,12 +15,12 @@ import {
 } from 'sentry/views/preprod/utils/labelUtils';
 
 import {
-  FullRowLink,
   PreprodBuildsCreatedHeaderCell,
   PreprodBuildsCreatedRowCell,
   PreprodBuildsHeaderCells,
   PreprodBuildsRowCells,
 } from './preprodBuildsTableCommon';
+import {BuildsTableGrid} from './preprodBuildsTableStyles';
 
 interface PreprodBuildsSizeTableProps {
   builds: BuildDetailsApiResponse[];
@@ -49,49 +47,51 @@ export function PreprodBuildsSizeTable({
       }) ?? '';
     return (
       <SimpleTable.Row key={build.id}>
-        <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
-          <Fragment>
-            <PreprodBuildsRowCells
-              build={build}
-              showInteraction
-              showProjectColumn={showProjectColumn}
-            />
-            <SimpleTable.RowCell>
-              <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
-            </SimpleTable.RowCell>
-            <PreprodBuildsCreatedRowCell build={build} />
-          </Fragment>
-        </FullRowLink>
+        <PreprodBuildsRowCells
+          build={build}
+          rowLink={{to: linkUrl, onClick: () => onRowClick?.(build)}}
+          showInteraction
+          showProjectColumn={showProjectColumn}
+        />
+        <SimpleTable.RowCell>
+          <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
+        </SimpleTable.RowCell>
+        <PreprodBuildsCreatedRowCell build={build} />
       </SimpleTable.Row>
     );
   });
 
   return (
-    <BuildsSizeTable showProjectColumn={showProjectColumn}>
-      <SimpleTable.Header>
-        <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
-        <SimpleTable.HeaderCell>
-          {labels.installSizeLabelTooltip ? (
-            <Tooltip title={labels.installSizeLabelTooltip}>
-              <Flex align="center" gap="xs">
-                <Text as="span" variant="muted">
-                  {labels.installSizeLabel}
-                </Text>
-                <IconQuestion size="xs" variant="muted" />
-              </Flex>
-            </Tooltip>
-          ) : (
-            labels.installSizeLabel
-          )}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
-        <PreprodBuildsCreatedHeaderCell />
-      </SimpleTable.Header>
+    <BuildsTableGrid
+      tracks={sizeTableColumns}
+      showProjectColumn={showProjectColumn}
+      header={
+        <SimpleTable.HeaderRow>
+          <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
+          <SimpleTable.HeaderCell>
+            {labels.installSizeLabelTooltip ? (
+              <Tooltip title={labels.installSizeLabelTooltip}>
+                <Flex align="center" gap="xs">
+                  <Text as="span" variant="muted">
+                    {labels.installSizeLabel}
+                  </Text>
+                  <IconQuestion size="xs" variant="muted" />
+                </Flex>
+              </Tooltip>
+            ) : (
+              labels.installSizeLabel
+            )}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
+          <PreprodBuildsCreatedHeaderCell />
+        </SimpleTable.HeaderRow>
+      }
+    >
       {content ?? rows}
-    </BuildsSizeTable>
+    </BuildsTableGrid>
   );
 }
 
@@ -101,10 +101,3 @@ const sizeTableColumns = {
   withoutProject: `minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr)
     minmax(100px, 1fr) minmax(80px, 120px)`,
 };
-
-const BuildsSizeTable = styled(SimpleTable)<{showProjectColumn?: boolean}>`
-  overflow-x: auto;
-  overflow-y: auto;
-  grid-template-columns: ${p =>
-    p.showProjectColumn ? sizeTableColumns.withProject : sizeTableColumns.withoutProject};
-`;

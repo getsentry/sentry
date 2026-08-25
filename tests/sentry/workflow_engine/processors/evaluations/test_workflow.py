@@ -4,7 +4,10 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models import DataConditionGroup
-from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluation_logs
+from sentry.workflow_engine.processors.evaluation_logging import (
+    emit_workflow_evaluation_logs,
+    should_log,
+)
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
     DataConditionGroupEvaluation,
@@ -207,6 +210,22 @@ class TestWorkflowEvaluationArtifact(TestCase):
             )
 
         mock_logger.info.assert_called_once()
+
+    def test_should_log_targeted_workflow(self) -> None:
+        evaluation = self._build_evaluation(workflow_id=10)
+        with (
+            Feature({"organizations:workflow-engine-log-evaluations": False}),
+            override_options(
+                {
+                    "workflow_engine.evaluation_log_target_workflow_ids": [10],
+                    "workflow_engine.evaluation_log_sample_rate": 0.0,
+                }
+            ),
+        ):
+            assert should_log(
+                self.organization,
+                self._build_batch_result({10: evaluation}),
+            )
 
     def test_emitter_respects_sample_rate_when_feature_disabled(self) -> None:
         evaluation = self._build_evaluation()

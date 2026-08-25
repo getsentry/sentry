@@ -69,12 +69,14 @@ export default function ConsoleSDKInvitesSettings() {
       {!isPending && !isError && userHasConsoleAccess && !userHasQuotaRemaining && (
         <NoQuotaRemaining organization={organization} />
       )}
-      <InvitesTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Platforms')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-
+      <InvitesTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Platforms')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isPending && (
           <SimpleTable.Empty>
             <LoadingIndicator />

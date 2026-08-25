@@ -441,6 +441,7 @@ class MergeEventWebhook(GitlabWebhook):
 
         try:
             number = event["object_attributes"]["iid"]
+            external_id = event["object_attributes"]["id"]
             title = event["object_attributes"]["title"]
             body = event["object_attributes"]["description"]
             created_at = event["object_attributes"]["created_at"]
@@ -507,6 +508,7 @@ class MergeEventWebhook(GitlabWebhook):
             "provider_updated_at": state_changed_at,
             "state": state,
             "draft": draft,
+            "external_id": external_id,
         }
 
         # GitLab has no closed_at, so derive it from the lifecycle action. A

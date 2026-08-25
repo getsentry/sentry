@@ -16,7 +16,7 @@ import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -41,7 +41,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
   const {title} = getTitle(tombstone);
 
   return (
-    <Fragment>
+    <SimpleTable.Row>
       <StyledBox>
         <div>
           <Heading as="h5" size="lg">
@@ -54,14 +54,14 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           />
         </div>
       </StyledBox>
-      <RightAlignedColumn>
+      <SimpleTable.RowCell justify="end">
         {data.dateAdded ? (
           <TimeSince date={data.dateAdded} unitStyle="short" suffix="ago" />
         ) : (
           '-'
         )}
-      </RightAlignedColumn>
-      <RightAlignedColumn>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         {data.lastSeen && defined(data.timesSeen) && data.timesSeen > 0 ? (
           <TimeSince
             date={data.lastSeen}
@@ -72,11 +72,11 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
         ) : (
           '-'
         )}
-      </RightAlignedColumn>
-      <RightAlignedColumn>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         {defined(data.timesSeen) ? <Count value={data.timesSeen} /> : '-'}
-      </RightAlignedColumn>
-      <CenteredAlignedColumn>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="center">
         {actor ? (
           <UserAvatar
             user={actor}
@@ -86,8 +86,8 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
         ) : (
           '-'
         )}
-      </CenteredAlignedColumn>
-      <CenteredAlignedColumn>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="center">
         <Confirm
           message={t(
             'Undiscarding this issue means that incoming events that match this will no longer be discarded. New incoming events will count toward your event quota and will display on your issues dashboard. Are you sure you wish to continue?'
@@ -108,8 +108,8 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
             disabled={disabled}
           />
         </Confirm>
-      </CenteredAlignedColumn>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
@@ -176,29 +176,41 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
-            <StyledPanelTable
-              headers={[
-                <LeftAlignedColumn key="issue">{t('Issue')}</LeftAlignedColumn>,
-                <RightAlignedColumn key="dateDiscarded">
-                  {t('Date Discarded')}
-                </RightAlignedColumn>,
-                <RightAlignedColumn key="lastSeen">{t('Last Seen')}</RightAlignedColumn>,
-                <RightAlignedColumn key="events">{t('Events')}</RightAlignedColumn>,
-                <CenteredAlignedColumn key="member">{t('Member')}</CenteredAlignedColumn>,
-                <CenteredAlignedColumn key="actions" />,
-              ]}
-              isEmpty={!tombstones?.length}
-              emptyMessage={t('You have no discarded issues')}
+            <StyledSimpleTable
+              header={
+                <SimpleTable.HeaderRow>
+                  <SimpleTable.HeaderCell>
+                    <LeftAlignedColumn>{t('Issue')}</LeftAlignedColumn>
+                  </SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>
+                    <RightAlignedColumn>{t('Date Discarded')}</RightAlignedColumn>
+                  </SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>
+                    <RightAlignedColumn>{t('Last Seen')}</RightAlignedColumn>
+                  </SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>
+                    <RightAlignedColumn>{t('Events')}</RightAlignedColumn>
+                  </SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>
+                    <CenteredAlignedColumn>{t('Member')}</CenteredAlignedColumn>
+                  </SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell />
+                </SimpleTable.HeaderRow>
+              }
             >
-              {tombstones?.map(data => (
-                <GroupTombstoneRow
-                  key={data.id}
-                  data={data}
-                  disabled={!hasAccess}
-                  onUndiscard={handleUndiscard}
-                />
-              ))}
-            </StyledPanelTable>
+              {tombstones?.length ? (
+                tombstones.map(data => (
+                  <GroupTombstoneRow
+                    key={data.id}
+                    data={data}
+                    disabled={!hasAccess}
+                    onUndiscard={handleUndiscard}
+                  />
+                ))
+              ) : (
+                <SimpleTable.Empty>{t('You have no discarded issues')}</SimpleTable.Empty>
+              )}
+            </StyledSimpleTable>
             {tombstonesPageLinks && <Pagination pageLinks={tombstonesPageLinks} />}
           </Fragment>
         )}
@@ -207,13 +219,13 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
   );
 }
 
-const StyledBox = styled('div')`
+const StyledBox = styled(SimpleTable.RowCell)`
   flex: 1;
   align-items: center;
   min-width: 0; /* keep child content from stretching flex item */
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns:
     minmax(220px, 1fr)
     max-content max-content max-content max-content max-content;

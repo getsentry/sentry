@@ -122,36 +122,57 @@ def link_pull_request_to_seer_run(
         )
         return None
 
+    return link_resolved_pull_request_to_seer_run(
+        seer_run=seer_run,
+        pull_request=resolved.pull_request,
+        log_context={**log_context, "resolved_by": resolved.resolved_by},
+        coding_agent_handoff=coding_agent_handoff,
+    )
+
+
+def link_resolved_pull_request_to_seer_run(
+    *,
+    seer_run: SeerRun,
+    pull_request: PullRequest,
+    log_context: Mapping[str, Any],
+    coding_agent_handoff: SeerRunCodingAgentHandoff | None = None,
+) -> PullRequest | None:
+    """Idempotently link a ``PullRequest`` we already hold to ``seer_run``.
+
+    For callers that reached the row some other way than a reported repo reference --
+    an SCM webhook holds the PR itself, so re-deriving it from a name would be both
+    wasteful and less reliable. Never raises; returns None on failure. Checks the
+    killswitch itself so every write path respects it.
+    """
+    if options.get("seer.pull-request-linking.killswitch.enabled"):
+        return None
+
     try:
         _, created = SeerRunPullRequest.objects.get_or_create(
-            pull_request=resolved.pull_request,
+            pull_request=pull_request,
             defaults={"seer_run": seer_run, "coding_agent_handoff": coding_agent_handoff},
         )
     except Exception:
         logger.exception(
             "seer.pr_link.write_failed",
-            extra={**log_context, "pull_request_id": resolved.pull_request.id},
+            extra={**log_context, "pull_request_id": pull_request.id},
         )
         return None
 
     if created:
         logger.info(
             "seer.pr_link.created",
-            extra={
-                **log_context,
-                "pull_request_id": resolved.pull_request.id,
-                "resolved_by": resolved.resolved_by,
-            },
+            extra={**log_context, "pull_request_id": pull_request.id},
         )
         try:
             reconcile_pull_requests_merged_milestone(seer_run)
         except Exception:
             logger.exception(
                 "seer.pr_link.milestone_failed",
-                extra={**log_context, "pull_request_id": resolved.pull_request.id},
+                extra={**log_context, "pull_request_id": pull_request.id},
             )
 
-    return resolved.pull_request
+    return pull_request
 
 
 def record_seer_created_pull_requests(
@@ -163,10 +184,11 @@ def record_seer_created_pull_requests(
 ) -> None:
     """Record attribution + a run link for the PRs Seer directly created.
 
-    Attribution is gated on ``organizations:pr-metrics-attribution``; linking is
-    gated only on its own killswitch (checked inside ``link_seer_run_pull_requests``)
-    and always attempted. Both sides are best-effort: any failure is logged and
-    swallowed so the caller's flow is never interrupted.
+    Attribution is gated on ``organizations:pr-metrics``. Linking is a Seer feature in
+    its own right, not part of this pipeline: it is gated only on its own killswitch
+    (checked inside ``link_seer_run_pull_requests``) and always attempted. Both sides
+    are best-effort: any failure is logged and swallowed so the caller's flow is never
+    interrupted.
     """
     log_context = {
         "organization_id": organization.id,
@@ -174,7 +196,7 @@ def record_seer_created_pull_requests(
         "group_id": group_id,
     }
 
-    if features.has("organizations:pr-metrics-attribution", organization):
+    if features.has("organizations:pr-metrics", organization):
         try:
             attribute_seer_created_pull_requests(
                 organization=organization,
@@ -209,7 +231,7 @@ def notify_seer_pr_created(
     This is deliberately independent of the autofix completion hook -- it does no
     sentry-app broadcast, Activity creation, or analytics, and is not gated on
     ``SeerAutofixOperator.has_access``. Attribution and linking keep their own
-    existing gates (the ``organizations:pr-metrics-attribution`` flag and the
+    existing gates (the ``organizations:pr-metrics`` flag and the
     ``seer.pull-request-linking.killswitch.enabled`` killswitch respectively),
     inherited via ``record_seer_created_pull_requests``.
     """

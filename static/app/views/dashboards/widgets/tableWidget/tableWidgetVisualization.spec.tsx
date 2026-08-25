@@ -264,8 +264,7 @@ describe('TableWidgetVisualization', () => {
         }
       );
 
-      const $gridResizer = screen.getAllByRole('columnheader')[0]?.children[1]!;
-      dragHandle($gridResizer as HTMLElement, {from: 0, to: 100});
+      dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
       await waitFor(() =>
         expect(testRouter.location.query.width).toStrictEqual(['100', '-1'])
       );
@@ -280,8 +279,7 @@ describe('TableWidgetVisualization', () => {
         />
       );
 
-      const $gridResizer = screen.getAllByRole('columnheader')[0]?.children[1]!;
-      dragHandle($gridResizer as HTMLElement, {from: 0, to: 100});
+      dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
       await waitFor(() =>
         expect(onResizeColumnMock).toHaveBeenCalledWith([
           {

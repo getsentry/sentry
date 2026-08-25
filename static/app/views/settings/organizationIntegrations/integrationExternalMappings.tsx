@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,8 +7,8 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
@@ -181,66 +180,67 @@ export function IntegrationExternalMappings(props: Props) {
     <Fragment>
       <MappingTable
         data-test-id="mapping-table"
-        isEmpty={!allMappings().length}
-        emptyMessage={tct('Set up External [type] Mappings.', {type: capitalize(type)})}
-        headers={[
-          tct('External [type]', {type}),
-          <IconArrow key="arrow" direction="right" size="sm" />,
-          tct('Sentry [type]', {type}),
-          <AddButton
-            key="delete-button"
-            data-test-id="add-mapping-button"
-            onClick={() => onCreate()}
-            size="xs"
-            icon={<IconAdd />}
-          >
-            {tct('Add [type] Mapping', {type})}
-          </AddButton>,
-        ]}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>
+              {tct('External [type]', {type})}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <IconArrow direction="right" size="sm" />
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              {tct('Sentry [type]', {type})}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <AddButton
+                data-test-id="add-mapping-button"
+                onClick={() => onCreate()}
+                size="xs"
+                icon={<IconAdd />}
+              >
+                {tct('Add [type] Mapping', {type})}
+              </AddButton>
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
-        {allMappings().map((mapping, index) => (
-          <Fragment key={index}>
-            <ExternalNameColumn>
-              <StyledPluginIcon pluginId={integration.provider.key} size={19} />
-              <span>{mapping.externalName}</span>
-            </ExternalNameColumn>
-            <div>
-              <IconArrow direction="right" size="sm" variant="muted" />
-            </div>
-            <ExternalForm>{renderMappingName(mapping)}</ExternalForm>
-            <div>{renderMappingActions(mapping)}</div>
-          </Fragment>
-        ))}
+        {allMappings().length ? (
+          allMappings().map((mapping, index) => (
+            <SimpleTable.Row key={index}>
+              <ExternalNameColumn>
+                <StyledPluginIcon pluginId={integration.provider.key} size={19} />
+                <span>{mapping.externalName}</span>
+              </ExternalNameColumn>
+              <SimpleTable.RowCell>
+                <IconArrow direction="right" size="sm" variant="muted" />
+              </SimpleTable.RowCell>
+              <ExternalForm>{renderMappingName(mapping)}</ExternalForm>
+              <SimpleTable.RowCell>{renderMappingActions(mapping)}</SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))
+        ) : (
+          <SimpleTable.Empty>
+            {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
+          </SimpleTable.Empty>
+        )}
       </MappingTable>
       <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
 }
 
-const MappingTable = styled(PanelTable)`
+const MappingTable = styled(SimpleTable)`
   overflow: visible;
   grid-template-columns: 1fr max-content 1fr 66px;
 
-  ${p =>
-    p.isEmpty
-      ? css`
-          > :not(:nth-child(n + 5)) {
-            padding: ${p.theme.space.md} ${p.theme.space.xl};
-          }
-        `
-      : css`
-          > :nth-child(n + 5) {
-            display: flex;
-            align-items: center;
-            padding: ${p.theme.space.lg} ${p.theme.space.xl};
-          }
+  [role='columnheader'] {
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  }
 
-          > * {
-            padding: ${p.theme.space.md} ${p.theme.space.xl};
-          }
-        `}
-
-  > :nth-child(4n) {
+  /* The flat nth-child(4n) form this replaced counted cells across the whole
+     grid; with real rows the actions column is the fourth cell of each row. */
+  [role='columnheader']:nth-child(4),
+  [role='cell']:nth-child(4) {
     padding-right: ${p => p.theme.space.md};
     justify-content: end;
   }
@@ -251,7 +251,7 @@ const StyledPluginIcon = styled(PluginIcon)`
   margin-right: ${p => p.theme.space.xl};
 `;
 
-const ExternalNameColumn = styled('div')`
+const ExternalNameColumn = styled(SimpleTable.RowCell)`
   font-family: ${p => p.theme.font.family.mono};
 `;
 
@@ -259,6 +259,6 @@ const AddButton = styled(Button)`
   align-self: end;
 `;
 
-const ExternalForm = styled('div')`
+const ExternalForm = styled(SimpleTable.RowCell)`
   width: 100%;
 `;

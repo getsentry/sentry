@@ -1,30 +1,16 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ColumnResizer} from 'sentry/components/tables/columnResizer';
-import {
-  getAriaSort,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHead,
-  TableHeadCell,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {
@@ -61,13 +47,6 @@ export function SpansTable({
 
   const {result, eventView} = spansTableResult;
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeEnd, onResizeMove, onResizeStart} = useTableStyles(
-    visibleFields,
-    tableRef,
-    {minimumColumnWidth: 50}
-  );
-
   const meta = useMemo(
     () =>
       addValidatedFieldTypesToMeta({
@@ -88,13 +67,17 @@ export function SpansTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} data-test-id="spans-table">
-        <TableHead>
-          <TableRow>
+      <DataTable
+        data-test-id="spans-table"
+        fields={visibleFields}
+        minimumColumnWidth={50}
+      >
+        <DataTable.Head>
+          <DataTable.Row>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <DataTable.HeadCell key={i} isFirst={i === 0} />;
               }
 
               const fieldType = meta.fields?.[field];
@@ -112,63 +95,55 @@ export function SpansTable({
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell
+                <DataTable.HeadCell
                   align={align}
-                  aria-sort={getAriaSort(direction)}
+                  columnIndex={i}
                   key={i}
                   isFirst={i === 0}
+                  onSort={updateSort}
+                  sort={direction}
                 >
-                  <SortableHeaderCell direction={direction} onSort={updateSort}>
-                    {label}
-                  </SortableHeaderCell>
-                  {i !== visibleFields.length - 1 && (
-                    <ColumnResizer
-                      columnIndex={i}
-                      onResizeEnd={onResizeEnd}
-                      onResizeMove={onResizeMove}
-                      onResizeStart={onResizeStart}
-                    />
-                  )}
-                </TableHeadCell>
+                  {label}
+                </DataTable.HeadCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
           {result.isPending ? (
-            <TableStatus>
+            <DataTable.Status>
               <LoadingIndicator />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isError ? (
-            <TableStatus>
+            <DataTable.Status>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
-              <TableRow key={i}>
+              <DataTable.Row key={i}>
                 {visibleFields.map((field, j) => {
                   return (
-                    <TableBodyCell key={j}>
+                    <DataTable.Cell key={j}>
                       <FieldRenderer
                         column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
                       />
-                    </TableBodyCell>
+                    </DataTable.Cell>
                   );
                 })}
-              </TableRow>
+              </DataTable.Row>
             ))
           ) : (
-            <TableStatus>
+            <DataTable.Status>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </DataTable.Status>
           )}
-        </TableBody>
-      </Table>
+        </DataTable.Body>
+      </DataTable>
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}

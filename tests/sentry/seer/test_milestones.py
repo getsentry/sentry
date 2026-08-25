@@ -423,6 +423,27 @@ class ReconcilePullRequestsMergedMilestoneTest(TestCase):
         assert reconcile_pull_requests_merged_milestone(self.seer_run) is True
         assert self._recorded() == {SeerRunMilestoneType.PULL_REQUESTS_MERGED}
 
+    def test_records_when_a_closed_pull_request_is_ignored_and_others_merged(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.CLOSED)
+        self._linked_pull_request("2", PullRequestLifecycleState.MERGED)
+
+        assert reconcile_pull_requests_merged_milestone(self.seer_run) is True
+        assert self._recorded() == {SeerRunMilestoneType.PULL_REQUESTS_MERGED}
+
+    def test_records_when_a_superseded_pull_request_is_ignored_and_others_merged(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.SUPERSEDED)
+        self._linked_pull_request("2", PullRequestLifecycleState.MERGED)
+
+        assert reconcile_pull_requests_merged_milestone(self.seer_run) is True
+        assert self._recorded() == {SeerRunMilestoneType.PULL_REQUESTS_MERGED}
+
+    def test_not_recorded_when_a_closed_and_an_open_pull_request(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.CLOSED)
+        self._linked_pull_request("2", PullRequestLifecycleState.OPEN)
+
+        assert reconcile_pull_requests_merged_milestone(self.seer_run) is False
+        assert self._recorded() == set()
+
     def test_not_recorded_when_a_linked_pull_request_is_open(self) -> None:
         self._linked_pull_request("1", PullRequestLifecycleState.MERGED)
         self._linked_pull_request("2", PullRequestLifecycleState.OPEN)

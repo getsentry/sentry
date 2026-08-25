@@ -3,10 +3,10 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
-from sentry.api.endpoints.organization_ai_conversation_details import (
+from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
+from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
 from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
@@ -278,6 +278,9 @@ from sentry.integrations.api.endpoints.organization_integration_serverless_funct
 from sentry.integrations.api.endpoints.organization_integrations_index import (
     OrganizationIntegrationsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_pull_request_files import (
+    OrganizationPullRequestFilesEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_repositories import (
     OrganizationRepositoriesEndpoint,
 )
@@ -296,11 +299,20 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
+    OrganizationInvestigationBlockExecutionDetailsEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_block_executions import (
+    OrganizationInvestigationBlockExecutionsEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_block_index import (
     OrganizationInvestigationBlocksEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_block_order import (
     OrganizationInvestigationBlockOrderEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_candidates import (
+    OrganizationInvestigationCandidatesEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_details import (
     OrganizationInvestigationsDetailsEndpoint,
@@ -316,6 +328,9 @@ from sentry.investigations.endpoints.organization_investigation_index import (
 )
 from sentry.investigations.endpoints.organization_investigation_parameters import (
     OrganizationInvestigationParametersEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_title_generation import (
+    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -550,9 +565,6 @@ from sentry.seer.endpoints.organization_events_anomalies import OrganizationEven
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_agent_pr_groups import (
-    OrganizationSeerAgentPRGroupsEndpoint,
-)
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
@@ -746,8 +758,14 @@ from .endpoints.internal import (
     InternalRpcServiceEndpoint,
     InternalWarningsEndpoint,
 )
-from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
+from .endpoints.organization_agentic_onboarding import (
+    OrganizationAgenticOnboardingRunIndexEndpoint,
+    OrganizationAgenticOnboardingStatusEndpoint,
+)
+from .endpoints.organization_agentic_onboarding_run_details import (
+    OrganizationAgenticOnboardingRunDetailsEndpoint,
+)
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
 from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
 from .endpoints.organization_artifactbundle_assemble import (
@@ -2254,6 +2272,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-sent-first-event",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pull-requests/(?P<pull_request_id>[^/]+)/files/$",
+        OrganizationPullRequestFilesEndpoint.as_view(),
+        name="sentry-api-0-organization-pull-request-files",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/repos/$",
         OrganizationRepositoriesEndpoint.as_view(),
         name="sentry-api-0-organization-repositories",
@@ -2395,6 +2418,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigations",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/candidates/$",
+        OrganizationInvestigationCandidatesEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-candidates",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",
         OrganizationInvestigationsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-details",
@@ -2415,6 +2443,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-block-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/$",
+        OrganizationInvestigationBlockExecutionsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-block-executions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/(?P<execution_id>[^/]+)/$",
+        OrganizationInvestigationBlockExecutionDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-block-execution-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/favorite/$",
         OrganizationInvestigationsFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-favorite",
@@ -2423,6 +2461,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
         OrganizationInvestigationsDuplicateEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-duplicate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/title-generation/$",
+        OrganizationInvestigationTitleGenerationEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-title-generation",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/parameters/$",
@@ -2483,11 +2526,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
         OrganizationSeerWorkflowsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflows",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-pr-groups/$",
-        OrganizationSeerAgentPRGroupsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-explorer-pr-groups",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
@@ -2578,6 +2616,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/onboarding-tasks/$",
         OrganizationOnboardingTaskEndpoint.as_view(),
         name="sentry-api-0-organization-onboardingtasks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/onboarding/agent/runs/$",
+        OrganizationAgenticOnboardingRunIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-agentic-onboarding-run-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/onboarding/agent/runs/(?P<run_id>[a-f0-9]{32})/$",
+        OrganizationAgenticOnboardingRunDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-agentic-onboarding-run-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/onboarding/agent/status/$",
+        OrganizationAgenticOnboardingStatusEndpoint.as_view(),
+        name="sentry-api-0-organization-agentic-onboarding-status",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/environments/$",
@@ -3698,11 +3751,6 @@ INTERNAL_URLS = [
         r"^feature-flags/$",
         InternalFeatureFlagsEndpoint.as_view(),
         name="sentry-api-0-internal-feature-flags",
-    ),
-    re_path(
-        r"^feature-flags/ea-feature-flags$",
-        InternalEAFeaturesEndpoint.as_view(),
-        name="sentry-api-0-internal-ea-features",
     ),
     re_path(
         r"^demo/email-capture/$",
