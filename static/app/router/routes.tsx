@@ -60,7 +60,10 @@ export function LegacyStoriesRedirect() {
     <Navigate
       replace
       to={{
-        pathname: location.pathname.replace(/\/stories(?=\/|$)/, '/scraps'),
+        pathname: location.pathname.replace(
+          /^(\/organizations\/[^/]+)?\/stories(?=\/|$)/,
+          '$1/scraps'
+        ),
         search: location.search,
         hash: location.hash,
       }}

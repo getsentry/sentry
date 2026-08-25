@@ -206,4 +206,18 @@ describe('LegacyStoriesRedirect', () => {
     expect(router.location.query).toEqual({theme: 'dark'});
     expect(router.location.hash).toBe('#examples');
   });
+
+  it('does not replace an organization slug named stories', async () => {
+    const {router} = render(<LegacyStoriesRedirect />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/stories/stories/core/button/',
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/stories/scraps/core/button/');
+    });
+  });
 });
