@@ -274,10 +274,6 @@ def transform_checkin_uuid(
         pass
 
     if check_in_guid is None:
-        metrics.incr(
-            "monitors.checkin.result",
-            tags={**metric_kwargs, "status": "failed_guid_validation"},
-        )
         set_span_tag(span, "result", "failed_guid_validation")
         logger.info(
             "monitors.consumer.guid_validation_failed",
@@ -355,9 +351,6 @@ def update_existing_check_in(
     )
 
     if already_user_complete and not updated_duration_only and not is_out_of_order_in_progress:
-        if updated_status == CheckInStatus.IN_PROGRESS:
-            return
-
         finished_error: CheckinFinished = {
             "type": ProcessingErrorType.CHECKIN_FINISHED,
         }
@@ -423,6 +416,10 @@ def update_existing_check_in(
     if is_out_of_order_in_progress:
         updated_checkin["date_in_progress"] = start_time
         existing_check_in.update(**updated_checkin)
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "out_of_order_in_progress"},
+        )
         return
 
     updated_checkin["status"] = updated_status
@@ -1023,11 +1020,6 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             # XXX: We are ONLY recording this metric for completed check-ins.
             delay = datetime.now() - item.ts
             metrics.timing("monitors.checkin.completion_time", delay.total_seconds())
-
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "complete"},
-            )
     except Exception as e:
         if isinstance(e, ProcessingErrorsException):
             raise
