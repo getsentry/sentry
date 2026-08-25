@@ -1452,6 +1452,53 @@ describe('trace view', () => {
         }
       });
 
+      it('cancels a pending compression update when trace space changes', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        const organization = OrganizationFixture({
+          features: ['trace-waterfall-time-compression'],
+        });
+        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
+        const setCompressionSpy = jest.spyOn(
+          VirtualizedViewManager.prototype,
+          'setTimeCompression'
+        );
+
+        try {
+          await completeTestSetup({organization});
+          const manager = setCompressionSpy.mock.contexts.at(-1) as
+            | VirtualizedViewManager
+            | undefined;
+          if (!manager) {
+            throw new Error('Expected trace view manager to receive time compression');
+          }
+
+          compressionSpy.mockClear();
+          jest.useFakeTimers();
+
+          const traceStart = manager.view.to_origin;
+          const traceDuration = manager.view.trace_space.width;
+          act(() => {
+            manager.scheduler.dispatch('set trace view', {
+              x: traceDuration * 0.25,
+              width: traceDuration * 0.5,
+            });
+            manager.scheduler.dispatch('initialize trace space', [
+              traceStart,
+              0,
+              traceDuration,
+              1,
+            ]);
+          });
+
+          act(() => jest.advanceTimersByTime(250));
+          expect(compressionSpy).not.toHaveBeenCalled();
+        } finally {
+          jest.useRealTimers();
+          compressionSpy.mockRestore();
+          setCompressionSpy.mockRestore();
+        }
+      });
+
       it('waits for an active wheel zoom to end before recomputing compression', async () => {
         mockTracePreferences({compressed_timeline: true});
         const organization = OrganizationFixture({

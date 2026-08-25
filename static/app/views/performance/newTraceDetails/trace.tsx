@@ -294,6 +294,7 @@ export function Trace({
       ]);
       if (!hasMeasuredPhysicalWidthRef.current && viewport.physicalWidth > 0) {
         hasMeasuredPhysicalWidthRef.current = true;
+        timeCompressionViewportDebouncer.cancel();
         setTimeCompressionViewport(viewport);
       } else {
         timeCompressionViewportDebouncer.maybeExecute(viewport);
@@ -303,6 +304,7 @@ export function Trace({
       manager.draw();
     };
     const onTraceSpaceChange: TraceEvents['initialize trace space'] = () => {
+      timeCompressionViewportDebouncer.cancel();
       setTimeCompressionViewport(
         snapshotTimeCompressionViewport(manager, trace_id, [traceStart, traceDuration])
       );
