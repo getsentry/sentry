@@ -37,7 +37,7 @@ describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
     features: ['seer-night-shift-ui', 'gen-ai-features'],
   });
-  const basePath = `/organizations/${organization.slug}/issues/autofix/overview/`;
+  const basePath = `/organizations/${organization.slug}/issues/autofix/`;
 
   const emptyMilestones = {
     autofix_root_cause: [],
