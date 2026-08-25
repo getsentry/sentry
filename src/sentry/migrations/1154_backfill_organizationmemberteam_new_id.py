@@ -14,20 +14,18 @@ BATCH_SIZE = 1000
 
 def backfill_new_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     OrganizationMemberTeam = apps.get_model("sentry", "OrganizationMemberTeam")
-
-    # Filtering on new_id is what lets an interrupted run resume instead of starting over.
-    # It does mean the progress total estimates the whole table, not the rows left to do.
-    remaining = OrganizationMemberTeam.objects.filter(new_id__isnull=True).values_list(
-        "id", flat=True
-    )
-
     for batch in chunked(
         RangeQuerySetWrapperWithProgressBarApprox(
-            remaining, step=BATCH_SIZE, result_value_getter=lambda row_id: row_id
+            OrganizationMemberTeam.objects.all().values_list("id", "new_id", named=True),
+            step=BATCH_SIZE,
+            result_value_getter=lambda row: row.id,
         ),
         BATCH_SIZE,
     ):
-        OrganizationMemberTeam.objects.filter(id__in=batch).update(new_id=F("id"))
+        missing_new_id = [row for row in batch if row.new_id is None]
+        pending_ids = [row.id for row in missing_new_id]
+        if pending_ids:
+            OrganizationMemberTeam.objects.filter(id__in=pending_ids).update(new_id=F("id"))
 
 
 class Migration(CheckedMigration):
