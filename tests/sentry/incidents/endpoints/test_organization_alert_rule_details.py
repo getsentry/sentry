@@ -11,7 +11,7 @@ import responses
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.test import override_settings
-from httpx import HTTPError
+from urllib3.exceptions import HTTPError
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError

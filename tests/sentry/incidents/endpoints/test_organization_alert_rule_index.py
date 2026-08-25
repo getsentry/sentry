@@ -8,7 +8,7 @@ import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
-from httpx import HTTPError
+from urllib3.exceptions import HTTPError
 from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
