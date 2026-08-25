@@ -93,7 +93,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
-                  placeholder={t('e.g. Sentry')}
+                  placeholder="e.g. Sentry"
                 />
               </field.Layout.Stack>
             )}
@@ -110,7 +110,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
-                  placeholder={t('e.g. https://sentry.io/')}
+                  placeholder="e.g. https://sentry.io/"
                 />
               </field.Layout.Stack>
             )}
@@ -124,7 +124,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
-                  placeholder={t('e.g. https://sentry.io/')}
+                  placeholder="e.g. https://sentry.io/"
                 />
               </field.Layout.Stack>
             )}
@@ -138,7 +138,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
-                  placeholder={t('e.g. https://sentry.io/')}
+                  placeholder="e.g. https://sentry.io/"
                 />
               </field.Layout.Stack>
             )}
@@ -152,7 +152,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
-                  placeholder={t('e.g. https://sentry.io/privacy/')}
+                  placeholder="e.g. https://sentry.io/privacy/"
                 />
               </field.Layout.Stack>
             )}
@@ -166,7 +166,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
-                  placeholder={t('e.g. https://sentry.io/terms/')}
+                  placeholder="e.g. https://sentry.io/terms/"
                 />
               </field.Layout.Stack>
             )}
