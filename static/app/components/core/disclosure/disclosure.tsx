@@ -101,13 +101,18 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
   const chevron = <IconChevron direction={state.isExpanded ? 'down' : 'right'} />;
 
   // With a leading slot the chevron trails the title, so the leading content is
-  // the visual anchor and the toggle still reads label-then-affordance.
+  // the visual anchor and the toggle still reads label-then-affordance. Without
+  // leadingItems, the toggle button itself supplies left padding (see
+  // StretchedButton); with leadingItems, that content sits outside the button
+  // and needs its own matching left padding so the row isn't flush left while
+  // trailingItems get `paddingRight`.
   return (
     <TitleRow
       justify="start"
       gap={context.size}
       align="center"
       width="100%"
+      paddingLeft={leadingItems ? 'xs' : undefined}
       paddingRight="xs"
       radius="md"
     >
