@@ -452,7 +452,7 @@ def get_artifact_bundles_containing_url(
                 ArtifactBundleIndex.objects.filter(
                     artifact_bundle_id=OuterRef("pk"),
                     organization_id=project.organization.id,
-                    url__icontains=url,
+                    url__ilike=url,
                 )
             ),
             Exists(
