@@ -657,10 +657,7 @@ def _backfill_decisions(
     backfill_items = list(_make_backfill(start, until_not))
 
     for item in backfill_items:
-        # A bare SET clears the expiry these keys were written with, so it has
-        # to be re-applied. redis-py 3.4 predates the KEEPTTL option.
-        pipeline.set(item.key, decision.value)
-        pipeline.expire(item.key, MONITOR_VOLUME_RETENTION)
+        pipeline.set(item.key, decision.value, ex=MONITOR_VOLUME_RETENTION)
     pipeline.execute()
 
     # Return the timestamp just before we reached until_not. Note
