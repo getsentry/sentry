@@ -71,7 +71,11 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             paginator_cls=DateTimePaginator,
             order_by="-date_updated",
             on_results=lambda values: serialize(
-                list(values), request.user, InvestigationSerializer()
+                list(values),
+                request.user,
+                InvestigationSerializer(
+                    accessible_project_ids=request.access.accessible_project_ids
+                ),
             ),
         )
 
