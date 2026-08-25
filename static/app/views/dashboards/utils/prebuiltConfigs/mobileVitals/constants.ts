@@ -21,12 +21,14 @@ export const WARM_START_CONDITION = `(${ROOT_APP_START_TRANSACTION_CONDITION} ha
 export const TTID_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.initial_display has:${SpanFields.APP_VITALS_TTID_VALUE})`;
 export const TTFD_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.full_display has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
 
-// The App Starts table groups rows by app.vitals.start.screen and requires that
-// attribute so rows without a screen are excluded. Cold and warm averages are
-// split with avg_if on app.vitals.start.type so each screen stays a single row.
-export const APP_START_TABLE_CONDITION = `has:${SpanFields.APP_VITALS_START_VALUE} has:${SpanFields.APP_VITALS_START_SCREEN}`;
-export const AVG_COLD_START = `equation|avg_if(${SpanFields.APP_VITALS_START_VALUE},${SpanFields.APP_VITALS_START_TYPE},equals,cold)`;
-export const AVG_WARM_START = `equation|avg_if(${SpanFields.APP_VITALS_START_VALUE},${SpanFields.APP_VITALS_START_TYPE},equals,warm)`;
+// Group by app.vitals.start.screen. start.value is not a registered duration
+// yet, so has: uses tags[...,number] (search cannot parse millisecond) and
+// avg_if uses millisecond so the columns format as durations.
+const START_VALUE_NUMBER = `tags[${SpanFields.APP_VITALS_START_VALUE},number]`;
+const START_VALUE_DURATION = `tags[${SpanFields.APP_VITALS_START_VALUE},millisecond]`;
+export const APP_START_TABLE_CONDITION = `(has:${SpanFields.APP_VITALS_START_SCREEN} AND has:${START_VALUE_NUMBER})`;
+export const AVG_COLD_START = `avg_if(${START_VALUE_DURATION},${SpanFields.APP_VITALS_START_TYPE},equals,cold)`;
+export const AVG_WARM_START = `avg_if(${START_VALUE_DURATION},${SpanFields.APP_VITALS_START_TYPE},equals,warm)`;
 
 // TTFD can be absent while TTID is present because reportFullyDrawn() is opt-in.
 export const SCREEN_LOAD_CONDITION = `(${TTID_CONDITION} OR ${TTFD_CONDITION})`;
