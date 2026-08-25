@@ -42,7 +42,7 @@ export function List({
   };
 
   return (
-    <div>
+    <Stack gap="xl">
       {Object.keys(relaysByPublicKey).map(relayByPublicKey => {
         const {name, description, created, activities} =
           relaysByPublicKey[relayByPublicKey]!;
@@ -66,6 +66,6 @@ export function List({
           </Stack>
         );
       })}
-    </div>
+    </Stack>
   );
 }
