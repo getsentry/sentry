@@ -4,7 +4,7 @@ from sentry.investigations.templates.types import InvestigationTemplateSpec, Tem
 BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
     key="breached_metric",
     version=1,
-    source_type=InvestigationSourceType.BREACHED_METRIC,
+    source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
     parameters=(),
     blocks=(
         TemplateBlockSpec(

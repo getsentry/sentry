@@ -1,8 +1,8 @@
 import Papa from 'papaparse';
 
 import {createExportFilename} from 'sentry/components/exports/createExportFilename';
+import type {ExportableRow} from 'sentry/components/exports/downloadRows';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import type {ExportableLogRow} from 'sentry/views/explore/logs/exports/downloadLogs';
 
 function disableMacros(value: string | null | boolean | number | undefined) {
   if (
@@ -17,8 +17,8 @@ function disableMacros(value: string | null | boolean | number | undefined) {
   return value ?? '';
 }
 
-export function downloadLogsAsCsv(
-  rows: ExportableLogRow[],
+export function downloadRowsAsCsv(
+  rows: ExportableRow[],
   fields: string[],
   filename: string
 ) {

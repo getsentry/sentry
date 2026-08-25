@@ -13,6 +13,7 @@ import {
   TraceSamplesTableEmbeddedColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
+import {TRACE_METRICS_INGESTION_DELAY_SECONDS} from 'sentry/views/explore/metrics/ingestionDelay';
 import {
   LoadingMaskRow,
   StyledSimpleTable,
@@ -33,7 +34,6 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;
-const TWO_MINUTE_DELAY = 120;
 
 interface MetricsSamplesTableProps {
   isMetricOptionsEmpty?: boolean;
@@ -66,7 +66,7 @@ export function MetricsSamplesTable({
     limit: isEmbedded ? EMBEDDED_RESULT_LIMIT : RESULT_LIMIT,
     traceMetric,
     fields,
-    ingestionDelaySeconds: TWO_MINUTE_DELAY,
+    ingestionDelaySeconds: TRACE_METRICS_INGESTION_DELAY_SECONDS,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 

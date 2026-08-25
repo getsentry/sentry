@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -12,6 +11,7 @@ import {Access} from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import {Confirm} from 'sentry/components/confirm';
 import {FileSize} from 'sentry/components/fileSize';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -46,64 +46,68 @@ export function DebugFileRow({
   const {features} = data || {};
 
   return (
-    <Fragment>
-      <Stack align="stretch" width="100%">
-        <div>
-          <DebugId>{debugId || uuid}</DebugId>
-        </div>
-        <Text as="div" size="sm" variant="muted">
-          <Flex
-            direction={{zero: 'column', md: 'row'}}
-            align={{zero: 'start', md: 'center'}}
-            gap={{zero: 'xs', md: 'md'}}
-            marginTop="md"
-            width="100%"
-          >
-            <StyledFileSize bytes={size} />
-            <Grid
-              columns="min-content 1fr"
-              flex={1}
-              align="center"
-              gap="xs"
-              paddingLeft="xs"
+    <SimpleTable.Row>
+      <SimpleTable.RowCell align="start">
+        <Stack align="stretch" width="100%">
+          <div>
+            <DebugId>{debugId || uuid}</DebugId>
+          </div>
+          <Text as="div" size="sm" variant="muted">
+            <Flex
+              direction={{zero: 'column', md: 'row'}}
+              align={{zero: 'start', md: 'center'}}
+              gap={{zero: 'xs', md: 'md'}}
+              marginTop="md"
+              width="100%"
             >
-              <IconClock size="xs" />
-              <TimeSince date={dateCreated} />
-            </Grid>
-          </Flex>
-        </Text>
-      </Stack>
-      <Stack align="start">
-        <Name>
-          {symbolType === 'proguard' && objectName === 'proguard-mapping'
-            ? '\u2015'
-            : objectName}
-        </Name>
-        <Description>
-          <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
-
-          {features && (
-            <Flex display="inline-flex" wrap="wrap" gap="xs">
-              {features.map(feature => (
-                <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
-                  <Tag variant="muted">{feature}</Tag>
-                </Tooltip>
-              ))}
+              <StyledFileSize bytes={size} />
+              <Grid
+                columns="min-content 1fr"
+                flex={1}
+                align="center"
+                gap="xs"
+                paddingLeft="xs"
+              >
+                <IconClock size="xs" />
+                <TimeSince date={dateCreated} />
+              </Grid>
             </Flex>
-          )}
-          {showDetails && (
-            <div>
-              {/* there will be more stuff here in the future */}
-              {codeId && (
-                <DetailsItem>
-                  {t('Code ID')}: {codeId}
-                </DetailsItem>
-              )}
-            </div>
-          )}
-        </Description>
-      </Stack>
-      <Flex justify="end" align="start" marginTop="md">
+          </Text>
+        </Stack>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell align="start">
+        <Stack align="start">
+          <Name>
+            {symbolType === 'proguard' && objectName === 'proguard-mapping'
+              ? '\u2015'
+              : objectName}
+          </Name>
+          <Description>
+            <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
+
+            {features && (
+              <Flex display="inline-flex" wrap="wrap" gap="xs">
+                {features.map(feature => (
+                  <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
+                    <Tag variant="muted">{feature}</Tag>
+                  </Tooltip>
+                ))}
+              </Flex>
+            )}
+            {showDetails && (
+              <div>
+                {/* there will be more stuff here in the future */}
+                {codeId && (
+                  <DetailsItem>
+                    {t('Code ID')}: {codeId}
+                  </DetailsItem>
+                )}
+              </div>
+            )}
+          </Description>
+        </Stack>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" align="start" marginTop="md">
         <Grid flow="column" align="center" gap="xs">
           <Tooltip
             disabled={hasRole}
@@ -151,8 +155,8 @@ export function DebugFileRow({
             )}
           </Access>
         </Grid>
-      </Flex>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
