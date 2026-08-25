@@ -81,11 +81,10 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
       ));
     },
     onError: error => {
-      if (error instanceof RequestError) {
-        setFieldErrors(form, error);
-      } else {
-        addErrorMessage('Unable to create OAuth client.');
+      if (error instanceof RequestError && setFieldErrors(form, error)) {
+        return;
       }
+      addErrorMessage('Unable to create OAuth client.');
     },
   });
 

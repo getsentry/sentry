@@ -3,7 +3,10 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
+
+import * as indicators from 'sentry/actionCreators/indicator';
 
 import {InstanceLevelOAuth} from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 
@@ -115,5 +118,39 @@ describe('create instance level OAuth client', () => {
     expect(screen.getAllByText('Field is required')).toHaveLength(2);
     expect(screen.getByText('Allowed origins are required')).toBeInTheDocument();
     expect(mockPostRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows an error message when the API error does not match a form field', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: '/_admin/instance-level-oauth/',
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'Internal server error'},
+    });
+
+    render(<InstanceLevelOAuth />);
+    await userEvent.click(screen.getByText('New Instance Level OAuth Client'));
+    renderGlobalModal();
+
+    const values = {
+      'Client Name': 'Santry',
+      'Allowed Origins': 'https://santry.com',
+      'Redirect URIs': 'https://santry.com/redirect',
+      'Homepage URL': 'https://santry.com',
+      'Privacy Policy URL': 'https://santry.com/privacy',
+      'Terms and Conditions URL': 'https://santry.com/terms',
+    };
+    for (const [name, value] of Object.entries(values)) {
+      await userEvent.type(screen.getByRole('textbox', {name}), value);
+    }
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Client'}));
+
+    await waitFor(() =>
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Unable to create OAuth client.'
+      )
+    );
   });
 });
