@@ -383,35 +383,21 @@ class PullRequest(Model):
         """
         Returns a Q object that filters for unused PRs.
         This is the inverse of what makes a PR "in use".
+
+        Every keep condition must be bounded, either by ``cutoff_date`` or by the
+        lifetime of the object referencing the PR. A condition bounded by neither
+        makes the PR immortal and must say why that is intended.
         """
         from sentry.models.grouplink import GroupLink
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-        # Subquery for checking if there's a valid GroupLink
+        # Bounded by the group's lifetime: GroupLink is deleted along with its Group.
         grouplink_exists = Exists(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.pull_request,
                 linked_id=OuterRef("id"),
                 group__project__isnull=False,
-            )
-        )
-
-        # Subquery for checking if comment has valid group_ids
-        # Note: Django aliases the table as U0 in the EXISTS subquery
-        comment_has_valid_group = Exists(
-            PullRequestComment.objects.filter(
-                pull_request_id=OuterRef("id"),
-                group_ids__isnull=False,
-            )
-            .exclude(group_ids__len=0)
-            .extra(
-                where=[
-                    """EXISTS (
-                        SELECT 1 FROM sentry_groupedmessage g
-                        WHERE g.id = ANY(U0.group_ids)
-                    )"""
-                ]
             )
         )
 
@@ -421,6 +407,11 @@ class PullRequest(Model):
             ).filter(Q(created_at__gte=cutoff_date) | Q(updated_at__gte=cutoff_date))
         )
 
+        # Bounded by the release's lifetime, deliberately: a PR whose commit shipped
+        # in a release is part of that release's provenance (CommitSerializer attaches
+        # it to the release's commits), so it lives as long as the release — the same
+        # condition under which CommitDeletionTask keeps the commit itself. Releases
+        # at the tail are effectively immortal, and these PRs are too, by choice.
         commit_in_release = Exists(ReleaseCommit.objects.filter(commit_id=OuterRef("commit_id")))
         commit_in_head = Exists(ReleaseHeadCommit.objects.filter(commit_id=OuterRef("commit_id")))
         commit_exists = Exists(
@@ -432,10 +423,9 @@ class PullRequest(Model):
         # Define what makes a PR "in use" (should be kept)
         keep_conditions = (
             Q(date_added__gte=cutoff_date)
-            | recent_comment_exists
-            | commit_exists
-            | grouplink_exists
-            | comment_has_valid_group
+            | Q(recent_comment_exists)
+            | Q(commit_exists)
+            | Q(grouplink_exists)
         )
 
         # Return the inverse - we want PRs that DON'T meet any keep conditions
