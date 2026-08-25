@@ -506,7 +506,8 @@ function getRenderer(fieldName: string) {
         <p>
           Optionally, you can pass the
           <code>columns</code>
-          prop to render them in the loading placeholder. Note: sorting and
+          prop to render them in the loading placeholder. You can also pass
+          <code>aliases</code> to apply custom names to columns. Note: sorting and
           resizing are disabled in the loading placeholder.
         </p>
         <TableWidgetVisualization.LoadingPlaceholder

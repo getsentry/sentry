@@ -364,7 +364,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
 TableWidgetVisualization.LoadingPlaceholder = function ({
   columns,
+  aliases,
 }: {
+  aliases?: Record<string, string>;
   columns?: TabularColumn[];
 }) {
   const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
@@ -382,12 +384,13 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
           }
           const column = columns[columnIndex]!;
           const isStarredColumn = column.key === SpanFields.IS_STARRED_TRANSACTION;
+          const hasAlias = !!aliases?.[column.key];
           const align = fieldAlignment(column.key, column.type as ColumnValueType);
-          const displayAsIcon = isStarredColumn;
+          const displayAsIcon = isStarredColumn && !hasAlias;
           const name: React.ReactNode = displayAsIcon ? (
             <IconStar isSolid size="md" variant="warning" />
           ) : (
-            column.key
+            aliases?.[column.key] || column.key
           );
           const tooltipTitle = displayAsIcon ? column.key : name;
 
