@@ -658,7 +658,7 @@ describe('ScmMessaging', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Connect slack/i}));
 
-      let releaseRefetch: () => void = () => {};
+      let releaseRefetch = () => {};
       const refetchGate = new Promise<void>(resolve => {
         releaseRefetch = resolve;
       });
