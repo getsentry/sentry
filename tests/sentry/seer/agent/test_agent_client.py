@@ -688,6 +688,121 @@ class TestSeerAgentClient(TestCase):
             client.get_run(123)
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    def test_latest_run_uses_group_and_last_triggered_at(self, mock_access):
+        mock_access.return_value = (True, None)
+        group = self.create_group(project=self.create_project(organization=self.organization))
+        recent = self.create_seer_agent_run(
+            self.create_seer_run(
+                organization=self.organization,
+                seer_run_state_id=2,
+                last_triggered_at=timezone.now(),
+            ),
+            source="autofix",
+            group=group,
+        )
+        self.create_seer_agent_run(
+            self.create_seer_run(
+                organization=self.organization,
+                seer_run_state_id=1,
+                last_triggered_at=timezone.now() - timedelta(days=1),
+            ),
+            source="autofix",
+            group=group,
+        )
+        self.create_seer_agent_run(
+            self.create_seer_run(
+                organization=self.organization,
+                seer_run_state_id=3,
+                last_triggered_at=timezone.now() + timedelta(days=1),
+            ),
+            source="chat",
+            group=group,
+        )
+        self.create_seer_agent_run(
+            self.create_seer_run(
+                organization=self.organization,
+                seer_run_state_id=None,
+                last_triggered_at=timezone.now() + timedelta(days=1),
+            ),
+            source="autofix",
+            group=group,
+        )
+
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            category_key="autofix",
+            category_value=str(group.id),
+        )
+
+        assert client.latest_run(group_id=group.id) == recent
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    def test_latest_run_uses_category_value_without_group(self, mock_access):
+        mock_access.return_value = (True, None)
+        matching = self.create_seer_agent_run(
+            self.create_seer_run(organization=self.organization, seer_run_state_id=2),
+            source="slack_thread",
+            extras={"category_value": "thread-1"},
+        )
+        self.create_seer_agent_run(
+            self.create_seer_run(organization=self.organization, seer_run_state_id=3),
+            source="slack_thread",
+            extras={"category_value": "thread-2"},
+        )
+
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            category_key="slack_thread",
+            category_value="thread-1",
+        )
+
+        assert client.latest_run() == matching
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    def test_fetch_latest_run_state_uses_mirrored_state_id(self, mock_access):
+        mock_access.return_value = (True, None)
+        group = self.create_group(project=self.create_project(organization=self.organization))
+        self.create_seer_agent_run(
+            self.create_seer_run(organization=self.organization, seer_run_state_id=4242),
+            source="autofix",
+            group=group,
+        )
+        expected = SeerRunState(
+            run_id=4242,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            category_key="autofix",
+            category_value=str(group.id),
+        )
+
+        with patch.object(client, "get_run", return_value=expected) as mock_get_run:
+            assert client.fetch_latest_run_state(group_id=group.id) is expected
+
+        mock_get_run.assert_called_once_with(4242)
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    def test_fetch_latest_run_state_returns_none_without_mirror(self, mock_access):
+        mock_access.return_value = (True, None)
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            category_key="autofix",
+            category_value="missing",
+        )
+
+        with patch.object(client, "get_run") as mock_get_run:
+            assert client.fetch_latest_run_state() is None
+
+        mock_get_run.assert_not_called()
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_runs_request")
     def test_get_runs_basic(self, mock_post, mock_access):
         """Test getting runs with filters"""
