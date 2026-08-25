@@ -70,6 +70,7 @@ def _last_row(mock_record: Any) -> PrCloseMetricsEvent:
 
 
 @cell_silo_test
+@with_feature("organizations:pr-metrics")
 class UpdatePrMetricsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -445,7 +446,7 @@ class UpdatePrMetricsTest(TestCase):
 
 
 @cell_silo_test
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 class ReapStuckJudgeVerdictsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -512,16 +513,14 @@ class ReapStuckJudgeVerdictsTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
     @patch("sentry.analytics.record")
-    def test_releases_without_emitting_when_indeterminate(self, mock_record: Any) -> None:
-        # Activity tracking off for this org: select_verdict can't tell whether
-        # there were commits after open, so select_fallback_verdict would risk
-        # misreading "untracked" as "no commits after open". Rather than emit a
-        # null-verdict row (which would leave the door open, via verdict IS NULL,
-        # for a later genuine Seer callback to emit a second row), the sentinel
-        # is released and nothing is emitted.
+    def test_releases_without_emitting_when_pr_metrics_disabled(self, mock_record: Any) -> None:
+        # The org lost pr-metrics while the forward was in flight. Release the
+        # sentinel so the row can't sit claimed forever, but settle nothing — a
+        # null-verdict row would leave the door open, via verdict IS NULL, for a
+        # later genuine Seer callback to emit for an org the pipeline skipped.
         self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
 
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             reap_stuck_judge_verdicts()
 
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None

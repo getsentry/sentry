@@ -35,6 +35,7 @@ from sentry.seer.agent.tools import (
     get_baseline_tag_distribution,
     get_dsn,
     get_event_details,
+    get_group_assignees,
     get_issue_committers,
     get_issue_details,
     get_issue_ownership,
@@ -2004,6 +2005,89 @@ class TestGetTeamMembers(APITestCase):
             team_slug=team.slug,
         )
         assert result is None
+
+
+class TestGetGroupAssignees(APITestCase):
+    def test_returns_active_user_assignees_by_group_id(self):
+        second_user = self.create_user(email="second@example.com")
+        self.create_member(user=second_user, organization=self.organization)
+        first_group = self.create_group(project=self.project)
+        second_group = self.create_group(project=self.project)
+        team_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=first_group,
+            user_id=self.user.id,
+        )
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=second_group,
+            user_id=second_user.id,
+        )
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=team_group,
+            team=self.team,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[second_group.id, team_group.id, first_group.id],
+        )
+
+        assert result["assignees"] == {
+            str(second_group.id): {
+                "id": second_user.id,
+                "username": second_user.username,
+            },
+            str(first_group.id): {
+                "id": self.user.id,
+                "username": self.user.username,
+            },
+        }
+
+    @patch("sentry.seer.agent.tools.user_service.get_many")
+    def test_skips_user_service_when_no_groups_have_user_assignees(self, get_many):
+        team_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=team_group,
+            team=self.team,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[team_group.id],
+        )
+
+        assert result["assignees"] == {}
+        get_many.assert_not_called()
+
+    def test_excludes_groups_from_other_organizations(self):
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+        other_group = self.create_group(project=other_project)
+        other_user = self.create_user(email="other@example.com")
+        self.create_member(user=other_user, organization=other_organization)
+        GroupAssignee.objects.create(
+            project=other_project,
+            group=other_group,
+            user_id=other_user.id,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[other_group.id],
+        )
+
+        assert result["assignees"] == {}
+
+    def test_rejects_more_than_one_hundred_groups(self):
+        with pytest.raises(BadRequest):
+            get_group_assignees(
+                organization_id=self.organization.id,
+                group_ids=list(range(101)),
+            )
 
 
 class TestGetEventDetails(

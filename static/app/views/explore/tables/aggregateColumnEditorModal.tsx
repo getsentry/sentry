@@ -7,7 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -16,6 +16,9 @@ import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -34,6 +37,11 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  TraceItemSearchQueryBuilder,
+  type TraceItemSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -62,6 +70,13 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  applyConditionalFilter,
+  buildConditionalAggregate,
+  CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
+  parseConditionalAggregate,
+  supportsConditionalAggregateFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
@@ -413,11 +428,22 @@ function AggregateSelector({
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
-  const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
+  const organization = useOrganization();
+  const hasConditionalAggregates = organization.features.includes(
+    'explore-conditional-aggregates'
+  );
+
+  // The dropdowns operate on the base aggregate, with the `_if` combinator and its
+  // filter argument stripped off.
+  const parsedFunction = useMemo(() => parseConditionalAggregate(yAxis), [yAxis]);
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
+
+  // Filters only survive a swap to another aggregate that supports them, and are dropped
+  // entirely while the feature is off so that toggling it never leaves a stale filter.
+  const filter = hasConditionalAggregates ? (parsedFunction?.filter ?? '') : '';
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -431,14 +457,21 @@ function AggregateSelector({
 
   const handleFunctionChange = useCallback(
     (option: SelectOption<SelectKey>) => {
+      const newAggregate = option.value as string;
       const newYAxis = updateVisualizeAggregate({
-        newAggregate: option.value as string,
+        newAggregate,
         oldAggregate: parsedFunction?.name,
         oldArguments: parsedFunction?.arguments,
       });
-      onChange(visualize.replace({yAxis: newYAxis}));
+      onChange(
+        visualize.replace({
+          yAxis: supportsConditionalAggregateFilter(newAggregate)
+            ? applyConditionalFilter(newYAxis, filter)
+            : newYAxis,
+        })
+      );
     },
-    [parsedFunction, onChange, visualize]
+    [filter, parsedFunction, onChange, visualize]
   );
 
   const handleArgumentChange = (index: number, option: SelectOption<SelectKey>) => {
@@ -449,52 +482,136 @@ function AggregateSelector({
       } else {
         args = [option.value];
       }
-      const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
-      onChange(visualize.replace({yAxis: newYAxis}));
+      onChange(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction?.name ?? '',
+            arguments: args,
+            filter,
+          }),
+        })
+      );
     }
   };
 
+  const handleFilterSearch = useCallback(
+    (newFilter: string) => {
+      if (!parsedFunction) {
+        return;
+      }
+      onChange(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction.name,
+            arguments: parsedFunction.arguments,
+            filter: newFilter,
+          }),
+        })
+      );
+    },
+    [onChange, parsedFunction, visualize]
+  );
+
+  const showFilterSearchBar =
+    hasConditionalAggregates &&
+    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
+
+  const {selection} = usePageFilters();
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: filter,
+    onSearch: handleFilterSearch,
+    searchSource: 'explore-conditional-aggregate',
+    placeholder: t('Filter spans for this series'),
+    // Attribute-only, same "Invalid key" UX as metrics for aggregates in the filter:
+    // never offer visualize aggregates, and mark them invalid if typed.
+    supportedAggregates: [],
+  });
+
+  const searchQueryBuilderProps = useMemo<TraceItemSearchQueryBuilderProps>(
+    () => ({
+      ...spanSearchQueryBuilderProps,
+      invalidFilterKeys: [
+        ...(spanSearchQueryBuilderProps.invalidFilterKeys ?? []),
+        ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+      ],
+      invalidMessages: {
+        [InvalidReason.INVALID_KEY]: CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
+      },
+    }),
+    [spanSearchQueryBuilderProps]
+  );
+
   return (
-    <Fragment>
-      <SingleWidthCompactSelect
-        data-test-id="editor-visualize-function"
-        options={aggregateOptions}
-        value={parsedFunction?.name}
-        onChange={handleFunctionChange}
-        search
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            prefix={t('Function')}
-            style={{
-              width: '100%',
-            }}
+    <Stack flex="3" minWidth="0" gap="sm">
+      <Flex gap="md" align="center" width="100%">
+        <SingleWidthCompactSelect
+          data-test-id="editor-visualize-function"
+          options={aggregateOptions}
+          value={parsedFunction?.name}
+          onChange={handleFunctionChange}
+          search
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={t('Function')}
+              style={{
+                width: '100%',
+              }}
+            />
+          )}
+        />
+        {aggregateDefinition?.parameters?.map((param, index) => (
+          <AttributeArgumentSelect
+            key={param.name}
+            numberTags={numberTags}
+            stringTags={stringTags}
+            booleanTags={booleanTags}
+            parsedFunction={parsedFunction}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            onChange={option => handleArgumentChange(index, option)}
+          />
+        ))}
+        {aggregateDefinition?.parameters?.length === 0 && (
+          <AttributeArgumentSelect
+            numberTags={numberTags}
+            stringTags={stringTags}
+            booleanTags={booleanTags}
+            parsedFunction={parsedFunction}
+            value={parsedFunction?.arguments[0] ?? ''}
+            onChange={option => handleArgumentChange(0, option)}
+            forceDisabled
           />
         )}
-      />
-      {aggregateDefinition?.parameters?.map((param, index) => (
-        <AttributeArgumentSelect
-          key={param.name}
-          numberTags={numberTags}
-          stringTags={stringTags}
-          booleanTags={booleanTags}
-          parsedFunction={parsedFunction}
-          value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-          onChange={option => handleArgumentChange(index, option)}
-        />
-      ))}
-      {aggregateDefinition?.parameters?.length === 0 && (
-        <AttributeArgumentSelect
-          numberTags={numberTags}
-          stringTags={stringTags}
-          booleanTags={booleanTags}
-          parsedFunction={parsedFunction}
-          value={parsedFunction?.arguments[0] ?? ''}
-          onChange={option => handleArgumentChange(0, option)}
-          forceDisabled
-        />
+      </Flex>
+      {showFilterSearchBar && (
+        <FilterSearchBar searchQueryBuilderProps={searchQueryBuilderProps} />
       )}
-    </Fragment>
+    </Stack>
+  );
+}
+
+interface FilterSearchBarProps {
+  searchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
+}
+
+/**
+ * Search bar rendered underneath the aggregate dropdowns, used to attach an `_if` filter
+ * to this series. Callers supply dataset-specific `TraceItemSearchQueryBuilder` props.
+ */
+function FilterSearchBar({searchQueryBuilderProps}: FilterSearchBarProps) {
+  return (
+    <Container data-test-id="editor-visualize-filter" minWidth="0">
+      <TraceItemSearchQueryBuilder
+        {...searchQueryBuilderProps}
+        showSearchIcon={false}
+        // The modal clips and stacks above menus that are not portaled, and the full width
+        // filter key menu anchors itself inside the bar, so it has to be turned off for
+        // portaling to cover every menu.
+        portalTarget={document.body}
+        disableFullWidthFilterKeyMenu
+      />
+    </Container>
   );
 }
 
@@ -729,6 +846,18 @@ const RowContainer = styled('div')`
 
   :not(:first-child) {
     margin-top: ${p => p.theme.space.md};
+  }
+
+  /* Keep the drag handle and delete button aligned with the dropdowns rather than
+   * centered against the taller column that a series filter bar adds. The buttons are a
+   * size smaller than the dropdowns, so grow them to match instead of pinning their
+   * icons to the top of the row. */
+  &:has([data-test-id='editor-visualize-filter']) {
+    align-items: flex-start;
+
+    > button {
+      height: ${p => p.theme.form.md.height};
+    }
   }
 `;
 

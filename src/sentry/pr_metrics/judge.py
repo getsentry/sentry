@@ -22,6 +22,7 @@ from django.utils import timezone
 from pydantic import ValidationError
 from urllib3.exceptions import HTTPError
 
+from sentry import features
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -580,6 +581,13 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
         organization = Organization.objects.get(id=pull_request.organization_id)
     except Organization.DoesNotExist:
         metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "org_gone"})
+        return
+
+    if not features.has("organizations:pr-metrics", organization):
+        # Org lost pr-metrics mid-forward: release the claim so the row can't sit
+        # at the sentinel forever, but settle nothing for a pipeline that no longer runs.
+        if _release_judge_sentinel(pull_request):
+            metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "feature_disabled"})
         return
 
     outcome = select_verdict(pull_request, organization)

@@ -259,13 +259,42 @@ class GcpIntegrationTest(TestCase):
 
     def test_update_organization_config_is_noop(self) -> None:
         installation = self._create_installed_integration()
-        original_config = installation.gcp_config
-        assert original_config is not None
 
         installation.update_organization_config({"sentry_sa_email": "evil@attacker.com"})
 
         oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)
-        assert oi.config == original_config
+        assert oi.config["sentry_sa_email"] == _SA_EMAIL
+        assert oi.config["customer_sa_email"] == _CUSTOMER_SA
+        assert oi.config["projects"] == ["my-gcp-project"]
+
+    def test_get_organization_config_returns_disabled_fields(self) -> None:
+        installation = self._create_installed_integration()
+        fields = installation.get_organization_config()
+
+        assert len(fields) == 3
+        names = [f["name"] for f in fields]
+        assert names == ["sentry_sa_email", "customer_sa_email", "projects"]
+        for field in fields:
+            assert field["disabled"] is True
+
+    def test_get_config_data_flattens_projects(self) -> None:
+        installation = self._create_installed_integration(
+            projects=["project-a", "project-b", "project-c"]
+        )
+        data = installation.get_config_data()
+
+        assert data["sentry_sa_email"] == _SA_EMAIL
+        assert data["customer_sa_email"] == _CUSTOMER_SA
+        assert data["projects"] == "project-a, project-b, project-c"
+
+    def test_get_config_data_empty_without_config(self) -> None:
+        self._create_installed_integration()
+        oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)
+        oi.update(config={})
+
+        reinstalled = oi.integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(reinstalled, GcpIntegration)
+        assert reinstalled.get_config_data() == {}
 
     # -- Uninstall: SA deletion --
 

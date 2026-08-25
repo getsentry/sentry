@@ -112,7 +112,7 @@ export function shouldRefetchEnriched(
 
 type QueryParams = Record<string, unknown> | undefined;
 
-const SCOPE_FREE_PARAMS = ['sort', 'expand'];
+const SCOPE_FREE_PARAMS = ['expand'];
 
 export function isSameScope(previous: QueryParams, next: QueryParams): boolean {
   return isEqual(omit(previous, SCOPE_FREE_PARAMS), omit(next, SCOPE_FREE_PARAMS));

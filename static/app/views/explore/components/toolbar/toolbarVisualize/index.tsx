@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
@@ -20,6 +21,7 @@ import {
   ToolbarLabel,
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
+import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarVisualizeHeader() {
@@ -45,6 +47,11 @@ interface ToolbarVisualizeDropdownProps {
   parsedFunction: ParsedFunction | null;
   dragColumnId?: number;
   fieldDefinitionType?: GetFieldDefinitionType;
+  /**
+   * Search bar rendered underneath the aggregate dropdowns, used to attach an `_if`
+   * filter to this series.
+   */
+  filterSearchBar?: ReactNode;
   label?: ReactNode;
   loading?: boolean;
   onClose?: () => void;
@@ -64,6 +71,7 @@ export function ToolbarVisualizeDropdown({
   parsedFunction,
   label,
   loading,
+  filterSearchBar,
   fieldDefinitionType = 'span',
 }: ToolbarVisualizeDropdownProps) {
   const {attributes, listeners, setNodeRef, transform} = useSortable({
@@ -79,64 +87,82 @@ export function ToolbarVisualizeDropdown({
   return (
     <ToolbarRow
       ref={setNodeRef}
-      style={{transform: CSS.Transform.toString(transform)}}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        // Keep the drag handle, label and delete button aligned with the dropdowns
+        // rather than centered against the taller filter bar row.
+        ...(filterSearchBar ? {alignItems: 'flex-start'} : null),
+      }}
       {...attributes}
     >
       {dragColumnId === undefined ? null : (
         <DragReorderButton iconSize="sm" {...listeners} />
       )}
       {label}
-      <AggregateCompactSelect
-        search
-        options={aggregateOptions}
-        value={parsedFunction?.name ?? ''}
-        onChange={onChangeAggregate}
-      />
-      {aggregateDefinition?.parameters?.map((param, index) => {
-        return (
-          <FieldCompactSelect
-            key={param.name}
-            search={{
-              highlight: true,
-              onChange: onSearch,
-              filter: (option, searchText) => {
-                return sortSearchedAttributes({
-                  fieldDefinitionType,
-                  option,
-                  searchText,
-                });
-              },
-            }}
-            options={fieldOptions}
-            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-            onChange={option => onChangeArgument(index, option)}
-            disabled={fieldOptions.length === 1}
-            onClose={onClose}
-            loading={loading}
+      <Stack
+        flex="1"
+        minWidth="0"
+        gap="sm"
+        // Let the filter bar overflow the toolbar once it expands on focus.
+        overflow="visible"
+      >
+        <Flex gap="md" align="center" width="100%">
+          <AggregateCompactSelect
+            search
+            options={aggregateOptions}
+            value={parsedFunction?.name ?? ''}
+            onChange={onChangeAggregate}
           />
-        );
-      })}
-      {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
-        <FieldCompactSelect
-          search={{
-            highlight: true,
-            onChange: onSearch,
-            filter: (option, searchText) => {
-              return sortSearchedAttributes({
-                fieldDefinitionType,
-                option,
-                searchText,
-              });
-            },
-          }}
-          options={fieldOptions}
-          value={parsedFunction?.arguments[0] ?? ''}
-          onChange={option => onChangeArgument(0, option)}
-          disabled
-          onClose={onClose}
-          loading={loading}
-        />
-      )}
+          {aggregateDefinition?.parameters?.map((param, index) => {
+            return (
+              <FieldCompactSelect
+                key={param.name}
+                search={{
+                  highlight: true,
+                  onChange: onSearch,
+                  filter: (option, searchText) => {
+                    return sortSearchedAttributes({
+                      fieldDefinitionType,
+                      option,
+                      searchText,
+                    });
+                  },
+                }}
+                options={fieldOptions}
+                value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+                onChange={option => onChangeArgument(index, option)}
+                disabled={fieldOptions.length === 1}
+                onClose={onClose}
+                loading={loading}
+              />
+            );
+          })}
+          {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
+            <FieldCompactSelect
+              search={{
+                highlight: true,
+                onChange: onSearch,
+                filter: (option, searchText) => {
+                  return sortSearchedAttributes({
+                    fieldDefinitionType,
+                    option,
+                    searchText,
+                  });
+                },
+              }}
+              options={fieldOptions}
+              value={parsedFunction?.arguments[0] ?? ''}
+              onChange={option => onChangeArgument(0, option)}
+              disabled
+              onClose={onClose}
+              loading={loading}
+            />
+          )}
+        </Flex>
+        {filterSearchBar ? (
+          <ExpandableFilterSearchBar>{filterSearchBar}</ExpandableFilterSearchBar>
+        ) : null}
+      </Stack>
       {onDelete ? (
         <Button
           variant="transparent"
@@ -194,6 +220,7 @@ export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAdd
 
 const AggregateCompactSelect = styled(CompactSelect)`
   width: 100px;
+  flex-shrink: 0;
 
   > button {
     width: 100%;

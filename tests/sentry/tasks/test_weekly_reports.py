@@ -39,6 +39,7 @@ from sentry.tasks.summaries.utils import (
 from sentry.tasks.summaries.weekly_reports import (
     CHART_PALETTE,
     OrganizationReportBatch,
+    WeeklyReportProgressTracker,
     _pct_change,
     date_format,
     group_status_to_color,
@@ -1597,6 +1598,48 @@ class WeeklyReportsTest(
 
             # Verify that the expected key was used
             assert expected_key in set_keys, f"Expected key {expected_key} not found in {set_keys}"
+
+    def test_set_last_processed_org_id_sets_a_ttl(self) -> None:
+        """The progress marker expires on its own, so an interrupted run cannot leak it."""
+        timestamp = self.timestamp
+        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
+            "weekly_reports_org_id_min"
+        )
+        key = f"weekly_reports_org_id_min:{timestamp}"
+        redis_cluster.delete(key)
+
+        tracker = WeeklyReportProgressTracker(timestamp=timestamp)
+        tracker.set_last_processed_org_id(self.organization.id)
+
+        ttl = redis_cluster.ttl(key)
+        assert 0 < ttl <= WeeklyReportProgressTracker.MIN_ORG_ID_TTL.total_seconds()
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
+    def test_schedule_organizations_leaves_a_ttl_when_the_run_fails(
+        self, mock_prepare_organization_report: mock.MagicMock
+    ) -> None:
+        """A run that dies before delete_min_org_id must not leave a key without a TTL."""
+        timestamp = self.timestamp
+        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
+            "weekly_reports_org_id_min"
+        )
+        key = f"weekly_reports_org_id_min:{timestamp}"
+        redis_cluster.delete(key)
+
+        assert self.organization is not None
+        self.create_organization(name="Another Org")
+        # Fail after the first organization is scheduled and recorded, so that the
+        # task raises with the progress marker already written.
+        mock_prepare_organization_report.delay.side_effect = [None, ValueError("boom")]
+
+        with pytest.raises(ValueError):
+            schedule_organizations(timestamp=timestamp)
+
+        assert mock_prepare_organization_report.delay.call_count == 2
+
+        assert redis_cluster.get(key) is not None
+        ttl = redis_cluster.ttl(key)
+        assert 0 < ttl <= WeeklyReportProgressTracker.MIN_ORG_ID_TTL.total_seconds()
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
     def test_schedule_organizations_starts_from_beginning_when_no_redis_key(
