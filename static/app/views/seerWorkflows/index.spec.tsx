@@ -58,7 +58,7 @@ describe('SeerWorkflows', () => {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
           triageStrategy: 'agentic',
-          errorMessage: 'No Seer quota available',
+          errorMessage: 'Unexpected Seer error',
           extras: {},
           issues: [],
         },
@@ -69,13 +69,44 @@ describe('SeerWorkflows', () => {
 
     expect(await screen.findByText('Run failed')).toBeInTheDocument();
     expect(screen.getByLabelText('Failed')).toBeInTheDocument();
-    expect(screen.queryByText('No Seer quota available')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unexpected Seer error')).not.toBeInTheDocument();
 
     // The raw error string is now debug-only (employees see it inside the
     // Debug disclosure). For a non-employee user, expanding the row should NOT
-    // surface the raw "No Seer quota available" string.
+    // surface the raw error string.
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
-    expect(screen.queryByText(/No Seer quota available/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Unexpected Seer error/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['No Seer quota available', 'No Seer quota available', 'Skipped'],
+    ['Organization does not have Seer access', 'Seer is not enabled', 'Skipped'],
+    ['Failed to get eligible projects', 'Could not check eligible projects', 'Failed'],
+    ['Invalid Night Shift shard plan', 'Could not prepare triage', 'Failed'],
+    [
+      'Failed to dispatch 1 of 3 triage shards',
+      'Could not start all triage batches',
+      'Failed',
+    ],
+  ])('shows friendly messaging for %s', async (errorMessage, resultText, status) => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage,
+          extras: {},
+          issues: [],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    expect(await screen.findByText(resultText)).toBeInTheDocument();
+    expect(screen.getByLabelText(status)).toBeInTheDocument();
   });
 
   it('renders zero-issue triage runs as muted "No issues processed"', async () => {
@@ -746,7 +777,7 @@ describe('SeerWorkflows', () => {
           id: '2',
           dateAdded: '2026-04-21T00:00:00Z',
           triageStrategy: 'agentic',
-          errorMessage: 'No Seer quota available',
+          errorMessage: 'Unexpected Seer error',
           extras: {options: {source: 'cron'}},
           issues: [],
         },
@@ -894,7 +925,7 @@ describe('SeerWorkflows', () => {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
           triageStrategy: 'agentic',
-          errorMessage: 'No Seer quota available',
+          errorMessage: 'Unexpected Seer error',
           extras: {agent_run_id: 42},
           issues: [],
         },
@@ -908,7 +939,7 @@ describe('SeerWorkflows', () => {
     expect(screen.queryByRole('link', {name: /Run failed/})).not.toBeInTheDocument();
   });
 
-  it('Status filter offers only Succeeded and Failed', async () => {
+  it('Status filter offers every status produced by workflow rows', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -929,8 +960,8 @@ describe('SeerWorkflows', () => {
 
     expect(screen.getByRole('option', {name: 'Succeeded'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Failed'})).toBeInTheDocument();
-    // toWorkflowRow never produces these statuses, so they aren't offered.
-    expect(screen.queryByRole('option', {name: 'Skipped'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Skipped'})).toBeInTheDocument();
+    // Running is not derivable from the current API response.
     expect(screen.queryByRole('option', {name: 'Running'})).not.toBeInTheDocument();
   });
 
@@ -943,7 +974,7 @@ describe('SeerWorkflows', () => {
           id: 'newer-failed',
           dateAdded: '2026-04-21T00:00:00Z',
           triageStrategy: 'agentic',
-          errorMessage: 'No Seer quota available',
+          errorMessage: 'Unexpected Seer error',
           extras: {},
           issues: [],
         },
