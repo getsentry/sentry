@@ -56,7 +56,7 @@ proxy.route(
 proxy.route(
     "/api/0/organizations/<str:org>/monitoring-providers/gcp/verify-connection",
     methods=["get", "post", "put", "patch", "delete", "head", "options"],
-    pipeline=[db.pipe_ctx],
+    pipeline=[db.pipe_ctx, ProxyTimeoutPipe(90.0)],
     name="proxy_cell_from_org_monitoring_provider_verify",
 )(proxy_cell_from_org)
 

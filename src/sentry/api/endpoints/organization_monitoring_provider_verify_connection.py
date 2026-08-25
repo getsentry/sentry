@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from rest_framework.fields import CharField, ListField
+from rest_framework.fields import CharField, ChoiceField, ListField
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -12,7 +13,11 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_monitoring_provider_index import (
     MonitoringProviderPermission,
 )
-from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.base import (
+    CamelSnakeSerializer,
+    convert_dict_key_case,
+    snake_to_camel_case,
+)
 from sentry.integrations.gcp.client import verify_gcp_connection
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
@@ -24,6 +29,34 @@ class GcpVerifyConnectionSerializer(CamelSnakeSerializer["GcpVerifyConnectionSer
     gcp_project_ids = ListField(
         child=CharField(max_length=64), required=True, min_length=1, max_length=100
     )
+
+
+_CONNECTION_STATUSES = (
+    "connected",
+    "permission_denied",
+    "api_disabled",
+    "project_not_found",
+    "error",
+)
+
+
+class GcpVerifyConnectionServiceResultSerializer(Serializer[dict[str, object]]):
+    service = CharField()
+    status = ChoiceField(choices=_CONNECTION_STATUSES)
+    error_detail = CharField(required=False, allow_null=True)
+
+
+class GcpVerifyConnectionProjectResultSerializer(Serializer[dict[str, object]]):
+    gcp_project_id = CharField()
+    connection_status = ChoiceField(choices=_CONNECTION_STATUSES)
+    services = GcpVerifyConnectionServiceResultSerializer(many=True)
+    error_detail = CharField(required=False, allow_null=True)
+
+
+class GcpVerifyConnectionResponseSerializer(Serializer[dict[str, object]]):
+    connection_status = ChoiceField(choices=_CONNECTION_STATUSES)
+    projects = GcpVerifyConnectionProjectResultSerializer(many=True)
+    error_detail = CharField(required=False, allow_null=True)
 
 
 @cell_silo_endpoint
@@ -62,4 +95,13 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
         except IntegrationError as exc:
             return Response({"detail": str(exc)}, status=502)
 
-        return Response(result)
+        response_serializer = GcpVerifyConnectionResponseSerializer(data=result)
+        if not response_serializer.is_valid():
+            return Response(
+                {"detail": "Failed to verify GCP connection. Please try again."},
+                status=502,
+            )
+
+        return Response(
+            convert_dict_key_case(response_serializer.validated_data, snake_to_camel_case)
+        )

@@ -9,7 +9,7 @@ import orjson
 from google.auth.exceptions import DefaultCredentialsError
 from google.auth.transport.requests import AuthorizedSession
 from requests.exceptions import RequestException
-from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.exceptions import HTTPError
 
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.seer.signed_seer_api import (
@@ -153,7 +153,7 @@ def verify_gcp_connection(
             body=body,
             timeout=_VERIFY_CONNECTION_TIMEOUT,
         )
-    except (TimeoutError, MaxRetryError):
+    except HTTPError:
         logger.exception("gcp.verify_connection_request_error")
         raise IntegrationError("Failed to verify GCP connection. Please try again.")
 

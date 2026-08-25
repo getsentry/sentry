@@ -23,6 +23,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -614,8 +615,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         *,
         organization_id: int,
     ) -> str | None:
-        from sentry.integrations.models.gcp_service_account import GcpServiceAccount
-
         try:
             sa = GcpServiceAccount.objects.get(organization_id=organization_id)
         except GcpServiceAccount.DoesNotExist:

@@ -49,6 +49,7 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
                 }
             ],
             "error_detail": None,
+            "internal_detail": "must not reach the client",
         }
 
         with self.feature("organizations:seer-infra-telemetry"):
@@ -58,8 +59,11 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
                 gcp_project_ids=["proj-a"],
             )
 
-        assert response.data["connection_status"] == "connected"
+        assert response.data["connectionStatus"] == "connected"
         assert len(response.data["projects"]) == 1
+        assert response.data["projects"][0]["gcpProjectId"] == "proj-a"
+        assert "connection_status" not in response.data
+        assert "internalDetail" not in response.data
         mock_sa_email.assert_called_once_with(organization_id=self.organization.id)
         mock_verify.assert_called_once_with(
             sentry_sa_email=_SA_EMAIL,
@@ -79,6 +83,27 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
 
         assert response.status_code == 502
         assert "Failed to verify GCP connection" in response.data["detail"]
+
+    @patch(_PATCH_SA_EMAIL, return_value=_SA_EMAIL)
+    @patch(
+        _PATCH_VERIFY,
+        return_value={
+            "connection_status": "connected",
+            "projects": [{"gcp_project_id": "proj-a"}],
+        },
+    )
+    def test_invalid_seer_response_returns_502(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock
+    ) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug,
+                customer_sa_email="cust@customer.iam.gserviceaccount.com",
+                gcp_project_ids=["proj-a"],
+            )
+
+        assert response.status_code == 502
+        assert response.data == {"detail": "Failed to verify GCP connection. Please try again."}
 
     def test_missing_required_fields(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
