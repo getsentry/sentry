@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
@@ -44,15 +45,21 @@ export function ReleaseComparisonChartRow({
 }: Props) {
   return (
     <ChartTableRow
-      htmlFor={type}
       isActive={type === activeChart}
       isLoading={showPlaceholders}
-      role={role}
+      rowRole={role}
       expanded={expanded}
+      onClick={event => {
+        // Nested controls own their own click, the way they did when the row was a label
+        if ((event.target as HTMLElement).closest('a, button, input, label')) {
+          return;
+        }
+        onChartChange(type);
+      }}
     >
       <DescriptionCell>
         <Tooltip disabled={!tooltip} title={tooltip} showUnderline>
-          <TitleWrapper>
+          <TitleWrapper htmlFor={type}>
             <Radio
               id={type}
               disabled={false}
@@ -112,7 +119,7 @@ export function ReleaseComparisonChartRow({
   );
 }
 
-const Cell = styled('div')`
+const Cell = styled(SimpleTable.RowCell)`
   text-align: right;
   color: ${p => p.theme.tokens.content.secondary};
   display: block;
@@ -139,7 +146,7 @@ const ExpanderCell = styled(Cell)`
   justify-content: flex-end;
 `;
 
-const TitleWrapper = styled('div')`
+const TitleWrapper = styled('label')`
   display: flex;
   align-items: center;
   position: relative;
@@ -164,13 +171,18 @@ const TitleWrapper = styled('div')`
   }
 `;
 
-const ChartTableRow = styled('label')<{
+const ChartTableRow = styled(SimpleTable.Row, {
+  shouldForwardProp: prop =>
+    prop !== 'expanded' &&
+    prop !== 'isActive' &&
+    prop !== 'isLoading' &&
+    prop !== 'rowRole',
+})<{
   expanded: boolean;
   isActive: boolean;
   isLoading: boolean;
-  role: ReleaseComparisonRow['role'];
+  rowRole: ReleaseComparisonRow['role'];
 }>`
-  display: contents;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: 0;
 
@@ -195,7 +207,7 @@ const ChartTableRow = styled('label')<{
   }
 
   ${p =>
-    (p.role === 'default' || (p.role === 'parent' && !p.expanded)) &&
+    (p.rowRole === 'default' || (p.rowRole === 'parent' && !p.expanded)) &&
     css`
       &:not(:last-child) {
         ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
@@ -205,7 +217,7 @@ const ChartTableRow = styled('label')<{
     `}
 
   ${p =>
-    p.role === 'children' &&
+    p.rowRole === 'children' &&
     css`
       ${DescriptionCell} {
         padding-left: 44px;
@@ -224,7 +236,7 @@ const ChartTableRow = styled('label')<{
     `}
 
   ${p =>
-    p.role === 'children' &&
+    p.rowRole === 'children' &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
         padding-bottom: ${p.theme.space.sm};

@@ -8,6 +8,7 @@ import type {
 } from 'react';
 import {
   createContext,
+  Fragment,
   useCallback,
   useContext,
   useEffect,
@@ -272,6 +273,7 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
    */
   columnIndex?: number;
   onSort?: () => void;
+  overlays?: ReactNode;
   sort?: SortDirection;
 }
 
@@ -280,6 +282,7 @@ function HeadCell({
   column,
   columnIndex,
   onSort,
+  overlays,
   sort,
   ...props
 }: HeadCellProps) {
@@ -294,7 +297,7 @@ function HeadCell({
     index !== context.lastColumnIndex &&
     context.resizableByIndex[index] === true;
 
-  const sortable = !!onSort || !!sort;
+  const sortable = !!onSort || !!sort || !!overlays;
 
   const cellRef = useRef<HTMLTableCellElement>(null);
   const {max, width} = useObservedColumnSize(cellRef);
@@ -310,11 +313,14 @@ function HeadCell({
       role="columnheader"
     >
       {sortable ? (
-        <SortableHeaderCell direction={sort} onSort={onSort}>
+        <SortableHeaderCell direction={sort} onSort={onSort} overlays={overlays}>
           {children}
         </SortableHeaderCell>
       ) : (
-        children
+        <Fragment>
+          {overlays}
+          {children}
+        </Fragment>
       )}
       {showResizer && (
         <TableResizer onContextMenu={event => event.preventDefault()}>

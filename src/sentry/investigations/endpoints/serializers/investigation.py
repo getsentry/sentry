@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from collections.abc import Set as AbstractSet
 from datetime import datetime
-from typing import Any, TypedDict, override
+from typing import Any, NotRequired, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
@@ -24,6 +24,11 @@ from sentry.investigations.models import (
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
+    InvestigationSourceType,
+)
+from sentry.investigations.services.investigations import (
+    investigation_filters,
+    investigation_source,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -38,6 +43,7 @@ class InvestigationSourceSerializerResponse(TypedDict):
     type: str
     ref: dict[str, Any]
     revision: int | None
+    snapshot: NotRequired[dict[str, Any]]
 
 
 class InvestigationTitleGenerationSerializerResponse(TypedDict):
@@ -107,11 +113,12 @@ class InvestigationSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationSerializerResponse:
+        source = investigation_source(obj)
         return {
             "id": str(obj.id),
             "title": obj.title,
             "status": obj.status,
-            "sourceType": obj.source_type,
+            "sourceType": source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -204,6 +211,15 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationDetailsSerializerResponse:
+        resolved_source = investigation_source(obj)
+        source: InvestigationSourceSerializerResponse = {
+            "type": resolved_source.get("type", InvestigationSourceType.MANUAL),
+            "ref": resolved_source.get("ref", {}),
+            "revision": obj.source_revision,
+        }
+        snapshot = resolved_source.get("snapshot")
+        if isinstance(snapshot, dict):
+            source["snapshot"] = snapshot
         return {
             **super().serialize(obj, attrs, user, **kwargs),
             "template": (
@@ -211,12 +227,8 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
                 if obj.template_key is not None
                 else None
             ),
-            "source": {
-                "type": obj.source_type,
-                "ref": obj.source_ref,
-                "revision": obj.source_revision,
-            },
-            "filters": obj.filters,
+            "source": source,
+            "filters": investigation_filters(obj),
             "projectIds": attrs["project_ids"],
             "parameters": attrs["parameters"],
             "blocks": attrs["blocks"],

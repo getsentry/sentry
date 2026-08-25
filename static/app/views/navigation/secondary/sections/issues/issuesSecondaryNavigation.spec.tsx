@@ -7,9 +7,9 @@ import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/secti
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 describe('IssuesSecondaryNavigation', () => {
-  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -52,6 +52,7 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
+    expect(query).toContain('identified');
     expect(query).toContain('is:unresolved');
     expect(query).toContain('assigned_or_suggested:me');
   });
@@ -69,7 +70,7 @@ describe('IssuesSecondaryNavigation', () => {
   it('does not render Inbox or request its count without Autofix access', async () => {
     const request = mockInboxCount({});
     const organizationWithoutAutofix = OrganizationFixture({
-      features: ['issue-stream-progress-ui', 'gen-ai-features'],
+      features: ['issue-inbox', 'gen-ai-features'],
     });
 
     renderNavigation(organizationWithoutAutofix);
@@ -83,7 +84,7 @@ describe('IssuesSecondaryNavigation', () => {
     mockInboxCount({});
     const organizationWithOverview = OrganizationFixture({
       features: [
-        'issue-stream-progress-ui',
+        'issue-inbox',
         'gen-ai-features',
         'seat-based-seer-enabled',
         'seer-night-shift-ui',

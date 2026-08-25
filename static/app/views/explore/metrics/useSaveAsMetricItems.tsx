@@ -159,7 +159,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         };
       });
 
-    return [getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true})];
+    return [getSaveAsAlertMenuItem({alertsUrls, submenu: true})];
   }, [metricQueries, organization, project, pageFilters, options.interval]);
 
   const addToDashboardItems = useMemo(() => {
