@@ -1,4 +1,5 @@
 import {type ComponentProps, Fragment, type ReactNode, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
@@ -26,6 +27,11 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {
+  indexMembersByProject,
+  type IndexedMembersByProject,
+} from 'sentry/utils/members/shared';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -190,6 +196,15 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     () => Object.values(data?.runsByMilestone ?? {}).flat(),
     [data]
   );
+  const memberProjectIds = useMemo(
+    () => Array.from(new Set(allRuns.map(run => run.issue.project.id))),
+    [allRuns]
+  );
+  const {data: members = []} = useQuery({
+    ...useProjectMembersQueryOptions(memberProjectIds),
+    enabled: memberProjectIds.length > 0,
+  });
+  const membersByProject = useMemo(() => indexMembersByProject(members), [members]);
   const passesAssignee = (run: OverviewRun) =>
     assignee === null || matchesAssignee(run, assignee);
   const assigneeRuns = allRuns.filter(passesAssignee);
@@ -343,6 +358,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   orgSlug={organization.slug}
                   statsPeriod={selection.datetime.period}
                   enrichmentPending={enrichmentPending}
+                  membersByProject={membersByProject}
                 />
               )}
             </Fragment>
@@ -360,9 +376,11 @@ function OverviewSectionList({
   orgSlug,
   statsPeriod,
   enrichmentPending,
+  membersByProject,
 }: {
   collapsedGroups: StatusGroupKey[];
   enrichmentPending: boolean;
+  membersByProject: IndexedMembersByProject;
   onToggle: (groupKey: StatusGroupKey, expanded: boolean) => void;
   orgSlug: string;
   sections: Array<(typeof OVERVIEW_SECTIONS)[number] & {runs: OverviewRun[]}>;
@@ -402,6 +420,7 @@ function OverviewSectionList({
                     sectionKey={key}
                     statsPeriod={statsPeriod}
                     enrichmentPending={enrichmentPending}
+                    memberList={membersByProject.get(run.issue.project.slug) ?? []}
                   />
                 ))}
               </Stack>

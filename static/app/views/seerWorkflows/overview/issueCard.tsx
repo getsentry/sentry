@@ -35,6 +35,7 @@ import type {
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -464,7 +465,7 @@ function IssueVitals({
   );
 }
 
-function PriorityAndAssignee({run}: {run: OverviewRun}) {
+function PriorityAndAssignee({run, memberList}: {run: OverviewRun; memberList?: User[]}) {
   const {issue} = run;
   const priorityGroup: OverviewIssuePriorityGroup = {
     id: run.groupId,
@@ -489,6 +490,7 @@ function PriorityAndAssignee({run}: {run: OverviewRun}) {
         projectSlug={issue.project.slug}
         assignedTo={issue.assignedTo ?? undefined}
         owners={issue.owners}
+        memberList={memberList}
       />
     </Flex>
   );
@@ -500,12 +502,14 @@ export function OverviewCard({
   sectionKey,
   statsPeriod,
   enrichmentPending,
+  memberList,
 }: {
   enrichmentPending: boolean;
   orgSlug: string;
   run: OverviewRun;
   sectionKey: AutofixStateKey;
   statsPeriod: string | null;
+  memberList?: User[];
 }) {
   const organization = useOrganization();
   const rootCause = run.rootCause?.oneLineDescription;
@@ -533,7 +537,7 @@ export function OverviewCard({
             issueUrl={issueUrl}
             enrichmentPending={enrichmentPending}
           />
-          <PriorityAndAssignee run={run} />
+          <PriorityAndAssignee run={run} memberList={memberList} />
         </Fragment>
       }
     >
