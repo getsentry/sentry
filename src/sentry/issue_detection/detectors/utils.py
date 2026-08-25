@@ -57,9 +57,11 @@ URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
 BRACKETED_URL_PLACEHOLDER_REGEX = re.compile(
     r"""
     \[
-    # Zero or more non-bracket valid URL characters. Allows spaces in order to catch values like
-    # `[Filtered UUID]` and `[REDACTED IP]`.
-    [^'"`\\<>{}|\^\[\]]{0,32}
+    (
+        # Zero or more non-bracket valid URL characters. Allows spaces in order to catch values like
+        # `[Filtered UUID]` and `[REDACTED IP]`.
+        [^'"`\\<>{}|\^\[\]]{0,32}
+    )
     \]
     """,
     re.IGNORECASE | re.VERBOSE,
