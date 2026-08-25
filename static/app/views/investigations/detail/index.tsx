@@ -121,7 +121,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const {copy} = useCopyToClipboard();
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
-  const titleGenerationSettled = useRef(false);
+  const titleGenerationSettledFor = useRef<string | null>(null);
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigation.id
@@ -143,14 +143,16 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
     if (isTitleGenerationActive(status)) {
-      titleGenerationSettled.current = false;
+      if (titleGenerationSettledFor.current === investigation.id) {
+        titleGenerationSettledFor.current = null;
+      }
       return;
     }
     if (
       (status === 'completed' || status === 'failed') &&
-      !titleGenerationSettled.current
+      titleGenerationSettledFor.current !== investigation.id
     ) {
-      titleGenerationSettled.current = true;
+      titleGenerationSettledFor.current = investigation.id;
       void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
       void queryClient.invalidateQueries({
         queryKey: investigationListQueryOptions({
@@ -160,6 +162,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     }
   }, [
     detailOptions.queryKey,
+    investigation.id,
     organization.slug,
     queryClient,
     titleGenerationQuery.data?.status,

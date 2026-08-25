@@ -197,6 +197,55 @@ describe('MetricDetectorTriggeredSection', () => {
     jest.useRealTimers();
   });
 
+  it('keeps polling while a parallel branch is active after another branch fails', async () => {
+    jest.useFakeTimers();
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: null},
+        blocks: [
+          {
+            id: 'block-1',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'failed',
+            currentExecution: {status: 'failed'},
+          },
+          {
+            id: 'block-2',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'running',
+            currentExecution: {status: 'running'},
+          },
+        ],
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(2000));
+    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
+    jest.useRealTimers();
+  });
+
   it('launches an investigation for the selected open period', async () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',

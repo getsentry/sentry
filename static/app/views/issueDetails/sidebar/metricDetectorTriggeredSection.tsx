@@ -633,6 +633,13 @@ function SeerInvestigationSection({
         }
         const blocks = investigation.blocks ?? [];
         if (
+          shouldPollInvestigationBlocks(blocks) ||
+          isTitleGenerationActive(investigation.titleGeneration?.status)
+        ) {
+          metadataIdleSince.current = null;
+          return INVESTIGATION_POLL_INTERVAL;
+        }
+        if (
           investigation.titleGeneration?.status === 'failed' ||
           blocks.some(
             block =>
@@ -642,13 +649,6 @@ function SeerInvestigationSection({
           )
         ) {
           return false;
-        }
-        if (
-          shouldPollInvestigationBlocks(blocks) ||
-          isTitleGenerationActive(investigation.titleGeneration?.status)
-        ) {
-          metadataIdleSince.current = null;
-          return INVESTIGATION_POLL_INTERVAL;
         }
         const idleSince =
           metadataIdleSince.current?.id === investigation.id
