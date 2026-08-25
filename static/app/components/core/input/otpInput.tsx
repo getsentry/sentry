@@ -8,6 +8,7 @@ import {
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {inputStyles} from './inputStyles';
 
