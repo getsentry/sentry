@@ -331,9 +331,6 @@ importers:
       compression-webpack-plugin:
         specifier: 12.0.0
         version: 12.0.0
-      conduit-client:
-        specifier: ^1.0.0
-        version: 1.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       core-js:
         specifier: 3.45.0
         version: 3.45.0
@@ -4805,13 +4802,6 @@ packages:
   concat-stream@2.0.0:
     resolution: {integrity: sha512-MWufYdFw53ccGjCA+Ol7XJYpAlW6/prSMzuPOTRnJGcGzuhLn4Scrz7qf6o8bROZ514ltazcIFJZevcfbo0x7A==}
     engines: {'0': node >= 6.0}
-
-  conduit-client@1.0.0:
-    resolution: {integrity: sha512-81EyHn0I78+Lz++v3fI5774RtyEzE4wT3rdotvqa7M99ll24eknDYEXB4nHs93DEeyKnhZNgJt+9GN/+bsBWcg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: '>=18'
-      react-dom: '>=18'
 
   config-chain@1.1.13:
     resolution: {integrity: sha512-qj+f8APARXHrM0hraqXYb2/bOVSV4PvJQlNZ/DVj0QrmNM2q2euizkeuVckQ57J+W0mRH6Hvi+k50M4Jul2VRQ==}
@@ -13324,11 +13314,6 @@ snapshots:
       inherits: 2.0.4
       readable-stream: 3.6.2
       typedarray: 0.0.6
-
-  conduit-client@1.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
-    dependencies:
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
 
   config-chain@1.1.13:
     dependencies:
