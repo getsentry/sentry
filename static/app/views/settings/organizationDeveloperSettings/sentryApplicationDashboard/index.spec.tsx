@@ -96,7 +96,7 @@ describe('Sentry Application Dashboard', () => {
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
-    it('shows the request log', async () => {
+    it('shows the request log for org admins', async () => {
       renderDashboard(OrganizationFixture({access: ['org:admin']}));
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
@@ -109,7 +109,14 @@ describe('Sentry Application Dashboard', () => {
       expect(webhookRequestMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not request or render the request log for non-admin users', async () => {
+    it('shows the request log for users with org integrations access', async () => {
+      renderDashboard(OrganizationFixture({access: ['org:read', 'org:integrations']}));
+
+      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+      expect(webhookRequestMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not request or render the request log for users with only org read access', async () => {
       renderDashboard(OrganizationFixture({access: ['org:read']}));
 
       expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');

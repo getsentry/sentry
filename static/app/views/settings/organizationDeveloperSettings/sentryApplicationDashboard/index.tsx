@@ -99,7 +99,9 @@ function SentryApplicationDashboard() {
   const showInstallData = app.status === 'published';
   const showComponentInteractions = Boolean(app.schema?.elements);
   const canViewRequestLogs =
-    organization.access.includes('org:admin') || isActiveSuperuser();
+    organization.access.includes('org:admin') ||
+    organization.access.includes('org:integrations') ||
+    isActiveSuperuser();
 
   return (
     <div>
