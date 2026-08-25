@@ -250,7 +250,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       }
       return;
     }
-    handleTitleChange(persistedTitle.current);
+    setDraftTitle(null);
+    updateInvestigationCache(
+      queryClient,
+      organization.slug,
+      investigation.id,
+      current => ({...current, title: persistedTitle.current})
+    );
   }
 
   const blocks = investigation.blocks ?? [];

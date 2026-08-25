@@ -271,6 +271,31 @@ describe('Investigation detail', () => {
     );
   });
 
+  it('restores the generated preview after abandoning an empty title edit', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Untitled investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'running', preview: 'Checkout error rate spike'},
+    });
+
+    renderView();
+
+    const titleInput = await screen.findByRole('textbox', {
+      name: 'Investigation title',
+    });
+    await waitFor(() => expect(titleInput).toHaveValue('Checkout error rate spike'));
+    await userEvent.clear(titleInput);
+    fireEvent.blur(titleInput);
+
+    await waitFor(() => expect(titleInput).toHaveValue('Checkout error rate spike'));
+  });
+
   it('does not replace an investigation title that was renamed before mount', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
