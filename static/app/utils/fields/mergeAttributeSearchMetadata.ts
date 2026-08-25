@@ -27,11 +27,16 @@ export function mergeAttributeSearchMetadata(
   }
 
   const valueTypeFromSearch = attributeSearchTypeToFieldValueType(metadata.type);
+  // DATE has no AttributeSearchType variant, so overlapping local date fields
+  // (e.g. timestamp) would otherwise be replaced by string/number and break
+  // date filter UI. Unit types are kept only when conventions collapse to
+  // double/integer.
   const keepLocalValueType =
-    definition.valueType !== null &&
-    UNIT_FIELD_VALUE_TYPES.has(definition.valueType) &&
-    (valueTypeFromSearch === FieldValueType.NUMBER ||
-      valueTypeFromSearch === FieldValueType.INTEGER);
+    definition.valueType === FieldValueType.DATE ||
+    (definition.valueType !== null &&
+      UNIT_FIELD_VALUE_TYPES.has(definition.valueType) &&
+      (valueTypeFromSearch === FieldValueType.NUMBER ||
+        valueTypeFromSearch === FieldValueType.INTEGER));
 
   const fromSearch = getFieldDefinitionFromAttributeSearchMetadata(key)!;
   const keywords = [

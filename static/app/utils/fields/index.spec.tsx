@@ -27,6 +27,13 @@ describe('getFieldDefinition attribute search metadata', () => {
     );
   });
 
+  it('keeps local DATE valueType because conventions have no date variant', () => {
+    expect(getFieldDefinition(FieldKey.TIMESTAMP)?.valueType).toBe(FieldValueType.DATE);
+    expect(getFieldDefinition(FieldKey.RELEASE_CREATED)?.valueType).toBe(
+      FieldValueType.DATE
+    );
+  });
+
   it('falls back to ATTRIBUTE_SEARCH_METADATA for unmapped explore attributes', () => {
     const definition = getFieldDefinition('http.route', 'span');
 
