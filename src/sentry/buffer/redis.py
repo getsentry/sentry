@@ -207,7 +207,7 @@ class PendingBuffer:
 class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = "b:p"
-    
+
     # This expiry guarantees zset will always outlive every row it points to
     pending_key_expire = key_expire * 2  # 2 hours
 
