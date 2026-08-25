@@ -117,6 +117,27 @@ jest.mock('screenfull', () => ({
 }));
 
 describe('ReplayClipPreview', () => {
+  // jsdom does not implement `scrollTo`, and rrweb calls it on the replay
+  // iframe's own window when it applies the snapshot's initial offset.
+  beforeAll(() => {
+    const getContentWindow = Object.getOwnPropertyDescriptor(
+      HTMLIFrameElement.prototype,
+      'contentWindow'
+    )?.get;
+    if (!getContentWindow) {
+      return;
+    }
+    jest
+      .spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get')
+      .mockImplementation(function (this: HTMLIFrameElement): Window | null {
+        const contentWindow: Window | null = getContentWindow.call(this);
+        if (contentWindow) {
+          contentWindow.scrollTo = jest.fn();
+        }
+        return contentWindow;
+      });
+  });
+
   beforeEach(() => {
     mockIsFullscreen.mockReturnValue(false);
 

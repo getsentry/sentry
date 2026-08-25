@@ -328,23 +328,6 @@ window.MockApiClient = jest.requireMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
 
-// jsdom does not implement `scrollTo`, and rrweb calls it on the replay iframe's
-// own window when it applies a snapshot's initial offset.
-const contentWindowDescriptor = Object.getOwnPropertyDescriptor(
-  HTMLIFrameElement.prototype,
-  'contentWindow'
-);
-Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
-  ...contentWindowDescriptor,
-  get(this: HTMLIFrameElement) {
-    const contentWindow = contentWindowDescriptor?.get?.call(this);
-    if (contentWindow && !jest.isMockFunction(contentWindow.scrollTo)) {
-      contentWindow.scrollTo = jest.fn();
-    }
-    return contentWindow;
-  },
-});
-
 window.ra = {event: jest.fn()};
 
 // The JSDOM implementation is too slow
