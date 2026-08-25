@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import requests as requests_
@@ -16,7 +16,7 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.webhook import WebhookClient
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -24,7 +24,6 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
-from sentry.constants import ObjectStatus
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.messaging.metrics import (
     MessageInteractionFailureReason,
@@ -47,38 +46,29 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
+from sentry.integrations.slack.webhooks.actions.common import (
+    DEFAULT_ERROR_MESSAGE,
+    LINK_IDENTITY_MESSAGE,
+    NO_IDENTITY_MESSAGE,
+    UNLINK_IDENTITY_MESSAGE,
+)
+from sentry.integrations.slack.webhooks.actions.seer_agent import (
+    SEER_AGENT_WRITE_APPROVAL_ACTIONS,
+    handle_seer_agent_write_approval,
+)
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
-from sentry.notifications.platform.registry import provider_registry, template_registry
-from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.templates.seer import SeerAgentResponse
-from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.seer import agent_token
-from sentry.seer.agent.client_utils import (
-    AgentUpdateRequest,
-    fetch_run_status,
-    make_agent_update_request,
-)
-from sentry.seer.endpoints.agent_request import (
-    AgentApprovalRequestData,
-    AgentApprovalRequestSerializer,
-)
-from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
-from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import SlackAutofixEntrypoint
 from sentry.seer.entrypoints.slack.messaging import send_not_org_member_message
-from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
@@ -90,26 +80,10 @@ _logger = logging.getLogger(__name__)
 UNFURL_ACTION_OPTIONS = ["link", "ignore"]
 NOTIFICATION_SETTINGS_ACTION_OPTIONS = ["all_slack"]
 
-LINK_IDENTITY_MESSAGE = (
-    "Looks like you haven't linked your Sentry account with your Slack identity yet! "
-    "<{associate_url}|Link your identity now> to perform actions in Sentry through Slack. "
-)
-UNLINK_IDENTITY_MESSAGE = (
-    "Looks like this Slack identity is linked to the Sentry user *{user_email}* "
-    "who is not a member of organization *{org_name}* used with this Slack integration. "
-    "<{associate_url}|Unlink your identity now>. "
-)
-
 NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
 NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
-NO_IDENTITY_MESSAGE = "Identity not linked for user."
 ENABLE_SLACK_SUCCESS_MESSAGE = "Slack notifications have been enabled."
-AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE = "This approval request is no longer available."
-AGENT_WRITE_APPROVAL_INSUFFICIENT_MESSAGE = (
-    "You do not have all the Sentry permissions requested by Seer."
-)
 
-DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 SUCCESS_MESSAGE = (
     "{invite_type} request for {email} has been {verb}. <{url}|See Members and Requests>."
 )
@@ -713,216 +687,6 @@ class SlackActionEndpoint(Endpoint):
             return
         SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(group=group, run_id=int(run_id))
 
-    def _update_agent_write_approval_message(
-        self,
-        *,
-        slack_request: SlackActionRequest,
-        organization_id: int,
-        run_id: int,
-        scopes: list[str],
-        approved: bool,
-    ) -> None:
-        data = SeerAgentResponse(
-            run_id=run_id,
-            organization_id=organization_id,
-            summary="",
-            write_approval_scopes=scopes,
-            write_approval_status="approved" if approved else "rejected",
-        )
-        provider = provider_registry.get(NotificationProviderKey.SLACK)
-        template_cls = template_registry.get(data.source)
-        renderable = NotificationService.render_template(
-            data=data,
-            template=template_cls(),
-            provider=provider,
-        )
-        try:
-            WebhookClient(slack_request.response_url).send(
-                blocks=renderable["blocks"],
-                text=renderable["text"],
-                replace_original=True,
-            )
-        except SlackApiError:
-            _logger.exception(
-                "seer.slack.agent_write_approval.message_update_failed",
-                extra={"organization_id": organization_id, "run_id": run_id},
-            )
-
-    def handle_seer_agent_write_approval(
-        self,
-        *,
-        slack_request: SlackActionRequest,
-        action: SlackAction,
-        organization_id: int | None,
-    ) -> Response:
-        channel_id = slack_request.channel_id
-        message = slack_request.data.get("message")
-        message_ts = message.get("ts") if isinstance(message, Mapping) else None
-        if organization_id is None or channel_id is None or not isinstance(message_ts, str):
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-
-        cached_message = SlackSeerAgentMessageCache.get(
-            integration_id=slack_request.integration.id,
-            channel_id=channel_id,
-            message_ts=message_ts,
-        )
-        if not cached_message or not isinstance(cached_message.get("input_id"), str):
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-        run_id = cached_message["run_id"]
-        input_id = cached_message["input_id"]
-
-        organization_integrations = integration_service.get_organization_integrations(
-            integration_id=slack_request.integration.id,
-            organization_id=organization_id,
-            status=ObjectStatus.ACTIVE,
-            limit=1,
-        )
-        if not organization_integrations:
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-
-        identity_user = slack_request.get_identity_user()
-        if not identity_user:
-            from sentry.integrations.slack.views.link_identity import build_linking_url
-
-            if not slack_request.user_id:
-                return self.respond_ephemeral(NO_IDENTITY_MESSAGE)
-            associate_url = build_linking_url(
-                integration=slack_request.integration,
-                slack_id=slack_request.user_id,
-                channel_id=channel_id,
-                response_url=slack_request.response_url,
-            )
-            return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
-        if not identity_user.is_active or identity_user.is_suspended:
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-
-        organization = Organization.objects.filter(id=organization_id).first()
-        if not organization:
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-        if action == SlackAction.SEER_AGENT_WRITE_APPROVE and not features.has(
-            agent_token.FEATURE_FLAG, organization, actor=identity_user
-        ):
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-
-        try:
-            member = OrganizationMember.objects.get(
-                user_id=identity_user.id,
-                organization_id=organization.id,
-            )
-        except OrganizationMember.DoesNotExist:
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-
-        resolved = resolve_seer_run(
-            run_id,
-            organization,
-            for_continue=True,
-            user_id=identity_user.id,
-        )
-        if isinstance(resolved, Response):
-            detail = resolved.data.get("detail") if isinstance(resolved.data, Mapping) else None
-            return self.respond_ephemeral(
-                detail if isinstance(detail, str) else AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE
-            )
-
-        viewer_context = SeerViewerContext(
-            organization_id=organization.id,
-            user_id=identity_user.id,
-        )
-        try:
-            state = fetch_run_status(
-                resolved.seer_run_state_id,
-                organization,
-                viewer_context=viewer_context,
-            )
-        except (SeerApiError, AttributeError, TypeError, ValueError):
-            _logger.exception(
-                "seer.slack.agent_write_approval.state_fetch_failed",
-                extra={"organization_id": organization.id, "run_id": run_id},
-            )
-            return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
-
-        pending_input = state.pending_user_input
-        if (
-            state.status != "awaiting_user_input"
-            or pending_input is None
-            or pending_input.input_type != "agent_write_approval"
-            or pending_input.id != input_id
-        ):
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-
-        approval = AgentApprovalRequestSerializer(
-            data={
-                "sessionId": pending_input.data.get("session_id"),
-                "scopes": pending_input.data.get("required_scopes"),
-            }
-        )
-        if not approval.is_valid():
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-
-        validated_data = cast(AgentApprovalRequestData, approval.validated_data)
-        session_id = validated_data["sessionId"]
-        requested_scopes = validated_data["scopes"]
-        if not requested_scopes:
-            return self.respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
-
-        response_data: dict[str, str] = {"decision": "reject"}
-        approved = False
-        if action == SlackAction.SEER_AGENT_WRITE_APPROVE:
-            access = from_member(member)
-            grantable_scopes = sorted(set(requested_scopes) & set(access.scopes))
-            if not grantable_scopes:
-                return self.respond_ephemeral(AGENT_WRITE_APPROVAL_INSUFFICIENT_MESSAGE)
-            agent_token.create_write_grant(
-                organization_id=organization.id,
-                user_id=identity_user.id,
-                session_id=session_id,
-                scopes=grantable_scopes,
-            )
-            approved = set(requested_scopes).issubset(grantable_scopes)
-            if approved:
-                response_data = {"decision": "approve"}
-            else:
-                response_data["reason"] = "insufficient_scope"
-
-        update_body = AgentUpdateRequest(
-            run_id=resolved.seer_run_state_id,
-            organization_id=organization.id,
-            payload={
-                "type": "user_input_response",
-                "input_id": pending_input.id,
-                "response_data": response_data,
-            },
-        )
-        response = make_agent_update_request(update_body, viewer_context=viewer_context)
-        if response.status >= 400:
-            _logger.warning(
-                "seer.slack.agent_write_approval.response_failed",
-                extra={
-                    "organization_id": organization.id,
-                    "run_id": run_id,
-                    "status": response.status,
-                },
-            )
-            return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
-
-        self._update_agent_write_approval_message(
-            slack_request=slack_request,
-            organization_id=organization.id,
-            run_id=run_id,
-            scopes=requested_scopes,
-            approved=approved,
-        )
-        _logger.info(
-            "seer.slack.agent_write_approval.responded",
-            extra={
-                "organization_id": organization.id,
-                "run_id": run_id,
-                "user_id": identity_user.id,
-                "decision": response_data["decision"],
-            },
-        )
-        return self.respond()
-
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
         action_option, action_id = None, None
@@ -1007,23 +771,10 @@ class SlackActionEndpoint(Endpoint):
 
         action_option, action_id = self.get_action_option(slack_request=slack_request)
 
-        if action_id in {
-            SlackAction.SEER_AGENT_WRITE_APPROVE.value,
-            SlackAction.SEER_AGENT_WRITE_REJECT.value,
-        }:
-            action_data = slack_request.data.get("actions")
-            encoded_action_id = (
-                action_data[0].get("action_id", "")
-                if isinstance(action_data, list)
-                and action_data
-                and isinstance(action_data[0], Mapping)
-                else ""
-            )
-            routing_data = decode_action_id(encoded_action_id)
-            return self.handle_seer_agent_write_approval(
+        if action_id in SEER_AGENT_WRITE_APPROVAL_ACTIONS:
+            return handle_seer_agent_write_approval(
                 slack_request=slack_request,
                 action=SlackAction(action_id),
-                organization_id=routing_data.organization_id,
             )
 
         # If a user is just clicking a button link we return a 200
