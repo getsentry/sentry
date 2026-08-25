@@ -469,7 +469,15 @@ function IssueVitals({
   );
 }
 
-function PriorityAndAssignee({run, memberList}: {run: OverviewRun; memberList?: User[]}) {
+function PriorityAndAssignee({
+  run,
+  memberList,
+  assigneeReady,
+}: {
+  assigneeReady: boolean;
+  run: OverviewRun;
+  memberList?: User[];
+}) {
   const {issue} = run;
   const priorityGroup: OverviewIssuePriorityGroup = {
     id: run.groupId,
@@ -488,14 +496,18 @@ function PriorityAndAssignee({run, memberList}: {run: OverviewRun; memberList?: 
   return (
     <Flex gap="xs" align="center">
       <OverviewIssuePriority group={priorityGroup} />
-      <OverviewIssueAssignee
-        groupId={run.groupId}
-        projectId={issue.project.id}
-        projectSlug={issue.project.slug}
-        assignedTo={issue.assignedTo ?? undefined}
-        owners={issue.owners}
-        memberList={memberList}
-      />
+      {assigneeReady ? (
+        <OverviewIssueAssignee
+          groupId={run.groupId}
+          projectId={issue.project.id}
+          projectSlug={issue.project.slug}
+          assignedTo={issue.assignedTo ?? undefined}
+          owners={issue.owners}
+          memberList={memberList}
+        />
+      ) : (
+        <Placeholder shape="circle" width="24px" height="24px" />
+      )}
     </Flex>
   );
 }
@@ -507,7 +519,9 @@ export function OverviewCard({
   statsPeriod,
   enrichmentPending,
   memberList,
+  assigneeReady,
 }: {
+  assigneeReady: boolean;
   enrichmentPending: boolean;
   orgSlug: string;
   run: OverviewRun;
@@ -541,7 +555,11 @@ export function OverviewCard({
             issueUrl={issueUrl}
             enrichmentPending={enrichmentPending}
           />
-          <PriorityAndAssignee run={run} memberList={memberList} />
+          <PriorityAndAssignee
+            run={run}
+            memberList={memberList}
+            assigneeReady={assigneeReady}
+          />
         </Fragment>
       }
     >
