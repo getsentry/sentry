@@ -6,6 +6,7 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {
   AskSeerSearchQuery,
@@ -355,6 +356,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     ]
   );
 
+  const usePollingEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
       transformSeerResponse(
@@ -369,21 +374,31 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     return null;
   }
 
+  if (usePollingEndpoint) {
+    return (
+      <AskSeerPollingComboBox<AskSeerSearchQuery>
+        initialQuery={initialSeerQuery}
+        projectIds={selectedProjectIds}
+        strategy="Metrics"
+        options={{
+          metric_context: {
+            metric_name: traceMetric.name,
+            metric_type: traceMetric.type,
+            metric_unit: traceMetric.unit ?? NONE_UNIT,
+          },
+        }}
+        applySeerSearchQuery={applySeerSearchQuery}
+        transformResponse={transformResponse}
+        fallbackMutationOptions={metricsTabAskSeerMutationOptions}
+      />
+    );
+  }
+
   return (
-    <AskSeerPollingComboBox<AskSeerSearchQuery>
+    <AskSeerComboBox
       initialQuery={initialSeerQuery}
-      projectIds={selectedProjectIds}
-      strategy="Metrics"
-      options={{
-        metric_context: {
-          metric_name: traceMetric.name,
-          metric_type: traceMetric.type,
-          metric_unit: traceMetric.unit ?? NONE_UNIT,
-        },
-      }}
+      askSeerMutationOptions={metricsTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
-      transformResponse={transformResponse}
-      fallbackMutationOptions={metricsTabAskSeerMutationOptions}
     />
   );
 }
