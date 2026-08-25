@@ -2553,7 +2553,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'autofix/overview/',
-      redirectTo: 'autofix/',
+      redirectTo: '../autofix/',
     },
     {
       path: 'views/:viewId/',
