@@ -1,4 +1,12 @@
-import {useMemo, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useInfiniteQuery, useQuery, useQueryClient} from '@tanstack/react-query';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
@@ -44,6 +52,18 @@ import {useSyncRepositories} from './hooks/useSyncRepositories';
 import {getProviderConfigUrl} from './getProviderConfigUrl';
 import type {ScmInstallation} from './types';
 
+interface AutoSyncContextValue {
+  autoSyncIntegrationId: string | null;
+  clearAutoSync: () => void;
+}
+
+// Signals which just-connected integration should auto-sync, with a one-shot
+// clear so a remounting row can't re-trigger the sync.
+const AutoSyncContext = createContext<AutoSyncContextValue>({
+  autoSyncIntegrationId: null,
+  clearAutoSync: () => {},
+});
+
 function ConnectedInstallation({installation, children}: InstallationWrapperProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -85,6 +105,21 @@ function ConnectedInstallation({installation, children}: InstallationWrapperProp
   const {syncNow, isSyncing} = useSyncRepositories(installation.integration, {
     onSynced: () => queryClient.invalidateQueries({queryKey: reposOptions.queryKey}),
   });
+
+  // Auto-sync a freshly connected integration once syncNow is ready (i.e. the
+  // integration is queryable), so repos appear without a manual page refresh.
+  // Clearing the signal on fire keeps it one-shot across row remounts.
+  const {autoSyncIntegrationId, clearAutoSync} = useContext(AutoSyncContext);
+  const shouldAutoSync =
+    hasAccess && installation.integration.id === autoSyncIntegrationId;
+  const hasAutoSyncedRef = useRef(false);
+  useEffect(() => {
+    if (shouldAutoSync && syncNow && !hasAutoSyncedRef.current) {
+      hasAutoSyncedRef.current = true;
+      clearAutoSync();
+      syncNow();
+    }
+  }, [shouldAutoSync, syncNow, clearAutoSync]);
 
   // Settings cannot be opened until we've loaded the integrationWithConfig
   const settingsButtonProps = {
@@ -131,6 +166,8 @@ const SCM_PROVIDER_ORDER = [
 export default function OrganizationRepositories() {
   const organization = useOrganization();
   const [searchTerm, setSearchTerm] = useState('');
+  const [autoSyncIntegrationId, setAutoSyncIntegrationId] = useState<string | null>(null);
+  const clearAutoSync = useCallback(() => setAutoSyncIntegrationId(null), []);
 
   const providersQuery = useQuery(
     organizationConfigIntegrationsQueryOptions({organization})
@@ -227,10 +264,17 @@ export default function OrganizationRepositories() {
     mappingsLoading,
   ]);
 
-  const handleAddIntegration = (_data: Integration) => {
+  // Refetch so the new row appears; auto-sync then polls in its row until the
+  // backend finishes importing repos.
+  const handleAddIntegration = (data: Integration) => {
+    setAutoSyncIntegrationId(data.id);
     integrationsQuery.refetch();
-    reposQuery.refetch();
   };
+
+  const autoSyncContextValue = useMemo(
+    () => ({autoSyncIntegrationId, clearAutoSync}),
+    [autoSyncIntegrationId, clearAutoSync]
+  );
 
   const repoMatches = useRepoSearch(allRepos, searchTerm);
 
@@ -258,57 +302,59 @@ export default function OrganizationRepositories() {
 
   return (
     <AnalyticsArea name="repositories-v2">
-      <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
-      <SettingsPageHeader
-        title={t('Repositories')}
-        subtitle={pageDescription}
-        action={
-          scmIntegrations.length > 0 ? (
-            <ConnectProviderDropdown
-              providers={scmProviders.filter(p => p.canAdd)}
-              onAddIntegration={handleAddIntegration}
-            />
-          ) : undefined
-        }
-      />
-      {isLoading ? (
-        <LoadingIndicator />
-      ) : isError ? (
-        <LoadingError
-          onRetry={() => {
-            providersQuery.refetch();
-            integrationsQuery.refetch();
-            reposQuery.refetch();
-          }}
+      <AutoSyncContext.Provider value={autoSyncContextValue}>
+        <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
+        <SettingsPageHeader
+          title={t('Repositories')}
+          subtitle={pageDescription}
+          action={
+            scmIntegrations.length > 0 ? (
+              <ConnectProviderDropdown
+                providers={scmProviders.filter(p => p.canAdd)}
+                onAddIntegration={handleAddIntegration}
+              />
+            ) : undefined
+          }
         />
-      ) : (
-        <Stack gap="lg">
-          <Input
-            type="search"
-            placeholder={t('Search repositories')}
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+        {isLoading ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError
+            onRetry={() => {
+              providersQuery.refetch();
+              integrationsQuery.refetch();
+              reposQuery.refetch();
+            }}
           />
-          {!integrationsQuery.isPending && scmIntegrations.length === 0 ? (
-            <NoIntegrationsEmptyState
-              providers={scmProviders}
-              onAddIntegration={handleAddIntegration}
+        ) : (
+          <Stack gap="lg">
+            <Input
+              type="search"
+              placeholder={t('Search repositories')}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
             />
-          ) : (
-            scmProviders
-              .filter(p => installationsByProviderKey[p.key])
-              .map(provider => (
-                <ScmRepositoryTable
-                  key={provider.key}
-                  provider={provider}
-                  installations={installationsByProviderKey[provider.key]!}
-                  repoMatches={repoMatches}
-                  installationWrapper={ConnectedInstallation}
-                />
-              ))
-          )}
-        </Stack>
-      )}
+            {!integrationsQuery.isPending && scmIntegrations.length === 0 ? (
+              <NoIntegrationsEmptyState
+                providers={scmProviders}
+                onAddIntegration={handleAddIntegration}
+              />
+            ) : (
+              scmProviders
+                .filter(p => installationsByProviderKey[p.key])
+                .map(provider => (
+                  <ScmRepositoryTable
+                    key={provider.key}
+                    provider={provider}
+                    installations={installationsByProviderKey[provider.key]!}
+                    repoMatches={repoMatches}
+                    installationWrapper={ConnectedInstallation}
+                  />
+                ))
+            )}
+          </Stack>
+        )}
+      </AutoSyncContext.Provider>
     </AnalyticsArea>
   );
 }
