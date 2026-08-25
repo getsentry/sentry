@@ -126,7 +126,11 @@ def record_last_incident_ts(ts: datetime) -> None:
     Records the timestamp of the most recent
     """
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-    redis_client.set(MONITR_LAST_SYSTEM_INCIDENT_TS, int(ts.timestamp()))
+    redis_client.set(
+        MONITR_LAST_SYSTEM_INCIDENT_TS,
+        int(ts.timestamp()),
+        ex=MONITOR_VOLUME_RETENTION,
+    )
 
 
 def get_last_incident_ts() -> datetime | None:
@@ -653,7 +657,7 @@ def _backfill_decisions(
     backfill_items = list(_make_backfill(start, until_not))
 
     for item in backfill_items:
-        pipeline.set(item.key, decision.value)
+        pipeline.set(item.key, decision.value, ex=MONITOR_VOLUME_RETENTION)
     pipeline.execute()
 
     # Return the timestamp just before we reached until_not. Note
