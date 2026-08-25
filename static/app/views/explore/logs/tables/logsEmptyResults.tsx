@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {FileSize} from 'sentry/components/fileSize';
-import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -37,7 +37,7 @@ export function LogsEmptyResults({
     );
 
     return (
-      <GridStatus>
+      <DataTable.Status>
         <EmptyStateWarning withIcon variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
@@ -74,12 +74,12 @@ export function LogsEmptyResults({
             </Button>
           </Container>
         </EmptyStateWarning>
-      </GridStatus>
+      </DataTable.Status>
     );
   }
 
   return (
-    <GridStatus>
+    <DataTable.Status>
       <EmptyStateWarning withIcon variant="accent">
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
@@ -95,6 +95,6 @@ export function LogsEmptyResults({
           )}
         </EmptyStateText>
       </EmptyStateWarning>
-    </GridStatus>
+    </DataTable.Status>
   );
 }
