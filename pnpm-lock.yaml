@@ -197,8 +197,8 @@ importers:
         specifier: 10.69.0
         version: 10.69.0
       '@sentry/conventions':
-        specifier: ^0.19.0
-        version: 0.19.0
+        specifier: ^0.20.0
+        version: 0.20.0
       '@sentry/core':
         specifier: 10.69.0
         version: 10.69.0
@@ -3149,8 +3149,8 @@ packages:
     resolution: {integrity: sha512-fO9PLmHdVURcSPUpWCItWAtgKiMwGdJHbovoSEyLplX5sxs2ugvI4CBPTrkkgqhObnZOD0CnWBKDzSVQYBKEyQ==}
     engines: {node: '>=14'}
 
-  '@sentry/conventions@0.19.0':
-    resolution: {integrity: sha512-nYciB7Pt/Ujf6pJSt1FnHeJBp908P5Ibod4FMlTzASJcqU1RvixI5EFzkbe8gvUxP3XAMoWDgeWeG8agCjKYVA==}
+  '@sentry/conventions@0.20.0':
+    resolution: {integrity: sha512-nAL3tL+xgom6Dbuxq0NCEZZfBNIrUspjDJRcMMRl3WLiBCSeZzNCa7an48IpnrZoVMpAi2NQ2v9rFU+EQziKuQ==}
     engines: {node: '>=14'}
 
   '@sentry/core@10.69.0':
@@ -11999,7 +11999,7 @@ snapshots:
 
   '@sentry/conventions@0.16.0': {}
 
-  '@sentry/conventions@0.19.0': {}
+  '@sentry/conventions@0.20.0': {}
 
   '@sentry/core@10.69.0':
     dependencies:
