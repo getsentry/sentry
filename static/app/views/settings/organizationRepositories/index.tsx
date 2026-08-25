@@ -64,6 +64,25 @@ const AutoSyncContext = createContext<AutoSyncContextValue>({
   clearAutoSync: () => {},
 });
 
+// Auto-sync a freshly connected integration once syncNow is ready, so repos
+// appear without a refresh. The clear handles remounts, the ref handles same-mount re-runs.
+function useAutoSyncOnConnect(
+  integrationId: string,
+  syncNow: (() => void) | undefined,
+  enabled: boolean
+) {
+  const {autoSyncIntegrationId, clearAutoSync} = useContext(AutoSyncContext);
+  const hasSyncedRef = useRef(false);
+  const shouldSync = enabled && integrationId === autoSyncIntegrationId;
+  useEffect(() => {
+    if (shouldSync && syncNow && !hasSyncedRef.current) {
+      hasSyncedRef.current = true;
+      clearAutoSync();
+      syncNow();
+    }
+  }, [shouldSync, syncNow, clearAutoSync]);
+}
+
 function ConnectedInstallation({installation, children}: InstallationWrapperProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -106,20 +125,7 @@ function ConnectedInstallation({installation, children}: InstallationWrapperProp
     onSynced: () => queryClient.invalidateQueries({queryKey: reposOptions.queryKey}),
   });
 
-  // Auto-sync a freshly connected integration once syncNow is ready (i.e. the
-  // integration is queryable), so repos appear without a manual page refresh.
-  // Clearing the signal on fire keeps it one-shot across row remounts.
-  const {autoSyncIntegrationId, clearAutoSync} = useContext(AutoSyncContext);
-  const shouldAutoSync =
-    hasAccess && installation.integration.id === autoSyncIntegrationId;
-  const hasAutoSyncedRef = useRef(false);
-  useEffect(() => {
-    if (shouldAutoSync && syncNow && !hasAutoSyncedRef.current) {
-      hasAutoSyncedRef.current = true;
-      clearAutoSync();
-      syncNow();
-    }
-  }, [shouldAutoSync, syncNow, clearAutoSync]);
+  useAutoSyncOnConnect(installation.integration.id, syncNow, hasAccess);
 
   // Settings cannot be opened until we've loaded the integrationWithConfig
   const settingsButtonProps = {
