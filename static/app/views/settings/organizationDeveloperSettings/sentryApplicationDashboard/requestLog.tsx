@@ -14,7 +14,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {sentryAppWebhookRequestsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -178,11 +177,7 @@ export function RequestLog({app}: RequestLogProps) {
             </SimpleTable.HeaderRow>
           }
         >
-          {isPending && (
-            <SimpleTable.Empty>
-              <LoadingIndicator />
-            </SimpleTable.Empty>
-          )}
+          {isPending && <SimpleTable.Loading />}
 
           {!isPending && currentRequests.length === 0 && (
             <SimpleTable.Empty>

@@ -6,7 +6,6 @@ import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -98,11 +97,7 @@ export function ConnectedProjectsList({automationId}: Props) {
             ))}
           </Fragment>
         )}
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error />}
         {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>{t('No projects connected')}</SimpleTable.Empty>
         )}

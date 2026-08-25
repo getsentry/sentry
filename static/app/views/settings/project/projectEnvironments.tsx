@@ -9,7 +9,6 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -247,9 +246,7 @@ export default function ProjectEnvironments() {
         {isPending ? (
           <EnvironmentTableSkeleton isHidden={isHidden} />
         ) : isError ? (
-          <SimpleTable.Empty>
-            <LoadingError onRetry={refetch} />
-          </SimpleTable.Empty>
+          <SimpleTable.Error onRetry={refetch} />
         ) : environments?.length ? (
           <Fragment>
             {!isHidden && (
