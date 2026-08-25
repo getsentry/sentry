@@ -44,8 +44,7 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
 
     Runs once at the end of the pass, so that every cache the new pipeline owns is written
     from one place out of ``config.results``, rather than by the stage that happens to
-    compute it. Rule generation reads these for the organizations in the serving rollout;
-    see ``per_org.serving``.
+    compute it.
     """
     org_id = config.organization.id
     write_recalibration_factor(org_id, config.results.recalibration_factor)
