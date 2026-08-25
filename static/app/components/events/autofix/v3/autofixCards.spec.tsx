@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {
@@ -631,8 +631,8 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('opens the context prompt initially when requested', () => {
-      render(
+    it('opens and consumes the requested context prompt action', async () => {
+      const {router} = render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofixWithRunState}
@@ -647,7 +647,11 @@ describe('ArtifactCard', () => {
           initialRouterConfig: {
             location: {
               pathname: '/',
-              query: {seerDrawerAction: 'retry_code_changes'},
+              query: {
+                project: '1',
+                seerDrawer: 'true',
+                seerDrawerAction: 'retry_code_changes',
+              },
             },
           },
         }
@@ -659,6 +663,14 @@ describe('ArtifactCard', () => {
       expect(
         screen.queryByRole('button', {name: 'Add context & retry'})
       ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText(
+            'Add context that could unblock the change, e.g. the repo or files to edit.'
+          )
+        ).toHaveFocus();
+        expect(router.location.query).toEqual({project: '1', seerDrawer: 'true'});
+      });
     });
 
     it('opens PR iteration feedback from explanation state when a PR exists', async () => {
