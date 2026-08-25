@@ -19,6 +19,7 @@ class EndpointScopeDeclaration:
     endpoint: str
     method: str
     permission_classes: tuple[str, ...]
+    permission_scopes: dict[str, frozenset[str]]
     declared_scopes: frozenset[str]
     reported_scopes: set[str] = field(default_factory=set)
     audit_enabled: bool | None = None
@@ -47,18 +48,25 @@ def bind_endpoint_scope_declaration(
     method = method.upper()
     declared_scopes: set[str] = set()
     permission_class_names: list[str] = []
+    permission_scopes: dict[str, frozenset[str]] = {}
 
     for permission_class in permission_classes:
-        permission_class_names.append(_qualified_name(permission_class))
+        permission_class_name = _qualified_name(permission_class)
+        permission_class_names.append(permission_class_name)
         scope_map: Any = getattr(permission_class, "scope_map", None)
         if isinstance(scope_map, Mapping):
-            declared_scopes.update(scope_map.get(method, ()))
+            scopes = frozenset(scope_map.get(method, ()))
+            permission_scopes[permission_class_name] = scopes
+            declared_scopes.update(scopes)
+        else:
+            permission_scopes[permission_class_name] = frozenset()
 
     token = _endpoint_scope_declaration.set(
         EndpointScopeDeclaration(
             endpoint=endpoint,
             method=method,
             permission_classes=tuple(permission_class_names),
+            permission_scopes=permission_scopes,
             declared_scopes=frozenset(declared_scopes),
         )
     )
@@ -66,6 +74,27 @@ def bind_endpoint_scope_declaration(
         yield
     finally:
         _endpoint_scope_declaration.reset(token)
+
+
+def update_permission_scope_declaration(
+    permission_class: object, scope_map: Mapping[str, Collection[str]]
+) -> None:
+    declaration = _endpoint_scope_declaration.get()
+    if declaration is None:
+        return
+
+    permission_class_name = _qualified_name(permission_class)
+    if permission_class_name not in declaration.permission_scopes:
+        return
+
+    declaration.permission_scopes[permission_class_name] = frozenset(
+        scope_map.get(declaration.method, ())
+    )
+    declaration.declared_scopes = frozenset(
+        scope
+        for permission_scopes in declaration.permission_scopes.values()
+        for scope in permission_scopes
+    )
 
 
 def check_scope_declaration(scope: str) -> None:

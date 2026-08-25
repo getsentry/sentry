@@ -120,10 +120,11 @@ def _with_endpoint_scope_declaration(
 ) -> Callable[..., Response]:
     @functools.wraps(func)
     def wrapper(self: Endpoint, request: Request, *args: Any, **kwargs: Any) -> Response:
+        assert request.method is not None
         endpoint = f"{type(self).__module__}.{type(self).__qualname__}"
         with bind_endpoint_scope_declaration(
             endpoint=endpoint,
-            method=request.method or "",
+            method=request.method,
             permission_classes=self.permission_classes,
         ):
             return func(self, request, *args, **kwargs)

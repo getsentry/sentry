@@ -183,7 +183,7 @@ class EndpointTest(APITestCase):
 
         warning.reset_mock()
         capture_message.reset_mock()
-        access.DEFAULT.has_scope("project:write")
+        access.DEFAULT.has_scope("org:admin")
         warning.assert_not_called()
         capture_message.assert_not_called()
 
