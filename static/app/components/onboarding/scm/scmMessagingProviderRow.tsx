@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -27,6 +27,7 @@ import {
   SCM_MESSAGING_PROVIDER_DESCRIPTIONS,
   SCM_MESSAGING_PROVIDER_TOOLTIPS,
 } from './messagingProviders';
+import type {ScmMessagingProviderKey} from './messagingProviders';
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
 import {ScmSelectableContainer} from './scmSelectableContainer';
@@ -53,6 +54,12 @@ type RowVisualState =
   | 'loading'
   /** Active integration exists but is ineligible for Issue Alert actions. */
   | 'permission-limited'
+  /**
+   * Integration is connected but no destination has been saved yet, and the
+   * user has not explicitly opened the picker. Shows the Connected pill and a
+   * "+ Choose destination" CTA.
+   */
+  | 'choose-destination'
   /** Destination is being configured (channel picker rendered inline). */
   | 'configuring'
   /** A destination has been saved to session state. */
@@ -127,8 +134,12 @@ function deriveVisualState({
   if (isConfigured) {
     return 'configured';
   }
-  // Auto-expand the form immediately when connected but not yet configured.
-  return 'configuring';
+  // Explicitly opened by the user (first-time configure).
+  if (isConfiguring) {
+    return 'configuring';
+  }
+  // Connected but no destination saved: idle state with a CTA to open picker.
+  return 'choose-destination';
 }
 
 function getInstallErrorMessage(
@@ -156,6 +167,12 @@ export interface ScmMessagingProviderRowProps {
    */
   isRefetchingIntegrations?: boolean;
   /**
+   * Called with this row's providerKey when it enters configuring or removing
+   * mode, and with null when it leaves. The parent uses this to hide sibling
+   * rows so only the active row is visible during exclusive modes.
+   */
+  onExclusiveModeChange?: (providerKey: ScmMessagingProviderKey | null) => void;
+  /**
    * Render prop for the inline channel picker.
    *
    * Called with the eligible (non-empty) integrations for this provider and two
@@ -166,7 +183,7 @@ export interface ScmMessagingProviderRowProps {
    */
   renderChannelPicker?: (props: {
     integrations: OrganizationIntegration[];
-    onCancel: (() => void) | undefined;
+    onCancel: () => void;
     onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
   }) => ReactNode;
 }
@@ -176,6 +193,7 @@ export function ScmMessagingProviderRow({
   messagingSetup,
   onMessagingSetupChange,
   onInstallComplete,
+  onExclusiveModeChange,
   renderChannelPicker,
   isRefetchingIntegrations = false,
 }: ScmMessagingProviderRowProps) {
@@ -218,6 +236,29 @@ export function ScmMessagingProviderRow({
     }
   }, [isConfigured]);
 
+  // Auto-open the destination picker immediately after a fresh install in this
+  // session. Guarded by a ref so navigating away and back, or a second refetch,
+  // does not re-open the picker unexpectedly.
+  const hasAutoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (
+      installState.status === 'complete' &&
+      viewModel.status === 'connected' &&
+      !isRefetchingIntegrations &&
+      !hasAutoOpenedRef.current
+    ) {
+      hasAutoOpenedRef.current = true;
+      setIsConfiguring(true);
+    }
+  }, [installState.status, viewModel.status, isRefetchingIntegrations]);
+
+  // Notify the parent when this row enters or leaves an exclusive mode so it
+  // can hide sibling rows.
+  useEffect(() => {
+    const isExclusive = visualState === 'configuring' || visualState === 'removing';
+    onExclusiveModeChange?.(isExclusive ? viewModel.providerKey : null);
+  }, [visualState, viewModel.providerKey, onExclusiveModeChange]);
+
   const handleConnect = useCallback(() => {
     startFlow({
       provider: viewModel.provider,
@@ -234,6 +275,7 @@ export function ScmMessagingProviderRow({
     });
   }, [startFlow, viewModel.provider, organization, onInstallComplete]);
 
+  const handleChooseDestination = () => setIsConfiguring(true);
   const handleEditDestination = () => setIsConfiguring(true);
   const handleCancelConfiguring = () => setIsConfiguring(false);
   const handleStartRemoving = () => setIsRemoving(true);
@@ -254,7 +296,10 @@ export function ScmMessagingProviderRow({
   const errorMessage = getInstallErrorMessage(installState);
 
   return (
-    <ScmSelectableContainer isSelected={isConfigured}>
+    <ScmSelectableContainer
+      isSelected={isConfigured}
+      isDanger={visualState === 'removing'}
+    >
       <Stack>
         {visualState === 'install-error' && (
           <Stack padding="md" gap="md" align="start">
@@ -273,9 +318,9 @@ export function ScmMessagingProviderRow({
           <Flex padding="lg" gap="md" align="center" justify="between">
             <Flex gap="md" align="center" style={{flex: 1, minWidth: 0}}>
               <Container flexShrink={0} paddingTop="2xs">
-                <PluginIcon pluginId={viewModel.providerKey} size={24} />
+                <PluginIcon pluginId={viewModel.providerKey} size={28} />
               </Container>
-              <Stack gap="xs">
+              <Stack gap="sm">
                 <Flex gap="xs" align="center">
                   <Text bold size="md">
                     {visualState === 'removing'
@@ -310,6 +355,7 @@ export function ScmMessagingProviderRow({
                 visualState={visualState}
                 viewModel={viewModel}
                 onConnect={handleConnect}
+                onChooseDestination={handleChooseDestination}
                 onEditDestination={handleEditDestination}
                 onStartRemoving={handleStartRemoving}
                 onCancelRemoving={handleCancelRemoving}
@@ -324,14 +370,14 @@ export function ScmMessagingProviderRow({
             {renderChannelPicker ? (
               renderChannelPicker({
                 integrations: viewModel.eligibleIntegrations,
-                onCancel: isConfigured ? handleCancelConfiguring : undefined,
+                onCancel: handleCancelConfiguring,
                 onConfigured: handleConfigured,
               })
             ) : (
               <ScmMessagingChannelPicker
                 eligibleIntegrations={viewModel.eligibleIntegrations}
                 providerKey={viewModel.providerKey}
-                onCancel={isConfigured ? handleCancelConfiguring : undefined}
+                onCancel={handleCancelConfiguring}
                 onConfigured={handleConfigured}
                 existingSetup={isConfigured ? messagingSetup : undefined}
               />
@@ -355,7 +401,8 @@ function RowSubtitle({
   if (
     visualState === 'installable' ||
     visualState === 'loading' ||
-    visualState === 'installing'
+    visualState === 'installing' ||
+    visualState === 'choose-destination'
   ) {
     return (
       <Text variant="muted" size="sm">
@@ -423,6 +470,7 @@ function RowSubtitle({
 
 interface RowActionsProps {
   onCancelRemoving: () => void;
+  onChooseDestination: () => void;
   onConfirmRemove: () => void;
   onConnect: () => void;
   onEditDestination: () => void;
@@ -435,6 +483,7 @@ function RowActions({
   visualState,
   viewModel,
   onConnect,
+  onChooseDestination,
   onEditDestination,
   onStartRemoving,
   onCancelRemoving,
@@ -478,6 +527,19 @@ function RowActions({
     );
   }
 
+  if (visualState === 'choose-destination') {
+    return (
+      <Button
+        size="sm"
+        icon={<IconAdd size="xs" />}
+        onClick={onChooseDestination}
+        aria-label={t('Choose destination for %s', viewModel.provider.name)}
+      >
+        {t('Choose destination')}
+      </Button>
+    );
+  }
+
   if (visualState === 'configured') {
     return (
       <Fragment>
@@ -498,7 +560,7 @@ function RowActions({
           {t('Cancel')}
         </Button>
         <Button size="sm" variant="danger" onClick={onConfirmRemove}>
-          {t('Remove destination')}
+          {t('Remove')}
         </Button>
       </Fragment>
     );

@@ -1,3 +1,5 @@
+import {useCallback, useState} from 'react';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -49,6 +51,18 @@ export function ScmMessaging({
     refetchIntegrations,
     retry,
   } = useScmMessagingProviders();
+
+  // When a row enters configuring or removing mode, hide all other rows so the
+  // user can focus on one provider at a time.
+  const [exclusiveProviderKey, setExclusiveProviderKey] = useState<string | null>(null);
+  const handleExclusiveModeChange = useCallback((providerKey: string | null) => {
+    setExclusiveProviderKey(providerKey);
+  }, []);
+
+  const visibleProviders =
+    exclusiveProviderKey === null
+      ? providers
+      : providers.filter(p => p.providerKey === exclusiveProviderKey);
 
   // Continue creates the project and alert rules, so it must wait for a
   // conclusively revalidated destination — not merely the absence of a
@@ -125,45 +139,49 @@ export function ScmMessaging({
           </Alert>
         )}
 
-        {!isPending && !isError && providers.length > 0 && (
+        {!isPending && !isError && visibleProviders.length > 0 && (
           <Stack gap="md">
-            {providers.map(viewModel => (
+            {visibleProviders.map(viewModel => (
               <ScmMessagingProviderRow
                 key={viewModel.providerKey}
                 viewModel={viewModel}
                 messagingSetup={messagingSetup}
                 onMessagingSetupChange={onMessagingSetupChange}
                 onInstallComplete={refetchIntegrations}
+                onExclusiveModeChange={handleExclusiveModeChange}
                 isRefetchingIntegrations={isRefetchingIntegrations}
               />
             ))}
           </Stack>
         )}
 
-        <Flex align="center" justify="between" width="100%" paddingTop="sm">
-          <Flex align="center">{genBackButton?.()}</Flex>
-          <Flex align="center" gap="md">
-            <Button
-              size="sm"
-              variant="secondary"
-              analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
-              analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
-              onClick={handleSetupLater}
-            >
-              {t('Set up later')}
-            </Button>
-            <Button
-              size="sm"
-              variant="primary"
-              analyticsEventKey="onboarding.scm_messaging_continue_clicked"
-              analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
-              disabled={!canContinue}
-              onClick={handleContinue}
-            >
-              {t('Continue')}
-            </Button>
+        {exclusiveProviderKey === null && (
+          <Flex align="center" justify="between" width="100%" paddingTop="sm">
+            <Flex align="center">{genBackButton?.()}</Flex>
+            <Flex align="center" gap="md">
+              <Button
+                size="sm"
+                variant="secondary"
+                analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
+                analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
+                onClick={handleSetupLater}
+              >
+                {t('Set up later')}
+              </Button>
+              {canContinue && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  analyticsEventKey="onboarding.scm_messaging_continue_clicked"
+                  analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
+                  onClick={handleContinue}
+                >
+                  {t('Continue')}
+                </Button>
+              )}
+            </Flex>
           </Flex>
-        </Flex>
+        )}
       </Stack>
     </Stack>
   );
