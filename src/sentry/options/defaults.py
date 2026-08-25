@@ -3305,7 +3305,7 @@ register(
 register(
     "spans.buffer.process-segments-task-rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
