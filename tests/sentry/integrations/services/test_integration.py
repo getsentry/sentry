@@ -156,6 +156,12 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_integration(provider="example", external_id="example:1")
         self.verify_integration_result(result=result, expected=self.integration1)
 
+        # With replica usage
+        result = integration_service.get_integration(
+            provider="example", external_id="example:1", using_replica=True
+        )
+        self.verify_integration_result(result=result, expected=self.integration1)
+
         # no results
         result = integration_service.get_integration(provider="🚀")
         assert result is None
@@ -225,6 +231,13 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         # by integration_id
         result = integration_service.get_organization_integrations(
             org_integration_ids=[self.org_integration1.id]
+        )
+        self.verify_result(result=result, expected=[self.org_integration1])
+
+        # by integration_id with replica
+        result = integration_service.get_organization_integrations(
+            integration_id=self.org_integration1.integration_id,
+            using_replica=True,
         )
         self.verify_result(result=result, expected=[self.org_integration1])
 
