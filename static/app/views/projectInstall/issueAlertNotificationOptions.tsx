@@ -15,13 +15,8 @@ import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
 } from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
-import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
-import {
-  IssueAlertActionType,
-  type IntegrationAction,
-  type IssueAlertRuleAction,
-} from 'sentry/types/alerts';
+import {IssueAlertActionType, type IssueAlertRuleAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -147,41 +142,6 @@ export type IssueAlertNotificationProps = {
   channel?: IntegrationChannel;
 };
 
-/**
- * Builds the serializable IntegrationAction for the current messaging
- * selection. Returns undefined if the provider is unrecognised or unset.
- */
-function buildIntegrationAction({
-  provider,
-  integration,
-  channel,
-}: Pick<IssueAlertNotificationProps, 'provider' | 'integration' | 'channel'>):
-  | IntegrationAction
-  | undefined {
-  switch (provider) {
-    case 'slack':
-      return {
-        id: IssueAlertActionType.SLACK,
-        workspace: integration?.id,
-        channel: channel?.value,
-      };
-    case 'discord':
-      return {
-        id: IssueAlertActionType.DISCORD,
-        server: integration?.id,
-        channel_id: channel?.value,
-      };
-    case 'msteams':
-      return {
-        id: IssueAlertActionType.MS_TEAMS,
-        team: integration?.id,
-        channel: channel?.value,
-      };
-    default:
-      return undefined;
-  }
-}
-
 export type NotificationSelection = {
   channel: string;
   integrationId: string;
@@ -234,7 +194,6 @@ type RestoreResolver = (
  */
 function useNotificationPicker(resolveRestore: RestoreResolver) {
   const organization = useOrganization();
-  const createProjectRules = useCreateProjectRules();
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [
@@ -322,41 +281,7 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
     setShouldRenderSetupButton(false);
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations, resolveRestore]);
 
-  const createNotificationAction = useCallback(
-    ({
-      shouldCreateRule,
-      projectSlug,
-      name,
-      conditions,
-      actionMatch,
-      frequency,
-    }: Partial<RequestDataFragment> & {projectSlug: string}) => {
-      const isCreatingIntegrationNotification = actions.find(
-        action => action === MultipleCheckboxOptions.INTEGRATION
-      );
-      if (!shouldCreateRule || !isCreatingIntegrationNotification) {
-        return;
-      }
-
-      const integrationAction = buildIntegrationAction({provider, integration, channel});
-      if (!integrationAction) {
-        return;
-      }
-
-      return createProjectRules.mutateAsync({
-        projectSlug,
-        name,
-        conditions,
-        actions: [integrationAction],
-        actionMatch,
-        frequency,
-      });
-    },
-    [actions, provider, integration, channel, createProjectRules]
-  );
-
   return {
-    createNotificationAction,
     notificationProps: {
       actions,
       provider,

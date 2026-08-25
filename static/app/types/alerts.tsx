@@ -29,19 +29,6 @@ export const enum IssueAlertActionType {
   AZURE_DEVOPS_CREATE_TICKET = 'sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction',
 }
 
-export const enum IssueAlertConditionType {
-  EVERY_EVENT = 'sentry.rules.conditions.every_event.EveryEventCondition',
-  FIRST_SEEN_EVENT = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-  REGRESSION_EVENT = 'sentry.rules.conditions.regression_event.RegressionEventCondition',
-  REAPPEARED_EVENT = 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
-  EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
-  EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
-  EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions',
-  EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
-  NEW_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-  EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
-}
-
 /**
  * These templates that tell the UI how to render the action or condition
  * and what fields it needs
@@ -73,28 +60,6 @@ export interface TicketActionData {
   integration: string;
   dynamic_form_fields?: IssueConfigField[];
 }
-
-interface SlackAction {
-  channel: string | undefined;
-  id: IssueAlertActionType.SLACK;
-  workspace: string | undefined;
-  channel_id?: string | undefined;
-  notes?: string | undefined;
-  tags?: string | undefined;
-}
-interface DiscordAction {
-  channel_id: string | undefined;
-  id: IssueAlertActionType.DISCORD;
-  server: string | undefined;
-  tags?: string | undefined;
-}
-interface MSTeamsAction {
-  channel: string | undefined;
-  id: IssueAlertActionType.MS_TEAMS;
-  team: string | undefined;
-}
-
-export type IntegrationAction = SlackAction | DiscordAction | MSTeamsAction;
 
 interface UnsavedIssueAlertRule {
   /** When an issue matches [actionMatch] of the following */
