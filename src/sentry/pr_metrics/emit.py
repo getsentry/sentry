@@ -577,13 +577,18 @@ def _emitting_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
     """The subset that would actually emit: the rows carrying a valid attribution,
     which is the gate every emission path applies.
 
-    Canonical selection runs over these so an untracked row — e.g. a run-less MCP PR
-    whose attribution feature is on in only one org — never wins canonical and drops
-    the PR by suppressing a sibling that would emit.
+    Canonical selection runs over these so an untracked row never wins canonical and
+    drops the PR by suppressing a sibling that would emit. A run-less MCP PR is the
+    usual case: ``_write_mcp_attribution`` records only for the org whose issues the
+    PR resolves, leaving the sibling rows untracked.
 
-    ``pr-metrics`` is not re-checked here: it resolves per deployment rather than per
-    org, so every sibling gets the same answer and it can never be what separates
-    them.
+    ``pr-metrics`` is deliberately not re-checked per row. Flagpole evaluates it
+    against the process's own cell rather than the organization, so every sibling
+    returns the same answer — and when that answer is False this returns nothing and
+    ``is_canonical_github_pr_row`` falls through to emitting anyway. An org losing the
+    flag between attribution (although this shouldn't really happen with the flag being
+    per-installation-site) and emission is caught upstream instead: ``select_verdict``
+    defers to ``INDETERMINATE`` and ``_forward_to_judge`` then drops it.
     """
     tracked_ids = set(
         PullRequestAttribution.objects.filter(pull_request__in=pull_requests, is_valid=True)
