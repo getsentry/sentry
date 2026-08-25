@@ -1729,7 +1729,7 @@ function buildRoutes(): RouteObject[] {
             path: `${moduleBaseURL}/*`,
             redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(
               moduleUrlToModule[moduleBaseURL]!
-            )}${moduleBaseURL}/:splat`,
+            )}/${moduleBaseURL}/`,
           }
         : null
     )

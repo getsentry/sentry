@@ -85,6 +85,9 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         prompt = generate_autofix_handoff_prompt(state)
 
         assert "Please fix the following issue" in prompt
+        assert "briefly explains the root cause and the solution" in prompt
+        assert "not on the proposed solution below" in prompt
+        assert "triggered by a Seer handoff from Sentry" in prompt
         assert "Root Cause" not in prompt
         assert "Solution" not in prompt
 
@@ -1424,7 +1427,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_uses_group_title_for_branch(self, mock_client_class):
-        """Test that branch_name_base is set to the group title."""
+        """Test that branch_name_base is the group title behind a seer/ prefix."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
@@ -1446,7 +1449,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
 
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
-        assert call_kwargs["branch_name_base"] == self.group.title
+        assert call_kwargs["branch_name_base"] == f"seer/{self.group.title}"
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_fetches_auto_create_pr_from_preferences(

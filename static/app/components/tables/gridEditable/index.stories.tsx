@@ -9,7 +9,6 @@ import type {
 } from 'sentry/components/tables/gridEditable';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import * as Storybook from 'sentry/stories';
 
@@ -138,8 +137,6 @@ export default Storybook.story('GridEditable', story => {
   });
 
   story('Column Resize', () => {
-    const stateBasedColumnResize = useStateBasedColumnResize({columns: columnsWithWidth});
-
     const queryBasedColumnResize = useQueryBasedColumnResize({
       columns: columnsWithWidth,
       paramName: 'width',
@@ -148,20 +145,23 @@ export default Storybook.story('GridEditable', story => {
     return (
       <Fragment>
         <p>
-          You can keep track of the column widths by implementing the{' '}
-          <Storybook.JSXProperty name="onResizeColumn" value={Function} /> callback.
+          Columns are resizable by default. Implement the{' '}
+          <Storybook.JSXProperty name="onResizeColumn" value={Function} /> callback only
+          when the widths need to live somewhere the table cannot reach, such as the URL.
         </p>
         <Storybook.SideBySide>
           <div>
-            <p>In this example we are saving the column widths to state.</p>
+            <p>
+              In this example no callback is passed, so the table keeps the resized widths
+              itself.
+            </p>
             <GridEditable
               data={data}
-              columnOrder={stateBasedColumnResize.columns}
+              columnOrder={columnsWithWidth}
               columnSortBy={[]}
               grid={{
                 renderHeadCell,
                 renderBodyCell,
-                onResizeColumn: stateBasedColumnResize.handleResizeColumn,
               }}
             />
           </div>

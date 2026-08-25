@@ -654,6 +654,7 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
+            force_ce=False,
         )
         run_id = run.seer_run_state_id
 
@@ -731,6 +732,18 @@ def generate_autofix_handoff_prompt(
             )
         else:
             parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+
+    parts.append(
+        " ".join(
+            [
+                "When you open a pull request, write a description that briefly explains the root",
+                "cause and the solution at a high level, so a reviewer can understand the change",
+                "without reading the diff. Base it on the changes you actually implemented, not on",
+                "the proposed solution below. Keep it to a few sentences. State in the description",
+                "that this pull request was triggered by a Seer handoff from Sentry.",
+            ]
+        )
+    )
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -885,7 +898,7 @@ def trigger_coding_agent_handoff(
         user_id=user_id,
         prompt=prompt,
         repos=[repo],
-        branch_name_base=group.title or "seer",
+        branch_name_base=f"seer/{group.title}" if group.title else "seer/fix",
         auto_create_pr=auto_create_pr,
         issue_short_id=short_id,
         issue_url=issue_url,

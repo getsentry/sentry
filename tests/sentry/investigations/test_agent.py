@@ -153,8 +153,41 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
 
+    def test_completed_query_keeps_reused_result_projects(self) -> None:
+        self.execution.input_snapshot["projectIds"] = []
+        self.execution.input_snapshot["contextDataProjectIds"] = [self.project.id]
+        self.execution.save(update_fields=["input_snapshot"])
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="result",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="assistant",
+                        content=(
+                            '{"tableMarkdown":"| Errors |\\n| ---: |\\n| 12 |",'
+                            '"chart":null,"preferredView":"table","isEmpty":false,'
+                            '"chartUnavailableReason":"Reused the previous result."}'
+                        ),
+                    ),
+                )
+            ]
+        )
+
+        synchronize_execution(self.execution, run_state)
+
+        self.execution.refresh_from_db()
+        assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert list(self.execution.data_projects.all()) == [self.project]
+
     def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
         client = MagicMock()
+        self.execution.input_snapshot["source"] = {
+            "snapshot": {
+                "monitor": {"name": "Checkout errors"},
+                "analysisWindow": {"breachStart": "2026-08-01T00:00:00+00:00"},
+            }
+        }
 
         start_execution_run(self.execution, self.organization, self.user, client)
 
@@ -171,6 +204,8 @@ class InvestigationAgentTest(TestCase):
         assert "first character must be { and the last character must be }" in prompt
         assert "Do not wrap the object in a Markdown code fence" in prompt
         assert "exactly these five keys and no others" in prompt
+        assert "Checkout errors" in prompt
+        assert "2026-08-01T00:00:00+00:00" in prompt
         assert "artifact_key" not in options
         assert "artifact_schema" not in options
 
@@ -701,12 +736,16 @@ class InvestigationAgentTest(TestCase):
         self, mock_client: MagicMock
     ) -> None:
         self.investigation.title = "Untitled investigation"
-        self.investigation.source_ref = {
-            "groupTitle": "Checkout errors breached 100 events",
-            "project": {"slug": "checkout-api"},
-            "monitor": {"name": "Checkout errors", "direction": "above"},
+        self.investigation.source = {
+            "type": "metric_open_period",
+            "ref": {},
+            "snapshot": {
+                "groupTitle": "Checkout errors breached 100 events",
+                "project": {"slug": "checkout-api"},
+                "monitor": {"name": "Checkout errors", "direction": "above"},
+            },
         }
-        self.investigation.save(update_fields=["title", "source_ref"])
+        self.investigation.save(update_fields=["title", "source"])
 
         _maybe_start_title_generation(self.investigation, None)
 

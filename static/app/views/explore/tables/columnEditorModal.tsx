@@ -24,6 +24,7 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
   DASHBOARD_ONLY_SPAN_ATTRIBUTES,
@@ -45,6 +46,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   numberTags: TagCollection;
   onColumnsChange: (columns: string[]) => void;
   stringTags: TagCollection;
+  arrayTags?: TagCollection;
   handleReset?: () => void;
   hiddenKeys?: string[];
   isDocsButtonHidden?: boolean;
@@ -64,6 +66,7 @@ export function ColumnEditorModal({
   booleanTags,
   numberTags,
   stringTags,
+  arrayTags = {},
   hiddenKeys,
   isDocsButtonHidden = false,
   handleReset,
@@ -77,11 +80,13 @@ export function ColumnEditorModal({
         stringTags,
         numberTags,
         booleanTags,
+        arrayTags,
         hiddenKeys,
         traceItemType,
         validatedFieldTypes,
       }),
     [
+      arrayTags,
       booleanTags,
       columns,
       hiddenKeys,
@@ -212,6 +217,11 @@ function ColumnEditorRow({
   const debouncedSearch = useDebouncedValue(search, 250);
   const hasSearch = debouncedSearch.length > 0;
 
+  // Array attributes are gated behind the array feature flag. When it's off the
+  // array search is disabled, matching the empty base options the modal receives.
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
+
   // The parent's tag collections come pre-filtered: useSpanItemAttributes folds in
   // DASHBOARD_ONLY_SPAN_ATTRIBUTES, and log callers pass HiddenColumnEditorLogFields
   // via hiddenKeys. The bare useTraceItemDatasetAttributes does neither, so merge
@@ -257,8 +267,20 @@ function ColumnEditorRow({
       'boolean',
       searchHiddenKeys
     );
+  const {attributes: searchedArrayTags, isLoading: arrayLoading} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportsArrays,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'array',
+      searchHiddenKeys
+    );
 
-  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+  const isSearchLoading =
+    hasSearch && (stringLoading || numberLoading || booleanLoading || arrayLoading);
 
   // Feed CompactSelect the full base list at all times so its built-in matcher
   // can filter synchronously while typing. Once the debounced server search
@@ -273,6 +295,7 @@ function ColumnEditorRow({
       stringTags: searchedStringTags,
       numberTags: searchedNumberTags,
       booleanTags: searchedBooleanTags,
+      arrayTags: searchedArrayTags,
       hiddenKeys,
       traceItemType,
     });
@@ -291,6 +314,7 @@ function ColumnEditorRow({
     searchedStringTags,
     searchedNumberTags,
     searchedBooleanTags,
+    searchedArrayTags,
     hiddenKeys,
     traceItemType,
   ]);
@@ -392,6 +416,7 @@ interface BuildColumnOptionsParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
+  arrayTags?: TagCollection;
   hiddenKeys?: string[];
   validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }
@@ -401,6 +426,7 @@ function buildColumnOptions({
   stringTags,
   numberTags,
   booleanTags,
+  arrayTags = {},
   hiddenKeys,
   traceItemType,
   validatedFieldTypes,
@@ -410,6 +436,7 @@ function buildColumnOptions({
     numberTags: removeHiddenKeys(numberTags, hidden),
     stringTags: removeHiddenKeys(stringTags, hidden),
     booleanTags: removeHiddenKeys(booleanTags, hidden),
+    arrayTags: removeHiddenKeys(arrayTags, hidden),
     traceItemType,
     extraColumns: columns.filter(
       column => !hidden.has(column) && !hidden.has(prettifyTagKey(column))
@@ -428,6 +455,9 @@ function fieldKindFromFieldType(fieldType?: FieldValueType) {
   }
   if (fieldType === FieldValueType.STRING) {
     return FieldKind.TAG;
+  }
+  if (fieldType === FieldValueType.ARRAY) {
+    return FieldKind.ARRAY;
   }
   return null;
 }

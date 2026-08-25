@@ -46,8 +46,8 @@ telemetry via GCP's MCP endpoints — shared across everyone in your organizatio
 
 FEATURES = [
     FeatureDescription(
-        "Give Seer access to your GCP telemetry while investigating issues.",
-        IntegrationFeatures.MONITORING,
+        "Give Seer access to your GCP telemetry (logging, monitoring, tracing) while investigating issues.",
+        IntegrationFeatures.SEER_CONTEXT,
     ),
 ]
 
@@ -158,7 +158,7 @@ class GcpIntegrationProvider(IntegrationProvider):
     name = "Google Cloud Platform"
     metadata = metadata
     integration_cls = GcpIntegration
-    features = frozenset([IntegrationFeatures.MONITORING])
+    features = frozenset([IntegrationFeatures.SEER_CONTEXT])
     requires_feature_flag = True
     allow_multiple = False
 

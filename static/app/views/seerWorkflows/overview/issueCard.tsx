@@ -7,7 +7,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -35,7 +35,9 @@ import type {
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
 import {OpenSeerButton} from './openSeerButton';
@@ -139,7 +141,17 @@ function OverviewAction({
   run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
+  const organization = useOrganization();
   const {pullRequests, status} = run;
+  const trackPrClicked = (section: 'merged' | 'review_pr', pr: OverviewPullRequest) =>
+    trackAnalytics('autofix.overview.pr_clicked', {
+      organization,
+      group_id: run.groupId,
+      run_id: run.seerRunId,
+      section,
+      checks_status: pr.checksStatus ?? undefined,
+      review_status: pr.reviewStatus ?? undefined,
+    });
   if (status === 'processing') {
     return (
       <ButtonBar>
@@ -152,7 +164,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <OpenSeerButton run={run} size="sm" variant="secondary" />
+        <OpenSeerButton run={run} section={sectionKey} size="sm" variant="secondary" />
       </ButtonBar>
     );
   }
@@ -182,11 +194,17 @@ function OverviewAction({
                     icon={<IconMerge />}
                     href={pullRequest.url}
                     external
+                    onClick={() => trackPrClicked('merged', pullRequest)}
                   >
                     {label}
                   </LinkButton>
                 </Tooltip>
-                <OpenSeerButton run={run} size="sm" variant="secondary" />
+                <OpenSeerButton
+                  run={run}
+                  section={sectionKey}
+                  size="sm"
+                  variant="secondary"
+                />
               </ButtonBar>
             );
           })}
@@ -211,21 +229,27 @@ function OverviewAction({
       : null;
     const failedChecks =
       reviewPullRequest.checksStatus === 'failure'
-        ? (reviewPullRequest.failedChecks ?? [])
+        ? (reviewPullRequest.failedCheckDetails ?? [])
         : [];
 
     return (
       <Stack align="end" gap="xs">
         <ButtonBar>
           <Tooltip title={REVIEW_PR_META.description} skipWrapper>
-            <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
+            <LinkButton
+              size="sm"
+              variant="primary"
+              href={reviewPullRequest.url}
+              external
+              onClick={() => trackPrClicked('review_pr', reviewPullRequest)}
+            >
               <Flex as="span" gap="xs" align="center">
                 {t('Review PR #%s', reviewPullRequest.number)}
                 <IconOpen size="xs" />
               </Flex>
             </LinkButton>
           </Tooltip>
-          <OpenSeerButton run={run} size="sm" variant="primary" />
+          <OpenSeerButton run={run} section={sectionKey} size="sm" variant="primary" />
         </ButtonBar>
         {enrichmentPending ? (
           // Two slots mirror the review + checks tags the enriched response
@@ -250,13 +274,17 @@ function OverviewAction({
                       {t('Failing checks:')}
                     </Text>
                     <Stack gap="2xs" align="start">
-                      {failedChecks.map((name, index) => (
-                        <Flex key={`${name}-${index}`} gap="xs" align="start">
+                      {failedChecks.map((check, index) => (
+                        <Flex key={`${check.name}-${index}`} gap="xs" align="start">
                           <Text size="sm" variant="muted">
                             •
                           </Text>
                           <Text size="sm" align="left">
-                            {name}
+                            {check.url ? (
+                              <ExternalLink href={check.url}>{check.name}</ExternalLink>
+                            ) : (
+                              check.name
+                            )}
                           </Text>
                         </Flex>
                       ))}
@@ -479,12 +507,20 @@ export function OverviewCard({
   sectionKey: AutofixStateKey;
   statsPeriod: string | null;
 }) {
+  const organization = useOrganization();
   const rootCause = run.rootCause?.oneLineDescription;
   const proposedFix = run.proposedFix?.oneLineSummary;
   const issueUrl = `/organizations/${orgSlug}/issues/${run.groupId}/`;
   const reviewPullRequest =
     sectionKey === 'review_pr' ? selectReviewPullRequest(run.pullRequests) : undefined;
   const changedFiles = reviewPullRequest?.files ?? [];
+  const trackCodeChangesExpanded = () =>
+    trackAnalytics('autofix.overview.code_changes_expanded', {
+      organization,
+      group_id: run.groupId,
+      run_id: run.seerRunId,
+      section: sectionKey,
+    });
 
   return (
     <CardFrame
@@ -507,7 +543,19 @@ export function OverviewCard({
         <LevelBar level={run.issue.level ?? undefined} />
         <Stack minWidth="0" gap="xs">
           <Text bold display="block" textWrap="pretty" wordBreak="break-word" size="lg">
-            <TitleLink to={issueUrl}>{run.title}</TitleLink>
+            <TitleLink
+              to={issueUrl}
+              onClick={() =>
+                trackAnalytics('autofix.overview.issue_clicked', {
+                  organization,
+                  group_id: run.groupId,
+                  run_id: run.seerRunId,
+                  section: sectionKey,
+                })
+              }
+            >
+              {run.title}
+            </TitleLink>
           </Text>
           <Flex wrap="wrap" gap="md" align="center">
             <Flex gap="xs" align="center">
@@ -546,12 +594,19 @@ export function OverviewCard({
         </NarrativeBlock>
       )}
       {sectionKey === 'code_changes_ready' && run.codeChanges?.length ? (
-        <CodeChanges codeChanges={run.codeChanges} />
+        <CodeChanges
+          codeChanges={run.codeChanges}
+          onFirstExpand={trackCodeChangesExpanded}
+        />
       ) : null}
       {enrichmentPending && reviewPullRequest?.url ? (
         <Placeholder height="3rem" />
       ) : reviewPullRequest && changedFiles.length > 0 ? (
-        <PullRequestFiles orgSlug={orgSlug} pullRequest={reviewPullRequest} />
+        <PullRequestFiles
+          orgSlug={orgSlug}
+          pullRequest={reviewPullRequest}
+          onFirstExpand={trackCodeChangesExpanded}
+        />
       ) : null}
     </CardFrame>
   );
