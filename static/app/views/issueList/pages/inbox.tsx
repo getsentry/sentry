@@ -785,8 +785,11 @@ const PULL_REQUEST_BADGE_VARIANTS = {
 
 function InboxPullRequestBadges({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
+  const pullRequests = data?.pullRequests.filter(
+    pullRequest => pullRequest.status !== 'closed'
+  );
 
-  if (!data?.pullRequests.length) {
+  if (!pullRequests?.length) {
     return null;
   }
 
@@ -795,7 +798,7 @@ function InboxPullRequestBadges({group}: {group: Group}) {
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
         <span />
         <Flex align="center" gap="xs">
-          {data.pullRequests.slice(0, 2).map(pullRequest => (
+          {pullRequests.slice(0, 2).map(pullRequest => (
             <PullRequestBadgeLink
               key={`${pullRequest.repository.id}:${pullRequest.id}`}
               aria-label={t(
