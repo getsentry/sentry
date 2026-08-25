@@ -168,7 +168,8 @@ describe('ScmMessaging', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
     );
-    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+    // The alert animates out (ScmCollapsibleReveal 200ms exit); wait for it to leave.
+    await waitFor(() => expect(screen.queryByText(warning)).not.toBeInTheDocument());
   });
 
   it('marks the channel stale without resetting session state when channel-validate returns false', async () => {

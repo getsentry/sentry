@@ -3,7 +3,7 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {UNCONFIGURED_SCM_MESSAGING_SETUP} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
@@ -571,7 +571,10 @@ describe('ScmMessagingProviderRow', () => {
 
       act(() => capturedOnCancel?.());
 
-      expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
+      // Picker animates out (ScmCollapsibleReveal 200ms exit); wait for it to leave.
+      await waitFor(() =>
+        expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
+      );
       expect(
         screen.getByRole('button', {name: /Choose destination/})
       ).toBeInTheDocument();
@@ -691,7 +694,10 @@ describe('ScmMessagingProviderRow', () => {
         />
       );
 
-      expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
+      // Picker animates out (ScmCollapsibleReveal 200ms exit); wait for it to leave.
+      await waitFor(() =>
+        expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
+      );
     });
   });
 

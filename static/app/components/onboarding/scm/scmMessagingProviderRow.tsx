@@ -28,6 +28,7 @@ import {
   SCM_MESSAGING_PROVIDER_TOOLTIPS,
 } from './messagingProviders';
 import type {ScmMessagingProviderKey} from './messagingProviders';
+import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
 import type {ScmMessagingProviderViewModel} from './useScmMessagingProviders';
@@ -361,7 +362,11 @@ export function ScmMessagingProviderRow({
           </Flex>
         )}
 
-        {visualState === 'configuring' && viewModel.eligibleIntegrations.length > 0 && (
+        <ScmCollapsibleReveal
+          open={
+            visualState === 'configuring' && viewModel.eligibleIntegrations.length > 0
+          }
+        >
           <Container borderTop="primary" padding="lg">
             {renderChannelPicker ? (
               renderChannelPicker({
@@ -379,7 +384,7 @@ export function ScmMessagingProviderRow({
               />
             )}
           </Container>
-        )}
+        </ScmCollapsibleReveal>
       </Stack>
     </Container>
   );
