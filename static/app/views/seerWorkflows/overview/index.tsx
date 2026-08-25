@@ -261,6 +261,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             setQueryParam('assignee', next ?? undefined);
           }}
           loading={isPending}
+          truncated={(data?.truncatedMilestones?.length ?? 0) > 0}
         />
         <CompactSelect
           value={sort}
@@ -273,13 +274,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
-        {(data?.truncatedMilestones?.length ?? 0) > 0 && (
-          <Text size="sm" variant="muted">
-            {t(
-              'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
-            )}
-          </Text>
-        )}
         <Flex marginLeft="auto">
           <Button
             onClick={toggleAllGroups}

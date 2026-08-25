@@ -1678,7 +1678,7 @@ describe('AutofixOverview', () => {
       expect(screen.queryByRole('tab', {name: /All Runs/})).not.toBeInTheDocument();
     });
 
-    it('shows a truncation notice when the backend caps a section', async () => {
+    it('shows a truncation notice in the assignee menu when the backend caps a section', async () => {
       mockOverview({
         base: {autofix_root_cause: [assignedRun]},
         truncated: ['autofix_root_cause'],
@@ -1686,11 +1686,35 @@ describe('AutofixOverview', () => {
 
       renderPage();
 
+      await userEvent.click(await screen.findByRole('button', {name: /Assignee/}));
+
       expect(
-        await screen.findByText(
-          'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
-        )
+        await screen.findByText('Assignee counts may be incomplete')
       ).toBeInTheDocument();
+    });
+
+    it('omits the truncation notice when nothing is capped', async () => {
+      mockOverview({base: {autofix_root_cause: [assignedRun]}});
+
+      renderPage();
+
+      await userEvent.click(await screen.findByRole('button', {name: /Assignee/}));
+
+      expect(
+        screen.queryByText('Assignee counts may be incomplete')
+      ).not.toBeInTheDocument();
+    });
+
+    it('omits the truncation notice when the menu has no assignee options', async () => {
+      mockOverview({base: {}, truncated: ['autofix_root_cause']});
+
+      renderPage();
+
+      await userEvent.click(await screen.findByRole('button', {name: /Assignee/}));
+
+      expect(
+        screen.queryByText('Assignee counts may be incomplete')
+      ).not.toBeInTheDocument();
     });
 
     it('formats team assignees with a # prefix', async () => {
