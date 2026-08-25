@@ -630,14 +630,6 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
-    @override_options(
-        {
-            "hybridcloud.webhookpayload.drain_batch_deletes": True,
-            "hybridcloud.webhookpayload.push_drain_trigger": True,
-        }
-    )
-    @responses.activate
-    @override_cells(cell_config)
     def test_drain_mailbox_multiple_consecutive_failures(self) -> None:
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=500, body="")
@@ -1044,14 +1036,6 @@ class DrainMailboxParallelTest(TestCase):
         delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
         assert len(delete_queries) == 1
 
-    @responses.activate
-    @override_cells(cell_config)
-    @override_options(
-        {
-            "hybridcloud.webhookpayload.drain_batch_deletes": True,
-            "hybridcloud.webhookpayload.push_drain_trigger": True,
-        }
-    )
     @responses.activate
     @override_cells(cell_config)
     def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
