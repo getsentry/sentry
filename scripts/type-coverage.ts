@@ -57,16 +57,33 @@ function parseArgs(): Options {
   return opts;
 }
 
-const isAny = (type: ts.Type, typeChecker: ts.TypeChecker) => {
+const isAny = (type: ts.Type, typeChecker: ts.TypeChecker): boolean => {
   if (type.flags & ts.TypeFlags.Any) {
     return true;
   }
-  const typeText = typeChecker.typeToString(type);
-  if (typeText === 'any') {
-    return true;
+
+  // Union/intersection members are the type's own constituents, so inspect
+  // them individually. Do not inspect arbitrary nested generic arguments:
+  // library types can contain implementation-detail `any` types that do not
+  // make the symbol itself untyped (for example, FormSubmitContext's
+  // validator type arguments).
+  if (type.isUnionOrIntersection()) {
+    return type.types.some(member => isAny(member, typeChecker));
   }
-  // Check for 'any' within generic types like Record<string, any>, Array<any>, etc.
-  return /\bany\b/.test(typeText);
+
+  // Check direct type arguments for cases such as Record<string, any> and
+  // Array<any>. `aliasTypeArguments` is needed for aliases such as Record,
+  // while `getTypeArguments` covers references such as Array.
+  const aliasTypeArguments = type.aliasTypeArguments ?? [];
+  const referenceTypeArguments =
+    type.flags & ts.TypeFlags.Object &&
+    (type as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference
+      ? typeChecker.getTypeArguments(type as ts.TypeReference)
+      : [];
+
+  return [...aliasTypeArguments, ...referenceTypeArguments].some(
+    typeArgument => !!(typeArgument.flags & ts.TypeFlags.Any)
+  );
 };
 
 function hasExplicitType(
