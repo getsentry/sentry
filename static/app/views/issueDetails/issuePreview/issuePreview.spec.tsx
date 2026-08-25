@@ -95,7 +95,7 @@ describe('IssuePreview', () => {
     ).toHaveAttribute('href', 'https://github.com/example/repo-name/pull/10');
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Add a comment'})).toHaveStyle({
-      minHeight: '48px',
+      minHeight: '40px',
     });
   });
 

@@ -268,7 +268,7 @@ function IssuePreviewContent() {
               >
                 <ActivitySection
                   group={group}
-                  minHeight={48}
+                  minHeight={40}
                   variant="standalone"
                   placeholder={t('Add a comment. Tag users with @, or teams with #')}
                 />
