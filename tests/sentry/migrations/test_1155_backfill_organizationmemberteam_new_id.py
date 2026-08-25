@@ -5,13 +5,13 @@ from sentry.testutils.cases import TestMigrations
 
 # A leading digit is legal in a module name but not in the dotted path mock.patch parses,
 # so the module has to be imported by hand to patch anything on it.
-migration = importlib.import_module("sentry.migrations.1154_backfill_organizationmemberteam_new_id")
+migration = importlib.import_module("sentry.migrations.1155_backfill_organizationmemberteam_new_id")
 
 
 class BackfillOrganizationMemberTeamNewIdTest(TestMigrations):
     app = "sentry"
-    migrate_from = "1153_create_group_action_log_outbox"
-    migrate_to = "1154_backfill_organizationmemberteam_new_id"
+    migrate_from = "1154_pullrequest_external_id"
+    migrate_to = "1155_backfill_organizationmemberteam_new_id"
 
     def setUp(self):
         # A handful of rows spans several batches at this size, so the migration's

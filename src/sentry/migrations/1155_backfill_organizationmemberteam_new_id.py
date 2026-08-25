@@ -44,7 +44,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1153_create_group_action_log_outbox"),
+        ("sentry", "1154_pullrequest_external_id"),
     ]
 
     operations = [
