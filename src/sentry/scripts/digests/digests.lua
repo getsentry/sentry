@@ -164,6 +164,21 @@ end
 
 -- Timeline and Schedule Operations
 
+-- The two schedule sets ("{namespace}:s:w" and "{namespace}:s:r") are the only
+-- keys in this file that are not covered by the record TTL. They hold the
+-- pending state of the digest scheduler, so an expiry that can fire while a
+-- digest is still scheduled would drop that digest.
+--
+-- The expiry below is refreshed on every write to a timeline and on every
+-- scheduler pass, so it slides forward and can only fire after a namespace has
+-- been quiet for the whole window. The window is never shorter than the record
+-- TTL, so the schedule always outlives every record it points to. The floor of
+-- 7 days is many orders of magnitude longer than the scheduler interval (the
+-- "schedule-digests" beat entry runs every 30 seconds), so an expired schedule
+-- means the scheduler has been stopped for a week, by which point the records
+-- themselves are long gone.
+local SCHEDULE_EXPIRY_MINIMUM = 60 * 60 * 24 * 7
+
 local function schedule(configuration, deadline)
     local response = {}
     local i = 0
@@ -176,6 +191,11 @@ local function schedule(configuration, deadline)
             response[i] = {timeline_id, timestamp}
         end
     )
+    -- Keep the refresh after the move, so that it applies to a destination key
+    -- that exists. The move can create the destination set, and EXPIRE is a
+    -- noop on a key that is not there yet. Nothing here returns early, so this
+    -- still runs on every pass, including a pass with nothing to move.
+    configuration:refresh_schedule_expiry()
     return response
 end
 
@@ -185,6 +205,8 @@ local function maintenance(configuration, deadline)
         configuration:get_schedule_waiting_key(),
         deadline
     )
+    -- After the move, for the same reason as in schedule().
+    configuration:refresh_schedule_expiry()
 end
 
 local function add_timeline_to_schedule(configuration, timeline_id, timestamp, increment, maximum)
@@ -258,6 +280,10 @@ local function add_record_to_timeline(configuration, timeline_id, record_id, val
     redis.call('EXPIRE', configuration:get_timeline_key(timeline_id), configuration.ttl)
 
     local ready = add_timeline_to_schedule(configuration, timeline_id, timestamp, delay_increment, delay_maximum)
+    -- This has to stay on the write path. It is what makes the schedule outlive
+    -- the record that was just written, whether or not the timeline was already
+    -- scheduled.
+    configuration:refresh_schedule_expiry()
 
     if timeline_capacity > 0 and math.random() < truncation_chance then
         truncate_timeline(configuration, timeline_id, timeline_capacity)
@@ -331,6 +357,7 @@ local function close_digest(configuration, timeline_id, delay_minimum, record_id
         redis.call('SETEX', configuration:get_timeline_last_processed_timestamp_key(timeline_id), configuration.ttl, configuration.timestamp)
         redis.call('ZREM', configuration:get_schedule_ready_key(), timeline_id)
         redis.call('ZADD', configuration:get_schedule_waiting_key(), configuration.timestamp + delay_minimum, timeline_id)
+        configuration:refresh_schedule_expiry()
     else
         redis.call('DEL', configuration:get_timeline_last_processed_timestamp_key(timeline_id))
         redis.call('ZREM', configuration:get_schedule_ready_key(), timeline_id)
@@ -362,6 +389,14 @@ local configuration_argument_parser = object_argument_parser({
 
     function configuration:get_schedule_ready_key()
         return string.format('%s:s:r', self.namespace)
+    end
+
+    function configuration:refresh_schedule_expiry()
+        local expiry = math.max(self.ttl, SCHEDULE_EXPIRY_MINIMUM)
+        -- EXPIRE is a noop on a key that does not exist, so this never revives
+        -- a schedule set that Redis already dropped.
+        redis.call('EXPIRE', self:get_schedule_waiting_key(), expiry)
+        redis.call('EXPIRE', self:get_schedule_ready_key(), expiry)
     end
 
     function configuration:get_timeline_key(timeline_id)
