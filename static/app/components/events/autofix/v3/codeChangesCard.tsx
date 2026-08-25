@@ -118,7 +118,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     useResetAutofixStep({
       autofix,
       canReset: isResetEligible,
-      initialShouldShowReset: location.query.seerDrawerAction === 'retry_code_changes',
+      initialShouldShowReset:
+        isResetEligible && location.query.seerDrawerAction === 'retry_code_changes',
       section,
       step: 'code_changes',
     });
@@ -278,17 +279,31 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     );
   } else {
     content = (
-      <ArtifactDetails>
+      <ArtifactDetails gap="lg">
         <Text>
           {t(
             'Seer failed to generate a code change. This one is on us. Try running it again.'
           )}
         </Text>
-        <Flex>
-          <Button variant="primary" icon={<IconRefresh />} onClick={() => handleReset()}>
-            {t('Re-run')}
-          </Button>
-        </Flex>
+        {shouldShowReset ? (
+          resetPrompt(
+            t('What additional context should Seer use?'),
+            t(
+              'Add context that could unblock the change, e.g. the repo or files to edit.'
+            )
+          )
+        ) : (
+          <Flex>
+            <Button
+              variant="primary"
+              icon={<IconRefresh />}
+              disabled={!canReset}
+              onClick={() => handleReset()}
+            >
+              {t('Re-run')}
+            </Button>
+          </Flex>
+        )}
       </ArtifactDetails>
     );
   }

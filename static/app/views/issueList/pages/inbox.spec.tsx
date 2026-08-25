@@ -20,11 +20,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 import {useMedia} from 'sentry/utils/useMedia';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
-import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import InboxPage from './inbox';
 
@@ -1172,9 +1172,9 @@ describe('InboxPage', () => {
                     hunks: [],
                     source_file: 'src/user.ts',
                     target_file: 'src/user.ts',
-                    type: 'M',
+                    type: DiffFileType.MODIFIED,
                   },
-                } as ExplorerFilePatch,
+                },
               ],
               message: {
                 content: 'Code changes complete',

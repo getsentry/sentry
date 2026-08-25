@@ -631,7 +631,7 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('opens and consumes the requested context prompt action', async () => {
+    it('opens and consumes a requested context prompt without an explanation', async () => {
       const {router} = render(
         <CodeChangesCard
           groupId="1"
@@ -640,7 +640,7 @@ describe('ArtifactCard', () => {
             'code_changes',
             'completed',
             [],
-            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+            [makeAssistantBlock('   ')]
           )}
         />,
         {
@@ -658,6 +658,11 @@ describe('ArtifactCard', () => {
       );
 
       expect(
+        screen.getByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).toBeInTheDocument();
+      expect(
         screen.getByText('What additional context should Seer use?')
       ).toBeInTheDocument();
       expect(
@@ -671,6 +676,30 @@ describe('ArtifactCard', () => {
         ).toHaveFocus();
         expect(router.location.query).toEqual({project: '1', seerDrawer: 'true'});
       });
+    });
+
+    it('opens the context prompt from the explanation state', async () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+          )}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
+
+      expect(
+        screen.getByText('What additional context should Seer use?')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add context & retry'})
+      ).not.toBeInTheDocument();
     });
 
     it('opens PR iteration feedback from explanation state when a PR exists', async () => {
@@ -719,7 +748,7 @@ describe('ArtifactCard', () => {
       });
     });
 
-    it('does not open PR iteration feedback when only automated CI iteration is enabled', async () => {
+    it('ignores a requested context prompt when reset is ineligible', () => {
       const autofixWithPR: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofixWithRunState,
         runState: {
@@ -742,10 +771,16 @@ describe('ArtifactCard', () => {
             [makeAssistantBlock('The relevant files are not in the connected repo.')]
           )}
         />,
-        {organization: prIterationOrganization}
+        {
+          organization: prIterationOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {seerDrawerAction: 'retry_code_changes'},
+            },
+          },
+        }
       );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
 
       // Reset is ineligible once a PR exists without the manual flag, so neither
       // the PR iteration form nor the free-text reset prompt opens.
