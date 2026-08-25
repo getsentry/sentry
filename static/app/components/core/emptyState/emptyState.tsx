@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Heading, Text, type TextProps} from '@sentry/scraps/text';
 
@@ -39,13 +37,20 @@ export function EmptyState({
             {illustration}
           </Flex>
         )}
-        <Content gap="xl">
+        <Stack gap="xl">
           <Stack gap="md" width="100%" maxWidth="48ch">
-            <Heading as="h3" size="lg" align={textAlign}>
+            <Heading as="h3" size="lg" align={textAlign} style={{margin: 0}}>
               {title}
             </Heading>
             {description && (
-              <Text as="p" size="md" variant="muted" align={textAlign} textWrap="balance">
+              <Text
+                as="p"
+                size="md"
+                variant="muted"
+                align={textAlign}
+                textWrap="balance"
+                style={{margin: 0}}
+              >
                 {description}
               </Text>
             )}
@@ -55,16 +60,8 @@ export function EmptyState({
               {action}
             </Flex>
           )}
-        </Content>
+        </Stack>
       </Flex>
     </Flex>
   );
 }
-
-const Content = styled(Stack)`
-  /* Protect spacing from legacy container styles such as PanelBody. */
-  && h3,
-  && p {
-    margin: 0;
-  }
-`;
