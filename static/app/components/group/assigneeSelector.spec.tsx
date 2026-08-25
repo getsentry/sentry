@@ -1,9 +1,11 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
+import {TeamStore} from 'sentry/stores/teamStore';
 
 describe('AssigneeSelector', () => {
   it('uses the avatar directly as an interactive trigger', async () => {
@@ -27,7 +29,33 @@ describe('AssigneeSelector', () => {
     );
 
     const trigger = screen.getByRole('button', {name: 'Modify issue assignee'});
-    expect(screen.getByTestId('assigned-avatar')).toBeInTheDocument();
+    expect(trigger).toHaveAttribute('data-avatar-shape', 'circle');
+    expect(screen.getByTestId('assigned-avatar')).toHaveStyle({borderRadius: '50%'});
+
+    await userEvent.click(trigger);
+    expect(await screen.findByRole('button', {name: 'Clear'})).toBeInTheDocument();
+  });
+
+  it('uses a square avatar and trigger for an assigned team', async () => {
+    const assignedTeam = TeamFixture({id: '92', name: 'The Fellowship'});
+    TeamStore.loadInitialData([assignedTeam]);
+    const group = GroupFixture({
+      assignedTo: {id: assignedTeam.id, name: assignedTeam.name, type: 'team'},
+    });
+
+    render(
+      <AssigneeSelector
+        avatarOnly
+        group={group}
+        memberList={[]}
+        assigneeLoading={false}
+        handleAssigneeChange={jest.fn()}
+      />
+    );
+
+    const trigger = screen.getByRole('button', {name: 'Modify issue assignee'});
+    expect(trigger).toHaveAttribute('data-avatar-shape', 'square');
+    expect(screen.getByTestId('assigned-avatar')).toHaveStyle({borderRadius: '3px'});
 
     await userEvent.click(trigger);
     expect(await screen.findByRole('button', {name: 'Clear'})).toBeInTheDocument();

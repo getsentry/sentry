@@ -30,7 +30,12 @@ describe('AssigneeBadge', () => {
   });
 
   it('shows the assigned user tooltip when the name is hidden', async () => {
-    render(<AssigneeBadge assignedTo={{id: user.id, name: user.name, type: 'user'}} />);
+    render(
+      <AssigneeBadge
+        assignedTo={{id: user.id, name: user.name, type: 'user'}}
+        avatarOnly
+      />
+    );
 
     await userEvent.hover(screen.getByTestId('assigned-avatar'));
 

@@ -87,7 +87,7 @@ export function AssigneeBadge({
             assignmentDetails={assignmentDetails}
           />
         }
-        skipWrapper
+        skipWrapper={!avatarOnly}
       >
         {avatarOnly ? assignedIcon : <StyledTag icon={assignedIcon} variant="muted" />}
       </Tooltip>
@@ -103,7 +103,7 @@ export function AssigneeBadge({
   );
 
   return (
-    <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper>
+    <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper={!avatarOnly}>
       {avatarOnly ? (
         unassignedIcon
       ) : (
@@ -173,6 +173,7 @@ function AssignedIcon({
         size={avatarOnly ? AVATAR_ONLY_SIZE : AVATAR_SIZE}
         hasTooltip={false}
         data-test-id="assigned-avatar"
+        style={avatarOnly ? {borderRadius: '50%'} : undefined}
       />
     ) : (
       <ActorAvatar
@@ -181,7 +182,7 @@ function AssignedIcon({
         size={avatarOnly ? AVATAR_ONLY_SIZE : AVATAR_SIZE}
         hasTooltip={false}
         data-test-id="assigned-avatar"
-        style={avatarOnly ? undefined : {marginLeft: theme.space.xs}}
+        style={avatarOnly ? {borderRadius: '3px'} : {marginLeft: theme.space.xs}}
       />
     );
 

@@ -152,6 +152,13 @@ export function AssigneeSelector({
       trigger={(props, isOpen) => (
         <StyledTrigger
           {...props}
+          data-avatar-shape={
+            avatarOnly
+              ? group.assignedTo?.type === 'team'
+                ? 'square'
+                : 'circle'
+              : undefined
+          }
           showChevron={false}
           aria-label={t('Modify issue assignee')}
           size="zero"
@@ -182,5 +189,15 @@ const StyledTrigger = styled(OverlayTrigger.Button)`
 
   > span > div {
     border-radius: 20px;
+  }
+
+  &[data-avatar-shape='square'],
+  &[data-avatar-shape='square'] > span > div {
+    border-radius: 3px;
+  }
+
+  &[data-avatar-shape='circle'],
+  &[data-avatar-shape='circle'] > span > div {
+    border-radius: 50%;
   }
 `;
