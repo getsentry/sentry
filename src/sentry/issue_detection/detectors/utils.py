@@ -29,9 +29,10 @@ URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
             # Zero or more non-bracket, non-slash, legal hostname characters. (To avoid lots of
             # typing, let's call them NB-NS-LH characters.)
             [^\[\]/'"`\\<>{}|\^\s?#]*
-            (?P<value_with_brackets>
+            # The bracketed value itself
+            (
                 \[
-                (?P<bracketed_value>
+                (
                     # At least one NB-NS-LH character. Also allows spaces in order to catch values
                     # like `[Filtered UUID]` and `[REDACTED IP]`.
                     [^\[\]/'"`\\<>{}|\^?#]+
