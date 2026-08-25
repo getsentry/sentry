@@ -6,6 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -69,11 +70,17 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
     } satisfies ClientFormValues,
     validators: {onDynamic: clientSchema},
     onSubmit: ({value, formApi}) =>
-      mutation.mutateAsync(value).catch(error => {
-        if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
-        }
-      }),
+      mutation
+        .mutateAsync(value, {
+          onError: error => {
+            const handled =
+              error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+            if (!handled) {
+              addErrorMessage(t('Unable to create OAuth client.'));
+            }
+          },
+        })
+        .catch(() => undefined),
   });
 
   return (
