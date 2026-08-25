@@ -175,14 +175,10 @@ class RedisBackendTestCase(TestCase):
         assert ready_ttl > 0
         assert ready_ttl >= backend.ttl
 
-        # A scheduler pass refreshes the expiry even when it has nothing to
-        # move, so a namespace that keeps members but goes quiet cannot expire
-        # while the scheduler still runs.
         connection.expire("d:s:r", 60)
         assert set(backend.schedule(time.time() - 3600)) == set()
         assert connection.ttl("d:s:r") > 60
 
-        # The maintenance pass does the same.
         connection.expire("d:s:r", 60)
         backend.maintenance(time.time() - 3600)
         assert connection.ttl("d:s:r") > 60
@@ -218,8 +214,6 @@ class RedisBackendTestCase(TestCase):
         for record in records:
             backend.add("timeline", record)
 
-        # The schedule outlives the timeline and every record in it, so it
-        # cannot expire while those records are still deliverable.
         schedule_ttl = connection.ttl("d:s:r")
         assert schedule_ttl >= connection.ttl("d:t:timeline")
         for record in records:
