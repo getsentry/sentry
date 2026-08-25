@@ -206,11 +206,21 @@ class BaseWidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
 
 
 class WidgetLayoutSerializer(BaseWidgetLayoutSerializer):
+    """Widget grid layout position and dimensions.
+
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h, minH.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), minH (>= 1), and x + w <= 6.
+    """
+
     min_h = serializers.IntegerField(min_value=1, help_text="Minimum height in grid rows.")
 
 
 class DashboardCreateWidgetLayoutSerializer(BaseWidgetLayoutSerializer):
-    pass
+    """Widget grid layout position and dimensions for dashboard creation.
+
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), and x + w <= 6.
+    """
 
 
 class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
@@ -406,7 +416,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         choices=DashboardWidgetTypes.as_text_choices(), required=False, allow_null=True
     )
     limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    layout = WidgetLayoutSerializer(required=False, allow_null=True)
+    layout: BaseWidgetLayoutSerializer = WidgetLayoutSerializer(required=False, allow_null=True)
     axis_range = serializers.ChoiceField(
         choices=[("auto", "auto"), ("dataMin", "dataMin")],
         required=False,
@@ -1460,7 +1470,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
 
 class DashboardCreateWidgetSerializer(DashboardWidgetSerializer):
-    layout = DashboardCreateWidgetLayoutSerializer(required=False, allow_null=True)
+    layout: BaseWidgetLayoutSerializer = DashboardCreateWidgetLayoutSerializer(
+        required=False, allow_null=True
+    )
 
     def validate(self, data):
         data = super().validate(data)
