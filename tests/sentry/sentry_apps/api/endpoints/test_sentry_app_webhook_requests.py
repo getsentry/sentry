@@ -136,7 +136,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_manager_does_not_see_owned_published_requests(self) -> None:
+    def test_manager_sees_owned_published_requests(self) -> None:
         manager = self.create_user(email="manager@example.com")
         self.create_member(user=manager, organization=self.org, role="manager")
         self.login_as(user=manager)
@@ -152,8 +152,11 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         response = self.client.get(url, format="json")
 
-        assert response.status_code == 403
-        assert response.data["detail"] == "You do not have permission to perform this action."
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["organization"]["slug"] == self.org.slug
+        assert response.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert response.data[0]["responseCode"] == 200
 
     def test_user_does_not_see_unowned_published_requests(self) -> None:
         self.login_as(user=self.user)
