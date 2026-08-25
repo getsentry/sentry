@@ -39,18 +39,11 @@ export function EmptyState({
         )}
         <Stack gap="xl">
           <Stack gap="md" width="100%" maxWidth="48ch">
-            <Heading as="h3" size="lg" align={textAlign} style={{margin: 0}}>
+            <Heading as="h3" size="lg" align={textAlign}>
               {title}
             </Heading>
             {description && (
-              <Text
-                as="p"
-                size="md"
-                variant="muted"
-                align={textAlign}
-                textWrap="balance"
-                style={{margin: 0}}
-              >
+              <Text as="p" size="md" variant="muted" align={textAlign} textWrap="balance">
                 {description}
               </Text>
             )}
