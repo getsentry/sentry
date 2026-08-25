@@ -100,6 +100,10 @@ interface AssigneeSelectorDropdownProps {
    */
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   /**
+   * Whether the default trigger should show a dropdown chevron.
+   */
+  showChevron?: boolean;
+  /**
    * Maximum number of teams/users to display in the dropdown
    */
   sizeLimit?: number;
@@ -217,6 +221,7 @@ export function AssigneeSelectorDropdown({
   onClear,
   owners,
   sizeLimit = 150,
+  showChevron = true,
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
@@ -496,6 +501,7 @@ export function AssigneeSelectorDropdown({
             aria-label={t('Modify issue assignee')}
             variant="transparent"
             data-test-id="assignee-selector"
+            showChevron={showChevron}
             {...props}
           >
             {avatarElement}

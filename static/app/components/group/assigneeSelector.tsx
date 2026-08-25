@@ -149,6 +149,7 @@ export function AssigneeSelector({
         handleAssigneeChange(assignedActor)
       }
       onClear={() => handleAssigneeChange(null)}
+      showChevron={!avatarOnly}
       trigger={
         avatarOnly
           ? undefined
