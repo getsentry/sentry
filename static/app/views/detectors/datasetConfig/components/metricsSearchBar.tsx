@@ -40,6 +40,9 @@ export function MetricsDetectorSearchBar({
 }: DetectorSearchBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const supportsArrays = organization.features.includes(
+    'trace-item-array-query-support'
+  );
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
@@ -128,12 +131,15 @@ export function MetricsDetectorSearchBar({
   }, [data?.booleanAttributes]);
 
   const visibleArrayTags = useMemo(() => {
+    if (!supportsArrays) {
+      return EMPTY_TAG_COLLECTION;
+    }
     return Object.fromEntries(
       Object.entries(data?.arrayAttributes ?? {}).filter(
         ([key]) => !HiddenTraceMetricSearchFields.includes(key)
       )
     );
-  }, [data?.arrayAttributes]);
+  }, [data?.arrayAttributes, supportsArrays]);
 
   return (
     <TraceItemSearchQueryBuilder

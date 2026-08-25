@@ -1,5 +1,6 @@
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DetectorSearchBarProps} from 'sentry/views/detectors/datasetConfig/base';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -13,6 +14,10 @@ export function TraceSearchBar({
   dataset,
   disabled,
 }: DetectorSearchBarProps) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes(
+    'trace-item-array-query-support'
+  );
   const isLogs = dataset === DiscoverDatasets.OURLOGS;
   const traceDataset = isLogs ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
 
@@ -30,12 +35,12 @@ export function TraceSearchBar({
       itemType={traceDataset}
       initialQuery={initialQuery}
       onSearch={onSearch}
-      arrayAttributes={arrayAttributes}
+      arrayAttributes={supportsArrays ? arrayAttributes : {}}
       booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       numberSecondaryAliases={numberSecondaryAliases}
       stringAttributes={stringAttributes}
-      arraySecondaryAliases={arraySecondaryAliases}
+      arraySecondaryAliases={supportsArrays ? arraySecondaryAliases : {}}
       booleanSecondaryAliases={booleanSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       supportedAggregates={isLogs ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}

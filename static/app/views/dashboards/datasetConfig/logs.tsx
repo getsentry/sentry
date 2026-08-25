@@ -118,6 +118,9 @@ function LogsSearchBar({
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
   const organization = useOrganization();
+  const supportsArrays = organization.features.includes(
+    'trace-item-array-query-support'
+  );
   const {
     selection: {projects},
   } = usePageFilters();
@@ -134,11 +137,11 @@ function LogsSearchBar({
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.LOGS}
-      arrayAttributes={arrayAttributes}
+      arrayAttributes={supportsArrays ? arrayAttributes : {}}
       booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
-      arraySecondaryAliases={arraySecondaryAliases}
+      arraySecondaryAliases={supportsArrays ? arraySecondaryAliases : {}}
       booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
@@ -155,6 +158,9 @@ function LogsSearchBar({
 function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
+  const supportsArrays = organization.features.includes(
+    'trace-item-array-query-support'
+  );
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');
@@ -168,11 +174,11 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.LOGS,
-      arrayAttributes,
+      arrayAttributes: supportsArrays ? arrayAttributes : {},
       booleanAttributes,
       numberAttributes,
       stringAttributes,
-      arraySecondaryAliases,
+      arraySecondaryAliases: supportsArrays ? arraySecondaryAliases : {},
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,

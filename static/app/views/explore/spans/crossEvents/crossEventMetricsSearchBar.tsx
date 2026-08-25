@@ -7,6 +7,7 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
 } from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -40,6 +41,10 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
     const mode = useQueryParamsMode();
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();
+    const organization = useOrganization();
+    const supportsArrays = organization.features.includes(
+      'trace-item-array-query-support'
+    );
 
     const metricFilter = useMemo(() => createTraceMetricFilter(metric), [metric]);
     const attributeOptions = useMemo(
@@ -121,7 +126,7 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
             : undefined,
         supportedAggregates:
           mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-        arrayAttributes,
+        arrayAttributes: supportsArrays ? arrayAttributes : {},
         booleanAttributes,
         numberAttributes,
         stringAttributes,
@@ -129,7 +134,7 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
           {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
           {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
         ],
-        arraySecondaryAliases,
+        arraySecondaryAliases: supportsArrays ? arraySecondaryAliases : {},
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
@@ -156,6 +161,7 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
         setCrossEvents,
         stringAttributes,
         stringSecondaryAliases,
+        supportsArrays,
       ]
     );
 

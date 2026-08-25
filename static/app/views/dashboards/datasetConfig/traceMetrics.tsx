@@ -18,6 +18,7 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   type DatasetConfig,
   type SearchBarData,
@@ -85,6 +86,10 @@ function TraceMetricsSearchBar({
   WidgetBuilderSearchBarProps,
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes(
+    'trace-item-array-query-support'
+  );
   const {
     selection: {projects},
   } = usePageFilters();
@@ -133,11 +138,11 @@ function TraceMetricsSearchBar({
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.TRACEMETRICS}
-      arrayAttributes={arrayAttributes}
+      arrayAttributes={supportsArrays ? arrayAttributes : {}}
       booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
-      arraySecondaryAliases={arraySecondaryAliases}
+      arraySecondaryAliases={supportsArrays ? arraySecondaryAliases : {}}
       booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
@@ -159,6 +164,10 @@ function useTraceMetricsSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes(
+    'trace-item-array-query-support'
+  );
   const {attributeQuery, traceMetrics} = useTraceMetricsSearchScope();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -189,11 +198,11 @@ function useTraceMetricsSearchBarDataProvider(
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.TRACEMETRICS,
-      arrayAttributes,
+      arrayAttributes: supportsArrays ? arrayAttributes : {},
       booleanAttributes,
       numberAttributes,
       stringAttributes,
-      arraySecondaryAliases,
+      arraySecondaryAliases: supportsArrays ? arraySecondaryAliases : {},
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
