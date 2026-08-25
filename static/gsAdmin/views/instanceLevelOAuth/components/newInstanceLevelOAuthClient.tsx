@@ -28,35 +28,34 @@ type ClientResponse = {
   clientSecret: string;
 };
 
-const urlSchema = z.url();
 const urlValidation = z
   .string()
   .min(1, 'Field is required')
   .pipe(z.string().refine(value => Boolean(safeURL(value)), 'Enter a valid URL'));
 
-const clientSchema = z.object({
-  name: z.string().trim().min(1, 'Client name is required'),
-  redirectUris: z
+function spaceSeparatedUrls(requiredMessage: string, invalidMessage: string) {
+  return z
     .string()
     .trim()
-    .min(1, 'Redirect URIs are required')
-    .refine(
-      value =>
-        value === '' || value.split(/\s+/).every(url => urlSchema.safeParse(url).success),
-      {
-        message: 'Enter valid redirect URLs separated by spaces',
-      }
-    ),
-  allowedOrigins: z
-    .string()
-    .trim()
-    .min(1, 'Allowed origins are required')
+    .min(1, requiredMessage)
     .refine(
       value =>
         value === '' ||
-        value.split(/\s+/).every(origin => urlSchema.safeParse(origin).success),
-      {message: 'Enter valid allowed origins separated by spaces'}
-    ),
+        value.split(/\s+/).every(url => urlValidation.safeParse(url).success),
+      invalidMessage
+    );
+}
+
+const clientSchema = z.object({
+  name: z.string().trim().min(1, 'Client name is required'),
+  redirectUris: spaceSeparatedUrls(
+    'Redirect URIs are required',
+    'Enter valid redirect URLs separated by spaces'
+  ),
+  allowedOrigins: spaceSeparatedUrls(
+    'Allowed origins are required',
+    'Enter valid allowed origins separated by spaces'
+  ),
   homepageUrl: urlValidation,
   privacyUrl: urlValidation,
   termsUrl: urlValidation,
