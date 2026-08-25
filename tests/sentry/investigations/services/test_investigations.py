@@ -1319,6 +1319,85 @@ class InvestigationOrchestrationEventTest(TestCase):
 
         assert not InvestigationOrchestrationEvent.objects.exists()
 
+    def test_projection_accepts_visible_broad_scan_steps(self) -> None:
+        projection = self.projection()
+        projection["broadScan"]["toolActivity"] = [
+            {
+                "id": "step-1",
+                "title": "Inspect the error spike",
+                "kind": "step",
+                "status": "queued",
+            }
+        ]
+
+        self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["broadScan"]["toolActivity"] == [
+            {
+                "id": "step-1",
+                "title": "Inspect the error spike",
+                "kind": "step",
+                "status": "queued",
+            }
+        ]
+
+    def test_projection_accepts_report_query_tool_activity(self) -> None:
+        projection = self.projection(report_status="composing")
+        projection["report"]["currentBlockKey"] = "error-volume-chart"
+        projection["report"]["currentBlockStatus"] = "running"
+        projection["report"]["currentBlockToolActivity"] = [
+            {
+                "id": "query-call-1",
+                "title": "Querying error volume by minute",
+                "kind": "api",
+                "status": "running",
+            }
+        ]
+
+        self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["report"]["currentBlockToolActivity"] == [
+            {
+                "id": "query-call-1",
+                "title": "Querying error volume by minute",
+                "kind": "api",
+                "status": "running",
+            }
+        ]
+
+    def test_projection_accepts_initial_report_cancellation_fence(self) -> None:
+        projection = self.projection(
+            workflow_version=2,
+            report_revision=1,
+            report_status="waiting",
+            clear_intent={
+                "id": "clear-report-1",
+                "revision": 1,
+                "reason": "Report composition stalled",
+                "requestedAt": "2025-01-01T00:00:00+00:00",
+                "completed": False,
+            },
+        )
+        projection["cancellationIntents"] = [
+            {
+                "id": "cancel-initial-report",
+                "scope": "report",
+                "targetId": "0",
+                "childRunId": None,
+                "generation": 0,
+                "reason": "Report composition stalled",
+                "requestedAt": "2025-01-01T00:00:00+00:00",
+                "completed": False,
+            }
+        ]
+
+        self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["cancellationIntents"][0]["generation"] == 0
+
     def test_archiving_fences_late_notebook_events_and_terminal_snapshot_blocks(self) -> None:
         existing = self.create_investigation_block(
             investigation=self.investigation,

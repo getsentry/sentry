@@ -104,15 +104,12 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert orchestration.data["phase"] == "intake"
         assert orchestration.data["status"] == "awaiting_input"
         assert orchestration.data["broadScan"]["status"] == "blocked"
-        assert orchestration.data["pendingInput"]["missingFields"] == [
-            "prompt",
-            "time_range",
-        ]
+        assert orchestration.data["pendingInput"]["missingFields"] == ["prompt"]
         assert orchestration.data["notebookRevision"] == 0
         assert orchestration.data["report"]["notebookRevision"] == 0
         assert orchestration.data["updatedAt"] is not None
 
-    def test_agentic_creation_uses_complete_manual_context(self) -> None:
+    def test_agentic_creation_allows_prompt_without_time_range(self) -> None:
         response = self.client.post(
             self.collection_url,
             data={
@@ -122,10 +119,6 @@ class OrganizationInvestigationIndexTest(APITestCase):
                 "source": {
                     "type": "manual",
                     "prompt": "Investigate the API latency regression",
-                    "timeRange": {
-                        "start": "2025-01-01T00:00:00Z",
-                        "end": "2025-01-01T01:00:00Z",
-                    },
                     "seed": {"futureField": {"isAllowed": True}},
                 },
             },

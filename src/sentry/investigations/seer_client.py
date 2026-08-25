@@ -51,6 +51,22 @@ def _post(
     return _decode_response(response)
 
 
+def _get(
+    path: str,
+    *,
+    viewer_context: SeerViewerContext,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> dict[str, Any]:
+    response = make_signed_seer_api_request(
+        connection_pool or investigation_connection_pool,
+        path,
+        body=b"",
+        method="GET",
+        viewer_context=viewer_context,
+    )
+    return _decode_response(response)
+
+
 def create_investigation_orchestration_run(
     run: InvestigationOrchestrationRun,
     *,
@@ -107,6 +123,19 @@ def dispatch_investigation_orchestration_command(
     return _post(
         f"/v1/automation/investigations/{seer_run_id}/commands",
         body,
+        viewer_context=viewer_context,
+        connection_pool=connection_pool,
+    )
+
+
+def get_investigation_orchestration_run(
+    seer_run_id: int,
+    *,
+    viewer_context: SeerViewerContext,
+    connection_pool: HTTPConnectionPool | None = None,
+) -> dict[str, Any]:
+    return _get(
+        f"/v1/automation/investigations/{seer_run_id}",
         viewer_context=viewer_context,
         connection_pool=connection_pool,
     )

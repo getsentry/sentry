@@ -196,9 +196,9 @@ def _validate_tool_activity(value: Any, *, name: str) -> None:
             raise serializers.ValidationError({"payload": f"{item_name} must be an object."})
         _require_str(activity, "id", max_length=128)
         _require_str(activity, "title", max_length=200)
-        if activity.get("kind") not in {"api", "library", "tool"}:
+        if activity.get("kind") not in {"api", "library", "tool", "step"}:
             raise serializers.ValidationError({"payload": f"{item_name}.kind is invalid."})
-        if activity.get("status") not in {"running", "completed", "failed"}:
+        if activity.get("status") not in {"queued", "running", "completed", "failed"}:
             raise serializers.ValidationError({"payload": f"{item_name}.status is invalid."})
 
 
@@ -405,6 +405,10 @@ def _validate_projection(projection: dict[str, Any]) -> dict[str, Any]:
     _optional_projection_string(report.get("heartbeatAt"), name="report.heartbeatAt", max_length=64)
     if report.get("currentBlockStatus", "not_started") not in _WORK_STATUSES:
         raise serializers.ValidationError({"payload": "report.currentBlockStatus is invalid."})
+    report.setdefault("currentBlockToolActivity", [])
+    _validate_tool_activity(
+        report["currentBlockToolActivity"], name="report.currentBlockToolActivity"
+    )
     if "automaticRetryCount" in report:
         _projection_int(
             report["automaticRetryCount"],
@@ -507,7 +511,13 @@ def _validate_projection(projection: dict[str, Any]) -> dict[str, Any]:
         child_run_id = intent.get("childRunId")
         if child_run_id is not None:
             _projection_int(child_run_id, name=f"{name}.childRunId", minimum=1)
-        _projection_int(intent.get("generation"), name=f"{name}.generation", minimum=1)
+        # Report cancellation uses the report revision as its fence. The first
+        # report can therefore be cancelled while that revision is still zero.
+        _projection_int(
+            intent.get("generation"),
+            name=f"{name}.generation",
+            minimum=0 if intent["scope"] == "report" else 1,
+        )
         _require_str(intent, "reason", max_length=1_000)
         _optional_projection_string(
             intent.get("requestedAt"), name=f"{name}.requestedAt", max_length=64
@@ -799,6 +809,7 @@ def _set_projection(
     projection: dict[str, Any],
     *,
     event_generation: int,
+    authoritative_workflow_version: bool = False,
 ) -> None:
     projection = _validate_projection(projection)
     investigation_id = projection.get("investigationId")
@@ -829,7 +840,11 @@ def _set_projection(
 
     workflow_version = projection.get("workflowVersion")
     if isinstance(workflow_version, int) and not isinstance(workflow_version, bool):
-        run.workflow_version = max(run.workflow_version, workflow_version)
+        run.workflow_version = (
+            workflow_version
+            if authoritative_workflow_version
+            else max(run.workflow_version, workflow_version)
+        )
     run.generation = event_generation
     phase = projection.get("phase")
     if phase in InvestigationOrchestrationPhase.values:
@@ -1690,7 +1705,11 @@ def deliver_orchestration_event(
 
 
 def synchronize_orchestration_projection(
-    *, orchestration_run_id: int, seer_run_id: int, projection: dict[str, Any]
+    *,
+    orchestration_run_id: int,
+    seer_run_id: int,
+    projection: dict[str, Any],
+    authoritative: bool = False,
 ) -> InvestigationOrchestrationRun:
     """Apply a create/command response without consuming the callback sequence."""
 
@@ -1707,11 +1726,17 @@ def synchronize_orchestration_projection(
         if run.seer_run_id is not None and run.seer_run_id != seer_run_id:
             raise InvestigationOrchestrationEventConflict("Run ID does not match.")
         run.seer_run_id = seer_run_id
-        if generation >= run.generation and not _projection_is_stale(
-            run, projection, event_generation=generation
+        if authoritative or (
+            generation >= run.generation
+            and not _projection_is_stale(run, projection, event_generation=generation)
         ):
             notebook_changed = _adopt_preserved_report_revision(run, projection)
-            _set_projection(run, projection, event_generation=generation)
+            _set_projection(
+                run,
+                projection,
+                event_generation=generation,
+                authoritative_workflow_version=authoritative,
+            )
             if run.status == InvestigationOrchestrationStatus.CANCELLED:
                 notebook_changed = bool(_cancel_workflow_report_executions(run)) or notebook_changed
             if notebook_changed:

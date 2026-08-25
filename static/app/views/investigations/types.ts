@@ -211,8 +211,10 @@ export type InvestigationOrchestrationError = {
 
 export type InvestigationToolActivity = {
   id: string;
-  kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'tool'>;
-  status: InvestigationOrchestrationOpenString<'running' | 'completed' | 'failed'>;
+  kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'step' | 'tool'>;
+  status: InvestigationOrchestrationOpenString<
+    'queued' | 'running' | 'completed' | 'failed'
+  >;
   title: string;
 };
 
@@ -306,6 +308,7 @@ export type InvestigationOrchestrationReport = {
   >;
   automaticRetryCount?: number;
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
+  currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
   suggestedHypotheses?: Array<{
     statement: string;

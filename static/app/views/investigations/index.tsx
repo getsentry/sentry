@@ -54,7 +54,6 @@ import {RouteError} from 'sentry/views/routeError';
 
 enum ColumnKey {
   NAME = 'title',
-  BLOCKS = 'blockCount',
   CREATED = 'dateCreated',
   STATUS = 'status',
   ACTIONS = 'actions',
@@ -62,7 +61,6 @@ enum ColumnKey {
 
 const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: ColumnKey.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-  {key: ColumnKey.BLOCKS, name: t('Blocks'), width: 116},
   {key: ColumnKey.CREATED, name: t('Created'), width: 160},
   {key: ColumnKey.STATUS, name: t('Status'), width: 160},
   {key: ColumnKey.ACTIONS, name: '', width: 40},
@@ -70,7 +68,7 @@ const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
 
 const TableWrapper = styled('div')`
   table {
-    grid-template-columns: max-content minmax(240px, 1fr) 116px 160px 160px max-content !important;
+    grid-template-columns: max-content minmax(240px, 1fr) 160px 160px max-content !important;
   }
 `;
 
@@ -243,8 +241,6 @@ function InvestigationsPage() {
             </Link>
           </Text>
         );
-      case ColumnKey.BLOCKS:
-        return investigation.blockCount;
       case ColumnKey.CREATED:
         return <TimeSince date={investigation.dateCreated} />;
       case ColumnKey.STATUS:

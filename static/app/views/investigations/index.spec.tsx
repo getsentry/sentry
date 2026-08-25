@@ -131,7 +131,8 @@ describe('Explore Investigations', () => {
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
     ).toHaveAttribute('href', '/explore/investigations/1/');
-    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.queryByText('Blocks')).not.toBeInTheDocument();
+    expect(screen.queryByText('4')).not.toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.queryByText('All Projects')).not.toBeInTheDocument();
@@ -146,7 +147,7 @@ describe('Explore Investigations', () => {
           mode: 'agentic',
           orchestration: {
             phase: 'reporting',
-            status: 'completed',
+            status: 'processing',
             heartbeatAt: '2026-08-13T21:00:00Z',
             notebookRevision: 4,
           },
@@ -156,8 +157,30 @@ describe('Explore Investigations', () => {
 
     renderView();
 
-    expect(await screen.findByText('Reporting · Completed')).toBeInTheDocument();
+    expect(await screen.findByText('Building report')).toBeInTheDocument();
     expect(screen.queryByText('Active')).not.toBeInTheDocument();
+  });
+
+  it('uses a human label when an investigation needs input', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          mode: 'agentic',
+          orchestration: {
+            phase: 'intake',
+            status: 'awaiting_input',
+            heartbeatAt: '2026-08-13T21:00:00Z',
+            notebookRevision: 0,
+          },
+        }),
+      ],
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Needs a prompt')).toBeInTheDocument();
+    expect(screen.queryByText('Intake · Awaiting input')).not.toBeInTheDocument();
   });
 
   it('renders the dashboard-style empty state', async () => {

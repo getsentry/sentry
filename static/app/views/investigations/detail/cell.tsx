@@ -35,7 +35,6 @@ import {
   useStopInvestigationExecutionMutation,
   useUpdateInvestigationBlockPromptMutation,
 } from 'sentry/views/investigations/api';
-import {InvestigationBlockSteering} from 'sentry/views/investigations/detail/orchestrationWorkflow';
 import type {
   OrchestrationCommandState,
   OrchestrationCommandTarget,
@@ -279,13 +278,6 @@ export function InvestigationCell({
           {panel}
         </Fragment>
       )}
-      {isAgentOwnedReportBlock(block) && agenticReport && block.stableAgentKey ? (
-        <InvestigationBlockSteering
-          stableAgentKey={block.stableAgentKey}
-          commandState={agenticReport.commandState}
-          onCommand={agenticReport.onCommand}
-        />
-      ) : null}
     </Stack>
   );
 }

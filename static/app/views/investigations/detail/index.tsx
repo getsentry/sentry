@@ -22,7 +22,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSeer, IconStack} from 'sentry/icons';
+import {IconAdd, IconClose, IconRefresh, IconStack} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -48,13 +48,18 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
-import {InvestigationOrchestrationWorkflow} from 'sentry/views/investigations/detail/orchestrationWorkflow';
+import {
+  InvestigationOrchestrationWorkflow,
+  isInvestigationOrchestrationStale,
+  isOrchestrationTerminal,
+} from 'sentry/views/investigations/detail/orchestrationWorkflow';
 import {useOrchestrationCommands} from 'sentry/views/investigations/detail/useOrchestrationCommands';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
   InvestigationBlockKind,
   InvestigationDetail,
+  InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -457,6 +462,41 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
           reportStatus: displayedOrchestration.report.status,
         }
       : undefined;
+  const orchestrationStale = displayedOrchestration
+    ? isInvestigationOrchestrationStale(displayedOrchestration)
+    : false;
+  const orchestrationProgress = displayedOrchestration
+    ? getOrchestrationProgressLabel(displayedOrchestration)
+    : formatStatus(investigation.status);
+  const retryOrchestrationTarget = displayedOrchestration
+    ? ['failed', 'partial_failed'].includes(displayedOrchestration.report.status) ||
+      ['failed', 'stalled', 'reauth_required'].includes(
+        displayedOrchestration.report.currentBlockStatus ?? ''
+      )
+      ? 'report'
+      : 'run'
+    : 'run';
+  const canRetryOrchestration = Boolean(
+    displayedOrchestration &&
+    (orchestrationStale ||
+      displayedOrchestration.status === 'failed' ||
+      retryOrchestrationTarget === 'report' ||
+      ['failed', 'stalled', 'cancelled', 'reauth_required'].includes(
+        displayedOrchestration.broadScan.status
+      ))
+  );
+  const orchestrationMetadata = displayedOrchestration
+    ? orchestrationStale
+      ? t(
+          '%s. Investigation progress has not updated for two minutes. Retry the investigation to reconnect and continue.',
+          orchestrationProgress
+        )
+      : t('%s.', orchestrationProgress)
+    : t(
+        '%s. Last updated %s.',
+        formatStatus(investigation.status),
+        formatNotebookDate(investigation.dateUpdated)
+      );
 
   async function handleAddBlock({
     kind,
@@ -551,15 +591,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 maxLength={200}
                 aria-busy={renameMutation.isPending}
               />
-              <Flex align="center" gap="sm" wrap="wrap">
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
-                <MetaDivider />
-                <Text variant="muted">{t('%s blocks', investigation.blockCount)}</Text>
-                <MetaDivider />
-                <Text variant="muted">
-                  {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
-                </Text>
-              </Flex>
+              <Text variant={orchestrationStale ? 'warning' : 'muted'}>
+                {orchestrationMetadata}
+              </Text>
             </Stack>
             <Flex align="center" gap="sm">
               <FeedbackButton
@@ -579,10 +613,53 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               >
                 {t('Give feedback')}
               </FeedbackButton>
-              <Badge variant={getStatusVariant(investigation.status)}>
-                {formatStatus(investigation.status)}
+              <Badge
+                variant={
+                  orchestrationStale
+                    ? 'warning'
+                    : getStatusVariant(
+                        displayedOrchestration?.status ?? investigation.status
+                      )
+                }
+              >
+                {orchestrationProgress}
               </Badge>
-              <IconSeer size="sm" />
+              {canRetryOrchestration ? (
+                <Button
+                  size="xs"
+                  variant="transparent"
+                  aria-label={t('Retry investigation')}
+                  busy={
+                    commandState.pendingTarget ===
+                    (retryOrchestrationTarget === 'report' ? 'report-action' : 'run')
+                  }
+                  disabled={commandState.isPending}
+                  icon={<IconRefresh />}
+                  onClick={() =>
+                    submitCommand(
+                      {type: 'retry', target: retryOrchestrationTarget},
+                      retryOrchestrationTarget === 'report' ? 'report-action' : 'run'
+                    )
+                  }
+                />
+              ) : null}
+              {displayedOrchestration &&
+              !isOrchestrationTerminal(displayedOrchestration.status) ? (
+                <Button
+                  size="xs"
+                  variant="transparent"
+                  aria-label={t('Cancel investigation')}
+                  busy={commandState.pendingTarget === 'cancel'}
+                  disabled={commandState.isPending}
+                  icon={<IconClose />}
+                  onClick={() =>
+                    submitCommand(
+                      {type: 'cancel', reason: t('Cancelled by the user')},
+                      'cancel'
+                    )
+                  }
+                />
+              ) : null}
             </Flex>
           </Grid>
         </InvestigationHeader>
@@ -766,16 +843,6 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   );
 }
 
-function formatSourceType(sourceType: string) {
-  if (sourceType === 'metric_open_period') {
-    return t('Breached metric');
-  }
-  if (sourceType === 'manual') {
-    return t('Manual investigation');
-  }
-  return sourceType.replaceAll('_', ' ');
-}
-
 function formatStatus(status: string) {
   if (status === 'active') {
     return t('Active');
@@ -787,14 +854,61 @@ function formatNotebookDate(date: string) {
   return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
 
-function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
+function getStatusVariant(
+  status: string
+): 'danger' | 'info' | 'success' | 'warning' | 'muted' {
   if (status === 'completed' || status === 'active') {
     return 'success';
   }
-  if (status === 'pending') {
+  if (['failed', 'cancelled'].includes(status)) {
+    return 'danger';
+  }
+  if (['pending', 'awaiting_input', 'stalled', 'reauth_required'].includes(status)) {
     return 'warning';
   }
+  if (['processing', 'running'].includes(status)) {
+    return 'info';
+  }
   return 'muted';
+}
+
+function getOrchestrationProgressLabel(orchestration: InvestigationOrchestration) {
+  if (orchestration.status === 'awaiting_input' || orchestration.pendingInput) {
+    return t('Waiting for your prompt');
+  }
+  if (orchestration.status === 'failed') {
+    return t('Investigation failed');
+  }
+  if (orchestration.status === 'cancelled') {
+    return t('Investigation cancelled');
+  }
+  if (orchestration.status === 'completed') {
+    return t('Investigation complete');
+  }
+
+  const hypotheses = orchestration.hypotheses;
+  const settledHypotheses = hypotheses.filter(hypothesis =>
+    ['supported', 'refuted', 'inconclusive', 'accepted', 'rejected'].includes(
+      hypothesis.effectiveStatus
+    )
+  ).length;
+
+  if (['intake', 'broad_scan', 'planning'].includes(orchestration.phase)) {
+    return t('Creating hypotheses');
+  }
+  if (orchestration.phase === 'investigating') {
+    return t('Verifying %s/%s hypotheses', settledHypotheses, hypotheses.length);
+  }
+  if (orchestration.phase === 'judging') {
+    return t('Evaluating %s/%s hypotheses', settledHypotheses, hypotheses.length);
+  }
+  if (orchestration.phase === 'reporting') {
+    return t('Building report');
+  }
+  if (orchestration.phase === 'metadata') {
+    return t('Finalizing investigation');
+  }
+  return formatStatus(orchestration.phase);
 }
 
 const InvestigationCanvas = styled(Stack)`
@@ -874,11 +988,6 @@ const NotebookTitleInput = styled(Input)`
     background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.tokens.border.primary};
   }
-`;
-
-const MetaDivider = styled('span')`
-  height: 16px;
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AddCellActions = styled(Flex)`

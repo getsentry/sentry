@@ -1,16 +1,28 @@
+import '@xyflow/react/dist/style.css';
+
 import {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
+import {
+  Background,
+  BackgroundVariant,
+  Position,
+  ReactFlow,
+  type Edge,
+  type Node,
+} from '@xyflow/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
-import {IconArrow} from 'sentry/icons';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {IconArrow, IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   InvestigationHypothesis,
@@ -31,6 +43,83 @@ import type {
 } from './useOrchestrationCommands';
 
 const STALE_AFTER_MS = 2 * 60 * 1000;
+
+type FlowTone = 'negative' | 'neutral' | 'positive';
+
+const FlowCard = styled(Container)<{$tone: FlowTone; $opacity?: number}>`
+  background: ${p => p.theme.tokens.background.primary};
+  opacity: ${p => p.$opacity ?? 1};
+  border-color: ${p =>
+    p.$tone === 'positive'
+      ? p.theme.colors.green400
+      : p.$tone === 'negative'
+        ? p.theme.colors.red400
+        : p.theme.tokens.border.primary};
+`;
+
+const GraphCanvas = styled('div')`
+  width: 100%;
+  min-height: 340px;
+  border-radius: ${p => p.theme.radius.md};
+  overflow: hidden;
+  background: ${p => p.theme.tokens.background.secondary};
+
+  .react-flow__node {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    width: 220px;
+  }
+
+  .react-flow__edge-path {
+    stroke: ${p => p.theme.tokens.border.primary};
+    stroke-width: 1.5;
+  }
+
+  .react-flow__edge.lineage-supported .react-flow__edge-path {
+    stroke: ${p => p.theme.colors.green400};
+    opacity: 0.9;
+  }
+
+  .react-flow__edge.lineage-muted .react-flow__edge-path {
+    opacity: 0.38;
+  }
+`;
+
+const ClampedText = styled(Text)<{$lines: number}>`
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: ${p => p.$lines};
+`;
+
+const GraphNodeButton = styled('button')`
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  background: transparent;
+  border: 0;
+`;
+
+const ComposerForm = styled('form')`
+  position: fixed;
+  z-index: ${p => p.theme.zIndex.header};
+  left: 50%;
+  bottom: ${p => p.theme.space.xl};
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - ${p => p.theme.space['3xl']}));
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.lg};
+  padding: ${p => p.theme.space.md};
+  background: ${p => p.theme.tokens.background.primary};
+  box-shadow: ${p => p.theme.shadow.high};
+
+  &:focus-within {
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
+  }
+`;
 
 type Props = {
   orchestration: InvestigationOrchestration;
@@ -53,22 +142,17 @@ export function InvestigationOrchestrationWorkflow({
   const hypotheses = orchestration.hypotheses.toSorted(
     (left, right) => left.order - right.order
   );
-  const stale = isInvestigationOrchestrationStale(orchestration, currentTime);
+  const waitingForInput =
+    orchestration.status === 'awaiting_input' || Boolean(orchestration.pendingInput);
+  const stale =
+    !waitingForInput && isInvestigationOrchestrationStale(orchestration, currentTime);
   const orchestrationProgressAt = getOrchestrationProgressAt(orchestration);
-  const terminal = isOrchestrationTerminal(orchestration.status);
-  const hasSupportedHypothesis = hypotheses.some(hypothesis =>
-    ['supported', 'accepted'].includes(hypothesis.effectiveStatus)
-  );
-  const hasOnlyRejectedOrInconclusiveHypotheses =
-    hypotheses.length > 0 &&
-    hypotheses.every(hypothesis =>
-      ['refuted', 'rejected', 'inconclusive'].includes(hypothesis.effectiveStatus)
-    );
 
   useEffect(() => {
     if (
       now !== undefined ||
       isOrchestrationTerminal(orchestration.status) ||
+      waitingForInput ||
       !orchestrationProgressAt
     ) {
       return;
@@ -82,56 +166,29 @@ export function InvestigationOrchestrationWorkflow({
       Math.max(progressAt + STALE_AFTER_MS - Date.now(), 0)
     );
     return () => window.clearTimeout(timeout);
-  }, [now, orchestration.status, orchestrationProgressAt]);
+  }, [now, orchestration.status, orchestrationProgressAt, waitingForInput]);
+
+  if (waitingForInput && orchestration.pendingInput && onCommand && commandState) {
+    return (
+      <Container as="section" data-test-id="investigation-orchestration">
+        <InvestigationComposer
+          commandState={commandState}
+          mode="intake"
+          onCommand={onCommand}
+        />
+      </Container>
+    );
+  }
 
   return (
     <Stack
       as="section"
-      aria-labelledby="investigation-workflow-title"
+      aria-label={t('Investigation workflow')}
       gap="lg"
+      paddingBottom="3xl"
+      data-stale={stale}
       data-test-id="investigation-orchestration"
     >
-      <Flex align="start" justify="between" gap="md" wrap="wrap">
-        <Stack gap="2xs">
-          <Heading as="h2" id="investigation-workflow-title" size="lg">
-            {t('Investigation plan')}
-          </Heading>
-          <Text variant="muted">
-            {t('Seer is testing possible explanations before building the report.')}
-          </Text>
-        </Stack>
-        <Badge
-          role="status"
-          aria-live="polite"
-          variant={getStatusVariant(orchestration.status)}
-        >
-          {formatStatus(orchestration.phase)}
-        </Badge>
-      </Flex>
-
-      {onCommand && commandState ? (
-        <WorkflowCommandBar
-          commandState={commandState}
-          onCommand={onCommand}
-          orchestration={orchestration}
-          stale={stale}
-        />
-      ) : null}
-
-      {stale ? (
-        <Alert.Container>
-          <Alert variant="warning" data-test-id="investigation-orchestration-stale">
-            {onCommand
-              ? t(
-                  'Investigation progress has not updated for two minutes. Retry the investigation to reconnect and continue.'
-                )
-              : t(
-                  'Investigation progress has not updated for two minutes. Seer may be stalled.'
-                )}
-          </Alert>
-        </Alert.Container>
-      ) : null}
-
       {orchestration.status === 'failed' ? (
         <Alert.Container>
           <Alert variant="danger" data-test-id="investigation-orchestration-failed">
@@ -141,154 +198,328 @@ export function InvestigationOrchestrationWorkflow({
         </Alert.Container>
       ) : null}
 
-      <Disclosure size="sm" variant="outline" defaultExpanded>
-        <Disclosure.Title
-          trailingItems={
-            <Badge
-              role="status"
-              aria-live="polite"
-              variant={getStatusVariant(orchestration.broadScan.status)}
-            >
-              {formatStatus(orchestration.broadScan.status)}
-            </Badge>
-          }
-        >
-          <Text bold>{t('Broad investigation')}</Text>
-        </Disclosure.Title>
-        <Disclosure.Content>
-          <Stack gap="md">
-            <Text as="p" variant="muted">
-              {orchestration.broadScan.summary || getBroadScanPlaceholder(orchestration)}
-            </Text>
-            <AttemptDetails
-              attempt={orchestration.broadScan.attempt}
-              automaticRetryCount={orchestration.broadScan.automaticRetryCount}
-            />
-            <ToolActivityList activity={orchestration.broadScan.toolActivity ?? []} />
-            <WorkflowError error={orchestration.broadScan.error} />
-            {orchestration.pendingInput ? (
-              <Stack gap="md">
-                <Alert.Container>
-                  <Alert variant="info">{orchestration.pendingInput.prompt}</Alert>
-                </Alert.Container>
-                {onCommand && commandState ? (
-                  <ProvideInputForm
-                    commandState={commandState}
-                    missingFields={orchestration.pendingInput.missingFields}
-                    onCommand={onCommand}
-                  />
-                ) : null}
-              </Stack>
-            ) : null}
-          </Stack>
-        </Disclosure.Content>
-      </Disclosure>
+      {isWorkInProgress(orchestration.broadScan.status) ? (
+        <AgentUpdates
+          activity={orchestration.broadScan.toolActivity ?? []}
+          emptyLabel={t('Researching relevant Sentry data…')}
+        />
+      ) : null}
 
       {hypotheses.length > 0 ? (
-        <Stack gap="md">
-          <Flex aria-hidden="true" justify="center">
-            <IconArrow direction="down" size="xs" />
-          </Flex>
-          <Container containerType="inline-size">
-            <Grid
-              role="list"
-              aria-label={t('Investigation hypotheses')}
-              columns={{'2xs': '1fr', md: 'repeat(2, minmax(0, 1fr))'}}
-              gap="md"
-            >
-              {hypotheses.map(hypothesis => (
-                <Container key={hypothesis.id} role="listitem" minWidth={0}>
-                  <HypothesisNode
-                    commandState={commandState}
-                    hypothesis={hypothesis}
-                    onCommand={onCommand}
-                    primary={orchestration.report.primaryHypothesisId === hypothesis.id}
-                  />
-                </Container>
-              ))}
-            </Grid>
-          </Container>
-        </Stack>
-      ) : (
-        <Container padding="md" background="secondary" radius="md">
-          <Text variant="muted">
-            {orchestration.status === 'awaiting_input'
-              ? t('Seer needs more context before it can propose hypotheses.')
-              : t('Seer is identifying hypotheses to test.')}
-          </Text>
-        </Container>
-      )}
-
-      <Flex aria-hidden="true" justify="center">
-        <IconArrow direction="down" size="xs" />
-      </Flex>
-
-      <Container as="section" border="primary" radius="lg" padding="lg">
-        <Stack gap="md">
-          <Flex align="center" justify="between" gap="md" wrap="wrap">
-            <Heading as="h3" size="md">
-              {t('Investigation report')}
-            </Heading>
-            <Badge
-              role="status"
-              aria-live="polite"
-              variant={getStatusVariant(orchestration.report.status)}
-            >
-              {formatStatus(orchestration.report.status)}
-            </Badge>
-          </Flex>
-          <Text as="p" variant="muted">
-            {getReportDescription({
-              terminal,
-              hasSupportedHypothesis,
-              hasOnlyRejectedOrInconclusiveHypotheses,
-              status: orchestration.report.status,
-            })}
-          </Text>
-          <WorkflowError error={orchestration.report.error} />
-          <AttemptDetails
-            automaticRetryCount={orchestration.report.automaticRetryCount}
-          />
-          {orchestration.report.suggestedHypotheses?.length ? (
-            <SuggestedHypotheses
+        <Disclosure as="section" size="sm" variant="outline" defaultExpanded>
+          <Disclosure.Title
+            trailingItems={<Badge variant="muted">{hypotheses.length}</Badge>}
+          >
+            <Text bold>{t('Hypotheses')}</Text>
+          </Disclosure.Title>
+          <Disclosure.Content style={{padding: 0, overflow: 'hidden'}}>
+            <HypothesisGraph
+              key={hypotheses
+                .map(hypothesis =>
+                  [
+                    hypothesis.id,
+                    ...hypothesis.verificationSteps.map(step => step.id),
+                  ].join(':')
+                )
+                .join('|')}
+              broadScan={orchestration.broadScan}
               commandState={commandState}
+              hypotheses={hypotheses}
               onCommand={onCommand}
-              suggestions={orchestration.report.suggestedHypotheses}
+              primaryHypothesisId={orchestration.report.primaryHypothesisId}
             />
-          ) : null}
-          {onCommand && commandState ? (
-            <Stack gap="md">
-              <SteeringForm
-                commandState={commandState}
-                description={t(
-                  'Ask Seer to add evidence, add or remove a block, or change the report order.'
-                )}
-                label={t('Steer the report')}
-                onSubmit={instruction =>
-                  onCommand({type: 'steer', target: 'report', instruction}, 'report')
-                }
-                target="report"
-              />
-              {['partial_failed', 'failed'].includes(orchestration.report.status) ||
-              ['stalled', 'reauth_required'].includes(
-                orchestration.report.currentBlockStatus ?? ''
-              ) ? (
-                <Button
-                  size="sm"
-                  busy={commandState.pendingTarget === 'report-action'}
-                  disabled={commandState.isPending}
-                  onClick={() =>
-                    onCommand({type: 'retry', target: 'report'}, 'report-action')
-                  }
-                >
-                  {t('Retry report')}
-                </Button>
-              ) : null}
-            </Stack>
-          ) : null}
-        </Stack>
-      </Container>
+          </Disclosure.Content>
+        </Disclosure>
+      ) : null}
+
+      {isReportCompositionActive(orchestration) ? (
+        <ReportCompositionUpdates orchestration={orchestration} />
+      ) : null}
+
+      {onCommand && commandState ? (
+        <InvestigationComposer
+          commandState={commandState}
+          mode="steer"
+          onCommand={onCommand}
+        />
+      ) : null}
     </Stack>
+  );
+}
+
+function HypothesisGraph({
+  broadScan,
+  commandState,
+  hypotheses,
+  onCommand,
+  primaryHypothesisId,
+}: {
+  broadScan: InvestigationOrchestration['broadScan'];
+  hypotheses: InvestigationHypothesis[];
+  primaryHypothesisId: string | null;
+  commandState?: OrchestrationCommandState;
+  onCommand?: (
+    command: InvestigationOrchestrationCommand,
+    target: OrchestrationCommandTarget
+  ) => void;
+}) {
+  const {openModal} = useModal();
+  const laneGap = 244;
+  const stepGap = 72;
+  const activityGap = 76;
+  const rootY = 12;
+  const hypothesisY = 104;
+  const firstStepY = 234;
+  const rootX = Math.max(0, ((hypotheses.length - 1) * laneGap) / 2);
+  const openHypothesis = (hypothesisId: string) => {
+    const hypothesis = hypotheses.find(item => item.id === hypothesisId);
+    if (!hypothesis) {
+      return;
+    }
+    openModal(deps => (
+      <HypothesisDetailModal
+        {...deps}
+        commandState={commandState}
+        hypothesis={hypothesis}
+        onCommand={onCommand}
+        primary={primaryHypothesisId === hypothesis.id}
+      />
+    ));
+  };
+  const nodes: Node[] = [
+    {
+      id: 'investigation-root',
+      position: {x: rootX, y: rootY},
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
+      data: {
+        label: (
+          <FlowCard
+            $opacity={0.92}
+            $tone="neutral"
+            background="primary"
+            border="primary"
+            radius="md"
+            padding="sm"
+          >
+            <Stack gap="xs">
+              <Text bold>{t('Investigation')}</Text>
+              <ClampedText $lines={2} size="xs" variant="muted">
+                {broadScan.summary ||
+                  t('Forming hypotheses from the investigation prompt.')}
+              </ClampedText>
+            </Stack>
+          </FlowCard>
+        ),
+      },
+    },
+  ];
+  const edges: Edge[] = [];
+  const laneBottoms: number[] = [];
+
+  for (const [laneIndex, hypothesis] of hypotheses.entries()) {
+    const lineageSupported = isHypothesisSupported(hypothesis);
+    const lineageTone: FlowTone = lineageSupported ? 'positive' : 'neutral';
+    const lineageClassName = lineageSupported ? 'lineage-supported' : 'lineage-muted';
+    const x = laneIndex * laneGap;
+    const hypothesisNodeId = `hypothesis-${hypothesis.id}`;
+    const steps = hypothesis.verificationSteps.toSorted(
+      (left, right) => left.order - right.order
+    );
+    const activeActivity = getActiveToolActivity(hypothesis.toolActivity ?? []);
+    nodes.push({
+      id: hypothesisNodeId,
+      className: 'nopan',
+      position: {x, y: hypothesisY},
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
+      data: {
+        label: (
+          <HypothesisNode
+            commandState={commandState}
+            hypothesis={hypothesis}
+            onCommand={onCommand}
+            primary={primaryHypothesisId === hypothesis.id}
+          />
+        ),
+      },
+    });
+    edges.push({
+      id: `root-${hypothesis.id}`,
+      source: 'investigation-root',
+      target: hypothesisNodeId,
+      className: lineageClassName,
+    });
+
+    let previousNodeId = hypothesisNodeId;
+    let cursorY = firstStepY;
+    for (const step of steps) {
+      const stepNodeId = `${hypothesisNodeId}-step-${step.id}`;
+      nodes.push({
+        id: stepNodeId,
+        className: 'nopan',
+        position: {x, y: cursorY},
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+        data: {
+          hypothesisId: hypothesis.id,
+          label: (
+            <GraphNodeButton
+              className="nodrag nopan"
+              aria-label={t('View verification step: %s', step.title)}
+              onPointerDown={event => event.stopPropagation()}
+              onClick={() => openHypothesis(hypothesis.id)}
+            >
+              <FlowCard
+                $opacity={lineageSupported ? 0.9 : 0.56}
+                $tone={lineageTone}
+                background="primary"
+                border="primary"
+                radius="md"
+                padding="sm"
+              >
+                <ClampedText $lines={2} size="xs" bold>
+                  {step.title}
+                </ClampedText>
+              </FlowCard>
+            </GraphNodeButton>
+          ),
+        },
+      });
+      edges.push({
+        id: `${previousNodeId}-${stepNodeId}`,
+        source: previousNodeId,
+        target: stepNodeId,
+        className: lineageClassName,
+      });
+      previousNodeId = stepNodeId;
+      cursorY += stepGap;
+
+      if (step.status === 'running' && activeActivity.length > 0) {
+        const activityNodeId = `${stepNodeId}-activity`;
+        const latestActivity = activeActivity.at(-1)!;
+        nodes.push({
+          id: activityNodeId,
+          className: 'nopan',
+          position: {x, y: cursorY},
+          sourcePosition: Position.Bottom,
+          targetPosition: Position.Top,
+          data: {
+            hypothesisId: hypothesis.id,
+            label: (
+              <GraphNodeButton
+                className="nodrag nopan"
+                aria-label={t('View Seer updates for: %s', hypothesis.statement)}
+                onPointerDown={event => event.stopPropagation()}
+                onClick={() => openHypothesis(hypothesis.id)}
+              >
+                <FlowCard
+                  $opacity={0.82}
+                  $tone="neutral"
+                  background="primary"
+                  border="primary"
+                  radius="md"
+                  padding="sm"
+                >
+                  <Stack gap="2xs">
+                    <Flex align="center" justify="between" gap="xs">
+                      <Text size="xs" bold>
+                        {t('Seer updates')}
+                      </Text>
+                      <Badge variant="info">{formatStatus(latestActivity.status)}</Badge>
+                    </Flex>
+                    <ClampedText $lines={2} size="xs" variant="muted">
+                      {latestActivity.title}
+                    </ClampedText>
+                  </Stack>
+                </FlowCard>
+              </GraphNodeButton>
+            ),
+          },
+        });
+        edges.push({
+          id: `${previousNodeId}-${activityNodeId}`,
+          source: previousNodeId,
+          target: activityNodeId,
+          className: lineageClassName,
+        });
+        previousNodeId = activityNodeId;
+        cursorY += activityGap;
+      }
+    }
+
+    const verdictNodeId = `${hypothesisNodeId}-verdict`;
+    nodes.push({
+      id: verdictNodeId,
+      className: 'nopan',
+      position: {x, y: cursorY},
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
+      data: {
+        hypothesisId: hypothesis.id,
+        label: (
+          <GraphNodeButton
+            className="nodrag nopan"
+            aria-label={t('View verdict: %s', hypothesis.statement)}
+            onPointerDown={event => event.stopPropagation()}
+            onClick={() => openHypothesis(hypothesis.id)}
+          >
+            <FlowCard
+              $opacity={lineageSupported ? 1 : 0.68}
+              $tone={lineageTone}
+              background="primary"
+              border="primary"
+              radius="md"
+              padding="sm"
+            >
+              <Flex align="center" justify="between" gap="xs">
+                <Text size="sm" bold>
+                  {t('Agent verdict')}
+                </Text>
+                <Badge variant={lineageSupported ? 'success' : 'muted'}>
+                  {getHypothesisStatusLabel(hypothesis)}
+                </Badge>
+              </Flex>
+            </FlowCard>
+          </GraphNodeButton>
+        ),
+      },
+    });
+    edges.push({
+      id: `${previousNodeId}-${verdictNodeId}`,
+      source: previousNodeId,
+      target: verdictNodeId,
+      className: lineageClassName,
+    });
+    laneBottoms.push(cursorY);
+  }
+
+  const graphKey = nodes.map(node => node.id).join('|');
+  return (
+    <GraphCanvas
+      key={graphKey}
+      data-hypothesis-count={hypotheses.length}
+      data-test-id="investigation-hypothesis-graph"
+      style={{height: Math.max(340, Math.max(...laneBottoms, 240) + 110)}}
+    >
+      <ReactFlow
+        aria-label={t('Investigation hypotheses')}
+        nodes={nodes}
+        edges={edges}
+        fitView
+        fitViewOptions={{padding: 0.08}}
+        minZoom={0.45}
+        maxZoom={1.25}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable
+        panOnDrag
+        selectionOnDrag={false}
+        zoomOnDoubleClick={false}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={18} size={1.2} />
+      </ReactFlow>
+    </GraphCanvas>
   );
 }
 
@@ -306,28 +537,69 @@ function HypothesisNode({
     target: OrchestrationCommandTarget
   ) => void;
 }) {
-  const steps = hypothesis.verificationSteps.toSorted(
-    (left, right) => left.order - right.order
-  );
+  const {openModal} = useModal();
+  const decisionTarget = `hypothesis-decision:${hypothesis.id}` as const;
+  const decisionPending = commandState?.pendingTarget === decisionTarget;
+
+  const decide = (disposition: 'accepted' | 'rejected') => {
+    if (!onCommand || !commandState) {
+      return;
+    }
+    onCommand(
+      {
+        type: 'set_hypothesis_disposition',
+        hypothesisId: hypothesis.id,
+        disposition:
+          hypothesis.decisionSource === 'user' &&
+          hypothesis.effectiveStatus === disposition
+            ? null
+            : disposition,
+      },
+      decisionTarget
+    );
+  };
+
+  const showDetails = () =>
+    openModal(deps => (
+      <HypothesisDetailModal
+        {...deps}
+        commandState={commandState}
+        hypothesis={hypothesis}
+        onCommand={onCommand}
+        primary={primary}
+      />
+    ));
 
   return (
-    <Disclosure
-      as="section"
-      size="sm"
-      variant="outline"
-      defaultExpanded={hypothesis.status === 'running'}
+    <FlowCard
+      $opacity={isHypothesisSupported(hypothesis) ? 0.96 : 0.74}
+      $tone={isHypothesisSupported(hypothesis) ? 'positive' : 'neutral'}
+      role="button"
+      tabIndex={0}
+      aria-label={t('View hypothesis: %s', hypothesis.statement)}
+      border="primary"
+      radius="md"
+      padding="sm"
       height="100%"
+      onClick={showDetails}
+      onPointerDown={event => event.stopPropagation()}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          showDetails();
+        }
+      }}
     >
-      <Disclosure.Title>
-        <Stack gap="xs" minWidth={0} width="100%">
-          <Text bold align="left" wordBreak="break-word">
+      <Stack gap="sm" minWidth={0} height="100%">
+        <Stack gap="xs" minWidth={0} flex={1}>
+          <ClampedText $lines={2} size="sm" bold align="left" wordBreak="break-word">
             {hypothesis.statement}
-          </Text>
+          </ClampedText>
           <Flex align="center" gap="xs" wrap="wrap">
             <Badge
               role="status"
               aria-live="polite"
-              variant={getStatusVariant(hypothesis.effectiveStatus)}
+              variant={isHypothesisSupported(hypothesis) ? 'success' : 'muted'}
             >
               {getHypothesisStatusLabel(hypothesis)}
             </Badge>
@@ -339,8 +611,80 @@ function HypothesisNode({
             )}
           </Flex>
         </Stack>
-      </Disclosure.Title>
-      <Disclosure.Content>
+        {onCommand && commandState ? (
+          <Flex align="center" justify="end" gap="xs">
+            <Button
+              size="xs"
+              variant={
+                hypothesis.effectiveStatus === 'accepted' ? 'primary' : 'transparent'
+              }
+              aria-label={t('Accept hypothesis: %s', hypothesis.statement)}
+              busy={decisionPending}
+              disabled={commandState.isPending}
+              icon={<IconCheckmark />}
+              onClick={event => {
+                event.stopPropagation();
+                decide('accepted');
+              }}
+            />
+            <Button
+              size="xs"
+              variant={
+                hypothesis.effectiveStatus === 'rejected' ? 'danger' : 'transparent'
+              }
+              aria-label={t('Reject hypothesis: %s', hypothesis.statement)}
+              disabled={commandState.isPending}
+              icon={<IconClose />}
+              onClick={event => {
+                event.stopPropagation();
+                decide('rejected');
+              }}
+            />
+          </Flex>
+        ) : null}
+        {commandState ? (
+          <CommandFeedback commandState={commandState} targets={[decisionTarget]} />
+        ) : null}
+      </Stack>
+    </FlowCard>
+  );
+}
+
+function HypothesisDetailModal({
+  Body,
+  Footer,
+  Header,
+  closeModal,
+  commandState,
+  hypothesis,
+  onCommand,
+  primary,
+}: ModalRenderProps & {
+  hypothesis: InvestigationHypothesis;
+  primary: boolean;
+  commandState?: OrchestrationCommandState;
+  onCommand?: (
+    command: InvestigationOrchestrationCommand,
+    target: OrchestrationCommandTarget
+  ) => void;
+}) {
+  const steps = hypothesis.verificationSteps.toSorted(
+    (left, right) => left.order - right.order
+  );
+  return (
+    <Fragment>
+      <Header closeButton>
+        <Stack gap="xs">
+          <Text bold>{hypothesis.statement}</Text>
+          <Flex align="center" gap="xs" wrap="wrap">
+            <Badge variant={getStatusVariant(hypothesis.effectiveStatus)}>
+              {getHypothesisStatusLabel(hypothesis)}
+            </Badge>
+            {primary ? <Badge variant="info">{t('Primary')}</Badge> : null}
+          </Flex>
+        </Stack>
+      </Header>
+      <Body>
         <Stack gap="lg">
           <Stack gap="xs">
             <Heading as="h4" size="sm">
@@ -373,7 +717,7 @@ function HypothesisNode({
             attempt={hypothesis.attempt}
             automaticRetryCount={hypothesis.automaticRetryCount}
           />
-          <ToolActivityList activity={hypothesis.toolActivity ?? []} />
+          <ToolActivityDisclosure activity={hypothesis.toolActivity ?? []} />
           <WorkflowError error={hypothesis.error} />
           {hypothesis.decisionSource === 'user' &&
           hypothesis.effectiveStatus === 'accepted' &&
@@ -403,16 +747,29 @@ function HypothesisNode({
               </Text>
             </Stack>
           ) : null}
-          {onCommand && commandState ? (
-            <HypothesisControls
-              commandState={commandState}
-              hypothesis={hypothesis}
-              onCommand={onCommand}
-            />
+          {onCommand &&
+          commandState &&
+          ['failed', 'stalled', 'reauth_required'].includes(hypothesis.status) ? (
+            <Button
+              size="sm"
+              busy={commandState.pendingTarget === `hypothesis-decision:${hypothesis.id}`}
+              disabled={commandState.isPending}
+              onClick={() =>
+                onCommand(
+                  {type: 'retry', target: 'hypothesis', targetId: hypothesis.id},
+                  `hypothesis-decision:${hypothesis.id}`
+                )
+              }
+            >
+              {t('Retry hypothesis')}
+            </Button>
           ) : null}
         </Stack>
-      </Disclosure.Content>
-    </Disclosure>
+      </Body>
+      <Footer>
+        <Button onClick={closeModal}>{t('Done')}</Button>
+      </Footer>
+    </Fragment>
   );
 }
 
@@ -477,12 +834,125 @@ function ToolActivityList({activity}: {activity: InvestigationToolActivity[]}) {
   if (activity.length === 0) {
     return null;
   }
+  const steps = activity.filter(item => item.kind === 'step');
+  const toolCalls = activity.filter(item => item.kind !== 'step');
   return (
     <Stack gap="sm">
+      {steps.length > 0 ? (
+        <ActivityList
+          title={t('Investigation steps')}
+          activity={steps}
+          showKind={false}
+        />
+      ) : null}
+      {toolCalls.length > 0 ? (
+        <ActivityList title={t('Tool activity')} activity={toolCalls} showKind />
+      ) : null}
+    </Stack>
+  );
+}
+
+function ToolActivityDisclosure({activity}: {activity: InvestigationToolActivity[]}) {
+  if (activity.length === 0) {
+    return null;
+  }
+  const latest = getActiveToolActivity(activity).at(-1) ?? activity.at(-1)!;
+  return (
+    <Disclosure size="sm" variant="outline">
+      <Disclosure.Title
+        trailingItems={
+          <Badge variant={getStatusVariant(latest.status)}>
+            {formatStatus(latest.status)}
+          </Badge>
+        }
+      >
+        {t('Seer updates')}
+      </Disclosure.Title>
+      <Disclosure.Content>
+        <ToolActivityList activity={activity} />
+      </Disclosure.Content>
+    </Disclosure>
+  );
+}
+
+function AgentUpdates({
+  activity,
+  emptyLabel,
+}: {
+  activity: InvestigationToolActivity[];
+  emptyLabel: string;
+}) {
+  if (activity.length === 0) {
+    return (
+      <Text role="status" aria-live="polite" size="sm" variant="muted">
+        {emptyLabel}
+      </Text>
+    );
+  }
+  const active = getActiveToolActivity(activity);
+  const latest = active.at(-1) ?? activity.at(-1)!;
+  return (
+    <Stack gap="xs" role="status" aria-live="polite" data-test-id="seer-updates">
+      <Flex align="center" gap="sm" minWidth={0}>
+        <Badge variant={getStatusVariant(latest.status)}>
+          {formatStatus(latest.status)}
+        </Badge>
+        <Text size="sm" wordBreak="break-word">
+          {latest.title}
+        </Text>
+      </Flex>
+      <ToolActivityDisclosure activity={activity} />
+    </Stack>
+  );
+}
+
+function ReportCompositionUpdates({
+  orchestration,
+}: {
+  orchestration: InvestigationOrchestration;
+}) {
+  const report = orchestration.report;
+  const liveToolActivity = report.currentBlockToolActivity ?? [];
+  const metadataActive =
+    orchestration.phase === 'metadata' && report.metadata.status !== 'completed';
+  const currentTitle = report.currentBlockKey
+    ? humanizeStableKey(report.currentBlockKey)
+    : metadataActive
+      ? t('Finalizing the title and summary')
+      : t('Planning the evidence and narrative');
+  const status = report.currentBlockStatus ?? (metadataActive ? 'running' : 'queued');
+  const activity: InvestigationToolActivity[] = [
+    {
+      id: report.currentBlockKey ?? 'report-composition',
+      kind: 'step',
+      status,
+      title: currentTitle,
+    },
+    ...liveToolActivity,
+  ];
+
+  return (
+    <Container as="section" data-test-id="report-composition-updates">
+      <AgentUpdates activity={activity} emptyLabel={t('Building the investigation…')} />
+    </Container>
+  );
+}
+
+function ActivityList({
+  activity,
+  showKind,
+  title,
+}: {
+  activity: InvestigationToolActivity[];
+  showKind: boolean;
+  title: string;
+}) {
+  return (
+    <Stack gap="xs">
       <Heading as="h4" size="sm">
-        {t('Tool activity')}
+        {title}
       </Heading>
-      <Stack role="list" aria-label={t('Tool activity')} gap="xs">
+      <Stack role="list" aria-label={title} gap="xs">
         {activity.map(item => (
           <Flex
             key={item.id}
@@ -496,7 +966,7 @@ function ToolActivityList({activity}: {activity: InvestigationToolActivity[]}) {
               <Text size="sm" wordBreak="break-word">
                 {item.title}
               </Text>
-              <Badge variant="muted">{formatStatus(item.kind)}</Badge>
+              {showKind ? <Badge variant="muted">{formatStatus(item.kind)}</Badge> : null}
             </Flex>
             <Badge
               role="status"
@@ -512,499 +982,77 @@ function ToolActivityList({activity}: {activity: InvestigationToolActivity[]}) {
   );
 }
 
-function SuggestedHypotheses({
+function InvestigationComposer({
   commandState,
-  onCommand,
-  suggestions,
-}: {
-  suggestions: NonNullable<InvestigationOrchestration['report']['suggestedHypotheses']>;
-  commandState?: OrchestrationCommandState;
-  onCommand?: (
-    command: InvestigationOrchestrationCommand,
-    target: OrchestrationCommandTarget
-  ) => void;
-}) {
-  return (
-    <Stack gap="sm">
-      <Heading as="h4" size="sm">
-        {t('What to test next')}
-      </Heading>
-      <Stack role="list" aria-label={t('Suggested hypotheses')} gap="sm">
-        {suggestions.map((suggestion, index) => (
-          <Container
-            key={`${suggestion.statement}-${index}`}
-            role="listitem"
-            background="secondary"
-            padding="sm"
-            radius="sm"
-          >
-            <Flex align="start" justify="between" gap="md" wrap="wrap">
-              <Stack gap="2xs" minWidth={0} flex={1}>
-                <Text bold wordBreak="break-word">
-                  {suggestion.statement}
-                </Text>
-                {suggestion.rationale ? (
-                  <Text size="sm" variant="muted">
-                    {suggestion.rationale}
-                  </Text>
-                ) : null}
-              </Stack>
-              {onCommand && commandState ? (
-                <Button
-                  size="sm"
-                  aria-label={t('Test hypothesis: %s', suggestion.statement)}
-                  busy={commandState.pendingTarget === 'add-hypothesis'}
-                  disabled={commandState.isPending}
-                  onClick={() =>
-                    onCommand(
-                      {
-                        type: 'add_hypothesis',
-                        statement: suggestion.statement,
-                        rationale: suggestion.rationale || null,
-                      },
-                      'add-hypothesis'
-                    )
-                  }
-                >
-                  {t('Test this')}
-                </Button>
-              ) : null}
-            </Flex>
-          </Container>
-        ))}
-      </Stack>
-      {commandState ? (
-        <CommandFeedback commandState={commandState} targets={['add-hypothesis']} />
-      ) : null}
-    </Stack>
-  );
-}
-
-function WorkflowCommandBar({
-  commandState,
-  onCommand,
-  orchestration,
-  stale,
-}: {
-  commandState: OrchestrationCommandState;
-  onCommand: (
-    command: InvestigationOrchestrationCommand,
-    target: OrchestrationCommandTarget
-  ) => void;
-  orchestration: InvestigationOrchestration;
-  stale: boolean;
-}) {
-  const terminal = isOrchestrationTerminal(orchestration.status);
-  const primaryError = getPrimaryError(orchestration.errors);
-  const canRetryRun =
-    stale ||
-    ['failed', 'stalled', 'cancelled', 'reauth_required'].includes(
-      orchestration.broadScan.status
-    ) ||
-    (orchestration.runId === null &&
-      primaryError?.code === 'seer_dispatch_failed' &&
-      primaryError.retryable);
-  return (
-    <Stack gap="md">
-      <Container containerType="inline-size">
-        <Grid columns={{'2xs': '1fr', md: 'repeat(2, minmax(0, 1fr))'}} gap="md">
-          <AddHypothesisForm commandState={commandState} onCommand={onCommand} />
-          <SteeringForm
-            commandState={commandState}
-            description={t(
-              'Redirect the broad investigation without editing an individual hypothesis.'
-            )}
-            label={t('Steer the investigation')}
-            onSubmit={instruction =>
-              onCommand({type: 'steer', target: 'workflow', instruction}, 'workflow')
-            }
-            target="workflow"
-          />
-        </Grid>
-      </Container>
-      <Flex align="center" gap="sm" wrap="wrap">
-        {canRetryRun ? (
-          <Button
-            size="sm"
-            busy={commandState.pendingTarget === 'run'}
-            disabled={commandState.isPending}
-            onClick={() => onCommand({type: 'retry', target: 'run'}, 'run')}
-          >
-            {t('Retry investigation')}
-          </Button>
-        ) : null}
-        {terminal ? null : (
-          <Button
-            size="sm"
-            variant="danger"
-            busy={commandState.pendingTarget === 'cancel'}
-            disabled={commandState.isPending}
-            onClick={() =>
-              onCommand({type: 'cancel', reason: t('Cancelled by the user')}, 'cancel')
-            }
-          >
-            {t('Cancel investigation')}
-          </Button>
-        )}
-        <CommandFeedback commandState={commandState} targets={['run', 'cancel']} />
-      </Flex>
-    </Stack>
-  );
-}
-
-function ProvideInputForm({
-  commandState,
-  missingFields,
+  mode,
   onCommand,
 }: {
   commandState: OrchestrationCommandState;
-  missingFields: Array<'prompt' | 'time_range'>;
+  mode: 'intake' | 'steer';
   onCommand: (
     command: InvestigationOrchestrationCommand,
     target: OrchestrationCommandTarget
   ) => void;
 }) {
-  const [prompt, setPrompt] = useState('');
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
-  const needsPrompt = missingFields.includes('prompt');
-  const needsTimeRange = missingFields.includes('time_range');
-  const valid =
-    (!needsPrompt || Boolean(prompt.trim())) &&
-    (!needsTimeRange || Boolean(start && end && Date.parse(start) < Date.parse(end)));
+  const [value, setValue] = useState('');
+  const target = mode === 'intake' ? 'input' : 'workflow';
+  const submit = () => {
+    const instruction = value.trim();
+    if (!instruction || commandState.isPending) {
+      return;
+    }
+    onCommand(
+      mode === 'intake'
+        ? {type: 'provide_input', prompt: instruction}
+        : {type: 'steer', target: 'workflow', instruction},
+      target
+    );
+    setValue('');
+  };
 
   return (
-    <form
+    <ComposerForm
       onSubmit={event => {
         event.preventDefault();
-        if (!valid) {
-          return;
-        }
-        onCommand(
-          {
-            type: 'provide_input',
-            ...(needsPrompt ? {prompt: prompt.trim()} : {}),
-            ...(needsTimeRange
-              ? {
-                  timeRange: {
-                    start: new Date(start).toISOString(),
-                    end: new Date(end).toISOString(),
-                  },
-                }
-              : {}),
-          },
-          'input'
-        );
+        submit();
       }}
     >
-      <Stack gap="md">
-        {needsPrompt ? (
-          <Stack gap="xs">
-            <Text as="label" htmlFor="investigation-input-prompt" bold>
-              {t('What should Seer investigate?')}
-            </Text>
-            <TextArea
-              id="investigation-input-prompt"
-              autosize
-              rows={3}
-              value={prompt}
-              onChange={event => setPrompt(event.target.value)}
-            />
-          </Stack>
-        ) : null}
-        {needsTimeRange ? (
-          <Container containerType="inline-size">
-            <Grid columns={{'2xs': '1fr', sm: 'repeat(2, minmax(0, 1fr))'}} gap="md">
-              <Stack gap="xs">
-                <Text as="label" htmlFor="investigation-input-start" bold>
-                  {t('Start time')}
-                </Text>
-                <Input
-                  id="investigation-input-start"
-                  type="datetime-local"
-                  value={start}
-                  onChange={event => setStart(event.target.value)}
-                />
-              </Stack>
-              <Stack gap="xs">
-                <Text as="label" htmlFor="investigation-input-end" bold>
-                  {t('End time')}
-                </Text>
-                <Input
-                  id="investigation-input-end"
-                  type="datetime-local"
-                  value={end}
-                  onChange={event => setEnd(event.target.value)}
-                />
-              </Stack>
-            </Grid>
-          </Container>
-        ) : null}
-        <Flex align="center" gap="sm" wrap="wrap">
-          <Button
-            type="submit"
-            size="sm"
-            variant="primary"
-            busy={commandState.pendingTarget === 'input'}
-            disabled={!valid || commandState.isPending}
-          >
-            {t('Start investigation')}
-          </Button>
-          <CommandFeedback commandState={commandState} targets={['input']} />
-        </Flex>
-      </Stack>
-    </form>
-  );
-}
-
-function AddHypothesisForm({
-  commandState,
-  onCommand,
-}: {
-  commandState: OrchestrationCommandState;
-  onCommand: (
-    command: InvestigationOrchestrationCommand,
-    target: OrchestrationCommandTarget
-  ) => void;
-}) {
-  const [statement, setStatement] = useState('');
-  const [rationale, setRationale] = useState('');
-  return (
-    <Disclosure size="sm" variant="outline">
-      <Disclosure.Title>{t('Add a hypothesis')}</Disclosure.Title>
-      <Disclosure.Content>
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            if (!statement.trim()) {
-              return;
+      <Flex align="end" gap="sm">
+        <TextArea
+          aria-label={
+            mode === 'intake'
+              ? t('What should Seer investigate?')
+              : t('Steer the investigation')
+          }
+          autosize
+          rows={2}
+          placeholder={
+            mode === 'intake'
+              ? t('What should Seer investigate?')
+              : t('Ask Seer to change direction, test a theory, or update the report…')
+          }
+          value={value}
+          onChange={event => setValue(event.target.value)}
+          onKeyDown={event => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              submit();
             }
-            onCommand(
-              {
-                type: 'add_hypothesis',
-                statement: statement.trim(),
-                rationale: rationale.trim() || null,
-              },
-              'add-hypothesis'
-            );
           }}
-        >
-          <Stack gap="md">
-            <Stack gap="xs">
-              <Text as="label" htmlFor="new-hypothesis-statement" bold>
-                {t('Hypothesis')}
-              </Text>
-              <Input
-                id="new-hypothesis-statement"
-                value={statement}
-                onChange={event => setStatement(event.target.value)}
-              />
-            </Stack>
-            <Stack gap="xs">
-              <Text as="label" htmlFor="new-hypothesis-rationale" bold>
-                {t('Why should Seer test this? (optional)')}
-              </Text>
-              <TextArea
-                id="new-hypothesis-rationale"
-                autosize
-                rows={2}
-                value={rationale}
-                onChange={event => setRationale(event.target.value)}
-              />
-            </Stack>
-            <Flex align="center" gap="sm" wrap="wrap">
-              <Button
-                type="submit"
-                size="sm"
-                variant="primary"
-                busy={commandState.pendingTarget === 'add-hypothesis'}
-                disabled={!statement.trim() || commandState.isPending}
-              >
-                {t('Test hypothesis')}
-              </Button>
-              <CommandFeedback commandState={commandState} targets={['add-hypothesis']} />
-            </Flex>
-          </Stack>
-        </form>
-      </Disclosure.Content>
-    </Disclosure>
-  );
-}
-
-function HypothesisControls({
-  commandState,
-  hypothesis,
-  onCommand,
-}: {
-  commandState: OrchestrationCommandState;
-  hypothesis: InvestigationHypothesis;
-  onCommand: (
-    command: InvestigationOrchestrationCommand,
-    target: OrchestrationCommandTarget
-  ) => void;
-}) {
-  const target = `hypothesis:${hypothesis.id}` as const;
-  const decisionTarget = `hypothesis-decision:${hypothesis.id}` as const;
-  const hasUserDecision = hypothesis.decisionSource === 'user';
-  return (
-    <Stack gap="md">
-      <Flex align="center" gap="sm" wrap="wrap">
-        {hasUserDecision ? (
-          <Button
-            size="sm"
-            busy={commandState.pendingTarget === decisionTarget}
-            disabled={commandState.isPending}
-            onClick={() =>
-              onCommand(
-                {
-                  type: 'set_hypothesis_disposition',
-                  hypothesisId: hypothesis.id,
-                  disposition: null,
-                },
-                decisionTarget
-              )
-            }
-          >
-            {t('Undo decision')}
-          </Button>
-        ) : (
-          <Fragment>
-            <Button
-              size="sm"
-              variant="primary"
-              busy={commandState.pendingTarget === decisionTarget}
-              disabled={commandState.isPending}
-              onClick={() =>
-                onCommand(
-                  {
-                    type: 'set_hypothesis_disposition',
-                    hypothesisId: hypothesis.id,
-                    disposition: 'accepted',
-                  },
-                  decisionTarget
-                )
-              }
-            >
-              {t('Accept')}
-            </Button>
-            <Button
-              size="sm"
-              variant="danger"
-              disabled={commandState.isPending}
-              onClick={() =>
-                onCommand(
-                  {
-                    type: 'set_hypothesis_disposition',
-                    hypothesisId: hypothesis.id,
-                    disposition: 'rejected',
-                  },
-                  decisionTarget
-                )
-              }
-            >
-              {t('Reject')}
-            </Button>
-          </Fragment>
-        )}
-        {['failed', 'stalled', 'reauth_required'].includes(hypothesis.status) ? (
-          <Button
-            size="sm"
-            busy={commandState.pendingTarget === decisionTarget}
-            disabled={commandState.isPending}
-            onClick={() =>
-              onCommand(
-                {
-                  type: 'retry',
-                  target: 'hypothesis',
-                  targetId: hypothesis.id,
-                },
-                decisionTarget
-              )
-            }
-          >
-            {t('Retry hypothesis')}
-          </Button>
-        ) : null}
-        <CommandFeedback commandState={commandState} targets={[decisionTarget]} />
+        />
+        <Button
+          type="submit"
+          variant="primary"
+          aria-label={
+            mode === 'intake' ? t('Start investigation') : t('Send instructions')
+          }
+          busy={commandState.pendingTarget === target}
+          disabled={!value.trim() || commandState.isPending}
+          icon={<IconArrow direction="right" />}
+        />
       </Flex>
-      <SteeringForm
-        commandState={commandState}
-        description={t('Change how Seer tests only this hypothesis.')}
-        label={t('Steer this hypothesis')}
-        onSubmit={instruction =>
-          onCommand(
-            {
-              type: 'steer',
-              target: 'hypothesis',
-              targetId: hypothesis.id,
-              instruction,
-            },
-            target
-          )
-        }
-        target={target}
-      />
-    </Stack>
-  );
-}
-
-function SteeringForm({
-  commandState,
-  description,
-  label,
-  onSubmit,
-  target,
-}: {
-  commandState: OrchestrationCommandState;
-  description: string;
-  label: string;
-  onSubmit: (instruction: string) => void;
-  target: OrchestrationCommandTarget;
-}) {
-  const [instruction, setInstruction] = useState('');
-  const inputId = `steer-${target.replace(':', '-')}`;
-  return (
-    <Disclosure size="sm" variant="outline">
-      <Disclosure.Title>{label}</Disclosure.Title>
-      <Disclosure.Content>
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            if (instruction.trim()) {
-              onSubmit(instruction.trim());
-            }
-          }}
-        >
-          <Stack gap="md">
-            <Text size="sm" variant="muted">
-              {description}
-            </Text>
-            <Text as="label" htmlFor={inputId} bold>
-              {t('Instructions')}
-            </Text>
-            <TextArea
-              id={inputId}
-              autosize
-              rows={2}
-              value={instruction}
-              onChange={event => setInstruction(event.target.value)}
-            />
-            <Flex align="center" gap="sm" wrap="wrap">
-              <Button
-                type="submit"
-                size="sm"
-                variant="primary"
-                busy={commandState.pendingTarget === target}
-                disabled={!instruction.trim() || commandState.isPending}
-              >
-                {t('Send instructions')}
-              </Button>
-              <CommandFeedback commandState={commandState} targets={[target]} />
-            </Flex>
-          </Stack>
-        </form>
-      </Disclosure.Content>
-    </Disclosure>
+      <CommandFeedback commandState={commandState} targets={[target]} />
+    </ComposerForm>
   );
 }
 
@@ -1034,44 +1082,6 @@ function CommandFeedback({
     );
   }
   return null;
-}
-
-export function InvestigationBlockSteering({
-  commandState,
-  onCommand,
-  stableAgentKey,
-}: {
-  commandState: OrchestrationCommandState;
-  onCommand: (
-    command: InvestigationOrchestrationCommand,
-    target: OrchestrationCommandTarget
-  ) => void;
-  stableAgentKey: string;
-}) {
-  const target = `block:${stableAgentKey}` as const;
-  return (
-    <Container paddingTop="md">
-      <SteeringForm
-        commandState={commandState}
-        description={t(
-          'Ask Seer to edit, replace, move, or remove this report block without rebuilding unrelated blocks.'
-        )}
-        label={t('Steer this report block')}
-        onSubmit={instruction =>
-          onCommand(
-            {
-              type: 'steer',
-              target: 'block',
-              targetId: stableAgentKey,
-              instruction,
-            },
-            target
-          )
-        }
-        target={target}
-      />
-    </Container>
-  );
 }
 
 function EvidenceList({evidence}: {evidence: InvestigationOrchestrationEvidence[]}) {
@@ -1137,44 +1147,6 @@ function WorkflowError({error}: {error: InvestigationOrchestrationError | null})
   );
 }
 
-function getBroadScanPlaceholder(orchestration: InvestigationOrchestration) {
-  if (orchestration.status === 'awaiting_input') {
-    return t('Waiting for the context needed to begin the broad investigation.');
-  }
-  if (orchestration.broadScan.status === 'completed') {
-    return t('The broad investigation is complete.');
-  }
-  return t('Seer is reviewing relevant organization data and forming hypotheses.');
-}
-
-function getReportDescription({
-  terminal,
-  hasSupportedHypothesis,
-  hasOnlyRejectedOrInconclusiveHypotheses,
-  status,
-}: {
-  hasOnlyRejectedOrInconclusiveHypotheses: boolean;
-  hasSupportedHypothesis: boolean;
-  status: InvestigationOrchestration['report']['status'];
-  terminal: boolean;
-}) {
-  if (terminal && hasOnlyRejectedOrInconclusiveHypotheses) {
-    return t(
-      'No hypothesis was supported. The report explains rejected theories, remaining gaps, and what to test next.'
-    );
-  }
-  if (status === 'composing') {
-    return t('Seer is building the notebook from the settled hypotheses and evidence.');
-  }
-  if (status === 'partial_failed' || status === 'failed') {
-    return t('Report generation stopped. Completed notebook blocks remain available.');
-  }
-  if (status === 'completed' && hasSupportedHypothesis) {
-    return t('The notebook explains the supported causes and recommended next steps.');
-  }
-  return t('The report begins after the current hypotheses have been settled.');
-}
-
 function getHypothesisStatusLabel(hypothesis: InvestigationHypothesis) {
   if (hypothesis.decisionSource === 'user') {
     if (hypothesis.effectiveStatus === 'accepted') {
@@ -1225,6 +1197,32 @@ function getStatusVariant(
     return 'info';
   }
   return 'muted';
+}
+
+function isWorkInProgress(status: string) {
+  return ['queued', 'running'].includes(status);
+}
+
+function getActiveToolActivity(activity: InvestigationToolActivity[]) {
+  return activity.filter(item => ['queued', 'running'].includes(item.status));
+}
+
+function humanizeStableKey(stableKey: string) {
+  return stableKey
+    .replaceAll(/[-_]+/g, ' ')
+    .replace(/^./, character => character.toUpperCase());
+}
+
+function isReportCompositionActive(orchestration: InvestigationOrchestration) {
+  return (
+    orchestration.report.status === 'composing' ||
+    (orchestration.phase === 'metadata' &&
+      orchestration.report.metadata.status !== 'completed')
+  );
+}
+
+function isHypothesisSupported(hypothesis: InvestigationHypothesis) {
+  return ['supported', 'accepted'].includes(hypothesis.effectiveStatus);
 }
 
 export function isOrchestrationTerminal(status: InvestigationOrchestrationStatus) {

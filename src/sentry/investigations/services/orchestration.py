@@ -58,8 +58,6 @@ def _initial_projection(
         prompt = source.get("prompt")
         if not isinstance(prompt, str) or not prompt.strip():
             missing_fields.append("prompt")
-        if source.get("timeRange") is None:
-            missing_fields.append("time_range")
 
     awaiting_input = bool(missing_fields)
     phase = "intake" if awaiting_input else "broad_scan"

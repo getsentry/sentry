@@ -1,4 +1,10 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {InvestigationOrchestrationWorkflow} from 'sentry/views/investigations/detail/orchestrationWorkflow';
 import type {
@@ -97,7 +103,8 @@ function OrchestrationFixture(
 }
 
 describe('InvestigationOrchestrationWorkflow', () => {
-  it('renders the active graph and reveals authored hypothesis details', () => {
+  it('renders the active graph and reveals authored hypothesis details in a modal', async () => {
+    renderGlobalModal();
     render(
       <InvestigationOrchestrationWorkflow
         orchestration={OrchestrationFixture()}
@@ -105,8 +112,8 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    expect(screen.getByRole('heading', {name: 'Investigation plan'})).toBeInTheDocument();
-    expect(screen.getByText('Broad investigation')).toBeInTheDocument();
+    expect(screen.getByLabelText('Investigation workflow')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Hypotheses'})).toBeInTheDocument();
     expect(
       screen.getByText('The broad scan found latency concentrated in database spans.')
     ).toBeInTheDocument();
@@ -114,8 +121,16 @@ describe('InvestigationOrchestrationWorkflow', () => {
       screen.getByText('Database connection saturation caused the latency spike')
     ).toBeInTheDocument();
 
+    expect(screen.queryByText('Why this is plausible')).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'View hypothesis: Database connection saturation caused the latency spike',
+      })
+    );
     expect(screen.getByText('Why this is plausible')).toBeInTheDocument();
-    expect(screen.getByText('Compare pool wait time')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('dialog')).getByText('Compare pool wait time')
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Checkout trace'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/traces/trace-123/'
@@ -123,6 +138,7 @@ describe('InvestigationOrchestrationWorkflow', () => {
   });
 
   it('keeps inactive hypotheses collapsed until the user opens them', async () => {
+    renderGlobalModal();
     render(
       <InvestigationOrchestrationWorkflow
         orchestration={OrchestrationFixture({
@@ -132,16 +148,50 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    expect(screen.getByText('Why this is plausible')).not.toBeVisible();
+    expect(screen.queryByText('Why this is plausible')).not.toBeInTheDocument();
     await userEvent.click(
       screen.getByRole('button', {
-        name: /Database connection saturation caused the latency spike/,
+        name: 'View hypothesis: Database connection saturation caused the latency spike',
       })
     );
-    expect(screen.getByText('Why this is plausible')).toBeVisible();
+    expect(screen.getByText('Why this is plausible')).toBeInTheDocument();
   });
 
-  it('describes an inconclusive report when all hypotheses are rejected or unresolved', () => {
+  it('adds a new flow lane when another hypothesis arrives', () => {
+    const {rerender} = render(
+      <InvestigationOrchestrationWorkflow
+        orchestration={OrchestrationFixture()}
+        now={Date.parse('2026-08-20T20:01:00Z')}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('rf__node-hypothesis-hypothesis-2')
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <InvestigationOrchestrationWorkflow
+        orchestration={OrchestrationFixture({
+          hypotheses: [
+            HypothesisFixture(),
+            HypothesisFixture({
+              id: 'hypothesis-2',
+              order: 1,
+              statement: 'A release changed database query behavior',
+            }),
+          ],
+        })}
+        now={Date.parse('2026-08-20T20:01:00Z')}
+      />
+    );
+
+    expect(screen.getByTestId('investigation-hypothesis-graph')).toHaveAttribute(
+      'data-hypothesis-count',
+      '2'
+    );
+  });
+
+  it('does not render a report status box after hypotheses settle', () => {
     render(
       <InvestigationOrchestrationWorkflow
         orchestration={OrchestrationFixture({
@@ -170,11 +220,42 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    expect(
-      screen.getByText(
-        'No hypothesis was supported. The report explains rejected theories, remaining gaps, and what to test next.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.queryByText('Investigation report')).not.toBeInTheDocument();
+    expect(screen.queryByText('What to test next')).not.toBeInTheDocument();
+  });
+
+  it('shows compact live updates while composing the notebook', () => {
+    render(
+      <InvestigationOrchestrationWorkflow
+        orchestration={OrchestrationFixture({
+          phase: 'reporting',
+          report: {
+            ...OrchestrationFixture().report,
+            status: 'composing',
+            currentBlockKey: 'error-volume-chart',
+            currentBlockStatus: 'running',
+            currentBlockToolActivity: [
+              {
+                id: 'report-query-1',
+                kind: 'api',
+                status: 'running',
+                title: 'Querying error volume by minute',
+              },
+            ],
+          },
+        })}
+        now={Date.parse('2026-08-20T20:01:00Z')}
+      />
+    );
+
+    expect(screen.getByTestId('report-composition-updates')).toBeInTheDocument();
+    expect(screen.getByText('Error volume chart')).toBeInTheDocument();
+    expect(screen.getAllByText('Querying error volume by minute')).toHaveLength(2);
+    expect(screen.getByRole('button', {name: 'Seer updates'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.queryByText('Investigation report')).not.toBeInTheDocument();
   });
 
   it('shows stale and durable failure states', () => {
@@ -185,7 +266,10 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    expect(screen.getByTestId('investigation-orchestration-stale')).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-orchestration')).toHaveAttribute(
+      'data-stale',
+      'true'
+    );
 
     rerender(
       <InvestigationOrchestrationWorkflow
@@ -207,9 +291,10 @@ describe('InvestigationOrchestrationWorkflow', () => {
     expect(screen.getByTestId('investigation-orchestration-failed')).toHaveTextContent(
       'The parent agent could not continue.'
     );
-    expect(
-      screen.queryByTestId('investigation-orchestration-stale')
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('investigation-orchestration')).toHaveAttribute(
+      'data-stale',
+      'false'
+    );
   });
 
   it('uses updatedAt for stale detection when no heartbeat has arrived', () => {
@@ -223,10 +308,13 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    expect(screen.getByTestId('investigation-orchestration-stale')).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-orchestration')).toHaveAttribute(
+      'data-stale',
+      'true'
+    );
   });
 
-  it('only offers a run retry for retryable broad-scan or startup states', async () => {
+  it('keeps run and report controls out of the workflow canvas', () => {
     const onCommand = jest.fn();
     const {rerender} = render(
       <InvestigationOrchestrationWorkflow
@@ -249,8 +337,9 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Retry investigation'}));
-    expect(onCommand).toHaveBeenCalledWith({type: 'retry', target: 'run'}, 'run');
+    expect(
+      screen.queryByRole('button', {name: 'Retry investigation'})
+    ).not.toBeInTheDocument();
 
     rerender(
       <InvestigationOrchestrationWorkflow
@@ -272,19 +361,7 @@ describe('InvestigationOrchestrationWorkflow', () => {
     expect(
       screen.queryByRole('button', {name: 'Retry investigation'})
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Retry report'})).toBeInTheDocument();
-
-    rerender(
-      <InvestigationOrchestrationWorkflow
-        commandState={idleCommandState}
-        onCommand={onCommand}
-        orchestration={OrchestrationFixture()}
-        now={Date.parse('2026-08-20T20:03:00Z')}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Retry investigation'}));
-    expect(onCommand).toHaveBeenLastCalledWith({type: 'retry', target: 'run'}, 'run');
+    expect(screen.queryByRole('button', {name: 'Retry report'})).not.toBeInTheDocument();
   });
 
   it('renders unknown additive phases safely', () => {
@@ -295,7 +372,7 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    expect(screen.getByText('Collecting context')).toBeInTheDocument();
+    expect(screen.getByLabelText('Investigation workflow')).toBeInTheDocument();
   });
 
   it('submits missing intake context from an accessible form', async () => {
@@ -329,7 +406,96 @@ describe('InvestigationOrchestrationWorkflow', () => {
     );
   });
 
-  it('lets the user add, decide, undo, and steer hypotheses', async () => {
+  it('uses a single prompt input to start an investigation', async () => {
+    const onCommand = jest.fn();
+    render(
+      <InvestigationOrchestrationWorkflow
+        commandState={idleCommandState}
+        onCommand={onCommand}
+        orchestration={OrchestrationFixture({
+          phase: 'intake',
+          status: 'awaiting_input',
+          heartbeatAt: null,
+          updatedAt: '2026-08-20T20:00:00Z',
+          broadScan: {status: 'blocked', summary: null, error: null},
+          pendingInput: {
+            missingFields: ['prompt', 'time_range'],
+            prompt: 'Provide investigation context.',
+          },
+        })}
+        now={Date.parse('2026-08-20T20:10:00Z')}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('investigation-orchestration-stale')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Retry investigation'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Cancel investigation'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Hypotheses'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Investigation report')).not.toBeInTheDocument();
+
+    const startButton = screen.getByRole('button', {name: 'Start investigation'});
+    expect(startButton).toBeDisabled();
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'What should Seer investigate?'}),
+      'Find the cause of checkout latency'
+    );
+    await userEvent.click(startButton);
+
+    expect(onCommand).toHaveBeenCalledWith(
+      {
+        type: 'provide_input',
+        prompt: 'Find the cause of checkout latency',
+      },
+      'input'
+    );
+  });
+
+  it('shows broad-scan Code Mode todos as live investigation steps', () => {
+    render(
+      <InvestigationOrchestrationWorkflow
+        orchestration={OrchestrationFixture({
+          broadScan: {
+            status: 'running',
+            summary: null,
+            error: null,
+            toolActivity: [
+              {
+                id: 'step-1',
+                kind: 'step',
+                status: 'running',
+                title: 'Inspect the error spike',
+              },
+              {
+                id: 'call-1',
+                kind: 'api',
+                status: 'completed',
+                title: 'Queried issue groups',
+              },
+            ],
+          },
+        })}
+        now={Date.parse('2026-08-20T20:01:00Z')}
+      />
+    );
+
+    expect(screen.getAllByText('Inspect the error spike')).toHaveLength(2);
+    expect(screen.getByRole('button', {name: 'Seer updates'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.getByText('Queried issue groups')).toBeInTheDocument();
+  });
+
+  it('lets the user decide hypotheses and steer from the single composer', async () => {
+    renderGlobalModal();
     const onCommand = jest.fn();
     render(
       <InvestigationOrchestrationWorkflow
@@ -340,22 +506,11 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add a hypothesis'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Hypothesis'}),
-      'A deploy exhausted the connection pool'
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Accept hypothesis: Database connection saturation caused the latency spike',
+      })
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Test hypothesis'}));
-    expect(onCommand).toHaveBeenCalledWith(
-      {
-        type: 'add_hypothesis',
-        statement: 'A deploy exhausted the connection pool',
-        rationale: null,
-      },
-      'add-hypothesis'
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Accept'}));
     expect(onCommand).toHaveBeenCalledWith(
       {
         type: 'set_hypothesis_disposition',
@@ -365,41 +520,11 @@ describe('InvestigationOrchestrationWorkflow', () => {
       'hypothesis-decision:hypothesis-1'
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Steer this hypothesis'}));
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Instructions'}),
-      'Compare only production traces'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Send instructions'}));
-    expect(onCommand).toHaveBeenCalledWith(
-      {
-        type: 'steer',
-        target: 'hypothesis',
-        targetId: 'hypothesis-1',
-        instruction: 'Compare only production traces',
-      },
-      'hypothesis:hypothesis-1'
-    );
-
-    const workflowSteeringButton = screen.getByRole('button', {
-      name: 'Steer the investigation',
-    });
-    await userEvent.click(workflowSteeringButton);
-    const workflowSteering = workflowSteeringButton.closest<HTMLElement>(
-      '[data-disclosure="true"]'
-    );
-    if (!workflowSteering) {
-      throw new Error('Expected workflow steering disclosure.');
-    }
-    await userEvent.type(
-      within(workflowSteering).getByRole('textbox', {name: 'Instructions'}),
+      screen.getByRole('textbox', {name: 'Steer the investigation'}),
       'Focus the broad scan on checkout failures'
     );
-    await userEvent.click(
-      within(workflowSteering).getByRole('button', {
-        name: 'Send instructions',
-      })
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Send instructions'}));
     expect(onCommand).toHaveBeenCalledWith(
       {
         type: 'steer',
@@ -411,6 +536,7 @@ describe('InvestigationOrchestrationWorkflow', () => {
   });
 
   it('reveals only bounded tool activity in expanded nodes and marks the primary cause', async () => {
+    renderGlobalModal();
     render(
       <InvestigationOrchestrationWorkflow
         orchestration={OrchestrationFixture({
@@ -427,6 +553,12 @@ describe('InvestigationOrchestrationWorkflow', () => {
                   title: 'Querying trace summaries',
                   arguments: 'secret query body',
                 } as NonNullable<InvestigationHypothesis['toolActivity']>[number],
+                {
+                  id: 'activity-2',
+                  kind: 'api',
+                  status: 'completed',
+                  title: 'Loaded historical traces',
+                },
               ],
             }),
           ],
@@ -440,30 +572,36 @@ describe('InvestigationOrchestrationWorkflow', () => {
     );
 
     expect(screen.getByText('Primary')).toBeInTheDocument();
-    expect(screen.getByText('Querying trace summaries')).not.toBeVisible();
+    expect(screen.getByText('Querying trace summaries')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'View Seer updates for: Database connection saturation caused the latency spike',
+      })
+    ).toBeInTheDocument();
     expect(screen.queryByText('secret query body')).not.toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole('button', {
-        name: /Database connection saturation caused the latency spike/,
+        name: 'View hypothesis: Database connection saturation caused the latency spike',
       })
     );
 
-    expect(screen.getByText('Querying trace summaries')).toBeVisible();
-    expect(screen.getByText('Attempt 2')).toBeVisible();
-    expect(screen.getByText('Automatically retried once')).toBeVisible();
+    expect(
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Seer updates'})
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getAllByText('Querying trace summaries').length).toBeGreaterThan(0);
+    expect(screen.getByText('Loaded historical traces')).toBeInTheDocument();
+    expect(screen.getByText('Attempt 2')).toBeInTheDocument();
+    expect(screen.getByText('Automatically retried once')).toBeInTheDocument();
     expect(
       screen.getAllByRole('status').some(status => status.textContent === 'Running')
     ).toBe(true);
     expect(screen.queryByText('secret query body')).not.toBeInTheDocument();
   });
 
-  it('offers suggested inconclusive hypotheses as existing add commands', async () => {
-    const onCommand = jest.fn();
+  it('does not render report suggestions alongside the ranked hypotheses', () => {
     render(
       <InvestigationOrchestrationWorkflow
-        commandState={idleCommandState}
-        onCommand={onCommand}
         orchestration={OrchestrationFixture({
           phase: 'completed',
           status: 'completed',
@@ -488,23 +626,14 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    expect(screen.getByText('What to test next')).toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Test hypothesis: An upstream dependency throttled requests',
-      })
-    );
-    expect(onCommand).toHaveBeenCalledWith(
-      {
-        type: 'add_hypothesis',
-        statement: 'An upstream dependency throttled requests',
-        rationale: 'External latency remains a data gap.',
-      },
-      'add-hypothesis'
-    );
+    expect(screen.queryByText('What to test next')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('An upstream dependency throttled requests')
+    ).not.toBeInTheDocument();
   });
 
-  it('only makes safe relative and HTTP evidence URLs clickable', () => {
+  it('only makes safe relative and HTTP evidence URLs clickable', async () => {
+    renderGlobalModal();
     render(
       <InvestigationOrchestrationWorkflow
         orchestration={OrchestrationFixture({
@@ -554,6 +683,12 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'View hypothesis: Database connection saturation caused the latency spike',
+      })
+    );
+
     expect(screen.getByRole('link', {name: 'Safe relative evidence'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/1/'
@@ -575,6 +710,7 @@ describe('InvestigationOrchestrationWorkflow', () => {
   });
 
   it('keeps an agent verdict visible under an unverified user acceptance', async () => {
+    renderGlobalModal();
     const onCommand = jest.fn();
     render(
       <InvestigationOrchestrationWorkflow
@@ -602,17 +738,23 @@ describe('InvestigationOrchestrationWorkflow', () => {
       />
     );
 
-    expect(screen.getByText('Accepted by you')).toBeInTheDocument();
+    expect(screen.getAllByText('Accepted by you').length).toBeGreaterThan(0);
     await userEvent.click(
       screen.getByRole('button', {
-        name: /Database connection saturation caused the latency spike/,
+        name: 'View hypothesis: Database connection saturation caused the latency spike',
       })
     );
     expect(screen.getByText(/Seer has not verified this hypothesis/)).toBeInTheDocument();
-    expect(screen.getByText('Agent verdict')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('dialog')).getByText('Agent verdict')
+    ).toBeInTheDocument();
     expect(screen.getByText('Database waits remained flat.')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Undo decision'}));
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Accept hypothesis: Database connection saturation caused the latency spike',
+      })
+    );
     expect(onCommand).toHaveBeenCalledWith(
       {
         type: 'set_hypothesis_disposition',
@@ -623,7 +765,8 @@ describe('InvestigationOrchestrationWorkflow', () => {
     );
   });
 
-  it('offers retries for failed hypothesis and report states', async () => {
+  it('offers retries for failed hypotheses without rendering a report panel', async () => {
+    renderGlobalModal();
     const onCommand = jest.fn();
     render(
       <InvestigationOrchestrationWorkflow
@@ -647,7 +790,7 @@ describe('InvestigationOrchestrationWorkflow', () => {
 
     await userEvent.click(
       screen.getByRole('button', {
-        name: /Database connection saturation caused the latency spike/,
+        name: 'View hypothesis: Database connection saturation caused the latency spike',
       })
     );
     await userEvent.click(screen.getByRole('button', {name: 'Retry hypothesis'}));
@@ -655,10 +798,6 @@ describe('InvestigationOrchestrationWorkflow', () => {
       {type: 'retry', target: 'hypothesis', targetId: 'hypothesis-1'},
       'hypothesis-decision:hypothesis-1'
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Retry report'}));
-    expect(onCommand).toHaveBeenCalledWith(
-      {type: 'retry', target: 'report'},
-      'report-action'
-    );
+    expect(screen.queryByRole('button', {name: 'Retry report'})).not.toBeInTheDocument();
   });
 });

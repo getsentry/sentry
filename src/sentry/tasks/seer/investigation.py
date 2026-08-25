@@ -27,6 +27,7 @@ from sentry.investigations.models import (
 from sentry.investigations.seer_client import (
     create_investigation_orchestration_run,
     dispatch_investigation_orchestration_command,
+    get_investigation_orchestration_run,
 )
 from sentry.investigations.services import (
     mark_block_execution_dispatch_failed,
@@ -47,6 +48,10 @@ logger = logging.getLogger(__name__)
 ORCHESTRATION_DISPATCH_RETRIES = 3
 CREATE_DISPATCH_ERROR_MESSAGE = "Unable to start this investigation. Try again."
 COMMAND_DISPATCH_ERROR_MESSAGE = "Unable to deliver this investigation command. Try again."
+COMMAND_VERSION_CONFLICT_MESSAGE = (
+    "The investigation changed before this update could be applied. "
+    "Progress was refreshed; try again."
+)
 
 
 def _is_last_dispatch_attempt() -> bool:
@@ -136,6 +141,82 @@ def _mark_command_dispatch_failed(command_id: int, _error: BaseException) -> Non
         run.error = detail
         run.projection = projection
         run.save(update_fields=["error", "projection", "date_updated"])
+
+
+def _mark_command_version_conflicted(command_id: int) -> None:
+    database = router.db_for_write(InvestigationOrchestrationCommand)
+    with transaction.atomic(using=database):
+        command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()
+        if command_snapshot is None:
+            return
+        run = InvestigationOrchestrationRun.objects.select_for_update().get(
+            id=command_snapshot.orchestration_run_id
+        )
+        command = (
+            InvestigationOrchestrationCommand.objects.select_for_update()
+            .filter(id=command_id)
+            .first()
+        )
+        if (
+            command is None
+            or command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        ):
+            return
+        detail = {
+            "code": "seer_command_dispatch_failed",
+            "message": COMMAND_VERSION_CONFLICT_MESSAGE,
+            "requestId": str(command.request_id),
+            "commandType": command.type,
+            "reason": "workflow_version_conflict",
+            "retryable": False,
+        }
+        command.status = InvestigationOrchestrationCommandStatus.FAILED
+        command.error = detail
+        command.save(update_fields=["status", "error", "date_updated"])
+        InvestigationOrchestrationCommand.objects.filter(
+            orchestration_run=run,
+            id__gt=command.id,
+            status__in=(
+                InvestigationOrchestrationCommandStatus.ACCEPTED,
+                InvestigationOrchestrationCommandStatus.DISPATCHED,
+            ),
+        ).update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={
+                "code": "earlier_command_conflicted",
+                "message": "An earlier workflow update conflicted with Seer's current state.",
+            },
+            date_updated=timezone.now(),
+        )
+        projection = deepcopy(run.projection)
+        errors = projection.setdefault("errors", [])
+        if isinstance(errors, list):
+            projection["errors"] = [detail, *errors]
+        if run.error is None:
+            run.error = detail
+        run.projection = projection
+        run.save(update_fields=["error", "projection", "date_updated"])
+
+
+def _reconcile_command_version_conflict(
+    run: InvestigationOrchestrationRun,
+    command: InvestigationOrchestrationCommand,
+    viewer_context: SeerViewerContext,
+) -> None:
+    if run.seer_run_id is None:
+        raise SeerApiError("Investigation orchestration run is missing", 502)
+    response = get_investigation_orchestration_run(
+        run.seer_run_id,
+        viewer_context=viewer_context,
+    )
+    response_run_id, projection = _response_projection(response)
+    synchronize_orchestration_projection(
+        orchestration_run_id=run.id,
+        seer_run_id=response_run_id,
+        projection=projection,
+        authoritative=True,
+    )
+    _mark_command_version_conflicted(command.id)
 
 
 def _mark_command_dispatch_acknowledged(
@@ -233,22 +314,8 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
     if run is None:
         return
     if run.seer_run_id is None:
-        error = SeerApiError("The investigation run has not been created", 409)
-        if _is_last_dispatch_attempt():
-            command = (
-                run.commands.filter(
-                    status__in=(
-                        InvestigationOrchestrationCommandStatus.ACCEPTED,
-                        InvestigationOrchestrationCommandStatus.DISPATCHED,
-                    )
-                )
-                .order_by("id")
-                .first()
-            )
-            if command is not None:
-                _mark_command_dispatch_failed(command.id, error)
-            return
-        raise error
+        dispatch_investigation_orchestration_create.delay(run.id)
+        return
 
     while True:
         command = (
@@ -295,7 +362,25 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                 seer_run_id=response_run_id,
                 projection=projection,
             )
-        except (SeerApiError, HTTPError) as error:
+        except SeerApiError as error:
+            if error.status == 409:
+                logger.warning(
+                    "investigations.orchestration.command_version_conflict",
+                    extra={
+                        "orchestration_run_id": run.id,
+                        "seer_run_id": run.seer_run_id,
+                        "command_id": command.id,
+                        "expected_workflow_version": command.expected_workflow_version,
+                    },
+                )
+                _reconcile_command_version_conflict(run, command, viewer_context)
+                return
+            if _is_last_dispatch_attempt():
+                logger.exception("investigations.orchestration.command_dispatch_failed")
+                _mark_command_dispatch_failed(command.id, error)
+                return
+            raise
+        except HTTPError as error:
             if _is_last_dispatch_attempt():
                 logger.exception("investigations.orchestration.command_dispatch_failed")
                 _mark_command_dispatch_failed(command.id, error)

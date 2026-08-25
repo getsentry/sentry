@@ -390,9 +390,7 @@ describe('Investigation detail', () => {
 
     renderView(organization, queryClient);
 
-    expect(
-      await screen.findByRole('heading', {name: 'Investigation plan'})
-    ).toBeInTheDocument();
+    expect(await screen.findByLabelText('Investigation workflow')).toBeInTheDocument();
     expect(detailRequest).toHaveBeenCalledTimes(1);
 
     const orchestrationOptions = investigationOrchestrationQueryOptions(
@@ -653,6 +651,7 @@ describe('Investigation detail', () => {
   });
 
   it('optimistically accepts an active hypothesis until Seer reflects the command', async () => {
+    renderGlobalModal();
     const queryClient = makeTestQueryClient();
     const hypothesis = {
       id: 'hypothesis-1',
@@ -699,13 +698,25 @@ describe('Investigation detail', () => {
 
     renderView(organization, queryClient);
     expect(await screen.findByTestId('investigation-cell-block-1')).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', {name: 'Accept'}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Accept hypothesis: A release exhausted the database pool',
+      })
+    );
 
-    expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
-    expect(screen.getByText(/Seer has not verified this hypothesis/)).toBeInTheDocument();
+    expect((await screen.findAllByText('Accepted by you')).length).toBeGreaterThan(0);
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'View hypothesis: A release exhausted the database pool',
+      })
+    );
+    expect(
+      await screen.findByText(/Seer has not verified this hypothesis/)
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
     expect(screen.queryByTestId('investigation-cell-block-1')).not.toBeInTheDocument();
     expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
-    expect(screen.getByText('Updating…')).toBeInTheDocument();
+    expect(screen.getAllByText('Updating…').length).toBeGreaterThan(0);
     await waitFor(() => expect(commandRequest).toHaveBeenCalledTimes(1));
     expect(commandRequest).toHaveBeenCalledWith(
       orchestrationCommandsUrl,
@@ -744,10 +755,14 @@ describe('Investigation detail', () => {
       json: reflected,
     });
 
-    expect(
-      await screen.findByRole('button', {name: 'Undo decision'})
-    ).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByText('Updating…')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Accept hypothesis: A release exhausted the database pool',
+        })
+      ).toBeEnabled()
+    );
+    await waitFor(() => expect(screen.queryAllByText('Updating…')).toHaveLength(0));
   });
 
   it('rolls back an optimistic decision and shows a stale-version conflict inline', async () => {
@@ -791,14 +806,18 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(await screen.findByRole('button', {name: 'Reject'}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Reject hypothesis: A release exhausted the database pool',
+      })
+    );
 
     act(() => releaseRequest());
     expect(
       await screen.findByText(/The investigation changed before this update was applied/)
     ).toBeInTheDocument();
     expect(screen.queryByText('Rejected by you')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Investigating').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Verifying 0/1 hypotheses.').length).toBeGreaterThan(0);
   });
 
   it('retries a failed command dispatch once with the same request ID', async () => {
@@ -847,7 +866,11 @@ describe('Investigation detail', () => {
     });
 
     renderView(organization, queryClient);
-    await userEvent.click(await screen.findByRole('button', {name: 'Accept'}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Accept hypothesis: A release exhausted the database pool',
+      })
+    );
     await waitFor(() => expect(commandRequest).toHaveBeenCalledTimes(1));
 
     const failedDispatch = {
@@ -894,7 +917,7 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('steers one report block without refetching or resetting unrelated blocks', async () => {
+  it('steers the investigation from the single composer without exposing block inputs', async () => {
     const orchestration = InvestigationOrchestrationFixture({
       phase: 'completed',
       status: 'completed',
@@ -942,18 +965,11 @@ describe('Investigation detail', () => {
 
     renderView();
     const queryCell = await screen.findByTestId('investigation-cell-block-2');
-    await userEvent.click(
-      await within(queryCell).findByRole('button', {
-        name: 'Steer this report block',
-      })
-    );
     await userEvent.type(
-      within(queryCell).getByRole('textbox', {name: 'Instructions'}),
+      screen.getByRole('textbox', {name: 'Steer the investigation'}),
       'Move this chart before the summary'
     );
-    await userEvent.click(
-      within(queryCell).getByRole('button', {name: 'Send instructions'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Send instructions'}));
 
     await waitFor(() => expect(commandRequest).toHaveBeenCalledTimes(1));
     expect(commandRequest).toHaveBeenCalledWith(
@@ -962,15 +978,14 @@ describe('Investigation detail', () => {
         data: expect.objectContaining({
           command: {
             type: 'steer',
-            target: 'block',
-            targetId: 'agent-block-2',
+            target: 'workflow',
             instruction: 'Move this chart before the summary',
           },
         }),
       })
     );
-    expect(screen.getByTestId('investigation-cell-block-1')).toBeInTheDocument();
-    expect(screen.getByTestId('investigation-cell-block-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-cell-block-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
     expect(
       within(queryCell).queryByRole('button', {
         name: 'Ask Seer about Latency query',
@@ -981,15 +996,8 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Text cell'})).not.toBeInTheDocument();
     expect(
-      within(screen.getByTestId('investigation-cell-block-1')).queryByRole('button', {
-        name: 'Steer this report block',
-      })
-    ).not.toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('investigation-cell-block-1')).queryByRole('button', {
-        name: 'Ask Seer about Summary',
-      })
-    ).not.toBeInTheDocument();
+      screen.getAllByRole('textbox').filter(element => element.tagName === 'TEXTAREA')
+    ).toHaveLength(1);
     expect(detailRequest).toHaveBeenCalledTimes(1);
   });
 

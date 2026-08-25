@@ -147,6 +147,7 @@
     "@types/react-lazyload": "3.2.3",
     "@types/react-select": "4.0.18",
     "@types/reflux": "0.4.1",
+    "@xyflow/react": "^12.11.3",
     "ansi-to-react": "^6.1.6",
     "base64-arraybuffer": "^1.0.1",
     "cbor2": "^1.12.0",

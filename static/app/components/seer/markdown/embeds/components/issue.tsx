@@ -21,8 +21,12 @@ const BLOCK_COLUMNS: GroupListColumn[] = [
   'assignee',
 ];
 
+export function getIssueSearchQuery(id: string) {
+  return /^\d+$/.test(id) ? `issue.id:${id}` : `issue:${id}`;
+}
+
 function SingleIssueBlock({id}: {id: string}) {
-  const queryParams = useMemo(() => ({query: `issue:${id}`, limit: '1'}), [id]);
+  const queryParams = useMemo(() => ({query: getIssueSearchQuery(id), limit: '1'}), [id]);
 
   return (
     <LazyLoad
