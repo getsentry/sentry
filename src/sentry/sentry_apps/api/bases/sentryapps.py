@@ -555,3 +555,9 @@ class SentryAppStatsPermission(SentryPermission):
 
         assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
+
+
+class SentryAppWebhookRequestsPermission(SentryAppStatsPermission):
+    scope_map = {
+        "GET": ("org:admin",),
+    }
