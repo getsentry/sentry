@@ -9,8 +9,6 @@ import {
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
-
 import {inputStyles} from './inputStyles';
 
 type FormatToken = '0' | 'A';
@@ -68,6 +66,7 @@ export function OTPInput<const Format extends string>({
   disabled = false,
   uppercase = false,
 }: OTPInputProps<Format>) {
+  const {t} = useTranslation();
   const [value, setValue] = useState('');
   const normalizeValue = (newValue: string) =>
     uppercase ? newValue.toUpperCase() : newValue;
