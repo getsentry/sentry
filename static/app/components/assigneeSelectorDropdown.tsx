@@ -78,6 +78,10 @@ interface AssigneeSelectorDropdownProps {
    */
   additionalMenuFooterItems?: React.ReactNode;
   /**
+   * Render the default trigger as a bare avatar control.
+   */
+  avatarOnly?: boolean;
+  /**
    * Additional styles to apply to the dropdown
    */
   className?: string;
@@ -99,10 +103,6 @@ interface AssigneeSelectorDropdownProps {
    * Optional list of suggested owners of the group
    */
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
-  /**
-   * Whether the default trigger should show a dropdown chevron.
-   */
-  showChevron?: boolean;
   /**
    * Maximum number of teams/users to display in the dropdown
    */
@@ -213,6 +213,7 @@ function AssigneeAvatar({
 }
 
 export function AssigneeSelectorDropdown({
+  avatarOnly = false,
   className,
   group,
   loading,
@@ -221,7 +222,6 @@ export function AssigneeSelectorDropdown({
   onClear,
   owners,
   sizeLimit = 150,
-  showChevron = true,
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
@@ -499,9 +499,11 @@ export function AssigneeSelectorDropdown({
         {!loading && (
           <AssigneeTrigger
             aria-label={t('Modify issue assignee')}
+            data-avatar-only={avatarOnly || undefined}
             variant="transparent"
             data-test-id="assignee-selector"
-            showChevron={showChevron}
+            showChevron={!avatarOnly}
+            size={avatarOnly ? 'zero' : undefined}
             {...props}
           >
             {avatarElement}
@@ -564,6 +566,14 @@ const AssigneeTrigger = styled(OverlayTrigger.Button)`
   z-index: 0;
   padding-left: ${p => p.theme.space.xs};
   padding-right: ${p => p.theme.space.xs};
+
+  &[data-avatar-only='true'] {
+    padding: 0;
+
+    &:hover {
+      background: transparent;
+    }
+  }
 `;
 
 const StyledIconUser = styled(IconUser)`

@@ -141,6 +141,7 @@ export function AssigneeSelector({
 
   return (
     <AssigneeSelectorDropdown
+      avatarOnly={avatarOnly}
       group={group}
       loading={assigneeLoading || (memberList === undefined && defaultMemberListLoading)}
       memberList={currentMemberList}
@@ -149,7 +150,6 @@ export function AssigneeSelector({
         handleAssigneeChange(assignedActor)
       }
       onClear={() => handleAssigneeChange(null)}
-      showChevron={!avatarOnly}
       trigger={
         avatarOnly
           ? undefined
