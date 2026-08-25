@@ -27,7 +27,6 @@ class PullRequestPayload(TypedDict):
     reviewStatus: str | None
     repoName: str | None
     files: list[PullRequestFilePayload]
-    failedChecks: list[str]
     failedCheckDetails: list[FailedCheckPayload]
 
 

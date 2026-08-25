@@ -698,12 +698,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardSerializer(
             data=request.data,
             context={
                 "organization": organization,
                 "request": request,
-                "projects": self.get_projects(request, organization),
+                "projects": projects,
+                # allow_joinleave grants project access without team membership.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
             },
         )

@@ -325,7 +325,7 @@ function NextAutofixStepButton({
         icon={<IconOpen />}
         variant={variant}
       >
-        {resultLink.label}
+        {defined(resultLink.prNumber) ? t('View PR') : resultLink.label}
       </LinkButton>
     );
   }
@@ -490,11 +490,7 @@ function ActionButtons({
           href={latestOpenPullRequest.externalUrl}
           icon={<IconGithub data-test-id="pull-request-github" />}
         >
-          {t(
-            'View %s#%s',
-            latestOpenPullRequest.repository.name,
-            latestOpenPullRequest.id
-          )}
+          {t('View PR')}
         </LinkButton>
         <NextAutofixStepButton
           autofix={autofix}

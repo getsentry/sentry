@@ -121,14 +121,15 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
 };
 
 export function SeerMarkdown({
+  components,
   structuredContent = null,
   ...props
-}: Omit<MarkdownProps, 'components'> & {
+}: MarkdownProps & {
   structuredContent?: Record<string, unknown> | null;
 }) {
   return (
     <StructuredContentContext.Provider value={structuredContent}>
-      <Markdown {...props} components={SEER_EMBED_COMPONENTS} />
+      <Markdown {...props} components={{...SEER_EMBED_COMPONENTS, ...components}} />
     </StructuredContentContext.Provider>
   );
 }
