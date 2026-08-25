@@ -7,8 +7,7 @@ from concurrent.futures import as_completed
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from django.db.models import Case, CharField, Exists, Subquery, Value, When
-from django.db.models.expressions import RawSQL
+from django.db.models import Case, CharField, Exists, Min, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
@@ -510,39 +509,6 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
         _maybe_trigger_drain_lease(mailbox_name)
 
 
-MAILBOX_HEADS_SQL = """\
-WITH RECURSIVE mailbox_heads AS (
-    (
-        SELECT mailbox_name, id
-        FROM hybridcloud_webhookpayload
-        ORDER BY mailbox_name, id
-        LIMIT 1
-    )
-    UNION ALL
-    SELECT next_head.mailbox_name, next_head.id
-    FROM mailbox_heads
-    CROSS JOIN LATERAL (
-        SELECT mailbox_name, id
-        FROM hybridcloud_webhookpayload
-        WHERE mailbox_name > mailbox_heads.mailbox_name
-        ORDER BY mailbox_name, id
-        LIMIT 1
-    ) next_head
-)
-SELECT id FROM mailbox_heads
-"""
-"""
-Loose index scan emulation for `SELECT MIN(id) ... GROUP BY mailbox_name`.
-
-Postgres (through at least 16) cannot skip between distinct values in an index,
-so the plain aggregate walks every entry of the (mailbox_name, id) index —
-including the dead tuples this delete-heavy table accumulates. The recursive
-CTE instead probes the index once per distinct mailbox: the base case grabs the
-first (mailbox_name, id) entry, and each step jumps past the current mailbox to
-the next one's lowest id. See https://wiki.postgresql.org/wiki/Loose_indexscan
-"""
-
-
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
     namespace=hybridcloud_control_tasks,
@@ -558,18 +524,25 @@ def schedule_webhook_delivery() -> None:
 
     Triggered frequently by task-scheduler.
     """
-    # Read from the primary rather than a replica: these reads run on a short
-    # interval, contend with WAL replay on a replica, and replica lag produces
-    # spurious DoesNotExist races in the drains they enqueue (see INC-2398).
-    # The loose index scan keeps the head-of-line read cheap on the primary.
-    head_of_line = RawSQL(MAILBOX_HEADS_SQL, [])
+    # Read from the primary rather than a replica. These scheduler reads run on a
+    # short interval and can scan the whole table; on a replica they contend with
+    # WAL replay and amplify replication lag, and lag also produces spurious
+    # DoesNotExist races in the drains they enqueue (see INC-2398).
+    # The double call to .values() ensures that the group by includes mailbox_name
+    # but only id_min is selected
+    head_of_line = (
+        WebhookPayload.objects.all()
+        .values("mailbox_name")
+        .annotate(id_min=Min("id"))
+        .values("id_min")
+    )
 
     # Get any heads that are scheduled to run
     # Use provider field directly, with default priority for null values
     scheduled_mailboxes = (
         WebhookPayload.objects.filter(
             schedule_for__lte=timezone.now(),
-            id__in=head_of_line,
+            id__in=Subquery(head_of_line),
         )
         # Set priority value based on provider field
         .annotate(
@@ -589,10 +562,12 @@ def schedule_webhook_delivery() -> None:
         .values("id", "mailbox_name")
     )
 
-    # Capped at BATCH_SIZE: an exact count() would rerun the entire head-of-line
-    # discovery query just for this metric.
     records = list(scheduled_mailboxes[:BATCH_SIZE])
-    metrics.distribution("hybridcloud.schedule_webhook_delivery.mailbox_count", len(records))
+    # The dispatch batch already answers the metric for every normal cycle. Only
+    # when it fills is the real number unknown, and only then is re-running the
+    # head-of-line discovery worth it -- those wide cycles are the ones worth seeing.
+    mailbox_count = scheduled_mailboxes.count() if len(records) == BATCH_SIZE else len(records)
+    metrics.distribution("hybridcloud.schedule_webhook_delivery.mailbox_count", mailbox_count)
 
     for record in records:
         mailbox_name = record["mailbox_name"]
