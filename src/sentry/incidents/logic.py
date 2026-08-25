@@ -1823,6 +1823,8 @@ def get_column_from_aggregate(
     allow_eap: bool = False,
     match: Match[str] | None = None,
 ) -> str | None:
+    # Equation aggregates (e.g. "equation|a / b * 100") cannot be resolved via
+    # resolve_field and have no single column to extract, so return None early.
     if is_equation(aggregate):
         return None
 
