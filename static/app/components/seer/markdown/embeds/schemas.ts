@@ -69,6 +69,26 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  dashboard: {
+    description:
+      'The ONLY way to reference a saved Sentry dashboard. ' +
+      'Use the dashboard ID exactly as returned by the dashboard API. ' +
+      'Include the API-provided title when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders a standalone dashboard reference. ' +
+      'Never use a markdown link for dashboard references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      title: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Dashboard',
+        data: {id: '123', title: 'Application health'},
+      },
+    ],
+  },
   dsn: {
     description:
       'Display a copyable Sentry DSN (Data Source Name) string. ' +
@@ -130,6 +150,32 @@ export const SEER_EMBED_SCHEMAS = {
         label: 'Block',
         level: 'block',
         data: {ids: ['JAVASCRIPT-22SP', 'JAVASCRIPT-39HX', 'JAVASCRIPT-39ZF']},
+      },
+    ],
+  },
+  replay: {
+    description:
+      'The ONLY way to reference a Sentry Session Replay. ' +
+      'Use the replay ID, not the legacy project-slug:replay-id form. ' +
+      'Provide eventTimestamp as an ISO 8601 timestamp with a timezone offset ' +
+      '(for example, Z or +00:00) when the replay should open around a relevant event. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders a standalone replay reference. ' +
+      'Never use a markdown link for replay references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      eventTimestamp: isoTimestampSchema
+        .describe('ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)')
+        .optional(),
+    }),
+    examples: [
+      {
+        label: 'Replay',
+        data: {
+          id: '4c1f2e3d1234567890',
+          eventTimestamp: '2026-08-25T16:37:12Z',
+        },
       },
     ],
   },
