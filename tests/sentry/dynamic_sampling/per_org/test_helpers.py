@@ -7,17 +7,20 @@ from unittest.mock import MagicMock, Mock, patch
 
 from sentry.dynamic_sampling.per_org.configuration import ProjectSampleRates
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 CONFIGURATION = "sentry.dynamic_sampling.per_org.configuration"
+CACHE = "sentry.dynamic_sampling.per_org.cache"
 BLENDED_SAMPLE_RATE = f"{CONFIGURATION}.quotas.backend.get_blended_sample_rate"
 OUTCOMES_VOLUME = f"{CONFIGURATION}.get_outcomes_organization_volume"
 SLIDING_WINDOW_RATE = f"{CONFIGURATION}.compute_sliding_window_sample_rate"
 CALCULATE_FACTOR = f"{CONFIGURATION}.calculate_recalibration_factor"
 GET_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.get_adjusted_factor"
-SET_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.set_guarded_adjusted_factor"
-DELETE_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.delete_adjusted_factor"
+# The factor is written by write_caches at the end of the pass, not by the configuration.
+SET_FACTOR = f"{CACHE}.set_guarded_adjusted_factor"
+DELETE_FACTOR = f"{CACHE}.delete_adjusted_factor"
 
 
 @contextmanager
@@ -43,11 +46,13 @@ def mock_configuration(
     projects: list[Project] | None = None,
     sample_rate: float | None = None,
     project_sample_rates: ProjectSampleRates | None = None,
+    results: DynamicSamplingResults | None = None,
 ) -> Mock:
     """A stand-in configuration whose getters return the given sample rates."""
     return Mock(
         organization=organization,
         projects=projects or [],
+        results=results if results is not None else DynamicSamplingResults(),
         **{
             "get_sample_rate.return_value": sample_rate,
             "get_project_sample_rates.return_value": project_sample_rates or {},

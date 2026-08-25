@@ -194,13 +194,17 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         is_prebuilt = dashboard.prebuilt_id is not None
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardDetailsSerializer(
             data=request.data,
             instance=dashboard,
             context={
                 "organization": organization,
                 "request": request,
-                "projects": self.get_projects(request, organization),
+                "projects": projects,
+                # allow_joinleave grants project access without team membership.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
             },
         )

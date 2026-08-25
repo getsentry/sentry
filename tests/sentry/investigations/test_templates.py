@@ -116,7 +116,7 @@ class TestBreachedMetricTemplate:
         ]
 
     def test_is_a_breached_metric_source(self) -> None:
-        assert BREACHED_METRIC_TEMPLATE.source_type == InvestigationSourceType.BREACHED_METRIC
+        assert BREACHED_METRIC_TEMPLATE.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD
 
     def test_synthesis_depends_on_both_query_blocks(self) -> None:
         synthesis = next(

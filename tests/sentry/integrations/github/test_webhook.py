@@ -1376,6 +1376,14 @@ class PullRequestEventWebhookTest(APITestCase):
         assert response.status_code == 204
         return integration
 
+    def test_stores_provider_external_id(self) -> None:
+        repo = self._create_integration_and_repo()
+
+        self._post_pull_request_event(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+
+        pr = PullRequest.objects.get(repository_id=repo.id, key="1")
+        assert pr.external_id == 34778301
+
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     def test_github_delivery_id_extracted_and_passed_to_processors(
         self, mock_handler: MagicMock
@@ -1507,6 +1515,7 @@ class PullRequestEventWebhookTest(APITestCase):
         pr = prs[0]
 
         assert pr.key == "1"
+        assert pr.external_id == 34778301
         assert (
             pr.message
             == "This is a pretty simple change that we need to pull into master. Fixes BAR-7"
@@ -1869,7 +1878,7 @@ class PullRequestEventWebhookTest(APITestCase):
         # engagement, while the PR row still looked correct.
         repo = self._create_integration_and_repo()
 
-        with self.feature("organizations:pr-metrics-emit"):
+        with self.feature(["organizations:pr-metrics"]):
             merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
             merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
             merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
