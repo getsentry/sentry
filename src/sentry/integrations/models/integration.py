@@ -156,7 +156,9 @@ class Integration(DefaultFieldsModelExisting):
                         # Raise rather than return None: this is transient and
                         # retryable, and callers that discard the return value
                         # would otherwise report success having linked nothing.
-                        raise IntegrationDeletionInProgressError
+                        raise IntegrationDeletionInProgressError(
+                            "Integration deletion is already in progress. Please try again in a few minutes."
+                        )
 
                     # We've locked the row so, technically, we can rescue the row
                     # from deletion without risking a concurrent delete. This is in
