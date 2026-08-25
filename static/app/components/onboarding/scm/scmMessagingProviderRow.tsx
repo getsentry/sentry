@@ -30,7 +30,6 @@ import {
 import type {ScmMessagingProviderKey} from './messagingProviders';
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
-import {ScmSelectableContainer} from './scmSelectableContainer';
 import type {ScmMessagingProviderViewModel} from './useScmMessagingProviders';
 
 /**
@@ -296,10 +295,7 @@ export function ScmMessagingProviderRow({
   const errorMessage = getInstallErrorMessage(installState);
 
   return (
-    <ScmSelectableContainer
-      isSelected={isConfigured}
-      isDanger={visualState === 'removing'}
-    >
+    <Container border={visualState === 'removing' ? 'danger' : 'primary'} radius="lg">
       <Stack>
         {visualState === 'install-error' && (
           <Stack padding="md" gap="md" align="start">
@@ -385,7 +381,7 @@ export function ScmMessagingProviderRow({
           </Container>
         )}
       </Stack>
-    </ScmSelectableContainer>
+    </Container>
   );
 }
 
