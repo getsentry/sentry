@@ -57,8 +57,7 @@ interface AutoSyncContextValue {
   clearAutoSync: () => void;
 }
 
-// Signals which just-connected integration should auto-sync, with a one-shot
-// clear so a remounting row can't re-trigger the sync.
+// Signals which just-connected integration should auto-sync.
 const AutoSyncContext = createContext<AutoSyncContextValue>({
   autoSyncIntegrationId: null,
   clearAutoSync: () => {},

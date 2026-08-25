@@ -287,8 +287,6 @@ describe('OrganizationRepositories', () => {
       },
     });
 
-    // Opens the connect dropdown, selects GitHub, and returns the captured
-    // pipeline onComplete so the test can simulate a finished connection.
     async function startConnectFlow() {
       const openPipelineModalSpy = jest
         .spyOn(pipelineModal, 'openPipelineModal')
@@ -305,11 +303,9 @@ describe('OrganizationRepositories', () => {
 
       render(<OrganizationRepositories />);
 
-      // Existing installed integration renders, then start the connect flow.
       await screen.findByText('my-org');
       const onComplete = await startConnectFlow();
 
-      // The refetch after connect now includes the new integration.
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/',
         body: [GITHUB_INTEGRATION, NEW_INTEGRATION],
@@ -356,8 +352,6 @@ describe('OrganizationRepositories', () => {
       await screen.findByText('my-org');
       const onComplete = await startConnectFlow();
 
-      // After connect both integrations exist, so the table switches to the
-      // multi-install layout and the new row auto-syncs once.
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/',
         body: [GITHUB_INTEGRATION, NEW_INTEGRATION],
@@ -390,10 +384,8 @@ describe('OrganizationRepositories', () => {
       });
       await userEvent.click(screen.getByRole('button', {name: "I'm sure, uninstall"}));
 
-      // Wait for the original row to drop out (the remount has happened by then).
       await waitFor(() => expect(screen.queryByText('my-org')).not.toBeInTheDocument());
 
-      // The signal is cleared once consumed, so the remount must not re-sync.
       expect(syncRequest).toHaveBeenCalledTimes(1);
     });
   });
