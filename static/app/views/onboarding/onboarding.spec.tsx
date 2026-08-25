@@ -1116,76 +1116,84 @@ describe('Onboarding', () => {
       });
     });
 
-    it('preserves SCM context when going back from setup-docs', async () => {
-      const nextJsProject = ProjectFixture({
-        platform: 'javascript-nextjs',
-        id: '2',
-        slug: 'javascript-nextjs',
-      });
+    it.each([
+      ['clears the project slug after deletion succeeds', 200, undefined],
+      ['keeps the project slug when deletion fails', 500, 'javascript-nextjs'],
+    ])(
+      'preserves SCM context and %s when going back from setup-docs',
+      async (_scenario, deleteStatus, expectedProjectSlug) => {
+        const nextJsProject = ProjectFixture({
+          platform: 'javascript-nextjs',
+          id: '2',
+          slug: 'javascript-nextjs',
+        });
 
-      jest
-        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-        .mockImplementation(() => ({
-          project: nextJsProject,
-          isProjectActive: false,
-        }));
+        jest
+          .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+          .mockImplementation(() => ({
+            project: nextJsProject,
+            isProjectActive: false,
+          }));
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${scmOrganization.slug}/sdks/`,
-        body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
-        body: [ProjectKeysFixture()[0]],
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
-        body: [],
-      });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${scmOrganization.slug}/sdks/`,
+          body: {},
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
+          body: [ProjectKeysFixture()[0]],
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
+          body: [],
+        });
 
-      const deleteProjectMock = MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/`,
-        method: 'DELETE',
-      });
+        const deleteProjectMock = MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/`,
+          method: 'DELETE',
+          statusCode: deleteStatus,
+          body: {},
+        });
 
-      const initialContext = {
-        selectedPlatform: nextJsPlatform,
-        selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        messagingSetup: selectedMessagingSetup,
-      };
+        const initialContext = {
+          selectedPlatform: nextJsPlatform,
+          selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          createdProjectSlug: nextJsProject.slug,
+          messagingSetup: selectedMessagingSetup,
+        };
 
-      // Seed sessionStorage directly so we can verify it's preserved after back
-      sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+        // Seed sessionStorage directly so we can verify it's preserved after back
+        sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
 
-      render(
-        <OnboardingContextProvider initialValue={initialContext}>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization: scmOrganization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
+        render(
+          <OnboardingContextProvider initialValue={initialContext}>
+            <OnboardingWithoutContext />
+          </OnboardingContextProvider>,
+          {
+            organization: scmOrganization,
+            initialRouterConfig: {
+              location: {
+                pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
+              },
+              route: '/onboarding/:orgId/:step/',
             },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
+          }
+        );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
-      await waitFor(() => {
-        expect(deleteProjectMock).toHaveBeenCalled();
-      });
+        await waitFor(() => {
+          expect(deleteProjectMock).toHaveBeenCalled();
+        });
 
-      // Context should be preserved — selectedPlatform should not be cleared
-      const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
-      expect(stored.selectedPlatform).toBeDefined();
-      expect(stored.selectedFeatures).toBeDefined();
-      // createdProjectSlug should be cleared so the user can re-create
-      expect(stored.createdProjectSlug).toBeUndefined();
-      expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
-    });
+        // Context should be preserved — selectedPlatform should not be cleared
+        const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+        expect(stored.selectedPlatform).toBeDefined();
+        expect(stored.selectedFeatures).toBeDefined();
+        expect(stored.createdProjectSlug).toBe(expectedProjectSlug);
+        expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
+      }
+    );
 
     describe('setup-docs analytics', () => {
       afterEach(() => {

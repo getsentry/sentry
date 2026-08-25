@@ -46,9 +46,7 @@ export function useBackActions({
         return;
       }
 
-      if (preserveOnboardingState) {
-        onboardingContext.setCreatedProjectSlug(undefined);
-      } else {
+      if (!preserveOnboardingState) {
         onboardingContext.resetOnboarding();
       }
 
@@ -59,6 +57,10 @@ export function useBackActions({
           projectSlug: recentCreatedProject.slug,
           origin: 'onboarding',
         });
+
+        if (preserveOnboardingState) {
+          onboardingContext.setCreatedProjectSlug(undefined);
+        }
 
         trackAnalytics(
           hasScmOnboarding ? 'onboarding.scm_data_removed' : 'onboarding.data_removed',
