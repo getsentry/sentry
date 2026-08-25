@@ -1,4 +1,3 @@
-import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -40,8 +39,8 @@ export function IssueWidgetQueries({
 }: Props) {
   const config = IssuesConfig;
 
-  const afterFetchTableData = (_rawResult: Group[], response?: ResponseMeta) => {
-    return {totalIssuesCount: response?.getResponseHeader('X-Hits') ?? undefined};
+  const afterFetchTableData = (_rawResult: Group[]) => {
+    return {totalIssuesCount: undefined};
   };
 
   const {loading, ...rest} = useGenericWidgetQueries<IssuesSeriesResponse, Group[]>({

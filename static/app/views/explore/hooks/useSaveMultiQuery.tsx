@@ -56,7 +56,7 @@ export function useSaveMultiQuery() {
   }, [title, start, end, period, interval, projects, environments, queries]);
 
   const saveQuery = useCallback(
-    async (newTitle: string, starred = true) => {
+    async (newTitle: string) => {
       const response = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -66,7 +66,7 @@ export function useSaveMultiQuery() {
           data: {
             ...data,
             name: newTitle,
-            starred,
+            starred: true,
           },
         }
       );

@@ -84,13 +84,11 @@ function recentSearchesApiOptions({
   namespace,
   orgSlug,
   savedSearchType,
-  query,
 }: {
   limit: number;
   orgSlug: string;
   savedSearchType: SavedSearchType | null;
   namespace?: string;
-  query?: string;
 }) {
   return {
     ...apiOptions.as<RecentSearch[]>()(
@@ -98,7 +96,7 @@ function recentSearchesApiOptions({
       {
         path: savedSearchType === null ? skipToken : {organizationIdOrSlug: orgSlug},
         query: {
-          query: encodeNamespacedRecentSearch(namespace, query),
+          query: encodeNamespacedRecentSearch(namespace),
           type: savedSearchType,
           limit,
         },

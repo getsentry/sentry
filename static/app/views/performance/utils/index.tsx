@@ -196,11 +196,8 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
-function getPerformanceTrendsUrl(
-  organization: OrganizationSummary,
-  view?: DomainView
-): string {
-  return `${getPerformanceBaseUrl(organization.slug, view)}/trends/`;
+function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
+  return `${getPerformanceBaseUrl(organization.slug)}/trends/`;
 }
 
 export function getTransactionSearchQuery(location: Location, query = '') {
@@ -239,18 +236,7 @@ export function removeTracingKeysFromSearch(currentFilter: MutableSearch) {
   return currentFilter;
 }
 
-export function shouldExcludeTracingKeys(
-  tagKey: string,
-  options: {excludeTagKeys: Set<string>} = {
-    excludeTagKeys: new Set([
-      // event type can be "transaction" but we're searching for issues
-      'event.type',
-      // the project is already determined by the transaction,
-      // and issue search does not support the project filter
-      'project',
-    ]),
-  }
-): boolean {
+export function shouldExcludeTracingKeys(tagKey: string): boolean {
   // Remove aggregates and transaction event fields
   const searchKey = tagKey.startsWith('!') ? tagKey.substring(1) : tagKey;
 
@@ -259,7 +245,13 @@ export function shouldExcludeTracingKeys(
   // transaction event fields
   const condTransactionEventFields = TRACING_FIELDS.includes(searchKey);
   // tags that we don't want to pass to pass to issue search
-  const condExcludeTagKeys = options.excludeTagKeys.has(searchKey);
+  const condExcludeTagKeys = new Set([
+    // event type can be "transaction" but we're searching for issues
+    'event.type',
+    // the project is already determined by the transaction,
+    // and issue search does not support the project filter
+    'project',
+  ]).has(searchKey);
 
   return condAggregates || condTransactionEventFields || condExcludeTagKeys;
 }

@@ -103,10 +103,10 @@ export function GlobalAlertProvider({children}: Props) {
   const timersRef = useRef(new Map<string, number>());
 
   const closeAlert = useCallback(
-    (alert: StoredGlobalAlert, muteDurationSeconds = DEFAULT_MUTE_DURATION_SECONDS) => {
+    (alert: StoredGlobalAlert) => {
       if (alert.id !== undefined) {
         const muted = readMutedAlerts();
-        muted[alert.id] = Math.floor(Date.now() / 1000) + muteDurationSeconds;
+        muted[alert.id] = Math.floor(Date.now() / 1000) + DEFAULT_MUTE_DURATION_SECONDS;
         writeMutedAlerts(muted);
       }
 

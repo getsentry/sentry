@@ -10,15 +10,10 @@ const bulletStyle = (theme: Theme) => css`
 `;
 
 type Options = {
-  // setting initialCounterValue to 0 means the first visible step is 1
-  initialCounterValue?: number;
   isSolid?: boolean;
 };
 
-const numericStyle = (
-  theme: Theme,
-  {isSolid = false, initialCounterValue = 0}: Options
-) => css`
+const numericStyle = (theme: Theme, {isSolid = false}: Options) => css`
   & > li {
     padding-left: ${theme.space['3xl']};
     :before {
@@ -53,7 +48,7 @@ const numericStyle = (
       }
     }
   }
-  counter-reset: numberedList ${initialCounterValue};
+  counter-reset: numberedList 0;
 `;
 
 export const listSymbol = {

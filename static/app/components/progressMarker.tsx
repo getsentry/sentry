@@ -6,7 +6,6 @@ import {IconCircleCheckmark} from 'sentry/icons/iconCircleCheckmark';
 import {IconPieHalf} from 'sentry/icons/iconPieHalf';
 import {IconPieQuarter} from 'sentry/icons/iconPieQuarter';
 import {IconPieThreeQuarters} from 'sentry/icons/iconPieThreeQuarters';
-import type {IconSize} from 'sentry/utils/theme/types';
 
 export type ProgressMarkerStep =
   | 'complete'
@@ -17,12 +16,10 @@ export type ProgressMarkerStep =
 
 interface ProgressMarkerProps extends HTMLAttributes<HTMLSpanElement> {
   step: ProgressMarkerStep;
-  size?: IconSize;
 }
 
 export function ProgressMarker({
   step,
-  size = 'md',
   'aria-label': ariaLabel,
   ...props
 }: ProgressMarkerProps) {
@@ -33,23 +30,23 @@ export function ProgressMarker({
       role={ariaLabel ? 'img' : undefined}
       {...props}
     >
-      {getProgressMarkerIcon(step, size)}
+      {getProgressMarkerIcon(step)}
     </ProgressIconFrame>
   );
 }
 
-function getProgressMarkerIcon(step: ProgressMarkerStep, size: IconSize) {
+function getProgressMarkerIcon(step: ProgressMarkerStep) {
   switch (step) {
     case 'quarter':
-      return <IconPieQuarter size={size} variant="muted" />;
+      return <IconPieQuarter size="md" variant="muted" />;
     case 'half':
-      return <IconPieHalf size={size} variant="warning" />;
+      return <IconPieHalf size="md" variant="warning" />;
     case 'three-quarters':
-      return <IconPieThreeQuarters size={size} variant="success" />;
+      return <IconPieThreeQuarters size="md" variant="success" />;
     case 'complete':
-      return <IconCircleCheckmark size={size} variant="success" />;
+      return <IconCircleCheckmark size="md" variant="success" />;
     case 'empty':
-      return <IconCircle size={size} variant="muted" />;
+      return <IconCircle size="md" variant="muted" />;
     default:
       return null;
   }

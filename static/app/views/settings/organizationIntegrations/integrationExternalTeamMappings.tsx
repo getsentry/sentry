@@ -144,7 +144,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
     });
   };
 
-  const onCreate = (mapping?: ExternalActorMappingOrSuggestion) => {
+  const onCreate = () => {
     openModal(modalProps => (
       <IntegrationExternalMappingForm
         {...modalProps}
@@ -152,7 +152,6 @@ export function IntegrationExternalTeamMappings(props: Props) {
         integration={integration}
         getBaseFormEndpoint={map => getBaseFormEndpoint(map)}
         defaultOptions={defaultTeamOptions()}
-        mapping={mapping}
         onSubmitSuccess={handleSubmitSuccess}
       />
     ));

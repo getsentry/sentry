@@ -1,9 +1,8 @@
 import type {ReactNode} from 'react';
-import {createContext, Fragment, useContext, useEffect} from 'react';
+import {createContext, Fragment, useContext} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -112,29 +111,7 @@ function Provider(props: {
   children: ReactNode;
   organization: Organization;
   value: MetricsCardinalityContext;
-  sendOutcomeAnalytics?: boolean;
 }) {
-  const fallbackFromNull = props.value.outcome?.shouldWarnIncompatibleSDK ?? false;
-  const fallbackFromUnparam =
-    props.value.outcome?.shouldNotifyUnnamedTransactions ?? false;
-  const isOnMetrics = !props.value.outcome?.forceTransactionsOnly;
-  useEffect(() => {
-    if (!props.value.isLoading && props.sendOutcomeAnalytics) {
-      trackAnalytics('performance_views.mep.metrics_outcome', {
-        organization: props.organization,
-        is_on_metrics: isOnMetrics,
-        fallback_from_null: fallbackFromNull,
-        fallback_from_unparam: fallbackFromUnparam,
-      });
-    }
-  }, [
-    props.organization,
-    props.value.isLoading,
-    isOnMetrics,
-    fallbackFromUnparam,
-    fallbackFromNull,
-    props.sendOutcomeAnalytics,
-  ]);
   return <MetricsCardinalityCtx {...props}>{props.children}</MetricsCardinalityCtx>;
 }
 
