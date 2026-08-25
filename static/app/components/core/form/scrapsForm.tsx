@@ -4,6 +4,7 @@ import {
   createValidators,
   type CreateValidationErrorFn,
   type DeepKeys,
+  type FormErrorTypes,
   type OnSubmitError,
   type ReactAppFormApi,
 } from '@tanstack/react-form';
@@ -132,14 +133,14 @@ export const useScrapsForm = useAppForm;
 /** @public */
 export {defineAppFieldGroup};
 
-export function ScrapsForm({
+export function ScrapsForm<TFormData, TFormErrorTypes extends FormErrorTypes>({
   form,
   children,
 }: {
   children: React.ReactNode;
   form: ReactAppFormApi<
-    any,
-    any,
+    TFormData,
+    TFormErrorTypes,
     {fieldComponents: BoundFieldComponents; formComponents: BoundFormComponents}
   >;
 }) {
