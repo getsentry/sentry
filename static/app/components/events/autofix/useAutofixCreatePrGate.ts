@@ -6,7 +6,7 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useIntegrations} from 'sentry/utils/integrations/useIntegrations';
 import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
-interface PermissionsTarget {
+export interface PermissionsTarget {
   integration: OrganizationIntegration;
   url: string;
 }

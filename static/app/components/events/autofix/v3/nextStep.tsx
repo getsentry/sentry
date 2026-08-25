@@ -10,7 +10,10 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
+import {
+  type PermissionsTarget,
+  useAutofixCreatePrGate,
+} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
@@ -300,13 +303,9 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
   );
 }
 
-type CreatePrPermissionsTarget = ReturnType<
-  typeof useAutofixCreatePrGate
->['permissionsTarget'];
-
 interface CodeChangesNextStepContentProps extends NextStepProps {
   checkTargetWriteAccess: () => Promise<boolean>;
-  permissionsTarget: CreatePrPermissionsTarget;
+  permissionsTarget: PermissionsTarget | null;
 }
 
 function CodeChangesNextStepContent({
