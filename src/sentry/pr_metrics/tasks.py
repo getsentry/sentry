@@ -382,9 +382,7 @@ def detect_stale_pull_requests_task() -> None:
     ``REVIEWER_ENGAGEMENT_ACTIVITY_TYPES`` against legacy rows otherwise —
     fetched per batch since pulling every document at once isn't bounded.
 
-    Feature-gated per org by ``pr-metrics-emit`` and ``pr-metrics-activity``
-    (both required — without activity tracking we can't tell an engaged PR
-    from an untouched one).
+    Feature-gated per org by ``pr-metrics``.
     """
     # Imported here to avoid a circular import: webhooks imports this module.
     from sentry.pr_metrics.webhooks import _claim_terminal_event
@@ -411,10 +409,7 @@ def detect_stale_pull_requests_task() -> None:
                 )
                 continue
 
-            if not features.has("organizations:pr-metrics-emit", org):
-                continue
-
-            if not features.has("organizations:pr-metrics-activity", org):
+            if not features.has("organizations:pr-metrics", org):
                 continue
 
             candidate_prs.append(pr)
