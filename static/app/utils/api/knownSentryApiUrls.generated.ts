@@ -367,6 +367,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/search-agent/translate/'
   | '/organizations/$organizationIdOrSlug/seer-rpc/$methodName/'
   | '/organizations/$organizationIdOrSlug/seer/autofix-overview/'
+  | '/organizations/$organizationIdOrSlug/seer/autofix-repos/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
