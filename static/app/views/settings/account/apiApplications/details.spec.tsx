@@ -60,6 +60,40 @@ describe('ApiApplicationDetails', () => {
     expect(screen.queryByLabelText('Device Verification URL')).not.toBeInTheDocument();
   });
 
+  it('renders applications with optional URL fields unset', async () => {
+    MockApiClient.addMockResponse({
+      url: '/api-applications/legacy-app/',
+      body: {
+        allowedOrigins: [],
+        clientID: 'legacy-app',
+        clientSecret: null,
+        homepageUrl: null,
+        id: 'legacy-app',
+        isPublic: false,
+        name: 'Legacy App',
+        privacyUrl: null,
+        redirectUris: [],
+        termsUrl: null,
+      },
+    });
+
+    render(<ApiApplicationDetails />, {
+      initialRouterConfig: {
+        route: '/settings/account/api-applications/:appId/',
+        location: {
+          pathname: '/settings/account/api-applications/legacy-app/',
+        },
+      },
+    });
+
+    expect(await screen.findByDisplayValue('Legacy App')).toBeInTheDocument();
+    expect(screen.getByLabelText('Homepage')).toHaveValue('');
+    expect(screen.getByLabelText('Privacy Policy')).toHaveValue('');
+    expect(screen.getByLabelText('Terms of Service')).toHaveValue('');
+    expect(screen.getByLabelText('Authorized Redirect URIs')).toHaveValue('');
+    expect(screen.getByLabelText('Authorized JavaScript Origins')).toHaveValue('');
+  });
+
   it('handles client secret rotation', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/abcd/',
