@@ -51,6 +51,8 @@ type Props = {
   subscription: Subscription;
 };
 
+const DEFAULT_SPEND_ALLOCATION_PERIODS = 1;
+
 export function SpendAllocationsRoot({subscription}: Props) {
   const organization = useOrganization();
   const {openModal} = useModal();
@@ -137,7 +139,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
       // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
       // we cannot use the middle of the subscription period since it's possible to have a current allocation that ends before mid period
       const targetTimestamp = Math.max(Date.now() / 1000, period[0]!.getTime() / 1000);
-      const periods = 1;
+      const periods = DEFAULT_SPEND_ALLOCATION_PERIODS;
       const SPEND_ALLOCATIONS_PATH = `/organizations/${organization.slug}/spend-allocations/`;
 
       // there should only be one root allocation per billing metric, so we don't need to pass the cursor

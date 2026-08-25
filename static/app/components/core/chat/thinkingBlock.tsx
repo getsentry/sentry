@@ -9,9 +9,11 @@ import {IconSeer} from 'sentry/icons';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {SECOND} from 'sentry/utils/formatters';
 
+const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
+
 /**
  * Returns elapsed ms between `startTime` and `endTime`.
- * While `endTime` is undefined, ticks every 100ms to keep the value live.
+ * While `endTime` is undefined, ticks every ELAPSED_TIME_TICK_INTERVAL_MS to keep the value live.
  */
 function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
   const [now, setNow] = useState(() => new Date());
@@ -20,7 +22,7 @@ function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
     if (endTime) {
       return;
     }
-    const id = setInterval(() => setNow(new Date()), 100);
+    const id = setInterval(() => setNow(new Date()), ELAPSED_TIME_TICK_INTERVAL_MS);
     return () => clearInterval(id);
   }, [endTime]);
 
@@ -33,11 +35,13 @@ function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
  * in even thirds so they fit the reserved space and never shift layout as the
  * count changes. Decorative — hidden from AT.
  */
+const ELLIPSIS_TICK_INTERVAL_MS = 400;
+
 function AnimatedEllipsis() {
   const [count, setCount] = useState(1);
 
   useEffect(() => {
-    const id = setInterval(() => setCount(c => (c % 3) + 1), 400);
+    const id = setInterval(() => setCount(c => (c % 3) + 1), ELLIPSIS_TICK_INTERVAL_MS);
     return () => clearInterval(id);
   }, []);
 

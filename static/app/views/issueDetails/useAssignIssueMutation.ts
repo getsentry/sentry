@@ -1,5 +1,9 @@
 import * as Sentry from '@sentry/react';
-import {useQueryClient, useMutation} from '@tanstack/react-query';
+import {
+  useQueryClient,
+  useMutation,
+  type UseMutationOptions,
+} from '@tanstack/react-query';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -14,7 +18,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
-type AssignedBy = 'suggested_assignee' | 'assignee_selector';
+export type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
 type AssignIssueVariables = {
   actor: Pick<Actor, 'id' | 'type'> | null;
@@ -54,10 +58,16 @@ function makeActorId(actor: Pick<Actor, 'id' | 'type'>) {
   }
 }
 
-export function useAssignIssueMutation() {
+export function useAssignIssueMutation(
+  options: Omit<
+    UseMutationOptions<Group, RequestError, AssignIssueVariables, AssignIssueContext>,
+    'mutationFn'
+  > = {}
+) {
   const queryClient = useQueryClient();
 
   return useMutation<Group, RequestError, AssignIssueVariables, AssignIssueContext>({
+    ...options,
     mutationFn: variables => {
       const actorId = variables.actor ? makeActorId(variables.actor) : '';
       return fetchMutation<Group>({
@@ -74,13 +84,14 @@ export function useAssignIssueMutation() {
         },
       });
     },
-    onMutate: variables => {
+    onMutate: async (variables, context) => {
       const changeId = uniqueId();
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignTo(changeId, variables.groupId, {email: ''});
+      await options.onMutate?.(variables, context);
       return {changeId};
     },
-    onSuccess: (response, variables, onMutateResult) => {
+    onSuccess: (response, variables, onMutateResult, context) => {
       const queryKey = groupQueryKey({
         organizationSlug: variables.orgSlug,
         groupId: variables.groupId,
@@ -95,13 +106,15 @@ export function useAssignIssueMutation() {
       GroupStore.onAssignToSuccess(onMutateResult.changeId, variables.groupId, response);
       queryClient.invalidateQueries({queryKey});
       addSuccessMessage(getAssignIssueSuccessMessage(response.assignedTo));
+      options.onSuccess?.(response, variables, onMutateResult, context);
     },
-    onError: (error, variables, onMutateResult) => {
+    onError: (error, variables, onMutateResult, context) => {
       // TODO: Remove this when we no longer rely on GroupStore for updates
       // This will show an alert to the user, remember to replace that functionality
       if (onMutateResult) {
         GroupStore.onAssignToError(onMutateResult.changeId, variables.groupId, error);
       }
+      options.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

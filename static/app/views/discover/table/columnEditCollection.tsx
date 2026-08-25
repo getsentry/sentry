@@ -412,10 +412,12 @@ function ColumnEditCollection({
       canDrag = true,
       isGhost = false,
       gridColumns,
+      disabled = false,
     }: {
       gridColumns: number;
       canDelete?: boolean;
       canDrag?: boolean;
+      disabled?: boolean;
       isGhost?: boolean;
     }
   ) => {
@@ -464,7 +466,7 @@ function ColumnEditCollection({
             takeFocus={i === columns.length - 1}
             otherColumns={columns}
             shouldRenderTag
-            disabled={false}
+            disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
             filterAggregateParameters={filterAggregateParameters}
           />

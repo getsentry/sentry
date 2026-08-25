@@ -278,9 +278,9 @@ export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
   return false;
 }
 
-export function getSpanID(span: ProcessedSpanType): string {
+export function getSpanID(span: ProcessedSpanType, defaultSpanID = ''): string {
   if (isGapSpan(span)) {
-    return '';
+    return defaultSpanID;
   }
 
   return span.span_id;

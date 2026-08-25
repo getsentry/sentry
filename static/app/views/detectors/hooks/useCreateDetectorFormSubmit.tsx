@@ -6,6 +6,7 @@ import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowE
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
+  Detector,
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,6 +26,8 @@ interface UseCreateDetectorFormSubmitOptions<TFormData, TUpdatePayload> {
    * Function to transform form data to API payload
    */
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
+  onError?: (error: unknown) => void;
+  onSuccess?: (detector: Detector) => void;
 }
 
 export function useCreateDetectorFormSubmit<
@@ -33,6 +36,8 @@ export function useCreateDetectorFormSubmit<
 >({
   detectorType,
   formDataToEndpointPayload,
+  onError,
+  onSuccess,
 }: UseCreateDetectorFormSubmitOptions<TFormData, TUpdatePayload>): OnSubmitCallback {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -69,7 +74,11 @@ export function useCreateDetectorFormSubmit<
 
         addSuccessMessage(t('Monitor created'));
 
-        navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
+        if (onSuccess) {
+          onSuccess(resultDetector);
+        } else {
+          navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
+        }
 
         onSubmitSuccess?.(resultDetector);
       } catch (error: unknown) {
@@ -85,9 +94,21 @@ export function useCreateDetectorFormSubmit<
             : null) ?? t('Unable to create monitor')
         );
 
+        if (onError) {
+          onError(error);
+        }
+
         onSubmitError?.(error);
       }
     },
-    [detectorType, formDataToEndpointPayload, createDetector, organization, navigate]
+    [
+      detectorType,
+      formDataToEndpointPayload,
+      createDetector,
+      organization,
+      navigate,
+      onSuccess,
+      onError,
+    ]
   );
 }

@@ -657,7 +657,7 @@ const OMITTED_SPAN_STATUS = ['unknown'];
 /**
  * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
  */
-function StatusTag({status}: {status: string}) {
+function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
   const tagType = statusToTagType(status);
 
   if (!tagType) {
@@ -667,11 +667,15 @@ function StatusTag({status}: {status: string}) {
   if (OMITTED_SPAN_STATUS.includes(status)) {
     return null;
   }
-  return <StyledTag variant={tagType}>{status}</StyledTag>;
+  return (
+    <StyledTag variant={tagType} onClick={onClick}>
+      {status}
+    </StyledTag>
+  );
 }
 
 const StyledTag = styled(Tag)`
-  cursor: default;
+  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
 `;
 
 export const Description = styled('div')`

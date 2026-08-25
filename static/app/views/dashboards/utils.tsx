@@ -191,9 +191,10 @@ export function getWidgetDiscoverUrl(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization
+  organization: Organization,
+  index = 0
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
     organization,
     false,

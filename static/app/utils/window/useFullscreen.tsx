@@ -15,8 +15,10 @@ interface Return {
   /**
    * Render, in fullscreen, the `ref` that this instance relates to. If `ref`
    * is unset, then `<html>` will be used.
+   *
+   * FullscreenOptions: https://developer.mozilla.org/en-US/docs/web/api/element/requestfullscreen#options_2
    */
-  enter: () => void;
+  enter: (options?: FullscreenOptions) => void;
 
   /**
    * Bring the browser out of fullscreen, regardless of which DOM element is
@@ -37,11 +39,14 @@ interface Return {
 export function useFullscreen<Element extends HTMLElement>({
   elementRef,
 }: Props<Element>): Return {
-  const enter = useCallback(async () => {
-    if (screenfull.isEnabled && elementRef.current) {
-      await screenfull.request(elementRef.current, {navigationUI: 'auto'});
-    }
-  }, [elementRef]);
+  const enter = useCallback(
+    async (opts: FullscreenOptions = {navigationUI: 'auto'}) => {
+      if (screenfull.isEnabled && elementRef.current) {
+        await screenfull.request(elementRef.current, opts);
+      }
+    },
+    [elementRef]
+  );
 
   const exit = useCallback(async () => {
     if (screenfull.isEnabled) {

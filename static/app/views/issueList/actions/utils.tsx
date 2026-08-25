@@ -241,6 +241,7 @@ export function performBulkUpdate({
   organizationSlug,
   query,
   selection,
+  onError,
   onSuccess,
 }: {
   api: Client;
@@ -249,6 +250,7 @@ export function performBulkUpdate({
   organizationSlug: string;
   query: string;
   selection: PageFilters;
+  onError?: () => void;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
   const projectConstraints = {
@@ -277,6 +279,7 @@ export function performBulkUpdate({
       error: () => {
         clearIndicators();
         addErrorMessage(t('Unable to update issues'));
+        onError?.();
       },
     }
   );

@@ -58,10 +58,11 @@ const makeInitialAskSeerData = <
   session: null,
 });
 
-interface UseAskSeerPollingOptions {
+interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
   projectIds: number[];
   strategy: string;
   onError?: (error: Error) => void;
+  onSuccess?: (result: T) => void;
   options?: Record<string, unknown>;
 }
 
@@ -74,7 +75,7 @@ interface UseAskSeerPollingOptions {
  * 3. Stop polling when status is completed or error
  */
 export function useAskSeerPolling<T extends QueryTokensProps>(
-  options: UseAskSeerPollingOptions
+  options: UseAskSeerPollingOptions<T>
 ) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -167,16 +168,19 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
     }
   }, [waitingForResponse]);
 
-  // Stop waiting once the session is no longer processing
+  // Handle completion callback
   useEffect(() => {
     if (waitingForResponse && sessionData) {
       const isStillProcessing =
         sessionData.status === 'processing' || !!sessionData.current_step;
       if (!isStillProcessing) {
         setWaitingForResponse(false);
+        if (sessionData.status === 'completed' && sessionData.final_response) {
+          options.onSuccess?.(sessionData.final_response);
+        }
       }
     }
-  }, [waitingForResponse, sessionData]);
+  }, [waitingForResponse, sessionData, options]);
 
   // Reset function
   const reset = useCallback(() => {

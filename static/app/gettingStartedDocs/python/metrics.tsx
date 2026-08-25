@@ -33,7 +33,11 @@ metrics.distribution("cart.amount_usd", 187.5)`,
   ],
 });
 
-export const metrics = (): OnboardingConfig => ({
+export const metrics = ({
+  packageName = 'sentry-sdk',
+}: {
+  packageName?: string;
+} = {}): OnboardingConfig => ({
   install: () => [
     {
       type: StepType.INSTALL,
@@ -48,7 +52,7 @@ export const metrics = (): OnboardingConfig => ({
           ),
         },
         getPythonInstallCodeBlock({
-          packageName: 'sentry-sdk',
+          packageName,
           minimumVersion: '2.44.0',
         }),
       ],

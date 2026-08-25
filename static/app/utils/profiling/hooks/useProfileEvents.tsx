@@ -18,6 +18,7 @@ interface UseProfileEventsOptions<F extends string = ProfilingFieldType> {
   limit?: number;
   projects?: Array<number | string>;
   query?: string;
+  refetchOnMount?: boolean;
 }
 
 export function useProfileEventsApiOptions<F extends string>({
@@ -61,12 +62,13 @@ export function useProfileEventsApiOptions<F extends string>({
 
 export function useProfileEvents<F extends string>({
   enabled = true,
+  refetchOnMount = true,
   ...rest
 }: UseProfileEventsOptions<F>) {
   return useQuery({
     ...useProfileEventsApiOptions(rest),
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount,
     retry: false,
     enabled,
   });

@@ -275,9 +275,13 @@ function recordTypeAssertion(
   });
 }
 
+const TEXT_PREVIEW_MAX_LENGTH = 80;
+
 function textPreview(s: string) {
   const one = s.replace(/\s+/g, ' ').trim();
-  return one.length <= 80 ? one : one.slice(0, 79) + '…';
+  return one.length <= TEXT_PREVIEW_MAX_LENGTH
+    ? one
+    : one.slice(0, TEXT_PREVIEW_MAX_LENGTH - 1) + '…';
 }
 
 function countBindingPatternElements(

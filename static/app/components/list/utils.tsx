@@ -10,10 +10,15 @@ const bulletStyle = (theme: Theme) => css`
 `;
 
 type Options = {
+  // setting initialCounterValue to 0 means the first visible step is 1
+  initialCounterValue?: number;
   isSolid?: boolean;
 };
 
-const numericStyle = (theme: Theme, {isSolid = false}: Options) => css`
+const numericStyle = (
+  theme: Theme,
+  {isSolid = false, initialCounterValue = 0}: Options
+) => css`
   & > li {
     padding-left: ${theme.space['3xl']};
     :before {
@@ -48,7 +53,7 @@ const numericStyle = (theme: Theme, {isSolid = false}: Options) => css`
       }
     }
   }
-  counter-reset: numberedList 0;
+  counter-reset: numberedList ${initialCounterValue};
 `;
 
 export const listSymbol = {
@@ -57,12 +62,16 @@ export const listSymbol = {
   bullet: 'bullet',
 };
 
-export function getListSymbolStyle(theme: Theme, symbol: keyof typeof listSymbol) {
+export function getListSymbolStyle(
+  theme: Theme,
+  symbol: keyof typeof listSymbol,
+  initialCounterValue?: number
+) {
   switch (symbol) {
     case 'numeric':
-      return numericStyle(theme, {});
+      return numericStyle(theme, {initialCounterValue});
     case 'colored-numeric':
-      return numericStyle(theme, {isSolid: true});
+      return numericStyle(theme, {isSolid: true, initialCounterValue});
     default:
       return bulletStyle(theme);
   }

@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -317,25 +318,38 @@ function Duration(props: DurationProps) {
 
 function TableRow({
   title,
+  keep,
   children,
+  prefix,
+  extra = null,
+  toolTipText,
 }: {
   children: React.ReactNode;
   title: React.JSX.Element | string | null;
+  extra?: React.ReactNode;
+  keep?: boolean;
+  prefix?: React.JSX.Element;
+  toolTipText?: string;
 }) {
-  if (!children) {
+  if (!keep && !children) {
     return null;
   }
 
   return (
     <tr>
       <td className="key">
-        <Flex align="center">{title}</Flex>
+        <Flex align="center">
+          {prefix}
+          {title}
+          {toolTipText ? <StyledQuestionTooltip size="xs" title={toolTipText} /> : null}
+        </Flex>
       </td>
       <ValueTd className="value">
         <TableValueRow>
           <StyledPre>
             <span className="val-string">{children}</span>
           </StyledPre>
+          <TableRowButtonContainer>{extra}</TableRowButtonContainer>
         </TableValueRow>
       </ValueTd>
     </tr>
@@ -718,6 +732,10 @@ const TableValueRow = styled('div')`
   margin: 2px;
 `;
 
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${p => p.theme.space.xs};
+`;
+
 const StyledPre = styled('pre')`
   margin: 0 !important;
   background-color: transparent !important;
@@ -1021,11 +1039,13 @@ export type SectionCardKeyValueList = KeyValueListData;
 function SectionCard({
   items,
   title,
+  disableTruncate,
   sortAlphabetically = false,
   itemProps = {},
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
+  disableTruncate?: boolean;
   itemProps?: Partial<KeyValueDataContentProps>;
   sortAlphabetically?: boolean;
 }) {
@@ -1037,7 +1057,7 @@ function SectionCard({
         title={title}
         contentItems={contentItems}
         sortAlphabetically={sortAlphabetically}
-        truncateLength={5}
+        truncateLength={disableTruncate ? Infinity : 5}
       />
     </CardWrapper>
   );
@@ -1068,7 +1088,17 @@ function SectionCardGroup({children}: {children: React.ReactNode}) {
   return <KeyValueData.Container>{children}</KeyValueData.Container>;
 }
 
-function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
+function CopyableCardValueWithLink({
+  value,
+  linkTarget,
+  linkText,
+  onClick,
+}: {
+  value: React.ReactNode;
+  linkTarget?: LocationDescriptor;
+  linkText?: string;
+  onClick?: () => void;
+}) {
   return (
     <CardValueContainer>
       <CardValueText>
@@ -1082,6 +1112,11 @@ function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
           />
         ) : null}
       </CardValueText>
+      {linkTarget && linkTarget ? (
+        <Link to={linkTarget} onClick={onClick}>
+          {linkText}
+        </Link>
+      ) : null}
     </CardValueContainer>
   );
 }
