@@ -256,6 +256,51 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('No issues')).not.toBeInTheDocument();
   });
 
+  it('batches project member fetches into a single request across projects', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '2', slug: 'project-slug'}),
+      ProjectFixture({id: '3', slug: 'other-project'}),
+    ]);
+    const runOne = {
+      ...rootCauseRun,
+      groupId: '2',
+      seerRunId: 'run-1',
+      title: 'First project issue',
+      issue: issueFixture({project: {id: '2', slug: 'project-slug', platform: 'python'}}),
+    };
+    const runTwo = {
+      ...rootCauseRun,
+      groupId: '3',
+      seerRunId: 'run-2',
+      title: 'Second project issue',
+      issue: issueFixture({
+        project: {id: '3', slug: 'other-project', platform: 'python'},
+      }),
+    };
+    mockOverview({base: {autofix_root_cause: [runOne, runTwo]}});
+    const usersMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('First project issue')).toBeInTheDocument();
+    expect(await screen.findByText('Second project issue')).toBeInTheDocument();
+
+    // Both visible projects should be fetched in one batched request, not one
+    // request per project.
+    await waitFor(() =>
+      expect(usersMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/users/`,
+        expect.objectContaining({
+          query: expect.objectContaining({project: expect.arrayContaining(['2', '3'])}),
+        })
+      )
+    );
+    expect(usersMock).toHaveBeenCalledTimes(1);
+  });
+
   it('refetches the overview after a card action is dispatched', async () => {
     const {enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
@@ -622,6 +667,36 @@ describe('AutofixOverview', () => {
     // the plan label.
     expect(screen.getAllByText('Root Cause')).toHaveLength(2);
     expect(screen.getAllByText('Plan')).toHaveLength(1);
+  });
+
+  it('shows "0 users" for a card with events but zero affected users', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, issue: issueFixture({count: '1200', userCount: 0})},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('0 users')).toBeInTheDocument();
+    expect(screen.getByText('1.2K events')).toBeInTheDocument();
+  });
+
+  it('omits the users datapoint when the stat is unavailable', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, issue: issueFixture({count: '1200', userCount: null})},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    expect(screen.queryByText('0 users')).not.toBeInTheDocument();
   });
 
   it('renders inline code in root cause and plan summaries', async () => {
@@ -1775,7 +1850,7 @@ describe('AutofixOverview', () => {
       const nextAssignee = UserFixture({id: '42', name: 'Next Assignee'});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
-        body: [MemberFixture({user: nextAssignee})],
+        body: [MemberFixture({user: nextAssignee, projects: ['project-slug']})],
       });
       mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       const assignRequest = MockApiClient.addMockResponse({
