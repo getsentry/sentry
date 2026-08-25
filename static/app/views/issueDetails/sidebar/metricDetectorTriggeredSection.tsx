@@ -1,12 +1,14 @@
 import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
@@ -18,6 +20,7 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -44,10 +47,19 @@ import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/de
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {
+  useEventOpenPeriod,
+  useOpenPeriods,
+} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {
+  investigationCandidatesQueryOptions,
+  getInvestigationDetailQueryOptions,
+  useLaunchInvestigationMutation,
+} from 'sentry/views/investigations/api';
+import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -549,11 +561,161 @@ const GroupListWrapper = styled('div')`
   margin-top: ${p => p.theme.space.md};
 `;
 
+const InvestigationSummaryCard = styled(Stack)`
+  padding: 14px 16px;
+  box-shadow: ${p => p.theme.shadow.low};
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: ${p => p.theme.tokens.background.accent.vibrant};
+  }
+`;
+
+function SeerInvestigationSection({
+  eventId,
+  groupId,
+}: {
+  eventId: string;
+  groupId: string;
+}) {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const eventOpenPeriodQuery = useEventOpenPeriod({groupId, eventId});
+  const shouldLoadLatest =
+    eventOpenPeriodQuery.isSuccess && eventOpenPeriodQuery.data === null;
+  const groupOpenPeriodsQuery = useOpenPeriods(
+    {groupId, limit: 1},
+    {enabled: shouldLoadLatest}
+  );
+  const openPeriod = eventOpenPeriodQuery.data ?? groupOpenPeriodsQuery.data?.[0] ?? null;
+  const isOpenPeriodPending =
+    eventOpenPeriodQuery.isPending ||
+    (shouldLoadLatest && groupOpenPeriodsQuery.isPending);
+  const isOpenPeriodError =
+    eventOpenPeriodQuery.isError || (shouldLoadLatest && groupOpenPeriodsQuery.isError);
+  const source = useMemo<MetricOpenPeriodInvestigationSource | null>(
+    () =>
+      openPeriod
+        ? {
+            type: 'metric_open_period',
+            ref: {groupId, openPeriodId: openPeriod.id},
+          }
+        : null,
+    [groupId, openPeriod]
+  );
+  const candidateOptions = investigationCandidatesQueryOptions({
+    organizationSlug: organization.slug,
+    sources: source ? [source] : [],
+  });
+  const {
+    data: candidate,
+    isPending: isCandidatePending,
+    isError: isCandidateError,
+  } = useQuery({
+    ...candidateOptions,
+    enabled: source !== null,
+    select: response => response.json.items[0],
+  });
+  const launchMutation = useLaunchInvestigationMutation(organization.slug, {
+    onSuccess: launchedInvestigation => {
+      queryClient.setQueryData(candidateOptions.queryKey, {
+        json: {items: [{status: 'view', investigationId: launchedInvestigation.id}]},
+        headers: {},
+      });
+      queryClient.setQueryData(
+        getInvestigationDetailQueryOptions(organization.slug, launchedInvestigation.id)
+          .queryKey,
+        {json: launchedInvestigation, headers: {}}
+      );
+      navigate(
+        normalizeUrl(
+          `/organizations/${organization.slug}/seer/investigation/${launchedInvestigation.id}/`
+        )
+      );
+    },
+    onError: () => addErrorMessage(t('Unable to launch investigation.')),
+  });
+
+  const investigationPath =
+    candidate?.status === 'view'
+      ? normalizeUrl(
+          `/organizations/${organization.slug}/seer/investigation/${candidate.investigationId}/`
+        )
+      : null;
+
+  return (
+    <FoldSection
+      title={
+        <Flex align="center" gap="xs">
+          <IconSeer aria-hidden size="sm" />
+          <Text size="lg">{t('Seer Investigation')}</Text>
+        </Flex>
+      }
+      titleLabel={t('Seer Investigation')}
+      sectionKey="seer_investigation"
+    >
+      {isOpenPeriodPending || (source !== null && isCandidatePending) ? (
+        <Placeholder height="40px" width="160px" />
+      ) : isOpenPeriodError || isCandidateError ? (
+        <Alert.Container>
+          <Alert variant="danger" showIcon>
+            {t('Unable to load investigation information.')}
+          </Alert>
+        </Alert.Container>
+      ) : (
+        <Stack gap="md">
+          <InvestigationSummaryCard
+            position="relative"
+            overflow="hidden"
+            border="primary"
+            radius="md"
+            gap="xs"
+          >
+            <Text size="lg" bold>
+              {t('Different investigation title')}
+            </Text>
+            <Text size="md">{t('Different investigation summary text')}</Text>
+          </InvestigationSummaryCard>
+          <Flex>
+            {investigationPath ? (
+              <LinkButton size="md" variant="primary" to={investigationPath}>
+                {t('View Investigation')}
+              </LinkButton>
+            ) : (
+              <Button
+                size="md"
+                variant="primary"
+                busy={launchMutation.isPending}
+                disabled={!source || candidate?.status === 'unavailable'}
+                onClick={() => source && launchMutation.mutate(source)}
+              >
+                {t('Launch Investigation')}
+              </Button>
+            )}
+          </Flex>
+        </Stack>
+      )}
+    </FoldSection>
+  );
+}
+
+export function MetricIssueSeerInvestigationSection({
+  group,
+  event,
+}: MetricDetectorTriggeredSectionProps) {
+  return <SeerInvestigationSection eventId={event.eventID} groupId={group.id} />;
+}
+
 export function MetricDetectorTriggeredSection({
   group,
   event,
 }: MetricDetectorTriggeredSectionProps) {
   const evidenceData = event.occurrence?.evidenceData;
+
   if (!isMetricDetectorEvidenceData(evidenceData)) {
     return null;
   }

@@ -437,6 +437,7 @@ def _maybe_copy_attachment_into_cache(
         with attachment.getfile() as fp:
             stored_id = get_attachments_session(project.organization_id, project.id).put(
                 fp,
+                content_type=attachment.content_type,
                 filename=attachment.name,
                 expiration_policy=TimeToLive(timedelta(days=retention_days)),
             )

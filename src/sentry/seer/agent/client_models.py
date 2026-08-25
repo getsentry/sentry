@@ -385,10 +385,3 @@ class AgentRun(BaseModel):
 
     class Config:
         extra = "allow"
-
-
-class AgentRunWithPrs(AgentRun):
-    """A single agent run record with PR metadata."""
-
-    group_id: int | None = None
-    repo_pr_states: dict[str, RepoPRState] | None = None
