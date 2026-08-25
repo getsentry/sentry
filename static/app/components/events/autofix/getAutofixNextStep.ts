@@ -1,5 +1,8 @@
+import {isCreatedPullRequestState} from 'sentry/components/events/autofix/pullRequests';
 import {
+  getAutofixArtifactFromSection,
   isCodeChangesSection,
+  isPullRequestsArtifact,
   isPullRequestsSection,
   isRootCauseSection,
   isSolutionSection,
@@ -35,6 +38,10 @@ export function getAutofixNextStep({
   }
 
   if (isPullRequestsSection(section)) {
+    const artifact = getAutofixArtifactFromSection(section);
+    if (isPullRequestsArtifact(artifact) && !artifact.some(isCreatedPullRequestState)) {
+      return getAutofixNextStep({sections: sections.slice(0, -1)});
+    }
     return {action: 'pr_iteration', section};
   }
 

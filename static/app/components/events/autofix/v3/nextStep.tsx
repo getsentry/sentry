@@ -9,6 +9,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   type PermissionsTarget,
@@ -45,7 +46,17 @@ interface SeerDrawerNextStepProps {
 
 export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextStepProps) {
   const runId = getAutofixRunId(autofix.runState);
-  const section = sections[sections.length - 1];
+  const lastSection = sections[sections.length - 1];
+  const repoPrStates = autofix.runState?.repo_pr_states;
+  // A failed create still appends a pull_request section (Retry PR). That is
+  // not a PR — skip it so we don't offer iteration feedback.
+  const failedCreateOnly =
+    defined(lastSection) &&
+    isPullRequestsSection(lastSection) &&
+    defined(repoPrStates) &&
+    Object.keys(repoPrStates).length > 0 &&
+    !hasCreatedPullRequests(repoPrStates);
+  const section = failedCreateOnly ? sections[sections.length - 2] : lastSection;
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!defined(runId) || !defined(section)) {

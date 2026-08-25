@@ -748,6 +748,50 @@ describe('ArtifactCard', () => {
       });
     });
 
+    it('opens the code-changes reset prompt when PR creation failed', async () => {
+      const startStepMock = jest.fn();
+      const autofixWithFailedPR: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofixWithRunState,
+        startStep: startStepMock,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {
+            'org/repo': makePR({
+              pr_creation_status: 'error',
+              pr_number: null,
+              pr_url: null,
+            }),
+          },
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithFailedPR}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+          )}
+        />,
+        {organization: manualPrIterationOrganization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
+
+      expect(
+        screen.getByText('What additional context should Seer use?')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Anything else you want to see on your PR?')
+      ).not.toBeInTheDocument();
+    });
+
     it('ignores a requested context prompt when reset is ineligible', () => {
       const autofixWithPR: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofixWithRunState,

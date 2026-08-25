@@ -930,6 +930,48 @@ describe('SeerDrawerNextStep', () => {
       jest.mocked(trackAnalytics).mockClear();
     });
 
+    it('does not show the feedback form when PR creation failed', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        body: {repos: [{has_write_access: true}]},
+      });
+      const autofix = makePrIterationAutofix({
+        runState: {
+          run_id: 1,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {
+            'org/repo': {
+              repo_name: 'org/repo',
+              branch_name: null,
+              commit_sha: null,
+              pr_creation_error: 'Failed to create pull request',
+              pr_creation_status: 'error',
+              pr_id: null,
+              pr_number: null,
+              pr_url: null,
+              title: null,
+            },
+          },
+        } as any,
+      });
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes'), makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+      expect(
+        screen.queryByText('Anything else you want to see on your PR?')
+      ).not.toBeInTheDocument();
+      expect(
+        await screen.findByText('Are you happy with these code changes?')
+      ).toBeInTheDocument();
+    });
+
     it('returns null when the run is not valid for PR iteration', () => {
       const autofix = makeAutofix({
         runState: {run_id: 1, blocks: []} as any,
