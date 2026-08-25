@@ -103,7 +103,7 @@ function StartAutofixAction({
   onContinueInSeer,
   tooltip,
   waiting,
-}: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
+}: Omit<AutofixActionProps, 'linkedPullRequestsData' | 'onRetryCodeChanges'> & {
   action: () => unknown | Promise<unknown>;
   analyticsAction: string;
   analyticsEventKey: string;
