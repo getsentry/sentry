@@ -658,23 +658,34 @@ describe('ScmMessaging', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Connect slack/i}));
 
-      // Update integrations mock so the refetch returns connected Slack.
+      let releaseRefetch: () => void = () => {};
+      const refetchGate = new Promise<void>(resolve => {
+        releaseRefetch = resolve;
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/',
         match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
         body: [slackIntegration],
+        asyncDelay: refetchGate,
       });
 
       act(() => pipelineOnComplete?.(slackIntegration));
 
-      // Once refetch settles, exclusive mode is active — sibling rows and footer gone.
+      // Exclusive before the refetch settles — footer and siblings must not
+      // stay up during that window.
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+
+      act(() => releaseRefetch());
+
       await waitFor(() =>
         expect(
           screen.queryByRole('button', {name: 'Set up later'})
         ).not.toBeInTheDocument()
       );
-      expect(screen.queryByText('discord')).not.toBeInTheDocument();
-      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
     });
   });
 });

@@ -14,7 +14,11 @@ import type {
   ScmMessagingSetup,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
-import {useScmMessagingSetupValidation} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
+import {
+  isEligibleForIssueAlerts,
+  isIntegrationActive,
+  useScmMessagingSetupValidation,
+} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import {IconMail} from 'sentry/icons/iconMail';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -74,9 +78,20 @@ export function ScmMessaging({
     onComplete?.();
   };
 
-  const handleInstallComplete = (providerKey: ScmMessagingProviderKey) => {
-    refetchIntegrations();
+  const handleInstallComplete = async (providerKey: ScmMessagingProviderKey) => {
+    // Exclusive immediately so Set up later cannot be clicked during the refetch.
     setActiveRow({providerKey, mode: 'configuring'});
+    const result = await refetchIntegrations();
+    const connected = (result.data ?? []).some(
+      integration =>
+        integration.provider.key === providerKey &&
+        isIntegrationActive(integration) &&
+        isEligibleForIssueAlerts(integration)
+    );
+    // Drop exclusive if the install never surfaced a usable integration.
+    if (result.isError || !connected) {
+      setActiveRow(null);
+    }
   };
 
   const hasValidationAlert = !!validation.staleReason || validation.isError;
@@ -241,10 +256,10 @@ export function ScmMessaging({
 
 /**
  * Returns `activeRow` when it is still usable, or `null` when it is stale:
- * - The provider is missing or no longer connected (e.g. a refetch error
- *   replaced the list and the active row's provider unmounted).
- * - The row is in removing mode but the destination was cleared externally
- *   (e.g. a validation reset set messagingSetup back to unconfigured).
+ * - The provider is missing from the list (e.g. a refetch error unmounted it).
+ * - The row is in removing mode but the destination was cleared externally.
+ * - The row is in configuring mode but the provider is neither connected nor
+ *   still installable (the post-install snapshot before refetch settles).
  */
 function validateActiveRow(
   activeRow: ScmMessagingActiveRow,
@@ -255,19 +270,27 @@ function validateActiveRow(
     return null;
   }
   const viewModel = providers.find(p => p.providerKey === activeRow.providerKey);
-  if (viewModel?.status !== 'connected') {
+  if (!viewModel) {
     return null;
   }
-  if (activeRow.mode === 'removing') {
-    const isConfigured =
-      messagingSetup.mode === 'selected' &&
-      messagingSetup.providerKey === activeRow.providerKey &&
-      viewModel.eligibleIntegrations.some(i => i.id === messagingSetup.integrationId);
-    if (!isConfigured) {
-      return null;
+  if (viewModel.status === 'connected') {
+    if (activeRow.mode === 'removing') {
+      const isConfigured =
+        messagingSetup.mode === 'selected' &&
+        messagingSetup.providerKey === activeRow.providerKey &&
+        viewModel.eligibleIntegrations.some(i => i.id === messagingSetup.integrationId);
+      if (!isConfigured) {
+        return null;
+      }
     }
+    return activeRow;
   }
-  return activeRow;
+  // Post-install: configuring is set before the refetch promotes installable
+  // to connected. Keep exclusive so the footer cannot be clicked in between.
+  if (activeRow.mode === 'configuring' && viewModel.status === 'installable') {
+    return activeRow;
+  }
+  return null;
 }
 
 const MotionFlex = motion.create(Flex);
