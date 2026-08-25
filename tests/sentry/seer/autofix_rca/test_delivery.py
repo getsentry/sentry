@@ -149,7 +149,6 @@ class TestDeliverAutofixRCAResult(TestCase):
     def test_seer_managed_run_only_persists_result(self, mock_execute: MagicMock) -> None:
         self.agent_run.extras = {
             **self.agent_run.extras,
-            "completion_hook_managed_by_seer": True,
             "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
         }
         self.agent_run.save(update_fields=["extras"])

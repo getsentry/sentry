@@ -63,7 +63,6 @@ def trigger_autofix_rca_feature(
     # Store the stopping point here for delivery to use when advancing steps.
     extras: dict[str, Any] = {
         "referrer": referrer.value,
-        "completion_hook_managed_by_seer": True,
     }
     if stopping_point is not None:
         extras["stopping_point"] = stopping_point.value

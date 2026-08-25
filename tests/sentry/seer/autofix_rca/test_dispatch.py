@@ -59,7 +59,6 @@ class TestTriggerAutofixRCAFeature(TestCase):
         }
         assert run_kwargs["extras"] == {
             "referrer": AutofixReferrer.NIGHT_SHIFT.value,
-            "completion_hook_managed_by_seer": True,
             "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
         }
         assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
