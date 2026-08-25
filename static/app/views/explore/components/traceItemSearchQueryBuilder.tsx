@@ -13,7 +13,11 @@ import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
+  FieldKind,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
@@ -97,6 +101,14 @@ function getTraceItemFieldDefinitionFunction(
       options?.kind ?? tags[baseKey]?.kind
     );
   };
+}
+
+function getDeprecatedAttributeSearchWarning(key: string) {
+  const replacement = ATTRIBUTE_SEARCH_SECONDARY_ALIASES[key]?.alias;
+  if (!replacement) {
+    return;
+  }
+  return t('Deprecated. Use %s instead.', replacement);
 }
 
 export function useTraceItemSearchQueryBuilderProps({
@@ -221,7 +233,8 @@ export function useTraceItemSearchQueryBuilderProps({
       onSearch,
       onChange,
       onBlur,
-      getFilterTokenWarning,
+      getFilterTokenWarning: (key: string) =>
+        getFilterTokenWarning?.(key) ?? getDeprecatedAttributeSearchWarning(key),
       searchSource,
       filterKeySections,
       getSuggestedFilterKey: getSuggestedAttribute,
@@ -241,6 +254,7 @@ export function useTraceItemSearchQueryBuilderProps({
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases: {
+        ...ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
         ...numberSecondaryAliases,
         ...stringSecondaryAliases,
         ...booleanSecondaryAliases,

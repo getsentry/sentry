@@ -145,6 +145,35 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.filterKeyAliases?.['log.message_alias']).toBeDefined();
   });
 
+  it('injects convention deprecation chain values as filterKeyAliases', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    expect(result.current.filterKeyAliases?.['ai.completion_tokens.used']).toBeDefined();
+    expect(
+      result.current.filterKeyAliases?.['gen_ai.usage.output_tokens']
+    ).toBeUndefined();
+  });
+
+  it('warns on deprecated convention aliases instead of treating them as unsupported', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        invalidFilterKeys: ['ai.completion_tokens.used'],
+      },
+      organization,
+    });
+
+    expect(result.current.getFilterTokenWarning?.('ai.completion_tokens.used')).toBe(
+      'Deprecated. Use gen_ai.usage.output_tokens instead.'
+    );
+    expect(
+      result.current.getFilterTokenWarning?.('gen_ai.usage.output_tokens')
+    ).toBeUndefined();
+  });
+
   it('merges all secondary alias types into filterKeyAliases', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {
