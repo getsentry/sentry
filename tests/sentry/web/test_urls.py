@@ -23,13 +23,17 @@ class ApiDocsRedirectTest(TestCase):
 @control_silo_test
 class StorybookRoutesTest(TestCase):
     def test_scraps_response(self) -> None:
-        self.login_as(self.user)
+        user = self.create_user("scraps@example.com")
+        self.create_organization(owner=user)
+        self.login_as(user)
         path = reverse("scraps")
         resp = self.client.get(path)
         assert resp.status_code == 200, resp.status_code
 
     def test_legacy_stories_response(self) -> None:
-        self.login_as(self.user)
+        user = self.create_user("stories@example.com")
+        self.create_organization(owner=user)
+        self.login_as(user)
         path = reverse("stories")
         resp = self.client.get(path)
         assert resp.status_code == 200, resp.status_code
