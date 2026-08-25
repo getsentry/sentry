@@ -1,14 +1,21 @@
 from __future__ import annotations
 
-from unittest.mock import DEFAULT, MagicMock
+from unittest.mock import DEFAULT, MagicMock, patch
 
 import orjson
 
+from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.cache import (
+    generate_project_sample_rates_cache_key,
+    generate_transaction_sample_rates_cache_key,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
+    get_project_sample_rate,
+    get_transaction_sample_rates,
+    set_project_sample_rates,
+    set_transaction_sample_rates,
     write_caches,
 )
 from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
@@ -99,6 +106,103 @@ class WriteCachesTest(TestCase):
 
         mocks[SET_FACTOR].assert_not_called()
         mocks[DELETE_FACTOR].assert_not_called()
+
+    def test_the_balanced_sample_rates_are_stored(self) -> None:
+        org_id = self.organization.id
+        project_id = self.create_project(organization=self.organization).id
+        self.addCleanup(
+            get_redis_client_for_ds().delete,
+            generate_project_sample_rates_cache_key(org_id),
+            generate_transaction_sample_rates_cache_key(org_id, project_id),
+        )
+
+        self._write(
+            DynamicSamplingResults(
+                rebalanced_projects=[RebalancedItem(id=project_id, count=100, new_sample_rate=0.5)],
+                rebalanced_transactions={
+                    project_id: (
+                        [RebalancedItem(id="checkout", count=10, new_sample_rate=0.3)],
+                        0.4,
+                    )
+                },
+            )
+        )
+
+        assert get_project_sample_rate(org_id, project_id) == 0.5
+        assert get_transaction_sample_rates(org_id, project_id) == ({"checkout": 0.3}, 0.4)
+
+    def test_a_pass_that_balanced_nothing_stores_no_sample_rates(self) -> None:
+        org_id = self.organization.id
+        project_id = self.create_project(organization=self.organization).id
+
+        self._write(DynamicSamplingResults())
+
+        assert get_project_sample_rate(org_id, project_id) is None
+        assert get_transaction_sample_rates(org_id, project_id) is None
+
+
+class PerOrgSampleRateCacheTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.redis = get_redis_client_for_ds()
+        self.project = self.create_project(organization=self.organization)
+        self.addCleanup(
+            self.redis.delete,
+            generate_project_sample_rates_cache_key(self.organization.id),
+            generate_transaction_sample_rates_cache_key(self.organization.id, self.project.id),
+        )
+
+    def test_project_sample_rates_round_trip(self) -> None:
+        other = self.create_project(organization=self.organization)
+        missing = self.create_project(organization=self.organization)
+        set_project_sample_rates(
+            self.organization.id,
+            [
+                RebalancedItem(id=self.project.id, count=10, new_sample_rate=0.25),
+                RebalancedItem(id=other.id, count=20, new_sample_rate=1.0),
+            ],
+        )
+
+        assert get_project_sample_rate(self.organization.id, self.project.id) == 0.25
+        assert get_project_sample_rate(self.organization.id, other.id) == 1.0
+        assert get_project_sample_rate(self.organization.id, missing.id) is None
+
+    def test_project_sample_rates_do_not_share_keys_with_the_legacy_cache(self) -> None:
+        legacy_key = generate_boost_low_volume_projects_cache_key(self.organization.id)
+        self.addCleanup(self.redis.delete, legacy_key)
+        self.redis.hset(legacy_key, str(self.project.id), "0.2")
+
+        assert legacy_key != generate_project_sample_rates_cache_key(self.organization.id)
+        assert get_project_sample_rate(self.organization.id, self.project.id) is None
+
+    def test_transaction_sample_rates_round_trip(self) -> None:
+        missing = self.create_project(organization=self.organization)
+        set_transaction_sample_rates(
+            self.organization.id,
+            {
+                self.project.id: (
+                    [RebalancedItem(id="/checkout", count=10, new_sample_rate=0.3)],
+                    0.4,
+                )
+            },
+        )
+
+        assert get_transaction_sample_rates(self.organization.id, self.project.id) == (
+            {"/checkout": 0.3},
+            0.4,
+        )
+        assert get_transaction_sample_rates(self.organization.id, missing.id) is None
+
+    def test_a_corrupt_entry_reads_as_a_miss(self) -> None:
+        self.redis.set(
+            generate_transaction_sample_rates_cache_key(self.organization.id, self.project.id),
+            "not json",
+        )
+
+        with patch("sentry.dynamic_sampling.per_org.cache.sentry_sdk.capture_exception") as capture:
+            assert get_transaction_sample_rates(self.organization.id, self.project.id) is None
+
+        assert capture.call_count == 1
 
 
 class LegacyCacheReadersTest(TestCase):
