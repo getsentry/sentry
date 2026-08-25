@@ -475,12 +475,9 @@ function ActionButtons({
         pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
       )
       .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated)) ?? [];
-  const autofixPullRequests = openPullRequests.filter(
-    pullRequest => pullRequest.attribution?.type === 'seer'
-  );
-  const hasMultipleAutofixPullRequests = autofixPullRequests.length > 1;
-  const displayedPullRequests = hasMultipleAutofixPullRequests
-    ? autofixPullRequests.slice(0, 2)
+  const hasMultiplePullRequests = openPullRequests.length > 1;
+  const displayedPullRequests = hasMultiplePullRequests
+    ? openPullRequests.slice(0, 2)
     : openPullRequests.slice(0, 1);
 
   if (displayedPullRequests.length > 0) {
@@ -501,10 +498,10 @@ function ActionButtons({
             icon={<IconGithub data-test-id="pull-request-github" />}
             variant={index === 0 ? 'primary' : 'secondary'}
           >
-            {hasMultipleAutofixPullRequests ? t('PR #%s', pullRequest.id) : t('View PR')}
+            {hasMultiplePullRequests ? t('PR #%s', pullRequest.id) : t('View PR')}
           </LinkButton>
         ))}
-        {!hasMultipleAutofixPullRequests && (
+        {!hasMultiplePullRequests && (
           <NextAutofixStepButton
             autofix={autofix}
             disabled={disabled}

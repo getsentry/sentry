@@ -97,7 +97,7 @@ describe('IssuePreview', () => {
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
   });
 
-  it('labels and links each CTA when multiple Autofix pull requests exist', async () => {
+  it('labels and links each CTA when multiple pull requests exist', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: ExplorerAutofixResponseFixture({
@@ -133,7 +133,7 @@ describe('IssuePreview', () => {
               dateCreated: '2026-08-16T12:00:00Z',
               externalUrl: 'https://github.com/example/repo-name/pull/10',
             }),
-            attribution: {id: 'seer', type: 'seer'},
+            attribution: null,
             checksStatus: null,
             dateLinked: '2026-08-16T12:00:00Z',
             reviewStatus: null,
