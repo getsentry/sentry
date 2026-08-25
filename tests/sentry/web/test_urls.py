@@ -19,9 +19,13 @@ class ApiDocsRedirectTest(TestCase):
         assert resp.status_code == 302, resp.status_code
 
 
-class ScrapsRedirectTest(TestCase):
-    def test_response(self) -> None:
-        path = reverse("sentry-scraps-redirect")
+class StorybookRoutesTest(TestCase):
+    def test_scraps_response(self) -> None:
+        path = reverse("scraps")
         resp = self.client.get(path)
-        assert resp["Location"] == reverse("stories")
-        assert resp.status_code == 302, resp.status_code
+        assert resp.status_code == 200, resp.status_code
+
+    def test_legacy_stories_response(self) -> None:
+        path = reverse("stories")
+        resp = self.client.get(path)
+        assert resp.status_code == 200, resp.status_code
