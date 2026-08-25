@@ -79,7 +79,7 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
 @register(Investigation)
 class InvestigationSerializer(Serializer):
     def __init__(self, accessible_project_ids: AbstractSet[int] | None = None) -> None:
-        self.accessible_project_ids = accessible_project_ids
+        self.summary_accessible_project_ids = accessible_project_ids
 
     @override
     def get_attrs(
@@ -104,8 +104,8 @@ class InvestigationSerializer(Serializer):
             )
 
         summary_visible_ids = (
-            investigation_ids_with_project_access(item_list, self.accessible_project_ids)
-            if self.accessible_project_ids is not None
+            investigation_ids_with_project_access(item_list, self.summary_accessible_project_ids)
+            if self.summary_accessible_project_ids is not None
             else set()
         )
 
@@ -154,6 +154,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
 
     def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
         super().__init__(accessible_project_ids)
+        self.accessible_project_ids = accessible_project_ids
 
     def _blocks_by_investigation(
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
