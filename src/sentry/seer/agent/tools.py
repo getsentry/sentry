@@ -1995,12 +1995,15 @@ def get_group_assignees(
     if len(group_ids) > 100:
         raise BadRequest("At most 100 group IDs may be requested")
 
-    user_ids_by_group = dict(
-        GroupAssignee.objects.filter(
-            group_id__in=group_ids,
-            project__organization_id=organization_id,
-            user_id__isnull=False,
-        ).values_list("group_id", "user_id")
+    user_ids_by_group = cast(
+        dict[int, int],
+        dict(
+            GroupAssignee.objects.filter(
+                group_id__in=group_ids,
+                project__organization_id=organization_id,
+                user_id__isnull=False,
+            ).values_list("group_id", "user_id")
+        ),
     )
     users_by_id = {
         user.id: user
