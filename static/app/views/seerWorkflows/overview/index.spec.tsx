@@ -564,6 +564,19 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('No issues')).not.toBeInTheDocument();
   });
 
+  it('offers activity periods up to 30 days but not 90 days', async () => {
+    mockOverview({base: {}});
+
+    renderPage();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Autofix Activity 7D'})
+    );
+
+    expect(await screen.findByRole('option', {name: 'Last 30 days'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Last 90 days'})).not.toBeInTheDocument();
+  });
+
   it('renders card prose and links from the endpoint payload', async () => {
     mockOverview({
       base: {

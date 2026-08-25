@@ -22,6 +22,7 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -61,6 +62,8 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
   {value: 'events', label: t('Most events')},
   {value: 'users', label: t('Most users')},
 ];
+
+const {'90d': _90d, ...ACTIVITY_RELATIVE_PERIODS} = DEFAULT_RELATIVE_PERIODS;
 
 // Buckets the assignee filter value (a raw `type:id` actor string) for
 // analytics, avoiding actor-id PII/cardinality. Null means the filter was
@@ -246,6 +249,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           <ProjectFilterSkeleton />
         )}
         <DatePageFilter
+          relativeOptions={ACTIVITY_RELATIVE_PERIODS}
           onChange={update =>
             trackFilterChanged('activity', update.relative ?? 'absolute')
           }
