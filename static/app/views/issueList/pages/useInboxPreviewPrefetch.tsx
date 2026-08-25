@@ -11,8 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-const GROUP_PREFETCH_DELAY_MS = 100;
-const SECONDARY_PREFETCH_DELAY_MS = 300;
+const PREFETCH_DELAY_MS = 200;
 
 /**
  * Warms each of the preview's independent requests as soon as a user shows
@@ -27,7 +26,7 @@ export function useInboxPreviewPrefetch(group: Group) {
     groupId: group.id,
     organizationSlug: organization.slug,
   };
-  const groupPrefetchDebouncer = useDebouncer(
+  const prefetchDebouncer = useDebouncer(
     () => {
       void queryClient.prefetchQuery(
         groupApiOptions({
@@ -36,11 +35,6 @@ export function useInboxPreviewPrefetch(group: Group) {
           expandDerivedData: organization.features.includes('issue-inbox'),
         })
       );
-    },
-    {wait: GROUP_PREFETCH_DELAY_MS}
-  );
-  const secondaryPrefetchDebouncer = useDebouncer(
-    () => {
       void queryClient.prefetchQuery({
         ...linkedPullRequestsApiOptions(issueParams),
         retry: false,
@@ -61,18 +55,12 @@ export function useInboxPreviewPrefetch(group: Group) {
         });
       }
     },
-    {wait: SECONDARY_PREFETCH_DELAY_MS}
+    {wait: PREFETCH_DELAY_MS}
   );
 
   const {hoverProps} = useHover({
-    onHoverStart: () => {
-      groupPrefetchDebouncer.maybeExecute();
-      secondaryPrefetchDebouncer.maybeExecute();
-    },
-    onHoverEnd: () => {
-      groupPrefetchDebouncer.cancel();
-      secondaryPrefetchDebouncer.cancel();
-    },
+    onHoverStart: () => prefetchDebouncer.maybeExecute(),
+    onHoverEnd: () => prefetchDebouncer.cancel(),
   });
 
   return hoverProps;

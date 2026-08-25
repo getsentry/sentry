@@ -875,13 +875,14 @@ describe('InboxPage', () => {
     ).findByRole('link', {name: /Fix proposed issue/});
     await user.hover(issueLink);
 
-    await act(() => jest.advanceTimersByTimeAsync(100));
-    expect(groupRequest).toHaveBeenCalledTimes(1);
+    await act(() => jest.advanceTimersByTimeAsync(199));
+    expect(groupRequest).not.toHaveBeenCalled();
     expect(pullRequestsRequest).not.toHaveBeenCalled();
     expect(autofixSetupRequest).not.toHaveBeenCalled();
     expect(autofixRequest).not.toHaveBeenCalled();
 
-    await act(() => jest.advanceTimersByTimeAsync(200));
+    await act(() => jest.advanceTimersByTimeAsync(1));
+    expect(groupRequest).toHaveBeenCalledTimes(1);
     expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
     expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
     expect(autofixRequest).toHaveBeenCalledTimes(1);
