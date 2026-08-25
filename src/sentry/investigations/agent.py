@@ -68,7 +68,11 @@ class TitleGenerationStatus(StrEnum):
 
 
 IN_FLIGHT_TITLE_STATUSES = (TitleGenerationStatus.PENDING, TitleGenerationStatus.RUNNING)
-NON_RETRYABLE_TITLE_STATUSES = (*IN_FLIGHT_TITLE_STATUSES, TitleGenerationStatus.FAILED)
+NON_RETRYABLE_TITLE_STATUSES = (
+    *IN_FLIGHT_TITLE_STATUSES,
+    TitleGenerationStatus.COMPLETED,
+    TitleGenerationStatus.FAILED,
+)
 
 TITLE_WORD_LIMIT = 5
 SUMMARY_MIN_WORDS = 1
