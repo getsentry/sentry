@@ -149,12 +149,6 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         has_feature = features.has(
             "organizations:gen-ai-search-agent-translate", organization, actor=request.user
         )
-        if strategy == "Metrics":
-            has_feature = has_feature and features.has(
-                "organizations:gen-ai-explore-metrics-search",
-                organization,
-                actor=request.user,
-            )
         if strategy == "Issues":
             has_feature = has_feature and features.has(
                 "organizations:gen-ai-issues-search",
