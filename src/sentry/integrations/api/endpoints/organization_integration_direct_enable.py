@@ -92,8 +92,8 @@ class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoin
                 org_integration = integration.add_organization(organization, user)
                 if org_integration is None:
                     raise IntegrityError
-        except IntegrationDeletionInProgressError as e:
-            return Response({"detail": str(e)}, status=409)
+        except IntegrationDeletionInProgressError:
+            return Response({"detail": "Integration deletion is already in progress."}, status=409)
         except IntegrityError:
             return Response({"detail": "Could not create the integration."}, status=400)
 
