@@ -391,7 +391,7 @@ class SeerSlackRendererAgentTest(TestCase):
             organization_id=self.organization.id,
             summary="Seer needs your approval before it can make this change.",
             write_approval_input_id="approval-1",
-            write_approval_scopes=["org:write"],
+            write_approval_scopes=["org:write", "future:write"],
         )
 
         renderable = SeerSlackRenderer._render_agent_response(data)
@@ -403,8 +403,9 @@ class SeerSlackRendererAgentTest(TestCase):
         assert blocks[0].block_id is None
         assert isinstance(blocks[1], MarkdownBlock)
         assert "**Requested scopes:**" in blocks[1].text
-        assert "Organization" in blocks[1].text
+        assert "Read and write access to organization details." in blocks[1].text
         assert "`org:write`" in blocks[1].text
+        assert "`future:write` — Sentry permission." in blocks[1].text
         assert isinstance(blocks[2], ActionsBlock)
         reject_button, approve_button = blocks[2].elements
         assert isinstance(reject_button, ButtonElement)
@@ -435,7 +436,7 @@ class SeerSlackRendererAgentTest(TestCase):
         assert len(blocks) == 1
         assert isinstance(blocks[0], MarkdownBlock)
         assert blocks[0].text == (
-            ":white_check_mark: Access granted for reading and writing Organization"
+            ":white_check_mark: Access granted for reading and writing via `org:write`"
         )
 
     def test_render_agent_write_approval_rejected(self) -> None:
@@ -453,7 +454,23 @@ class SeerSlackRendererAgentTest(TestCase):
         blocks = renderable["blocks"]
         assert len(blocks) == 1
         assert isinstance(blocks[0], MarkdownBlock)
-        assert blocks[0].text == (":x: Access not granted for reading and writing Organization")
+        assert blocks[0].text == (":x: Access not granted for reading and writing via `org:write`")
+
+    def test_render_agent_write_approval_result_with_unknown_scope(self) -> None:
+        data = SeerAgentResponse(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            summary="",
+            write_approval_scopes=["future:write"],
+            write_approval_status="approved",
+        )
+
+        renderable = SeerSlackRenderer._render_agent_response(data)
+
+        blocks = renderable["blocks"]
+        assert len(blocks) == 1
+        assert isinstance(blocks[0], MarkdownBlock)
+        assert blocks[0].text == (":white_check_mark: Access granted for the `future:write` scope")
 
     def test_render_dispatches_to_agent_response(self) -> None:
         data = self._create_agent_response(summary="Test")

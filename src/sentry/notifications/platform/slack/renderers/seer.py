@@ -57,30 +57,6 @@ HANDOFF_TARGET_LABELS: dict[CodingAgentProviderType, str] = {
     CodingAgentProviderType.GITHUB_COPILOT_AGENT: "Copilot",
 }
 
-AGENT_WRITE_SCOPE_DETAILS = {
-    "alerts:read": ("Alerts", "read"),
-    "alerts:write": ("Alerts", "readWrite"),
-    "event:admin": ("Issues & Events", "admin"),
-    "event:read": ("Issues & Events", "read"),
-    "event:write": ("Issues & Events", "readWrite"),
-    "member:admin": ("Members", "admin"),
-    "member:read": ("Members", "read"),
-    "member:write": ("Members", "readWrite"),
-    "org:admin": ("Organization", "admin"),
-    "org:ci": ("CI Workflows", "manage"),
-    "org:integrations": ("Integrations", "admin"),
-    "org:read": ("Organization", "read"),
-    "org:write": ("Organization", "readWrite"),
-    "project:admin": ("Projects", "admin"),
-    "project:distribution": ("App Distribution", "manage"),
-    "project:read": ("Projects", "read"),
-    "project:releases": ("Releases", "admin"),
-    "project:write": ("Projects", "readWrite"),
-    "team:admin": ("Teams", "admin"),
-    "team:read": ("Teams", "read"),
-    "team:write": ("Teams", "readWrite"),
-}
-
 AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
@@ -333,8 +309,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if not data.write_approval_input_id:
             raise ValueError("Pending agent write approval is missing its input ID")
 
+        scope_descriptions = {
+            scope: description
+            for scope_set in settings.SENTRY_SCOPE_SETS
+            for scope, description in scope_set
+        }
         scope_lines = "\n".join(
-            f"• {AGENT_WRITE_SCOPE_DETAILS.get(scope, ('Sentry Permission', ''))[0]}, `{scope}`"
+            f"• `{scope}` — {scope_descriptions.get(scope, 'Sentry permission.')}"
             for scope in scopes
         )
         blocks: list[Block] = [
@@ -369,15 +350,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @staticmethod
     def _get_agent_write_scope_access(scope: str) -> str:
-        details = AGENT_WRITE_SCOPE_DETAILS.get(scope)
-        if not details:
-            return f"using the {scope} scope"
-        resource, access = details
+        if scope not in settings.SENTRY_SCOPES:
+            return f"the `{scope}` scope"
         action = {
             "read": "reading",
-            "readWrite": "reading and writing",
-        }.get(access, "managing")
-        return f"{action} {resource}"
+            "write": "reading and writing",
+        }.get(scope.rpartition(":")[2], "managing")
+        return f"{action} via `{scope}`"
 
     @classmethod
     def _render_link_button(

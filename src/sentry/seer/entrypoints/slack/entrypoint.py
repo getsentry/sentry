@@ -575,7 +575,10 @@ class SlackAgentEntrypoint(
                 write_approval_input_id=input_id,
                 write_approval_scopes=scopes,
             )
-        elif not summary:
+        elif (
+            pending_user_input is not None
+            and pending_user_input.input_type == "agent_write_approval"
+        ) or not summary:
             data = SeerAgentError(error_message="Seer was unable to generate a response.")
         else:
             missing_scope_url = _get_missing_scope_settings_url(

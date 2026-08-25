@@ -719,7 +719,7 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary=None,
+            summary="Prior summary",
             run_id=12345,
             pending_user_input=PendingUserInput(
                 id="approval-1",
