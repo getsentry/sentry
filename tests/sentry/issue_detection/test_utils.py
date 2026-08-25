@@ -115,16 +115,16 @@ class TestDetectorUtils:
         ),
     ]
 
-    @pytest.mark.parametrize("test_case", test_cases)
+    @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
     def test_span_has_obfuscated_hostname(self, test_case: URLTestCase) -> None:
         span = create_span("http.client", 320415204, f"GET {test_case.url}")
         assert span_has_obfuscated_hostname(span) == test_case.is_obfuscated
 
-    @pytest.mark.parametrize("test_case", test_cases)
+    @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
     def test_safe_urlparse(self, test_case: URLTestCase) -> None:
         assert safer_urlparse(test_case.url).netloc == test_case.netloc
 
-    @pytest.mark.parametrize("test_case", test_cases)
+    @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
     def test_parameterize_url_with_result(self, test_case: URLTestCase) -> None:
         parameterized_url, path_params, query_params = test_case.parameterization
 
@@ -173,6 +173,8 @@ class TestGetNumericValueFromSpan:
             ([1231], int, Exception),
             ([1231], float, Exception),
         ],
+        # Use `repr` here vs `str` because it will include string quotes in what it prints
+        ids=lambda test_case: f"{repr(test_case[0])}-{test_case[1].__name__}",
     )
     def test_value_found(
         self,
@@ -216,6 +218,7 @@ class TestGetNumericValueFromSpan:
             {"adopt_dont_shop": 1121},  # Span data exists but desired key doesn't
             {"dogs_are_great": None},  # Desired key exists but has no value
         ],
+        ids=str,  # Force pytest to stringify the dict test cases
     )
     def test_value_not_found(
         self, data: dict[str, Any] | None, mock_log_invalid_data: MagicMock
