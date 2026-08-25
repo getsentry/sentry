@@ -1673,6 +1673,13 @@ class TestSeerAgentClientLatestRun(TestCase):
         assert result != stale
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_latest_run_is_not_scoped_to_current_user(self, _mock_access) -> None:
+        other_user = self.create_user()
+        run = self._agent_run(5, user_id=other_user.id)
+
+        assert self._client().latest_run() == run
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     def test_latest_run_filters_by_group_id(self, _mock_access) -> None:
         group = self.create_group()
         run = self.create_seer_run(seer_run_state_id=1)
