@@ -19,14 +19,14 @@ describe('SentryDateTimeProvider', () => {
     act(() => ConfigStore.set('user', user));
   }
 
-  function ShowTimezone(props: React.ComponentProps<'div'>) {
+  function ShowTimezone() {
     const timezone = useTimezone();
-    return <div {...props}>{timezone}</div>;
+    return <div>{timezone}</div>;
   }
 
-  function ShowClockDisplay(props: React.ComponentProps<'div'>) {
+  function ShowClockDisplay() {
     const clockDisplay = useClockDisplay();
-    return <div {...props}>{clockDisplay}</div>;
+    return <div>{`${clockDisplay} hour clock`}</div>;
   }
 
   function ChangeUserTimezone({tz}: {tz: string}) {
@@ -40,25 +40,25 @@ describe('SentryDateTimeProvider', () => {
   it('provides the timezone configured by the user', () => {
     render(
       <SentryDateTimeProvider>
-        <ShowTimezone data-test-id="tz" />
+        <ShowTimezone />
       </SentryDateTimeProvider>
     );
 
-    expect(screen.getByTestId('tz')).toHaveTextContent('America/New_York');
+    expect(screen.getByText('America/New_York')).toBeInTheDocument();
   });
 
   it('updates when the user timezone changes', () => {
     render(
       <SentryDateTimeProvider>
-        <ShowTimezone data-test-id="tz" />
+        <ShowTimezone />
         <ChangeUserTimezone tz="America/Los_Angeles" />
       </SentryDateTimeProvider>
     );
 
-    expect(screen.getByTestId('tz')).toHaveTextContent('America/New_York');
+    expect(screen.getByText('America/New_York')).toBeInTheDocument();
 
     screen.getByRole('button', {name: 'Change Timezone'}).click();
-    expect(screen.getByTestId('tz')).toHaveTextContent('America/Los_Angeles');
+    expect(screen.getByText('America/Los_Angeles')).toBeInTheDocument();
   });
 
   it('maps the user 24 hour option onto the clock display', () => {
@@ -66,11 +66,11 @@ describe('SentryDateTimeProvider', () => {
 
     render(
       <SentryDateTimeProvider>
-        <ShowClockDisplay data-test-id="clock" />
+        <ShowClockDisplay />
       </SentryDateTimeProvider>
     );
 
-    expect(screen.getByTestId('clock')).toHaveTextContent('24');
+    expect(screen.getByText('24 hour clock')).toBeInTheDocument();
   });
 
   it('falls back to a 12 hour clock', () => {
@@ -78,10 +78,10 @@ describe('SentryDateTimeProvider', () => {
 
     render(
       <SentryDateTimeProvider>
-        <ShowClockDisplay data-test-id="clock" />
+        <ShowClockDisplay />
       </SentryDateTimeProvider>
     );
 
-    expect(screen.getByTestId('clock')).toHaveTextContent('12');
+    expect(screen.getByText('12 hour clock')).toBeInTheDocument();
   });
 });
