@@ -55,7 +55,10 @@ describe('create instance level OAuth client', () => {
     render(<InstanceLevelOAuth />);
     await userEvent.click(screen.getByText('New Instance Level OAuth Client'));
     renderGlobalModal();
-    await userEvent.type(screen.getByRole('textbox', {name: 'Client Name'}), 'Santry');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Client Name'}),
+      '  Santry  '
+    );
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Allowed Origins'}),
       'https://santry.com/origin https://santry.com/origin2 https://santry.com/origin3'
@@ -88,5 +91,27 @@ describe('create instance level OAuth client', () => {
       privacyUrl: 'https://santry.com/privacy',
       termsUrl: 'https://santry.com/terms',
     });
+  });
+
+  it('validates URL fields', async () => {
+    render(<InstanceLevelOAuth />);
+    await userEvent.click(screen.getByText('New Instance Level OAuth Client'));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Client Name'}), 'Santry');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Redirect URIs'}),
+      'not-a-url'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Homepage URL'}),
+      'not-a-url'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Create Client'}));
+
+    expect(
+      await screen.findByText('Enter valid redirect URLs separated by spaces')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Enter a valid URL')).toBeInTheDocument();
+    expect(mockPostRequest).not.toHaveBeenCalled();
   });
 });

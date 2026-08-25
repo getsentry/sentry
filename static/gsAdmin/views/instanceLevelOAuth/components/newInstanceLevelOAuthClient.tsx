@@ -8,7 +8,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {t} from 'sentry/locale';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -28,13 +27,36 @@ type ClientResponse = {
   clientSecret: string;
 };
 
+const urlSchema = z.url();
+
+const optionalUrlSchema = z
+  .string()
+  .trim()
+  .refine(value => value === '' || urlSchema.safeParse(value).success, {
+    message: 'Enter a valid URL',
+  });
+
 const clientSchema = z.object({
-  name: z.string().min(1, t('Client name is required')),
-  redirectUris: z.string().min(1, t('Redirect URIs are required')),
-  allowedOrigins: z.string(),
-  homepageUrl: z.string(),
-  privacyUrl: z.string(),
-  termsUrl: z.string(),
+  name: z.string().trim().min(1, 'Client name is required'),
+  redirectUris: z
+    .string()
+    .trim()
+    .min(1, 'Redirect URIs are required')
+    .refine(value => value.split(/\s+/).every(url => urlSchema.safeParse(url).success), {
+      message: 'Enter valid redirect URLs separated by spaces',
+    }),
+  allowedOrigins: z
+    .string()
+    .trim()
+    .refine(
+      value =>
+        value === '' ||
+        value.split(/\s+/).every(origin => urlSchema.safeParse(origin).success),
+      {message: 'Enter valid allowed origins separated by spaces'}
+    ),
+  homepageUrl: optionalUrlSchema,
+  privacyUrl: optionalUrlSchema,
+  termsUrl: optionalUrlSchema,
 });
 
 export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderProps) {
@@ -71,30 +93,30 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
     validators: {onDynamic: clientSchema},
     onSubmit: ({value, formApi}) =>
       mutation
-        .mutateAsync(value, {
+        .mutateAsync(clientSchema.parse(value), {
           onError: error => {
             const handled =
               error instanceof RequestError ? setFieldErrors(formApi, error) : false;
             if (!handled) {
-              addErrorMessage(t('Unable to create OAuth client.'));
+              addErrorMessage('Unable to create OAuth client.');
             }
           },
         })
-        .catch(() => undefined),
+        .catch(() => {}),
   });
 
   return (
     <form.AppForm form={form}>
       <Header closeButton>
-        <Heading as="h4">{t('Create New Instance Level OAuth Client')}</Heading>
+        <Heading as="h4">Create New Instance Level OAuth Client</Heading>
       </Header>
       <Body>
         <Stack gap="lg">
           <form.AppField name="name">
             {field => (
               <field.Layout.Stack
-                label={t('Client Name')}
-                hintText={t('Human readable name for the client.')}
+                label="Client Name"
+                hintText="Human readable name for the client."
                 required
               >
                 <field.Input
@@ -108,10 +130,8 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
           <form.AppField name="redirectUris">
             {field => (
               <field.Layout.Stack
-                label={t('Redirect URIs')}
-                hintText={t(
-                  'The URLs that users will redirect to after login/signup. Space separated!'
-                )}
+                label="Redirect URIs"
+                hintText="The URLs that users will redirect to after login/signup. Space separated!"
                 required
               >
                 <field.Input
@@ -125,8 +145,8 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
           <form.AppField name="allowedOrigins">
             {field => (
               <field.Layout.Stack
-                label={t('Allowed Origins')}
-                hintText={t('Allowed origins for the client. Space separated!')}
+                label="Allowed Origins"
+                hintText="Allowed origins for the client. Space separated!"
               >
                 <field.Input
                   value={field.state.value}
@@ -138,10 +158,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
           </form.AppField>
           <form.AppField name="homepageUrl">
             {field => (
-              <field.Layout.Stack
-                label={t('Homepage URL')}
-                hintText={t("Client's homepage")}
-              >
+              <field.Layout.Stack label="Homepage URL" hintText="Client's homepage">
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
@@ -153,8 +170,8 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
           <form.AppField name="privacyUrl">
             {field => (
               <field.Layout.Stack
-                label={t('Privacy Policy URL')}
-                hintText={t("URL to client's privacy policy")}
+                label="Privacy Policy URL"
+                hintText="URL to client's privacy policy"
               >
                 <field.Input
                   value={field.state.value}
@@ -167,8 +184,8 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
           <form.AppField name="termsUrl">
             {field => (
               <field.Layout.Stack
-                label={t('Terms and Conditions URL')}
-                hintText={t("URL to client's terms and conditions")}
+                label="Terms and Conditions URL"
+                hintText="URL to client's terms and conditions"
               >
                 <field.Input
                   value={field.state.value}
@@ -181,7 +198,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
         </Stack>
       </Body>
       <Footer>
-        <form.SubmitButton>{t('Create Client')}</form.SubmitButton>
+        <form.SubmitButton>Create Client</form.SubmitButton>
       </Footer>
     </form.AppForm>
   );
