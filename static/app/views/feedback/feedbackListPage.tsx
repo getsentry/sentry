@@ -1,11 +1,10 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -27,7 +26,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -77,15 +75,15 @@ function PageContent({
                 flexGrow={1}
                 gap="md"
                 area="top"
-                direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
-                align={{'screen:xs': 'stretch', 'screen:sm': 'start'}}
+                direction={{zero: 'column', xl: 'row'}}
+                align={{zero: 'stretch', xl: 'start'}}
               >
                 <FeedbackFilters />
                 <Flex
                   flexGrow={1}
                   gap="md"
-                  direction={{'screen:xs': 'column', 'screen:md': 'row'}}
-                  align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
+                  direction={{zero: 'column', '3xl': 'row'}}
+                  align={{zero: 'stretch', '3xl': 'center'}}
                 >
                   <SearchContainer>
                     <FeedbackSearch />
@@ -125,8 +123,7 @@ export default function FeedbackListPage() {
 
   useRedirectToFeedbackFromEvent();
 
-  const theme = useTheme();
-  const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
+  const isMediumOrSmaller = useResponsivePropValue({zero: true, '3xl': false});
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
@@ -270,17 +267,17 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
     'top top'
     'list details';
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: 1fr;
     grid-template-rows: ${p => (p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh')};
     grid-template-areas: ${p => (p.hideTop ? "'.' 'content'" : "'top' 'content'")};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: minmax(195px, 1fr) 1.5fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
 `;

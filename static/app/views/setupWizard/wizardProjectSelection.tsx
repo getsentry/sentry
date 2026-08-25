@@ -6,7 +6,7 @@ import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -410,7 +410,7 @@ export function WizardProjectSelection({
           ) : (
             <Fragment>
               {!platformParam && platformField}
-              <Columns>
+              <Grid columns={{zero: '1fr', sm: '1fr 1fr'}} gap="xl">
                 {projectNameField}
                 <FieldWrapper>
                   <label>{t('Team')}</label>
@@ -441,7 +441,7 @@ export function WizardProjectSelection({
                     }}
                   />
                 </FieldWrapper>
-              </Columns>
+              </Grid>
             </Fragment>
           ))}
         <SubmitButton
@@ -463,16 +463,6 @@ const Heading = styled('h5')`
 function FieldWrapper(props: React.ComponentProps<typeof Stack>) {
   return <Stack gap="xs" {...props} />;
 }
-
-const Columns = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 1fr;
-  }
-`;
 
 const StyledCompactSelect = styled(CompactSelect)`
   width: 100%;

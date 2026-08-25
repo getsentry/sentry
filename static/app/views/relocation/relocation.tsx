@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container as LayoutContainer, Stack} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -209,14 +209,16 @@ export function RelocationOnboarding() {
       <Header>
         <LogoSvg />
         {stepIndex !== -1 && (
-          <StyledStepper
-            numSteps={onboardingSteps.length}
-            currentStepIndex={stepIndex}
-            onClick={i => {
-              // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
-              goToStep(onboardingSteps[i]);
-            }}
-          />
+          <LayoutContainer display={{zero: 'none', '3xl': 'block'}} justifySelf="center">
+            <Stepper
+              numSteps={onboardingSteps.length}
+              currentStepIndex={stepIndex}
+              onClick={i => {
+                // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
+                goToStep(onboardingSteps[i]);
+              }}
+            />
+          </LayoutContainer>
         )}
       </Header>
     );
@@ -380,15 +382,8 @@ const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) =
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     --corner-scale: 0.5;
-  }
-`;
-
-const StyledStepper = styled(Stepper)`
-  justify-self: center;
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
   }
 `;
 
