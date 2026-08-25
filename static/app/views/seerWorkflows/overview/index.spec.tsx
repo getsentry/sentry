@@ -581,12 +581,11 @@ describe('AutofixOverview', () => {
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({datetime: {period: '90d', start: null, end: null, utc: null}})
     );
+    setPageFiltersStorage(organization.slug, new Set(['datetime']));
     mockOverview({base: {}});
 
     renderPage();
 
-    // A period no longer offered (here inherited from another page/URL) must
-    // still render on the trigger rather than showing "Invalid Period".
     expect(
       await screen.findByRole('button', {name: 'Autofix Activity 90D'})
     ).toBeInTheDocument();
