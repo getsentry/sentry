@@ -223,10 +223,10 @@ export function GroupPriorityDropdown({
         };
 
         return triggerVariant === 'button' ? (
-          <AlignedPriorityButton
+          <Button
             {...commonProps}
             icon={<IconCellSignal bars={getPriorityBars(value)} />}
-            size="xs"
+            size="zero"
             variant="secondary"
           />
         ) : (
@@ -275,10 +275,6 @@ const DropdownButton = styled(Button)`
   ${StyledTag} {
     border-radius: ${p => p.theme.radius.full};
   }
-`;
-
-const AlignedPriorityButton = styled(Button)`
-  --button-lift: 0px;
 `;
 
 const InlinePlaceholder = styled(Placeholder)`

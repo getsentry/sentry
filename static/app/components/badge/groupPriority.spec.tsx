@@ -23,23 +23,6 @@ describe('GroupPriority', () => {
       value: PriorityLevel.HIGH,
     };
 
-    it('renders an icon-only button trigger', async () => {
-      render(
-        <GroupPriorityDropdown
-          {...defaultProps}
-          lastEditedBy="system"
-          triggerVariant="button"
-        />
-      );
-
-      const trigger = screen.getByRole('button', {name: 'Modify issue priority'});
-      expect(trigger).toHaveTextContent('');
-      expect(trigger.querySelectorAll('svg')).toHaveLength(1);
-
-      await userEvent.click(trigger);
-      expect(screen.getByText('Set Priority')).toBeInTheDocument();
-    });
-
     it('skips request when sent lastEditedBy', async () => {
       render(<GroupPriorityDropdown {...defaultProps} lastEditedBy="system" />);
 

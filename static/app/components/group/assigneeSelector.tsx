@@ -149,32 +149,27 @@ export function AssigneeSelector({
         handleAssigneeChange(assignedActor)
       }
       onClear={() => handleAssigneeChange(null)}
-      trigger={(props, isOpen, suggestedAssignees) => (
-        <StyledTrigger
-          {...props}
-          data-avatar-shape={
-            avatarOnly
-              ? group.assignedTo?.type === 'team'
-                ? 'square'
-                : 'circle'
-              : undefined
-          }
-          showChevron={false}
-          aria-label={t('Modify issue assignee')}
-          size="zero"
-        >
-          <AssigneeBadge
-            assignedTo={group.assignedTo ?? undefined}
-            assignedUser={assignedUser}
-            assignmentDetails={currentAssignmentDetails}
-            avatarOnly={avatarOnly}
-            loading={assigneeLoading}
-            showLabel={showLabel}
-            suggestedAssignees={suggestedAssignees}
-            chevronDirection={isOpen ? 'up' : 'down'}
-          />
-        </StyledTrigger>
-      )}
+      trigger={
+        avatarOnly
+          ? undefined
+          : (props, isOpen) => (
+              <StyledTrigger
+                {...props}
+                showChevron={false}
+                aria-label={t('Modify issue assignee')}
+                size="zero"
+              >
+                <AssigneeBadge
+                  assignedTo={group.assignedTo ?? undefined}
+                  assignedUser={assignedUser}
+                  assignmentDetails={currentAssignmentDetails}
+                  loading={assigneeLoading}
+                  showLabel={showLabel}
+                  chevronDirection={isOpen ? 'up' : 'down'}
+                />
+              </StyledTrigger>
+            )
+      }
       additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
@@ -190,15 +185,5 @@ const StyledTrigger = styled(OverlayTrigger.Button)`
 
   > span > div {
     border-radius: 20px;
-  }
-
-  &[data-avatar-shape='square'],
-  &[data-avatar-shape='square'] > span > div {
-    border-radius: 3px;
-  }
-
-  &[data-avatar-shape='circle'],
-  &[data-avatar-shape='circle'] > span > div {
-    border-radius: 50%;
   }
 `;

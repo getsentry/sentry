@@ -107,11 +107,7 @@ interface AssigneeSelectorDropdownProps {
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
-  trigger?: (
-    props: TriggerProps,
-    isOpen: boolean,
-    suggestedAssignees: SuggestedAssignee[]
-  ) => React.ReactNode;
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
 }
 
 function AssigneeAvatar({
@@ -164,7 +160,7 @@ function AssigneeAvatar({
     const actor = suggestedActors[0]!;
     return (
       <SuggestedAvatarStack
-        size={26}
+        size={24}
         owners={suggestedActors}
         tooltipOptions={{isHoverable: true}}
         tooltip={
@@ -497,6 +493,7 @@ export function AssigneeSelectorDropdown({
         )}
         {!loading && (
           <AssigneeTrigger
+            aria-label={t('Modify issue assignee')}
             variant="transparent"
             data-test-id="assignee-selector"
             {...props}
@@ -526,11 +523,7 @@ export function AssigneeSelectorDropdown({
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
-        trigger={
-          trigger
-            ? (props, isOpen) => trigger(props, isOpen, getSuggestedAssignees())
-            : makeTrigger
-        }
+        trigger={trigger ?? makeTrigger}
         menuFooter={({closeOverlay}) => (
           <Flex gap="md">
             <MenuComponents.CTAButton

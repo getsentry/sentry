@@ -9,12 +9,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {SuggestedAssignee} from 'sentry/components/assigneeSelectorDropdown';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
-import {IconChevron, IconUser} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
@@ -36,32 +34,23 @@ type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignedUser?: User | undefined;
   assignmentDetails?: AssignmentDetails;
-  avatarOnly?: boolean;
   chevronDirection?: 'up' | 'down';
   loading?: boolean;
   showLabel?: boolean;
-  suggestedAssignees?: SuggestedAssignee[];
 };
 
 const AVATAR_SIZE = 16;
-const AVATAR_ONLY_SIZE = 28;
 const ASSIGNED_TOOLTIP_MAX_WIDTH = 300;
 
 export function AssigneeBadge({
   assignedTo,
   assignedUser,
   assignmentDetails,
-  avatarOnly = false,
   showLabel = false,
   chevronDirection = 'down',
   loading = false,
-  suggestedAssignees = [],
 }: AssigneeBadgeProps) {
   if (loading) {
-    if (avatarOnly) {
-      return <StyledLoadingIndicator mini relative size={AVATAR_ONLY_SIZE} />;
-    }
-
     return (
       <StyledTag
         icon={<LoadingIcon showLabel={showLabel} chevronDirection={chevronDirection} />}
@@ -71,16 +60,6 @@ export function AssigneeBadge({
   }
 
   if (assignedTo) {
-    const assignedIcon = (
-      <AssignedIcon
-        assignedTo={assignedTo}
-        assignedUser={assignedUser}
-        avatarOnly={avatarOnly}
-        chevronDirection={chevronDirection}
-        showLabel={showLabel}
-      />
-    );
-
     return (
       <Tooltip
         isHoverable
@@ -91,39 +70,31 @@ export function AssigneeBadge({
             assignmentDetails={assignmentDetails}
           />
         }
-        skipWrapper={!avatarOnly}
+        skipWrapper
       >
-        {avatarOnly ? assignedIcon : <StyledTag icon={assignedIcon} variant="muted" />}
+        <StyledTag
+          icon={
+            <AssignedIcon
+              assignedTo={assignedTo}
+              assignedUser={assignedUser}
+              chevronDirection={chevronDirection}
+              showLabel={showLabel}
+            />
+          }
+          variant="muted"
+        />
       </Tooltip>
     );
   }
 
-  if (avatarOnly && suggestedAssignees.length > 0) {
-    return (
-      <SuggestedAvatarStack
-        size={AVATAR_ONLY_SIZE}
-        owners={suggestedAssignees}
-        tooltip={<SuggestedAssigneeTooltip suggestedAssignees={suggestedAssignees} />}
-        tooltipOptions={{isHoverable: true}}
-      />
-    );
-  }
-
-  const unassignedIcon = (
-    <UnassignedIcon
-      avatarOnly={avatarOnly}
-      showLabel={showLabel}
-      chevronDirection={chevronDirection}
-    />
-  );
-
   return (
-    <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper={!avatarOnly}>
-      {avatarOnly ? (
-        unassignedIcon
-      ) : (
-        <UnassignedTag icon={unassignedIcon} variant="muted" />
-      )}
+    <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper>
+      <UnassignedTag
+        icon={
+          <UnassignedIcon showLabel={showLabel} chevronDirection={chevronDirection} />
+        }
+        variant="muted"
+      />
     </Tooltip>
   );
 }
@@ -168,12 +139,10 @@ function LoadingIcon({
 function AssignedIcon({
   assignedTo,
   assignedUser,
-  avatarOnly,
   chevronDirection,
   showLabel,
 }: {
   assignedTo: Actor;
-  avatarOnly: boolean;
   chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
   showLabel: boolean;
   assignedUser?: User;
@@ -185,33 +154,26 @@ function AssignedIcon({
       <UserAvatar
         user={assignedUser ?? assignedTo}
         className="avatar"
-        size={avatarOnly ? AVATAR_ONLY_SIZE : AVATAR_SIZE}
+        size={AVATAR_SIZE}
         hasTooltip={false}
         data-test-id="assigned-avatar"
-        style={avatarOnly ? {borderRadius: '50%'} : undefined}
       />
     ) : (
       <ActorAvatar
         actor={assignedTo}
         className="avatar"
-        size={avatarOnly ? AVATAR_ONLY_SIZE : AVATAR_SIZE}
+        size={AVATAR_SIZE}
         hasTooltip={false}
         data-test-id="assigned-avatar"
-        style={avatarOnly ? {borderRadius: '3px'} : {marginLeft: theme.space.xs}}
+        style={{marginLeft: theme.space.xs}}
       />
     );
 
   return (
     <Fragment>
       {avatar}
-      {!avatarOnly && (
-        <Fragment>
-          {showLabel && (
-            <AssigneeLabel ellipsis>{getActorLabel(assignedTo)}</AssigneeLabel>
-          )}
-          <IconChevron variant="muted" direction={chevronDirection} size="xs" />
-        </Fragment>
-      )}
+      {showLabel && <AssigneeLabel ellipsis>{getActorLabel(assignedTo)}</AssigneeLabel>}
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 }
@@ -256,22 +218,12 @@ function AssignedTooltip({
 }
 
 function UnassignedIcon({
-  avatarOnly,
   showLabel,
   chevronDirection,
 }: {
-  avatarOnly: boolean;
   chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
   showLabel: boolean;
 }) {
-  if (avatarOnly) {
-    return (
-      <UnassignedAvatar>
-        <IconUser data-test-id="unassigned-avatar" size="md" variant="primary" />
-      </UnassignedAvatar>
-    );
-  }
-
   return (
     <Fragment>
       <Placeholder
@@ -283,32 +235,6 @@ function UnassignedIcon({
       {showLabel && <Fragment>Unassigned</Fragment>}
       <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
-  );
-}
-
-function SuggestedAssigneeTooltip({
-  suggestedAssignees,
-}: {
-  suggestedAssignees: SuggestedAssignee[];
-}) {
-  const firstSuggestion = suggestedAssignees[0]!;
-
-  return (
-    <Stack gap="xs" align="start">
-      <Text as="div" align="left" wrap="nowrap">
-        {tct('Suggestion: [name]', {
-          name:
-            firstSuggestion.type === 'team'
-              ? `#${firstSuggestion.name}`
-              : firstSuggestion.name,
-        })}
-        {suggestedAssignees.length > 1 &&
-          tn(' + %s other', ' + %s others', suggestedAssignees.length - 1)}
-      </Text>
-      <Text as="div" align="left" variant="muted">
-        {getAssignmentSourceLabel(firstSuggestion.suggestedReason)}
-      </Text>
-    </Stack>
   );
 }
 
@@ -332,14 +258,6 @@ function UnassignedTooltip() {
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: inline-flex;
   align-items: center;
-`;
-
-const UnassignedAvatar = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: ${AVATAR_ONLY_SIZE}px;
-  height: ${AVATAR_ONLY_SIZE}px;
 `;
 
 const AssigneeLabel = styled(Text)`
