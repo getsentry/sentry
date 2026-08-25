@@ -22,9 +22,13 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconAdd,
+  IconBug,
   IconChevron,
+  IconCode,
   IconGithub,
+  IconList,
   IconOpen,
+  IconPullRequest,
   IconRefresh,
   IconSeer,
 } from 'sentry/icons';
@@ -98,7 +102,7 @@ function StartAutofixAction({
   codingAgentStep,
   disabled,
   group,
-  icon = <IconSeer />,
+  icon,
   label,
   onContinueInSeer,
   tooltip,
@@ -108,10 +112,10 @@ function StartAutofixAction({
   analyticsAction: string;
   analyticsEventKey: string;
   analyticsEventName: string;
+  icon: ReactNode;
   label: string;
   analyticsParams?: ButtonProps['analyticsParams'];
   codingAgentStep?: 'root_cause' | 'solution';
-  icon?: ReactNode;
   tooltip?: string | null;
   variant?: 'primary' | 'secondary';
   waiting?: boolean;
@@ -119,7 +123,7 @@ function StartAutofixAction({
   const organization = useOrganization();
   const [isStartingAction, setIsStartingAction] = useState(false);
   const runId = autofix.runState?.run_id;
-  const isProcessing = autofix.isPolling || isStartingAction;
+  const isProcessing = autofix.isProcessing || isStartingAction;
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
       autofix,
@@ -246,6 +250,7 @@ function NextAutofixStepButton({
         autofix={autofix}
         disabled={disabled}
         group={group}
+        icon={<IconBug data-test-id="autofix-root-cause-icon" />}
         label={t('Find Root Cause')}
         onContinueInSeer={onContinueInSeer}
         variant={variant}
@@ -268,8 +273,8 @@ function NextAutofixStepButton({
           },
           group,
         })}
-        busy={autofix.isPolling}
-        disabled={disabled || autofix.isPolling}
+        busy={autofix.isProcessing}
+        disabled={disabled || autofix.isProcessing}
         icon={<IconSeer />}
         onClick={onContinueInSeer}
         variant={variant}
@@ -332,7 +337,7 @@ function NextAutofixStepButton({
         icon={<IconOpen />}
         variant={variant}
       >
-        {resultLink.label}
+        {defined(resultLink.prNumber) ? t('View PR') : resultLink.label}
       </LinkButton>
     );
   }
@@ -361,13 +366,22 @@ function NextAutofixStepButton({
   }
 
   const nextStep = getAutofixNextStep({sections});
-  if (autofix.isPolling) {
-    const label =
+  if (autofix.isProcessing) {
+    const {icon, label} =
       nextStep?.action === 'solution'
-        ? t('Make a Plan')
+        ? {
+            icon: <IconList data-test-id="autofix-plan-icon" />,
+            label: t('Make a Plan'),
+          }
         : nextStep?.action === 'code_changes'
-          ? t('Write a Code Fix')
-          : t('Find Root Cause');
+          ? {
+              icon: <IconCode data-test-id="autofix-code-changes-icon" />,
+              label: t('Write a Code Fix'),
+            }
+          : {
+              icon: <IconBug data-test-id="autofix-root-cause-icon" />,
+              label: t('Find Root Cause'),
+            };
 
     return (
       <StartAutofixAction
@@ -378,6 +392,7 @@ function NextAutofixStepButton({
         autofix={autofix}
         disabled
         group={group}
+        icon={icon}
         label={label}
         onContinueInSeer={onContinueInSeer}
         variant={variant}
@@ -420,6 +435,7 @@ function NextAutofixStepButton({
           autofix={autofix}
           disabled={disabled}
           group={group}
+          icon={<IconPullRequest data-test-id="autofix-pull-request-icon" />}
           label={t('Create PR')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -436,6 +452,7 @@ function NextAutofixStepButton({
           disabled={disabled}
           group={group}
           codingAgentStep="solution"
+          icon={<IconCode data-test-id="autofix-code-changes-icon" />}
           label={t('Write a Code Fix')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -452,6 +469,7 @@ function NextAutofixStepButton({
           disabled={disabled}
           group={group}
           codingAgentStep="root_cause"
+          icon={<IconList data-test-id="autofix-plan-icon" />}
           label={t('Make a Plan')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -507,11 +525,7 @@ function ActionButtons({
           href={latestOpenPullRequest.externalUrl}
           icon={<IconGithub data-test-id="pull-request-github" />}
         >
-          {t(
-            'View %s#%s',
-            latestOpenPullRequest.repository.name,
-            latestOpenPullRequest.id
-          )}
+          {t('View PR')}
         </LinkButton>
         <NextAutofixStepButton
           autofix={autofix}

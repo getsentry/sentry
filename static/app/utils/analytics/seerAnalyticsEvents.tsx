@@ -1,5 +1,19 @@
+import type {
+  PullRequestChecksStatus,
+  PullRequestReviewStatus,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+
+// Pipeline stage a run is bucketed into on the Autofix Overview page. Mirrors
+// the `AutofixStateKey` union in the overview view without importing across the
+// utils -> views layer boundary.
+type AutofixOverviewSection =
+  | 'needs_investigation'
+  | 'solution_ready'
+  | 'code_changes_ready'
+  | 'review_pr'
+  | 'merged';
 
 export type SeerAnalyticsEventsParameters = {
   'ai_query.applied': {
@@ -29,17 +43,12 @@ export type SeerAnalyticsEventsParameters = {
     type: 'positive' | 'negative';
   };
   'ai_query.interface': {
-    action: 'opened' | 'closed' | 'consent_accepted';
+    action: 'opened' | 'closed';
     area: string;
   };
   'ai_query.regenerated': {
     area: string;
     natural_language_query: string;
-  };
-  'ai_query.rejected': {
-    area: string;
-    natural_language_query: string;
-    num_queries_returned: number;
   };
   'ai_query.submitted': {
     area: string;
@@ -77,6 +86,24 @@ export type SeerAnalyticsEventsParameters = {
     group_id: string;
     organization: Organization;
     run_id: string;
+    section: AutofixOverviewSection;
+  };
+  'autofix.overview.code_changes_expanded': {
+    group_id: string;
+    organization: Organization;
+    run_id: string;
+    section: AutofixOverviewSection;
+  };
+  'autofix.overview.filter_changed': {
+    filter_type: 'sort' | 'assignee' | 'activity' | 'view_tab';
+    organization: Organization;
+    value: string;
+  };
+  'autofix.overview.issue_clicked': {
+    group_id: string;
+    organization: Organization;
+    run_id: string;
+    section: AutofixOverviewSection;
   };
   'autofix.overview.milestone_advanced': {
     from_milestone: string;
@@ -89,6 +116,15 @@ export type SeerAnalyticsEventsParameters = {
     group_id: string;
     organization: Organization;
     run_id: string;
+    section: AutofixOverviewSection;
+  };
+  'autofix.overview.pr_clicked': {
+    group_id: string;
+    organization: Organization;
+    run_id: string;
+    section: AutofixOverviewSection;
+    checks_status?: PullRequestChecksStatus;
+    review_status?: PullRequestReviewStatus;
   };
   'autofix.pr_iteration.feedback': {
     group_id: string;
@@ -200,7 +236,6 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'ai_query.error': 'AI Query: Error',
   'ai_query.interface': 'AI Query: Interface',
   'ai_query.regenerated': 'AI Query: Regenerated',
-  'ai_query.rejected': 'AI Query: Rejected',
   'ai_query.submitted': 'AI Query: Submitted',
   'ai_query.feedback': 'AI Query: Feedback',
   'autofix.coding_agent.launch': 'Autofix: Coding Agent Launch',
@@ -208,8 +243,12 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
   'autofix.evidence.clicked': 'Autofix: Evidence Clicked',
   'autofix.overview.action_clicked': 'Autofix Overview: Action Clicked',
+  'autofix.overview.code_changes_expanded': 'Autofix Overview: Code Changes Expanded',
+  'autofix.overview.filter_changed': 'Autofix Overview: Filter Changed',
+  'autofix.overview.issue_clicked': 'Autofix Overview: Issue Clicked',
   'autofix.overview.milestone_advanced': 'Autofix Overview: Milestone Advanced',
   'autofix.overview.open_seer_clicked': 'Autofix Overview: Open Seer Clicked',
+  'autofix.overview.pr_clicked': 'Autofix Overview: PR Clicked',
   'autofix.pr_iteration.feedback': 'Autofix: PR Iteration Feedback',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',

@@ -13,10 +13,10 @@ import type {Location} from 'history';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useTranslation} from '@sentry/scraps/translationContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
@@ -114,6 +114,7 @@ function shouldCloseOnInteractOutsideByDefault(element: Element) {
 
 export function GlobalDrawer({children}: any) {
   const location = useLocation();
+  const {t} = useTranslation();
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     StoredDrawerConfig | undefined
   >();

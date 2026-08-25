@@ -308,11 +308,14 @@ function ToggleConsolePlatformsModal({
           />
         </div>
 
-        <SimpleTableWithColumns>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell>User</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
+        <SimpleTableWithColumns
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>User</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>Platforms</SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
           <InvitesTableContent
             invites={displayedInvites}
             isPending={isInvitesFetchPending}

@@ -6,7 +6,7 @@ import time
 import uuid
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal, overload
+from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone as django_timezone
@@ -24,7 +24,7 @@ from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.agent.client_models import AgentRun, AgentRunWithPrs, SeerRunState
+from sentry.seer.agent.client_models import AgentRun, SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
     AgentReposRequest,
@@ -870,36 +870,6 @@ class SeerAgentClient:
 
         return state
 
-    @overload
-    def get_runs(
-        self,
-        category_key: str | None = ...,
-        category_value: str | None = ...,
-        offset: int | None = ...,
-        limit: int | None = ...,
-        project_ids: list[int] | None = ...,
-        expand: Literal["prs"] = ...,
-        only_current_user: bool = ...,
-        start: datetime | None = ...,
-        end: datetime | None = ...,
-        query: str | None = ...,
-    ) -> list[AgentRunWithPrs]: ...
-
-    @overload
-    def get_runs(
-        self,
-        category_key: str | None = ...,
-        category_value: str | None = ...,
-        offset: int | None = ...,
-        limit: int | None = ...,
-        project_ids: list[int] | None = ...,
-        expand: None = ...,
-        only_current_user: bool = ...,
-        start: datetime | None = ...,
-        end: datetime | None = ...,
-        query: str | None = ...,
-    ) -> list[AgentRun]: ...
-
     def get_runs(
         self,
         category_key: str | None = None,
@@ -907,12 +877,11 @@ class SeerAgentClient:
         offset: int | None = None,
         limit: int | None = None,
         project_ids: list[int] | None = None,
-        expand: Literal["prs"] | None = None,
         only_current_user: bool = True,
         start: datetime | None = None,
         end: datetime | None = None,
         query: str | None = None,
-    ) -> list[AgentRunWithPrs] | list[AgentRun]:
+    ) -> list[AgentRun]:
         """
         Get a list of Seer Agent runs for the organization with optional filters.
 
@@ -921,12 +890,10 @@ class SeerAgentClient:
             category_value: Optional category value to filter by (e.g., "issue-123")
             offset: Optional offset for pagination
             limit: Optional limit for pagination
-            expand: Optional string to include additional fields
             only_current_user: Optional to filter runs by current user
 
         Returns:
             List of runs matching the filters, sorted by most recent first.
-            Returns AgentRunWithPrs when expand="prs", AgentRun otherwise.
 
         Raises:
             SeerApiError: If the Seer API request fails
@@ -953,8 +920,6 @@ class SeerAgentClient:
             runs_body["project_ids"] = project_ids
         if limit is not None:
             runs_body["limit"] = limit
-        if expand is not None:
-            runs_body["expand"] = expand
         if start is not None:
             runs_body["start"] = start
         if end is not None:
@@ -968,8 +933,7 @@ class SeerAgentClient:
             raise SeerApiError("Seer request failed", response.status)
         result = response.json()
 
-        Model = AgentRunWithPrs if expand == "prs" else AgentRun
-        runs = [Model(**run) for run in result.get("data", [])]
+        runs = [AgentRun(**run) for run in result.get("data", [])]
         return runs
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:
