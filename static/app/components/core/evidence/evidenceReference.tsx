@@ -68,7 +68,7 @@ export const EVIDENCE_ICON: Record<EvidenceType, ComponentType<SVGIconProps>> = 
  * only repeat what the icon already says. Takes `t` rather than importing it: scraps
  * components read translations through `useTranslation()`, not `sentry/locale` directly.
  */
-export function evidenceLabel(
+function evidenceLabel(
   type: EvidenceType,
   t: (text: string) => string
 ): string | undefined {
@@ -125,9 +125,7 @@ interface EvidenceReferenceLinkProps extends EvidenceReferenceBaseProps {
   variant: 'link';
 }
 
-export type EvidenceReferenceProps =
-  | EvidenceReferenceButtonProps
-  | EvidenceReferenceLinkProps;
+type EvidenceReferenceProps = EvidenceReferenceButtonProps | EvidenceReferenceLinkProps;
 
 function EvidenceButtonContent({type, value}: EvidenceReferenceBaseProps) {
   const {t} = useTranslation();
