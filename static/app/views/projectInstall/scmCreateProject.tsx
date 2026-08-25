@@ -21,6 +21,7 @@ import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProject
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {
+  isProjectNameManuallyModified,
   type ScmProjectDetailsCompletion,
   useScmProjectDetails,
 } from 'sentry/components/onboarding/scm/useScmProjectDetails';
@@ -152,7 +153,18 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   const handlePlatformChange = useCallback(
     (platform: OnboardingSelectedSDK | undefined) => {
-      setState(s => ({...s, selectedPlatform: platform}));
+      setState(s => {
+        const form = s.projectDetailsForm;
+        // A manual name survives a platform change; an untouched name tracks
+        // the platform default, so drop it and let the hook re-derive it.
+        const shouldResetName = !!form && !isProjectNameManuallyModified(form);
+
+        return {
+          ...s,
+          selectedPlatform: platform,
+          projectDetailsForm: shouldResetName ? {...form, projectName: undefined} : form,
+        };
+      });
     },
     [setState]
   );
@@ -174,13 +186,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
       selectedFeatures: undefined,
       projectDetailsForm: undefined,
     }));
-  }, [setState]);
-
-  // Clear the project-details form when the platform changes, since the
-  // project name defaults from the platform key; the hook re-derives cleared
-  // fields.
-  const handleClearProjectDetailsForm = useCallback(() => {
-    setState(s => ({...s, projectDetailsForm: undefined}));
   }, [setState]);
 
   const handleProjectDetailsFormChange = useCallback(
@@ -303,7 +308,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   selectedPlatform={selectedPlatform}
                   onPlatformChange={handlePlatformChange}
                   onFeaturesChange={handleFeaturesChange}
-                  onClearProjectDetailsForm={handleClearProjectDetailsForm}
                 />
               </MotionContainer>
 
