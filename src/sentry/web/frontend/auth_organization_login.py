@@ -14,7 +14,7 @@ from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.utils.auth import initiate_login
-from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.web.frontend.auth_login import AuthLoginView, should_render_react_auth
 
 logger = logging.getLogger("sentry.saml_setup_error")
 
@@ -59,6 +59,9 @@ class AuthOrganizationLoginView(AuthLoginView):
 
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, organization_slug) -> HttpResponseBase:
+        if should_render_react_auth(request):
+            return self.handle_react(request)
+
         org_context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True
         )

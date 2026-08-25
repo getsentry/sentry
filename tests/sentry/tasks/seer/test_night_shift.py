@@ -84,11 +84,11 @@ class NightShiftFixtures(Fixtures):
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
         return project
 
-    def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
+    def _store_event_and_update_group(self, project, fingerprint, *, timestamp=None, **group_attrs):
         event = self.store_event(
             data={
                 "fingerprint": [fingerprint],
-                "timestamp": before_now(hours=1).isoformat(),
+                "timestamp": (timestamp or before_now(hours=1)).isoformat(),
                 "environment": "production",
             },
             project_id=project.id,
@@ -1058,6 +1058,11 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         shards = list(SeerNightShiftRunShard.objects.filter(run=run).order_by("id"))
         assert len(shards) == 2
         assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
+        assert set(
+            SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).values_list(
+                "referrer", flat=True
+            )
+        ) == {"night_shift"}
 
         shard_sizes = []
         dispatched_group_ids: list[int] = []
@@ -1344,6 +1349,37 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         assert null.id in result_ids
         # Low-scored issue (below threshold) is excluded entirely
         assert len(result) == 3
+
+    def test_requires_recent_occurrence(self) -> None:
+        project = self.create_project()
+        recent = self._store_event_and_update_group(
+            project, "recent", timestamp=before_now(days=13)
+        )
+        self._store_event_and_update_group(
+            project,
+            "old",
+            timestamp=before_now(days=15),
+        )
+
+        result = fixability_score_strategy([project], max_candidates=10)
+
+        assert [candidate.group.id for candidate in result] == [recent.id]
+
+    def test_agentic_search_requires_recent_occurrence(self) -> None:
+        project = self.create_project()
+        recent = self._store_event_and_update_group(
+            project, "agentic-recent", timestamp=before_now(days=13)
+        )
+        self._store_event_and_update_group(
+            project,
+            "agentic-old",
+            timestamp=before_now(days=15),
+        )
+
+        with self.feature({"organizations:agentic-triage-sort": True}):
+            result = fixability_score_strategy([project], max_candidates=10)
+
+        assert [candidate.group.id for candidate in result] == [recent.id]
 
     def test_includes_low_value_span_issues_in_search(self) -> None:
         project = self.create_project()

@@ -83,19 +83,54 @@ class ObjectstoreEndpoint(Endpoint):
         headers.pop("Content-Length", None)
         headers.pop("Transfer-Encoding", None)
 
+        query_string = request.META.get("QUERY_STRING") or None
+        accepted_encodings = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
+
+        if request.method == "GET" and "Range" in headers:
+            head_headers = headers.copy()
+            head_headers.pop("Range")
+            head_headers.pop("If-Range", None)
+
+            forward_range = False
+            try:
+                with requests.request(
+                    "HEAD",
+                    url=target_url,
+                    headers=head_headers,
+                    params=query_string,
+                    stream=True,
+                    allow_redirects=False,
+                ) as head_response:
+                    content_encoding = (
+                        head_response.headers.get("Content-Encoding", "").strip().lower()
+                    )
+                    forward_range = 200 <= head_response.status_code < 300 and (
+                        not content_encoding or content_encoding in accepted_encodings
+                    )
+            except requests.RequestException:
+                # Without reliable metadata, fall back to a decodable full response.
+                forward_range = False
+
+            if not forward_range:
+                headers.pop("Range")
+                headers.pop("If-Range", None)
+
         response = requests.request(
             request.method,
             url=target_url,
             headers=headers,
             data=get_raw_body(request._request),
-            params=request.META.get("QUERY_STRING") or None,
+            params=query_string,
             stream=True,
             allow_redirects=False,
         )
 
         content_encoding = response.headers.get("Content-Encoding", "").strip().lower()
-        accepted_encodings = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
-        decode_content = bool(content_encoding) and content_encoding not in accepted_encodings
+        decode_content = (
+            response.status_code != 206
+            and bool(content_encoding)
+            and content_encoding not in accepted_encodings
+        )
 
         return stream_response(response, decode_content=decode_content)
 

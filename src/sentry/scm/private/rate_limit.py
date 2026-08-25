@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Protocol
 
 from django.conf import settings
@@ -7,12 +7,14 @@ from redis import RedisError
 from sentry.utils import redis
 
 
-def usage_count_key(provider: str, integration_id: int, time_bucket: int, referrer: str) -> str:
-    return f"rl:scm:{provider}:{integration_id}:{referrer}:{time_bucket}"
+def usage_count_key(
+    provider: str, integration_id: int, time_bucket: int, referrer: str, resource: str
+) -> str:
+    return f"rl:scm:{provider}:{integration_id}:{resource}:{referrer}:{time_bucket}"
 
 
-def total_limit_key(provider: str, integration_id: int) -> str:
-    return f"limit:scm:{provider}:{integration_id}"
+def total_limit_key(provider: str, integration_id: int, resource: str) -> str:
+    return f"limit:scm:{provider}:{integration_id}:{resource}"
 
 
 class RateLimitProvider(Protocol):
@@ -53,11 +55,18 @@ class DynamicRateLimiter:
     We do not attempt to synchronize with the source. This requires every outbound request to utilize
     this class otherwise the counters will de-sync.
 
+    Quota is tracked per resource. A resource is an independently metered pool on the
+    service-provider's side; usage against one pool must never be compared against another pool's
+    limit. Resources may also be metered over different windows, which `resource_windows`
+    expresses.
+
     :param get_time_in_seconds: Get the current UTC timestamp in seconds.
     :param integration_id: The integration we're scoped to.
     :param provider: The service-provider we received rate-limit headers from.
-    :param rate_limit_window_seconds: The number of seconds in a rate-limit window.
+    :param rate_limit_window_seconds: The window length used by resources absent from
+        `resource_windows`.
     :param referrer_allocation: The referrer allocation pool we're working with.
+    :param resource_windows: Per-resource window length overrides, in seconds.
     """
 
     def __init__(
@@ -68,6 +77,7 @@ class DynamicRateLimiter:
         rate_limit_provider: RateLimitProvider,
         rate_limit_window_seconds: int,
         referrer_allocation: dict[str, float],
+        resource_windows: Mapping[str, int] | None = None,
     ) -> None:
         self.get_time_in_seconds = get_time_in_seconds
         self.integration_id = integration_id
@@ -75,9 +85,14 @@ class DynamicRateLimiter:
         self.rate_limit_provider = rate_limit_provider
         self.rate_limit_window_seconds = rate_limit_window_seconds
         self.referrer_allocation = referrer_allocation
-        self.recorded_capacity: int | None = None
+        self.resource_windows = dict(resource_windows or {})
+        self.recorded_capacity: dict[str, int | None] = {}
 
-    def is_rate_limited(self, referrer: str) -> bool:
+    def window_seconds(self, resource: str) -> int:
+        """Return the length of the rate-limit window for a resource."""
+        return self.resource_windows.get(resource, self.rate_limit_window_seconds)
+
+    def is_rate_limited(self, referrer: str, resource: str) -> bool:
         """
         Returns true if the quota for this organization has been exhausted.
 
@@ -88,23 +103,23 @@ class DynamicRateLimiter:
         if referrer not in self.referrer_allocation:
             referrer = "shared"
 
+        window = self.window_seconds(resource)
+
         # Find the bucket ID of the request. The bucket ID is the number of windows which have
         # previously elapsed.
         current_time = self.get_time_in_seconds()
-        time_bucket = current_time // self.rate_limit_window_seconds
+        time_bucket = current_time // window
 
         # Computed as the window minus the number seconds elapsed within the window. So if our window
         # is 100 seconds and 10 seconds of the current window has already elapsed then the remaining
         # time is 90 seconds.
-        expires_in = self.rate_limit_window_seconds - int(
-            current_time % self.rate_limit_window_seconds
-        )
+        expires_in = window - int(current_time % window)
 
         # Get the total capacity of the service-provider and the amount of quota we've consumed for
         # a given referrer. If the referrer does not exist in the allocation pool
         service_capacity, quota_used = self.rate_limit_provider.get_and_set_rate_limit(
-            total_limit_key(self.provider, self.integration_id),
-            usage_count_key(self.provider, self.integration_id, time_bucket, referrer),
+            total_limit_key(self.provider, self.integration_id, resource),
+            usage_count_key(self.provider, self.integration_id, time_bucket, referrer, resource),
             expires_in,
         )
 
@@ -112,7 +127,7 @@ class DynamicRateLimiter:
         # the same capacity value over and over again. The cached capacity is preserved across multiple
         # callers meaning this caching, though local to the dynamic rate limiter, enjoys global
         # population semantics.
-        self.recorded_capacity = service_capacity
+        self.recorded_capacity[resource] = service_capacity
 
         # If no limit could be found we fail open. We'll populate the limit on the other-side of the
         # HTTP request.
@@ -130,15 +145,22 @@ class DynamicRateLimiter:
 
         return quota_used > referrer_capacity
 
-    def update_rate_limit_meta(self, capacity: int, consumed: int, next_window_start: int) -> None:
+    def update_rate_limit_meta(
+        self,
+        capacity: int,
+        consumed: int,
+        next_window_start: int,
+        resource: str,
+    ) -> None:
         """Update the store with select rate-limit metadata."""
-        self.set_total_capacity(capacity)
+        self.set_total_capacity(capacity, resource)
 
-    def set_total_capacity(self, capacity: int) -> None:
+    def set_total_capacity(self, capacity: int, resource: str) -> None:
         """Set the service capacity if it does not match what already exists."""
-        if capacity != self.recorded_capacity:
-            key = total_limit_key(self.provider, self.integration_id)
+        if capacity != self.recorded_capacity.get(resource):
+            key = total_limit_key(self.provider, self.integration_id, resource)
             self.rate_limit_provider.set_key_values({key: (capacity, None)})
+            self.recorded_capacity[resource] = capacity
         return None
 
 

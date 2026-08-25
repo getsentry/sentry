@@ -106,7 +106,10 @@ from sentry.seer.autofix.utils import (
     MatchDelegatedAgentPrRequest,
     make_match_coding_agent_pr_request,
 )
+from sentry.seer.milestones import record_has_pull_request
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRunCodingAgentHandoff
+from sentry.seer.pull_requests import link_resolved_pull_request_to_seer_run
 from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
@@ -181,7 +184,7 @@ def handle_attribution(
     if not (action and github_user):
         return
 
-    if not features.has("organizations:pr-metrics-attribution", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return
 
     pr = _get_pull_request(
@@ -272,8 +275,8 @@ def _forward_to_judge(
     after the eligibility branch above: the fallback never talks to Seer, so it
     must not be blocked by an org's Seer-access consent gate.
 
-    Gated on ``pr-metrics-judge`` independently of emission: until it's enabled
-    (and Seer's endpoint exists), a needs-judge PR is skipped — today's behavior.
+    Re-checks ``pr-metrics``: the cooldown task that reaches here runs well after
+    the webhook that enqueued it, so the org may have lost the flag in between.
     Claims the sentinel via the redelivery guard before enqueuing the forward, so
     a redelivered terminal event can't forward to Seer twice.
     """
@@ -330,7 +333,7 @@ def _forward_to_judge(
         )
         return
 
-    if not features.has("organizations:pr-metrics-judge", organization):
+    if not features.has("organizations:pr-metrics", organization):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
         logger.info(
             "pr_metrics.emit.needs_judge",
@@ -418,7 +421,7 @@ def handle_emission(
     if event.get("action") != "closed":
         return
 
-    if not features.has("organizations:pr-metrics-emit", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return
 
     pr = _get_pull_request(
@@ -544,9 +547,8 @@ def handle_metrics(
     Kept current on every ``pull_request`` event so the emit path can read the
     counts off the row — the judge path (Seer RPC callback) has no payload to
     derive them from. Registered before ``handle_emission`` so a close/merge
-    reflects the final counts. Gated by the emit flag, the sole consumer; it
-    writes only the webhook-sourced counters, leaving the other columns to their
-    own producers.
+    reflects the final counts. It writes only the webhook-sourced counters, leaving
+    the other columns to their own producers.
 
     Skips a payload the ``PullRequest`` row rejected as stale: both writes come from
     one snapshot, and letting a replay clobber the counters while the PR row holds
@@ -557,7 +559,7 @@ def handle_metrics(
     if not pull_request:
         return
 
-    if not features.has("organizations:pr-metrics-emit", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return
 
     pr = _get_pull_request(
@@ -604,12 +606,7 @@ def handle_activity(
     if not action or (action not in _ACTIVITY_ACTIONS and action not in _DOC_ONLY_ACTIONS):
         return
 
-    # reopened/edited exist only on the document path; skip the whole path —
-    # including PR resolution — when the cutover flag is off, so the legacy path
-    # is untouched.
-    if action in _DOC_ONLY_ACTIONS and not features.has(
-        "organizations:pr-metrics-activity-document", organization
-    ):
+    if not is_activity_tracking_enabled(organization):
         return
 
     pr = _get_pull_request(
@@ -622,9 +619,10 @@ def handle_activity(
     if pr is None:
         return
 
-    use_doc = _use_activity_document(pr, organization)
+    use_doc = _use_activity_document(pr)
     if action in _DOC_ONLY_ACTIONS and not use_doc:
-        # The flag is on for this org, but this PR is still on the legacy store.
+        # reopened/edited exist only on the document path, and this PR is still on
+        # the legacy store, so there is nothing to record.
         return
 
     # Terminal events (close/merge/reopen) on the document path must be recorded
@@ -634,7 +632,7 @@ def handle_activity(
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
-    _write_activity(pr, organization, action, pull_request_data or {}, event, webhook_id, use_doc)
+    _write_activity(pr, action, pull_request_data or {}, event, webhook_id, use_doc)
 
 
 def handle_comment(
@@ -694,7 +692,7 @@ def handle_comment(
         author_association=comment.get("author_association", "NONE"),
     )
     _record_activity_event(
-        pr, organization, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
 
@@ -761,7 +759,6 @@ def handle_review(
         return
     _record_activity_event(
         pr,
-        organization,
         webhook_id,
         event_type,
         payload,
@@ -817,7 +814,7 @@ def handle_review_comment(
         review_id=comment.get("pull_request_review_id"),
     )
     _record_activity_event(
-        pr, organization, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
 
@@ -874,7 +871,6 @@ def handle_review_thread(
         return
     _record_activity_event(
         pr,
-        organization,
         webhook_id,
         event_type,
         payload,
@@ -922,7 +918,6 @@ def handle_check_suite(
         if is_activity_tracking_enabled(organization, pr):
             _record_activity_event(
                 pr,
-                organization,
                 webhook_id,
                 PullRequestActivityType.CHECK_SUITE_COMPLETED,
                 payload,
@@ -972,7 +967,6 @@ def handle_check_run(
         if is_activity_tracking_enabled(organization, pr):
             _record_activity_event(
                 pr,
-                organization,
                 webhook_id,
                 PullRequestActivityType.CHECK_RUN_COMPLETED,
                 payload,
@@ -1391,7 +1385,79 @@ def _send_seer_delegated_agent_match(
             group_ids=request_body.group_ids,
         ).dict(),
     )
+    _link_matched_delegated_agent_pr(match, pr, provider_hint)
     _record_delegated_candidate(provider_hint, "sync_matched")
+
+
+def _link_matched_delegated_agent_pr(
+    match: DelegatedAgentMatch,
+    pr: PullRequest,
+    provider_hint: str,
+) -> None:
+    """Link a matched PR to the run that produced it, on the same 200 that attributes it.
+
+    A coding agent's PR is linked only from an observation of that agent that carries the
+    PR url - a Cursor webhook, or a Claude Code / Copilot poll, and those polls run only
+    while a user is loading the issue's autofix state. So an agent that goes terminal
+    before its PR is visible reports no PR, and one that finishes with nobody watching is
+    never observed at all; neither is ever looked at again. This webhook is the next time
+    anyone sees that PR, and Seer has just told us which run it came from -- so it is the
+    last chance to link it.
+
+    Attribution and the run link answer the same question and are trusted on the same
+    signal, so this fires wherever attribution does. Best-effort: a failure here must not
+    cost the attribution already recorded above.
+    """
+    log_extra = {
+        "pull_request_id": pr.id,
+        "organization_id": pr.organization_id,
+        "provider_hint": provider_hint,
+        "agent_id": match.agent_id,
+        "run_id": match.run_id,
+        "match_path": match.match_path,
+    }
+
+    def record_outcome(outcome: str) -> None:
+        metrics.incr(
+            "pr_metrics.delegated_agent.link",
+            tags={
+                "provider": provider_hint,
+                "outcome": outcome,
+                "match_path": match.match_path,
+            },
+        )
+
+    try:
+        handoff = SeerRunCodingAgentHandoff.objects.select_related("seer_run").get(
+            agent_id=match.agent_id, seer_run__organization_id=pr.organization_id
+        )
+    except SeerRunCodingAgentHandoff.DoesNotExist:
+        # Seer knows agents whose handoff row we never wrote (a failed create, or a launch
+        # that predates the row). Nothing to link to, and not an error.
+        logger.info("pr_metrics.delegated_agent.handoff_not_found", extra=log_extra)
+        record_outcome("no_handoff")
+        return
+    except Exception:
+        logger.exception("pr_metrics.delegated_agent.handoff_lookup_failed", extra=log_extra)
+        record_outcome("lookup_failed")
+        return
+
+    linked = link_resolved_pull_request_to_seer_run(
+        seer_run=handoff.seer_run,
+        pull_request=pr,
+        log_context=log_extra,
+        coding_agent_handoff=handoff,
+    )
+    if linked is not None:
+        try:
+            # The run's furthest milestone drives which stage it appears under. Nothing
+            # else records this one for a PR that arrives after reconcile_milestones --
+            # the status sync records it for its own PRs, and this path is later still.
+            record_has_pull_request(handoff.seer_run)
+        except Exception:
+            logger.exception("pr_metrics.delegated_agent.milestone_failed", extra=log_extra)
+
+    record_outcome("linked" if linked is not None else "link_failed")
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
@@ -1417,17 +1483,14 @@ def _write_mcp_attribution(pr: PullRequest) -> None:
     )
 
 
-def _use_activity_document(pr: PullRequest, organization: Organization) -> bool:
+def _use_activity_document(pr: PullRequest) -> bool:
     """Whether this PR's activity writes go to the reduced JSON document.
 
-    Per-PR routing, consulted only when the cutover flag is on for the org: a PR
-    stays on whichever store it started on — an existing document wins, else
-    pre-existing legacy rows keep it on the old path, else (a new PR) it starts on
-    the document. The indexed 1:1 document lookup runs first; the legacy-rows
-    EXISTS only when there's no document.
+    Per-PR routing: a PR stays on whichever store it started on — an existing
+    document wins, else pre-existing legacy rows keep it on the old path, else (a
+    new PR) it starts on the document. The indexed 1:1 document lookup runs first;
+    the legacy-rows EXISTS only when there's no document.
     """
-    if not features.has("organizations:pr-metrics-activity-document", organization):
-        return False
     if PullRequestActivityLog.objects.filter(pull_request=pr).exists():
         return True
     if PullRequestActivity.objects.filter(pull_request=pr).exists():
@@ -1478,7 +1541,6 @@ def _apply_activity_into_doc(
 
 def _record_activity_event(
     pr: PullRequest,
-    organization: Organization,
     webhook_id: str,
     event_type: PullRequestActivityType,
     payload: dict[str, Any],
@@ -1499,7 +1561,7 @@ def _record_activity_event(
     it — pass it as ``use_doc``; otherwise it is computed here.
     """
     if use_doc is None:
-        use_doc = _use_activity_document(pr, organization)
+        use_doc = _use_activity_document(pr)
     if use_doc:
         doc_extras = {
             key: value
@@ -1538,7 +1600,6 @@ def _write_activity_row(
 
 def _write_activity(
     pr: PullRequest,
-    organization: Organization,
     action: str,
     pull_request: Mapping[str, Any],
     event: Mapping[str, Any],
@@ -1566,7 +1627,6 @@ def _write_activity(
     payload = _build_activity_payload(action, pull_request, event, use_doc)
     _record_activity_event(
         pr,
-        organization,
         webhook_id,
         event_type,
         payload,

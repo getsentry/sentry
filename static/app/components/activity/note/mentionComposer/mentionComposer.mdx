@@ -1,0 +1,22 @@
+---
+title: Mention Composer
+description: The activity note editor with member and team references.
+source: sentry/components/activity/note/mentionComposer/mentionComposer
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {Stack} from '@sentry/scraps/layout';
+
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
+
+export const documentation =
+  import('!!type-loader!sentry/components/activity/note/mentionComposer/mentionComposer');
+
+`<MentionComposer>` adapts the shared mention editor to activity notes. It adds organization sources, Markdown preview, note serialization, and submission controls.
+
+<Storybook.Demo overflow="visible">
+  <Stack width="100%" maxWidth="720px">
+    <MentionComposer />
+  </Stack>
+</Storybook.Demo>
