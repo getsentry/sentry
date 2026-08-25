@@ -33,7 +33,7 @@ from sentry.utils.snuba import raw_snql_query
 
 # The window recalibration measures an organization over. Shared with the comparison
 # logging, so that the legacy factor it reports is computed over the same window.
-RECALIBRATION_TIME_INTERVAL = timedelta(minutes=5)
+RECALIBRATION_TIME_INTERVAL = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
 
 
 class OrganizationVolumeConfig(Protocol):
@@ -148,26 +148,6 @@ def get_eap_organization_volume(
     indexed = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
 
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
-
-
-def get_recalibration_organization_volume(
-    config: OrganizationVolumeConfig,
-    eap_volume: OrganizationDataVolume | None,
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-    end: datetime | None = None,
-) -> OrganizationDataVolume | None:
-    if eap_volume is None or eap_volume.indexed is None:
-        return None
-
-    outcomes_volume = get_outcomes_organization_volume(config, time_interval=time_interval, end=end)
-    if outcomes_volume is None:
-        return None
-
-    return OrganizationDataVolume(
-        org_id=config.organization.id,
-        total=outcomes_volume.total,
-        indexed=eap_volume.indexed,
-    )
 
 
 def get_outcomes_organization_volume(
