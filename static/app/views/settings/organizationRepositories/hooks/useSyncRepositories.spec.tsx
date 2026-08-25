@@ -132,6 +132,56 @@ describe('useSyncRepositories', () => {
     expect(onSynced).toHaveBeenCalled();
   });
 
+  it('detects completion for a freshly connected integration with no prior last_sync', async () => {
+    // A newly connected integration starts without a last_sync value; the
+    // undefined -> timestamp transition must still be detected as completion.
+    const freshIntegration = OrganizationIntegrationsFixture({id: '123', configData: {}});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/123/',
+      body: freshIntegration,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/123/repo-sync/',
+      method: 'POST',
+      body: {},
+    });
+
+    const onSynced = jest.fn();
+    const {result} = renderHookWithProviders(
+      () =>
+        useSyncRepositories(freshIntegration, {
+          onSynced,
+          pollingConfig: [{pollInterval: 5_000, phaseTimeout: 30_000}],
+        }),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.syncNow).toBeDefined());
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.syncNow?.();
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/123/',
+      body: OrganizationIntegrationsFixture({
+        id: '123',
+        configData: {last_sync: 'new-value'},
+      }),
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(5_000);
+    });
+
+    jest.useRealTimers();
+
+    await waitFor(() => expect(result.current.isSyncing).toBe(false));
+    expect(onSynced).toHaveBeenCalled();
+  });
+
   it('shows a still-syncing toast and advances poll interval at phase boundary', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/123/repo-sync/',
