@@ -68,8 +68,6 @@ describe('ApiTokenRow', () => {
     renderRow(<ApiTokenRow onRemove={jest.fn()} token={token} />);
 
     expect(screen.getByText('Codespaces')).toBeInTheDocument();
-    expect(screen.getByLabelText('Token preview')).toHaveTextContent(
-      '************14e3'
-    );
+    expect(screen.getByLabelText('Token preview')).toHaveTextContent('************14e3');
   });
 });
