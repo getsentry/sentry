@@ -4,10 +4,12 @@ import logging
 import random
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Collection
+from datetime import datetime
 from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q, QuerySet
 from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
@@ -54,6 +56,7 @@ from sentry.seer.models import (
     SeerRepoDefinition,
 )
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
+from sentry.seer.runs_search import queryset_for_query
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
@@ -866,6 +869,30 @@ class SeerAgentClient:
             state = fetch_run_status(run_id, self.organization, viewer_context=self.viewer_context)
 
         return state
+
+    def get_runs(
+        self,
+        *,
+        accessible_project_ids: Collection[int],
+        query: str = "",
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> QuerySet[SeerRun]:
+        """Return locally mirrored runs visible to this client.
+
+        ``accessible_project_ids`` must be permission-checked by the caller.
+        Runs without an associated project remain visible.
+        """
+        user_id = int(self.user.id) if self.user is not None and self.user.id is not None else None
+        queryset = queryset_for_query(query, self.organization, user_id)
+        queryset = queryset.filter(
+            Q(agent__project_id__isnull=True) | Q(agent__project_id__in=accessible_project_ids)
+        )
+        if start is not None:
+            queryset = queryset.filter(last_triggered_at__gte=start)
+        if end is not None:
+            queryset = queryset.filter(last_triggered_at__lte=end)
+        return queryset
 
     def latest_run(
         self,
