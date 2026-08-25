@@ -53,10 +53,14 @@ describe('ExpandableFilterSearchBar', () => {
 
     const input = screen.getByTestId('query-builder-input');
     await userEvent.click(input);
+    // Wait for the post-click focus RAF so it cannot re-expand after Enter.
+    await flushAnimationFrames();
     expect(isExpanded(input)).toBe(true);
 
     await userEvent.keyboard('{Enter}');
-    expect(isExpanded(input)).toBe(false);
+    await waitFor(() => {
+      expect(isExpanded(input)).toBe(false);
+    });
   });
 
   it('stays expanded on Enter while a suggestion menu is open', async () => {
@@ -64,6 +68,7 @@ describe('ExpandableFilterSearchBar', () => {
 
     const input = screen.getByTestId('query-builder-input');
     await userEvent.click(input);
+    await flushAnimationFrames();
     expect(isExpanded(input)).toBe(true);
 
     await userEvent.keyboard('{Enter}');
