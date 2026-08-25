@@ -48,11 +48,11 @@ interface RotateClientSecretResponse {
 
 const schema = z.object({
   name: z.string().min(1),
-  homepageUrl: z.string().nullish(),
-  privacyUrl: z.string().nullish(),
-  termsUrl: z.string().nullish(),
-  redirectUris: z.string().nullish(),
-  allowedOrigins: z.string().nullish(),
+  homepageUrl: z.string(),
+  privacyUrl: z.string(),
+  termsUrl: z.string(),
+  redirectUris: z.string(),
+  allowedOrigins: z.string(),
 });
 
 function ApiApplicationsDetails() {
