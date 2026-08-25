@@ -5,6 +5,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DataTable} from 'sentry/components/tables/dataTable';
+import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -88,8 +89,7 @@ export function SpansTable({
               const direction = sortBys.find(s => s.field === field)?.kind;
 
               function updateSort() {
-                const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSortBys([{field, kind}]);
+                setSortBys([{field, kind: getNextDirection(direction)}]);
               }
 
               const label = tag?.name ?? prettifyTagKey(field);

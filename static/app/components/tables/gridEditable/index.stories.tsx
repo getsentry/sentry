@@ -63,7 +63,6 @@ export default Storybook.story('GridEditable', story => {
         <GridEditable
           data={data}
           columnOrder={columnsWithWidth}
-          columnSortBy={[]}
           grid={{
             renderHeadCell,
             renderBodyCell,
@@ -83,7 +82,6 @@ export default Storybook.story('GridEditable', story => {
           error="An error happened"
           data={data}
           columnOrder={columns}
-          columnSortBy={[]}
           grid={{}}
         />
       </div>
@@ -91,13 +89,7 @@ export default Storybook.story('GridEditable', story => {
         <p>
           <Storybook.JSXNode name="GridEditable" props={{isLoading: true}} />
         </p>
-        <GridEditable
-          isLoading
-          data={data}
-          columnOrder={columns}
-          columnSortBy={[]}
-          grid={{}}
-        />
+        <GridEditable isLoading data={data} columnOrder={columns} grid={{}} />
       </div>
     </Storybook.SideBySide>
   ));
@@ -122,7 +114,6 @@ export default Storybook.story('GridEditable', story => {
         <GridEditable
           data={data}
           columnOrder={columns}
-          columnSortBy={[]}
           grid={{}}
           onRowMouseOver={(_dataRow, key) => {
             setActiveRowKey(key);
@@ -158,7 +149,6 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={data}
               columnOrder={columnsWithWidth}
-              columnSortBy={[]}
               grid={{
                 renderHeadCell,
                 renderBodyCell,
@@ -174,7 +164,6 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={data}
               columnOrder={queryBasedColumnResize.columns}
-              columnSortBy={[]}
               grid={{
                 renderHeadCell,
                 renderBodyCell,
@@ -191,7 +180,6 @@ export default Storybook.story('GridEditable', story => {
     <GridEditable
       data={data}
       columnOrder={columns}
-      columnSortBy={[]}
       grid={{
         renderHeadCell,
         renderBodyCell,
@@ -237,7 +225,6 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={data}
               columnOrder={columns}
-              columnSortBy={[]}
               grid={{
                 renderHeadCell,
                 renderBodyCell,
@@ -251,7 +238,6 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={data}
               columnOrder={columns}
-              columnSortBy={[]}
               grid={{
                 renderHeadCell,
                 renderBodyCell,
@@ -298,7 +284,6 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={newData}
               columnOrder={columns}
-              columnSortBy={[]}
               grid={{
                 renderHeadCell,
                 renderBodyCell,
@@ -310,7 +295,6 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={newData}
               columnOrder={columns}
-              columnSortBy={[]}
               grid={{
                 renderHeadCell,
                 renderBodyCell,

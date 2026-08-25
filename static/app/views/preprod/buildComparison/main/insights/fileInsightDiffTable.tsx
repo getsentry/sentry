@@ -13,7 +13,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   DiffTableChangeAmountCell,
-  DiffTableHeaderRow,
+  DiffTableHeader,
   DiffTableWithColumns,
   getDiffChangeElements,
   ITEMS_PER_PAGE,
@@ -117,30 +117,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
     <Stack gap="md">
       <DiffTableWithColumns
         gridTemplateColumns="150px minmax(200px, 3fr) 180px"
-        header={
-          <DiffTableHeaderRow>
-            {tableHeaders.map(header => (
-              <SimpleTable.HeaderCell
-                key={header.key}
-                handleSortClick={
-                  header.key
-                    ? () =>
-                        setSort({
-                          field: header.key,
-                          kind:
-                            sort?.field === header.key && sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc',
-                        })
-                    : undefined
-                }
-                sort={sort && sort?.field === header.key ? sort.kind : undefined}
-              >
-                {header.label}
-              </SimpleTable.HeaderCell>
-            ))}
-          </DiffTableHeaderRow>
-        }
+        header={<DiffTableHeader headers={tableHeaders} onSort={setSort} sort={sort} />}
       >
         {sortedDiffItems.length === 0 && (
           <SimpleTable.Empty>

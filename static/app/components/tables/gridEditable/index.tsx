@@ -12,7 +12,6 @@ import {
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DataTable} from 'sentry/components/tables/dataTable';
-import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
@@ -36,7 +35,6 @@ type GridEditableProps<
   SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
 > = {
   columnOrder: Order[];
-  columnSortBy: SortBy[];
   data: DataRow[];
 
   /**
@@ -46,6 +44,11 @@ type GridEditableProps<
   grid: GridData<DataRow, Order>;
   'aria-label'?: string;
   bodyStyle?: React.CSSProperties;
+  /**
+   * @deprecated Report the direction from `grid.getColumnSort` instead, so the
+   * arrow a column renders and the direction it announces cannot disagree.
+   */
+  columnSortBy?: SortBy[];
   emptyMessage?: React.ReactNode;
   error?: unknown | null;
 
@@ -81,8 +84,9 @@ type GridEditableProps<
    * based on this 3 main props.
    *
    * - `columnOrder` determines the columns to show, from left to right
-   * - `columnSortBy` tells each header cell which sort state to announce; the
-   *   sort itself is still performed by the parent component
+   * - `grid.getColumnSort` tells each header cell how to offer sorting and
+   *   which direction to announce; the sort itself is still performed by the
+   *   parent component
    */
   title?: ReactNode;
 };
@@ -144,19 +148,28 @@ export function GridEditable<
               {item}
             </GridHeadCellStatic>
           ))}
-        {props.columnOrder.map((column, i) => (
-          <DataTable.HeadCell
-            aria-sort={getAriaSort(
-              props.columnSortBy.find(sort => sort.key === column.key)?.order
-            )}
-            columnIndex={i}
-            data-test-id="grid-head-cell"
-            key={`${i}.${String(column.key)}`}
-            isFirst={i === 0}
-          >
-            {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-          </DataTable.HeadCell>
-        ))}
+        {props.columnOrder.map((column, i) => {
+          const columnSort = grid.getColumnSort?.(column, i);
+          const direction =
+            columnSort?.direction ??
+            props.columnSortBy?.find(sort => sort.key === column.key)?.order;
+
+          return (
+            <DataTable.HeadCell
+              align={columnSort?.align}
+              columnIndex={i}
+              data-test-id="grid-head-cell"
+              key={`${i}.${String(column.key)}`}
+              isFirst={i === 0}
+              onSort={columnSort?.onSort}
+              replace={columnSort?.replace}
+              sort={direction}
+              to={columnSort?.to}
+            >
+              {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
+            </DataTable.HeadCell>
+          );
+        })}
       </DataTable.Row>
     );
   }

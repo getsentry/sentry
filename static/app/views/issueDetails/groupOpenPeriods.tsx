@@ -179,7 +179,6 @@ function IssueOpenPeriodsList() {
         data={data}
         error={error}
         columnOrder={columnOrder}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
