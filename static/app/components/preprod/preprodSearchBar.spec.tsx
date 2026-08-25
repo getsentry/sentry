@@ -56,10 +56,18 @@ describe('PreprodSearchBar', () => {
     });
   });
 
-  it('surfaces no array attributes when none are returned', async () => {
+  it('gates out array attributes when the flag is disabled', async () => {
+    // Even if array attributes come back, the local flag guard drops them.
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'app.name', name: 'app.name', attributeType: 'string'}],
+      body: [
+        {key: 'app.name', name: 'app.name', attributeType: 'string'},
+        {
+          key: 'tags[app.features,array]',
+          name: 'app.features',
+          attributeType: 'array',
+        },
+      ],
     });
 
     render(<PreprodSearchBar initialQuery="" projects={[1]} />, {

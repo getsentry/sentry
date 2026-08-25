@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {usePreprodItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -89,6 +90,10 @@ export function PreprodSearchBar({
   disallowLogicalOperators,
   searchSource = 'preprod',
 }: PreprodSearchBarProps) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes(
+    'trace-item-array-query-support'
+  );
   // When using allowedKeys, we fetch all attributes then filter to the allowlist.
   // Otherwise, we use HIDDEN_PREPROD_ATTRIBUTES to hide internal fields.
   const hiddenKeys = allowedKeys ? undefined : HIDDEN_PREPROD_ATTRIBUTES;
@@ -153,21 +158,23 @@ export function PreprodSearchBar({
     [allowedKeys, rawBooleanSecondaryAliases]
   );
 
-  const arrayAttributes = useMemo(
-    () =>
-      allowedKeys
-        ? filterToAllowedKeys(rawArrayAttributes, allowedKeys)
-        : rawArrayAttributes,
-    [allowedKeys, rawArrayAttributes]
-  );
+  const arrayAttributes = useMemo(() => {
+    if (!supportsArrays) {
+      return {};
+    }
+    return allowedKeys
+      ? filterToAllowedKeys(rawArrayAttributes, allowedKeys)
+      : rawArrayAttributes;
+  }, [allowedKeys, rawArrayAttributes, supportsArrays]);
 
-  const arraySecondaryAliases = useMemo(
-    () =>
-      allowedKeys
-        ? filterToAllowedKeys(rawArraySecondaryAliases, allowedKeys)
-        : rawArraySecondaryAliases,
-    [allowedKeys, rawArraySecondaryAliases]
-  );
+  const arraySecondaryAliases = useMemo(() => {
+    if (!supportsArrays) {
+      return {};
+    }
+    return allowedKeys
+      ? filterToAllowedKeys(rawArraySecondaryAliases, allowedKeys)
+      : rawArraySecondaryAliases;
+  }, [allowedKeys, rawArraySecondaryAliases, supportsArrays]);
 
   return (
     <TraceItemSearchQueryBuilder
