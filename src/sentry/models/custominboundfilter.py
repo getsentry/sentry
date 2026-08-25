@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from enum import StrEnum
 
 from django.db import models
@@ -30,19 +29,7 @@ class CustomInboundFilterDataType(StrEnum):
     ERROR = "error"
     LOG = "log"
     METRIC = "metric"
-
-
-# The data type each condition reads a field of. A condition is absent when its field
-# is carried by every data type, such as `release`, since such a condition does not
-# tie a filter to one data type.
-DATA_TYPE_BY_CONDITION_TYPE: Mapping[
-    CustomInboundFilterConditionType, CustomInboundFilterDataType
-] = {
-    CustomInboundFilterConditionType.ERROR_TYPE: CustomInboundFilterDataType.ERROR,
-    CustomInboundFilterConditionType.ERROR_MESSAGE: CustomInboundFilterDataType.ERROR,
-    CustomInboundFilterConditionType.LOG_MESSAGE: CustomInboundFilterDataType.LOG,
-    CustomInboundFilterConditionType.METRIC_NAME: CustomInboundFilterDataType.METRIC,
-}
+    SPAN = "span"
 
 
 @cell_silo_model

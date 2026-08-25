@@ -148,6 +148,14 @@ class CustomInboundFiltersTest(APITestCase):
                 "It accepts log_message, release.",
             ),
             (
+                "span",
+                [
+                    {"type": "release", "value": ["1.*"]},
+                    {"type": "metric_name", "value": ["counter.*"]},
+                ],
+                "A filter on span data cannot use the metric_name condition. It accepts release.",
+            ),
+            (
                 "all",
                 [
                     {"type": "release", "value": ["1.*"]},
@@ -188,6 +196,23 @@ class CustomInboundFiltersTest(APITestCase):
         assert response.data["dataType"] == "all"
         assert custom_filter.data_type == "all"
 
+    def test_post_span(self) -> None:
+        """Relay ingests spans for every organization, so a span filter needs no feature."""
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Spans from a bad release",
+                dataType="span",
+                conditions=[{"type": "release", "value": ["1.*"]}],
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["dataType"] == "span"
+        assert custom_filter.data_type == "span"
+
     def test_catch_all_needs_no_ingestion_feature(self) -> None:
         """The catch-all filters whichever data types the organization ingests."""
         with self.feature(self.features):
@@ -207,11 +232,11 @@ class CustomInboundFiltersTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 method="post",
-                dataType="span",
+                dataType="replay",
                 conditions=[{"type": "release", "value": ["1.*"]}],
             )
 
-        assert '"span" is not a valid choice.' in str(response.data["dataType"][0])
+        assert '"replay" is not a valid choice.' in str(response.data["dataType"][0])
 
     def test_rejects_missing_data_type(self) -> None:
         with self.feature(self.features):

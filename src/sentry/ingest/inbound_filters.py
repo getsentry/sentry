@@ -558,6 +558,10 @@ def _field_matcher(name: str) -> _ConditionMatcher:
 
 # A filter's data type selects the item its conditions match against, since only that
 # item carries such data. Release lives on a different field on each of them.
+#
+# Replays, sessions and profiles are not selectable data types: Relay reads a release
+# off all three under `event.release`, so they cannot be told apart from errors. The
+# catch-all below still reaches them, through the error entry's field.
 _MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
     CustomInboundFilterDataType.ERROR: {
         CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
@@ -574,6 +578,11 @@ _MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMa
         CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
         CustomInboundFilterConditionType.RELEASE: _field_matcher(
             "trace_metric.attributes.sentry.release.value"
+        ),
+    },
+    CustomInboundFilterDataType.SPAN: {
+        CustomInboundFilterConditionType.RELEASE: _field_matcher(
+            "span.attributes.sentry.release.value"
         ),
     },
 }

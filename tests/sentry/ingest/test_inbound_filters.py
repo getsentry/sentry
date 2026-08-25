@@ -258,6 +258,7 @@ def release_rule_condition(values: list[str]) -> dict:
                 "name": "trace_metric.attributes.sentry.release.value",
                 "value": values,
             },
+            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": values},
         ],
     }
 
@@ -360,6 +361,12 @@ def release_rule_condition(values: list[str]) -> dict:
             [{"type": "metric_name", "value": ["checkout.*"]}],
             {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
             id="single_condition_is_not_wrapped",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "release", "value": ["1.2.3"]}],
+            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.3"]},
+            id="release_on_spans",
         ),
         pytest.param(
             "error",
@@ -511,8 +518,15 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     # A data type this revision does not know, e.g. one a newer deploy wrote.
     factories.create_project_custom_inbound_filter(
         default_project,
-        data_type="span",
+        data_type="unknown_data_type",
         conditions=[{"type": "release", "value": ["1.*"]}],
+    )
+    # A span filter accepts release alone, so any other condition disables the filter
+    # rather than widening it.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[{"type": "error_type", "value": ["TypeError"]}],
     )
     # A catch-all can only carry conditions every data type has a field for.
     factories.create_project_custom_inbound_filter(
