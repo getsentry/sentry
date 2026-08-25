@@ -5,7 +5,6 @@ import random
 import time
 import uuid
 from collections.abc import Callable
-from datetime import datetime
 from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
@@ -24,11 +23,10 @@ from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.agent.client_models import AgentRun, SeerRunState
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
     AgentReposRequest,
-    AgentRunsRequest,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
     collect_user_org_context,
@@ -37,7 +35,6 @@ from sentry.seer.agent.client_utils import (
     get_proxy_headers,
     make_agent_chat_request,
     make_agent_repos_request,
-    make_agent_runs_request,
     make_agent_update_request,
     poll_until_done,
 )
@@ -910,72 +907,6 @@ class SeerAgentClient:
         if run is None:
             return None
         return self.get_run(run.run.seer_run_state_id)
-
-    def get_runs(
-        self,
-        category_key: str | None = None,
-        category_value: str | None = None,
-        offset: int | None = None,
-        limit: int | None = None,
-        project_ids: list[int] | None = None,
-        only_current_user: bool = True,
-        start: datetime | None = None,
-        end: datetime | None = None,
-        query: str | None = None,
-    ) -> list[AgentRun]:
-        """
-        Get a list of Seer Agent runs for the organization with optional filters.
-
-        Args:
-            category_key: Optional category key to filter by (e.g., "bug-fixer")
-            category_value: Optional category value to filter by (e.g., "issue-123")
-            offset: Optional offset for pagination
-            limit: Optional limit for pagination
-            only_current_user: Optional to filter runs by current user
-
-        Returns:
-            List of runs matching the filters, sorted by most recent first.
-
-        Raises:
-            SeerApiError: If the Seer API request fails
-        """
-        runs_body: AgentRunsRequest = AgentRunsRequest(
-            organization_id=self.organization.id,
-        )
-
-        # Add optional filters
-        if (
-            only_current_user
-            and self.user
-            and hasattr(self.user, "id")
-            and self.user.id is not None
-        ):
-            runs_body["user_id"] = int(self.user.id)
-        if category_key is not None:
-            runs_body["category_key"] = category_key
-        if category_value is not None:
-            runs_body["category_value"] = category_value
-        if offset is not None:
-            runs_body["offset"] = offset
-        if project_ids is not None:
-            runs_body["project_ids"] = project_ids
-        if limit is not None:
-            runs_body["limit"] = limit
-        if start is not None:
-            runs_body["start"] = start
-        if end is not None:
-            runs_body["end"] = end
-        if query is not None:
-            runs_body["query"] = query
-
-        response = make_agent_runs_request(runs_body, viewer_context=self.viewer_context)
-
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
-        result = response.json()
-
-        runs = [AgentRun(**run) for run in result.get("data", [])]
-        return runs
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:
         body = AgentReposRequest(

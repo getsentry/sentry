@@ -687,36 +687,6 @@ class TestSeerAgentClient(TestCase):
         with pytest.raises(SeerApiError):
             client.get_run(123)
 
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_runs_request")
-    def test_get_runs_basic(self, mock_post, mock_access):
-        """Test getting runs with filters"""
-        mock_access.return_value = (True, None)
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "data": [
-                {
-                    "run_id": 1,
-                    "title": "Test",
-                    "last_triggered_at": "2024-01-01T00:00:00",
-                    "created_at": "2024-01-01T00:00:00",
-                    "category_key": "bug-fixer",
-                    "category_value": "issue-123",
-                }
-            ]
-        }
-        mock_response.status = 200
-        mock_post.return_value = mock_response
-
-        client = SeerAgentClient(self.organization, self.user)
-        runs = client.get_runs(category_key="bug-fixer", category_value="issue-123")
-
-        assert len(runs) == 1
-        assert runs[0].category_key == "bug-fixer"
-        body = mock_post.call_args[0][0]
-        assert body["category_key"] == "bug-fixer"
-        assert body["category_value"] == "issue-123"
-
 
 class TestSeerAgentClientArtifacts(TestCase):
     """Test artifact schema passing and retrieval"""
