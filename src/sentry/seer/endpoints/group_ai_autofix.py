@@ -78,7 +78,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
-from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
+from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -409,11 +409,12 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
                     actor_user_id=request.user.id,
                 )
 
-                consume_queued_autofix_feedback.apply_async(
-                    kwargs={
-                        "run_id": resolved_run_id,
-                        "organization_id": group.organization.id,
-                    }
+                trigger_consume_pr_iteration_feedback(
+                    run_id=resolved_run_id,
+                    organization_id=group.organization.id,
+                    feedback=feedback,
+                    run_state=run_state,
+                    bypass=True,
                 )
 
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id

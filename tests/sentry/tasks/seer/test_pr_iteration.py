@@ -472,53 +472,6 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     def _call(self) -> None:
         consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
 
-    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions")
-    @patch(f"{TASK_PATH}.trigger_autofix_agent")
-    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
-    @patch(f"{TASK_PATH}.peek_queued_autofix_feedback")
-    @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_missing_permissions_leaves_the_feedback_queued(
-        self,
-        mock_fetch: MagicMock,
-        mock_peek: MagicMock,
-        mock_pop: MagicMock,
-        mock_trigger: MagicMock,
-        mock_block: MagicMock,
-    ) -> None:
-        mock_fetch.return_value = self._state()
-        mock_peek.return_value = [self._queued(self._review_feedback(1))]
-        mock_block.return_value = True
-
-        self._call()
-
-        # Blocked before the pop, so the next consume still has the feedback to
-        # act on once the permissions are accepted.
-        mock_pop.assert_not_called()
-        mock_trigger.assert_not_called()
-
-    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions")
-    @patch(f"{TASK_PATH}.trigger_autofix_agent")
-    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
-    @patch(f"{TASK_PATH}.peek_queued_autofix_feedback")
-    @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_no_permission_check_without_consumable_feedback(
-        self,
-        mock_fetch: MagicMock,
-        mock_peek: MagicMock,
-        mock_pop: MagicMock,
-        mock_trigger: MagicMock,
-        mock_block: MagicMock,
-    ) -> None:
-        mock_fetch.return_value = self._state()
-        mock_peek.return_value = []
-        mock_pop.return_value = []
-
-        self._call()
-
-        # Nothing to act on, so no PR comment and no GitHub lookup.
-        mock_block.assert_not_called()
-        mock_trigger.assert_not_called()
-
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -1016,6 +969,54 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             kwargs={"run_id": 67890, "organization_id": self.organization.id},
             countdown=None,
         )
+
+    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_missing_permissions_skips_scheduling(
+        self, mock_apply: MagicMock, mock_block: MagicMock
+    ) -> None:
+        trigger_consume_pr_iteration_feedback(
+            run_id=67890,
+            organization_id=self.organization.id,
+            feedback=self._feedback(),
+            run_state=self._state(),
+        )
+
+        mock_block.assert_called_once()
+        mock_apply.assert_not_called()
+
+    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_permission_gate_runs_before_should_trigger(
+        self, mock_apply: MagicMock, _mock_block: MagicMock
+    ) -> None:
+        """The comment must not wait on a sweep that would defer consume an hour."""
+        feedback = self._feedback()
+        with patch.object(type(feedback.source), "should_trigger") as mock_should_trigger:
+            trigger_consume_pr_iteration_feedback(
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        mock_should_trigger.assert_not_called()
+        mock_apply.assert_not_called()
+
+    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_missing_permissions_skips_scheduling_even_with_bypass(
+        self, mock_apply: MagicMock, _mock_block: MagicMock
+    ) -> None:
+        trigger_consume_pr_iteration_feedback(
+            run_id=67890,
+            organization_id=self.organization.id,
+            feedback=self._feedback(),
+            run_state=self._state(),
+            bypass=True,
+        )
+
+        mock_apply.assert_not_called()
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_skips_when_no_consume_task(self, mock_apply: MagicMock) -> None:

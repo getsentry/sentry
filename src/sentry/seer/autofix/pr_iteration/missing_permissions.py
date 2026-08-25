@@ -4,9 +4,16 @@ PR iteration reads CI logs and pushes commits through the org's GitHub App
 installation. When that installation is missing a permission the app now
 requires, every one of those tool calls fails and the run goes quiet with no
 explanation on the PR. The same missing-permission state already drives the
-out-of-date banner in the integrations UI; this checks it again at the moment
-we're about to start an iteration and, when something is missing, posts one
-comment telling the user what to accept instead of iterating.
+out-of-date banner in the integrations UI; this checks it again the moment
+feedback lands in the queue and, when something is missing, posts one comment
+telling the user what to accept instead of scheduling the iteration.
+
+The check runs at queue time rather than consume time so the comment lands
+while the user is still looking at the failing PR: a consume can be deferred
+an hour behind an incomplete check-run sweep, and a notice that late is worse
+than useless. Queue time is also the *only* place this is checked — consume
+and the on-completion hook deliberately trust that whatever scheduled them
+passed through here first, rather than paying for the lookup again.
 
 Dedupe is a ``SeerRun.extras`` marker keyed by repo full name rather than a
 GitHub search for our own comment, so repeated failing check suites cost no
@@ -115,11 +122,10 @@ def _post_comment(
     return True
 
 
-def block_iteration_for_missing_permissions(
+def get_blocking_permissions(
     *, organization: Organization, run_id: int, state: SeerRunState
-) -> bool:
-    """True when the iteration should not run because the GitHub App is missing
-    permissions. Comments on each affected PR the first time we hit this.
+) -> dict[str, MissingGithubPermissions]:
+    """Missing-permission info per repo, empty when nothing blocks the iteration.
 
     Fails open: a lookup error here leaves iteration alone rather than
     silently stopping a run that might have worked.
@@ -129,10 +135,10 @@ def block_iteration_for_missing_permissions(
         missing_by_repo = repos_missing_permissions(organization, state)
     except Exception:
         logger.exception("autofix.pr_iteration.missing_permissions.check_failed", extra=log_extra)
-        return False
+        return {}
 
     if not missing_by_repo:
-        return False
+        return {}
 
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.blocked",
@@ -151,7 +157,38 @@ def block_iteration_for_missing_permissions(
             ),
         },
     )
+    return missing_by_repo
 
+
+def block_iteration_for_missing_permissions(
+    *, organization: Organization, run_id: int, state: SeerRunState
+) -> bool:
+    """True when the iteration should not run because the GitHub App is missing
+    permissions. Comments on each affected PR the first time we hit this.
+    """
+    missing_by_repo = get_blocking_permissions(
+        organization=organization, run_id=run_id, state=state
+    )
+    if not missing_by_repo:
+        return False
+
+    _comment_on_missing_permissions(
+        organization=organization,
+        run_id=run_id,
+        state=state,
+        missing_by_repo=missing_by_repo,
+    )
+    return True
+
+
+def _comment_on_missing_permissions(
+    *,
+    organization: Organization,
+    run_id: int,
+    state: SeerRunState,
+    missing_by_repo: dict[str, MissingGithubPermissions],
+) -> None:
+    log_extra: dict[str, Any] = {"organization_id": organization.id, "run_id": run_id}
     seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()
 
     for repo_name, info in missing_by_repo.items():
@@ -192,5 +229,3 @@ def block_iteration_for_missing_permissions(
             "autofix.pr_iteration.missing_permissions.commented",
             extra={**repo_log_extra, "missing_scopes": info.missing_scopes},
         )
-
-    return True

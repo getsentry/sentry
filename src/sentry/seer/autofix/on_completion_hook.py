@@ -801,7 +801,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
     @classmethod
     def _consume_queued_feedback(cls, organization: Organization, run_id: int) -> None:
-        """Drain any feedback enqueued while the iteration was running."""
+        """Drain any feedback enqueued while the iteration was running.
+
+        No GitHub App permission check here, deliberately. We only reach this
+        from a finished PR_ITERATION step, and an iteration can only have been
+        started by ``trigger_consume_pr_iteration_feedback``, which refuses to
+        schedule one while a permission is missing. So reaching this point is
+        itself evidence the permissions were there — re-checking would only
+        catch a lapse mid-iteration, which the next queue-time gate handles.
+        """
         consume_queued_autofix_feedback.apply_async(
             kwargs={
                 "run_id": run_id,
