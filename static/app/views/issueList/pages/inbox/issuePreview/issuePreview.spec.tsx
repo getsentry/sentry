@@ -11,6 +11,7 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {ProgressState} from 'sentry/types/group';
 
 import {IssuePreview} from './issuePreview';
 
@@ -270,6 +271,77 @@ describe('IssuePreview', () => {
     expect(
       await screen.findByRole('button', {name: 'Restart Autofix'})
     ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+  });
+
+  it('offers to resolve a fix applied issue instead of viewing its merged PR', async () => {
+    const fixAppliedGroup = GroupFixture({
+      ...group,
+      derivedData: {
+        hasOpenFixPr: false,
+        hasRootCause: true,
+        isAssigned: true,
+        lastProgressedAt: '2026-07-20T12:00:00Z',
+        progress: ProgressState.FIX_APPLIED,
+        status: 'open',
+        viewCount: 1,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: fixAppliedGroup,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          coding_agents: {
+            'agent-1': {
+              id: 'agent-1',
+              name: 'Cursor',
+              provider: 'cursor_background_agent',
+              started_at: '2024-01-01T00:00:00Z',
+              status: 'completed',
+              results: [
+                {
+                  description: 'Fixed',
+                  repo_full_name: 'org/repository',
+                  repo_provider: 'github',
+                  pr_number: 10,
+                  pr_url: 'https://github.com/org/repository/pull/10',
+                },
+              ],
+            },
+          },
+        }),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '10',
+              externalUrl: 'https://github.com/org/repository/pull/10',
+            }),
+            attribution: {id: 'seer', type: 'seer'},
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${group.id}/`
+    );
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
 });

@@ -19,7 +19,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
+import {ProgressState, type Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -56,6 +56,32 @@ interface IssuePreviewProps {
   groupId: string;
 }
 
+function OpenIssueButton({
+  group,
+  to,
+  size = 'xs',
+}: {
+  group: Group;
+  to: string;
+  size?: 'xs' | 'sm';
+}) {
+  return (
+    <LinkButton
+      to={to}
+      size={size}
+      analyticsEventKey="issue_inbox.open_issue_clicked"
+      analyticsEventName="Issue Inbox: Open Issue Clicked"
+      analyticsParams={{
+        group_id: group.id,
+        progress: group.derivedData?.progress,
+        source: 'button',
+      }}
+    >
+      {t('Open Issue')}
+    </LinkButton>
+  );
+}
+
 function useMarkPreviewedGroupSeen(group: Group | undefined) {
   const {mutate: markGroupSeen} = useMarkGroupSeen();
   const groupId = group && !group.hasSeen ? group.id : undefined;
@@ -90,20 +116,8 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               <Placeholder width="80px" height="16px" shape="rect" />
             </Flex>
           ) : null}
-          {group && (
-            <LinkButton
-              to={issueDetailsUrl}
-              size="xs"
-              analyticsEventKey="issue_inbox.open_issue_clicked"
-              analyticsEventName="Issue Inbox: Open Issue Clicked"
-              analyticsParams={{
-                group_id: group.id,
-                progress: group.derivedData?.progress,
-                source: 'button',
-              }}
-            >
-              {t('Open Issue')}
-            </LinkButton>
+          {group && group.derivedData?.progress !== ProgressState.FIX_APPLIED && (
+            <OpenIssueButton group={group} to={issueDetailsUrl} />
           )}
         </Flex>
       </Container>
@@ -136,6 +150,7 @@ function IssuePreviewContent() {
   const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
+  const isFixApplied = group.derivedData?.progress === ProgressState.FIX_APPLIED;
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
@@ -213,7 +228,18 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        {previewSeer.isLoading ? (
+        {isFixApplied ? (
+          <Flex gap="sm">
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={null}
+              visibleActions="resolve-only"
+            />
+            <OpenIssueButton group={group} to={issueDetailsUrl} size="sm" />
+          </Flex>
+        ) : previewSeer.isLoading ? (
           <Placeholder width="120px" height="32px" />
         ) : previewSeer.shouldShowSeerActions ? (
           <IssuePreviewActions
