@@ -68,6 +68,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
+    post_missing_permissions_comment,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
@@ -167,6 +168,43 @@ def trigger_consume_pr_iteration_feedback(
             "organization_id": organization_id,
         },
         countdown=countdown,
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.comment_on_missing_permissions",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
+)
+def comment_on_missing_permissions(
+    run_id: int,
+    organization_id: int,
+    repo_name: str,
+    pr_number: int,
+    pr_id: int | None,
+    integration_id: int,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Tell the user which GitHub permissions Seer needs on one blocked PR.
+
+    Split out of the gate in ``trigger_consume_pr_iteration_feedback`` so the
+    GitHub call never runs inside a webhook task's deadline or the synchronous
+    autofix endpoint. Retries on ``UnableToAcquireLock`` instead of waiting on
+    the lock, so a losing activation requeues rather than parking a worker.
+    """
+    organization = _organization_for_gate(run_id, organization_id)
+    if organization is None:
+        return
+
+    post_missing_permissions_comment(
+        organization=organization,
+        run_id=run_id,
+        repo_name=repo_name,
+        pr_number=pr_number,
+        pr_id=pr_id,
+        integration_id=integration_id,
     )
 
 

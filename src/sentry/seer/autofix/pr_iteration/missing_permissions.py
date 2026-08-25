@@ -5,8 +5,15 @@ installation. When that installation is missing a permission the app now
 requires, every one of those tool calls fails and the run goes quiet with no
 explanation on the PR. The same missing-permission state already drives the
 out-of-date banner in the integrations UI; this checks it again the moment
-feedback lands in the queue and, when something is missing, posts one comment
+feedback lands in the queue and, when something is missing, queues one comment
 telling the user what to accept instead of scheduling the iteration.
+
+Only the lookup is inline, because the gate's answer decides whether to
+schedule. The comment itself is a task: its GitHub call would otherwise run
+inside a webhook task's processing deadline and inside the synchronous autofix
+endpoint, and it holds a lock across that call. The task retries on
+``UnableToAcquireLock`` rather than waiting, so a losing activation requeues
+instead of parking a worker.
 
 The check runs at queue time rather than consume time so the comment lands
 while the user is still looking at the failing PR: a consume can be deferred
@@ -30,10 +37,12 @@ from typing import Any
 
 from django.utils import timezone
 
+from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
+    get_github_missing_permissions,
     get_missing_permissions_by_repo,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
@@ -160,11 +169,17 @@ def get_blocking_permissions(
     return missing_by_repo
 
 
+def _skip(reason: str, log_extra: dict[str, Any]) -> None:
+    logger.info(
+        "autofix.pr_iteration.missing_permissions.skipped", extra={**log_extra, "reason": reason}
+    )
+
+
 def block_iteration_for_missing_permissions(
     *, organization: Organization, run_id: int, state: SeerRunState
 ) -> bool:
     """True when the iteration should not run because the GitHub App is missing
-    permissions. Comments on each affected PR the first time we hit this.
+    permissions. Queues one comment per affected PR the first time we hit this.
     """
     missing_by_repo = get_blocking_permissions(
         organization=organization, run_id=run_id, state=state
@@ -172,7 +187,7 @@ def block_iteration_for_missing_permissions(
     if not missing_by_repo:
         return False
 
-    _comment_on_missing_permissions(
+    _queue_missing_permissions_comments(
         organization=organization,
         run_id=run_id,
         state=state,
@@ -181,51 +196,117 @@ def block_iteration_for_missing_permissions(
     return True
 
 
-def _comment_on_missing_permissions(
+def _queue_missing_permissions_comments(
     *,
     organization: Organization,
     run_id: int,
     state: SeerRunState,
     missing_by_repo: dict[str, MissingGithubPermissions],
 ) -> None:
+    from sentry.tasks.seer.pr_iteration import comment_on_missing_permissions
+
     log_extra: dict[str, Any] = {"organization_id": organization.id, "run_id": run_id}
     seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()
+    if seer_run is None:
+        # Legacy runs predating SeerRun mirroring have no row to dedupe
+        # against; staying silent beats commenting on every failing suite.
+        _skip("no_seer_run", log_extra)
+        return
 
     for repo_name, info in missing_by_repo.items():
         pr_state = state.repo_pr_states.get(repo_name)
         if pr_state is None or pr_state.pr_number is None:
             continue
-        pr_number = pr_state.pr_number
 
-        repo_log_extra = {
-            **log_extra,
-            "repo_id": info.repository_id,
-            "integration_id": info.integration.id,
-            "pr_id": pr_state.pr_id,
-        }
-        if seer_run is None:
-            # Legacy runs predating SeerRun mirroring have no row to dedupe
-            # against; staying silent beats commenting on every failing suite.
-            logger.info("autofix.pr_iteration.missing_permissions.no_seer_run", extra=log_extra)
-            break
-
+        # Cheap pre-check so the steady state never enqueues: the task
+        # re-checks under its lock, which is what actually dedupes.
         if get_missing_permissions_marker(seer_run, repo_name) is not None:
             continue
 
-        if not _post_comment(organization, repo_name, pr_number, info, repo_log_extra):
-            continue
+        comment_on_missing_permissions.delay(
+            run_id=run_id,
+            organization_id=organization.id,
+            repo_name=repo_name,
+            pr_number=pr_state.pr_number,
+            pr_id=pr_state.pr_id,
+            integration_id=info.integration.id,
+        )
+
+
+def post_missing_permissions_comment(
+    *,
+    organization: Organization,
+    run_id: int,
+    repo_name: str,
+    pr_number: int,
+    pr_id: int | None,
+    integration_id: int,
+) -> None:
+    """Post the single "accept these permissions" comment for a run+repo.
+
+    Runs in a task so the GitHub call stays off the request and check-suite
+    paths that decide the gate. Propagates ``UnableToAcquireLock`` so the task
+    retries with backoff rather than parking a worker on a blocking acquire.
+
+    Exhausting those retries is the only way a user never hears about the
+    missing permissions, and taskworker already reports it: this taskname with
+    ``status:failure`` on ``taskworker.worker.execute_task``.
+    """
+    log_extra: dict[str, Any] = {
+        "organization_id": organization.id,
+        "run_id": run_id,
+        "integration_id": integration_id,
+        "repo_name": repo_name,
+        "pr_id": pr_id,
+    }
+    seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()
+    if seer_run is None:
+        _skip("no_seer_run", log_extra)
+        return
+
+    if get_missing_permissions_marker(seer_run, repo_name) is not None:
+        _skip("already_commented", log_extra)
+        return
+
+    info = get_github_missing_permissions(integration_id)
+    if info is None or not info.missing_scopes:
+        # Accepted between the gate and this task: nothing left to ask for.
+        _skip("permissions_resolved", log_extra)
+        return
+
+    lock = locks.get(
+        f"autofix:pr_iteration:missing_permissions:{seer_run.id}:{repo_name}",
+        duration=30,
+        name="autofix_pr_missing_permissions",
+    )
+    with lock.acquire():
+        try:
+            seer_run.refresh_from_db()
+        except SeerRun.DoesNotExist:
+            _skip("run_deleted", log_extra)
+            return
+
+        # The race the lock exists for: another activation commented while we
+        # were queued.
+        if get_missing_permissions_marker(seer_run, repo_name) is not None:
+            _skip("raced", log_extra)
+            return
+
+        if not _post_comment(organization, repo_name, pr_number, info, log_extra):
+            return
 
         record_missing_permissions_marker(
             seer_run,
             repo_name,
             missing_scopes=info.missing_scopes,
-            pr_id=pr_state.pr_id,
+            pr_id=pr_id,
         )
-        metrics.incr(
-            "autofix.pr_iteration.missing_permissions.commented",
-            tags={"missing_scopes": _scopes_tag(info.missing_scopes)},
-        )
-        logger.info(
-            "autofix.pr_iteration.missing_permissions.commented",
-            extra={**repo_log_extra, "missing_scopes": info.missing_scopes},
-        )
+
+    metrics.incr(
+        "autofix.pr_iteration.missing_permissions.commented",
+        tags={"missing_scopes": _scopes_tag(info.missing_scopes)},
+    )
+    logger.info(
+        "autofix.pr_iteration.missing_permissions.commented",
+        extra={**log_extra, "missing_scopes": info.missing_scopes},
+    )
