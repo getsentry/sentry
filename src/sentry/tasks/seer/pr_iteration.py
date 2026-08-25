@@ -8,11 +8,12 @@ from typing import Any
 
 import sentry_sdk
 from scm import actions as scm_actions
-from scm.errors import ResourceNotFound
+from scm.errors import ResourceNotFound, SCMError
 from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
 from scm.types import (
     Author,
+    CreatePullRequestCommentProtocol,
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
     DeletePullRequestCommentReactionProtocol,
@@ -20,6 +21,7 @@ from scm.types import (
     DiffLine,
     GetAuthenticatedActorProtocol,
     GetPullRequestCommentReactionsProtocol,
+    GetPullRequestProtocol,
     GetPullRequestReviewProtocol,
     GetPullRequestReviewThreadsProtocol,
     GetRepositoryUserPermissionProtocol,
@@ -38,7 +40,6 @@ from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.cache import default_cache
-from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
 from sentry.models.group import Group
@@ -74,7 +75,6 @@ from sentry.seer.autofix.pr_iteration.queue import (
     try_enqueue_autofix_feedback,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
@@ -457,11 +457,10 @@ def _resolve_review_comment_threads(
 
 
 def _comment_pr_iteration_ineligible(
-    client: Any,
+    scm: SourceCodeManager,
     *,
     organization_id: int,
     repo_id: int,
-    repo_name: str,
     pr_number: int,
     github_username: str,
     source_type: GithubPrCommentFeedbackType,
@@ -474,17 +473,7 @@ def _comment_pr_iteration_ineligible(
         "pr_number": pr_number,
     }
 
-    try:
-        scm = make_scm(organization_id, repo_id, referrer="seer")
-    except Exception:
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.ineligible_scm_init_failed",
-            extra=log_extra,
-            exc_info=True,
-        )
-        scm = None
-
-    if scm is not None and comment_id is not None:
+    if comment_id is not None:
         _add_comment_reaction(
             scm,
             source_type=source_type,
@@ -506,11 +495,18 @@ def _comment_pr_iteration_ineligible(
             if default_cache.get(cache_key) is not None:
                 return
 
+            if not isinstance(scm, CreatePullRequestCommentProtocol):
+                logger.warning(
+                    "autofix.pr_iteration.comment_trigger.ineligible_unsupported_provider",
+                    extra=log_extra,
+                )
+                return
+
             try:
-                client.create_comment(
-                    repo_name,
+                scm_actions.create_pull_request_comment(
+                    scm,
                     str(pr_number),
-                    {"body": _ineligible_pr_iteration_comment_body(github_username)},
+                    _ineligible_pr_iteration_comment_body(github_username),
                 )
             except Exception:
                 logger.warning(
@@ -525,18 +521,17 @@ def _comment_pr_iteration_ineligible(
         pass
 
 
-def _fetch_pr_id(client: Any, repo_name: str, pr_number: int) -> int | None:
-    """Recover a PR's GitHub id from its repo-scoped number over the REST API.
+def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> int:
+    """Recover a PR's provider-global id from its repo-scoped number.
 
     The fallback behind ``PullRequest.objects.get_or_fetch_external_id``, so it
     runs only when the row has no ``external_id`` yet. Both trigger tasks run
-    async, meaning the PR may have been deleted or made private, or GitHub may
-    return a transient error, between webhook receipt and execution —
-    ``ApiError`` propagates to the caller, which is where the drop is logged.
+    async, meaning the PR may have been deleted or made private, or the provider
+    may return a transient error, between webhook receipt and execution —
+    ``SCMError`` propagates to the caller, which is where the drop is logged.
     """
-    pull_request = client.get_pull_request(repo_name, str(pr_number))
-    pr_id: int | None = pull_request.get("id")
-    return pr_id
+    pull_request = scm_actions.get_pull_request(scm, str(pr_number))
+    return int(pull_request["data"]["internal_id"])
 
 
 @instrumented_task(
@@ -605,28 +600,35 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
+    try:
+        scm = make_scm(organization_id, repo_id, referrer="seer")
+    except Exception:
         logger.warning(
-            "autofix.pr_iteration.comment_trigger.missing_integration",
-            extra={"organization_id": organization_id, "integration_id": integration_id},
+            "autofix.pr_iteration.comment_trigger.scm_init_failed",
+            extra={"organization_id": organization_id, "repo_id": repo_id},
+            exc_info=True,
         )
         return None
 
-    client = integration.get_installation(organization_id=organization_id).get_client()
+    if not isinstance(scm, GetPullRequestProtocol):
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.unsupported_provider",
+            extra={"organization_id": organization_id, "repo_id": repo_id},
+        )
+        return None
 
     try:
         # The issue_comment payload behind an `@sentry` mention carries only the
         # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
-        # The mapping lives on ``PullRequest.external_id``; REST runs only when
-        # no webhook (or earlier write-back) has stored it yet.
+        # The mapping lives on ``PullRequest.external_id``; the provider call
+        # runs only when no webhook (or earlier write-back) has stored it yet.
         pr_id = PullRequest.objects.get_or_fetch_external_id(
             organization_id=organization_id,
             repository_id=repo.id,
             key=str(pr_number),
-            fetch=lambda: _fetch_pr_id(client, repo.name, pr_number),
+            fetch=lambda: _fetch_pr_id(scm, pr_number),
         )
-    except ApiError:
+    except SCMError:
         logger.warning(
             "autofix.pr_iteration.comment_trigger.get_pull_request_failed",
             extra={"organization_id": organization_id, "pr_number": pr_number},
@@ -662,24 +664,13 @@ def trigger_pr_iteration_from_comment(
             },
         )
         _comment_pr_iteration_ineligible(
-            client,
+            scm,
             organization_id=organization_id,
             repo_id=repo.id,
-            repo_name=repo.name,
             pr_number=pr_number,
             github_username=github_username,
             source_type=source.type,
             comment_id=comment.id,
-        )
-        return None
-
-    try:
-        scm = make_scm(organization_id, repo_id, referrer="seer")
-    except Exception:
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.scm_init_failed",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
-            exc_info=True,
         )
         return None
 
@@ -919,12 +910,21 @@ def trigger_pr_iteration_from_review(
         )
         return None
 
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
-        logger.warning("autofix.pr_iteration.review_trigger.missing_integration", extra=log_extra)
+    try:
+        scm = make_scm(organization_id, repo_id, referrer="seer")
+    except Exception:
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.scm_init_failed", extra=log_extra, exc_info=True
+        )
         return None
 
-    client = integration.get_installation(organization_id=organization_id).get_client()
+    if (
+        not isinstance(scm, GetPullRequestProtocol)
+        or not isinstance(scm, GetReviewCommentsProtocol)
+        or not isinstance(scm, GetPullRequestReviewProtocol)
+    ):
+        logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
+        return None
 
     try:
         # The pull_request_review payload carries only the PR number, but Seer's
@@ -935,9 +935,9 @@ def trigger_pr_iteration_from_review(
             organization_id=organization_id,
             repository_id=repo.id,
             key=str(pr_number),
-            fetch=lambda: _fetch_pr_id(client, repo.name, pr_number),
+            fetch=lambda: _fetch_pr_id(scm, pr_number),
         )
-    except ApiError:
+    except SCMError:
         logger.warning(
             "autofix.pr_iteration.review_trigger.get_pull_request_failed",
             extra=log_extra,
@@ -970,20 +970,6 @@ def trigger_pr_iteration_from_review(
                 "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
             },
         )
-        return None
-
-    try:
-        scm = make_scm(organization_id, repo_id, referrer="seer")
-    except Exception:
-        logger.warning(
-            "autofix.pr_iteration.review_trigger.scm_init_failed", extra=log_extra, exc_info=True
-        )
-        return None
-
-    if not isinstance(scm, GetReviewCommentsProtocol) or not isinstance(
-        scm, GetPullRequestReviewProtocol
-    ):
-        logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
         return None
 
     # Bots skip the write-access gate: a bot account is never a repo collaborator.

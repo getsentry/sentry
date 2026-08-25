@@ -15,7 +15,6 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
 )
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
 
@@ -190,6 +189,8 @@ class _ScmStub:
     """Spec for the SCM client mock so the ``runtime_checkable`` protocol
     ``isinstance`` guards in the task pass (a bare ``MagicMock`` fails them)."""
 
+    def get_pull_request(self, *args: Any, **kwargs: Any) -> Any: ...
+
     def get_review_comments(self, *args: Any, **kwargs: Any) -> Any: ...
 
     def get_pull_request_review(self, *args: Any, **kwargs: Any) -> Any: ...
@@ -200,7 +201,6 @@ class _ScmStub:
 
 
 class TriggerPrIterationFromReviewTest(TestCase):
-    mock_get_integration: MagicMock
     mock_get_state: MagicMock
     mock_enqueue: MagicMock
     mock_consume: MagicMock
@@ -222,7 +222,6 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # happy path (a body-only review) so each test only overrides what it
         # exercises. The mocks are exposed as ``self.mock_*``.
         for attr, target in (
-            ("mock_get_integration", "integration_service.get_integration"),
             ("mock_get_state", "get_agent_state_from_pr_id"),
             ("mock_enqueue", "try_enqueue_autofix_feedback"),
             ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
@@ -234,9 +233,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
             setattr(self, attr, patcher.start())
             self.addCleanup(patcher.stop)
 
-        self.mock_get_integration.return_value = self._mock_integration()
         self.mock_get_state.return_value = self._agent_state()
         self.mock_make_scm.return_value = MagicMock(spec=_ScmStub)
+        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "555"}}
         self.mock_actions.get_review_comments.return_value = self._paginated([])
         self.mock_actions.get_pull_request_review.return_value = self._review_result(
             {
@@ -297,13 +296,6 @@ class TriggerPrIterationFromReviewTest(TestCase):
             ),
             timestamp="2024-01-01T00:00:00Z",
         )
-
-    def _mock_integration(self, pr_id: int | None = 555) -> MagicMock:
-        mock_client = MagicMock()
-        mock_client.get_pull_request.return_value = {"id": pr_id}
-        mock_integration = MagicMock()
-        mock_integration.get_installation.return_value.get_client.return_value = mock_client
-        return mock_integration
 
     def _review_comment(
         self,
@@ -370,8 +362,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
 
         self._run()
 
-        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
-        client.get_pull_request.assert_not_called()
+        self.mock_actions.get_pull_request.assert_not_called()
         self.mock_get_state.assert_called_once_with(
             self.organization.id, "integrations:github", 555
         )
@@ -381,8 +372,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
 
         self._run()
 
-        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
-        client.get_pull_request.assert_called_once_with("owner/repo", "7")
+        self.mock_actions.get_pull_request.assert_called_once_with(
+            self.mock_make_scm.return_value, "7"
+        )
         pr.refresh_from_db()
         assert pr.external_id == 555
 
@@ -398,32 +390,19 @@ class TriggerPrIterationFromReviewTest(TestCase):
 
         self._run()
 
-        self.mock_get_integration.assert_not_called()
+        self.mock_make_scm.assert_not_called()
         self.mock_get_state.assert_not_called()
-        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
-        client.get_pull_request.assert_not_called()
+        self.mock_actions.get_pull_request.assert_not_called()
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
 
     def test_returns_when_get_pull_request_fails(self) -> None:
-        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
-        client.get_pull_request.side_effect = ApiError("boom")
+        self.mock_actions.get_pull_request.side_effect = ResourceNotFound()
 
         self._run()
 
         self.mock_get_state.assert_not_called()
         self.mock_enqueue.assert_not_called()
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
-
-    def test_does_not_store_a_missing_pr_id(self) -> None:
-        self.mock_get_integration.return_value = self._mock_integration(pr_id=None)
-        pr = self._stored_pr()
-
-        self._run()
-
-        self.mock_get_state.assert_not_called()
-        self.mock_enqueue.assert_not_called()
-        pr.refresh_from_db()
-        assert pr.external_id is None
 
     def test_batch_review_with_inline_comments_and_body(self) -> None:
         self.mock_actions.get_review_comments.return_value = self._paginated(
@@ -436,8 +415,8 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self._run()
 
         # PR number -> id lookup before run lookup.
-        self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value.get_pull_request.assert_called_once_with(
-            "owner/repo", "7"
+        self.mock_actions.get_pull_request.assert_called_once_with(
+            self.mock_make_scm.return_value, "7"
         )
         self.mock_get_state.assert_called_once_with(
             self.organization.id, "integrations:github", 555
@@ -652,7 +631,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
 
         self._run()
 
-        self.mock_make_scm.assert_not_called()
+        self.mock_actions.get_review_comments.assert_not_called()
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
 
@@ -671,7 +650,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         with self.options({"autofix.pr-iteration.max-iterations": 2}):
             self._run(author_is_bot=True)
 
-        self.mock_make_scm.assert_not_called()
+        self.mock_actions.get_review_comments.assert_not_called()
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
