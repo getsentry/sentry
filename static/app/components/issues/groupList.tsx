@@ -21,7 +21,6 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -75,7 +74,6 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
   staleTime?: number;
@@ -110,7 +108,6 @@ export function GroupList({
   endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
   renderEmptyMessage,
-  renderErrorMessage,
   queryFilterDescription,
   source,
   staleTime = 0,
@@ -215,7 +212,6 @@ export function GroupList({
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
-    error: queryError,
     refetch,
   } = useQuery({
     ...issuesQueryOptions,
@@ -273,19 +269,6 @@ export function GroupList({
 
   const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
-  const errorDetail = hasLogicBoolean
-    ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
-    : (() => {
-        const detail = (queryError as RequestError | undefined)?.responseJSON?.detail;
-        if (typeof detail === 'string') {
-          return detail;
-        }
-        if (detail?.message) {
-          return detail.message;
-        }
-        return (queryError as RequestError | undefined)?.message ?? null;
-      })();
-  const errorData = errorDetail ? {detail: errorDetail} : null;
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
@@ -317,10 +300,6 @@ export function GroupList({
   const columns = withColumns;
 
   if (hasError) {
-    if (typeof renderErrorMessage === 'function' && errorData) {
-      return renderErrorMessage(errorData, refetch);
-    }
-
     return <LoadingError onRetry={refetch} />;
   }
 

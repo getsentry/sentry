@@ -193,25 +193,15 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
 }
 
 /**
- * Given a eCharts series and legend, returns the unit to be used on the yAxis for a duration chart
+ * Given an eCharts series, returns the unit to be used on the yAxis for a duration chart
  * @param series eCharts series array
- * @param legend eCharts legend object
- * @returns
  */
-export function getDurationUnit(
-  series: Series[],
-  legend?: LegendComponentOption,
-  dataUnit?: DataUnit
-): number {
+export function getDurationUnit(series: Series[]): number {
   let durationUnit = 0;
-  const range = findRangeOfMultiSeries(series, legend);
+  const range = findRangeOfMultiSeries(series);
   if (range) {
-    const unitString = dataUnit ?? undefined;
-    const multiplier = isADurationUnit(unitString)
-      ? DURATION_UNIT_MULTIPLIERS[unitString]
-      : 1; // default to milliseconds
-    const min = range.min * multiplier;
-    const max = range.max * multiplier;
+    const min = range.min;
+    const max = range.max;
     const avg = (max + min) / 2;
     durationUnit = categorizeDuration((max - min) / 5); // avg of 5 yAxis ticks per chart
 

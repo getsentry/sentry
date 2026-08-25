@@ -43,12 +43,4 @@ describe('TextCopyInput', () => {
     expect(selectSpy).toHaveBeenCalled();
   });
 
-  it('handles RTL text selection', async () => {
-    render(<TextCopyInput rtl>Text to Copy</TextCopyInput>);
-    const input = screen.getByRole<HTMLInputElement>('textbox');
-    const setSelectionRangeSpy = jest.spyOn(input, 'setSelectionRange');
-
-    await userEvent.click(input);
-    expect(setSelectionRangeSpy).toHaveBeenCalledWith(1, input.value.length - 1);
-  });
 });

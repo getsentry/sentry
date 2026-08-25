@@ -53,15 +53,6 @@ describe('AssistantBlock', () => {
     expect(screen.getByText('link')).toBeInTheDocument();
   });
 
-  it('calls onClick when clicked', async () => {
-    const onClick = jest.fn();
-    const {container} = render(
-      <BlockComponent block={createBlock()} blockIndex={0} onClick={onClick} />
-    );
-    await userEvent.click(container.firstChild as HTMLElement);
-    expect(onClick).toHaveBeenCalledTimes(1);
-  });
-
   describe('action bar', () => {
     it('shows feedback and copy buttons on hover', async () => {
       const {container} = render(

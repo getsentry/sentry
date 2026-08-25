@@ -24,14 +24,12 @@ export enum MessagingIntegrationAnalyticsView {
 
 type Props = {
   analyticsView: MessagingIntegrationAnalyticsView;
-  refetchConfigs?: () => void;
   // `analyticsView` identifies the flow; `variant` identifies the SCM or legacy
   // project-creation experience. Alert-rule creation leaves `variant` undefined.
   variant?: 'scm' | 'legacy';
 };
 
 export function SetupMessagingIntegrationButton({
-  refetchConfigs,
   analyticsView,
   variant,
 }: Props) {
@@ -41,9 +39,6 @@ export function SetupMessagingIntegrationButton({
 
   const onAddIntegration = () => {
     messagingIntegrationsQuery.refetch();
-    if (refetchConfigs) {
-      refetchConfigs();
-    }
   };
 
   const messagingIntegrationsQuery = useQuery(

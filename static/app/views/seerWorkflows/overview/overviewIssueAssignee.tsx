@@ -6,7 +6,6 @@ import {
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import type {Group} from 'sentry/types/group';
-import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -18,7 +17,6 @@ interface OverviewIssueAssigneeProps {
   projectId: string;
   projectSlug: string;
   assignedTo?: Group['assignedTo'];
-  memberList?: User[];
   owners?: Group['owners'];
 }
 
@@ -46,7 +44,6 @@ export function OverviewIssueAssignee({
   projectId,
   projectSlug,
   assignedTo,
-  memberList,
   owners,
 }: OverviewIssueAssigneeProps) {
   const organization = useOrganization();
@@ -100,7 +97,6 @@ export function OverviewIssueAssignee({
       group={group}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
-      memberList={memberList}
     />
   );
 }

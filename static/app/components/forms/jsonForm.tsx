@@ -12,8 +12,6 @@ interface JsonFormProps extends Omit<
   FormPanelProps,
   'highlighted' | 'fields' | 'additionalFieldProps'
 > {
-  additionalFieldProps?: Record<string, any>;
-
   /**
    * If `forms` is not defined, `title` + `fields` must be required.
    * Allows more fine grain control of title/fields
@@ -35,7 +33,6 @@ function JsonForm({
   forms,
   disabled,
   features,
-  additionalFieldProps,
   renderFooter,
   renderHeader,
   ...otherProps
@@ -90,7 +87,6 @@ function JsonForm({
             renderFooter,
             renderHeader,
             ...otherProps,
-            ...additionalFieldProps,
           });
         }
         return !field.visible;
@@ -133,7 +129,6 @@ function JsonForm({
     access,
     disabled,
     features,
-    additionalFieldProps,
     renderFooter,
     renderHeader,
     highlighted: location?.hash,
@@ -158,7 +153,6 @@ interface ChildFormPanelProps extends Pick<
   | 'access'
   | 'disabled'
   | 'features'
-  | 'additionalFieldProps'
   | 'renderFooter'
   | 'renderHeader'
   | 'initiallyCollapsed'

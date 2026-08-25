@@ -1,48 +1,21 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import type {DistributedOmit} from 'type-fest';
 
-import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import type {ControlProps, GeneralSelectValue, StylesConfig} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IdBadge} from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconAdd, IconUser} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
-
-const StyledIconUser = styled(IconUser)`
-  margin-left: ${p => p.theme.space['2xs']};
-  margin-right: ${p => p.theme.space.md};
-  color: ${p => p.theme.colors.gray500};
-`;
-
-// An option to be unassigned on the team dropdown
-const unassignedOption = {
-  value: null,
-  label: (
-    <Flex align="center">
-      <StyledIconUser size="md" />
-      {t('Unassigned')}
-    </Flex>
-  ),
-  searchKey: 'unassigned',
-  actor: null,
-  disabled: false,
-};
 
 const CREATE_TEAM_VALUE = 'CREATE_TEAM_VALUE';
 
@@ -53,14 +26,6 @@ const optionFilter = createFilter({
 const filterOption = (canditate: any, input: any) =>
   // Never filter out the create team option
   canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
-
-// Ensures that the svg icon is white when selected
-const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
-  option: (provided, state) => ({
-    ...provided,
-    svg: {color: state.isSelected ? theme.colors.white : undefined},
-  }),
-});
 
 const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
   input: provided => ({
@@ -94,11 +59,6 @@ type Props = DistributedOmit<ControlProps, 'onChange'> & {
    * Flag that indicates whether to filter teams to only show teams that the user is a member of
    */
   filterByUserMembership?: boolean;
-  includeUnassigned?: boolean;
-  /**
-   * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
-   */
-  project?: Project;
   /**
    * Function to control whether a team should be shown in the dropdown
    */
@@ -129,16 +89,14 @@ export function TeamSelector(props: Props) {
   const organization = useOrganization();
   const {
     allowCreate,
-    includeUnassigned,
     filterByUserMembership = false,
     styles: stylesProp,
     onChange,
     useTeamDefaultIfOnlyOne = false,
     ...extraProps
   } = props;
-  const {teamFilter, project, multiple, value, useId} = props;
+  const {teamFilter, multiple, useId} = props;
 
-  const api = useApi();
   const {teams: initialTeams, fetching, onSearch} = useTeams();
 
   let teams = initialTeams;
@@ -150,7 +108,6 @@ export function TeamSelector(props: Props) {
   const selectRef = useRef<any>(null);
 
   const canCreateTeam = organization?.access?.includes('project:admin') ?? false;
-  const canAddTeam = organization?.access?.includes('project:write') ?? false;
 
   const createTeamOption = useCallback(
     (team: Team): TeamOption => ({
@@ -167,62 +124,17 @@ export function TeamSelector(props: Props) {
     [useId]
   );
 
-  /**
-   * Closes the select menu by blurring input if possible since that seems to
-   * be the only way to close it.
-   */
-  function closeSelectMenu() {
-    if (!selectRef.current) {
-      return;
-    }
-
-    const select = selectRef.current.select;
-    const input: HTMLInputElement = select.inputRef;
-
-    if (input) {
-      // I don't think there's another way to close `react-select`
-      input.blur();
-    }
-  }
-
-  const handleAddTeamToProject = useCallback(
-    async (team: Team) => {
-      if (!project) {
-        closeSelectMenu();
-        return;
-      }
-
-      // Copy old value
-      const oldValue = multiple ? [...((value as unknown[] | undefined) ?? [])] : {value};
-      // Optimistic update
-      onChange?.(createTeamOption(team));
-
-      try {
-        await addTeamToProject(api, organization.slug, project.slug, team);
-      } catch (err) {
-        // Unable to add team to project, revert select menu value
-        onChange?.(oldValue);
-      }
-
-      closeSelectMenu();
-    },
-    [api, createTeamOption, multiple, onChange, organization, project, value]
-  );
-
   const createTeam = useCallback(
     () =>
       new Promise<TeamOption>(resolve => {
         openCreateTeamModal({
           organization,
-          onClose: async team => {
-            if (project) {
-              await handleAddTeamToProject(team);
-            }
+          onClose: team => {
             resolve(createTeamOption(team));
           },
         });
       }),
-    [createTeamOption, handleAddTeamToProject, organization, project]
+    [createTeamOption, organization]
   );
 
   const handleChange = useCallback(
@@ -255,44 +167,6 @@ export function TeamSelector(props: Props) {
     [createTeam, multiple, onChange]
   );
 
-  const createTeamOutsideProjectOption = useCallback(
-    (team: Team): TeamOption => {
-      // If the option/team is currently selected, optimistically assume it is now a part of the project
-      if (value === (useId ? team.id : team.slug)) {
-        return createTeamOption(team);
-      }
-
-      return {
-        ...createTeamOption(team),
-        disabled: true,
-        label: `#${team.slug}`,
-        leadingItems: <IdBadge team={team} hideName />,
-        trailingItems: (
-          <Tooltip
-            title={
-              canAddTeam
-                ? t('Add %s to project', `#${team.slug}`)
-                : t('You do not have permission to add team to project.')
-            }
-            containerDisplayMode="flex"
-            skipWrapper
-          >
-            <Button
-              size="zero"
-              variant="transparent"
-              disabled={!canAddTeam}
-              onClick={() => handleAddTeamToProject(team)}
-              icon={<IconAdd />}
-              aria-label={t('Add %s to project', `#${team.slug}`)}
-            />
-          </Tooltip>
-        ),
-        tooltip: t('%s is not a member of project', `#${team.slug}`),
-      };
-    },
-    [canAddTeam, createTeamOption, handleAddTeamToProject, useId, value]
-  );
-
   const options = useMemo(() => {
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
 
@@ -306,38 +180,11 @@ export function TeamSelector(props: Props) {
       'data-test-id': 'create-team-option',
     };
 
-    if (project) {
-      const teamsInProjectIdSet = new Set(project.teams.map(team => team.id));
-      const teamsInProject = filteredTeams.filter(team =>
-        teamsInProjectIdSet.has(team.id)
-      );
-      const teamsNotInProject = filteredTeams.filter(
-        team => !teamsInProjectIdSet.has(team.id)
-      );
-
-      return [
-        ...(allowCreate ? [createOption] : []),
-        ...teamsInProject.map(createTeamOption),
-        ...teamsNotInProject.map(createTeamOutsideProjectOption),
-        ...(includeUnassigned ? [unassignedOption] : []),
-      ];
-    }
-
     return [
       ...(allowCreate ? [createOption] : []),
       ...filteredTeams.map(createTeamOption),
-      ...(includeUnassigned ? [unassignedOption] : []),
     ];
-  }, [
-    teamFilter,
-    teams,
-    canCreateTeam,
-    project,
-    allowCreate,
-    createTeamOption,
-    includeUnassigned,
-    createTeamOutsideProjectOption,
-  ]);
+  }, [teamFilter, teams, canCreateTeam, allowCreate, createTeamOption]);
 
   const handleInputChange = useMemo(
     () => debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
@@ -346,11 +193,10 @@ export function TeamSelector(props: Props) {
 
   const styles = useMemo(
     () => ({
-      ...(includeUnassigned ? getUnassignedSelectStyles(theme) : {}),
       ...(multiple ? {} : getPlaceholderSelectStyles(theme)),
       ...stylesProp,
     }),
-    [includeUnassigned, multiple, stylesProp, theme]
+    [multiple, stylesProp, theme]
   );
 
   useEffect(() => {

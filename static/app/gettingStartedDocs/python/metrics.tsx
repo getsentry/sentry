@@ -10,6 +10,8 @@ import {t, tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
+const METRICS_PACKAGE_NAME = 'sentry-sdk';
+
 export const metricsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
   condition: params.isMetricsSelected,
@@ -33,11 +35,7 @@ metrics.distribution("cart.amount_usd", 187.5)`,
   ],
 });
 
-export const metrics = ({
-  packageName = 'sentry-sdk',
-}: {
-  packageName?: string;
-} = {}): OnboardingConfig => ({
+export const metrics = (): OnboardingConfig => ({
   install: () => [
     {
       type: StepType.INSTALL,
@@ -52,7 +50,7 @@ export const metrics = ({
           ),
         },
         getPythonInstallCodeBlock({
-          packageName,
+          packageName: METRICS_PACKAGE_NAME,
           minimumVersion: '2.44.0',
         }),
       ],

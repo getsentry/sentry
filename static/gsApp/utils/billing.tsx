@@ -131,7 +131,6 @@ type FormatOptions = {
  * quantities for the data categories that we sell.
  *
  * Note: reservedQuantity for Attachments should be in GIGABYTES
- * If isReservedBudget is true, the reservedQuantity is in cents
  */
 export function formatReservedWithUnits(
   reservedQuantity: number | null,
@@ -140,13 +139,8 @@ export function formatReservedWithUnits(
     isAbbreviated: false,
     useUnitScaling: false,
     isGifted: false,
-  },
-  isReservedBudget = false
-): string {
-  if (isReservedBudget) {
-    return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-
+): string {
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
 

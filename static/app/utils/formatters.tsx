@@ -122,12 +122,13 @@ export function formatAbbreviatedNumberWithDynamicPrecision(
   return formatAbbreviatedNumber(value, maximumSignificantDigits, true);
 }
 
+const FORMAT_RATE_SIGNIFICANT_DIGITS = 3;
+
 export function formatRate(
   value: number,
   unit: RateUnit = RateUnit.PER_SECOND,
   options: {
     minimumValue?: number;
-    significantDigits?: number;
   } = {}
 ) {
   // NOTE: `Intl` doesn't support unitless-per-unit formats (i.e.,
@@ -140,7 +141,7 @@ export function formatRate(
   }
 
   const minimumValue = options.minimumValue ?? 0;
-  const significantDigits = options.significantDigits ?? 3;
+  const significantDigits = FORMAT_RATE_SIGNIFICANT_DIGITS;
 
   const numberFormatOptions: ConstructorParameters<typeof Intl.NumberFormat>[1] = {
     notation: 'compact',

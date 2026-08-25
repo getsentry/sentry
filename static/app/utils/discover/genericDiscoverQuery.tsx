@@ -278,13 +278,6 @@ export type DiscoverQueryRequestParams = Partial<
   EventQuery & LocationQuery & _DiscoverQueryExtras
 >;
 
-type RetryOptions = {
-  statusCodes: number[];
-  tries: number;
-  baseTimeout?: number;
-  timeoutMultiplier?: number;
-};
-
 const BASE_TIMEOUT = 500;
 const TIMEOUT_MULTIPLIER = 1.75;
 const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
@@ -294,16 +287,15 @@ export async function doDiscoverQuery<T>(
   url: string,
   params: DiscoverQueryRequestParams,
   options: {
-    retry?: RetryOptions;
     skipAbort?: boolean;
   } = {}
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
-  const {retry, skipAbort} = options;
+  const {skipAbort} = options;
 
-  const baseTimeout = retry?.baseTimeout ?? BASE_TIMEOUT;
-  const timeoutMultiplier = retry?.timeoutMultiplier ?? TIMEOUT_MULTIPLIER;
-  const statusCodes = retry?.statusCodes ?? [];
-  const maxTries = retry?.tries ?? 1;
+  const baseTimeout = BASE_TIMEOUT;
+  const timeoutMultiplier = TIMEOUT_MULTIPLIER;
+  const statusCodes: number[] = [];
+  const maxTries = 1;
   let tries = 0;
   let timeout = 0;
   let error: any;

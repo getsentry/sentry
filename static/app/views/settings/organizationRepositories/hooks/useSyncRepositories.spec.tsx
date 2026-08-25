@@ -95,7 +95,6 @@ describe('useSyncRepositories', () => {
       () =>
         useSyncRepositories(integration, {
           onSynced,
-          pollingConfig: [{pollInterval: 5_000, phaseTimeout: 30_000}],
         }),
       {organization}
     );
@@ -141,16 +140,7 @@ describe('useSyncRepositories', () => {
 
     const {result} = renderHookWithProviders(
       () =>
-        useSyncRepositories(integration, {
-          pollingConfig: [
-            {
-              pollInterval: 5_000,
-              phaseTimeout: 100,
-              transitionToast: 'Repositories still syncing, this may take a few minutes',
-            },
-            {pollInterval: 30_000, phaseTimeout: 60_000},
-          ],
-        }),
+        useSyncRepositories(integration),
       {organization}
     );
 
@@ -163,7 +153,7 @@ describe('useSyncRepositories', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(200);
+      jest.advanceTimersByTime(30_000);
     });
 
     jest.useRealTimers();
@@ -183,9 +173,7 @@ describe('useSyncRepositories', () => {
 
     const {result} = renderHookWithProviders(
       () =>
-        useSyncRepositories(integration, {
-          pollingConfig: [{pollInterval: 5_000, phaseTimeout: 100}],
-        }),
+        useSyncRepositories(integration),
       {organization}
     );
 
@@ -198,7 +186,7 @@ describe('useSyncRepositories', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(200);
+      jest.advanceTimersByTime(30_000 + 60_000 * 4.5);
     });
 
     jest.useRealTimers();

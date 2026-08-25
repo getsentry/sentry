@@ -31,8 +31,6 @@ interface SplitPanelProps {
   initialSize?: number;
   maxSize?: number;
   minSize?: number;
-  /** Fires during drag with the new size. */
-  onResize?: (newSize: number) => void;
   /** Fires once when a drag ends. */
   onResizeEnd?: (payload: {
     direction: 'increase' | 'decrease';
@@ -41,8 +39,6 @@ interface SplitPanelProps {
   }) => void;
   /** Layout direction. Accepts a responsive value. */
   orientation?: Responsive<'horizontal' | 'vertical'>;
-  /** Which side the `sized` pane sits on. Defaults to `start`. */
-  placement?: 'start' | 'end';
   /** Imperative handle exposing `setSize`. */
   ref?: React.Ref<SplitPanelHandle>;
 }
@@ -68,19 +64,17 @@ export function SplitPanel({
   fill,
   ref,
   orientation: orientationProp = 'horizontal',
-  placement = 'start',
   defaultSize,
   initialSize = defaultSize,
   minSize = 0,
   maxSize,
   fillMinSize = 0,
-  onResize,
   onResizeEnd,
 }: SplitPanelProps) {
   const {t} = useTranslation();
   const orientation =
     useResponsivePropValue(orientationProp) === 'vertical' ? 'vertical' : 'horizontal';
-  const isSizedFirst = placement === 'start';
+  const isSizedFirst = true;
   const hasFill = fill !== undefined && fill !== null;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,7 +122,7 @@ export function SplitPanel({
     initialSize,
     min,
     max,
-    onResize: newSize => onResize?.(newSize),
+    onResize: () => {},
   });
 
   useImperativeHandle(ref, () => ({setSize}), [setSize]);
@@ -189,8 +183,7 @@ export function SplitPanel({
     }
   };
 
-  // Ordered sized -> divider -> fill; reversed for `placement="end"`. Keys keep
-  // pane identity across the flip.
+  // Ordered sized -> divider -> fill. Keys keep pane identity.
   const panes = [
     <Pane key="sized" size={hasFill ? visibleSize : null}>
       {sized}

@@ -40,7 +40,6 @@ import {
   type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import type {WebVital} from 'sentry/utils/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -1103,34 +1102,15 @@ export class EventView {
   }
 
   // returns query input for the search
-  getQuery(inputQuery?: string | string[] | null): string {
-    const queryParts: string[] = [];
-
+  getQuery(): string {
     if (this.query) {
       if (this.additionalConditions) {
-        queryParts.push(this.getQueryWithAdditionalConditions());
-      } else {
-        queryParts.push(this.query);
+        return this.getQueryWithAdditionalConditions();
       }
+      return this.query;
     }
 
-    if (inputQuery) {
-      // there may be duplicate query in the query string
-      // e.g. query=hello&query=world
-      if (Array.isArray(inputQuery)) {
-        inputQuery.forEach(query => {
-          if (typeof query === 'string' && !queryParts.includes(query)) {
-            queryParts.push(query);
-          }
-        });
-      }
-
-      if (typeof inputQuery === 'string' && !queryParts.includes(inputQuery)) {
-        queryParts.push(inputQuery);
-      }
-    }
-
-    return queryParts.join(' ');
+    return '';
   }
 
   getFacetsAPIPayload(
@@ -1287,10 +1267,9 @@ export class EventView {
       breakdown?: SpanOperationBreakdownFilter;
       showTransactions?: EventsDisplayFilterName;
       view?: DomainView;
-      webVital?: WebVital;
     }
   ): {pathname: string; query: Query} {
-    const {showTransactions, breakdown, webVital} = options;
+    const {showTransactions, breakdown} = options;
     const output = {
       sort: encodeSorts(this.sorts),
       project: [...this.project],
@@ -1298,7 +1277,6 @@ export class EventView {
       transaction: this.name,
       showTransactions,
       breakdown,
-      webVital,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -1327,12 +1305,7 @@ export class EventView {
     return this.sorts.find(sort => isSortEqualToField(sort, field, tableMeta));
   }
 
-  sortOnField(
-    field: Field,
-    tableMeta: MetaType,
-    kind?: 'desc' | 'asc',
-    useFunctionFormat?: boolean
-  ): EventView {
+  sortOnField(field: Field, tableMeta: MetaType, kind?: 'desc' | 'asc'): EventView {
     // check if field can be sorted
     if (!isFieldSortable(field, tableMeta)) {
       return this;
@@ -1348,15 +1321,7 @@ export class EventView {
       const currentSort = this.sorts[needleIndex]!;
 
       const sorts = [...newEventView.sorts];
-      sorts[needleIndex] = kind
-        ? setSortOrder(
-            {...currentSort, ...(useFunctionFormat ? {field: field.field} : {})},
-            kind
-          )
-        : reverseSort({
-            ...currentSort,
-            ...(useFunctionFormat ? {field: field.field} : {}),
-          });
+      sorts[needleIndex] = kind ? setSortOrder(currentSort, kind) : reverseSort(currentSort);
 
       newEventView.sorts = sorts;
 
@@ -1367,7 +1332,7 @@ export class EventView {
     const newEventView = this.clone();
 
     // invariant: this is not falsey, since sortKey exists
-    const sort = fieldToSort(field, tableMeta, kind, useFunctionFormat)!;
+    const sort = fieldToSort(field, tableMeta, kind)!;
 
     newEventView.sorts = [sort];
 

@@ -150,7 +150,7 @@ describe('Access', () => {
       );
 
       render(
-        <Access access={[]} isSuperuser>
+        <Access access={[]}>
           {childrenMock}
         </Access>,
         {
@@ -172,7 +172,7 @@ describe('Access', () => {
       );
 
       render(
-        <Access access={[]} isSuperuser>
+        <Access access={[]}>
           {childrenMock}
         </Access>,
         {
@@ -208,39 +208,6 @@ describe('Access', () => {
       );
 
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
-    });
-
-    it('has superuser', () => {
-      ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({isSuperuser: true}),
-        })
-      );
-
-      render(
-        <Access access={[]} isSuperuser>
-          <p>The Child</p>
-        </Access>,
-        {organization}
-      );
-
-      expect(screen.getByText('The Child')).toBeInTheDocument();
-    });
-
-    it('has no superuser', () => {
-      ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({isSuperuser: false}),
-        })
-      );
-
-      render(
-        <Access access={[]} isSuperuser>
-          <p>The Child</p>
-        </Access>,
-        {organization}
-      );
-      expect(screen.queryByRole('The Child')).not.toBeInTheDocument();
     });
   });
 });

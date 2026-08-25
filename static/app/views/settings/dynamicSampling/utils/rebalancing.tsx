@@ -7,7 +7,6 @@ interface BalancingItem {
 interface Params<T extends BalancingItem> {
   items: T[];
   targetSampleRate: number;
-  minBudget?: number;
 }
 
 /**
@@ -19,13 +18,11 @@ interface Params<T extends BalancingItem> {
  *
  * @param targetSampleRate The target sample rate to balance the items to.
  * @param items The items to balance.
- * @param minBudget Ensure that we use at least min_budget (in order to keep the overall rate)
  * @returns The balanced items and the used budget.
  */
 export function balanceSampleRate<T extends BalancingItem>({
   targetSampleRate,
   items,
-  minBudget: minBudgetParam,
 }: Params<T>): {
   balancedItems: T[];
   usedBudget: number;
@@ -36,7 +33,7 @@ export function balanceSampleRate<T extends BalancingItem>({
 
   let numItems = items.length;
   let ideal = (total * targetSampleRate) / numItems;
-  let minBudget = Math.min(total, minBudgetParam ?? total * targetSampleRate);
+  let minBudget = Math.min(total, total * targetSampleRate);
   let usedBudget = 0;
 
   const balancedItems: T[] = [];

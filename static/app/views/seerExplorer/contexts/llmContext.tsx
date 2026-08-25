@@ -310,15 +310,14 @@ export function useLLMContext(data: {} | null): void;
  *
  *   const { getLLMContext } = useLLMContext();
  *   getLLMContext()      // full tree from root
- *   getLLMContext(true)  // current component's subtree only
  */
 export function useLLMContext(): {
-  getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot;
+  getLLMContext: () => LLMContextSnapshot;
 };
 
 export function useLLMContext(
   data?: unknown
-): void | {getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot} {
+): void | {getLLMContext: () => LLMContextSnapshot} {
   const ctx = useLLMContextRegistry();
   const nodeId = useContext(LLMNodeContext);
   const prevDataRef = useRef('');
@@ -350,15 +349,9 @@ export function useLLMContext(
 
   // Read path: always created so hooks run unconditionally.
   // Only returned when called without data.
-  const getLLMContext = useCallback(
-    (componentOnly?: boolean): LLMContextSnapshot => {
-      if (componentOnly && nodeId) {
-        return ctx.getSnapshot(nodeId);
-      }
-      return ctx.getSnapshot();
-    },
-    [ctx, nodeId]
-  );
+  const getLLMContext = useCallback((): LLMContextSnapshot => {
+    return ctx.getSnapshot();
+  }, [ctx]);
 
   if (data === undefined) {
     return {getLLMContext};

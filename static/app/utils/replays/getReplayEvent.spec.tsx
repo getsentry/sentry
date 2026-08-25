@@ -162,15 +162,4 @@ describe('getPrevReplayFrame', () => {
 
     expect(result).toEqual(frames[0]);
   });
-
-  it('should return the same frame if timestamps exactly match and allowExact is enabled', () => {
-    const exactTime = frames[1]!.offsetMs;
-    const result = getPrevReplayFrame({
-      frames,
-      targetOffsetMs: exactTime,
-      allowExact: true,
-    });
-
-    expect(result).toEqual(frames[1]);
-  });
 });

@@ -32,24 +32,9 @@ type SliderProps = {
   className?: string;
 
   /**
-   * Render prop for slider's label
-   * Is passed the value as an argument
-   */
-  formatLabel?: (value: number | '') => React.ReactNode;
-
-  /**
    * HTML id of the range input
    */
   id?: string;
-
-  /**
-   * max allowed value, not needed if using `allowedValues`
-   */
-  max?: number;
-  /**
-   * min allowed value, not needed if using `allowedValues`
-   */
-  min?: number;
 
   onChange?: (
     value: SliderProps['value'],
@@ -67,7 +52,6 @@ export function RangeSlider({
   value,
   allowedValues,
   name,
-  formatLabel,
   className,
   onChange,
   ref,
@@ -119,10 +103,9 @@ export function RangeSlider({
 
   function getSliderData() {
     if (!allowedValues) {
-      const {min, max} = props;
       return {
-        min,
-        max,
+        min: undefined,
+        max: undefined,
         actualValue: sliderValue,
         displayValue: sliderValue,
       };
@@ -139,8 +122,8 @@ export function RangeSlider({
     };
   }
 
-  const {min, max, actualValue, displayValue} = getSliderData();
-  const labelText = formatLabel?.(actualValue) ?? displayValue;
+  const {min, max, displayValue} = getSliderData();
+  const labelText = displayValue;
 
   return (
     <div className={className} ref={ref}>

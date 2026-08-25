@@ -132,10 +132,6 @@ describe('formatRate()', () => {
     expect(formatRate(0.271, undefined, {minimumValue: 0.01})).toBe('0.271/s');
   });
 
-  it('Obeys a significant digits option', () => {
-    expect(formatRate(7.1, undefined, {significantDigits: 4})).toBe('7.100/s');
-  });
-
   it('Abbreviates large numbers using SI prefixes', () => {
     expect(formatRate(1023.142)).toBe('1.02K/s');
     expect(formatRate(1523142)).toBe('1.52M/s');

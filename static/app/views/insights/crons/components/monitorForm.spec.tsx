@@ -96,7 +96,6 @@ describe('MonitorForm', () => {
         apiMethod="POST"
         apiEndpoint={apiEndpont}
         onSubmitSuccess={mockHandleSubmitSuccess}
-        submitLabel="Add Cron Monitor"
       />,
       {
         organization,
@@ -199,7 +198,6 @@ describe('MonitorForm', () => {
         apiMethod="POST"
         apiEndpoint={apiEndpont}
         onSubmitSuccess={jest.fn()}
-        submitLabel="Edit Monitor"
       />,
       {
         organization,

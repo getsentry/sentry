@@ -38,22 +38,10 @@ describe('BillingDetailsForm', () => {
     });
   });
 
-  it('shows billing email field when isDetailed is true', async () => {
-    render(<BillingDetailsForm {...defaultProps} isDetailed />);
+  it('shows billing email field', async () => {
+    render(<BillingDetailsForm {...defaultProps} />);
 
     await screen.findByRole('textbox', {name: 'Billing email'});
-  });
-
-  it('hides billing email field when isDetailed is false', async () => {
-    render(<BillingDetailsForm {...defaultProps} isDetailed={false} />);
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-
-    expect(
-      screen.queryByRole('textbox', {name: 'Billing email'})
-    ).not.toBeInTheDocument();
   });
 
   it('shows warning when Stripe hooks return null', async () => {
@@ -96,16 +84,10 @@ describe('BillingDetailsForm', () => {
     });
 
     render(
-      <BillingDetailsForm {...defaultProps} initialData={detailsWithTax} isDetailed />
+      <BillingDetailsForm {...defaultProps} initialData={detailsWithTax} />
     );
 
     await screen.findByRole('textbox', {name: /VAT Number/i});
-  });
-
-  it('renders custom submit label when provided', async () => {
-    render(<BillingDetailsForm {...defaultProps} submitLabel="Update Address" />);
-
-    await screen.findByRole('button', {name: 'Update Address'});
   });
 
   it('renders extra button when provided', async () => {

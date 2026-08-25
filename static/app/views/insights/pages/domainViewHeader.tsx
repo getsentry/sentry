@@ -38,8 +38,6 @@ export type Props = {
   selectedModule: ModuleName | undefined;
   additionalBreadCrumbs?: Crumb[];
   additonalHeaderActions?: React.ReactNode;
-  // TODO - hasOverviewPage could be improved, the overview page could just be a "module", but that has a lot of other implications that have to be considered
-  hasOverviewPage?: boolean;
   headerTitle?: React.ReactNode;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
@@ -47,7 +45,6 @@ export type Props = {
 
 export function DomainViewHeader({
   modules,
-  hasOverviewPage = true,
   headerTitle,
   domainTitle,
   selectedModule,
@@ -86,15 +83,11 @@ export function DomainViewHeader({
   };
 
   const tabList: TabListItemProps[] = [
-    ...(hasOverviewPage
-      ? [
-          {
-            key: OVERVIEW_PAGE_TITLE,
-            children: OVERVIEW_PAGE_TITLE,
-            to: {pathname: domainBaseUrl, query: globalQuery},
-          },
-        ]
-      : []),
+    {
+      key: OVERVIEW_PAGE_TITLE,
+      children: OVERVIEW_PAGE_TITLE,
+      to: {pathname: domainBaseUrl, query: globalQuery},
+    },
     ...modules
       .filter(moduleName => isModuleVisible(moduleName, organization))
       .map(moduleName => ({

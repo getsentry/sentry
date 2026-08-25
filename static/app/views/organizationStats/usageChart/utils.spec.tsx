@@ -52,15 +52,16 @@ describe('getDateFromMoment', () => {
   });
 
   it('shows the date and time in 24 hour format if 24 hour format is enabled', () => {
-    expect(getDateFromMoment(start, '6h', false, true)).toBe(
-      'Jul 8 20:00 - 02:00 (-04:00)'
-    );
-    expect(getDateFromMoment(start, '1h', false, true)).toBe(
-      'Jul 8 20:00 - 21:00 (-04:00)'
-    );
-    expect(getDateFromMoment(start, '5m', false, true)).toBe(
-      'Jul 8 20:00 - 20:05 (-04:00)'
-    );
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      options: {
+        ...ConfigStore.get('user')?.options,
+        clock24Hours: true,
+      },
+    });
+    expect(getDateFromMoment(start, '6h', false)).toBe('Jul 8 20:00 - 02:00 (-04:00)');
+    expect(getDateFromMoment(start, '1h', false)).toBe('Jul 8 20:00 - 21:00 (-04:00)');
+    expect(getDateFromMoment(start, '5m', false)).toBe('Jul 8 20:00 - 20:05 (-04:00)');
   });
 });
 

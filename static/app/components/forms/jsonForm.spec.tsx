@@ -1,12 +1,8 @@
-import {UserFixture} from 'sentry-fixture/user';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import JsonForm from 'sentry/components/forms/jsonForm';
 
 import type {FieldObject, JsonFormObject} from './types';
-
-const user = UserFixture();
 
 const testFormFields: JsonFormObject[] = [
   {
@@ -59,7 +55,6 @@ describe('JsonForm', () => {
       render(
         <JsonForm
           forms={forms}
-          additionalFieldProps={{user}}
           collapsible
           initiallyCollapsed
         />
@@ -103,7 +98,6 @@ describe('JsonForm', () => {
       render(
         <JsonForm
           forms={forms}
-          additionalFieldProps={{user}}
           collapsible
           initiallyCollapsed
         />

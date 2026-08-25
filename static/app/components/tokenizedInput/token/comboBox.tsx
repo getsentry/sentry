@@ -44,7 +44,6 @@ interface ComboBoxProps {
   onInputFocus?: FocusEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
   onKeyDownCapture?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
-  onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onOptionSelected?: (option: SelectOptionWithKey<string>) => void;
   onPaste?: (e: ClipboardEvent<HTMLInputElement>) => void;
@@ -107,7 +106,6 @@ export function ComboBox({
   onInputChange,
   onKeyDown,
   onKeyDownCapture,
-  onKeyUp,
   onPaste,
   placeholder,
   tabIndex,
@@ -221,13 +219,6 @@ export function ComboBox({
     [inputValue, onInputCommit, onInputEscape, state, isOpen, onKeyDown]
   );
 
-  const handleComboBoxKeyUp = useCallback(
-    (evt: KeyboardEvent) => {
-      onKeyUp?.(evt);
-    },
-    [onKeyUp]
-  );
-
   const {inputProps, listBoxProps} = useSearchTokenCombobox<
     SelectOptionOrSectionWithKey<string>
   >(
@@ -241,7 +232,6 @@ export function ComboBox({
       onFocus: handleComboBoxFocus,
       onBlur: handleComboBoxBlur,
       onKeyDown: handleComboBoxKeyDown,
-      onKeyUp: handleComboBoxKeyUp,
     },
     state
   );

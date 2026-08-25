@@ -176,7 +176,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
         setWaitingForResponse(false);
       }
     }
-  }, [waitingForResponse, sessionData, options]);
+  }, [waitingForResponse, sessionData]);
 
   // Reset function
   const reset = useCallback(() => {

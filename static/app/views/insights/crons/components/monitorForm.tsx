@@ -67,7 +67,6 @@ type Props = {
   apiMethod: FormProps['apiMethod'];
   onSubmitSuccess: FormProps['onSubmitSuccess'];
   monitor?: Monitor;
-  submitLabel?: string;
 };
 
 interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>> {
@@ -170,7 +169,6 @@ function mapMonitorFormErrors(responseJson?: any) {
 
 export function MonitorForm({
   monitor,
-  submitLabel,
   apiEndpoint,
   apiMethod,
   onSubmitSuccess,
@@ -255,7 +253,6 @@ export function MonitorForm({
             }
       }
       onSubmitSuccess={onSubmitSuccess}
-      submitLabel={submitLabel}
       mapFormErrors={mapMonitorFormErrors}
     >
       <StyledList symbol="colored-numeric">

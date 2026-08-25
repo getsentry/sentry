@@ -53,7 +53,6 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
               allowedCharts={allowedCharts}
               rowChartSettings={[]}
               withStaticFilters={withStaticFilters}
-              forceDefaultChartSetting
               {...data}
               {...rest}
             />

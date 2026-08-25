@@ -1,20 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 
-jest.mock('sentry/actionCreators/projects', () => ({
-  addTeamToProject: jest.fn(),
-}));
 jest.mock('sentry/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
@@ -40,7 +35,6 @@ const teamData = [
   },
 ];
 const teams = teamData.map(data => TeamFixture(data));
-const project = ProjectFixture({teams: [teams[0]!]});
 const organization = OrganizationFixture({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
@@ -93,46 +87,6 @@ describe('Team Selector', () => {
     // These options should be filtered out
     expect(screen.queryByText('#team2')).not.toBeInTheDocument();
     expect(screen.queryByText('#team3')).not.toBeInTheDocument();
-  });
-
-  it('respects the project filter', async () => {
-    createWrapper({project});
-    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
-
-    expect(screen.getByText('#team1')).toBeInTheDocument();
-
-    // team2 and team3 should have add to project buttons
-    expect(screen.getAllByRole('button')).toHaveLength(2);
-  });
-
-  it('respects the team and project filter', async () => {
-    createWrapper({
-      teamFilter: team => team.slug === 'team1' || team.slug === 'team2',
-      project,
-    });
-    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
-
-    expect(screen.getByText('#team1')).toBeInTheDocument();
-
-    // team3 should be filtered out
-    expect(screen.queryByText('#team3')).not.toBeInTheDocument();
-
-    // team2 should have add to project buttons
-    expect(screen.getAllByRole('button')).toHaveLength(1);
-  });
-
-  it('allows you to add teams outside of project', async () => {
-    createWrapper({project});
-    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
-
-    expect(screen.getByText('#team1')).toBeInTheDocument();
-
-    // team2 and team3 should have add to project buttons
-    const addToProjectButtons = screen.getAllByRole('button');
-
-    await userEvent.click(addToProjectButtons[0]!);
-
-    expect(addTeamToProject).toHaveBeenCalled();
   });
 
   it('allows searching by slug with useId', async () => {

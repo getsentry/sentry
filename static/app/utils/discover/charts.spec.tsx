@@ -388,21 +388,4 @@ describe('getDurationUnit()', () => {
     expect(durationUnit).toBe(MILLISECOND);
   });
 
-  it('should convert values using dataUnit before categorizing', () => {
-    // Values [1, 2, 3, 4, 5] in days → range = 4 days = 345600000ms
-    // /5 = 69120000ms (~19.2hr) → categorizes tick interval as HOUR
-    const series = generateSeries([1, 2, 3, 4, 5]);
-    expect(getDurationUnit(series, undefined, DurationUnit.DAY)).toBe(HOUR);
-    // Without the unit, same values [1..5] are treated as ms → MILLISECOND
-    expect(getDurationUnit(series)).toBe(MILLISECOND);
-  });
-
-  it('should categorize correctly for hour-scale data with dataUnit', () => {
-    // Values [1, 2, 3, 4] in hours → range = 3hr = 10800000ms
-    // /5 = 2160000ms (~36min) → categorizes tick interval as MINUTE
-    const series = generateSeries([1, 2, 3, 4]);
-    expect(getDurationUnit(series, undefined, DurationUnit.HOUR)).toBe(MINUTE);
-    // Without the unit, same values [1..4] are treated as ms → MILLISECOND
-    expect(getDurationUnit(series)).toBe(MILLISECOND);
-  });
 });

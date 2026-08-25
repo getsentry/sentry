@@ -174,81 +174,6 @@ describe('Dashboards > Dashboard', () => {
     expect(tagsMock).toHaveBeenCalled();
   });
 
-  it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
-    render(
-      <Dashboard
-        dashboard={mockDashboard}
-        isEditingDashboard={false}
-        onUpdate={() => {}}
-        handleUpdateWidgetList={() => {}}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        newWidget={newWidget}
-        widgetLimitReached={false}
-        onSetNewWidget={mockCallbackToUnsetNewWidget}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
-    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
-  });
-
-  it('dashboard adds new widget if component updated with newWidget prop', async () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
-    const {rerender} = render(
-      <Dashboard
-        dashboard={mockDashboard}
-        isEditingDashboard={false}
-        onUpdate={() => {}}
-        handleUpdateWidgetList={() => {}}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        widgetLimitReached={false}
-        onSetNewWidget={mockCallbackToUnsetNewWidget}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
-    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
-
-    // Re-render with newWidget prop
-    rerender(
-      <Dashboard
-        dashboard={mockDashboard}
-        isEditingDashboard={false}
-        onUpdate={() => {}}
-        handleUpdateWidgetList={() => {}}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        widgetLimitReached={false}
-        onSetNewWidget={mockCallbackToUnsetNewWidget}
-        newWidget={newWidget}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
-    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
-  });
-
-  it('dashboard does not try to add new widget if no newWidget', () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
-    render(
-      <Dashboard
-        dashboard={mockDashboard}
-        isEditingDashboard={false}
-        onUpdate={() => {}}
-        handleUpdateWidgetList={() => {}}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        widgetLimitReached={false}
-        onSetNewWidget={mockCallbackToUnsetNewWidget}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
-    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
-  });
-
   it('handles duplicate widget in view mode', async () => {
     const mockOnUpdate = jest.fn();
     const mockHandleUpdateWidgetList = jest.fn();
@@ -278,7 +203,6 @@ describe('Dashboards > Dashboard', () => {
           handleUpdateWidgetList={mockHandleUpdateWidgetList}
           handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
-          onSetNewWidget={() => {}}
           widgetLegendState={widgetLegendState}
         />
       </MEPSettingProvider>,

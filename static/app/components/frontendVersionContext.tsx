@@ -63,11 +63,6 @@ interface Props {
    * constant. Should be in the format `package@<commit-sha>`.
    */
   releaseVersion: string | null;
-  /**
-   * Force the status for testing purposes. When enabled, disables the API
-   * query and sets the forced state.
-   */
-  force?: State;
 }
 
 const FrontendVersionContext = createContext<VersionStatus>({
@@ -80,12 +75,12 @@ const FrontendVersionContext = createContext<VersionStatus>({
  * Context provider that polls the frontend version endpoint every 5 minutes
  * and on tab focus to detect if the frontend version has changed.
  */
-export function FrontendVersionProvider({children, force, releaseVersion}: Props) {
+export function FrontendVersionProvider({children, releaseVersion}: Props) {
   const {sentryMode} = useLegacyStore(ConfigStore);
 
   // Version checking only applies to production SAAS builds
   const isSaas = sentryMode === 'SAAS';
-  const canCheckVersion = !force && IS_PRODUCTION_BUILD && isSaas;
+  const canCheckVersion = IS_PRODUCTION_BUILD && isSaas;
 
   const [delayElapsed, setDelayElapsed] = useState(false);
 
@@ -118,9 +113,6 @@ export function FrontendVersionProvider({children, force, releaseVersion}: Props
   const deployedVersion = frontendVersionData?.version ?? null;
 
   function getState(): State {
-    if (force) {
-      return force;
-    }
     if (!enabled) {
       return 'disabled';
     }
