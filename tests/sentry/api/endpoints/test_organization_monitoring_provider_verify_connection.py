@@ -72,6 +72,42 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
         )
 
     @patch(_PATCH_SA_EMAIL, return_value=_SA_EMAIL)
+    @patch(
+        _PATCH_VERIFY,
+        return_value={
+            "connection_status": "new_status",
+            "projects": [
+                {
+                    "gcp_project_id": "proj-a",
+                    "connection_status": "new_status",
+                    "services": [
+                        {
+                            "service": "logging",
+                            "status": "new_status",
+                            "error_detail": None,
+                        }
+                    ],
+                    "error_detail": None,
+                }
+            ],
+            "error_detail": None,
+        },
+    )
+    def test_forwards_unknown_connection_status(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock
+    ) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_success_response(
+                self.organization.slug,
+                customer_sa_email="cust@customer.iam.gserviceaccount.com",
+                gcp_project_ids=["proj-a"],
+            )
+
+        assert response.data["connectionStatus"] == "new_status"
+        assert response.data["projects"][0]["connectionStatus"] == "new_status"
+        assert response.data["projects"][0]["services"][0]["status"] == "new_status"
+
+    @patch(_PATCH_SA_EMAIL, return_value=_SA_EMAIL)
     @patch(_PATCH_VERIFY, side_effect=IntegrationError("Failed to verify GCP connection."))
     def test_seer_error_returns_502(self, mock_verify: MagicMock, mock_sa_email: MagicMock) -> None:
         with self.feature("organizations:seer-infra-telemetry"):

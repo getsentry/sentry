@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from rest_framework.fields import CharField, ChoiceField, ListField
+from rest_framework.fields import CharField, ListField
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
@@ -31,30 +31,21 @@ class GcpVerifyConnectionSerializer(CamelSnakeSerializer["GcpVerifyConnectionSer
     )
 
 
-_CONNECTION_STATUSES = (
-    "connected",
-    "permission_denied",
-    "api_disabled",
-    "project_not_found",
-    "error",
-)
-
-
 class GcpVerifyConnectionServiceResultSerializer(Serializer[dict[str, object]]):
     service = CharField()
-    status = ChoiceField(choices=_CONNECTION_STATUSES)
+    status = CharField()
     error_detail = CharField(required=False, allow_null=True)
 
 
 class GcpVerifyConnectionProjectResultSerializer(Serializer[dict[str, object]]):
     gcp_project_id = CharField()
-    connection_status = ChoiceField(choices=_CONNECTION_STATUSES)
+    connection_status = CharField()
     services = GcpVerifyConnectionServiceResultSerializer(many=True)
     error_detail = CharField(required=False, allow_null=True)
 
 
 class GcpVerifyConnectionResponseSerializer(Serializer[dict[str, object]]):
-    connection_status = ChoiceField(choices=_CONNECTION_STATUSES)
+    connection_status = CharField()
     projects = GcpVerifyConnectionProjectResultSerializer(many=True)
     error_detail = CharField(required=False, allow_null=True)
 
