@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -29,7 +29,7 @@ import {
 } from './messagingProviders';
 import type {ScmMessagingProviderKey} from './messagingProviders';
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
-import type {ScmMessagingSetup} from './scmMessagingSetup';
+import type {ScmMessagingActiveRow, ScmMessagingSetup} from './scmMessagingSetup';
 import type {ScmMessagingProviderViewModel} from './useScmMessagingProviders';
 
 /**
@@ -153,8 +153,10 @@ function getInstallErrorMessage(
 }
 
 export interface ScmMessagingProviderRowProps {
+  activeRow: ScmMessagingActiveRow;
   messagingSetup: ScmMessagingSetup;
-  onInstallComplete: () => void;
+  onActiveRowChange: (row: ScmMessagingActiveRow) => void;
+  onInstallComplete: (providerKey: ScmMessagingProviderKey) => void;
   onMessagingSetupChange: (setup: ScmMessagingSetup) => void;
   viewModel: ScmMessagingProviderViewModel;
   /**
@@ -164,12 +166,6 @@ export interface ScmMessagingProviderRowProps {
    * integration surfaced, preventing an infinite spin.
    */
   isRefetchingIntegrations?: boolean;
-  /**
-   * Called with this row's providerKey when it enters configuring or removing
-   * mode, and with null when it leaves. The parent uses this to hide sibling
-   * rows so only the active row is visible during exclusive modes.
-   */
-  onExclusiveModeChange?: (providerKey: ScmMessagingProviderKey | null) => void;
   /**
    * Render prop for the inline channel picker.
    *
@@ -191,14 +187,13 @@ export function ScmMessagingProviderRow({
   messagingSetup,
   onMessagingSetupChange,
   onInstallComplete,
-  onExclusiveModeChange,
+  activeRow,
+  onActiveRowChange,
   renderChannelPicker,
   isRefetchingIntegrations = false,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
   const {startFlow, state: installState} = useAddIntegration();
-  const [isConfiguring, setIsConfiguring] = useState(false);
-  const [isRemoving, setIsRemoving] = useState(false);
 
   const hasInstallAccess = hasEveryAccess(['org:integrations'], {organization});
 
@@ -206,6 +201,11 @@ export function ScmMessagingProviderRow({
     messagingSetup.mode === 'selected' &&
     messagingSetup.providerKey === viewModel.providerKey &&
     viewModel.eligibleIntegrations.some(i => i.id === messagingSetup.integrationId);
+
+  const isConfiguring =
+    activeRow?.providerKey === viewModel.providerKey && activeRow.mode === 'configuring';
+  const isRemoving =
+    activeRow?.providerKey === viewModel.providerKey && activeRow.mode === 'removing';
 
   const visualState = deriveVisualState({
     viewModel,
@@ -217,52 +217,12 @@ export function ScmMessagingProviderRow({
     isRefetchingIntegrations,
   });
 
-  // When the integration goes away (e.g. removed externally), close any
-  // expanded state so the row does not get stuck showing a stale UI.
-  useEffect(() => {
-    if (viewModel.status !== 'connected') {
-      setIsConfiguring(false);
-      setIsRemoving(false);
-    }
-  }, [viewModel.status]);
-
-  // If the configured destination is cleared externally (validation reset),
-  // exit the removing confirmation.
-  useEffect(() => {
-    if (!isConfigured) {
-      setIsRemoving(false);
-    }
-  }, [isConfigured]);
-
-  // Auto-open the destination picker immediately after a fresh install in this
-  // session. Guarded by a ref so navigating away and back, or a second refetch,
-  // does not re-open the picker unexpectedly.
-  const hasAutoOpenedRef = useRef(false);
-  useEffect(() => {
-    if (
-      installState.status === 'complete' &&
-      viewModel.status === 'connected' &&
-      !isRefetchingIntegrations &&
-      !hasAutoOpenedRef.current
-    ) {
-      hasAutoOpenedRef.current = true;
-      setIsConfiguring(true);
-    }
-  }, [installState.status, viewModel.status, isRefetchingIntegrations]);
-
-  // Notify the parent when this row enters or leaves an exclusive mode so it
-  // can hide sibling rows.
-  useEffect(() => {
-    const isExclusive = visualState === 'configuring' || visualState === 'removing';
-    onExclusiveModeChange?.(isExclusive ? viewModel.providerKey : null);
-  }, [visualState, viewModel.providerKey, onExclusiveModeChange]);
-
   const handleConnect = useCallback(() => {
     startFlow({
       provider: viewModel.provider,
       organization,
       onInstall: (_integration: IntegrationWithConfig) => {
-        onInstallComplete();
+        onInstallComplete(viewModel.providerKey);
       },
       suppressSuccessMessage: true,
       analyticsParams: {
@@ -271,24 +231,33 @@ export function ScmMessagingProviderRow({
         variant: 'scm',
       },
     });
-  }, [startFlow, viewModel.provider, organization, onInstallComplete]);
+  }, [
+    startFlow,
+    viewModel.provider,
+    viewModel.providerKey,
+    organization,
+    onInstallComplete,
+  ]);
 
-  const handleChooseDestination = () => setIsConfiguring(true);
-  const handleEditDestination = () => setIsConfiguring(true);
-  const handleCancelConfiguring = () => setIsConfiguring(false);
-  const handleStartRemoving = () => setIsRemoving(true);
-  const handleCancelRemoving = () => setIsRemoving(false);
+  const handleChooseDestination = () =>
+    onActiveRowChange({providerKey: viewModel.providerKey, mode: 'configuring'});
+  const handleEditDestination = () =>
+    onActiveRowChange({providerKey: viewModel.providerKey, mode: 'configuring'});
+  const handleCancelConfiguring = () => onActiveRowChange(null);
+  const handleStartRemoving = () =>
+    onActiveRowChange({providerKey: viewModel.providerKey, mode: 'removing'});
+  const handleCancelRemoving = () => onActiveRowChange(null);
   const handleConfirmRemove = () => {
     onMessagingSetupChange({mode: 'unconfigured'});
-    setIsRemoving(false);
+    onActiveRowChange(null);
   };
 
   const handleConfigured = useCallback(
     (setup: ScmMessagingSetup & {mode: 'selected'}) => {
       onMessagingSetupChange(setup);
-      setIsConfiguring(false);
+      onActiveRowChange(null);
     },
-    [onMessagingSetupChange]
+    [onMessagingSetupChange, onActiveRowChange]
   );
 
   const errorMessage = getInstallErrorMessage(installState);

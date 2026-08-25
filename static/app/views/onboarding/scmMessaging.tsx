@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,8 +7,12 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
 import {ScmMessagingProviderRow} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
-import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import type {
+  ScmMessagingActiveRow,
+  ScmMessagingSetup,
+} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {useScmMessagingSetupValidation} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import {IconMail} from 'sentry/icons/iconMail';
@@ -53,12 +57,9 @@ export function ScmMessaging({
     retry,
   } = useScmMessagingProviders();
 
-  // When a row enters configuring or removing mode, hide all other rows so the
-  // user can focus on one provider at a time.
-  const [exclusiveProviderKey, setExclusiveProviderKey] = useState<string | null>(null);
-  const handleExclusiveModeChange = useCallback((providerKey: string | null) => {
-    setExclusiveProviderKey(providerKey);
-  }, []);
+  const [activeRow, setActiveRow] = useState<ScmMessagingActiveRow>(null);
+
+  const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
 
   // Continue creates the project and alert rules, so it must wait for a
   // conclusively revalidated destination — not merely the absence of a
@@ -70,6 +71,11 @@ export function ScmMessaging({
   const handleSetupLater = () => {
     onMessagingSetupChange({mode: 'skipped'});
     onComplete?.();
+  };
+
+  const handleInstallComplete = (providerKey: ScmMessagingProviderKey) => {
+    refetchIntegrations();
+    setActiveRow({providerKey, mode: 'configuring'});
   };
 
   const hasValidationAlert = !!validation.staleReason || validation.isError;
@@ -174,15 +180,16 @@ export function ScmMessaging({
                 gap="lg"
               >
                 {providers.map(viewModel =>
-                  exclusiveProviderKey === null ||
-                  exclusiveProviderKey === viewModel.providerKey ? (
+                  validatedActiveRow === null ||
+                  validatedActiveRow.providerKey === viewModel.providerKey ? (
                     <ScmMessagingProviderRow
                       key={viewModel.providerKey}
                       viewModel={viewModel}
                       messagingSetup={messagingSetup}
                       onMessagingSetupChange={onMessagingSetupChange}
-                      onInstallComplete={refetchIntegrations}
-                      onExclusiveModeChange={handleExclusiveModeChange}
+                      onInstallComplete={handleInstallComplete}
+                      activeRow={validatedActiveRow}
+                      onActiveRowChange={setActiveRow}
                       isRefetchingIntegrations={isRefetchingIntegrations}
                     />
                   ) : null
@@ -191,7 +198,7 @@ export function ScmMessaging({
             ) : null}
           </AnimatePresence>
 
-          {exclusiveProviderKey === null && (
+          {validatedActiveRow === null && (
             <MotionFlex
               layout="position"
               align="center"
@@ -228,6 +235,37 @@ export function ScmMessaging({
       </Stack>
     </Stack>
   );
+}
+
+/**
+ * Returns `activeRow` when it is still usable, or `null` when it is stale:
+ * - The provider is missing or no longer connected (e.g. a refetch error
+ *   replaced the list and the active row's provider unmounted).
+ * - The row is in removing mode but the destination was cleared externally
+ *   (e.g. a validation reset set messagingSetup back to unconfigured).
+ */
+function validateActiveRow(
+  activeRow: ScmMessagingActiveRow,
+  providers: ReturnType<typeof useScmMessagingProviders>['providers'],
+  messagingSetup: ScmMessagingSetup
+): ScmMessagingActiveRow {
+  if (!activeRow) {
+    return null;
+  }
+  const viewModel = providers.find(p => p.providerKey === activeRow.providerKey);
+  if (!viewModel || viewModel.status !== 'connected') {
+    return null;
+  }
+  if (activeRow.mode === 'removing') {
+    const isConfigured =
+      messagingSetup.mode === 'selected' &&
+      messagingSetup.providerKey === activeRow.providerKey &&
+      viewModel.eligibleIntegrations.some(i => i.id === messagingSetup.integrationId);
+    if (!isConfigured) {
+      return null;
+    }
+  }
+  return activeRow;
 }
 
 const MotionFlex = motion.create(Flex);
