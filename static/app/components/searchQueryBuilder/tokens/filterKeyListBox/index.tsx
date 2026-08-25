@@ -10,12 +10,11 @@ import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
-import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
+import {AskSeerSetupLoading} from 'sentry/components/searchQueryBuilder/askSeer/askSeerSetupLoading';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -34,7 +33,6 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
@@ -89,21 +87,23 @@ function FeedbackFooter({
   askSeerButtonRef: React.RefObject<HTMLButtonElement | null>;
   onAskSeerTabForward: () => void;
 }) {
-  const organization = useOrganization();
   const {searchSource} = useSearchQueryBuilderConfig();
   const {enableAISearch} = useSearchQueryBuilderAI();
 
-  const hasAskSeerRework =
-    enableAISearch && organization.features.includes('gen-ai-ask-seer-ux-rework');
-
   return (
-    <SectionedOverlayFooter hasAskSeerRework={hasAskSeerRework}>
-      {hasAskSeerRework ? (
+    <Flex
+      area="footer"
+      align="center"
+      justify={enableAISearch ? 'between' : 'end'}
+      padding={enableAISearch ? 'sm' : 'md'}
+      borderTop="muted"
+    >
+      {enableAISearch ? (
         <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onAskSeerTabForward} />
       ) : null}
       <FeedbackButton
         variant="secondary"
-        size={hasAskSeerRework ? 'zero' : 'xs'}
+        size={enableAISearch ? 'zero' : 'xs'}
         feedbackOptions={{
           messagePlaceholder: t('How can we make search better for you?'),
           tags: {
@@ -113,7 +113,7 @@ function FeedbackFooter({
           },
         }}
       />
-    </SectionedOverlayFooter>
+    </Flex>
   );
 }
 
@@ -251,7 +251,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <Fragment>
-      {enableAISearch ? <AskSeer state={state} /> : null}
+      {enableAISearch ? <AskSeerSetupLoading /> : null}
       {showRecentFilters ? (
         <RecentFiltersPane
           // PanelBody applies legacy textStyles to plain ul elements; opt this layout row out.
@@ -338,23 +338,21 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     useSearchQueryBuilderLayout();
   const {enableAISearch} = useSearchQueryBuilderAI();
 
-  const hiddenOptionsWithRecentsAndAskSeerAdded = useMemo<Set<SelectKey>>(() => {
-    const baseHidden = [
-      ...hiddenOptions,
-      ...recentFilters.map(filter => createRecentFilterOptionKey(getKeyName(filter.key))),
-    ];
-
-    if (enableAISearch) {
-      baseHidden.push(ASK_SEER_ITEM_KEY, ASK_SEER_CONSENT_ITEM_KEY);
-    }
-
-    return new Set(baseHidden);
-  }, [enableAISearch, hiddenOptions, recentFilters]);
+  const hiddenOptionsWithRecents = useMemo<Set<SelectKey>>(
+    () =>
+      new Set([
+        ...hiddenOptions,
+        ...recentFilters.map(filter =>
+          createRecentFilterOptionKey(getKeyName(filter.key))
+        ),
+      ]),
+    [hiddenOptions, recentFilters]
+  );
 
   useHighlightFirstOptionOnSectionChange({
     state,
     selectedSection,
-    hiddenOptions: hiddenOptionsWithRecentsAndAskSeerAdded,
+    hiddenOptions: hiddenOptionsWithRecents,
     sections,
     isOpen,
   });
@@ -406,7 +404,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
             <FilterKeyMenuContent
               askSeerButtonRef={askSeerButtonRef}
               fullWidth={fullWidth}
-              hiddenOptions={hiddenOptionsWithRecentsAndAskSeerAdded}
+              hiddenOptions={hiddenOptionsWithRecents}
               listBoxProps={listBoxProps}
               listBoxRef={listBoxRef}
               onTabForward={onTabForward}
@@ -438,7 +436,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           <FilterKeyMenuContent
             askSeerButtonRef={askSeerButtonRef}
             fullWidth={fullWidth}
-            hiddenOptions={hiddenOptionsWithRecentsAndAskSeerAdded}
+            hiddenOptions={hiddenOptionsWithRecents}
             listBoxProps={listBoxProps}
             listBoxRef={listBoxRef}
             onTabForward={onTabForward}
@@ -516,17 +514,6 @@ const SectionedOverlay = styled(Overlay, {
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
   ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
-`;
-
-const SectionedOverlayFooter = styled('div')<{
-  hasAskSeerRework: boolean;
-}>`
-  grid-area: footer;
-  display: flex;
-  align-items: center;
-  justify-content: ${p => (p.hasAskSeerRework ? 'space-between' : 'flex-end')};
-  padding: ${p => (p.hasAskSeerRework ? p.theme.space.sm : p.theme.space.md)};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFiltersPane = styled('ul')`

@@ -55,7 +55,7 @@ const Grid = styled(Table, {
     p.scrollable &&
     css`
       overflow-x: auto;
-      overflow-y: scroll;
+      overflow-y: auto;
     `}
 
   /* Pin the header to a definite track height in both layouts; a content-based

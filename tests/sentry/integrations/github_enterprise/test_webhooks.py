@@ -700,6 +700,7 @@ class PullRequestEventWebhook(APITestCase):
         pr = prs[0]
 
         assert pr.key == "1"
+        assert pr.external_id == 34778301
         assert pr.message == "This is a pretty simple change that we need to pull into master."
         assert pr.title == "Update the README with new information"
         assert pr.author is not None

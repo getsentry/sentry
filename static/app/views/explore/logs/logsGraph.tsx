@@ -315,7 +315,6 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
 
     return [
       getSaveAsAlertMenuItem({
-        organization,
         to: getAlertsUrl({
           project,
           query: search.formatString(),

@@ -90,9 +90,10 @@ describe('IssuePreview', () => {
 
     render(<IssuePreview groupId={group.id} />, {organization});
 
-    expect(
-      await screen.findByRole('button', {name: 'View example/repo-name#10'})
-    ).toHaveAttribute('href', 'https://github.com/example/repo-name/pull/10');
+    expect(await screen.findByRole('button', {name: 'View PR'})).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo-name/pull/10'
+    );
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
   });
 
@@ -155,8 +156,6 @@ describe('IssuePreview', () => {
     expect(
       await screen.findByRole('button', {name: 'Restart Autofix'})
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'View example/repo-name#10'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
 });

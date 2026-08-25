@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import html
+from datetime import datetime
 from enum import StrEnum
 from functools import partial
 from typing import Any
@@ -22,8 +23,10 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
+from sentry.investigations.services.executions import mark_block_execution_dispatched
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
+    investigation_source,
     mark_downstream_blocks_stale,
 )
 from sentry.models.organization import Organization
@@ -72,11 +75,16 @@ loop variable, comprehension, or other expression; write separate calls when dif
 project lists are needed. Do not import sentry, sentry_sdk, or tool input types; use the provided
 sentry object directly. For a time-series chart, call sentry.render_chart with a title and series shaped like
 [{"label": "Errors", "data": [{"x": "2026-08-04T00:00:00+00:00", "y": 1}]}],
-for example title="Error volume", x_axis="time", y_axis_unit="number", and a supported
-visualization such as "line". Pass chart points and series as inline plain dictionaries; do not
+for example title="Error volume", subtitle="Last 24 hours | 1,240 total events",
+x_axis="time", y_axis_unit="number", and a supported visualization such as "line". Always give
+the chart a concise title and a subtitle containing the most useful result metadata, such as the
+time window, scope, and total count. Pass chart points and series as inline plain dictionaries; do not
 import type helpers. Time-axis
 x values must be offset-bearing ISO 8601 timestamps. If the question cannot be answered with telemetry, ask the user an
 inline clarification. Finish by returning exactly one raw JSON object in your final response.
+When notebookContext contains an item with currentBlock=true, it is the last successful result for
+the block being refined. Reuse its table and chart data for presentation-only requests such as
+changing line, area, or bar visualization; do not claim the data is unavailable or query it again.
 The first character must be { and the last character must be }.
 Do not wrap the object in a Markdown code fence or include prose before or after it. Do not call any function to
 write or save the result. tableMarkdown must be a complete Markdown table (or an empty table). When
@@ -108,6 +116,7 @@ def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
     context = {
         "request": snapshot.get("prompt"),
         "projectSlugs": snapshot.get("projectSlugs", []),
+        "source": snapshot.get("source", {}),
         "filters": snapshot.get("filters", {}),
         "parameters": snapshot.get("parameters", {}),
         "notebookContext": snapshot.get("context", []),
@@ -123,6 +132,7 @@ def start_execution_run(
     organization: Organization,
     user: Any,
     client: SeerAgentClient | None = None,
+    dispatch_claimed_at: datetime | None = None,
 ) -> None:
     is_query = execution.block.kind == InvestigationBlockKind.QUERY
     if client is None:
@@ -144,15 +154,22 @@ def start_execution_run(
             "execution_id": str(execution.id),
         },
         record_in_history=False,
-        on_run_created=lambda run: _mark_dispatched(execution, run.id),
+        on_run_created=lambda run: _mark_dispatched(
+            execution, run.id, dispatch_claimed_at=dispatch_claimed_at
+        ),
     )
 
 
-def _mark_dispatched(execution: InvestigationBlockExecution, seer_run_id: int) -> None:
-    execution.update(
+def _mark_dispatched(
+    execution: InvestigationBlockExecution,
+    seer_run_id: int,
+    *,
+    dispatch_claimed_at: datetime | None = None,
+) -> None:
+    mark_block_execution_dispatched(
+        execution,
         seer_run_id=seer_run_id,
-        status=InvestigationBlockExecutionStatus.RUNNING,
-        started_at=timezone.now(),
+        dispatch_claimed_at=dispatch_claimed_at,
     )
 
 
@@ -688,8 +705,18 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 result["queryLinks"] = links
                 result = validate_query_result(result)
                 allowed_project_ids = set(execution.input_snapshot.get("projectIds", []))
-                if not {project.id for project in projects}.issubset(allowed_project_ids):
+                queried_project_ids = {project.id for project in projects}
+                if not queried_project_ids.issubset(allowed_project_ids):
                     raise ValueError("The result queried outside the investigation project scope.")
+                result_project_ids = queried_project_ids.union(
+                    execution.input_snapshot.get("contextDataProjectIds", [])
+                )
+                projects = list(
+                    Project.objects.filter(
+                        organization=execution.block.investigation.organization,
+                        id__in=result_project_ids,
+                    ).order_by("id")
+                )
             else:
                 context_project_ids = execution.input_snapshot.get("contextDataProjectIds", [])
                 projects = list(
@@ -778,7 +805,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         "generic titles such as 'Metric Monitor Breach Investigation' or 'Incident Analysis'. "
         "Do not use tools. Return only the title text. Do not call any function to write or save "
         "it.\n<source_context>\n"
-        f"{json.dumps(investigation.source_ref)}\n</source_context>\n"
+        f"{json.dumps(investigation_source(investigation))}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
 

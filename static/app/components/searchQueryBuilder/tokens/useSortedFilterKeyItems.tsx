@@ -2,16 +2,12 @@ import {useMemo, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import type {FuseResult, IFuseOptions} from 'fuse.js/basic';
 
-import {
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderConfig,
-} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import type {
   KeySectionItem,
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
-  createAskSeerItem,
   createFilterValueItem,
   createItem,
   createLogicFilterItem,
@@ -178,7 +174,6 @@ export function useSortedFilterKeyItems({
     getTagKeys,
     filterKeyRegistryQueryKey,
   } = useSearchQueryBuilderConfig();
-  const {enableAISearch} = useSearchQueryBuilderAI();
 
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
@@ -327,11 +322,6 @@ export function useSortedFilterKeyItems({
     const asyncKeyItems = allKeyItems.filter(item => asyncOnlyKeys.has(item.value));
     const keyItems = [...staticKeyItems, ...asyncKeyItems];
 
-    const askSeerItem = [];
-    if (enableAISearch) {
-      askSeerItem.push(createAskSeerItem());
-    }
-
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {
         key: 'raw-search',
@@ -419,16 +409,14 @@ export function useSortedFilterKeyItems({
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
-        ...askSeerItem,
       ];
     }
 
-    return [...keyItems, ...askSeerItem];
+    return keyItems;
   }, [
     allKeysLookup,
     asyncOnlyKeys,
     disallowFreeText,
-    enableAISearch,
     filterKeySections,
     filterValue,
     flatKeys,
