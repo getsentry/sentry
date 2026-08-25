@@ -207,6 +207,25 @@ class PendingBuffer:
 class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = "b:p"
+    # The pending zset lists the buffered rows that wait for a flush.
+    # `process_pending` drains it, and the scheduler runs that task every 10
+    # seconds (see "flush-buffers" in sentry/conf/server.py). The expiry below
+    # is only a safety net. It stops the zset from living forever if the drain
+    # stops and no new rows arrive.
+    #
+    # The expiry cannot lose a buffered row. `incr` writes the row hash expiry
+    # and the zset expiry in the same pipeline. A row hash dies at most
+    # `key_expire` after its own last write. The zset dies `pending_key_expire`
+    # after the last write to any row, which is never earlier. So the zset
+    # always outlives every row that it points to. The same fact covers a late
+    # drain: while a row hash is alive, its pending entry is alive too.
+    #
+    # The expiry has to be set again on every `incr`. Do not move it to
+    # `process_pending`, and do not make it set-once with `EXPIRE ... NX`. Both
+    # start the life of the zset before the last row write, so the zset can die
+    # while rows that it points to are still alive, and those rows are never
+    # flushed.
+    pending_key_expire = key_expire * 2  # 2 hours
 
     def __init__(self, incr_batch_size: int = 2, **options: object):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
@@ -411,6 +430,9 @@ class RedisBuffer(Buffer):
 
         pipe.expire(key, self.key_expire)
         pipe.zadd(self.pending_key, {key: time()})
+        # Keep the expiry after the zadd, so that it applies to a key that
+        # exists. See `pending_key_expire` for why this cannot lose a row.
+        pipe.expire(self.pending_key, self.pending_key_expire)
         pipe.execute()
 
         metrics.incr(

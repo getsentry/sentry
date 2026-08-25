@@ -201,6 +201,58 @@ class TestRedisBuffer:
         else:
             assert pending == [key.encode("utf-8")]
 
+    def test_incr_bounds_pending_key(self) -> None:
+        """The pending zset gets an expiry, and that expiry outlives the rows."""
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        filters: dict[str, Any] = {"pk": 1}
+        key = make_key(model, filters=filters)
+
+        self.buf.incr(model, {"times_seen": 1}, filters)
+
+        row_ttl = client.ttl(key)
+        pending_ttl = client.ttl("b:p")
+        # Both keys are bounded.
+        assert 0 < row_ttl <= self.buf.key_expire
+        assert 0 < pending_ttl <= self.buf.pending_key_expire
+        # The pending zset never dies before a row that it points to.
+        assert self.buf.pending_key_expire >= self.buf.key_expire
+        assert pending_ttl >= row_ttl
+
+    @django_db_all
+    @freeze_time()
+    def test_no_row_lost_when_process_pending_is_delayed(self, default_group, task_runner) -> None:
+        """Rows buffered with no drain in between are all still flushed.
+
+        Redis counts the time to live on the server, so this test cannot wait
+        out a real delay. What protects a late drain is the order of the two
+        expiries, which is asserted below: while a row hash is alive, its
+        pending entry is alive too, so a drain that arrives at any point in the
+        life of the row still finds the entry.
+        """
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
+        filters: dict[str, Any] = {"pk": default_group.id}
+        key = make_key(Group, filters=filters)
+
+        # No drain runs while these writes for the same row arrive.
+        for _ in range(5):
+            self.buf.incr(Group, {"times_seen": 1}, filters, {"last_seen": timezone.now()})
+
+        # The row and its pending entry are both still there, and the pending
+        # entry still outlives the row.
+        assert client.ttl(key) > 0
+        assert client.ttl("b:p") >= client.ttl(key)
+        assert len(client.zrange("b:p", 0, -1)) == 1
+
+        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
+            self.buf.process_pending()
+
+        group = Group.objects.get_from_cache(id=default_group.id)
+        assert group.times_seen == orig_times_seen + 5
+        assert client.zrange("b:p", 0, -1) == []
+
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process) -> None:
