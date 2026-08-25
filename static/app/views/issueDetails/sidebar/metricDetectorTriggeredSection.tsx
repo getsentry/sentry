@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
+import {Fragment, useEffect, useEffectEvent, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
@@ -66,6 +66,9 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
+
+const INVESTIGATION_POLL_INTERVAL = 2000;
+const INVESTIGATION_METADATA_GRACE_PERIOD = 10_000;
 
 interface MetricDetectorEvidenceData {
   /**
@@ -573,6 +576,7 @@ function SeerInvestigationSection({
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const metadataIdleSince = useRef<{id: string; timestamp: number} | null>(null);
   const eventOpenPeriodQuery = useEventOpenPeriod({groupId, eventId});
   const shouldLoadLatest =
     eventOpenPeriodQuery.isSuccess && eventOpenPeriodQuery.data === null;
@@ -627,9 +631,32 @@ function SeerInvestigationSection({
         ) {
           return false;
         }
-        return shouldPollInvestigationBlocks(investigation.blocks ?? []) ||
+        const blocks = investigation.blocks ?? [];
+        if (
+          investigation.titleGeneration?.status === 'failed' ||
+          blocks.some(
+            block =>
+              block.config.autoRun === true &&
+              (block.currentExecution?.status === 'failed' ||
+                block.currentExecution?.status === 'cancelled')
+          )
+        ) {
+          return false;
+        }
+        if (
+          shouldPollInvestigationBlocks(blocks) ||
           isTitleGenerationActive(investigation.titleGeneration?.status)
-          ? 2000
+        ) {
+          metadataIdleSince.current = null;
+          return INVESTIGATION_POLL_INTERVAL;
+        }
+        const idleSince =
+          metadataIdleSince.current?.id === investigation.id
+            ? metadataIdleSince.current.timestamp
+            : Date.now();
+        metadataIdleSince.current = {id: investigation.id, timestamp: idleSince};
+        return Date.now() - idleSince < INVESTIGATION_METADATA_GRACE_PERIOD
+          ? INVESTIGATION_POLL_INTERVAL
           : false;
       },
     });

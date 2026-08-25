@@ -4,7 +4,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {
@@ -153,6 +153,48 @@ describe('MetricDetectorTriggeredSection', () => {
       await screen.findByRole('button', {name: 'View Investigation'})
     ).toBeInTheDocument();
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+  });
+
+  it('keeps polling briefly while metadata generation is starting', async () => {
+    jest.useFakeTimers();
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: null},
+        blocks: [
+          {
+            id: 'block-1',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'completed',
+            currentExecution: {status: 'completed'},
+          },
+        ],
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(2000));
+    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
+    jest.useRealTimers();
   });
 
   it('launches an investigation for the selected open period', async () => {
