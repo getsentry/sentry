@@ -870,12 +870,24 @@ class SeerAgentClient:
 
         return state
 
-    def latest_run(self, *, group_id: int | None = None) -> SeerAgentRun | None:
+    def latest_run(
+        self,
+        *,
+        group_id: int | None = None,
+        only_current_user: bool = True,
+    ) -> SeerAgentRun | None:
         """Most recent run for this source; ordering by last_triggered_at keeps a continued run current."""
         qs = SeerAgentRun.objects.filter(
             run__organization_id=self.organization.id,
             source=self.category_key or "",
         )
+        if (
+            only_current_user
+            and self.user
+            and hasattr(self.user, "id")
+            and self.user.id is not None
+        ):
+            qs = qs.filter(run__user_id=int(self.user.id))
         if group_id is not None:
             qs = qs.filter(group_id=group_id)
         elif self.category_value is not None:
@@ -887,9 +899,14 @@ class SeerAgentClient:
             .first()
         )
 
-    def fetch_latest_run_state(self, *, group_id: int | None = None) -> SeerRunState | None:
+    def fetch_latest_run_state(
+        self,
+        *,
+        group_id: int | None = None,
+        only_current_user: bool = True,
+    ) -> SeerRunState | None:
         """The remote state of the latest live run mirror for this client, or None."""
-        run = self.latest_run(group_id=group_id)
+        run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
         if run is None:
             return None
         return self.get_run(run.run.seer_run_state_id)

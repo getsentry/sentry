@@ -547,7 +547,7 @@ class SeerAgentOperator[CachePayloadT]:
 
             try:
                 # Discovery uses the local run mirror; continue/start stays remote.
-                existing_run = client.latest_run()
+                existing_run = client.latest_run(only_current_user=False)
 
                 if existing_run is not None:
                     run_id = client.continue_run(

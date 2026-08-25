@@ -1220,6 +1220,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
 
         mock_client_cls.assert_called_once()
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+        mock_client.latest_run.assert_called_once_with(only_current_user=False)
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
     def test_non_slack_category_ignores_flag(self, mock_client_cls):

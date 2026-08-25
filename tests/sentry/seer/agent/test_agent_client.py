@@ -1645,6 +1645,7 @@ class TestSeerAgentClientLatestRun(TestCase):
         )
 
     def _agent_run(self, state_id: int | None, *, source: str = "autofix", **kwargs):
+        kwargs.setdefault("user_id", self.user.id)
         run = self.create_seer_run(seer_run_state_id=state_id, **kwargs)
         return self.create_seer_agent_run(
             run,
@@ -1660,7 +1661,7 @@ class TestSeerAgentClientLatestRun(TestCase):
         )
         recent = self._agent_run(2)
         self._agent_run(3, source="chat")
-        other_category = self.create_seer_run(seer_run_state_id=4)
+        other_category = self.create_seer_run(seer_run_state_id=4, user_id=self.user.id)
         self.create_seer_agent_run(
             other_category,
             source="autofix",
@@ -1673,16 +1674,18 @@ class TestSeerAgentClientLatestRun(TestCase):
         assert result != stale
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
-    def test_latest_run_is_not_scoped_to_current_user(self, _mock_access) -> None:
+    def test_latest_run_can_ignore_current_user(self, _mock_access) -> None:
         other_user = self.create_user()
         run = self._agent_run(5, user_id=other_user.id)
+        client = self._client()
 
-        assert self._client().latest_run() == run
+        assert client.latest_run() is None
+        assert client.latest_run(only_current_user=False) == run
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     def test_latest_run_filters_by_group_id(self, _mock_access) -> None:
         group = self.create_group()
-        run = self.create_seer_run(seer_run_state_id=1)
+        run = self.create_seer_run(seer_run_state_id=1, user_id=self.user.id)
         self.create_seer_agent_run(run, source="autofix", group=group)
 
         client = self._client()
