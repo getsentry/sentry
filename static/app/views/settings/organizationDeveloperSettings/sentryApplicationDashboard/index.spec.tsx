@@ -187,7 +187,7 @@ describe('Sentry Application Dashboard', () => {
         },
       });
 
-      webhookRequestMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
       });
@@ -266,7 +266,7 @@ describe('Sentry Application Dashboard', () => {
         },
       });
 
-      webhookRequestMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
       });
