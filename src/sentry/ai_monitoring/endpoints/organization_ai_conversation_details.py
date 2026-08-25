@@ -28,6 +28,8 @@ from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
+type SpanRow = dict[str, Any]
+
 MAX_RETENTION_DAYS = 30
 
 _WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
@@ -120,12 +122,12 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     snuba_params, request.GET.get("statsPeriod"), now, conversation_id
                 )
 
-            def data_fn(offset: int, limit: int) -> list:
+            def data_fn(offset: int, limit: int) -> list[SpanRow]:
                 spans = self._fetch_spans(resolved_params, conversation_id, offset, limit)
                 self._annotate_issues(spans, resolved_params, organization)
                 return spans
 
-            def on_results(spans: list[dict[str, Any]]) -> AIConversationDetailsResponse:
+            def on_results(spans: list[SpanRow]) -> AIConversationDetailsResponse:
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
@@ -205,7 +207,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     @trace
     def _annotate_issues(
         self,
-        spans: list[dict],
+        spans: list[SpanRow],
         snuba_params: SnubaParams,
         organization: Organization,
     ) -> None:
@@ -268,7 +270,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         conversation_id: str,
         offset: int,
         limit: int,
-    ) -> list:
+    ) -> list[SpanRow]:
         result = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),

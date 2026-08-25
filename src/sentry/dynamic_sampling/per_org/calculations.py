@@ -46,9 +46,8 @@ def calculate_recalibration_factor(
     # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
     # biases that oversample or down sample irrespectively of the incoming volume.
     #
-    # The two sides of the volume come from different sources counting different populations,
-    # so the ratio can legitimately land above 1. That is not a sample rate, so treat it as
-    # fully sampled rather than scaling the factor down by however far the sources differed.
+    # Both sides come from the same EAP query, so the stored count cannot exceed the
+    # extrapolated total. The clamp keeps a rounded ratio from raising the factor.
     effective_sample_rate = min(1.0, data_volume.indexed / data_volume.total)
     new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
     return new_factor
