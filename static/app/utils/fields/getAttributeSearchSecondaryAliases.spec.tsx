@@ -3,6 +3,7 @@ import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
 import {
   ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
   getAttributeSearchDeprecationAliases,
+  getPreferredAttributeSearchKey,
 } from './getAttributeSearchSecondaryAliases';
 import {FieldKind} from './types';
 
@@ -43,5 +44,29 @@ describe('ATTRIBUTE_SEARCH_SECONDARY_ALIASES', () => {
       'environment'
     );
     expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES.environment).toBeUndefined();
+  });
+
+  it('uses getPreferredAttributeSearchKey when a name appears in multiple chains', () => {
+    expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['django.function_name']?.alias).toBe(
+      'code.function.name'
+    );
+    expect(getPreferredAttributeSearchKey('django.function_name')).toBe(
+      'code.function.name'
+    );
+  });
+
+  it('points metadata aliases at getPreferredAttributeSearchKey, not the first claimant', () => {
+    for (const [key, tag] of Object.entries(ATTRIBUTE_SEARCH_SECONDARY_ALIASES)) {
+      const preferred = getPreferredAttributeSearchKey(key);
+      if (preferred) {
+        expect(tag.alias).toBe(preferred);
+      }
+    }
+  });
+
+  it('does not point aliases at template keys', () => {
+    for (const tag of Object.values(ATTRIBUTE_SEARCH_SECONDARY_ALIASES)) {
+      expect(tag.alias).not.toContain('<');
+    }
   });
 });

@@ -6,6 +6,13 @@ import {attributeSearchTypeToFieldValueType} from './attributeSearchTypeToFieldV
 import {FieldKind, FieldValueType} from './types';
 
 /**
+ * Template keys like `params.<key>` are not typeable search names.
+ */
+function isTemplateAttributeSearchKey(key: string): boolean {
+  return key.includes('<');
+}
+
+/**
  * Other names the value is readable under, excluding the search key itself.
  * Template keys like `params.<key>` are dropped — they are not typeable aliases.
  */
@@ -15,7 +22,9 @@ export function getAttributeSearchDeprecationAliases(key: string): string[] {
     return [];
   }
 
-  return metadata.deprecationChain.filter(alias => alias !== key && !alias.includes('<'));
+  return metadata.deprecationChain.filter(
+    alias => alias !== key && !isTemplateAttributeSearchKey(alias)
+  );
 }
 
 /**
@@ -60,19 +69,23 @@ for (const [key, metadata] of Object.entries(ATTRIBUTE_SEARCH_METADATA)) {
   if (getPreferredAttributeSearchKey(key) !== key) {
     continue;
   }
+  if (isTemplateAttributeSearchKey(key)) {
+    continue;
+  }
 
   for (const alias of getAttributeSearchDeprecationAliases(key)) {
     if (alias in ATTRIBUTE_SEARCH_SECONDARY_ALIASES) {
       continue;
     }
-    if (getPreferredAttributeSearchKey(alias) === alias) {
+    const preferred = getPreferredAttributeSearchKey(alias) ?? key;
+    if (preferred === alias || isTemplateAttributeSearchKey(preferred)) {
       continue;
     }
     const aliasMetadata = ATTRIBUTE_SEARCH_METADATA[alias];
     ATTRIBUTE_SEARCH_SECONDARY_ALIASES[alias] = {
       key: alias,
       name: alias,
-      alias: key,
+      alias: preferred,
       kind: attributeSearchTypeToFieldKind((aliasMetadata ?? metadata).type),
     };
   }
