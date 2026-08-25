@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -67,7 +68,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
     );
 
   return (
-    <EmptyState
+    <WaitingForEventsEmptyState
       data-test-id="awaiting-events"
       padding="3xl"
       align="center"
@@ -105,3 +106,11 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
 }
 
 export default WaitingForEvents;
+
+const WaitingForEventsEmptyState = styled(EmptyState)`
+  /* PanelBody applies legacy margins to headings and paragraphs. */
+  && h3,
+  && p {
+    margin: 0;
+  }
+`;

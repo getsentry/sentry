@@ -127,10 +127,8 @@ export const Heading = styled(
   /**
    * Reset any margin or padding that might be set by the global CSS styles.
    */
-  && {
-    margin: 0;
-    padding: 0;
-  }
+  margin: 0;
+  padding: 0;
 `;
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): HeadingSize {

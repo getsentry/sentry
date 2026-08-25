@@ -304,10 +304,8 @@ export const Text = styled(
   /**
    * Reset any margin or padding that might be set by the global CSS styles.
    */
-  && {
-    margin: 0;
-    padding: 0;
-  }
+  margin: 0;
+  padding: 0;
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
