@@ -431,7 +431,7 @@ function InboxContent() {
 
 function AssignmentCountBadge({count}: {count: number | undefined}) {
   if (count === undefined) {
-    return null;
+    return <Placeholder width="24px" height="20px" />;
   }
 
   return (
