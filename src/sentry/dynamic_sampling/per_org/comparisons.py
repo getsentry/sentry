@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-import orjson
 import sentry_sdk
 
 from sentry.constants import SAMPLING_MODE_DEFAULT
+from sentry.dynamic_sampling.per_org.cache import (
+    get_cached_organization_sample_rate,
+    get_cached_rebalanced_project_sample_rates,
+    get_cached_rebalanced_transaction_sample_rates,
+    get_cached_recalibration_factor,
+)
 from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.configuration import (
     AutomaticDynamicSamplingConfiguration,
@@ -27,23 +32,11 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_generic_metrics_transaction_volumes,
     get_outcomes_organization_volume,
 )
-from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
     get_organization_volume,
-    sample_rate_to_float,
 )
-from sentry.dynamic_sampling.tasks.helpers import (
-    recalibrate_orgs as legacy_recalibration_cache,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    generate_boost_low_volume_transactions_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
@@ -53,23 +46,10 @@ RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE = 0.05
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 
-CachedTransactionSampleRates = dict[int, tuple[dict[str, float], float] | None]
-
 logger = logging.getLogger(__name__)
 
 
 def emit_comparisons(config: BaseDynamicSamplingConfiguration) -> None:
-    """Log what this pass computed next to what the legacy pipeline cached.
-
-    Runs once at the end of the pass, when every stage has recorded its output on
-    ``config.results``. Each comparison reads the legacy side itself, so that the pipeline
-    never carries a value it only needs in order to compare, and so that the whole
-    comparison layer comes out in one piece once the new pipeline serves its own rates.
-
-    A comparison covers a stage that may not have run, so each one states the result it
-    needs. Diagnostics must not fail the pass either, so a comparison that raises is
-    reported and the others still run.
-    """
     results = config.results
     comparisons: list[Callable[[], None]] = []
 
@@ -87,8 +67,6 @@ def emit_comparisons(config: BaseDynamicSamplingConfiguration) -> None:
         config.organization.id
     ):
         comparisons.append(lambda: log_sample_rates_summary(config))
-    # The same conditions recalibrate() runs under. A pass that never reached it has no
-    # EAP side to compare, and the legacy side costs a query to read.
     if (
         is_org_in_recalibration_rollout(config.organization.id)
         and config.get_sample_rate() is not None
@@ -110,7 +88,7 @@ def is_within_relative_tolerance(
     relative_deviation = get_relative_deviation(cached_sample_rate, calculated_sample_rate)
     if relative_deviation is None:
         return False
-    return relative_deviation <= relative_tolerance + 1e-12
+    return relative_deviation <= relative_tolerance
 
 
 def get_relative_deviation(
@@ -119,75 +97,14 @@ def get_relative_deviation(
     if cached_sample_rate is None:
         return None
     if calculated_sample_rate == 0:
-        return 0.0 if abs(cached_sample_rate) <= 1e-12 else None
+        return 0.0 if cached_sample_rate == 0 else None
     return abs(cached_sample_rate - calculated_sample_rate) / abs(calculated_sample_rate)
 
 
 def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
-    """The raw ratio, deliberately left unclamped unlike the one the factor is computed from.
-
-    A rate above 1 is the only signal of how far apart the two sources behind the volume
-    are. Clamping it here would hide that from the comparison log.
-    """
     if volume is None or volume.indexed is None or volume.total <= 0:
         return None
     return volume.indexed / volume.total
-
-
-def get_cached_organization_sample_rate(org_id: int) -> float | None:
-    """
-    The organization sample rate the legacy (generic metrics) pipeline would serve: the
-    cached sliding-window rate, or the target sample rate option for custom sampling orgs.
-    Returns None on a cache miss instead of falling back to the blended rate, so the
-    comparison logging can distinguish "no cached value" from "cached value equals blended".
-    """
-    sample_rate, _ = get_org_sample_rate(org_id=org_id, default_sample_rate=None)
-    return sample_rate
-
-
-def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
-    redis_client = get_redis_client_for_ds()
-    cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
-    return {
-        int(project_id): sample_rate_to_float(sample_rate)
-        for project_id, sample_rate in redis_client.hgetall(cache_key).items()
-    }
-
-
-def get_cached_rebalanced_transaction_sample_rates(
-    org_id: int, project_ids: Iterable[int]
-) -> CachedTransactionSampleRates:
-    redis_client = get_redis_client_for_ds()
-    ordered_project_ids = list(project_ids)
-    if not ordered_project_ids:
-        return {}
-
-    with redis_client.pipeline(transaction=False) as pipeline:
-        for project_id in ordered_project_ids:
-            pipeline.get(
-                generate_boost_low_volume_transactions_cache_key(org_id=org_id, proj_id=project_id)
-            )
-        serialized_values = pipeline.execute()
-
-    result: CachedTransactionSampleRates = {}
-    for project_id, serialized in zip(ordered_project_ids, serialized_values):
-        if serialized is None:
-            result[project_id] = None
-            continue
-        try:
-            named_rates, implicit_rate = orjson.loads(serialized)
-        except (TypeError, ValueError) as e:
-            sentry_sdk.capture_exception(e)
-            result[project_id] = None
-            continue
-        result[project_id] = (named_rates, float(implicit_rate))
-    return result
-
-
-def get_cached_recalibration_factor(org_id: int) -> float:
-    # A missing key is the stored form of 1.0: set_guarded_adjusted_factor deletes the key
-    # instead of writing the identity factor, and the serving path resolves a miss back to 1.0.
-    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="task")
 
 
 def compare_rebalanced_projects_with_cache(config: BaseDynamicSamplingConfiguration) -> None:
@@ -337,9 +254,6 @@ def compare_rebalanced_transactions_with_cache(config: BaseDynamicSamplingConfig
 
 
 def compare_recalibration_factor_with_cache(config: BaseDynamicSamplingConfiguration) -> None:
-    # Each pipeline seeds its next factor from its own cached factor, so the two also differ by
-    # drift accumulated over earlier passes. The same_seed fields re-run both sides from the
-    # legacy factor, leaving only the difference the volumes explain.
     results = config.results
     org_volume = results.recalibration_volume
     calculated_factor = results.recalibration_factor
@@ -348,8 +262,6 @@ def compare_recalibration_factor_with_cache(config: BaseDynamicSamplingConfigura
         config.organization.id, time_interval=RECALIBRATION_TIME_INTERVAL
     )
     target_sample_rate = config.get_sample_rate()
-    # get_recalibration_organization_volume swaps the EAP total for the outcomes one, so the
-    # original organization volume carries the denominator the two sources disagree on.
     eap_extrapolated_total = (
         None if results.organization_volume is None else results.organization_volume.total
     )
@@ -383,9 +295,6 @@ def compare_recalibration_factor_with_cache(config: BaseDynamicSamplingConfigura
             "total_transactions": None if org_volume is None else org_volume.total,
             "stored_segments": None if org_volume is None else org_volume.indexed,
             "eap_effective_sample_rate": get_effective_sample_rate(org_volume),
-            # EAP's own estimate of the same total the outcomes query supplies. The two
-            # measure one quantity, so the gap between them is the source misalignment on
-            # the denominator alone, which the same_seed fields cannot separate out.
             "eap_extrapolated_total": eap_extrapolated_total,
             "extrapolated_total_relative_deviation": (
                 None
@@ -497,14 +406,6 @@ def compare_organization_sliding_window_sample_rates(
 
 
 def log_transaction_volume_debug(config: BaseDynamicSamplingConfiguration) -> None:
-    """
-    Logs the raw per-transaction volumes EAP fed into balancing next to the legacy
-    generic-metrics volumes for the same window, for every transaction on either side —
-    not just the ones that survived the top-N cutoff and rebalancing model. Used to debug
-    discrepancies between the two pipelines' transaction counts directly, since
-    ``compare_rebalanced_transactions_with_cache`` only ever sees post-rebalancing sample
-    rates for the transactions EAP kept.
-    """
     debug_project_ids = transaction_volume_debug_project_ids() & {
         project.id for project in config.results.projects_to_balance
     }
@@ -543,14 +444,6 @@ def log_transaction_volume_debug(config: BaseDynamicSamplingConfiguration) -> No
 
 
 def log_sample_rates_summary(config: BaseDynamicSamplingConfiguration) -> None:
-    """
-    One line per org per cycle with the org, project and transaction sample rates of both
-    the EAP and the generic metrics (legacy) pipeline, for side-by-side comparison without
-    having to join the per-project and per-transaction comparison logs.
-
-    Every project of the org is reported, not only the ones EAP rebalanced, so that a
-    project the new pipeline produced no rate for is visible as such.
-    """
     project_sample_rates = config.get_project_sample_rates()
     cached_project_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
     cached_transaction_sample_rates = get_cached_rebalanced_transaction_sample_rates(

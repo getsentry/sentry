@@ -47,7 +47,6 @@ def mock_configuration(
     sample_rate: float | None = None,
     project_sample_rates: ProjectSampleRates | None = None,
     results: DynamicSamplingResults | None = None,
-    serving_sample_rate: float | None = None,
 ) -> Mock:
     """A stand-in configuration whose getters return the given sample rates."""
     return Mock(
@@ -56,7 +55,6 @@ def mock_configuration(
         results=results if results is not None else DynamicSamplingResults(),
         **{
             "get_sample_rate.return_value": sample_rate,
-            "get_serving_sample_rate.return_value": serving_sample_rate,
             "get_project_sample_rates.return_value": project_sample_rates or {},
         },
     )

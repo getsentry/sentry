@@ -184,7 +184,6 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert configuration.results.previous_recalibration_factor == 1.4
         mocks[GET_FACTOR].assert_called_once_with(org.id, source="task")
         mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5)
-        # The factor is only recorded here. write_caches stores it at the end of the pass.
         mocks[SET_FACTOR].assert_not_called()
 
     def test_subscription_backed_org_skips_recalibration_without_an_org_volume(self) -> None:

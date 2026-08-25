@@ -111,19 +111,6 @@ class BaseDynamicSamplingConfiguration(ABC):
         )
 
     def recalibrate(self, org_volume: OrganizationDataVolume | None) -> None:
-        """Compute this organization's recalibration factor and record it on the results.
-
-        The caller supplies the volume, because how it is measured is a query concern; see
-        ``get_recalibration_organization_volume``.
-
-        The factor lands on ``results.recalibration_factor``, and stays None when there is
-        not enough volume to compute one. A factor outside the rebalance bounds is recorded
-        like any other, so that the comparison log reports what this pass computed;
-        ``write_caches`` decides what to do with it.
-
-        Nothing is written here. The cached factor is read as the seed of the calculation,
-        and rewritten at the end of the pass.
-        """
         results = self.results
         results.recalibration_factor = None
 

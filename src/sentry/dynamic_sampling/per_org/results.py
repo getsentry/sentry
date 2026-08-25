@@ -27,7 +27,5 @@ class DynamicSamplingResults:
     projects_to_balance: list[Project] = field(default_factory=list)
     rebalanced_transactions: TransactionSampleRates = field(default_factory=dict)
     recalibration_volume: OrganizationDataVolume | None = None
-    # The cached factor this pass seeded its calculation from, kept because the cache it
-    # came from is overwritten before the comparison reads it back.
     previous_recalibration_factor: float = 1.0
     recalibration_factor: float | None = None

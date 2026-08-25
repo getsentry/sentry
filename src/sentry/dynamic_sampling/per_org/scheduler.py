@@ -113,9 +113,6 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 
         return None
     finally:
-        # Everything the pass computed sits on config.results by now. Emitting and writing
-        # here, instead of at the stage that produced each value, keeps a stage that bails
-        # out from discarding the results of the stages before it.
         emit_comparisons(config)
         write_caches(config)
 
