@@ -146,10 +146,15 @@ def span_has_obfuscated_hostname(span: Span) -> bool:
     if not bracketed_hostname_match:
         return False
 
-    # If there are brackets, we can still use the hostname as long as the bracketed value is a valid
-    # IP address.
-    maybe_ip = bracketed_hostname_match.group("bracketed_value")
-    return not is_valid_ip(maybe_ip)
+    full_hostname = bracketed_hostname_match.group("full_hostname")
+    hostname_bracketed_values = BRACKETED_URL_PLACEHOLDER_REGEX.findall(full_hostname)
+
+    # We can still use the hostname as long as there's only one bracketed value and it's a valid IP
+    # address
+    if len(hostname_bracketed_values) == 1 and is_valid_ip(hostname_bracketed_values[0]):
+        return False
+
+    return True
 
 
 def safer_urlparse(url: str) -> ParseResult:
