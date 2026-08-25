@@ -770,6 +770,30 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
             complete_option_2.id
         )
 
+    def test_logs_coordinator_phases(self) -> None:
+        project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(project, False)
+
+        with (
+            self.assertLogs("sentry.tasks.backfill_group_action_log", level="INFO") as logs,
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        events = [record.getMessage() for record in logs.records]
+        assert events == [
+            "backfill_group_action_log.coordinator.started",
+            "backfill_group_action_log.coordinator.query_started",
+            "backfill_group_action_log.coordinator.query_completed",
+            "backfill_group_action_log.coordinator.dispatch_started",
+            "backfill_group_action_log.coordinator.batch_dispatched",
+            "backfill_group_action_log.coordinator.completed",
+        ]
+        query_completed = logs.records[2]
+        assert query_completed.__dict__["duration_ms"] >= 0
+        assert query_completed.__dict__["incomplete_option_count"] == 1
+        assert query_completed.__dict__["option_count"] == 1
+
     def test_self_chains_when_more_projects_remain(self) -> None:
         for _ in range(3):
             project = self.create_project(organization=self.organization)
