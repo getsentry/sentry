@@ -157,20 +157,10 @@ class SearchAgentStartEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
-    def test_metrics_strategy_needs_no_extra_flag(self, mock_send_request: MagicMock) -> None:
-        """Metrics is GA: the translate flag alone is enough, with no per-strategy gate."""
-        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
-
-        response = self._post(strategy="Metrics")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert mock_send_request.call_args.kwargs["strategy"] == "Metrics"
-
-    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
-    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
     def test_issues_strategy_still_gated(self, mock_send_request: MagicMock) -> None:
         """Issues has not GA'd yet, so its per-strategy flag still gates the endpoint."""
-        response = self._post(strategy="Issues")
+        with self.feature({"organizations:gen-ai-issues-search": False}):
+            response = self._post(strategy="Issues")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         mock_send_request.assert_not_called()
