@@ -289,11 +289,15 @@ class SeerRunState(BaseModel):
         ``repo_pr_states`` also holds repos whose push failed, so a plain
         truthiness check treats a failed run as one that opened PRs — which
         would, for instance, refuse to re-run a step that stranded nothing.
+
+        ``pr_number`` is what says the PR exists: seer only ever sets it from a
+        created pull request, so an errored state that carries one is a PR that
+        opened and then took a failed push, not a creation that never landed.
         """
         return [
             pr_state
             for pr_state in self.repo_pr_states.values()
-            if pr_state.pr_creation_status != "error"
+            if pr_state.pr_creation_status != "error" or pr_state.pr_number is not None
         ]
 
     def get_artifacts(self) -> dict[str, Artifact]:
