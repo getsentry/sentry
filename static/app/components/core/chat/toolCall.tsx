@@ -1,9 +1,9 @@
-import type {MouseEvent, ReactNode} from 'react';
+import {Fragment, type MouseEvent, type ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
@@ -56,7 +56,9 @@ interface ToolCallProps {
   /**
    * Supplementary detail rendered beneath the title and output — e.g. an
    * expandable request/response for the call. Kept in the title's column so it
-   * aligns under the headline rather than the status glyph.
+   * aligns under the headline rather than the status glyph. When omitted, the
+   * call renders as a plain row with no toggle affordance, since there is
+   * nothing to disclose.
    */
   children?: ReactNode;
   /**
@@ -151,7 +153,9 @@ function getStatusLabel(
  * (`ToolCallIndicator`) is the leading item, the `title` is the toggle, and an
  * optional `reference` chip trails it. `output` and `notifications` sit under the
  * title and stay visible; pass `children` to tuck supplementary detail (e.g. the
- * request/response) into the collapsible panel.
+ * request/response) into the collapsible panel. Without `children` there is
+ * nothing to disclose, so the call renders as a plain (non-toggleable) row
+ * instead of promising an expand affordance that has no content behind it.
  */
 export function ToolCall({
   title,
@@ -163,19 +167,18 @@ export function ToolCall({
 }: ToolCallProps) {
   const {t} = useTranslation();
 
-  return (
-    <Disclosure variant="outline" size="sm" gap="xs" flex={1}>
-      <Disclosure.Title
-        leadingItems={
-          <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
-        }
-        trailingItems={reference ? <ReferenceChip reference={reference} /> : undefined}
-      >
-        <Text size="sm" variant="secondary" monospace>
-          {title}
-        </Text>
-      </Disclosure.Title>
+  const indicator = (
+    <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
+  );
+  const titleText = (
+    <Text size="sm" variant="secondary" monospace>
+      {title}
+    </Text>
+  );
+  const referenceChip = reference ? <ReferenceChip reference={reference} /> : null;
 
+  const details = (
+    <Fragment>
       {output ? (
         <SecondaryBox>
           <Flex align="center" gap="sm" wrap="wrap">
@@ -192,8 +195,34 @@ export function ToolCall({
           {note}
         </Text>
       ))}
+    </Fragment>
+  );
 
-      {children ? <Disclosure.Content>{children}</Disclosure.Content> : null}
+  if (!children) {
+    return (
+      <Stack gap="xs" flex={1}>
+        <Flex align="center" gap="sm" width="100%">
+          {indicator}
+          <Flex flexGrow={1}>{titleText}</Flex>
+          {referenceChip}
+        </Flex>
+        {details}
+      </Stack>
+    );
+  }
+
+  return (
+    <Disclosure variant="outline" size="sm" gap="xs" flex={1}>
+      <Disclosure.Title
+        leadingItems={indicator}
+        trailingItems={referenceChip ?? undefined}
+      >
+        {titleText}
+      </Disclosure.Title>
+
+      {details}
+
+      <Disclosure.Content>{children}</Disclosure.Content>
     </Disclosure>
   );
 }
