@@ -85,6 +85,15 @@ function validateSortBys(
   return [];
 }
 
+/**
+ * AND binds tighter than OR in search syntax, so concatenating
+ * `base left OR right` is `(base AND left) OR right`. Wrap sides that
+ * contain OR so Compare keeps `base AND (left OR right)`.
+ */
+function wrapQueryForMerge(query: string): string {
+  return /\bOR\b/.test(query) ? `(${query})` : query;
+}
+
 function mergeCompareQueryFilters(baseQuery: string, seriesFilter: string): string {
   const base = baseQuery.trim();
   const filter = seriesFilter.trim();
@@ -94,7 +103,7 @@ function mergeCompareQueryFilters(baseQuery: string, seriesFilter: string): stri
   if (!base) {
     return filter;
   }
-  return `${base} ${filter}`;
+  return `${wrapQueryForMerge(base)} ${wrapQueryForMerge(filter)}`;
 }
 
 /**

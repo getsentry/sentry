@@ -58,4 +58,28 @@ describe('normalizeCompareQueryParts', () => {
       yAxes: ['count(span.duration)'],
     });
   });
+
+  it('parenthesizes an _if filter that contains OR so base AND binds correctly', () => {
+    expect(
+      normalizeCompareQueryParts({
+        query: 'span.status:ok',
+        yAxes: ['avg_if(`span.op:db OR span.op:http`,span.duration)'],
+      })
+    ).toEqual({
+      query: 'span.status:ok (span.op:db OR span.op:http)',
+      yAxes: ['avg(span.duration)'],
+    });
+  });
+
+  it('parenthesizes a base query that contains OR when merging an _if filter', () => {
+    expect(
+      normalizeCompareQueryParts({
+        query: 'span.status:ok OR span.status:unset',
+        yAxes: ['count_if(`span.op:db`,span.duration)'],
+      })
+    ).toEqual({
+      query: '(span.status:ok OR span.status:unset) span.op:db',
+      yAxes: ['count(span.duration)'],
+    });
+  });
 });
