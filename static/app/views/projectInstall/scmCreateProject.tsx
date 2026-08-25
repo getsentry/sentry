@@ -137,10 +137,9 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   // Members lack org:integrations, so the install pipeline rejects them with a
   // 403 — but an already-connected integration is fully usable with member
-  // scopes (listing, repo search, and the post-create repo link). Hide the
-  // section only when it could offer nothing but install buttons that would
-  // fail. While integrations load, members see the section only once an
-  // active integration is confirmed.
+  // scopes (listing, repo search, and the post-create repo link). While
+  // integrations load, members see the section only once an active
+  // integration is confirmed.
   const showRepositorySection =
     organization.access.includes('org:integrations') || activeIntegrations.length > 0;
 
