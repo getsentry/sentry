@@ -28,6 +28,8 @@ class InvestigationSerializerTest(TestCase):
         assert result == {
             "id": str(self.investigation.id),
             "title": "Latency spike",
+            "summary": None,
+            "summaryDescription": None,
             "status": self.investigation.status,
             "sourceType": "manual",
             "createdBy": str(self.user.id),
@@ -36,6 +38,7 @@ class InvestigationSerializerTest(TestCase):
             "version": 1,
             "blockCount": 0,
             "isFavorited": False,
+            "titleGeneration": {"status": None},
         }
 
     def test_counts_only_active_blocks(self) -> None:
@@ -70,8 +73,17 @@ class InvestigationSerializerTest(TestCase):
             self.create_investigation_favorite(investigation=investigation, user=self.user)
 
         first_batch = list(Investigation.objects.filter(organization=self.organization))
+        serialize(
+            first_batch,
+            self.user,
+            InvestigationSerializer(accessible_project_ids={self.project.id}),
+        )
         with CaptureQueriesContext(connection) as first_queries:
-            serialize(first_batch, self.user, InvestigationSerializer())
+            serialize(
+                first_batch,
+                self.user,
+                InvestigationSerializer(accessible_project_ids={self.project.id}),
+            )
 
         for index in range(3, 12):
             investigation = self.create_investigation(
@@ -82,7 +94,11 @@ class InvestigationSerializerTest(TestCase):
 
         second_batch = list(Investigation.objects.filter(organization=self.organization))
         with CaptureQueriesContext(connection) as second_queries:
-            results = serialize(second_batch, self.user, InvestigationSerializer())
+            results = serialize(
+                second_batch,
+                self.user,
+                InvestigationSerializer(accessible_project_ids={self.project.id}),
+            )
 
         assert len(second_batch) > len(first_batch)
         assert len(second_queries.captured_queries) == len(first_queries.captured_queries)
@@ -131,8 +147,16 @@ class InvestigationDetailsSerializerTest(TestCase):
             assert detail_items[key] == value
 
     def test_serializes_nested_collections(self) -> None:
+        self.investigation.update(
+            summary="Errors crossed alert threshold",
+            summary_description="Checkout failures increased.\nRoll back the latest release.",
+        )
         detail = self.serialize_detail()
 
+        assert detail["summary"] == "Errors crossed alert threshold"
+        assert detail["summaryDescription"] == (
+            "Checkout failures increased.\nRoll back the latest release."
+        )
         assert detail["projectIds"] == [self.project.id]
         assert [parameter["key"] for parameter in detail["parameters"]] == ["environment"]
         assert [block["id"] for block in detail["blocks"]] == [str(self.block.id)]
