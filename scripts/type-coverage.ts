@@ -62,18 +62,7 @@ const isAny = (type: ts.Type, typeChecker: ts.TypeChecker): boolean => {
     return true;
   }
 
-  // Union/intersection members are the type's own constituents, so inspect
-  // them individually. Do not inspect arbitrary nested generic arguments:
-  // library types can contain implementation-detail `any` types that do not
-  // make the symbol itself untyped (for example, FormSubmitContext's
-  // validator type arguments).
-  if (type.isUnionOrIntersection()) {
-    return type.types.some(member => isAny(member, typeChecker));
-  }
-
-  // Check direct type arguments for cases such as Record<string, any> and
-  // Array<any>. `aliasTypeArguments` is needed for aliases such as Record,
-  // while `getTypeArguments` covers references such as Array.
+  // Check direct type arguments. Nested library types may contain unrelated `any`.
   const aliasTypeArguments = type.aliasTypeArguments ?? [];
   const referenceTypeArguments =
     type.flags & ts.TypeFlags.Object &&
@@ -81,9 +70,20 @@ const isAny = (type: ts.Type, typeChecker: ts.TypeChecker): boolean => {
       ? typeChecker.getTypeArguments(type as ts.TypeReference)
       : [];
 
-  return [...aliasTypeArguments, ...referenceTypeArguments].some(
-    typeArgument => !!(typeArgument.flags & ts.TypeFlags.Any)
-  );
+  if (
+    [...aliasTypeArguments, ...referenceTypeArguments].some(
+      typeArgument => !!(typeArgument.flags & ts.TypeFlags.Any)
+    )
+  ) {
+    return true;
+  }
+
+  // Check union members after direct arguments to support aliases like Maybe<any>.
+  if (type.isUnionOrIntersection()) {
+    return type.types.some(member => isAny(member, typeChecker));
+  }
+
+  return false;
 };
 
 function hasExplicitType(
