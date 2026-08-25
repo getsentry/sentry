@@ -367,7 +367,8 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
   const fields: string[] = ['id'];
 
   for (const yAxis of yAxes) {
-    const arg = parseFunction(yAxis)?.arguments[0];
+    // Prefer parseConditionalAggregate so EAP `_if` filters are not treated as columns.
+    const arg = parseConditionalAggregate(yAxis)?.arguments[0];
     if (!arg) {
       continue;
     }

@@ -1,10 +1,29 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {
+  getFieldsForConstructedQuery,
   getSamplesTargetAtIndex,
   normalizeCompareQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+describe('getFieldsForConstructedQuery', () => {
+  it('uses the measure argument from plain aggregates', () => {
+    expect(getFieldsForConstructedQuery(['avg(span.duration)', 'count()'])).toEqual([
+      'id',
+      'span.duration',
+      'timestamp',
+    ]);
+  });
+
+  it('uses the measure argument from EAP _if aggregates, not the filter', () => {
+    expect(getFieldsForConstructedQuery(['avg_if(`span.op:db`,span.duration)'])).toEqual([
+      'id',
+      'span.duration',
+      'timestamp',
+    ]);
+  });
+});
 
 describe('getSamplesTargetAtIndex', () => {
   it('does not add a filter for an empty group by', () => {
