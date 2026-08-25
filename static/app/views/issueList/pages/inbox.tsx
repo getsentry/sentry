@@ -759,23 +759,26 @@ function InboxPullRequestBadges({group}: {group: Group}) {
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
         <span />
         <Flex align="center" gap="xs">
-          {data.pullRequests.slice(0, 2).map(pullRequest => (
-            <PullRequestBadgeLink
-              key={`${pullRequest.repository.id}:${pullRequest.id}`}
-              aria-label={t(
-                'Pull request #%s, %s',
-                pullRequest.id,
-                getPullRequestStatusLabel(pullRequest.status)
-              )}
-              href={pullRequest.externalUrl}
-            >
-              <Badge variant={PULL_REQUEST_BADGE_VARIANTS[pullRequest.status]}>
-                <Flex as="span" align="center" gap="2xs">
-                  <IconPullRequest aria-hidden size="xs" />#{pullRequest.id}
-                </Flex>
-              </Badge>
-            </PullRequestBadgeLink>
-          ))}
+          {data.pullRequests
+            .filter(pullRequest => pullRequest.status !== 'closed')
+            .slice(0, 2)
+            .map(pullRequest => (
+              <PullRequestBadgeLink
+                key={`${pullRequest.repository.id}:${pullRequest.id}`}
+                aria-label={t(
+                  'Pull request #%s, %s',
+                  pullRequest.id,
+                  getPullRequestStatusLabel(pullRequest.status)
+                )}
+                href={pullRequest.externalUrl}
+              >
+                <Badge variant={PULL_REQUEST_BADGE_VARIANTS[pullRequest.status]}>
+                  <Flex as="span" align="center" gap="2xs">
+                    <IconPullRequest aria-hidden size="xs" />#{pullRequest.id}
+                  </Flex>
+                </Badge>
+              </PullRequestBadgeLink>
+            ))}
         </Flex>
         <span />
       </Grid>

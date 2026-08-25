@@ -421,6 +421,17 @@ describe('InboxPage', () => {
         pullRequests: [
           {
             ...PullRequestFixture({
+              id: '12',
+              externalUrl: 'https://github.com/org/repository/pull/12',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'closed',
+          },
+          {
+            ...PullRequestFixture({
               id: '10',
               externalUrl: 'https://github.com/org/repository/pull/10',
             }),
@@ -440,17 +451,6 @@ describe('InboxPage', () => {
             dateLinked: '2026-07-20T12:00:00Z',
             reviewStatus: null,
             status: 'merged',
-          },
-          {
-            ...PullRequestFixture({
-              id: '12',
-              externalUrl: 'https://github.com/org/repository/pull/12',
-            }),
-            attribution: null,
-            checksStatus: null,
-            dateLinked: '2026-07-20T12:00:00Z',
-            reviewStatus: null,
-            status: 'closed',
           },
         ],
       },
