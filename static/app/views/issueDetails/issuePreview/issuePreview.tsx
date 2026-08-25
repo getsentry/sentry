@@ -54,6 +54,7 @@ import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 
 interface IssuePreviewProps {
   groupId: string;
+  initialGroup?: Group;
 }
 
 function useMarkPreviewedGroupSeen(group: Group | undefined) {
@@ -67,8 +68,9 @@ function useMarkPreviewedGroupSeen(group: Group | undefined) {
   }, [groupId, markGroupSeen]);
 }
 
-export function IssuePreview({groupId}: IssuePreviewProps) {
-  const {data: group, isPending, isError} = useGroup({groupId});
+export function IssuePreview({groupId, initialGroup}: IssuePreviewProps) {
+  const {data: fetchedGroup, isPending, isError} = useGroup({groupId});
+  const group = fetchedGroup ?? initialGroup;
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
@@ -114,8 +116,8 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
         overscrollBehavior="contain"
         padding="lg 2xl"
       >
-        {isPending && <LoadingIndicator />}
-        {isError && <LoadingError />}
+        {isPending && !group && <LoadingIndicator />}
+        {isError && !group && <LoadingError />}
         {group && project && (
           <GroupDataContextProvider group={group} project={project}>
             <ErrorBoundary mini>

@@ -315,6 +315,7 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const [selectedGroup, setSelectedGroup] = useState<Group>();
   const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(
     section => !section.hidden?.({assignmentFilter, hasSeer})
@@ -383,6 +384,7 @@ function InboxContent() {
                 section={section}
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
+                onSelectGroup={setSelectedGroup}
                 onInitialResult={handleInitialSectionResult}
               />
             ))}
@@ -432,7 +434,14 @@ function InboxContent() {
               </Button>
             </Container>
           )}
-          {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+          {selectedIssueId && (
+            <IssuePreview
+              groupId={selectedIssueId}
+              initialGroup={
+                selectedGroup?.id === selectedIssueId ? selectedGroup : undefined
+              }
+            />
+          )}
           {!selectedIssueId && isInboxEmpty && (
             <InboxEmptyState assignmentFilter={assignmentFilter} />
           )}
@@ -460,6 +469,7 @@ function AssignmentCountBadge({count}: {count: number | undefined}) {
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
   onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
+  onSelectGroup: (group: Group) => void;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
@@ -467,6 +477,7 @@ interface InboxSectionProps {
 function InboxSection({
   assignmentFilter,
   onInitialResult,
+  onSelectGroup,
   section,
   selectedIssueId,
 }: InboxSectionProps) {
@@ -571,6 +582,7 @@ function InboxSection({
                 <InboxIssueCard
                   assignmentFilter={assignmentFilter}
                   group={group}
+                  onSelect={onSelectGroup}
                   progressLabel={section.label}
                   selected={selectedIssueId === group.id}
                   showPullRequests={
@@ -652,12 +664,14 @@ function InboxIssueCard({
   assignmentFilter,
   assignedUser,
   group,
+  onSelect,
   progressLabel,
   selected,
   showPullRequests,
 }: {
   assignmentFilter: AssignmentFilter;
   group: Group;
+  onSelect: (group: Group) => void;
   progressLabel: string;
   selected: boolean;
   showPullRequests: boolean;
@@ -680,15 +694,16 @@ function InboxIssueCard({
           pathname: location.pathname,
           query: {...location.query, [SELECTED_ISSUE_QUERY_PARAM]: group.id},
         }}
-        onClick={() =>
+        onClick={() => {
+          onSelect(group);
           trackAnalytics('issue_inbox.item_clicked', {
             organization,
             assignment_filter: assignmentFilter,
             group_id: group.id,
             progress: group.derivedData?.progress,
             last_progressed_at: group.derivedData?.lastProgressedAt ?? null,
-          })
-        }
+          });
+        }}
       >
         <InteractionStateLayer />
         <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">

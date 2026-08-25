@@ -903,6 +903,47 @@ describe('InboxPage', () => {
     expect(autofixRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('renders group information before preview details finish loading', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    const pendingRequest = new Promise(() => {});
+    const groupRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      asyncDelay: pendingRequest,
+    });
+    const pullRequestsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
+      asyncDelay: pendingRequest,
+    });
+    const autofixSetupRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
+      asyncDelay: pendingRequest,
+    });
+    const autofixRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
+      match: [MockApiClient.matchQuery({mode: 'explorer', llmFormat: 'markdown'})],
+      asyncDelay: pendingRequest,
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const issueLink = await within(
+      screen.getByRole('region', {name: 'Fix Proposed'})
+    ).findByRole('link', {name: /Fix proposed issue/});
+    await userEvent.click(issueLink);
+
+    const preview = screen.getByRole('complementary', {name: 'Issue preview'});
+    expect(
+      await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
+    ).toBeInTheDocument();
+    expect(within(preview).getByText('Fix proposed message')).toBeInTheDocument();
+    expect(groupRequest).toHaveBeenCalledTimes(1);
+    expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
+    expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
+    expect(autofixRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
