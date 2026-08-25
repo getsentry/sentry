@@ -11,6 +11,7 @@ import {ReplayListFixture} from 'sentry-fixture/replayList';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {stubIframeScrollTo} from 'sentry-test/iframeScrollTo';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
@@ -88,26 +89,7 @@ type InitializeOrgProps = {
 };
 
 describe('GroupReplays', () => {
-  // jsdom does not implement `scrollTo`, and rrweb calls it on the replay
-  // iframe's own window when it applies the snapshot's initial offset.
-  beforeAll(() => {
-    const getContentWindow = Object.getOwnPropertyDescriptor(
-      HTMLIFrameElement.prototype,
-      'contentWindow'
-    )?.get;
-    if (!getContentWindow) {
-      return;
-    }
-    jest
-      .spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get')
-      .mockImplementation(function (this: HTMLIFrameElement): Window | null {
-        const contentWindow: Window | null = getContentWindow.call(this);
-        if (contentWindow) {
-          contentWindow.scrollTo = jest.fn();
-        }
-        return contentWindow;
-      });
-  });
+  beforeAll(stubIframeScrollTo);
 
   const mockGroup = GroupFixture();
   const user = UserFixture({id: '1'});
