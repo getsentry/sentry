@@ -31,10 +31,8 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_recalibration_organization_volume,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
-    PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC,
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     DynamicSamplingStatus,
-    emit_count,
     emit_status,
     track_dynamic_sampling,
 )
@@ -76,36 +74,20 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 
     try:
         results = config.results
-
-        # Recalibration pairs this volume with an outcomes query later in the pass. The end
-        # is fixed here instead of taken twice from the clock, and truncated to the minute
-        # because the outcomes query widens its window to whole minutes.
         org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
         results.organization_volume = get_eap_organization_volume(config, end=org_volume_end)
         if results.organization_volume is None:
             return DynamicSamplingStatus.NO_ORG_VOLUME
-
         results.project_volumes = get_eap_project_volumes(config)
         if not results.project_volumes:
             return DynamicSamplingStatus.NO_PROJECT_VOLUMES
 
         if config.should_balance_projects:
             rebalanced_projects = run_project_balancing(config, results.project_volumes)
-            config.set_rebalanced_project_sample_rates(
-                apply_project_sample_rate_overrides(rebalanced_projects)
-            )
+            rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
+            config.set_rebalanced_project_sample_rates(rebalanced_projects)
 
         sample_rates = config.get_project_sample_rates()
-        # Emitted once per org per scheduler cycle, so summing over one CYCLE_DURATION
-        # window yields the total number of projects sampled below 100%.
-        projects_below_full_sample_rate = sum(
-            1
-            for sample_rate in sample_rates.values()
-            if sample_rate is not None and sample_rate < 1.0
-        )
-        if projects_below_full_sample_rate:
-            emit_count(PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC, projects_below_full_sample_rate)
-
         results.projects_to_balance = [
             project for project in config.projects if sample_rates.get(project.id) != 1.0
         ]
