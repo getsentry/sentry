@@ -67,7 +67,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
 
   return (
     <EmptyState
-      className="awaiting-events"
+      data-test-id="awaiting-events"
       minHeight="260px"
       padding={{zero: '2xl', md: '3xl'}}
       title={t('Waiting for events…')}
