@@ -33,11 +33,27 @@ const urlValidation = z
   .min(1, 'Field is required')
   .pipe(z.string().refine(value => Boolean(safeURL(value)), 'Enter a valid URL'));
 
+const optionalUrlValidation = z
+  .string()
+  .refine(value => value === '' || Boolean(safeURL(value)), 'Enter a valid URL');
+
 function spaceSeparatedUrls(requiredMessage: string, invalidMessage: string) {
   return z
     .string()
     .trim()
     .min(1, requiredMessage)
+    .refine(
+      value =>
+        value === '' ||
+        value.split(/\s+/).every(url => urlValidation.safeParse(url).success),
+      invalidMessage
+    );
+}
+
+function optionalSpaceSeparatedUrls(invalidMessage: string) {
+  return z
+    .string()
+    .trim()
     .refine(
       value =>
         value === '' ||
@@ -52,13 +68,12 @@ const clientSchema = z.object({
     'Redirect URIs are required',
     'Enter valid redirect URLs separated by spaces'
   ),
-  allowedOrigins: spaceSeparatedUrls(
-    'Allowed origins are required',
+  allowedOrigins: optionalSpaceSeparatedUrls(
     'Enter valid allowed origins separated by spaces'
   ),
-  homepageUrl: urlValidation,
-  privacyUrl: urlValidation,
-  termsUrl: urlValidation,
+  homepageUrl: optionalUrlValidation,
+  privacyUrl: optionalUrlValidation,
+  termsUrl: optionalUrlValidation,
 });
 
 export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderProps) {
@@ -145,7 +160,6 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               <field.Layout.Stack
                 label="Allowed Origins"
                 hintText="Allowed origins for the client. Space separated!"
-                required
               >
                 <field.Input
                   value={field.state.value}
@@ -157,11 +171,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
           </form.AppField>
           <form.AppField name="homepageUrl">
             {field => (
-              <field.Layout.Stack
-                label="Homepage URL"
-                hintText="Client's homepage"
-                required
-              >
+              <field.Layout.Stack label="Homepage URL" hintText="Client's homepage">
                 <field.Input
                   type="url"
                   value={field.state.value}
@@ -176,7 +186,6 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               <field.Layout.Stack
                 label="Privacy Policy URL"
                 hintText="URL to client's privacy policy"
-                required
               >
                 <field.Input
                   type="url"
@@ -192,7 +201,6 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               <field.Layout.Stack
                 label="Terms and Conditions URL"
                 hintText="URL to client's terms and conditions"
-                required
               >
                 <field.Input
                   type="url"

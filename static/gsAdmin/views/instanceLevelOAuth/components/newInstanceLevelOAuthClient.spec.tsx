@@ -96,6 +96,28 @@ describe('create instance level OAuth client', () => {
     });
   });
 
+  it('allows optional URL fields to be omitted', async () => {
+    render(<InstanceLevelOAuth />);
+    await userEvent.click(screen.getByText('New Instance Level OAuth Client'));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Client Name'}), 'Santry');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Redirect URIs'}),
+      'https://santry.com/redirect'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Create Client'}));
+
+    expect(mockPostRequest).toHaveBeenCalledTimes(1);
+    expect(mockPostRequest.mock.calls[0][1].data).toEqual({
+      name: 'Santry',
+      allowedOrigins: '',
+      redirectUris: 'https://santry.com/redirect',
+      homepageUrl: '',
+      privacyUrl: '',
+      termsUrl: '',
+    });
+  });
+
   it('validates URL fields', async () => {
     render(<InstanceLevelOAuth />);
     await userEvent.click(screen.getByText('New Instance Level OAuth Client'));
@@ -115,8 +137,8 @@ describe('create instance level OAuth client', () => {
       await screen.findByText('Enter valid redirect URLs separated by spaces')
     ).toBeInTheDocument();
     expect(screen.getByText('Enter a valid URL')).toBeInTheDocument();
-    expect(screen.getAllByText('Field is required')).toHaveLength(2);
-    expect(screen.getByText('Allowed origins are required')).toBeInTheDocument();
+    expect(screen.queryByText('Field is required')).not.toBeInTheDocument();
+    expect(screen.queryByText('Allowed origins are required')).not.toBeInTheDocument();
     expect(mockPostRequest).not.toHaveBeenCalled();
   });
 
