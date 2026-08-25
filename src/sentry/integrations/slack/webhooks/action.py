@@ -772,9 +772,19 @@ class SlackActionEndpoint(Endpoint):
         action_option, action_id = self.get_action_option(slack_request=slack_request)
 
         if action_id in SEER_AGENT_WRITE_APPROVAL_ACTIONS:
+            action_data = slack_request.data.get("actions")
+            encoded_action_id = (
+                action_data[0].get("action_id", "")
+                if isinstance(action_data, list)
+                and action_data
+                and isinstance(action_data[0], Mapping)
+                else ""
+            )
+            routing_data = decode_action_id(encoded_action_id)
             return handle_seer_agent_write_approval(
                 slack_request=slack_request,
                 action=SlackAction(action_id),
+                organization_id=routing_data.organization_id,
             )
 
         # If a user is just clicking a button link we return a 200

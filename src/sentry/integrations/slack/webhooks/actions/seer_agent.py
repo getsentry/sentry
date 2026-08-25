@@ -12,7 +12,6 @@ from sentry import features
 from sentry.auth.access import from_member
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.message_builder.routing import decode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.webhooks.actions.common import (
@@ -99,14 +98,8 @@ def handle_seer_agent_write_approval(
     *,
     slack_request: SlackActionRequest,
     action: SlackAction,
+    organization_id: int | None,
 ) -> Response:
-    action_data = slack_request.data.get("actions")
-    encoded_action_id = (
-        action_data[0].get("action_id", "")
-        if isinstance(action_data, list) and action_data and isinstance(action_data[0], Mapping)
-        else ""
-    )
-    organization_id = decode_action_id(encoded_action_id).organization_id
     channel_id = slack_request.channel_id
     message = slack_request.data.get("message")
     message_ts = message.get("ts") if isinstance(message, Mapping) else None
