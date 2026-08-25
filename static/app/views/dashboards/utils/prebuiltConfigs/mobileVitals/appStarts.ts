@@ -4,6 +4,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
+  APP_VITALS_START_SCREEN,
   COLD_START_CONDITION,
   COLD_START_TABLE_OPERATIONS_CONDITION,
   TRANSACTION_COUNT,
@@ -350,8 +351,8 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: SpanFields.APP_VITALS_START_SCREEN,
-          name: SpanFields.APP_VITALS_START_SCREEN,
+          key: APP_VITALS_START_SCREEN,
+          name: APP_VITALS_START_SCREEN,
           kind: FieldKind.TAG,
         },
         value: '',

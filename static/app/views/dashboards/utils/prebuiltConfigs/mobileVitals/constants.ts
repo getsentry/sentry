@@ -24,9 +24,11 @@ export const TTFD_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.A
 // Group by app.vitals.start.screen. start.value is not a registered duration
 // yet, so has: uses tags[...,number] (search cannot parse millisecond) and
 // avg_if uses millisecond so the columns format as durations.
-const START_VALUE_NUMBER = `tags[${SpanFields.APP_VITALS_START_VALUE},number]`;
-const START_VALUE_DURATION = `tags[${SpanFields.APP_VITALS_START_VALUE},millisecond]`;
-export const APP_START_TABLE_CONDITION = `(has:${SpanFields.APP_VITALS_START_SCREEN} AND has:${START_VALUE_NUMBER})`;
+export const APP_VITALS_START_SCREEN = 'app.vitals.start.screen';
+const APP_VITALS_START_VALUE = 'app.vitals.start.value';
+const START_VALUE_NUMBER = `tags[${APP_VITALS_START_VALUE},number]`;
+const START_VALUE_DURATION = `tags[${APP_VITALS_START_VALUE},millisecond]`;
+export const APP_START_TABLE_CONDITION = `(has:${APP_VITALS_START_SCREEN} AND has:${START_VALUE_NUMBER})`;
 export const AVG_COLD_START = `avg_if(${START_VALUE_DURATION},${SpanFields.APP_VITALS_START_TYPE},equals,cold)`;
 export const AVG_WARM_START = `avg_if(${START_VALUE_DURATION},${SpanFields.APP_VITALS_START_TYPE},equals,warm)`;
 

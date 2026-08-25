@@ -150,9 +150,7 @@ export enum SpanFields {
   DEVICE_MANUFACTURER = 'device.manufacturer',
   APP_VITALS_START_COLD_VALUE = 'app.vitals.start.cold.value',
   APP_VITALS_START_WARM_VALUE = 'app.vitals.start.warm.value',
-  APP_VITALS_START_VALUE = 'app.vitals.start.value',
   APP_VITALS_START_TYPE = 'app.vitals.start.type',
-  APP_VITALS_START_SCREEN = 'app.vitals.start.screen',
   APP_VITALS_TTID_VALUE = 'app.vitals.ttid.value',
   APP_VITALS_TTFD_VALUE = 'app.vitals.ttfd.value',
   APP_VITALS_FRAMES_SLOW_COUNT = 'app.vitals.frames.slow.count',
@@ -236,7 +234,6 @@ type SpanNumberFields =
   | SpanFields.CACHE_ITEM_SIZE
   | SpanFields.APP_VITALS_START_COLD_VALUE
   | SpanFields.APP_VITALS_START_WARM_VALUE
-  | SpanFields.APP_VITALS_START_VALUE
   | SpanFields.APP_VITALS_TTID_VALUE
   | SpanFields.APP_VITALS_TTFD_VALUE
   | SpanFields.APP_VITALS_FRAMES_SLOW_COUNT
@@ -354,7 +351,6 @@ type NonNullableStringFields =
   | SpanFields.MESSAGING_MESSAGE_ID
   | SpanFields.TRACE_STATUS
   | SpanFields.APP_VITALS_START_TYPE
-  | SpanFields.APP_VITALS_START_SCREEN
   | SpanFields.APP_START_TYPE
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP
