@@ -193,12 +193,12 @@ export function RequestLog({app}: RequestLogProps) {
           {!isPending &&
             currentRequests.map((request, idx) => (
               <SimpleTable.Row key={idx} data-test-id="request-item">
-                <InteractionStateLayer />
                 <SimpleTable.RowCell>
                   <RowButton
                     aria-label={t('View request details')}
                     onClick={() => openDetails(request)}
                   >
+                    <InteractionStateLayer />
                     <Text>
                       <DateTime
                         date={request.date}
