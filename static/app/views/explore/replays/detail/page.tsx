@@ -39,10 +39,10 @@ export function ReplayDetailsPage({readerResult}: Props) {
           <NotFound />
         </Stack>
       )}
-      renderProcessingError={() => (
+      renderProcessingError={({replay}) => (
         <Stack flex={1} padding="2xl 3xl">
           <Stack>
-            <ReplayProcessingError />
+            <ReplayProcessingError replay={replay} />
           </Stack>
         </Stack>
       )}

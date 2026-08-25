@@ -5,7 +5,6 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
-import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 
 function renderProcessingError() {
@@ -18,11 +17,7 @@ function renderProcessingError() {
     replayRecord: ReplayRecordFixture(),
   });
 
-  return render(
-    <ReplayReaderProvider replay={replay}>
-      <ReplayProcessingError />
-    </ReplayReaderProvider>
-  );
+  return render(<ReplayProcessingError replay={replay} />);
 }
 
 describe('ReplayProcessingError', () => {

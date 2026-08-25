@@ -133,7 +133,7 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
               </Panel>
             </FluidHeight>
           ) : !isFetching && replay?.hasProcessingErrors() ? (
-            <ReplayProcessingError />
+            <ReplayProcessingError replay={replay} />
           ) : (
             <FluidHeight>
               {isVideoReplay && needsJetpackComposePiiWarning ? (
