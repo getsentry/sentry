@@ -777,7 +777,7 @@ class DummyGenericSAML2Provider(GenericSAML2Provider):
 
 @control_silo_test
 class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
-    provider = DummyGenericSAML2Provider
+    provider: type[GenericSAML2Provider] = DummyGenericSAML2Provider
     provider_name = "saml2_generic_dummy"
 
     def setUp(self) -> None:
@@ -797,9 +797,9 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
         )
         resp = self.client.get(configure_path)
         assert resp.status_code == 200
-        assert "x509cert" not in resp.context["form"].fields
-        assert b"x509 public certificate" in resp.content
-        assert resp.content.count(b"x509 public certificate") == 1
+        # the provider's own configure view renders the certificate field, so the
+        # general settings form must not render a second one
+        assert resp.content.count(b'name="x509cert"') == 1
 
     def test_update_generic_saml2_config(self) -> None:
         self.login_as(self.user, organization_id=self.organization.id)
