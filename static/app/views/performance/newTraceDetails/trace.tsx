@@ -10,6 +10,7 @@ import {
 } from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useDebouncer} from '@tanstack/react-pacer';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -43,10 +44,7 @@ import {
   useVirtualizedList,
   type VirtualizedRow,
 } from './traceRenderers/traceVirtualizedList';
-import type {
-  TraceTimeCompressionManagerOptions,
-  VirtualizedViewManager,
-} from './traceRenderers/virtualizedViewManager';
+import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {TraceLoadingRow} from './traceRow/traceLoadingRow';
 import {
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
@@ -115,6 +113,31 @@ function computeNextIndexFromAction(
 
 function snapshotVisibleTraceItems(nodes: BaseNode[], _version: number): BaseNode[] {
   return nodes.slice();
+}
+
+const TIME_COMPRESSION_SETTLE_MS = 250;
+
+type TimeCompressionViewport = {
+  physicalWidth: number;
+  traceId: string | undefined;
+  viewSpace: [start: number, duration: number];
+};
+
+function snapshotTimeCompressionViewport(
+  manager: VirtualizedViewManager,
+  traceId: string | undefined,
+  traceSpace: [start: number, duration: number]
+): TimeCompressionViewport {
+  const viewDuration = manager.view.trace_view.width;
+
+  return {
+    physicalWidth: manager.view.trace_physical_space.width,
+    traceId,
+    viewSpace:
+      viewDuration > 0
+        ? [manager.view.to_origin + manager.view.trace_view.x, viewDuration]
+        : traceSpace,
+  };
 }
 
 interface TraceProps {
@@ -186,50 +209,66 @@ export function Trace({
     () => snapshotVisibleTraceItems(trace.list, forceRerender),
     [trace.list, forceRerender]
   );
-
-  const timeCompressionOptions = useMemo((): TraceTimeCompressionManagerOptions => {
-    const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
-    return {
-      enabled:
-        hasCompressedTimelineFeature &&
-        traceState.preferences.compressed_timeline &&
-        trace.type === 'trace',
-      traceSpace,
-      nodes: visibleTraceItems,
-      indicators: trace.indicators,
-    };
-  }, [
-    trace.indicators,
-    traceDuration,
-    traceStart,
-    trace.type,
-    hasCompressedTimelineFeature,
-    traceState.preferences.compressed_timeline,
-    visibleTraceItems,
-  ]);
-
-  const [physicalWidth, setPhysicalWidth] = useState(
-    () => manager.view.trace_physical_space.width
+  const [timeCompressionViewport, setTimeCompressionViewport] =
+    useState<TimeCompressionViewport>(() =>
+      snapshotTimeCompressionViewport(manager, trace_id, [traceStart, traceDuration])
+    );
+  const timeCompressionViewStart =
+    timeCompressionViewport.traceId === trace_id
+      ? timeCompressionViewport.viewSpace[0]
+      : traceStart;
+  const timeCompressionViewDuration =
+    timeCompressionViewport.traceId === trace_id
+      ? timeCompressionViewport.viewSpace[1]
+      : traceDuration;
+  const timeCompressionViewportDebouncer = useDebouncer(
+    (viewport: TimeCompressionViewport) => {
+      if (!manager.isTraceViewInteractionActive()) {
+        setTimeCompressionViewport(viewport);
+      }
+    },
+    {wait: TIME_COMPRESSION_SETTLE_MS}
   );
+  const hasMeasuredPhysicalWidthRef = useRef(timeCompressionViewport.physicalWidth > 0);
 
   const timeCompression = useMemo(
     () =>
       TraceTimeCompression.FromVisibleItems({
-        ...timeCompressionOptions,
-        physicalWidth,
+        enabled:
+          hasCompressedTimelineFeature &&
+          traceState.preferences.compressed_timeline &&
+          trace.type === 'trace',
+        traceSpace: [traceStart, traceDuration],
+        viewSpace: [timeCompressionViewStart, timeCompressionViewDuration],
+        physicalWidth: timeCompressionViewport.physicalWidth,
+        nodes: visibleTraceItems,
+        indicators: trace.indicators,
       }),
-    [physicalWidth, timeCompressionOptions]
+    [
+      hasCompressedTimelineFeature,
+      timeCompressionViewDuration,
+      timeCompressionViewStart,
+      timeCompressionViewport.physicalWidth,
+      trace.indicators,
+      trace.type,
+      traceDuration,
+      traceStart,
+      traceState.preferences.compressed_timeline,
+      visibleTraceItems,
+    ]
   );
-  const timeCompressionOptionsRef = useRef(timeCompressionOptions);
-  timeCompressionOptionsRef.current = timeCompressionOptions;
 
   useLayoutEffect(() => {
-    manager.timeCompressionOptions = timeCompressionOptions;
-    manager.recomputeTimeCompression(timeCompressionOptions);
+    manager.setTimeCompression(timeCompression);
     manager.recomputeTimelineIntervals();
     manager.recomputeSpanToPXMatrix();
     manager.draw();
-  }, [manager, physicalWidth, timeCompressionOptions]);
+  }, [manager, timeCompression]);
+
+  useEffect(
+    () => () => timeCompressionViewportDebouncer.cancel(),
+    [timeCompressionViewportDebouncer, trace_id]
+  );
 
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
@@ -242,17 +281,31 @@ export function Trace({
       manager.recomputeSpanToPXMatrix();
       manager.syncResetZoomButton();
       manager.draw();
+      if (!manager.isTraceViewInteractionActive()) {
+        timeCompressionViewportDebouncer.maybeExecute(
+          snapshotTimeCompressionViewport(manager, trace_id, [traceStart, traceDuration])
+        );
+      }
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
-      const nextPhysicalWidth = manager.view.trace_physical_space.width;
-      setPhysicalWidth(nextPhysicalWidth);
-      manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
+      const viewport = snapshotTimeCompressionViewport(manager, trace_id, [
+        traceStart,
+        traceDuration,
+      ]);
+      if (!hasMeasuredPhysicalWidthRef.current && viewport.physicalWidth > 0) {
+        hasMeasuredPhysicalWidthRef.current = true;
+        setTimeCompressionViewport(viewport);
+      } else {
+        timeCompressionViewportDebouncer.maybeExecute(viewport);
+      }
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
     };
     const onTraceSpaceChange: TraceEvents['initialize trace space'] = () => {
-      manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
+      setTimeCompressionViewport(
+        snapshotTimeCompressionViewport(manager, trace_id, [traceStart, traceDuration])
+      );
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
@@ -263,8 +316,14 @@ export function Trace({
       manager.draw(view);
     };
     const onDividerResizeEnd: TraceEvents['divider resize end'] = () => {
-      const nextPhysicalWidth = manager.view.trace_physical_space.width;
-      setPhysicalWidth(nextPhysicalWidth);
+      timeCompressionViewportDebouncer.maybeExecute(
+        snapshotTimeCompressionViewport(manager, trace_id, [traceStart, traceDuration])
+      );
+    };
+    const onTraceViewInteractionEnd = () => {
+      timeCompressionViewportDebouncer.maybeExecute(
+        snapshotTimeCompressionViewport(manager, trace_id, [traceStart, traceDuration])
+      );
     };
 
     scheduler.on('set trace view', onTraceViewChange);
@@ -273,6 +332,7 @@ export function Trace({
     scheduler.on('initialize trace space', onTraceSpaceChange);
     scheduler.on('divider resize', onDividerResize);
     scheduler.on('divider resize end', onDividerResizeEnd);
+    scheduler.on('trace view interaction end', onTraceViewInteractionEnd);
 
     return () => {
       scheduler.off('set trace view', onTraceViewChange);
@@ -281,8 +341,16 @@ export function Trace({
       scheduler.off('initialize trace space', onTraceSpaceChange);
       scheduler.off('divider resize', onDividerResize);
       scheduler.off('divider resize end', onDividerResizeEnd);
+      scheduler.off('trace view interaction end', onTraceViewInteractionEnd);
     };
-  }, [manager, scheduler]);
+  }, [
+    manager,
+    scheduler,
+    timeCompressionViewportDebouncer,
+    traceDuration,
+    traceStart,
+    trace_id,
+  ]);
 
   const onNodeZoomIn = useCallback(
     (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {

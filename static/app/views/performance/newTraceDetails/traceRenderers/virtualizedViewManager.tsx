@@ -19,10 +19,7 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
-import {
-  COLLAPSED_GAP_WIDTH_PX,
-  TraceTimeCompression,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
+import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceTimeCompressionGap} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {
@@ -39,13 +36,6 @@ import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
-
-export type TraceTimeCompressionManagerOptions = {
-  enabled: boolean;
-  indicators: TraceTree['indicators'];
-  nodes: BaseNode[];
-  traceSpace: [start: number, duration: number];
-};
 
 interface TraceIconPlacement {
   anchorTimestamp: number;
@@ -175,7 +165,6 @@ export class VirtualizedViewManager {
   scheduler: TraceScheduler;
   view: TraceView;
   time_compression = TraceTimeCompression.Disabled();
-  timeCompressionOptions: TraceTimeCompressionManagerOptions | null = null;
 
   constructor(
     columns: {
@@ -224,19 +213,12 @@ export class VirtualizedViewManager {
     this.time_compression = compression;
   }
 
-  recomputeTimeCompression(options = this.timeCompressionOptions) {
-    if (!options) {
-      this.time_compression = TraceTimeCompression.Disabled([
-        this.view.to_origin,
-        this.view.trace_space.width,
-      ]);
-      return;
-    }
-
-    this.time_compression = TraceTimeCompression.FromVisibleItems({
-      ...options,
-      physicalWidth: this.view.trace_physical_space.width,
-    });
+  isTraceViewInteractionActive(): boolean {
+    return (
+      this.dividerStartVec !== null ||
+      this.timers.onWheelEnd !== null ||
+      this.timers.onZoomIntoSpace !== null
+    );
   }
 
   dividerStartVec: [number, number] | null = null;
@@ -306,7 +288,6 @@ export class VirtualizedViewManager {
 
     this.view.trace_physical_space.width =
       span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
-    this.recomputeTimeCompression();
 
     this.scheduler.dispatch('set trace view', {
       x: this.view.trace_view.x,
@@ -781,6 +762,8 @@ export class VirtualizedViewManager {
         indicator.ref.style.pointerEvents = 'auto';
       }
     }
+
+    this.scheduler.dispatch('trace view interaction end');
   }
 
   maybeInitializeTraceViewFromQS(fov: string): void {
@@ -1906,17 +1889,26 @@ export class VirtualizedViewManager {
     );
   }
 
-  private getCollapsedGapWidthPx(
+  private getCollapsedGapMarkerPosition(
     gap: TraceTimeCompressionGap,
-    placement = this.transformXFromTimestamp(gap.start)
-  ): number {
-    const gapWidth = this.transformXFromTimestamp(gap.end) - placement;
+    markerWidth: number
+  ): {left: number; placement: number} {
+    const viewStart = this.view.to_origin + this.view.trace_view.x;
+    const viewEnd = viewStart + this.view.trace_view.width;
+    const visibleGapStart = Math.max(gap.start, viewStart);
+    const visibleGapEnd = Math.min(gap.end, viewEnd);
+    const placement = this.transformXFromTimestamp(visibleGapStart);
+    const visibleGapWidth = this.transformXFromTimestamp(visibleGapEnd) - placement;
+    const centeredLeft = placement + visibleGapWidth / 2 - markerWidth / 2;
 
-    if (!Number.isFinite(gapWidth) || gapWidth < 0) {
-      return COLLAPSED_GAP_WIDTH_PX;
-    }
-
-    return gapWidth;
+    return {
+      left: clamp(
+        centeredLeft,
+        0,
+        Math.max(this.view.trace_physical_space.width - markerWidth, 0)
+      ),
+      placement,
+    };
   }
 
   drawTimelineIntervals() {
@@ -1965,11 +1957,11 @@ export class VirtualizedViewManager {
         continue;
       }
 
-      const placement = this.transformXFromTimestamp(marker.gap.start);
-      const gapWidth = this.getCollapsedGapWidthPx(marker.gap, placement);
       const markerWidth = widths[i] ?? 0;
-      const halfWidth = markerWidth / 2;
-      const left = placement + gapWidth / 2 - halfWidth;
+      const {left, placement} = this.getCollapsedGapMarkerPosition(
+        marker.gap,
+        markerWidth
+      );
 
       marker.ref.style.opacity = '1';
       marker.ref.style.transform = `translateX(${left}px)`;
@@ -1998,11 +1990,9 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const placement = this.transformXFromTimestamp(marker.gap.start);
-    const gapWidth = this.getCollapsedGapWidthPx(marker.gap, placement);
-    const halfWidth = marker.ref.offsetWidth / 2;
+    const {left} = this.getCollapsedGapMarkerPosition(marker.gap, marker.ref.offsetWidth);
     marker.ref.style.opacity = '1';
-    marker.ref.style.transform = `translateX(${placement + gapWidth / 2 - halfWidth}px)`;
+    marker.ref.style.transform = `translateX(${left}px)`;
   }
 
   // Special case for when the timeline is empty - we want to show the first and last

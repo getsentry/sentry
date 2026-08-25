@@ -26,7 +26,7 @@ type TraceTimeCompressionOptions = {
   nodes: BaseNode[];
   physicalWidth: number;
   traceSpace: [start: number, duration: number];
-  viewSpace?: [start: number, duration: number];
+  viewSpace: [start: number, duration: number];
 };
 
 export class TraceTimeCompression {
@@ -62,7 +62,7 @@ export class TraceTimeCompression {
 
   static FromVisibleItems(options: TraceTimeCompressionOptions): TraceTimeCompression {
     const [traceStart, traceDuration] = options.traceSpace;
-    const [viewStart, viewDuration] = options.viewSpace ?? options.traceSpace;
+    const [viewStart, viewDuration] = options.viewSpace;
 
     if (
       !options.enabled ||
@@ -203,7 +203,7 @@ export class TraceTimeCompression {
 
 function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval[] {
   const [traceStart, traceDuration] = options.traceSpace;
-  const [, viewDuration] = options.viewSpace ?? options.traceSpace;
+  const [, viewDuration] = options.viewSpace;
   const traceEnd = traceStart + traceDuration;
   const durationPerPixel = viewDuration / options.physicalWidth;
   const markerPadding = Math.min(

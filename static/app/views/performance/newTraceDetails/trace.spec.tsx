@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -1384,6 +1385,134 @@ describe('trace view', () => {
           );
         } finally {
           compressionSpy.mockRestore();
+        }
+      });
+
+      it('recomputes compressed timeline once after trace view changes settle', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        const organization = OrganizationFixture({
+          features: ['trace-waterfall-time-compression'],
+        });
+        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
+        const setCompressionSpy = jest.spyOn(
+          VirtualizedViewManager.prototype,
+          'setTimeCompression'
+        );
+
+        try {
+          await completeTestSetup({organization});
+          const manager = setCompressionSpy.mock.contexts.at(-1) as
+            | VirtualizedViewManager
+            | undefined;
+          if (!manager) {
+            throw new Error('Expected trace view manager to receive time compression');
+          }
+
+          compressionSpy.mockClear();
+          setCompressionSpy.mockClear();
+          jest.useFakeTimers();
+
+          const initialWidth = manager.view.trace_view.width;
+          act(() => {
+            manager.scheduler.dispatch('set trace view', {
+              x: 0,
+              width: initialWidth * 0.9,
+            });
+            manager.scheduler.dispatch('set trace view', {
+              x: initialWidth * 0.1,
+              width: initialWidth * 0.8,
+            });
+            manager.scheduler.dispatch('set trace view', {
+              x: initialWidth * 0.2,
+              width: initialWidth * 0.7,
+            });
+          });
+
+          const expectedViewSpace = [
+            manager.view.to_origin + manager.view.trace_view.x,
+            manager.view.trace_view.width,
+          ];
+
+          act(() => jest.advanceTimersByTime(249));
+          expect(compressionSpy).not.toHaveBeenCalled();
+
+          act(() => jest.advanceTimersByTime(1));
+          expect(compressionSpy).toHaveBeenCalledTimes(1);
+          expect(compressionSpy).toHaveBeenLastCalledWith(
+            expect.objectContaining({viewSpace: expectedViewSpace})
+          );
+          expect(setCompressionSpy).toHaveBeenCalledTimes(1);
+          expect(setCompressionSpy).toHaveBeenLastCalledWith(
+            compressionSpy.mock.results[0]!.value
+          );
+        } finally {
+          jest.useRealTimers();
+          compressionSpy.mockRestore();
+          setCompressionSpy.mockRestore();
+        }
+      });
+
+      it('waits for an active wheel zoom to end before recomputing compression', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        const organization = OrganizationFixture({
+          features: ['trace-waterfall-time-compression'],
+        });
+        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
+        const setCompressionSpy = jest.spyOn(
+          VirtualizedViewManager.prototype,
+          'setTimeCompression'
+        );
+
+        try {
+          await completeTestSetup({organization});
+          const manager = setCompressionSpy.mock.contexts.at(-1) as
+            | VirtualizedViewManager
+            | undefined;
+          if (!manager) {
+            throw new Error('Expected trace view manager to receive time compression');
+          }
+
+          compressionSpy.mockClear();
+          jest.useFakeTimers();
+          let interactionEndAt: number | null = null;
+          const onInteractionEnd = () => {
+            interactionEndAt = performance.now();
+          };
+          manager.scheduler.on('trace view interaction end', onInteractionEnd);
+
+          for (let i = 0; i < 5; i++) {
+            const wheelEvent = new WheelEvent('wheel', {
+              cancelable: true,
+              clientX: 250,
+              ctrlKey: true,
+              deltaY: -1,
+            });
+            Object.defineProperty(wheelEvent, 'offsetX', {value: 250});
+
+            act(() => manager.onWheel(wheelEvent));
+            if (i < 4) {
+              act(() => jest.advanceTimersByTime(75));
+            }
+          }
+
+          expect(compressionSpy).not.toHaveBeenCalled();
+
+          act(() => jest.advanceTimersByTime(250));
+          expect(interactionEndAt).not.toBeNull();
+          expect(compressionSpy).not.toHaveBeenCalled();
+
+          const elapsedSinceInteractionEnd = performance.now() - interactionEndAt!;
+          act(() => jest.advanceTimersByTime(250 - elapsedSinceInteractionEnd - 1));
+          expect(compressionSpy).not.toHaveBeenCalled();
+
+          act(() => jest.advanceTimersByTime(1));
+          expect(compressionSpy).toHaveBeenCalledTimes(1);
+
+          manager.scheduler.off('trace view interaction end', onInteractionEnd);
+        } finally {
+          jest.useRealTimers();
+          compressionSpy.mockRestore();
+          setCompressionSpy.mockRestore();
         }
       });
     });

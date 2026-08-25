@@ -23,6 +23,7 @@ export interface TraceEvents {
     space: [x: number, y: number, width: number, height: number]
   ) => void;
   ['set trace view']: (view: {width?: number; x?: number}) => void;
+  ['trace view interaction end']: () => void;
 }
 
 export class TraceScheduler {
@@ -42,6 +43,9 @@ export class TraceScheduler {
     >(),
     'divider resize': new Array<[TraceEventPriority, TraceEvents['divider resize']]>(),
     'set trace view': new Array<[TraceEventPriority, TraceEvents['set trace view']]>(),
+    'trace view interaction end': new Array<
+      [TraceEventPriority, TraceEvents['trace view interaction end']]
+    >(),
     draw: new Array<[TraceEventPriority, TraceEvents['draw']]>(),
   };
 

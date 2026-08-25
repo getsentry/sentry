@@ -1,7 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
@@ -42,66 +41,6 @@ describe('VirtualizedViewManger', () => {
       0, 0, 1000, 1,
     ]);
     expect(manager.view.trace_physical_space.serialize()).toEqual([0, 0, 500, 1]);
-  });
-
-  it('recomputes time compression before redrawing during divider resize', () => {
-    const scheduler = new TraceScheduler();
-    const manager = new VirtualizedViewManager(
-      {
-        list: {width: 0.5},
-        span_list: {width: 0.5},
-      },
-      scheduler,
-      new TraceView(),
-      ThemeFixture()
-    );
-
-    manager.view.setTraceSpace([0, 0, 1000, 1]);
-    manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
-    manager.divider = document.createElement('div');
-    manager.dividerStartVec = [0, 0];
-    manager.previousDividerClientVec = [0, 0];
-
-    const recomputeSpy = jest.spyOn(manager, 'recomputeTimeCompression');
-    const dispatchSpy = jest.spyOn(scheduler, 'dispatch');
-
-    manager.onDividerMouseMove(new MouseEvent('mousemove', {clientX: 100, clientY: 0}));
-
-    expect(manager.view.trace_physical_space.width).toBe(400);
-    expect(recomputeSpy).toHaveBeenCalledTimes(1);
-    expect(recomputeSpy.mock.invocationCallOrder[0]).toBeLessThan(
-      dispatchSpy.mock.invocationCallOrder[0]!
-    );
-  });
-
-  it('uses explicit time compression options over previously stored options', () => {
-    const manager = new VirtualizedViewManager(
-      {
-        list: {width: 0.5},
-        span_list: {width: 0.5},
-      },
-      new TraceScheduler(),
-      new TraceView(),
-      ThemeFixture()
-    );
-
-    manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
-    manager.timeCompressionOptions = {
-      enabled: true,
-      traceSpace: [0, 1000],
-      nodes: [{type: 'span', space: [100, 10]} as BaseNode],
-      indicators: [],
-    };
-
-    manager.recomputeTimeCompression({
-      enabled: true,
-      traceSpace: [10_000, 2000],
-      nodes: [{type: 'span', space: [10_500, 10]} as BaseNode],
-      indicators: [],
-    });
-
-    expect(manager.time_compression.start).toBe(10_000);
-    expect(manager.time_compression.duration).toBe(2000);
   });
 
   it('re-dispatches the container content box when scrollbar width changes', () => {
@@ -430,11 +369,12 @@ describe('VirtualizedViewManger', () => {
       );
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
-      manager.view.setTracePhysicalSpace([0, 0, 100, 1], [0, 0, 100, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
       manager.time_compression = TraceTimeCompression.FromVisibleItems({
         enabled: true,
         traceSpace: [0, 1000],
-        physicalWidth: 100,
+        viewSpace: [0, 1000],
+        physicalWidth: 1000,
         nodes: [
           {type: 'span', space: [100, 0]},
           {type: 'span', space: [900, 0]},
@@ -443,7 +383,9 @@ describe('VirtualizedViewManger', () => {
       });
       manager.recomputeSpanToPXMatrix();
 
-      const gap = manager.time_compression.gaps[0]!;
+      const gap = manager.time_compression.gaps.find(
+        candidate => candidate.start > 0 && candidate.end < 1000
+      )!;
       const markerRef = document.createElement('div');
       Object.defineProperty(markerRef, 'offsetWidth', {value: 40});
       manager.collapsed_gap_markers[0] = {gap, ref: markerRef};
@@ -459,6 +401,39 @@ describe('VirtualizedViewManger', () => {
       );
 
       expect(markerLeft).toBeCloseTo(placement + actualGapWidth / 2 - 20);
+    });
+
+    it('keeps full-trace edge-gap markers inside the viewport', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        viewSpace: [0, 1000],
+        physicalWidth: 1000,
+        nodes: [{type: 'span', space: [500, 500]}] as any,
+        indicators: [],
+      });
+      manager.recomputeSpanToPXMatrix();
+
+      const gap = manager.time_compression.gaps[0]!;
+      const markerRef = document.createElement('div');
+      Object.defineProperty(markerRef, 'offsetWidth', {value: 40});
+      manager.collapsed_gap_markers[0] = {gap, ref: markerRef};
+
+      manager.drawCollapsedGapMarkers();
+
+      expect(markerRef).toHaveStyle({opacity: '1', transform: 'translateX(0px)'});
     });
 
     it('treats nearby timeline labels as overlapping collapsed gap markers', () => {
@@ -477,6 +452,7 @@ describe('VirtualizedViewManger', () => {
       manager.time_compression = TraceTimeCompression.FromVisibleItems({
         enabled: true,
         traceSpace: [0, 1000],
+        viewSpace: [0, 1000],
         physicalWidth: 1000,
         nodes: [
           {type: 'span', space: [100, 0]},
@@ -578,6 +554,7 @@ describe('VirtualizedViewManger', () => {
       manager.time_compression = TraceTimeCompression.FromVisibleItems({
         enabled: true,
         traceSpace: [0, 1000],
+        viewSpace: [0, 1000],
         physicalWidth: 1000,
         nodes: [
           {type: 'span', space: [0, 10]},
@@ -619,6 +596,7 @@ describe('VirtualizedViewManger', () => {
         manager.time_compression = TraceTimeCompression.FromVisibleItems({
           enabled: true,
           traceSpace: [0, 1000],
+          viewSpace: [0, 1000],
           physicalWidth: 1000,
           nodes: [
             {type: 'transaction', space: [0, 100]},
@@ -1313,6 +1291,7 @@ describe('VirtualizedViewManger', () => {
       manager.time_compression = TraceTimeCompression.FromVisibleItems({
         enabled: true,
         traceSpace: [0, 1000],
+        viewSpace: [0, 1000],
         physicalWidth: 1000,
         nodes: [
           {type: 'span', space: [0, 100]},
