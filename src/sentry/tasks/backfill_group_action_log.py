@@ -429,10 +429,12 @@ def enroll_organization_projects_for_group_action_log_backfill(
 
     projects = list(
         Project.objects.filter(
-            organization_id=organization_id,
+            organization=organization,
             status=ObjectStatus.ACTIVE,
             id__gt=last_project_id,
-        ).order_by("id")[:batch_size]
+        )
+        .select_related("organization")
+        .order_by("id")[:batch_size]
     )
     if not projects:
         logger.info(
@@ -441,20 +443,8 @@ def enroll_organization_projects_for_group_action_log_backfill(
         )
         return
 
-    feature_results = features.batch_has(
-        [_GROUP_ACTION_LOG_WRITE_FEATURE],
-        projects=projects,
-        organization=organization,
-    )
-    if feature_results is None:
-        raise RuntimeError("Unable to evaluate group action log write feature")
-
     eligible_project_ids = [
-        project.id
-        for project in projects
-        if feature_results.get(f"project:{project.id}", {}).get(
-            _GROUP_ACTION_LOG_WRITE_FEATURE, False
-        )
+        project.id for project in projects if features.has(_GROUP_ACTION_LOG_WRITE_FEATURE, project)
     ]
 
     # Track missing rows so we only invalidate caches for newly enrolled projects.

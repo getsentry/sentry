@@ -690,8 +690,6 @@ describe('ActivitySection', () => {
     expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
   });
 
-  const statusFlappingRollupFeature = 'issue-activity-status-flapping-rollup';
-
   function makeFlappingGroup(id: string) {
     return GroupFixture({
       id,
@@ -725,16 +723,13 @@ describe('ActivitySection', () => {
     });
   }
 
-  it('expands and collapses a status-flapping rollup when enabled', async () => {
+  it('expands and collapses a status-flapping rollup', async () => {
     const flappingGroup = makeFlappingGroup('1348');
 
     render(
       <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
         <ActivitySection group={flappingGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(screen.getAllByText('Regressed')).toHaveLength(1);
@@ -760,10 +755,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
         <ActivitySection group={flappingGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
@@ -1280,10 +1272,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {
         organization: OrganizationFixture({
-          features: [
-            'display-seer-actions-as-issue-activities',
-            ...(expectedMarker ? ['issue-activity-progress'] : []),
-          ],
+          features: expectedMarker ? ['issue-activity-progress'] : [],
         }),
       }
     );
@@ -1802,12 +1791,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
         <ActivitySection group={activityGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['display-seer-actions-as-issue-activities'],
-        }),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
@@ -1946,7 +1930,7 @@ describe('ActivitySection', () => {
     expect(screen.getByText('in a commit')).toBeInTheDocument();
   });
 
-  it('renders Seer activity when feature flag is enabled', async () => {
+  it('renders Seer activity', async () => {
     const seerGroup = GroupFixture({
       id: '1342',
       activity: [
@@ -1968,15 +1952,10 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({
-      features: ['display-seer-actions-as-issue-activities'],
-    });
-
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
         <ActivitySection group={seerGroup} />
-      </GroupDataContextProvider>,
-      {organization: org}
+      </GroupDataContextProvider>
     );
     expect(await screen.findByText('Root cause found')).toBeInTheDocument();
     expect(screen.getByText('Autofix triggered from Slack')).toBeInTheDocument();
@@ -2042,12 +2021,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
         <ActivitySection group={seerGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['display-seer-actions-as-issue-activities'],
-        }),
-      }
+      </GroupDataContextProvider>
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
@@ -2092,12 +2066,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
         <ActivitySection group={seerGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['display-seer-actions-as-issue-activities'],
-        }),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Root cause found')).toBeInTheDocument();
@@ -2105,74 +2074,7 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Plan started')).toBeInTheDocument();
   });
 
-  it('hides Seer activity when feature flag is disabled', () => {
-    const seerGroup = GroupFixture({
-      id: '1343',
-      activity: [
-        {
-          type: GroupActivityType.SEER_RCA_COMPLETED,
-          id: 'seer-rca-2',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {run_id: 123},
-          user: null,
-        },
-        {
-          type: GroupActivityType.TRIGGER_AUTOFIX,
-          id: 'autofix-trigger-2',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {},
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
-        <ActivitySection group={seerGroup} />
-      </GroupDataContextProvider>
-    );
-    expect(screen.queryByText('Root Cause Analysis')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Seer completed root cause analysis')
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Autofix')).not.toBeInTheDocument();
-    expect(screen.queryByText('Autofix was triggered')).not.toBeInTheDocument();
-  });
-
-  it('does not collapse hidden Seer activities', () => {
-    const seerGroup = GroupFixture({
-      id: '1343',
-      activity: [
-        {
-          type: GroupActivityType.SEER_RCA_COMPLETED,
-          id: 'hidden-seer-rca-completed',
-          dateCreated: '2020-01-01T00:00:15Z',
-          data: {run_id: 123},
-          user: null,
-        },
-        {
-          type: GroupActivityType.SEER_RCA_STARTED,
-          id: 'hidden-seer-rca-started',
-          dateCreated: '2020-01-01T00:00:00Z',
-          data: {run_id: 123},
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
-        <ActivitySection group={seerGroup} />
-      </GroupDataContextProvider>
-    );
-
-    expect(screen.queryByText('Root cause found')).not.toBeInTheDocument();
-    expect(screen.queryByText('Root cause analysis started')).not.toBeInTheDocument();
-  });
-
-  it('collapses Seer PR iteration activity when feature flag is enabled', async () => {
+  it('collapses Seer PR iteration activity', async () => {
     const seerIterationGroup = GroupFixture({
       id: '1346',
       activity: [
@@ -2211,18 +2113,13 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({
-      features: ['display-seer-actions-as-issue-activities'],
-    });
-
     render(
       <GroupDataContextProvider
         group={seerIterationGroup}
         project={seerIterationGroup.project}
       >
         <ActivitySection group={seerIterationGroup} />
-      </GroupDataContextProvider>,
-      {organization: org}
+      </GroupDataContextProvider>
     );
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
       'Pull request #42 updated after CI failed'
