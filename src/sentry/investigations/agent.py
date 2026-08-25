@@ -70,8 +70,8 @@ class TitleGenerationStatus(StrEnum):
 IN_FLIGHT_TITLE_STATUSES = (TitleGenerationStatus.PENDING, TitleGenerationStatus.RUNNING)
 
 TITLE_WORD_LIMIT = 5
-SUMMARY_MIN_WORDS = 4
-SUMMARY_WORD_LIMIT = 5
+SUMMARY_MIN_WORDS = 1
+SUMMARY_WORD_LIMIT = 10
 SUMMARY_DESCRIPTION_MAX_CHARS = 2000
 TITLE_PREVIEW_PATTERN = re.compile(r'"title"\s*:\s*"((?:\\.|[^"\\])*)')
 
@@ -139,7 +139,6 @@ def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
         "organizationSlug": snapshot.get("organizationSlug"),
         "source": snapshot.get("source", {}),
         "projectSlugs": snapshot.get("projectSlugs", []),
-        "source": snapshot.get("source", {}),
         "filters": snapshot.get("filters", {}),
         "parameters": snapshot.get("parameters", {}),
         "notebookContext": snapshot.get("context", []),
@@ -920,8 +919,8 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     prompt = (
         "Describe a completed Sentry investigation. Do not use tools. Return exactly one raw JSON "
         "object with the keys title, summary, and summary_description and no other text. title "
-        "must identify the incident in at most 5 words. summary must state what happened in 4 or "
-        "5 words. summary_description must be 2 or 3 newline-separated, concise lines covering "
+        "must identify the incident in at most 5 words. summary must state what happened in at "
+        "most 10 words. summary_description must be 2 or 3 newline-separated, concise lines covering "
         "the investigation's key evidence and the most useful next steps for a human fixing the "
         "issue. Distinguish established facts from hypotheses and do not invent a cause. Put title "
         "first in the JSON object. Do not call any function to write or save the result.\n"

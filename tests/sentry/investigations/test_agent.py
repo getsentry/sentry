@@ -5,6 +5,7 @@ import pytest
 
 from sentry.investigations.agent import (
     _maybe_start_title_generation,
+    _parse_completion_metadata,
     sanitize_state,
     start_execution_run,
     synchronize_execution,
@@ -47,6 +48,19 @@ def completion_metadata(
             "summary": summary,
             "summary_description": description,
         }
+    )
+
+
+def test_completion_metadata_accepts_concise_variable_summary_lengths() -> None:
+    assert (
+        _parse_completion_metadata(completion_metadata(summary="Error threshold exceeded"))
+        is not None
+    )
+    assert (
+        _parse_completion_metadata(
+            completion_metadata(summary="Error volume crossed the configured alert threshold")
+        )
+        is not None
     )
 
 
