@@ -563,7 +563,8 @@ describe('ScmMessagingProviderRow', () => {
 
   describe('choose-destination state (connected, not yet configured)', () => {
     it('shows the Connected tag and Choose destination CTA without opening the picker', () => {
-      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP);
+      const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
       expect(screen.getByText('Connected')).toBeInTheDocument();
       expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
