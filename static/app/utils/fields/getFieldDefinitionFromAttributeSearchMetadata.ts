@@ -3,6 +3,10 @@ import {ATTRIBUTE_SEARCH_METADATA, type AttributeSearchType} from '@sentry/conve
 import {td} from 'sentry/locale';
 
 import {attributeSearchTypeToFieldValueType} from './attributeSearchTypeToFieldValueType';
+import {
+  getAttributeSearchDeprecationAliases,
+  getPreferredAttributeSearchKey,
+} from './getAttributeSearchSecondaryAliases';
 import {FieldKind, type FieldDefinition} from './types';
 
 export const ARRAY_ATTRIBUTE_SEARCH_TYPES = new Set<AttributeSearchType>([
@@ -20,12 +24,17 @@ export function getFieldDefinitionFromAttributeSearchMetadata(
     return null;
   }
 
+  const keywords = getAttributeSearchDeprecationAliases(key);
+  const preferredKey = getPreferredAttributeSearchKey(key);
+
   return {
     kind: ARRAY_ATTRIBUTE_SEARCH_TYPES.has(metadata.type)
       ? FieldKind.ARRAY
       : FieldKind.FIELD,
     desc: td(ATTRIBUTE_SEARCH_METADATA[key]!.brief),
     valueType: attributeSearchTypeToFieldValueType(metadata.type),
+    ...(keywords.length ? {keywords} : {}),
+    ...(preferredKey && preferredKey !== key ? {deprecated: true} : {}),
   };
 }
 

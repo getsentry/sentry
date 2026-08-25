@@ -34,6 +34,9 @@ export function mergeAttributeSearchMetadata(
       valueTypeFromSearch === FieldValueType.INTEGER);
 
   const fromSearch = getFieldDefinitionFromAttributeSearchMetadata(key)!;
+  const keywords = [
+    ...new Set([...(fromSearch.keywords ?? []), ...(definition.keywords ?? [])]),
+  ];
 
   return {
     ...fromSearch,
@@ -41,5 +44,6 @@ export function mergeAttributeSearchMetadata(
     desc: fromSearch.desc,
     valueType: keepLocalValueType ? definition.valueType : fromSearch.valueType,
     ...(ARRAY_ATTRIBUTE_SEARCH_TYPES.has(metadata.type) ? {kind: FieldKind.ARRAY} : {}),
+    ...(keywords.length ? {keywords} : {}),
   };
 }

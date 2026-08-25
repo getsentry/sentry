@@ -60,4 +60,23 @@ describe('getFieldDefinition attribute search metadata', () => {
       ATTRIBUTE_SEARCH_METADATA[SpanFields.SPAN_OP]?.brief
     );
   });
+
+  it('exposes deprecation chain values as keywords', () => {
+    const definition = getFieldDefinition('gen_ai.usage.output_tokens', 'span');
+
+    expect(definition?.keywords).toEqual(
+      expect.arrayContaining([
+        'ai.completion_tokens.used',
+        'gen_ai.usage.completion_tokens',
+      ])
+    );
+    expect(definition?.deprecated).toBeUndefined();
+  });
+
+  it('marks replaced search names as deprecated', () => {
+    const definition = getFieldDefinition('ai.completion_tokens.used', 'span');
+
+    expect(definition?.deprecated).toBe(true);
+    expect(getFieldDefinition('environment', 'span')?.deprecated).toBeUndefined();
+  });
 });

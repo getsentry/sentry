@@ -9,6 +9,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
 
 import {applyAttributeSearchFieldOverrides} from './applyAttributeSearchFieldOverrides';
+import {ATTRIBUTE_SEARCH_SECONDARY_ALIASES} from './getAttributeSearchSecondaryAliases';
 import {
   ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
   getFieldDefinitionFromAttributeSearchMetadata,
@@ -22,7 +23,13 @@ import {
   type FieldDefinition,
 } from './types';
 
-export {FieldKind, FieldValueType, type AggregateParameter, type FieldDefinition};
+export {
+  ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
+  FieldKind,
+  FieldValueType,
+  type AggregateParameter,
+  type FieldDefinition,
+};
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
