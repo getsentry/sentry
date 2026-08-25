@@ -97,27 +97,29 @@ function IssuePreviewAssigneeAvatar({
   return (
     <Tooltip skipWrapper title={t('Suggested assignees: %s', assigneeNames)}>
       <SuggestedAssignees data-test-id="suggested-avatar-stack">
-        {context.suggestedActors
-          .slice(0, 3)
-          .reverse()
-          .map(actor => (
-            <ActorAvatar
-              actor={actor}
-              hasTooltip={false}
-              key={`${actor.type}:${actor.id}`}
-              size={24}
-              suggested
-            />
-          ))}
+        {context.suggestedActors.slice(0, 3).map((actor, index) => (
+          <ActorAvatar
+            actor={actor}
+            hasTooltip={false}
+            key={`${actor.type}:${actor.id}`}
+            size={24}
+            style={{zIndex: context.suggestedActors.length - index}}
+            suggested
+          />
+        ))}
       </SuggestedAssignees>
     </Tooltip>
   );
 }
 
 const AssigneeTrigger = styled(OverlayTrigger.Button)`
+  align-items: center;
   border: none;
   box-shadow: none;
-  height: unset;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  line-height: 0;
   padding: 0;
 
   &:hover {
@@ -126,8 +128,9 @@ const AssigneeTrigger = styled(OverlayTrigger.Button)`
 `;
 
 const SuggestedAssignees = styled('div')`
-  display: flex;
   align-items: center;
+  display: flex;
+  height: 24px;
 
   > * + * {
     margin-inline-start: -${p => p.theme.space.md};
