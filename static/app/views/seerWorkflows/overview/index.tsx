@@ -1,4 +1,4 @@
-import {type ComponentProps, Fragment, useMemo} from 'react';
+import {type ComponentProps, Fragment, type ReactNode, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
@@ -64,6 +64,16 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
 ];
 
 const {'90d': _90d, ...ACTIVITY_RELATIVE_PERIODS} = DEFAULT_RELATIVE_PERIODS;
+
+// Drop the 90-day preset from the activity filter, but keep any
+// arbitrary/currently-selected period (e.g. a stale `90d` from the URL or a
+// custom range typed in search) so the trigger stays valid instead of
+// rendering "Invalid Period".
+const activityRelativeOptions = ({
+  arbitraryOptions,
+}: {
+  arbitraryOptions: Record<string, ReactNode>;
+}) => ({...ACTIVITY_RELATIVE_PERIODS, ...arbitraryOptions});
 
 // Buckets the assignee filter value (a raw `type:id` actor string) for
 // analytics, avoiding actor-id PII/cardinality. Null means the filter was
@@ -249,7 +259,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           <ProjectFilterSkeleton />
         )}
         <DatePageFilter
-          relativeOptions={ACTIVITY_RELATIVE_PERIODS}
+          relativeOptions={activityRelativeOptions}
           onChange={update =>
             trackFilterChanged('activity', update.relative ?? 'absolute')
           }

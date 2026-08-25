@@ -577,6 +577,21 @@ describe('AutofixOverview', () => {
     expect(screen.queryByRole('option', {name: 'Last 90 days'})).not.toBeInTheDocument();
   });
 
+  it('keeps a stale 90-day selection valid on the trigger', async () => {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({datetime: {period: '90d', start: null, end: null, utc: null}})
+    );
+    mockOverview({base: {}});
+
+    renderPage();
+
+    // A period no longer offered (here inherited from another page/URL) must
+    // still render on the trigger rather than showing "Invalid Period".
+    expect(
+      await screen.findByRole('button', {name: 'Autofix Activity 90D'})
+    ).toBeInTheDocument();
+  });
+
   it('renders card prose and links from the endpoint payload', async () => {
     mockOverview({
       base: {
