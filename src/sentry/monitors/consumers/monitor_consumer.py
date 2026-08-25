@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
@@ -89,6 +90,8 @@ from sentry.utils.tracing import set_span_tag, start_span
 logger = logging.getLogger(__name__)
 
 MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITORS)
+
+DROP_LOG_SAMPLE_RATE = 0.01
 
 
 def _ensure_monitor_with_config(
@@ -518,6 +521,16 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "monitor_environment_ratelimited"},
         )
+        if random.random() < DROP_LOG_SAMPLE_RATE:
+            logger.info(
+                "monitors.consumer.monitor_environment_ratelimited",
+                extra={
+                    "organization_id": project.organization_id,
+                    "project": project.id,
+                    "slug": monitor_slug,
+                    "environment": environment,
+                },
+            )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -542,6 +555,16 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "monitor_over_quota"},
         )
+        if random.random() < DROP_LOG_SAMPLE_RATE:
+            logger.info(
+                "monitors.consumer.monitor_over_quota",
+                extra={
+                    "organization_id": project.organization_id,
+                    "project": project.id,
+                    "slug": monitor_slug,
+                    "environment": environment,
+                },
+            )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
