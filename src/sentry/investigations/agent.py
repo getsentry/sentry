@@ -705,11 +705,12 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 result["queryLinks"] = links
                 result = validate_query_result(result)
                 allowed_project_ids = set(execution.input_snapshot.get("projectIds", []))
-                result_project_ids = {project.id for project in projects}.union(
+                queried_project_ids = {project.id for project in projects}
+                if not queried_project_ids.issubset(allowed_project_ids):
+                    raise ValueError("The result queried outside the investigation project scope.")
+                result_project_ids = queried_project_ids.union(
                     execution.input_snapshot.get("contextDataProjectIds", [])
                 )
-                if not result_project_ids.issubset(allowed_project_ids):
-                    raise ValueError("The result queried outside the investigation project scope.")
                 projects = list(
                     Project.objects.filter(
                         organization=execution.block.investigation.organization,

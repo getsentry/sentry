@@ -154,6 +154,7 @@ class InvestigationAgentTest(TestCase):
         assert list(self.execution.data_projects.all()) == [self.project]
 
     def test_completed_query_keeps_reused_result_projects(self) -> None:
+        self.execution.input_snapshot["projectIds"] = []
         self.execution.input_snapshot["contextDataProjectIds"] = [self.project.id]
         self.execution.save(update_fields=["input_snapshot"])
         run_state = state(
