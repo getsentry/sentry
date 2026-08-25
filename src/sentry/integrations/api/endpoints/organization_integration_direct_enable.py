@@ -93,7 +93,12 @@ class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoin
                 if org_integration is None:
                     raise IntegrityError
         except IntegrationDeletionInProgressError:
-            return Response({"detail": "Integration deletion is already in progress."}, status=409)
+            return Response(
+                {
+                    "detail": "Integration deletion is already in progress. Please try again in a few minutes."
+                },
+                status=409,
+            )
         except IntegrityError:
             return Response({"detail": "Could not create the integration."}, status=400)
 
