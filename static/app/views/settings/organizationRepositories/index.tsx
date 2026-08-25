@@ -269,8 +269,8 @@ export default function OrganizationRepositories() {
     mappingsLoading,
   ]);
 
-  // Refetch so the new row appears; auto-sync then polls in its row until the
-  // backend finishes importing repos.
+  // A newly connected provider has no repos imported yet. Refetch to render its
+  // row, then flag it to auto-sync, which polls until those repos appear.
   const handleAddIntegration = (data: Integration) => {
     setAutoSyncIntegrationId(data.id);
     integrationsQuery.refetch();
