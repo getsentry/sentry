@@ -91,7 +91,10 @@ function ChipContent({label, value}: {value: string; label?: string}) {
 
 function ReferenceChip({reference}: {reference: ToolCallReference}) {
   const {label, value, icon, onClick, to} = reference;
-  const chipIcon = icon ?? <IconSpan size="xs" />;
+  // No explicit size: `Button`/`LinkButton` already scale their `icon` via
+  // `IconDefaultsProvider`, and a hardcoded size here would fight that when the
+  // chip's button size ever changes.
+  const chipIcon = icon ?? <IconSpan />;
   const content = <ChipContent label={label} value={value} />;
 
   // A navigation target renders as a real anchor so middle/cmd-click and keyboard access work; an
