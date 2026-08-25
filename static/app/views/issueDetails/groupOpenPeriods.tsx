@@ -3,12 +3,15 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -19,12 +22,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {investigationCandidatesQueryOptions} from 'sentry/views/investigations/api';
+import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
 import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
 
 interface OpenPeriodDisplayData {
   description: string;
   end: React.ReactNode;
   eventId: React.ReactNode;
+  investigation: React.ReactNode;
+  openPeriod: React.ReactNode;
   start: React.ReactNode;
 }
 
@@ -61,8 +68,23 @@ function IssueOpenPeriodsList() {
     select: selectJsonWithHeaders,
   });
   const openPeriods = response?.json ?? [];
+  const investigationsEnabled = organization.features.includes('investigations');
+  const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
+    period => ({
+      type: 'metric_open_period',
+      ref: {groupId: params.groupId, openPeriodId: period.id},
+    })
+  );
+  const {data: candidates} = useQuery({
+    ...investigationCandidatesQueryOptions({
+      organizationSlug: organization.slug,
+      sources: candidateSources,
+    }),
+    enabled: investigationsEnabled && candidateSources.length > 0,
+  });
 
-  const data = openPeriods.flatMap(period => {
+  const data = openPeriods.flatMap((period, periodIndex) => {
+    const candidate = candidates?.items[periodIndex];
     const periodActivities = orderBy(
       period.activities.filter(activity => activity.type !== 'closed'),
       'dateCreated',
@@ -88,9 +110,37 @@ function IssueOpenPeriodsList() {
         description: getOpenPeriodActivityTypeLabel(activity),
         start: <DateTime date={startDate} />,
         end: endDate ? <DateTime date={endDate} /> : undefined,
+        investigation:
+          activity.type === 'opened' && candidate?.status === 'view' ? (
+            <Link
+              to={`/organizations/${organization.slug}/seer/investigation/${candidate.investigationId}/`}
+            >
+              <Flex as="span" align="center" gap="xs">
+                <IconSeer size="xs" />
+                {candidate.investigationId}
+              </Flex>
+            </Link>
+          ) : undefined,
       };
     });
   });
+
+  const columnOrder: Array<GridColumnOrder<string>> = [
+    {key: 'openPeriod', width: COL_WIDTH_UNDEFINED, name: t('Open Period')},
+    {key: 'eventId', width: 100, name: t('Event ID')},
+    {key: 'description', width: COL_WIDTH_UNDEFINED, name: t('Description')},
+    {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
+    {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
+    ...(investigationsEnabled
+      ? [
+          {
+            key: 'investigation',
+            width: COL_WIDTH_UNDEFINED,
+            name: t('Investigation'),
+          },
+        ]
+      : []),
+  ];
 
   const renderHeadCell = (col: GridColumnOrder) => {
     return <AlignLeft>{col.name}</AlignLeft>;
@@ -128,13 +178,7 @@ function IssueOpenPeriodsList() {
         isLoading={isPending}
         data={data}
         error={error}
-        columnOrder={[
-          {key: 'openPeriod', width: COL_WIDTH_UNDEFINED, name: t('Open Period')},
-          {key: 'eventId', width: 100, name: t('Event ID')},
-          {key: 'description', width: COL_WIDTH_UNDEFINED, name: t('Description')},
-          {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
-          {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
-        ]}
+        columnOrder={columnOrder}
         columnSortBy={[]}
         grid={{
           renderHeadCell,

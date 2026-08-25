@@ -450,6 +450,11 @@ def set_active_org(request: HttpRequest, org_slug: str) -> None:
         request.session["activeorg"] = org_slug
 
 
+def clear_active_org(request: HttpRequest) -> None:
+    if hasattr(request, "session"):
+        request.session.pop("activeorg", None)
+
+
 class EmailAuthBackend(ModelBackend):
     """
     Authenticate against django.contrib.auth.models.User.

@@ -34,14 +34,12 @@ class GroupAutofixReposEndpoint(GroupAiEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        runs = client.get_runs(category_key="autofix", category_value=str(group.id))
-        if not runs:
+        run = client.latest_run(group_id=group.id)
+        if run is None:
             return Response({"repos": []}, status=status.HTTP_200_OK)
 
-        run_id = runs[0].run_id
-
         try:
-            response = client.get_repos(run_id)
+            response = client.get_repos(run.run.seer_run_state_id)
         except Exception:
             return Response(
                 {"detail": "Failed to reach Seer"},

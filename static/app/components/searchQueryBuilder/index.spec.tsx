@@ -227,6 +227,89 @@ describe('SearchQueryBuilder', () => {
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
   });
 
+  it('hides the leading search icon when showSearchIcon is false', async () => {
+    const {rerender} = render(
+      <SearchQueryBuilder {...defaultProps} showSearchIcon={false} />
+    );
+
+    await screen.findByTestId('search-query-builder');
+    expect(screen.queryByTestId('search-query-builder-icon')).not.toBeInTheDocument();
+
+    rerender(<SearchQueryBuilder {...defaultProps} />);
+    expect(screen.getByTestId('search-query-builder-icon')).toBeInTheDocument();
+  });
+
+  describe('portalTarget', () => {
+    function expectMenusPortaled() {
+      const builder = screen.getByTestId('search-query-builder');
+      for (const menu of screen.getAllByRole('listbox')) {
+        expect(builder).not.toContainElement(menu);
+      }
+    }
+
+    it('anchors the full width filter key menu inside the search bar', async () => {
+      render(<SearchQueryBuilder {...defaultProps} portalTarget={document.body} />);
+
+      await userEvent.click(getLastInput());
+
+      // The full width menu sizes itself against the search bar, so it opts out of
+      // `portalTarget` and stays inside the wrapper.
+      const builder = screen.getByTestId('search-query-builder');
+      expect(builder).toContainElement(await screen.findByRole('listbox'));
+    });
+
+    it('portals the filter key menu when the full width menu is disabled', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+
+      expect(
+        await screen.findByRole('option', {name: 'browser.name'})
+      ).toBeInTheDocument();
+      expectMenusPortaled();
+    });
+
+    it('portals the filter value menu', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(await screen.findByRole('option', {name: 'browser.name'}));
+
+      expect(await screen.findByRole('option', {name: 'Chrome'})).toBeInTheDocument();
+      expectMenusPortaled();
+    });
+
+    it('applies a filter key and value clicked in a portaled menu', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(await screen.findByRole('option', {name: 'browser.name'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:Chrome'})
+      ).toBeInTheDocument();
+    });
+  });
+
   it('syncs external initial query changes while disabled', async () => {
     function ExternalProviderSearchQueryBuilder({
       disabled,
@@ -6319,6 +6402,84 @@ describe('SearchQueryBuilder', () => {
           screen.queryByText('Invalid key. "foo" is not a supported search key.')
         ).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('invalidFilterKeys', () => {
+    it('marks listed simple keys as invalid', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          invalidFilterKeys={['browser']}
+          initialQuery="browser:Chrome"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'browser:Chrome'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Invalid key. "browser" is not a supported search key.')
+      ).toBeInTheDocument();
+    });
+
+    it('marks aggregate filters invalid when the bare aggregate name is listed', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          invalidFilterKeys={['p95']}
+          invalidMessages={{
+            [InvalidReason.INVALID_KEY]:
+              'Aggregates cannot be used in conditional filters',
+          }}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            p95: {
+              key: 'p95',
+              name: 'p95',
+              kind: FieldKind.FUNCTION,
+            },
+            'transaction.duration': {
+              key: 'transaction.duration',
+              name: 'transaction.duration',
+              kind: FieldKind.FIELD,
+            },
+          }}
+          fieldDefinitionGetter={key => {
+            if (key === 'p95') {
+              return {
+                kind: FieldKind.FUNCTION,
+                valueType: FieldValueType.DURATION,
+                parameters: [
+                  {
+                    name: 'column',
+                    kind: 'column' as const,
+                    columnTypes: [FieldValueType.DURATION],
+                    defaultValue: 'transaction.duration',
+                    required: true,
+                  },
+                ],
+              };
+            }
+            return defaultProps.fieldDefinitionGetter?.(key) ?? null;
+          }}
+          initialQuery="p95(transaction.duration):>100"
+        />
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'p95(transaction.duration):>100'})
+      ).toHaveAttribute('aria-invalid', 'true');
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Aggregates cannot be used in conditional filters')
+      ).toBeInTheDocument();
     });
   });
 

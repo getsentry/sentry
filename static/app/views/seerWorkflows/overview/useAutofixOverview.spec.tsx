@@ -166,13 +166,22 @@ describe('shouldRefetchEnriched', () => {
 describe('isSameScope', () => {
   const scope = {project: [2], statsPeriod: '14d'};
 
-  it('is true across a sort or expand change', () => {
+  it('is true across an expand change', () => {
     expect(
       isSameScope(
         {...scope, expand: ['status']},
-        {...scope, sort: 'events', expand: ['scmInfo', 'issueStats', 'status']}
+        {...scope, expand: ['scmInfo', 'issueStats', 'status']}
       )
     ).toBe(true);
+  });
+
+  it('is false when the sort changes', () => {
+    expect(
+      isSameScope(
+        {...scope, expand: ['status']},
+        {...scope, sort: 'events', expand: ['status']}
+      )
+    ).toBe(false);
   });
 
   it('is false when the projects change', () => {
