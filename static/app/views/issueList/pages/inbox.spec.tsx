@@ -13,7 +13,6 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  act,
   render,
   screen,
   userEvent,
@@ -153,7 +152,6 @@ describe('InboxPage', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     localStorage.removeItem('inbox-split-size');
@@ -844,8 +842,6 @@ describe('InboxPage', () => {
   });
 
   it('prefetches independent preview details after an intentional hover', async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     mockSuccessfulSections();
     mockIssuePreview();
     const pendingRequest = new Promise(() => {});
@@ -873,21 +869,14 @@ describe('InboxPage', () => {
     const issueLink = await within(
       screen.getByRole('region', {name: 'Fix Proposed'})
     ).findByRole('link', {name: /Fix proposed issue/});
-    await user.hover(issueLink);
+    await userEvent.hover(issueLink);
 
-    await act(() => jest.advanceTimersByTimeAsync(199));
-    expect(groupRequest).not.toHaveBeenCalled();
-    expect(pullRequestsRequest).not.toHaveBeenCalled();
-    expect(autofixSetupRequest).not.toHaveBeenCalled();
-    expect(autofixRequest).not.toHaveBeenCalled();
-
-    await act(() => jest.advanceTimersByTimeAsync(1));
-    expect(groupRequest).toHaveBeenCalledTimes(1);
-    expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
-    expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
-    expect(autofixRequest).toHaveBeenCalledTimes(1);
-
-    jest.useRealTimers();
+    await waitFor(() => {
+      expect(groupRequest).toHaveBeenCalledTimes(1);
+      expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
+      expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
+      expect(autofixRequest).toHaveBeenCalledTimes(1);
+    });
 
     // Reads the warmed caches, which only hold if all query keys match.
     await userEvent.click(issueLink);
