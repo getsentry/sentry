@@ -60,6 +60,7 @@ from sentry.seer.entrypoints.operator import (
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
+from sentry.seer.utils import latest_run_for_source
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -703,12 +704,14 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_value=str(group_id),
     )
 
-    runs = client.get_runs(category_key="autofix", category_value=str(group_id))
-    if not runs:
+    # Discovery is served by the local run mirror; only the detailed state is
+    # fetched remotely from Seer.
+    run = latest_run_for_source(organization.id, source="autofix", group_id=group_id)
+    if run is None or run.run.seer_run_state_id is None:
         return None
 
     # Return the most recent run's state
-    return client.get_run(runs[0].run_id)
+    return client.get_run(run.run.seer_run_state_id)
 
 
 def generate_autofix_handoff_prompt(

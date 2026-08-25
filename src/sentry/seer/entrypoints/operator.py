@@ -32,6 +32,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
+from sentry.seer.utils import latest_run_for_source
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -546,16 +547,17 @@ class SeerAgentOperator[CachePayloadT]:
                 return None
 
             try:
-                existing_runs = client.get_runs(
-                    category_key=category_key,
+                # Discovery is served by the local run mirror; only the actual
+                # continue/start call goes to Seer.
+                existing_run = latest_run_for_source(
+                    organization.id,
+                    category_key,
                     category_value=category_value,
-                    limit=1,
-                    only_current_user=False,
                 )
 
-                if existing_runs:
+                if existing_run is not None:
                     run_id = client.continue_run(
-                        run_id=existing_runs[0].run_id,
+                        run_id=existing_run.run.seer_run_state_id,
                         prompt=prompt,
                         on_page_context=on_page_context,
                     ).seer_run_state_id

@@ -1187,7 +1187,6 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
     def test_slack_code_mode_enabled(self, mock_client_cls):
         mock_client = Mock()
-        mock_client.get_runs.return_value = []
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client_cls.return_value = mock_client
 
@@ -1206,7 +1205,6 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
     def test_slack_code_mode_disabled(self, mock_client_cls):
         mock_client = Mock()
-        mock_client.get_runs.return_value = []
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client_cls.return_value = mock_client
 
@@ -1224,7 +1222,6 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
     def test_non_slack_category_ignores_flag(self, mock_client_cls):
         mock_client = Mock()
-        mock_client.get_runs.return_value = []
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client_cls.return_value = mock_client
 
