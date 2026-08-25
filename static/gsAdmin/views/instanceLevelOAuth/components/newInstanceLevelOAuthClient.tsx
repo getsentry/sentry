@@ -32,9 +32,7 @@ const urlSchema = z.url();
 const optionalUrlSchema = z
   .string()
   .trim()
-  .refine(value => value === '' || urlSchema.safeParse(value).success, {
-    message: 'Enter a valid URL',
-  });
+  .pipe(z.union([z.literal(''), z.url('Enter a valid URL')]));
 
 const clientSchema = z.object({
   name: z.string().trim().min(1, 'Client name is required'),
@@ -78,6 +76,12 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
         />
       ));
     },
+    onError: error => {
+      const handled = error instanceof RequestError ? setFieldErrors(form, error) : false;
+      if (!handled) {
+        addErrorMessage('Unable to create OAuth client.');
+      }
+    },
   });
 
   const form = useScrapsForm({
@@ -91,18 +95,8 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
       termsUrl: '',
     } satisfies ClientFormValues,
     validators: {onDynamic: clientSchema},
-    onSubmit: ({value, formApi}) =>
-      mutation
-        .mutateAsync(clientSchema.parse(value), {
-          onError: error => {
-            const handled =
-              error instanceof RequestError ? setFieldErrors(formApi, error) : false;
-            if (!handled) {
-              addErrorMessage('Unable to create OAuth client.');
-            }
-          },
-        })
-        .catch(() => {}),
+    onSubmit: ({value}) =>
+      mutation.mutateAsync(clientSchema.parse(value)).catch(() => {}),
   });
 
   return (
