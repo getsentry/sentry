@@ -54,6 +54,7 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   mjs: 'javascript',
   jsbundle: 'javascript',
   bundle: 'javascript',
+  astro: 'javascript',
   vue: 'javascript',
   svelte: 'javascript',
   'js?': 'javascript',
