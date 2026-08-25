@@ -624,6 +624,36 @@ describe('AutofixOverview', () => {
     expect(screen.getAllByText('Plan')).toHaveLength(1);
   });
 
+  it('shows "0 users" for a card with events but zero affected users', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, issue: issueFixture({count: '1200', userCount: 0})},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('0 users')).toBeInTheDocument();
+    expect(screen.getByText('1.2K events')).toBeInTheDocument();
+  });
+
+  it('omits the users datapoint when the stat is unavailable', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, issue: issueFixture({count: '1200', userCount: null})},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    expect(screen.queryByText('0 users')).not.toBeInTheDocument();
+  });
+
   it('renders inline code in root cause and plan summaries', async () => {
     mockOverview({
       base: {
