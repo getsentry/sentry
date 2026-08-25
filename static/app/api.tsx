@@ -230,7 +230,7 @@ export type RequestOptions = RequestCallbacks & {
   /**
    * The HTTP method to use when making the API request
    */
-  method?: 'DELETE' | 'GET' | 'POST' | 'PUT';
+  method?: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
   /**
    * Because of the async nature of API requests, errors will happen outside of
    * the stack that initated the request. a preservedError can be passed to

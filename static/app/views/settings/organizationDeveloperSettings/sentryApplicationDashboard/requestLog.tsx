@@ -164,17 +164,20 @@ export function RequestLog({app}: RequestLogProps) {
       {isError ? (
         <LoadingError />
       ) : (
-        <RequestLogTable isInternal={isInternal}>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell>{t('Time')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Status Code')}</SimpleTable.HeaderCell>
-            {!isInternal && (
-              <SimpleTable.HeaderCell>{t('Organization')}</SimpleTable.HeaderCell>
-            )}
-            <SimpleTable.HeaderCell>{t('Event Type')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Webhook URL')}</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
-
+        <RequestLogTable
+          isInternal={isInternal}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Time')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Status Code')}</SimpleTable.HeaderCell>
+              {!isInternal && (
+                <SimpleTable.HeaderCell>{t('Organization')}</SimpleTable.HeaderCell>
+              )}
+              <SimpleTable.HeaderCell>{t('Event Type')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Webhook URL')}</SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
           {isPending && (
             <SimpleTable.Empty>
               <LoadingIndicator />

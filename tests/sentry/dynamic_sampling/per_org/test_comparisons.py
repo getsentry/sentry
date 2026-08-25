@@ -137,6 +137,13 @@ class CachedSampleRateReadersTest(TestCase):
             get_effective_sample_rate(OrganizationDataVolume(org_id=1, total=0, indexed=10)) is None
         )
 
+    def test_get_effective_sample_rate_reports_an_overshoot_unclamped(self) -> None:
+        # Unlike the rate the factor is computed from, this one stays raw, so the comparison
+        # log keeps showing that the sources disagreed and by how much.
+        assert get_effective_sample_rate(
+            OrganizationDataVolume(org_id=1, total=100, indexed=172)
+        ) == pytest.approx(1.72)
+
 
 class ProjectBalancingComparisonTest(TestCase):
     def test_compare_rebalanced_projects_with_cache_logs_per_project(self) -> None:
@@ -295,11 +302,13 @@ class RecalibrationFactorComparisonTest(TestCase):
         org_volume: OrganizationDataVolume | None,
         factor: float | None,
         previous_factor: float,
+        organization_volume: OrganizationDataVolume | None = None,
     ) -> object:
         return mock_configuration(
             self.organization,
             sample_rate=0.5,
             results=DynamicSamplingResults(
+                organization_volume=organization_volume,
                 recalibration_volume=org_volume,
                 recalibration_factor=factor,
                 previous_recalibration_factor=previous_factor,
@@ -315,7 +324,12 @@ class RecalibrationFactorComparisonTest(TestCase):
         org = self.organization
         org_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=288)
         legacy_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=386)
-        config = self._config(org_volume, 2.8, 1.4)
+        config = self._config(
+            org_volume,
+            2.8,
+            1.4,
+            organization_volume=OrganizationDataVolume(org_id=org.id, total=900, indexed=288),
+        )
 
         with (
             patch_configuration({CACHED_FACTOR: 2.0, LEGACY_VOLUME: legacy_volume}),
@@ -335,6 +349,9 @@ class RecalibrationFactorComparisonTest(TestCase):
                 "total_transactions": 772,
                 "stored_segments": 288,
                 "eap_effective_sample_rate": pytest.approx(0.3730569948186528),
+                # EAP put the total at 900 where outcomes reported 772.
+                "eap_extrapolated_total": 900,
+                "extrapolated_total_relative_deviation": pytest.approx(0.16580310880829016),
                 "generic_metrics_total": 772,
                 "generic_metrics_indexed": 386,
                 "generic_metrics_effective_sample_rate": pytest.approx(0.5),
@@ -370,6 +387,8 @@ class RecalibrationFactorComparisonTest(TestCase):
             "total_transactions": None,
             "stored_segments": None,
             "eap_effective_sample_rate": None,
+            "eap_extrapolated_total": None,
+            "extrapolated_total_relative_deviation": None,
             "generic_metrics_total": None,
             "generic_metrics_indexed": None,
             "generic_metrics_effective_sample_rate": None,

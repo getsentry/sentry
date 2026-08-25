@@ -9,7 +9,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_long_tasks, issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
 
@@ -23,6 +23,7 @@ _TASK_KEY = "backfill_pr_lifecycle_action_log_for_project"
         "sentry.tasks.backfill_pr_lifecycle_action_log.backfill_pr_lifecycle_action_log_for_group"
     ),
     namespace=issues_tasks,
+    alias_namespace=issues_long_tasks,
     silo_mode=SiloMode.CELL,
 )
 def backfill_pr_lifecycle_action_log_for_group(
@@ -67,6 +68,7 @@ def backfill_pr_lifecycle_action_log_for_group(
         "sentry.tasks.backfill_pr_lifecycle_action_log.backfill_pr_lifecycle_action_log_for_project"
     ),
     namespace=issues_tasks,
+    alias_namespace=issues_long_tasks,
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )

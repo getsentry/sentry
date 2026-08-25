@@ -157,6 +157,16 @@ class ProjectBalancingCalculationsTest(TestCase):
         adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
         assert adjusted_factor == 2.8
 
+    def test_calculate_recalibration_factor_clamps_an_overshooting_volume(self) -> None:
+        # The two sources behind the volume disagreed, so more was stored than was seen. The
+        # rate is capped at 1.0, which leaves the factor at the target rather than scaling it
+        # down by however far the sources drifted apart.
+        org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=172)
+        assert calculate_recalibration_factor(org_volume, 1.4, 0.5) == pytest.approx(0.7)
+
+        at_the_boundary = OrganizationDataVolume(org_id=1, total=100, indexed=100)
+        assert calculate_recalibration_factor(at_the_boundary, 1.4, 0.5) == pytest.approx(0.7)
+
 
 def _project_transactions(
     org_id: int,

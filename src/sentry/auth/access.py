@@ -928,6 +928,11 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
+    if is_agent_auth(request.auth):
+        if rpc_user_org_context is None:
+            return DEFAULT
+        return from_agent_auth(request.auth, rpc_user_org_context)
+
     is_staff = is_active_staff(request)
 
     if not rpc_user_org_context:
@@ -1027,6 +1032,11 @@ def from_user_and_rpc_user_org_context(
 def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
+    if is_agent_auth(request.auth):
+        if organization is None:
+            return DEFAULT
+        return from_auth(request.auth, organization)
+
     is_staff = is_active_staff(request)
 
     if not organization:
@@ -1253,6 +1263,8 @@ def from_agent_auth(
     # Bound to the org it was minted for; never honored elsewhere, even if the
     # delegating user is also a member of the requested org.
     if auth.organization_id != rpc_user_org_context.organization.id:
+        return DEFAULT
+    if auth.user_id != rpc_user_org_context.user_id:
         return DEFAULT
     # No membership (never a member, or revoked since mint) -> no access. Required
     # explicitly because RpcBackedAccess would otherwise hand back the full token

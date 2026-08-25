@@ -22,10 +22,14 @@ import {
   callRecordDetail,
   callRecordFailure,
   callRecordLabel,
-  callRecordLink,
   callRecordStatus,
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
+import {
+  resolveLink,
+  subjectFromCallRecord,
+  subjectFromToolLink,
+} from 'sentry/views/seerExplorer/links';
 import type {
   Block,
   CallRecord,
@@ -34,7 +38,6 @@ import type {
   ToolResult,
 } from 'sentry/views/seerExplorer/types';
 import {
-  buildToolLinkUrl,
   getToolsStringFromBlock,
   getValidToolLinks,
 } from 'sentry/views/seerExplorer/utils';
@@ -283,7 +286,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? sortedToolLinks[correspondingLinkIndex]
           : undefined;
         const toolUrl = positionalLink
-          ? buildToolLinkUrl(positionalLink, organization, projects)
+          ? (resolveLink(subjectFromToolLink(positionalLink), {organization, projects})
+              ?.url ?? null)
           : null;
 
         // Both channels' links stop propagation (so the click doesn't reach the blocks
@@ -330,25 +334,18 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const navItems = (toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [])
           .filter(link => link.params?.is_error !== true)
           .filter(link => linkKey(link) !== positionalKey)
-          .map(link => ({
-            kind: link.kind,
-            label: navLinkLabel(link.kind),
-            url: buildToolLinkUrl(link, organization, projects),
-          }))
-          // Fail closed on both axes: drop a link we cannot build a URL for, and drop one we have
-          // no label for rather than falling back to the raw kind. An unsupported kind already has
-          // no URL builder, so the label check only bites if a builder is ever added without a
-          // label — the coverage test keeps those two sets in step, and this is the backstop that
-          // keeps an internal identifier off screen if it drifts anyway.
-          .filter(
-            (
-              item
-            ): item is {
-              kind: string;
-              label: string;
-              url: NonNullable<typeof item.url>;
-            } => !!item.url && !!item.label
-          );
+          .flatMap(link => {
+            // Fail closed: a kind no rule resolves, or one whose rule declines, renders nothing.
+            // Label and destination arrive together from the rule, so a link can no longer show up
+            // with an internal function name like `get_log_attributes` as its visible text.
+            const resolved = resolveLink(subjectFromToolLink(link), {
+              organization,
+              projects,
+            });
+            return resolved
+              ? [{kind: resolved.id, label: resolved.label, url: resolved.url}]
+              : [];
+          });
         const structuredContentMarkdown = toolCall.id
           ? structuredContentMarkdownByCallId.get(toolCall.id)
           : undefined;
@@ -365,16 +362,31 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // has still finished, and reading "settled" as "reported something" would leave any row
         // built from the live mirror spinning.
         const callsAreSettled = toolCall.id ? settledCallIds.has(toolCall.id) : false;
+        // Bus destinations already claimed by a call row (same rule id). A Code Mode execute often
+        // emits both a call record and a coarser bus link for the same entity; without this, the
+        // residual nav path would repeat "View issue" under a row that already navigates there.
+        //
+        // `telemetry_live_search` is the exception: many searches in one execute share that kind, so
+        // claiming it wholesale would starve later rows of their bus twins. Those are paired one
+        // bus link at a time below instead.
+        const claimedLinkKinds = new Set<string>();
         const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
           .map(record => {
-            const link = callRecordLink(record, organization, projects);
+            const link = resolveLink(subjectFromCallRecord(record), {
+              organization,
+              projects,
+            });
+            if (link && link.id !== 'telemetry_live_search') {
+              claimedLinkKinds.add(link.id);
+            }
             return {
               record,
-              label: callRecordLabel(record),
+              // A rule that matched names the row; seer's own title stands for every other call.
+              label: link?.label ?? callRecordLabel(record),
               url: link?.url ?? null,
-              // The navigable kind, not `record.kind` — analytics keys `tool_kind` on which
+              // The rule that fired, not `record.kind` — analytics keys `tool_kind` on which
               // destination was opened, and the record's own kind is only ever api/lib.
-              linkKind: link?.kind ?? record.kind,
+              linkKind: link?.id ?? record.kind,
             };
           })
           // A record we have no label for is dropped rather than rendered as a route or an
@@ -382,15 +394,42 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           // narrows `label` for the render below, which is why it is not a plain Boolean check.
           .filter((row): row is typeof row & {label: string} => Boolean(row.label));
 
+        const residualNavItems = navItems.filter(
+          item => !claimedLinkKinds.has(item.kind)
+        );
+        // Telemetry rows need the bus one-for-one. The bus carries the authoritative translated
+        // destination (query, project_slugs, stats_period); the call row carries the useful title.
+        // Always take the bus url when pairing — a stamped row may already resolve from query alone
+        // and miss project filters the bus still has. Consume the twin either way so "View …" is
+        // not repeated under a row that already navigates there. Order is preserved so N searches
+        // pair with N bus links without starving siblings.
+        const linkedCallRows = callRows.map(row => {
+          if (row.record.name !== 'telemetry_live_search') {
+            return row;
+          }
+          const navItemIndex = residualNavItems.findIndex(
+            item => item.kind === 'telemetry_live_search'
+          );
+          if (navItemIndex === -1) {
+            return row;
+          }
+          const [navItem] = residualNavItems.splice(navItemIndex, 1);
+          if (!navItem) {
+            return row;
+          }
+          return {...row, url: navItem.url, linkKind: navItem.kind};
+        });
+
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
 
         // Nothing to say: a Code Mode call whose label is suppressed and which reported no calls,
         // todos, links or markdown would render an empty row with a lone status tick.
+        // Use residual nav items, not the pre-pairing list: consumed destinations no longer render.
         const hasContent =
           Boolean(toolString) ||
-          callRows.length > 0 ||
-          navItems.length > 0 ||
+          linkedCallRows.length > 0 ||
+          residualNavItems.length > 0 ||
           Boolean(todos) ||
           Boolean(structuredContentMarkdown);
         if (!hasContent) {
@@ -400,8 +439,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 
         // Both sources normalize to the same row shape. A classic tool contributes one row for
         // itself; a Code Mode call contributes one per api call it made.
-        const rows: React.ReactNode[] = callRows.length
-          ? callRows.map(({record, label, url, linkKind}) => (
+        const rows: React.ReactNode[] = linkedCallRows.length
+          ? linkedCallRows.map(({record, label, url, linkKind}) => (
               <CallRow
                 key={`${key}-${record.id}`}
                 row={{
@@ -438,14 +477,13 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Trailing per-tool-call surfaces. These belong to the call as a whole rather than to any
         // one row, so they follow its rows rather than sitting inside one.
         //
-        // The links bus is skipped when call rows are present: those already name and link what
-        // the execute did, so it would repeat them at coarser granularity — the tool rather than
-        // the call.
-        if (navItems.length > 0 && callRows.length === 0) {
+        // Residual bus links only — destinations already claimed by or paired with a call row were
+        // filtered out above. Any links that do not describe a visible call still render here.
+        if (residualNavItems.length > 0) {
           rows.push(
             <NavLinks
               key={`${key}-links`}
-              navItems={navItems}
+              navItems={residualNavItems}
               onNavLinkClick={trackLinkClick}
             />
           );
@@ -473,10 +511,11 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 }
 
 interface NavItem {
+  /** The rule that resolved the link, for analytics. */
   kind: string;
   /** Resolved at construction, so an unlabeled kind never reaches the renderer. */
   label: string;
-  url: NonNullable<ReturnType<typeof buildToolLinkUrl>>;
+  url: LocationDescriptor;
 }
 
 /** A row to render, normalized from either a classic tool call or one api call. */
@@ -595,27 +634,6 @@ function CallDetail({
       {detail.body && <CodeBlock language="json">{detail.body}</CodeBlock>}
     </Stack>
   );
-}
-
-// One entry per link kind buildToolLinkUrl can resolve. A kind absent here is not rendered at all
-// (see navLinkLabel): showing the raw kind would leak an internal function name like
-// `get_log_attributes` as the visible link text. Keeping this in step with buildToolLinkUrl's cases
-// is enforced by a test, so a kind seer starts emitting cannot reach users unlabeled.
-export const NAV_LINK_LABELS: Record<string, string> = {
-  get_issue_details: t('View issue'),
-  get_trace_waterfall: t('View trace'),
-  get_replay_details: t('View replay'),
-  get_profile_flamegraph: t('View profile'),
-  get_event_details: t('View event'),
-  get_log_attributes: t('View logs'),
-  get_metric_attributes: t('View metrics'),
-  // Dataset-dependent (issues / errors / spans / logs), so the label stays neutral.
-  telemetry_live_search: t('View results'),
-};
-
-/** The visible label for a bus link, or undefined when the kind is not renderable. */
-function navLinkLabel(kind: string): string | undefined {
-  return NAV_LINK_LABELS[kind];
 }
 
 /**

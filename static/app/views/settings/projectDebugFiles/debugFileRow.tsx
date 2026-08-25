@@ -1,9 +1,8 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -11,6 +10,7 @@ import {Access} from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import {Confirm} from 'sentry/components/confirm';
 import {FileSize} from 'sentry/components/fileSize';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -45,8 +45,8 @@ export function DebugFileRow({
   const {features} = data || {};
 
   return (
-    <Fragment>
-      <Stack align="start">
+    <SimpleTable.Row>
+      <SimpleTable.RowCell align="start">
         <div>
           <DebugId>{debugId || uuid}</DebugId>
         </div>
@@ -57,8 +57,8 @@ export function DebugFileRow({
             <TimeSince date={dateCreated} />
           </TimeWrapper>
         </TimeAndSizeWrapper>
-      </Stack>
-      <Stack align="start">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell align="start">
         <Name>
           {symbolType === 'proguard' && objectName === 'proguard-mapping'
             ? '\u2015'
@@ -87,8 +87,8 @@ export function DebugFileRow({
             </div>
           )}
         </Description>
-      </Stack>
-      <Flex justify="end" align="start" marginTop="md">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" align="start" marginTop="md">
         <Grid flow="column" align="center" gap="xs">
           <Tooltip
             disabled={hasRole}
@@ -136,8 +136,8 @@ export function DebugFileRow({
             )}
           </Access>
         </Grid>
-      </Flex>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
