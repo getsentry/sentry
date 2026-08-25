@@ -73,6 +73,17 @@ const INBOX_MAX_SIZE = 640;
 const ASSIGNMENT_BADGE_WIDTH = '27px';
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
+interface AssignmentCounts {
+  all: number;
+  me: number;
+  my_teams: number;
+}
+
+interface AlternateInbox {
+  filter: Exclude<AssignmentFilter, 'me'>;
+  label: string;
+}
+
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned_or_suggested:me',
   my_teams: ' assigned_or_suggested:[me,my_teams]',
@@ -199,7 +210,7 @@ function useSelectFirstLoadedIssue({
 }
 
 // Fetch counts for the assignment filter tabs (my/my teams/all)
-function useAssignmentCounts() {
+function useAssignmentCounts(): AssignmentCounts | null {
   const organization = useOrganization();
   const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
@@ -227,23 +238,29 @@ function useAssignmentCounts() {
   };
 }
 
+function getAlternateInbox(
+  assignmentFilter: AssignmentFilter,
+  assignmentCounts: AssignmentCounts | null
+): AlternateInbox | null {
+  if (assignmentFilter === 'me' && assignmentCounts?.my_teams) {
+    return {filter: 'my_teams', label: t('View team inbox')};
+  }
+
+  if (assignmentFilter !== 'all' && assignmentCounts?.all) {
+    return {filter: 'all', label: t('View all inbox')};
+  }
+
+  return null;
+}
+
 function AssignmentTabs({
   assignmentFilter,
-  setAssignmentFilter,
+  onChange,
 }: {
   assignmentFilter: AssignmentFilter;
-  setAssignmentFilter: (filter: AssignmentFilter) => void;
+  onChange: (filter: AssignmentFilter) => void;
 }) {
-  const organization = useOrganization();
   const assignmentCounts = useAssignmentCounts();
-
-  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
-    trackAnalytics('issue_inbox.assignment_filter_changed', {
-      organization,
-      assignment_filter: filter,
-    });
-    setAssignmentFilter(filter);
-  };
 
   useRouteAnalyticsParams(
     assignmentCounts
@@ -263,7 +280,7 @@ function AssignmentTabs({
       aria-label={t('Issue assignee')}
       size="xs"
       value={assignmentFilter}
-      onChange={handleAssignmentFilterChange}
+      onChange={onChange}
     >
       <SegmentedControl.Item key="me" textValue={t('Me')}>
         <Flex as="span" align="center" gap="sm">
@@ -308,6 +325,7 @@ function InboxContent() {
   const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(section => !section.hidden?.({hasSeer}));
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
+  const alternateInbox = getAlternateInbox(assignmentFilter, assignmentCounts);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
     INBOX_DEFAULT_SIZE
@@ -326,6 +344,21 @@ function InboxContent() {
     resetKey: assignmentFilter,
     sections,
   });
+
+  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    trackAnalytics('issue_inbox.assignment_filter_changed', {
+      organization,
+      assignment_filter: filter,
+    });
+    setAssignmentFilter(filter);
+  };
+
+  const alternateInboxAction = alternateInbox
+    ? {
+        label: alternateInbox.label,
+        onClick: () => handleAssignmentFilterChange(alternateInbox.filter),
+      }
+    : undefined;
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -361,7 +394,7 @@ function InboxContent() {
             </Heading>
             <AssignmentTabs
               assignmentFilter={assignmentFilter}
-              setAssignmentFilter={setAssignmentFilter}
+              onChange={handleAssignmentFilterChange}
             />
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
@@ -422,7 +455,10 @@ function InboxContent() {
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
           {!selectedIssueId && isInboxEmpty && (
-            <InboxEmptyState assignmentFilter={assignmentFilter} />
+            <InboxEmptyState
+              assignmentFilter={assignmentFilter}
+              alternateInbox={alternateInboxAction}
+            />
           )}
         </Stack>
       </Grid>
@@ -638,6 +674,10 @@ function useIssueSuggestedAssignees(group: Group): Actor[] {
   );
 }
 
+function getActorLabel(actor: Actor) {
+  return actor.type === 'team' ? `#${actor.name}` : actor.name;
+}
+
 function InboxIssueCard({
   assignmentFilter,
   assignedUser,
@@ -717,19 +757,28 @@ function InboxIssueCard({
                 <UserAvatar
                   user={assignedUser ?? group.assignedTo}
                   size={18}
-                  hasTooltip={false}
+                  hasTooltip
+                  tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />
               ) : (
                 <ActorAvatar
                   actor={group.assignedTo}
                   size={18}
-                  hasTooltip={false}
+                  hasTooltip
+                  tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />
               ))}
             {!group.assignedTo && suggestedAssignees.length > 0 && (
-              <SuggestedAvatarStack size={18} owners={suggestedAssignees} />
+              <SuggestedAvatarStack
+                size={18}
+                owners={suggestedAssignees}
+                tooltip={t(
+                  'Suggested assignees: %s',
+                  suggestedAssignees.map(getActorLabel).join(', ')
+                )}
+              />
             )}
           </Stack>
         </Grid>
@@ -749,8 +798,11 @@ const PULL_REQUEST_BADGE_VARIANTS = {
 
 function InboxPullRequestBadges({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
+  const pullRequests = data?.pullRequests.filter(
+    pullRequest => pullRequest.status !== 'closed'
+  );
 
-  if (!data?.pullRequests.length) {
+  if (!pullRequests?.length) {
     return null;
   }
 
@@ -759,7 +811,7 @@ function InboxPullRequestBadges({group}: {group: Group}) {
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
         <span />
         <Flex align="center" gap="xs">
-          {data.pullRequests.slice(0, 2).map(pullRequest => (
+          {pullRequests.slice(0, 2).map(pullRequest => (
             <PullRequestBadgeLink
               key={`${pullRequest.repository.id}:${pullRequest.id}`}
               aria-label={t(
