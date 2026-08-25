@@ -10,16 +10,17 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 import {ClientSecretModal} from './clientSecretModal';
 
 type ClientFormValues = {
   allowedOrigins: string;
+  homepageUrl: string;
   name: string;
+  privacyUrl: string;
   redirectUris: string;
-  homepageUrl?: string;
-  privacyUrl?: string;
-  termsUrl?: string;
+  termsUrl: string;
 };
 
 type ClientResponse = {
@@ -28,10 +29,10 @@ type ClientResponse = {
 };
 
 const urlSchema = z.url();
-const optionalUrlSchema = z
-  .url('Enter a valid URL')
-  .or(z.literal(''))
-  .transform(value => value || undefined);
+const urlValidation = z
+  .string()
+  .min(1, 'Field is required')
+  .pipe(z.string().refine(value => Boolean(safeURL(value)), 'Enter a valid URL'));
 
 const clientSchema = z.object({
   name: z.string().trim().min(1, 'Client name is required'),
@@ -56,9 +57,9 @@ const clientSchema = z.object({
         value.split(/\s+/).every(origin => urlSchema.safeParse(origin).success),
       {message: 'Enter valid allowed origins separated by spaces'}
     ),
-  homepageUrl: optionalUrlSchema,
-  privacyUrl: optionalUrlSchema,
-  termsUrl: optionalUrlSchema,
+  homepageUrl: urlValidation,
+  privacyUrl: urlValidation,
+  termsUrl: urlValidation,
 });
 
 export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderProps) {
@@ -158,8 +159,13 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
           </form.AppField>
           <form.AppField name="homepageUrl">
             {field => (
-              <field.Layout.Stack label="Homepage URL" hintText="Client's homepage">
+              <field.Layout.Stack
+                label="Homepage URL"
+                hintText="Client's homepage"
+                required
+              >
                 <field.Input
+                  type="url"
                   value={field.state.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://sentry.io/"
@@ -172,8 +178,10 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               <field.Layout.Stack
                 label="Privacy Policy URL"
                 hintText="URL to client's privacy policy"
+                required
               >
                 <field.Input
+                  type="url"
                   value={field.state.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://sentry.io/privacy/"
@@ -186,8 +194,10 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               <field.Layout.Stack
                 label="Terms and Conditions URL"
                 hintText="URL to client's terms and conditions"
+                required
               >
                 <field.Input
+                  type="url"
                   value={field.state.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://sentry.io/terms/"

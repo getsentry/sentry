@@ -112,6 +112,7 @@ describe('create instance level OAuth client', () => {
       await screen.findByText('Enter valid redirect URLs separated by spaces')
     ).toBeInTheDocument();
     expect(screen.getByText('Enter a valid URL')).toBeInTheDocument();
+    expect(screen.getAllByText('Field is required')).toHaveLength(2);
     expect(screen.getByText('Allowed origins are required')).toBeInTheDocument();
     expect(mockPostRequest).not.toHaveBeenCalled();
   });
