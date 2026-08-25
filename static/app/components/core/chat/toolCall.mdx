@@ -85,6 +85,13 @@ The leading glyph reflects the call's lifecycle.
   </Container>
 </Storybook.Demo>
 
+```jsx
+<ToolCall title="Running query" status="loading" />
+<ToolCall title="Awaiting approval" status="pending" />
+<ToolCall title="Query succeeded" status="success" />
+<ToolCall title="Query failed" status="failure" />
+```
+
 ## Notifications
 
 Pass `notifications` to surface short status lines beneath a call.
@@ -98,6 +105,14 @@ Pass `notifications` to surface short status lines beneath a call.
     />
   </Container>
 </Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Query spans"
+  status="success"
+  notifications={['Truncated to 100 rows']}
+/>
+```
 
 ## Links
 
