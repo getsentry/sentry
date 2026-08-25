@@ -585,4 +585,9 @@ class SentryAppWebhookRequestsPermission(SentryPermission):
             return True
 
         assert request.method, "method must be present in request to get permissions"
-        return ensure_scoped_permission(request, self.scope_map.get(request.method))
+        allowed_scopes = (
+            SentryAppStatsPermission.scope_map.get(request.method)
+            if sentry_app.is_internal
+            else self.scope_map.get(request.method)
+        )
+        return ensure_scoped_permission(request, allowed_scopes)
