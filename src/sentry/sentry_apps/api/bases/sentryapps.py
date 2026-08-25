@@ -558,10 +558,10 @@ class SentryAppStatsPermission(SentryPermission):
 
 
 class SentryAppWebhookRequestsPermission(SentryPermission):
-    internal_app_scope_map = {
+    internal_app_scope_map: dict[str, Sequence[str]] = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
     }
-    public_app_scope_map = {
+    public_app_scope_map: dict[str, Sequence[str]] = {
         "GET": ("org:admin", "org:integrations"),
     }
     # Token authentication checks scopes before the Sentry App is resolved. The
