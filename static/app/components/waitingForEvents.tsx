@@ -5,6 +5,7 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
 import {Link} from '@sentry/scraps/link';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
@@ -68,15 +69,18 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
   return (
     <EmptyState
       data-test-id="awaiting-events"
-      minHeight="260px"
-      padding={{zero: '2xl', md: '3xl'}}
+      padding="3xl"
+      align="center"
+      justify="center"
       title={t('Waiting for events…')}
       description={t('Your code sleuth eagerly awaits its first mission.')}
       illustration={
-        <img
+        <Image
+          width="auto"
+          height={{zero: '150px', lg: '185px'}}
+          loading="eager"
           src={waitingForEventImg}
-          alt="No errors found spot illustration"
-          height={200}
+          alt={t('Illustration of a detective waiting for events')}
         />
       }
       action={
