@@ -102,7 +102,7 @@ export function transferProject(
 /**
  *  Adds a team to a project
  */
-export function addTeamToProject(
+function addTeamToProject(
   api: Client,
   orgSlug: string,
   projectSlug: string,

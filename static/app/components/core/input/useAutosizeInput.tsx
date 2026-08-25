@@ -68,11 +68,11 @@ export function useAutosizeInput(
 
   const autosizingCallbackRef = useCallback(
     (element: HTMLInputElement | null) => {
-      if (!element) {
-        sourceRef.current?.removeEventListener('input', onInputChange);
-      } else {
+      if (element) {
         resize(element, sizingDivRef);
         element.addEventListener('input', onInputChange);
+      } else {
+        sourceRef.current?.removeEventListener('input', onInputChange);
       }
 
       sourceRef.current = element;

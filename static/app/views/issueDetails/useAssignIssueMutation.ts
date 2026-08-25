@@ -14,7 +14,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
-export type AssignedBy = 'suggested_assignee' | 'assignee_selector';
+type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
 type AssignIssueVariables = {
   actor: Pick<Actor, 'id' | 'type'> | null;
@@ -74,7 +74,7 @@ export function useAssignIssueMutation() {
         },
       });
     },
-    onMutate: async variables => {
+    onMutate: variables => {
       const changeId = uniqueId();
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignTo(changeId, variables.groupId, {email: ''});
