@@ -6405,6 +6405,32 @@ describe('SearchQueryBuilder', () => {
           screen.queryByText('Invalid key. "foo" is not a supported search key.')
         ).not.toBeInTheDocument();
       });
+
+      it('should show a deprecation warning instead of invalid for aliased keys', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="foo:bar"
+            filterKeyAliases={{foo: {key: 'foo', name: 'foo', alias: 'bar'}}}
+            invalidFilterKeys={['foo']}
+            getFilterTokenWarning={key =>
+              key === 'foo' ? 'Deprecated. Use bar instead.' : undefined
+            }
+          />
+        );
+
+        const row = screen.getByRole('row', {name: 'foo:bar'});
+        expect(row).toHaveAttribute('aria-invalid', 'false');
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('{ArrowLeft}');
+        expect(
+          await screen.findByText('Deprecated. Use bar instead.')
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByText('Invalid key. "foo" is not a supported search key.')
+        ).not.toBeInTheDocument();
+      });
     });
   });
 
