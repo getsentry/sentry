@@ -229,21 +229,6 @@ def merge_groups(
                     ),
                 )
 
-            for model in [
-                TSDBModel.frequent_releases_by_group,
-                TSDBModel.frequent_environments_by_group,
-            ]:
-                tsdb.backend.merge_frequencies(
-                    model,
-                    new_group.id,
-                    [group.id],
-                    environment_ids=(
-                        environment_ids
-                        if model in tsdb.backend.models_with_environment_support
-                        else None
-                    ),
-                )
-
             # Fetch buffered stats before deleting the group
             fetch_buffered_group_stats(group)
 
