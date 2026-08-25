@@ -1043,6 +1043,18 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.title_generation_status == "running"
 
     @patch("sentry.investigations.agent.SeerAgentClient")
+    def test_title_generation_does_not_retry_a_failed_run(self, mock_client: MagicMock) -> None:
+        self.investigation.update(
+            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="failed"
+        )
+
+        _maybe_start_title_generation(self.investigation, None)
+
+        mock_client.assert_not_called()
+        self.investigation.refresh_from_db()
+        assert self.investigation.title_generation_status == "failed"
+
+    @patch("sentry.investigations.agent.SeerAgentClient")
     def test_title_dispatch_failure_releases_the_in_flight_status(
         self, mock_client: MagicMock
     ) -> None:

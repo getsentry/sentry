@@ -68,6 +68,7 @@ class TitleGenerationStatus(StrEnum):
 
 
 IN_FLIGHT_TITLE_STATUSES = (TitleGenerationStatus.PENDING, TitleGenerationStatus.RUNNING)
+NON_RETRYABLE_TITLE_STATUSES = (*IN_FLIGHT_TITLE_STATUSES, TitleGenerationStatus.FAILED)
 
 TITLE_WORD_LIMIT = 5
 SUMMARY_MIN_WORDS = 1
@@ -891,6 +892,8 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
 
 
 def _maybe_start_title_generation(investigation: Investigation, user_id: int | None) -> None:
+    if investigation.title_generation_status in NON_RETRYABLE_TITLE_STATUSES:
+        return
     blocks = list(
         investigation.blocks.filter(deleted_at__isnull=True)
         .select_related("content_execution", "result_execution")
@@ -932,7 +935,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     database = router.db_for_write(Investigation)
     with transaction.atomic(using=database):
         locked = Investigation.objects.select_for_update().get(id=investigation.id)
-        if locked.title_generation_status in IN_FLIGHT_TITLE_STATUSES or (
+        if locked.title_generation_status in NON_RETRYABLE_TITLE_STATUSES or (
             locked.summary is not None and locked.summary_description is not None
         ):
             return
