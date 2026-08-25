@@ -527,6 +527,28 @@ describe('PageFilters ActionCreators', () => {
       );
     });
 
+    it('records an adjustment for each filter that was adjusted', () => {
+      initializeUrlState({
+        organization,
+        location: {
+          ...router.location,
+          query: {project: ['1', '999'], environment: ['prod', 'nope']},
+        },
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [1], environments: ['prod']}),
+        true,
+        {
+          projects: {reason: PageFilterAdjustmentReason.INVALID_PROJECTS},
+          environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS},
+        }
+      );
+    });
+
     it('records an adjustment when the date range exceeds maxPickableDays', () => {
       initializeUrlState({
         organization,

@@ -236,6 +236,19 @@ describe('PageFiltersStore', () => {
       });
     });
 
+    it('addAdjustment() replaces the adjustment already recorded for that filter', async () => {
+      initializeWithAdjustments();
+      PageFiltersStore.addAdjustment('datetime', {
+        reason: PageFilterAdjustmentReason.MAX_DATE_RANGE,
+        days: 7,
+      });
+      await tick();
+      expect(PageFiltersStore.getState().adjustments).toEqual({
+        projects: projectAdjustment,
+        datetime: {reason: PageFilterAdjustmentReason.MAX_DATE_RANGE, days: 7},
+      });
+    });
+
     it('addAdjustment() ignores a repeat of the adjustment already recorded', async () => {
       initializeWithAdjustments();
       await tick();
