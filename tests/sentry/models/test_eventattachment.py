@@ -87,7 +87,7 @@ class EventAttachmentPutfileTest(TestCase):
             self.project.id,
             # Long enough that it cannot be stored inline.
             CachedAttachment(
-                name="one.log", content_type="application/octet-stream", data=b"x" * 200
+                name="one.txt", content_type="application/octet-stream", data=b"x" * 200
             ),
         )
 
