@@ -44,7 +44,7 @@ describe('AutofixWarnings', () => {
 
     expect(
       screen.getByText(
-        "Seer can't fix the failing CI on your pull request because the configured GitHub App is missing permissions. Update the app and ask Seer to retry."
+        "Seer can't fix the failing CI on your pull request because the configured GitHub App is missing permissions. Update the app."
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/on your pull request in/)).not.toBeInTheDocument();
