@@ -850,7 +850,9 @@ describe('IssueList', () => {
         organization: OrganizationFixture(),
       });
 
-      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: /waiting for events/i})
+      ).toBeInTheDocument();
     });
 
     it('does not display when no projects selected and any projects have a first event', async () => {
@@ -889,7 +891,9 @@ describe('IssueList', () => {
         organization: OrganizationFixture(),
       });
 
-      expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: /waiting for events/i})
+      ).not.toBeInTheDocument();
     });
 
     it('displays when all selected projects do not have first event', async () => {
@@ -938,7 +942,9 @@ describe('IssueList', () => {
         organization: OrganizationFixture(),
       });
 
-      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: /waiting for events/i})
+      ).toBeInTheDocument();
     });
 
     it('does not display when any selected projects have first event', async () => {
@@ -983,7 +989,9 @@ describe('IssueList', () => {
         organization: OrganizationFixture(),
       });
 
-      expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: /waiting for events/i})
+      ).not.toBeInTheDocument();
     });
   });
 
