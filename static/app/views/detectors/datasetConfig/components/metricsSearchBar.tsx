@@ -40,9 +40,7 @@ export function MetricsDetectorSearchBar({
 }: DetectorSearchBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );

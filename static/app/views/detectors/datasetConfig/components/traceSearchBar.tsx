@@ -15,9 +15,7 @@ export function TraceSearchBar({
   disabled,
 }: DetectorSearchBarProps) {
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const isLogs = dataset === DiscoverDatasets.OURLOGS;
   const traceDataset = isLogs ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
 

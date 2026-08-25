@@ -68,9 +68,7 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   const {attributes: spansArrayAttributes, secondaryAliases: arraySecondaryAliases} =
     useSpanItemAttributes({}, 'array');
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
   const spanStringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in spanStringAttributes) {

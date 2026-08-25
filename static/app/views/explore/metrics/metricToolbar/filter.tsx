@@ -85,9 +85,7 @@ export function Filter({
   const hasMetricsAISearch = organization.features.includes(
     'gen-ai-explore-metrics-search'
   );
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
@@ -321,7 +319,6 @@ export function Filter({
       key={traceMetric.name}
       {...searchQueryBuilderProviderProps}
       enableAISearch={hasTranslateEndpoint && hasMetricsAISearch}
-      aiSearchBadgeType="alpha"
     >
       <MetricsSearchBar
         tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}

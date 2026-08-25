@@ -45,9 +45,7 @@ export function useLogsSearchQueryBuilderProps({
   validatedSearchQueryData?: EventValidationData;
 }) {
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const logsSearch = useQueryParamsSearch();
   const oldLogsSearch = usePrevious(logsSearch);
   const fields = useQueryParamsFields();

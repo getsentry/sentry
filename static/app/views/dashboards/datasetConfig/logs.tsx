@@ -118,9 +118,7 @@ function LogsSearchBar({
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {
     selection: {projects},
   } = usePageFilters();
@@ -158,9 +156,7 @@ function LogsSearchBar({
 function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');

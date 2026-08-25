@@ -173,9 +173,7 @@ describe('useLogsSearchQueryBuilderProps', () => {
     );
 
     expect(
-      result.current.tracesItemSearchQueryBuilderProps.arrayAttributes?.[
-        'error.messages'
-      ]
+      result.current.tracesItemSearchQueryBuilderProps.arrayAttributes?.['error.messages']
     ).toEqual(
       expect.objectContaining({
         kind: FieldKind.ARRAY,
@@ -200,12 +198,10 @@ describe('useLogsSearchQueryBuilderProps', () => {
     );
 
     expect(
-      result.current.tracesItemSearchQueryBuilderProps.arrayAttributes?.[
-        'error.messages'
-      ]
+      result.current.tracesItemSearchQueryBuilderProps.arrayAttributes?.['error.messages']
     ).toBeUndefined();
-    expect(
-      result.current.tracesItemSearchQueryBuilderProps.invalidFilterKeys
-    ).toEqual(['missing.key']);
+    expect(result.current.tracesItemSearchQueryBuilderProps.invalidFilterKeys).toEqual([
+      'missing.key',
+    ]);
   });
 });

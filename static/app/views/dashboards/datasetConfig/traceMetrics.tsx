@@ -87,9 +87,7 @@ function TraceMetricsSearchBar({
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {
     selection: {projects},
   } = usePageFilters();
@@ -165,9 +163,7 @@ function useTraceMetricsSearchBarDataProvider(
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
-  const supportsArrays = organization.features.includes(
-    'trace-item-array-query-support'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {attributeQuery, traceMetrics} = useTraceMetricsSearchScope();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
