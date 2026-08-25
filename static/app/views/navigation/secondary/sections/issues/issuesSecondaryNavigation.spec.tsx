@@ -96,7 +96,7 @@ describe('IssuesSecondaryNavigation', () => {
     const overviewLink = await screen.findByRole('link', {name: /Overview/});
     expect(overviewLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/autofix/overview/'
+      '/organizations/org-slug/issues/autofix/'
     );
   });
 

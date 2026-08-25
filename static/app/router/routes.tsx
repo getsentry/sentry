@@ -2533,6 +2533,10 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'autofix/',
+      component: make(() => import('sentry/views/seerWorkflows/overview')),
+    },
+    {
+      path: 'autofix/workflows/',
       component: make(() => import('sentry/views/seerWorkflows')),
     },
     {
@@ -2549,7 +2553,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'autofix/overview/',
-      component: make(() => import('sentry/views/seerWorkflows/overview')),
+      redirectTo: 'autofix/',
     },
     {
       path: 'views/:viewId/',
