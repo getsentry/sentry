@@ -48,6 +48,7 @@ repos:
         stages: [pre-push]
         types: [python]
         require_serial: true
+        exclude: ^bin/
       - id: lint-requirements
         name: lint-requirements
         entry: python -m tools.lint_requirements

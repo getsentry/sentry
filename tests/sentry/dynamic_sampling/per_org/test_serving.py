@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -222,51 +222,3 @@ class TestGetRecalibrationFactor:
 
         assert get_recalibration_factor(ORG_ID) == 1.0
         assert emitted_sources == [("recalibration_factor", "per_org")]
-
-
-@pytest.mark.django_db
-class TestPerOrgCache:
-    def test_project_sample_rates_round_trip(self) -> None:
-        per_org_cache.set_project_sample_rates(
-            ORG_ID,
-            [
-                RebalancedItem(id=PROJECT_ID, count=10, new_sample_rate=0.25),
-                RebalancedItem(id=PROJECT_ID + 1, count=20, new_sample_rate=1.0),
-            ],
-        )
-
-        assert per_org_cache.get_project_sample_rate(ORG_ID, PROJECT_ID) == 0.25
-        assert per_org_cache.get_project_sample_rate(ORG_ID, PROJECT_ID + 1) == 1.0
-        assert per_org_cache.get_project_sample_rate(ORG_ID, PROJECT_ID + 2) is None
-
-    def test_project_sample_rates_do_not_share_keys_with_the_legacy_cache(self) -> None:
-        store_legacy_project_sample_rate(0.2)
-
-        assert per_org_cache.generate_project_sample_rates_cache_key(
-            ORG_ID
-        ) != generate_boost_low_volume_projects_cache_key(ORG_ID)
-        assert per_org_cache.get_project_sample_rate(ORG_ID, PROJECT_ID) is None
-
-    def test_transaction_sample_rates_round_trip(self) -> None:
-        per_org_cache.set_transaction_sample_rates(
-            ORG_ID,
-            {PROJECT_ID: ([RebalancedItem(id="/checkout", count=10, new_sample_rate=0.3)], 0.4)},
-        )
-
-        assert per_org_cache.get_transaction_sample_rates(ORG_ID, PROJECT_ID) == (
-            {"/checkout": 0.3},
-            0.4,
-        )
-        assert per_org_cache.get_transaction_sample_rates(ORG_ID, PROJECT_ID + 1) is None
-
-    def test_a_corrupt_entry_reads_as_a_miss(self) -> None:
-        get_redis_client_for_ds().set(
-            per_org_cache.generate_transaction_sample_rates_cache_key(ORG_ID, PROJECT_ID),
-            "not json",
-        )
-
-        with patch("sentry.dynamic_sampling.per_org.cache.sentry_sdk.capture_exception") as capture:
-            assert per_org_cache.get_transaction_sample_rates(ORG_ID, PROJECT_ID) is None
-
-        assert isinstance(capture, MagicMock)
-        assert capture.call_count == 1

@@ -24,8 +24,6 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
 )
 
-PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC = "dynamic_sampling.per_org.projects_below_full_sample_rate"
-
 SERVING_SOURCE_METRIC = "dynamic_sampling.per_org.serving_source"
 
 
