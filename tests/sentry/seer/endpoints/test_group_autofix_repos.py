@@ -17,9 +17,9 @@ class GroupAutofixReposEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
     def test_success(self, mock_client_cls: MagicMock) -> None:
         mock_run = MagicMock()
-        mock_run.run_id = 42
+        mock_run.run.seer_run_state_id = 42
         mock_client = MagicMock()
-        mock_client.get_runs.return_value = [mock_run]
+        mock_client.latest_run.return_value = mock_run
 
         mock_response = MagicMock()
         mock_response.status = 200
@@ -45,12 +45,13 @@ class GroupAutofixReposEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data["repos"]) == 1
         assert response.data["repos"][0]["repo_name"] == "owner/repo"
+        mock_client.latest_run.assert_called_once_with(group_id=self.group.id)
         mock_client.get_repos.assert_called_once_with(42)
 
     @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
     def test_no_runs_returns_empty(self, mock_client_cls: MagicMock) -> None:
         mock_client = MagicMock()
-        mock_client.get_runs.return_value = []
+        mock_client.latest_run.return_value = None
         mock_client_cls.return_value = mock_client
 
         response = self.client.get(self.url)
@@ -61,9 +62,9 @@ class GroupAutofixReposEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
     def test_seer_404_returns_empty(self, mock_client_cls: MagicMock) -> None:
         mock_run = MagicMock()
-        mock_run.run_id = 42
+        mock_run.run.seer_run_state_id = 42
         mock_client = MagicMock()
-        mock_client.get_runs.return_value = [mock_run]
+        mock_client.latest_run.return_value = mock_run
 
         mock_response = MagicMock()
         mock_response.status = 404
@@ -78,9 +79,9 @@ class GroupAutofixReposEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
     def test_seer_500(self, mock_client_cls: MagicMock) -> None:
         mock_run = MagicMock()
-        mock_run.run_id = 42
+        mock_run.run.seer_run_state_id = 42
         mock_client = MagicMock()
-        mock_client.get_runs.return_value = [mock_run]
+        mock_client.latest_run.return_value = mock_run
 
         mock_response = MagicMock()
         mock_response.status = 500
@@ -94,9 +95,9 @@ class GroupAutofixReposEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
     def test_seer_connection_error(self, mock_client_cls: MagicMock) -> None:
         mock_run = MagicMock()
-        mock_run.run_id = 42
+        mock_run.run.seer_run_state_id = 42
         mock_client = MagicMock()
-        mock_client.get_runs.return_value = [mock_run]
+        mock_client.latest_run.return_value = mock_run
         mock_client.get_repos.side_effect = Exception("Connection refused")
         mock_client_cls.return_value = mock_client
 
