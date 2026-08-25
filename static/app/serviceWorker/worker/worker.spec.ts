@@ -53,7 +53,7 @@ describe('service worker notificationclick handler', () => {
     });
 
     // Import the module now that `self` is in place.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     require('sentry/serviceWorker/worker/worker');
   });
 
@@ -74,7 +74,7 @@ describe('service worker notificationclick handler', () => {
   }
 
   it('does not throw when notification data is null', async () => {
-    const handler = listeners['notificationclick']?.[0];
+    const handler = listeners.notificationclick?.[0];
     expect(handler).toBeDefined();
 
     const event = buildNotificationEvent(null);
@@ -86,7 +86,7 @@ describe('service worker notificationclick handler', () => {
   });
 
   it('does not throw when notification data is undefined (property absent)', async () => {
-    const handler = listeners['notificationclick']?.[0];
+    const handler = listeners.notificationclick?.[0];
     expect(handler).toBeDefined();
 
     const notification = {tag: 'test-tag', close: jest.fn()};
@@ -97,13 +97,13 @@ describe('service worker notificationclick handler', () => {
   });
 
   it('navigates when notification data contains navigateTo', async () => {
-    const handler = listeners['notificationclick']?.[0];
+    const handler = listeners.notificationclick?.[0];
     expect(handler).toBeDefined();
 
     mockClients.matchAll.mockResolvedValue([]);
 
     const event = buildNotificationEvent({navigateTo: {pathname: '/issues/', query: {}}});
-    await handler!(event as unknown as Record<string, unknown>);
+    await handler!(event);
 
     expect(mockClients.openWindow).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/issues/'})
