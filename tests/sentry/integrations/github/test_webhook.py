@@ -1869,7 +1869,7 @@ class PullRequestEventWebhookTest(APITestCase):
         # engagement, while the PR row still looked correct.
         repo = self._create_integration_and_repo()
 
-        with self.feature("organizations:pr-metrics-emit"):
+        with self.feature(["organizations:pr-metrics"]):
             merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
             merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
             merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
