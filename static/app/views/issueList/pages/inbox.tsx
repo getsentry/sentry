@@ -638,6 +638,10 @@ function useIssueSuggestedAssignees(group: Group): Actor[] {
   );
 }
 
+function getActorLabel(actor: Actor) {
+  return actor.type === 'team' ? `#${actor.name}` : actor.name;
+}
+
 function InboxIssueCard({
   assignmentFilter,
   assignedUser,
@@ -718,7 +722,7 @@ function InboxIssueCard({
                   user={assignedUser ?? group.assignedTo}
                   size={18}
                   hasTooltip
-                  tooltip={t('Assigned to: %s', group.assignedTo.name)}
+                  tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />
               ) : (
@@ -726,7 +730,7 @@ function InboxIssueCard({
                   actor={group.assignedTo}
                   size={18}
                   hasTooltip
-                  tooltip={t('Assigned to: %s', group.assignedTo.name)}
+                  tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />
               ))}
@@ -736,7 +740,7 @@ function InboxIssueCard({
                 owners={suggestedAssignees}
                 tooltip={t(
                   'Suggested assignees: %s',
-                  suggestedAssignees.map(owner => owner.name).join(', ')
+                  suggestedAssignees.map(getActorLabel).join(', ')
                 )}
               />
             )}
