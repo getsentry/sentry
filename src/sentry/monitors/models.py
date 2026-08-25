@@ -550,12 +550,6 @@ class MonitorCheckIn(Model):
     A snapshot of the monitor configuration at the time of the check-in.
     """
 
-    trace_id = UUIDField(null=True)
-    """
-    Trace ID associated during this check-in. Useful to find associated events
-    that occurred during the check-in.
-    """
-
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
