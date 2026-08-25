@@ -99,3 +99,30 @@ def test_empty_data_item() -> None:
         assert exc.errors["data"][0]["created_at"][0].code == "required"
         assert exc.errors["data"][0]["created_by"][0].code == "required"
         assert exc.errors["data"][0]["flag"][0].code == "required"
+
+
+def test_long_flag_name() -> None:
+    def make_request(flag: str):
+        return {
+            "data": [
+                {
+                    "action": "created",
+                    "change_id": 93899375123,
+                    "created_at": "2024-12-12T00:00:00+00:00",
+                    "created_by": {"id": "user", "type": "name"},
+                    "flag": flag,
+                }
+            ],
+            "meta": {"version": 1},
+        }
+
+    items = GenericProvider(123, None).handle(make_request("a" * 256))
+    assert len(items) == 1
+    assert items[0]["flag"] == "a" * 256
+
+    try:
+        GenericProvider(123, None).handle(make_request("a" * 257))
+    except DeserializationError as exc:
+        assert exc.errors["data"][0]["flag"][0].code == "max_length"
+    else:
+        raise AssertionError("expected a DeserializationError")

@@ -147,3 +147,29 @@ def test_partial_fill() -> None:
         )
     except DeserializationError as exc:
         assert exc.errors["featureName"][0].code == "required"
+
+
+def test_long_flag_name() -> None:
+    def make_request(feature_name: str):
+        return {
+            "id": 28,
+            "tags": [],
+            "type": "feature-environment-enabled",
+            "project": "default",
+            "createdAt": "2024-12-30T00:00:00.000Z",
+            "createdBy": "admin",
+            "environment": "development",
+            "featureName": feature_name,
+            "createdByUserId": 1,
+        }
+
+    items = UnleashProvider(123, "abcdefgh").handle(make_request("a" * 256))
+    assert len(items) == 1
+    assert items[0]["flag"] == "a" * 256
+
+    try:
+        UnleashProvider(123, "abcdefgh").handle(make_request("a" * 257))
+    except DeserializationError as exc:
+        assert exc.errors["featureName"][0].code == "max_length"
+    else:
+        raise AssertionError("expected a DeserializationError")
