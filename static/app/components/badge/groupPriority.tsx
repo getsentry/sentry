@@ -227,7 +227,7 @@ export function GroupPriorityDropdown({
             {...commonProps}
             icon={<IconCellSignal bars={getPriorityBars(value)} />}
             size="xs"
-            variant="secondary"
+            variant="transparent"
           />
         ) : (
           <DropdownButton {...commonProps} size="zero">

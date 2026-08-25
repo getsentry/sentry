@@ -23,7 +23,7 @@ describe('GroupPriority', () => {
       value: PriorityLevel.HIGH,
     };
 
-    it('renders an icon-only secondary button trigger', async () => {
+    it('renders an icon-only button trigger', async () => {
       render(
         <GroupPriorityDropdown
           {...defaultProps}
