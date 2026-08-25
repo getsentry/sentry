@@ -1,0 +1,63 @@
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
+
+import {
+  FieldKind,
+  FieldKey,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
+import {SpanFields} from 'sentry/views/insights/types';
+
+describe('getFieldDefinition attribute search metadata', () => {
+  it('uses ATTRIBUTE_SEARCH_METADATA briefs and converted types', () => {
+    const definition = getFieldDefinition(FieldKey.DEVICE_BATTERY_LEVEL);
+
+    expect(definition?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA[FieldKey.DEVICE_BATTERY_LEVEL]?.brief
+    );
+    expect(definition?.valueType).toBe(FieldValueType.NUMBER);
+  });
+
+  it('keeps more specific local unit types when conventions only expose double', () => {
+    const definition = getFieldDefinition(SpanFields.GEN_AI_COST_TOTAL_TOKENS, 'span');
+
+    expect(definition?.valueType).toBe(FieldValueType.CURRENCY);
+    expect(definition?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA[SpanFields.GEN_AI_COST_TOTAL_TOKENS]?.brief
+    );
+  });
+
+  it('falls back to ATTRIBUTE_SEARCH_METADATA for unmapped explore attributes', () => {
+    const definition = getFieldDefinition('http.route', 'span');
+
+    expect(definition).toEqual({
+      kind: FieldKind.FIELD,
+      desc: ATTRIBUTE_SEARCH_METADATA['http.route']?.brief,
+      valueType: FieldValueType.STRING,
+    });
+  });
+
+  it('marks array-typed convention attributes as arrays', () => {
+    const definition = getFieldDefinition('sentry.sdk.integrations', 'span');
+
+    expect(definition?.kind).toBe(FieldKind.ARRAY);
+    expect(definition?.valueType).toBe(FieldValueType.ARRAY);
+    expect(definition?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA['sentry.sdk.integrations']?.brief
+    );
+  });
+
+  it('does not put explore-only convention attributes on event search', () => {
+    expect(getFieldDefinition('http.route')).toBeNull();
+    expect(getFieldDefinition('http.route', 'span')).not.toBeNull();
+  });
+
+  it('picks convention-backed FieldKeys and span fields onto event search', () => {
+    expect(getFieldDefinition(FieldKey.BROWSER_NAME)?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA[FieldKey.BROWSER_NAME]?.brief
+    );
+    expect(getFieldDefinition(SpanFields.SPAN_OP)?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA[SpanFields.SPAN_OP]?.brief
+    );
+  });
+});
