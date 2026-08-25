@@ -31,6 +31,10 @@ from sentry.snuba.rpc_dataset_common import LimitBy
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import raw_snql_query
 
+# The window recalibration measures an organization over. Shared with the comparison
+# logging, so that the legacy factor it reports is computed over the same window.
+RECALIBRATION_TIME_INTERVAL = timedelta(minutes=5)
+
 
 class OrganizationVolumeConfig(Protocol):
     organization: Organization
