@@ -6,7 +6,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -20,6 +19,7 @@ import {
   AlwaysPresentTraceMetricFields,
   NONE_UNIT,
 } from 'sentry/views/explore/metrics/constants';
+import {ingestionDelayedRelativePeriod} from 'sentry/views/explore/metrics/ingestionDelay';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricsFrozenSearch,
@@ -36,8 +36,6 @@ import {
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
-
-const MILLISECONDS_PER_SECOND = 1000;
 
 interface UseMetricSamplesTableOptions {
   fields: string[];
@@ -64,34 +62,21 @@ interface MetricSamplesTableResult {
   meta?: EventsMetaType;
 }
 
-function useMetricsQueryKey({
-  limit,
-  traceMetric,
-  fields,
-  ingestionDelaySeconds = INGESTION_DELAY,
-  referrer,
-  queryExtras,
-}: {
-  fields: string[];
-  limit: number;
-  referrer: string;
-  ingestionDelaySeconds?: number;
-  queryExtras?: RPCQueryExtras;
-  traceMetric?: TraceMetric;
-}) {
-  const organization = useOrganization();
+/** Every field the samples table queries, including the ones it always adds itself. */
+export function getMetricSamplesFields(fields: string[]): string[] {
+  return Array.from(new Set([...AlwaysPresentTraceMetricFields, ...fields]));
+}
+
+/**
+ * The samples query has to narrow to the panel's metric itself, which the aggregate
+ * query gets for free from its aggregate arguments. Exported so exports of this table
+ * filter identically to what the table shows.
+ */
+export function useMetricSamplesQueryString(traceMetric: TraceMetric | undefined) {
   const userSearch = useQueryParamsSearch();
   const frozenSearch = useMetricsFrozenSearch();
-  const frozenTracePeriod = useMetricsFrozenTracePeriod();
-  const sortBys = useQueryParamsSortBys();
-  const {selection, isReady: pageFiltersReady} = usePageFilters();
-  const location = useLocation();
 
-  const fieldsToUse = useMemo(
-    () => Array.from(new Set([...AlwaysPresentTraceMetricFields, ...fields])),
-    [fields]
-  );
-  const queryString = useMemo(() => {
+  return useMemo(() => {
     const newSearch = userSearch.copy();
 
     if (frozenSearch) {
@@ -119,6 +104,31 @@ function useMetricsQueryKey({
 
     return newSearch.formatString();
   }, [userSearch, frozenSearch, traceMetric]);
+}
+
+function useMetricsQueryKey({
+  limit,
+  traceMetric,
+  fields,
+  ingestionDelaySeconds = INGESTION_DELAY,
+  referrer,
+  queryExtras,
+}: {
+  fields: string[];
+  limit: number;
+  referrer: string;
+  ingestionDelaySeconds?: number;
+  queryExtras?: RPCQueryExtras;
+  traceMetric?: TraceMetric;
+}) {
+  const organization = useOrganization();
+  const frozenTracePeriod = useMetricsFrozenTracePeriod();
+  const sortBys = useQueryParamsSortBys();
+  const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const location = useLocation();
+
+  const fieldsToUse = useMemo(() => getMetricSamplesFields(fields), [fields]);
+  const queryString = useMetricSamplesQueryString(traceMetric);
 
   const baseDatetime = useMemo(() => {
     const datetime = frozenTracePeriod
@@ -133,19 +143,10 @@ function useMetricsQueryKey({
     return datetime;
   }, [selection.datetime, frozenTracePeriod]);
 
-  const delayedRelativePeriod = useMemo(() => {
-    const {end, period} = baseDatetime;
-    const periodMs = period ? intervalToMilliseconds(period) : 0;
-
-    if (period && periodMs > ingestionDelaySeconds * MILLISECONDS_PER_SECOND && !end) {
-      return {
-        statsPeriodStart: period,
-        statsPeriodEnd: `${ingestionDelaySeconds}s`,
-      };
-    }
-
-    return;
-  }, [baseDatetime, ingestionDelaySeconds]);
+  const delayedRelativePeriod = ingestionDelayedRelativePeriod(
+    baseDatetime,
+    ingestionDelaySeconds
+  );
 
   const pageFilters = {
     ...selection,

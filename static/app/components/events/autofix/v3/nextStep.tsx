@@ -11,7 +11,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofixRepos';
+import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
@@ -33,10 +33,8 @@ import type {Group} from 'sentry/types/group';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {useIntegrations} from 'sentry/utils/integrations/useIntegrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
-import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -278,36 +276,20 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
-  const repos = useAutofixRepos({group, enabled: defined(artifact)});
-  const integrationIds =
-    repos.data?.repos
-      ?.filter(repo => !repo.has_write_access)
-      .map(repo => repo.integration_id) ?? [];
-  const {integrations, isPending: isIntegrationsPending} = useIntegrations({
-    integrationIds,
+  const {permissionsTarget, isPending} = useAutofixCreatePrGate({
+    group,
+    enabled: defined(artifact),
   });
-  const permissionsUrls = integrations
-    .map(integration => {
-      const url = getProviderPermissionsUrl(integration);
-      if (!defined(url)) {
-        return null;
-      }
-      return {
-        integration,
-        url,
-      };
-    })
-    .filter(Boolean);
 
   if (!defined(artifact)) {
     return null;
   }
 
-  if (repos.isPending || isIntegrationsPending) {
+  if (isPending) {
     return null;
   }
 
-  if (permissionsUrls.length) {
+  if (permissionsTarget) {
     return (
       <CodeChangesNextStepWithoutWritePermissions
         group={group}
@@ -315,8 +297,8 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
         runId={runId}
         section={section}
         referrer={referrer}
-        integration={permissionsUrls[0]!.integration}
-        permissionsUrl={permissionsUrls[0]!.url}
+        integration={permissionsTarget.integration}
+        permissionsUrl={permissionsTarget.url}
       />
     );
   }

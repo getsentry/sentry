@@ -9,8 +9,10 @@ from django.db import connections
 from django.urls import reverse
 from objectstore_client import Client, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
-from sentry.objectstore.endpoints.organization import stream_response
+from sentry.objectstore.endpoints.organization import ObjectstoreEndpoint, stream_response
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
@@ -147,6 +149,38 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         dctx = zstandard.ZstdDecompressor()
         with dctx.stream_reader(raw_body) as reader:
             assert reader.read() == data
+
+        # A range of an accepted encoding is served from the compressed representation.
+        range_end = 9
+        get_resp = requests.get(
+            f"{base_url}{object_key}",
+            headers={
+                **auth_headers,
+                "Accept-Encoding": "zstd",
+                "Range": f"bytes=0-{range_end}",
+            },
+            stream=True,
+        )
+        assert_status_code(get_resp, 206)
+        assert get_resp.headers.get("Content-Encoding") == "zstd"
+        assert get_resp.headers.get("Content-Length") == str(range_end + 1)
+        assert get_resp.headers.get("Content-Range") == (f"bytes 0-{range_end}/{len(compressed)}")
+        assert get_resp.raw.read(decode_content=False) == compressed[: range_end + 1]
+
+        # A range of an unacceptable encoding is ignored and the full object is decoded.
+        get_resp = requests.get(
+            f"{base_url}{object_key}",
+            headers={
+                **auth_headers,
+                "Accept-Encoding": "identity",
+                "Range": f"bytes=0-{range_end}",
+            },
+        )
+        assert_status_code(get_resp, 200)
+        assert get_resp.headers.get("Content-Encoding") is None
+        assert get_resp.headers.get("Content-Length") is None
+        assert get_resp.headers.get("Content-Range") is None
+        assert get_resp.content == data
 
     def test_large_payload(self) -> None:
         session = self.get_session()
@@ -304,13 +338,8 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 assert close_streaming_response(response) == data
 
 
-class ObjectstoreProxyQueryForwardingTest(TransactionTestCase):
+class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
     def test_query_string_forwarded_verbatim(self) -> None:
-        from rest_framework.request import Request
-        from rest_framework.test import APIRequestFactory
-
-        from sentry.objectstore.endpoints.organization import ObjectstoreEndpoint
-
         # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
         query = (
             "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
@@ -328,6 +357,100 @@ class ObjectstoreProxyQueryForwardingTest(TransactionTestCase):
             ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
 
         assert mock_request.call_args.kwargs["params"] == query
+
+    def test_range_request_serves_full_object_when_encoding_not_accepted(self) -> None:
+        full_object = b"full object"
+        head_response = requests.Response()
+        head_response.status_code = 200
+        head_response.headers = requests.structures.CaseInsensitiveDict(
+            {"Content-Encoding": "zstd"}
+        )
+        head_response.raw = MagicMock()
+
+        upstream_response = requests.Response()
+        upstream_response.status_code = 200
+        upstream_response.headers = requests.structures.CaseInsensitiveDict(
+            {
+                "Content-Encoding": "zstd",
+                "Content-Length": "8",
+            }
+        )
+        upstream_response.raw = MagicMock()
+        upstream_response.raw.read.side_effect = [full_object, b""]
+
+        request = APIRequestFactory().get(
+            "/v1/objects/test/org=1/key",
+            HTTP_ACCEPT_ENCODING="identity",
+            HTTP_IF_RANGE='"previous-etag"',
+            HTTP_RANGE="bytes=0-21",
+        )
+
+        with patch(
+            "sentry.objectstore.endpoints.organization.requests.request",
+            side_effect=[head_response, upstream_response],
+        ) as mock_request:
+            response = ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+
+        head_request, object_request = mock_request.call_args_list
+        assert head_request.args == ("HEAD",)
+        assert "Range" not in head_request.kwargs["headers"]
+        assert "If-Range" not in head_request.kwargs["headers"]
+        assert object_request.args == ("GET",)
+        assert "Range" not in object_request.kwargs["headers"]
+        assert "If-Range" not in object_request.kwargs["headers"]
+        assert response.status_code == 200
+        assert "Content-Encoding" not in response
+        assert "Content-Length" not in response
+        assert close_streaming_response(response) == full_object
+        assert upstream_response.raw.decode_content is True
+
+    def test_range_request_serves_encoded_range_when_encoding_accepted(self) -> None:
+        encoded_range = b"encoded range"
+        head_response = requests.Response()
+        head_response.status_code = 200
+        head_response.headers = requests.structures.CaseInsensitiveDict(
+            {"Content-Encoding": "zstd"}
+        )
+        head_response.raw = MagicMock()
+
+        upstream_response = requests.Response()
+        upstream_response.status_code = 206
+        upstream_response.headers = requests.structures.CaseInsensitiveDict(
+            {
+                "Content-Encoding": "zstd",
+                "Content-Length": str(len(encoded_range)),
+                "Content-Range": "bytes 0-12/100",
+            }
+        )
+        upstream_response.raw = MagicMock()
+        upstream_response.raw.read.side_effect = [encoded_range, b""]
+
+        request = APIRequestFactory().get(
+            "/v1/objects/test/org=1/key",
+            HTTP_ACCEPT_ENCODING="zstd",
+            HTTP_IF_RANGE='"current-etag"',
+            HTTP_RANGE="bytes=0-12",
+        )
+
+        with patch(
+            "sentry.objectstore.endpoints.organization.requests.request",
+            side_effect=[head_response, upstream_response],
+        ) as mock_request:
+            response = ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+
+        head_request, object_request = mock_request.call_args_list
+        assert head_request.args == ("HEAD",)
+        assert "Range" not in head_request.kwargs["headers"]
+        assert "If-Range" not in head_request.kwargs["headers"]
+        assert object_request.args == ("GET",)
+        assert object_request.kwargs["headers"]["Range"] == "bytes=0-12"
+        assert object_request.kwargs["headers"]["If-Range"] == '"current-etag"'
+        assert response.status_code == 206
+        assert response["Content-Encoding"] == "zstd"
+        assert response["Content-Length"] == str(len(encoded_range))
+        assert response["Content-Range"] == "bytes 0-12/100"
+        assert close_streaming_response(response) == encoded_range
+        assert upstream_response.raw.decode_content is False
 
 
 class ObjectstoreProxyStreamCloseTest(TransactionTestCase):

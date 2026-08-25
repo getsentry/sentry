@@ -18,9 +18,13 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconAdd,
+  IconBug,
   IconChevron,
+  IconCode,
   IconGithub,
+  IconList,
   IconOpen,
+  IconPullRequest,
   IconRefresh,
   IconSeer,
 } from 'sentry/icons';
@@ -87,26 +91,28 @@ function StartAutofixAction({
   codingAgentStep,
   disabled,
   group,
-  icon = <IconSeer />,
+  icon,
   label,
   onContinueInSeer,
   tooltip,
+  waiting,
 }: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   action: () => unknown | Promise<unknown>;
   analyticsAction: string;
   analyticsEventKey: string;
   analyticsEventName: string;
+  icon: ReactNode;
   label: string;
   analyticsParams?: ButtonProps['analyticsParams'];
   codingAgentStep?: 'root_cause' | 'solution';
-  icon?: ReactNode;
   tooltip?: string | null;
   variant?: 'primary' | 'secondary';
+  waiting?: boolean;
 }) {
   const organization = useOrganization();
   const [isStartingAction, setIsStartingAction] = useState(false);
   const runId = autofix.runState?.run_id;
-  const busy = autofix.isPolling || isStartingAction;
+  const isProcessing = autofix.isProcessing || isStartingAction;
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
       autofix,
@@ -158,8 +164,8 @@ function StartAutofixAction({
         group,
       })}
       icon={icon}
-      busy={busy}
-      disabled={disabled || busy}
+      busy={isStartingAction || waiting}
+      disabled={disabled || isProcessing}
       onClick={handleClick}
       tooltipProps={tooltip ? {title: tooltip} : undefined}
       variant={variant}
@@ -185,7 +191,7 @@ function StartAutofixAction({
             size="sm"
             icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
             aria-label={t('More code fix options')}
-            disabled={disabled || busy || defined(codingAgentDisabledReason)}
+            disabled={disabled || isProcessing || defined(codingAgentDisabledReason)}
             tooltipProps={{title: codingAgentDisabledReason}}
           />
         )}
@@ -219,10 +225,10 @@ function NextAutofixStepButton({
   disabled?: boolean;
   variant?: 'primary' | 'secondary';
 }) {
-  const {runState} = autofix;
+  const {runState, isWaitingForRun} = autofix;
   const sections = getOrderedAutofixSections(runState);
 
-  if (!runState || sections.length === 0) {
+  if (!runState) {
     return (
       <StartAutofixAction
         action={() => autofix.startStep('root_cause')}
@@ -232,9 +238,11 @@ function NextAutofixStepButton({
         autofix={autofix}
         disabled={disabled}
         group={group}
+        icon={<IconBug data-test-id="autofix-root-cause-icon" />}
         label={t('Find Root Cause')}
         onContinueInSeer={onContinueInSeer}
         variant={variant}
+        waiting={isWaitingForRun}
       />
     );
   }
@@ -253,8 +261,8 @@ function NextAutofixStepButton({
           },
           group,
         })}
-        busy={autofix.isPolling}
-        disabled={disabled || autofix.isPolling}
+        busy={autofix.isProcessing}
+        disabled={disabled || autofix.isProcessing}
         icon={<IconSeer />}
         onClick={onContinueInSeer}
         variant={variant}
@@ -346,6 +354,41 @@ function NextAutofixStepButton({
   }
 
   const nextStep = getAutofixNextStep({sections});
+  if (autofix.isProcessing) {
+    const {icon, label} =
+      nextStep?.action === 'solution'
+        ? {
+            icon: <IconList data-test-id="autofix-plan-icon" />,
+            label: t('Make a Plan'),
+          }
+        : nextStep?.action === 'code_changes'
+          ? {
+              icon: <IconCode data-test-id="autofix-code-changes-icon" />,
+              label: t('Write a Code Fix'),
+            }
+          : {
+              icon: <IconBug data-test-id="autofix-root-cause-icon" />,
+              label: t('Find Root Cause'),
+            };
+
+    return (
+      <StartAutofixAction
+        action={() => {}}
+        analyticsAction="polling"
+        analyticsEventKey="issue_inbox.start_fix_clicked"
+        analyticsEventName="Issue Inbox: Start Fix Clicked"
+        autofix={autofix}
+        disabled
+        group={group}
+        icon={icon}
+        label={label}
+        onContinueInSeer={onContinueInSeer}
+        variant={variant}
+        waiting
+      />
+    );
+  }
+
   switch (nextStep?.action) {
     case 'create_pr':
       return (
@@ -358,6 +401,7 @@ function NextAutofixStepButton({
           autofix={autofix}
           disabled={disabled}
           group={group}
+          icon={<IconPullRequest data-test-id="autofix-pull-request-icon" />}
           label={t('Create PR')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -374,6 +418,7 @@ function NextAutofixStepButton({
           disabled={disabled}
           group={group}
           codingAgentStep="solution"
+          icon={<IconCode data-test-id="autofix-code-changes-icon" />}
           label={t('Write a Code Fix')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -390,6 +435,7 @@ function NextAutofixStepButton({
           disabled={disabled}
           group={group}
           codingAgentStep="root_cause"
+          icon={<IconList data-test-id="autofix-plan-icon" />}
           label={t('Make a Plan')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -480,7 +526,7 @@ export function IssuePreviewActions({
   const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
     useLinkedPullRequests({group});
 
-  if (autofix.isLoading || pullRequestsPending) {
+  if ((autofix.isLoading && !autofix.isWaitingForRun) || pullRequestsPending) {
     return <Placeholder width="120px" height="32px" />;
   }
 

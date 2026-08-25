@@ -142,6 +142,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
           'inputgroup',
           'numberinput',
           'numberdraginput',
+          'otpinput',
           'checkbox',
           'radio',
           'switch',

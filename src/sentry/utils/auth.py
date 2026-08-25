@@ -36,6 +36,7 @@ logger = logging.getLogger("sentry.auth")
 _LOGIN_URL: str | None = None
 
 MFA_SESSION_KEY = "mfa"
+REACT_AUTH_COOKIE = "sentry_react_auth"
 
 SUSPENDED_USER_REJECTED_METRIC = "auth.suspended_user.rejected"
 
@@ -190,6 +191,8 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
     if has_pending_2fa(request):
+        if request.COOKIES.get(REACT_AUTH_COOKIE) == "1":
+            return reverse("sentry-login")
         return reverse("sentry-2fa-dialog")
 
     # If we have a different URL to go after the 2fa flow we want to go to
@@ -332,6 +335,11 @@ def login(
     Optionally `after_2fa` can be set to a URL which will be used to override
     the regular session redirect target directly after the 2fa flow.
 
+    `organization_id` identifies the organization whose SSO authentication is
+    being completed. It is preserved through 2FA and marks SSO complete for the
+    organization after login. It must not be used only to select a post-login
+    organization or redirect destination.
+
     Returns boolean indicating if the user was logged in.
     """
     if getattr(user, "is_suspended", False):
@@ -440,6 +448,11 @@ def set_active_org(request: HttpRequest, org_slug: str) -> None:
     # modification and reset the users expiry, so check if they are different first.
     if hasattr(request, "session") and request.session.get("activeorg") != org_slug:
         request.session["activeorg"] = org_slug
+
+
+def clear_active_org(request: HttpRequest) -> None:
+    if hasattr(request, "session"):
+        request.session.pop("activeorg", None)
 
 
 class EmailAuthBackend(ModelBackend):

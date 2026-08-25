@@ -1,10 +1,10 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {DateTimeProvider, useTimezone} from '@sentry/scraps/datetime';
+import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
@@ -76,7 +76,13 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const location = useLocation();
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
+  const clockDisplay = useClockDisplay();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
+
+  const dateTime = useMemo(
+    () => ({timezone: timezoneOverride, clockDisplay}),
+    [timezoneOverride, clockDisplay]
+  );
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
   const queryClient = useQueryClient();
 
@@ -158,7 +164,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   }, []);
 
   return (
-    <DateTimeProvider value={{timezone: timezoneOverride, clockDisplay: '12'}}>
+    <DateTimeProvider value={dateTime}>
       <DetailLayout>
         <DetectorDetailsHeader detector={detector} />
         <DetailLayout.Body>
