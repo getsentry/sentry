@@ -5,9 +5,9 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconSpan} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
@@ -119,7 +119,10 @@ function SecondaryBox({children}: {children: ReactNode}) {
   );
 }
 
-function getStatusLabel(status: ToolCallStatus): string | undefined {
+function getStatusLabel(
+  status: ToolCallStatus,
+  t: (text: string) => string
+): string | undefined {
   switch (status) {
     case 'loading':
       return t('Running');
@@ -155,11 +158,13 @@ export function ToolCall({
   notifications,
   children,
 }: ToolCallProps) {
+  const {t} = useTranslation();
+
   return (
     <Disclosure variant="outline" size="sm" gap="xs" flex={1}>
       <Disclosure.Title
         leadingItems={
-          <ToolCallIndicator status={status} aria-label={getStatusLabel(status)} />
+          <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
         }
         trailingItems={reference ? <ReferenceChip reference={reference} /> : undefined}
       >
