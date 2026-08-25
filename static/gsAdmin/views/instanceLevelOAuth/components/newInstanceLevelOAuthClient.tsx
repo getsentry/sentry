@@ -15,11 +15,11 @@ import {ClientSecretModal} from './clientSecretModal';
 
 type ClientFormValues = {
   allowedOrigins: string;
-  homepageUrl: string;
   name: string;
-  privacyUrl: string;
   redirectUris: string;
-  termsUrl: string;
+  homepageUrl?: string;
+  privacyUrl?: string;
+  termsUrl?: string;
 };
 
 type ClientResponse = {
@@ -28,8 +28,10 @@ type ClientResponse = {
 };
 
 const urlSchema = z.url();
-
-const trimmedUrlSchema = z.string().trim().pipe(z.url('Enter a valid URL'));
+const optionalUrlSchema = z
+  .url('Enter a valid URL')
+  .or(z.literal(''))
+  .transform(value => value || undefined);
 
 const clientSchema = z.object({
   name: z.string().trim().min(1, 'Client name is required'),
@@ -54,9 +56,9 @@ const clientSchema = z.object({
         value.split(/\s+/).every(origin => urlSchema.safeParse(origin).success),
       {message: 'Enter valid allowed origins separated by spaces'}
     ),
-  homepageUrl: trimmedUrlSchema,
-  privacyUrl: trimmedUrlSchema,
-  termsUrl: trimmedUrlSchema,
+  homepageUrl: optionalUrlSchema,
+  privacyUrl: optionalUrlSchema,
+  termsUrl: optionalUrlSchema,
 });
 
 export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderProps) {
@@ -79,8 +81,9 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
       ));
     },
     onError: error => {
-      const handled = error instanceof RequestError ? setFieldErrors(form, error) : false;
-      if (!handled) {
+      if (error instanceof RequestError) {
+        setFieldErrors(form, error);
+      } else {
         addErrorMessage('Unable to create OAuth client.');
       }
     },
@@ -155,11 +158,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
           </form.AppField>
           <form.AppField name="homepageUrl">
             {field => (
-              <field.Layout.Stack
-                label="Homepage URL"
-                hintText="Client's homepage"
-                required
-              >
+              <field.Layout.Stack label="Homepage URL" hintText="Client's homepage">
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
@@ -173,7 +172,6 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               <field.Layout.Stack
                 label="Privacy Policy URL"
                 hintText="URL to client's privacy policy"
-                required
               >
                 <field.Input
                   value={field.state.value}
@@ -188,7 +186,6 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               <field.Layout.Stack
                 label="Terms and Conditions URL"
                 hintText="URL to client's terms and conditions"
-                required
               >
                 <field.Input
                   value={field.state.value}
