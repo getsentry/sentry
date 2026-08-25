@@ -145,6 +145,30 @@ class TestDeliverAutofixRCAResult(TestCase):
         self.agent_run.refresh_from_db()
         assert self.agent_run.extras["status"] == "completed"
 
+    @patch("sentry.seer.autofix_rca.delivery.AutofixOnCompletionHook.execute")
+    def test_seer_managed_run_only_persists_result(self, mock_execute: MagicMock) -> None:
+        self.agent_run.extras = {
+            **self.agent_run.extras,
+            "completion_hook_managed_by_seer": True,
+            "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+        }
+        self.agent_run.save(update_fields=["extras"])
+
+        deliver_autofix_rca_result(
+            organization_id=self.organization.id,
+            run_uuid=self.agent_run.run.uuid,
+            status="completed",
+            result=VALID_RESULT,
+            error=None,
+        )
+
+        self.agent_run.refresh_from_db()
+        assert self.agent_run.extras["status"] == "completed"
+        assert self.agent_run.extras["result"] == VALID_RESULT
+        assert self.agent_run.extras["referrer"] == AutofixReferrer.WEB.value
+        assert self.agent_run.extras["stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
+        mock_execute.assert_not_called()
+
     def test_error_status_recorded(self) -> None:
         agent_run = self.agent_run
 
