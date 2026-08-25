@@ -2268,6 +2268,18 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         for widget in widgets:
             assert widget["layout"] == layouts[int(widget["id"])]
 
+    def test_update_widget_layout_allows_height_below_minimum(self) -> None:
+        layout = {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2}
+
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={"widgets": [{"id": self.widget_1.id, "layout": layout}]},
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["layout"] == layout
+
     def test_update_layout_with_invalid_data_fails(self) -> None:
         response = self.do_request(
             "put",
