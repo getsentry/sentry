@@ -143,4 +143,5 @@ def get_cached_rebalanced_transaction_sample_rates(
 
 
 def get_cached_recalibration_factor(org_id: int) -> float:
-    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="task")
+    # A source of its own, so that this read is not counted as one of the legacy task's.
+    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_comparison")
