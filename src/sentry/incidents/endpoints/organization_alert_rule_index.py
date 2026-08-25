@@ -723,8 +723,8 @@ Metric alert rule trigger actions follow the following structure:
     )
     extrapolationMode = serializers.ChoiceField(
         required=False,
-        choices=ExtrapolationMode.as_choices(),
-        help_text="How sampled spans are scaled to estimate the true aggregate. Only applies to alerts on the `events_analytics_platform` dataset.",
+        choices=ExtrapolationMode.as_text_choices(),
+        help_text="How sampled spans are scaled to estimate the true aggregate. Only applies to alerts on the `events_analytics_platform` dataset. New alerts accept `client_and_server_weighted` and `unknown`; `server_weighted` and `none` are rejected.",
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
 
