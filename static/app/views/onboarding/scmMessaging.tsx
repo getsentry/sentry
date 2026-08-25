@@ -7,7 +7,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {ScmMessagingProviderRow} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
@@ -78,7 +77,6 @@ export function ScmMessaging({
   return (
     <Stack align="center" gap="2xl" flexGrow={1}>
       <Stack gap="2xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`} width="100%">
-        {/* Title / subtitle stay outside motion so they don't shift on load */}
         <Stack gap="lg">
           <Heading as="h2" size="3xl">
             {SCM_MESSAGING_TITLE}
@@ -92,9 +90,8 @@ export function ScmMessaging({
         </Stack>
 
         <LayoutGroup>
-          {/* Validation alerts animate in/out so they don't pop the email hint */}
-          <ScmCollapsibleReveal open={hasValidationAlert}>
-            <Stack gap="sm" paddingBottom="sm">
+          {hasValidationAlert && (
+            <MotionStack layout="position" gap="sm" paddingBottom="sm">
               {validation.staleReason === 'integration' && (
                 <Alert variant="warning" showIcon>
                   {t(
@@ -128,16 +125,14 @@ export function ScmMessaging({
                   )}
                 </Alert>
               )}
-            </Stack>
-          </ScmCollapsibleReveal>
+            </MotionStack>
+          )}
 
-          {/* Email hint slides with sibling layout changes */}
           <MotionFlex layout="position" align="center" gap="sm">
             <IconMail size="sm" variant="muted" />
             <Text variant="muted">{t('Email alerts will be included by default')}</Text>
           </MotionFlex>
 
-          {/* Pending / error / list fade between each other instead of popping */}
           <AnimatePresence mode="wait" initial={false}>
             {isPending ? (
               <MotionStack
@@ -178,15 +173,11 @@ export function ScmMessaging({
                 transition={{duration: 0.15}}
                 gap="lg"
               >
-                {providers.map(viewModel => (
-                  <ScmCollapsibleReveal
-                    key={viewModel.providerKey}
-                    open={
-                      exclusiveProviderKey === null ||
-                      exclusiveProviderKey === viewModel.providerKey
-                    }
-                  >
+                {providers.map(viewModel =>
+                  exclusiveProviderKey === null ||
+                  exclusiveProviderKey === viewModel.providerKey ? (
                     <ScmMessagingProviderRow
+                      key={viewModel.providerKey}
                       viewModel={viewModel}
                       messagingSetup={messagingSetup}
                       onMessagingSetupChange={onMessagingSetupChange}
@@ -194,14 +185,13 @@ export function ScmMessaging({
                       onExclusiveModeChange={handleExclusiveModeChange}
                       isRefetchingIntegrations={isRefetchingIntegrations}
                     />
-                  </ScmCollapsibleReveal>
-                ))}
+                  ) : null
+                )}
               </MotionStack>
             ) : null}
           </AnimatePresence>
 
-          {/* Footer slides with the provider list; hides smoothly in exclusive mode */}
-          <ScmCollapsibleReveal open={exclusiveProviderKey === null}>
+          {exclusiveProviderKey === null && (
             <MotionFlex
               layout="position"
               align="center"
@@ -233,7 +223,7 @@ export function ScmMessaging({
                 )}
               </Flex>
             </MotionFlex>
-          </ScmCollapsibleReveal>
+          )}
         </LayoutGroup>
       </Stack>
     </Stack>
