@@ -1,3 +1,5 @@
+import {useCallback} from 'react';
+
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofixRepos';
 import type {Group} from 'sentry/types/group';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
@@ -19,10 +21,18 @@ export function useAutofixCreatePrGate({
 }: {
   group: Pick<Group, 'id'>;
   enabled?: boolean;
-}): {isPending: boolean; permissionsTarget: PermissionsTarget | null} {
-  const repos = useAutofixRepos({group, enabled});
+}): {
+  checkTargetWriteAccess: () => Promise<boolean>;
+  isPending: boolean;
+  permissionsTarget: PermissionsTarget | null;
+} {
+  const {
+    data: reposData,
+    isPending: isReposPending,
+    refetch: refetchRepos,
+  } = useAutofixRepos({group, enabled});
   const integrationIds =
-    repos.data?.repos
+    reposData?.repos
       ?.filter(repo => !repo.has_write_access)
       .map(repo => repo.integration_id) ?? [];
   const {integrations, isPending: isIntegrationsPending} = useIntegrations({
@@ -37,8 +47,28 @@ export function useAutofixCreatePrGate({
       })
       .find(Boolean) ?? null;
 
+  const targetIntegrationId = permissionsTarget?.integration.id;
+  const checkTargetWriteAccess = useCallback(async () => {
+    if (targetIntegrationId === undefined) {
+      return true;
+    }
+
+    const result = await refetchRepos();
+    if (result.isError) {
+      return false;
+    }
+
+    const matchingRepos =
+      result.data?.repos.filter(
+        repo => repo.integration_id === Number(targetIntegrationId)
+      ) ?? [];
+
+    return matchingRepos.length > 0 && matchingRepos.every(repo => repo.has_write_access);
+  }, [targetIntegrationId, refetchRepos]);
+
   return {
+    checkTargetWriteAccess,
+    isPending: enabled && (isReposPending || isIntegrationsPending),
     permissionsTarget,
-    isPending: enabled && (repos.isPending || isIntegrationsPending),
   };
 }
