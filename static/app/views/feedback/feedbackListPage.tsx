@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -41,12 +42,14 @@ function PageContent({
   feedbackProjectSlug,
   hideTop,
   hasFeedbackContent,
+  isCompact,
   content,
 }: {
   content: ReactNode;
   feedbackProjectSlug: string;
   hasFeedbackContent: boolean;
   hideTop: boolean;
+  isCompact: boolean;
 }) {
   const organization = useOrganization();
   const createAlertAction = {
@@ -69,7 +72,7 @@ function PageContent({
     <PageFiltersContainer>
       <ErrorBoundary>
         <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
-          <LayoutGrid hideTop={hideTop}>
+          <LayoutGrid hideTop={hideTop} isCompact={isCompact}>
             {!hideTop && (
               <Stack
                 flexGrow={1}
@@ -109,6 +112,14 @@ function PageContent({
 }
 
 export default function FeedbackListPage() {
+  return (
+    <Stack flex={1} minHeight={0} containerType="inline-size" overflow="hidden">
+      <FeedbackListPageContent />
+    </Stack>
+  );
+}
+
+function FeedbackListPageContent() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const pageFilters = usePageFilters();
@@ -123,13 +134,15 @@ export default function FeedbackListPage() {
 
   useRedirectToFeedbackFromEvent();
 
+  const {isAnyDrawerOpen} = useDrawer();
   const isMediumOrSmaller = useResponsivePropValue({zero: true, '3xl': false});
+  const isCompact = isMediumOrSmaller || isAnyDrawerOpen;
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
-  // show feedback item preview when feedback is selected on med screens and smaller
+  // Show the selected feedback item by itself whenever the page uses its compact layout.
   useEffect(() => {
-    if (isMediumOrSmaller) {
+    if (isCompact) {
       setShowItemPreview(Boolean(feedbackId));
       if (feedbackId) {
         window.scrollTo(0, 0);
@@ -137,7 +150,7 @@ export default function FeedbackListPage() {
     } else {
       setShowItemPreview(false);
     }
-  }, [isMediumOrSmaller, feedbackId]);
+  }, [isCompact, feedbackId]);
 
   useEffect(() => {
     setSelectedItemIndex(null);
@@ -187,13 +200,13 @@ export default function FeedbackListPage() {
   const smallerScreenView = (
     <Fragment>
       {showItemPreview ? (
-        <Container area="content">
+        <Container area="list">
           <AnalyticsArea name="details">
             <FeedbackItemLoader onBackToList={handleBackToList} />
           </AnalyticsArea>
         </Container>
       ) : (
-        <Stack area="content" gap="md">
+        <Stack area="list" gap="md">
           <FeedbackSummaryCategories />
           <Container>
             <FeedbackList onItemSelect={handleItemSelect} />
@@ -208,10 +221,10 @@ export default function FeedbackListPage() {
     </Fragment>
   );
 
-  // on medium and smaller screens, hide the search & filters when feedback item is in view
-  const hideTop = isMediumOrSmaller && showItemPreview;
+  // Hide the search and filters when the compact layout is showing a feedback item.
+  const hideTop = isCompact && showItemPreview;
   const hasFeedbackContent = hasSetupOneFeedback || hasSlug;
-  const pageContent = isMediumOrSmaller ? smallerScreenView : largeScreenView;
+  const pageContent = isCompact ? smallerScreenView : largeScreenView;
   const titleContent = (
     <Fragment>
       {t('User Feedback')}
@@ -243,6 +256,7 @@ export default function FeedbackListPage() {
             feedbackProjectSlug={feedbackProjectSlug}
             hideTop={hideTop}
             hasFeedbackContent={hasFeedbackContent}
+            isCompact={isCompact}
             content={pageContent}
           />
         </FeedbackApiOptions>
@@ -251,7 +265,7 @@ export default function FeedbackListPage() {
   );
 }
 
-const LayoutGrid = styled('div')<{hideTop?: boolean}>`
+const LayoutGrid = styled('div')<{hideTop?: boolean; isCompact?: boolean}>`
   overflow: hidden;
   flex: 1;
   min-height: 0;
@@ -270,7 +284,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   @container (max-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: 1fr;
     grid-template-rows: ${p => (p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh')};
-    grid-template-areas: ${p => (p.hideTop ? "'.' 'content'" : "'top' 'content'")};
+    grid-template-areas: ${p => (p.hideTop ? "'.' 'list'" : "'top' 'list'")};
   }
 
   @container (min-width: ${p => p.theme.container['3xl']}) {
@@ -280,6 +294,14 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   @container (min-width: ${p => p.theme.container['4xl']}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
+
+  ${p =>
+    p.isCompact &&
+    css`
+      grid-template-columns: 1fr;
+      grid-template-rows: ${p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh'};
+      grid-template-areas: ${p.hideTop ? "'.' 'list'" : "'top' 'list'"};
+    `}
 `;
 
 const Container = styled('div')<{area?: string}>`
