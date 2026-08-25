@@ -2046,6 +2046,23 @@ class TestGetGroupAssignees(APITestCase):
             },
         }
 
+    @patch("sentry.seer.agent.tools.user_service.get_many")
+    def test_skips_user_service_when_no_groups_have_user_assignees(self, get_many):
+        team_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=team_group,
+            team=self.team,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[team_group.id],
+        )
+
+        assert result["assignees"] == {}
+        get_many.assert_not_called()
+
     def test_excludes_groups_from_other_organizations(self):
         other_organization = self.create_organization()
         other_project = self.create_project(organization=other_organization)

@@ -2005,6 +2005,9 @@ def get_group_assignees(
             ).values_list("group_id", "user_id")
         ),
     )
+    if not user_ids_by_group:
+        return GroupAssigneesResponse(assignees={})
+
     users_by_id = {
         user.id: user
         for user in user_service.get_many(
