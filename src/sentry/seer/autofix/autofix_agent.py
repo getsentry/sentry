@@ -581,6 +581,12 @@ def trigger_autofix_agent(
     ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
+    # If autofix-should-run-repo-checks is enabled,
+    # we should force bash tools on as it is dependent on bash tools
+    enable_bash_tools = enable_bash_tools or features.has(
+        "organizations:autofix-should-run-repo-checks", group.organization
+    )
+
     client = get_autofix_agent_client(
         group,
         enable_bash_tools=enable_bash_tools,
