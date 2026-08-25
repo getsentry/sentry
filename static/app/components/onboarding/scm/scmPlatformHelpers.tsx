@@ -6,6 +6,7 @@ import {platforms} from 'sentry/data/platforms';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {PlatformIntegration} from 'sentry/types/project';
+import {comparePlatformNames} from 'sentry/utils/platform';
 
 import type {DetectedPlatform} from './useScmPlatformDetection';
 
@@ -32,12 +33,14 @@ const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
-export const platformOptions = platforms.map(platform => ({
-  value: platform.id,
-  label: platform.name,
-  textValue: `${platform.name} ${platform.id}`,
-  leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
-}));
+export const platformOptions = platforms
+  .toSorted((a, b) => comparePlatformNames(a.name, b.name))
+  .map(platform => ({
+    value: platform.id,
+    label: platform.name,
+    textValue: `${platform.name} ${platform.id}`,
+    leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
+  }));
 
 export function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
   return {

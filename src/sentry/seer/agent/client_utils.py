@@ -105,7 +105,6 @@ class AgentRunsRequest(TypedDict):
     offset: NotRequired[int]
     project_ids: NotRequired[list[int]]
     limit: NotRequired[int]
-    expand: NotRequired[str]
     start: NotRequired[datetime]
     end: NotRequired[datetime]
     query: NotRequired[str]

@@ -11,6 +11,7 @@ from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
@@ -20,7 +21,6 @@ from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
 )
-from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
@@ -30,7 +30,6 @@ from sentry.models.project import Project
 
 TargetSampleRate = float | None
 ProjectSampleRates = dict[ProjectId, TargetSampleRate]
-RecalibrationFactor = float | None
 
 
 def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
@@ -58,13 +57,13 @@ class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
     sample_rate: TargetSampleRate = None
     should_balance_projects: bool = True
-    organization_recalibration_factor: RecalibrationFactor = None
     projects: list[Project]
 
     def __init__(self, organization: Organization) -> None:
         self.organization = organization
         self.sliding_window_sample_rate: TargetSampleRate = None
         self.project_sample_rates: ProjectSampleRates = {}
+        self.results = DynamicSamplingResults()
 
     @property
     @abstractmethod
@@ -86,6 +85,7 @@ class BaseDynamicSamplingConfiguration(ABC):
     def set_rebalanced_project_sample_rates(
         self, rebalanced_projects: list[RebalancedItem]
     ) -> None:
+        self.results.rebalanced_projects = rebalanced_projects
         self.project_sample_rates = {
             int(item.id): item.new_sample_rate for item in rebalanced_projects
         }
@@ -110,47 +110,28 @@ class BaseDynamicSamplingConfiguration(ABC):
             Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
         )
 
-    def recalibrate(self, org_volume: OrganizationDataVolume | None) -> RecalibrationFactor:
-        """Compute this organization's recalibration factor and store it in the shared cache.
-
-        The caller supplies the volume, because how it is measured is a query concern; see
-        ``get_recalibration_organization_volume``.
-
-        Returns the new factor and leaves it on ``organization_recalibration_factor``, or
-        None when there is not enough volume to compute one. A factor outside the rebalance
-        bounds clears the cached factor instead, so that a stale one cannot keep being
-        applied.
-
-        Callers drive this explicitly, because it writes the cache. Building a configuration
-        stays free of that side effect.
-        """
-        self.organization_recalibration_factor = None
+    def recalibrate(self, org_volume: OrganizationDataVolume | None) -> None:
+        results = self.results
+        results.recalibration_factor = None
 
         if not self.projects or self.get_sample_rate() is None:
-            return None
+            return
 
-        adjusted_factor = calculate_recalibration_factor(
+        results.previous_recalibration_factor = per_org_recalibration_cache.get_adjusted_factor(
+            self.organization.id, source="task"
+        )
+        results.recalibration_factor = calculate_recalibration_factor(
             org_volume,
-            per_org_recalibration_cache.get_adjusted_factor(self.organization.id, source="task"),
+            results.previous_recalibration_factor,
             self.get_sample_rate(),
         )
-        if adjusted_factor is None:
-            return None
-        if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
-            per_org_recalibration_cache.delete_adjusted_factor(self.organization.id)
-            return None
-
-        per_org_recalibration_cache.set_guarded_adjusted_factor(
-            self.organization.id, adjusted_factor
-        )
-        self.organization_recalibration_factor = adjusted_factor
-        return adjusted_factor
 
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def __init__(self) -> None:
         self.sliding_window_sample_rate: TargetSampleRate = None
         self.project_sample_rates: ProjectSampleRates = {}
+        self.results = DynamicSamplingResults()
 
     @property
     def is_enabled(self) -> bool:
