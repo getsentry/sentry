@@ -5,6 +5,8 @@ import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   APP_START_TABLE_CONDITION,
+  AVG_COLD_START,
+  AVG_WARM_START,
   COLD_START_CONDITION,
   SCREEN_LOAD_TABLE_CONDITION,
   SCREEN_RENDERING_CONDITION,
@@ -305,17 +307,13 @@ const APP_START_TABLE: PrebuiltWidget = {
     {
       name: '',
       fields: [
-        SpanFields.TRANSACTION,
-        `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
-        `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
+        SpanFields.APP_VITALS_START_SCREEN,
+        AVG_COLD_START,
+        AVG_WARM_START,
         TRANSACTION_COUNT,
       ],
-      aggregates: [
-        `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
-        `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
-        TRANSACTION_COUNT,
-      ],
-      columns: [SpanFields.TRANSACTION],
+      aggregates: [AVG_COLD_START, AVG_WARM_START, TRANSACTION_COUNT],
+      columns: [SpanFields.APP_VITALS_START_SCREEN],
       fieldAliases: [
         t('Screen'),
         t('Avg Cold Start'),
@@ -326,7 +324,7 @@ const APP_START_TABLE: PrebuiltWidget = {
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
-          field: SpanFields.TRANSACTION,
+          field: SpanFields.APP_VITALS_START_SCREEN,
           dashboardId: '-1',
           staticDashboardId: 9,
         },

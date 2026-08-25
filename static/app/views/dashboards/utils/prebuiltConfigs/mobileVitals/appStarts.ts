@@ -350,8 +350,8 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: SpanFields.TRANSACTION,
-          name: SpanFields.TRANSACTION,
+          key: SpanFields.APP_VITALS_START_SCREEN,
+          name: SpanFields.APP_VITALS_START_SCREEN,
           kind: FieldKind.TAG,
         },
         value: '',
