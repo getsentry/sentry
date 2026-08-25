@@ -878,11 +878,6 @@ class SeerAgentClient:
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> QuerySet[SeerRun]:
-        """Return locally mirrored runs visible to this client.
-
-        ``accessible_project_ids`` must be permission-checked by the caller.
-        Runs without an associated project remain visible.
-        """
         user_id = int(self.user.id) if self.user is not None and self.user.id is not None else None
         queryset = queryset_for_query(query, self.organization, user_id)
         queryset = queryset.filter(
