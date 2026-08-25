@@ -538,12 +538,13 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    expect(screen.getByRole('link', {name: /Querying spans/})).toHaveAttribute(
+    // The row keeps seer's title; the link chip names the paired bus destination.
+    expect(screen.getByText('Querying spans')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View spans'})).toHaveAttribute(
       'href',
       expect.stringContaining('query=transaction.op%3Apageload')
     );
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('pairs each telemetry search row with its own bus destination in a multi-search execute', () => {
@@ -607,15 +608,18 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    expect(
-      screen.getByRole('link', {name: 'Querying issues for open bugs'})
-    ).toHaveAttribute('href', expect.stringContaining('/issues/'));
-    expect(
-      screen.getByRole('link', {name: 'Querying spans for slow db'})
-    ).toHaveAttribute('href', expect.stringContaining('query=span.op%3Adb'));
-    expect(screen.queryByText('View issues')).not.toBeInTheDocument();
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+    // Each row keeps seer's title; its own link chip names its paired bus destination.
+    expect(screen.getByText('Querying issues for open bugs')).toBeInTheDocument();
+    expect(screen.getByText('Querying spans for slow db')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View issues'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/issues/')
+    );
+    expect(screen.getByRole('button', {name: 'View spans'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=span.op%3Adb')
+    );
+    expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 
   it('prefers bus project filters over a stamped row url that lacks them', () => {
@@ -669,15 +673,15 @@ describe('ToolUseBlock', () => {
     ]);
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    const rowLink = screen.getByRole('link', {name: 'Querying spans for top pageloads'});
+    expect(screen.getByText('Querying spans for top pageloads')).toBeInTheDocument();
+    const rowLink = screen.getByRole('button', {name: 'View spans'});
     expect(rowLink).toHaveAttribute(
       'href',
       expect.stringContaining('query=transaction.op%3Apageload')
     );
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=2'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=3'));
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('makes a telemetry call row itself the issues search link when params include the query', () => {
@@ -728,11 +732,12 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    const rowLink = screen.getByRole('link', {name: title});
+    expect(screen.getByText(title)).toBeInTheDocument();
+    const rowLink = screen.getByRole('button', {name: 'View issues'});
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('/issues/'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('is%3Aunresolved'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
-    expect(screen.queryByRole('link', {name: /View issues/})).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('does not double-render a classic link present in both channels', () => {

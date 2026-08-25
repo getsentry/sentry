@@ -400,13 +400,17 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const claimedLinkKinds = new Set<string>();
         const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
           .map(record => {
-            const link = resolveLink(subjectFromCallRecord(record), {
-              organization,
-              projects,
-            });
+            const subject = subjectFromCallRecord(record);
+            const link = resolveLink(subject, {organization, projects});
             if (link && link.id !== 'telemetry_live_search') {
               claimedLinkKinds.add(link.id);
             }
+            // The reference chip names the kind of place the link goes to (e.g. "View issue"),
+            // not the row's own title — that already stands for the row. Re-resolving without the
+            // title gets the rule's generic destination name even when seer shipped a custom one.
+            const genericLink = link
+              ? resolveLink({...subject, title: undefined}, {organization, projects})
+              : null;
             return {
               record,
               // A rule that matched names the row; seer's own title stands for every other call.
@@ -415,6 +419,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
               // The rule that fired, not `record.kind` — analytics keys `tool_kind` on which
               // destination was opened, and the record's own kind is only ever api/lib.
               linkKind: link?.id ?? record.kind,
+              linkLabel: genericLink?.label ?? null,
             };
           })
           // A record we have no label for is dropped rather than rendered as a route or an
@@ -445,7 +450,12 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           if (!navItem) {
             return row;
           }
-          return {...row, url: navItem.url, linkKind: navItem.kind};
+          return {
+            ...row,
+            url: navItem.url,
+            linkKind: navItem.kind,
+            linkLabel: navItem.label,
+          };
         });
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
@@ -470,14 +480,14 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Both sources normalize to the same row shape. A classic tool contributes one row for
         // itself; a Code Mode call contributes one per api call it made, each rendered as the
         // shared `ToolCall` so the Explorer and the agent's markdown surface look identical.
-        const rows: React.ReactNode[] = callRows.length
-          ? callRows.map(({record, label, url, linkKind}) => (
+        const rows: React.ReactNode[] = linkedCallRows.length
+          ? linkedCallRows.map(({record, label, url, linkKind, linkLabel}) => (
               <CodeModeCallRow
                 key={`${key}-${record.id}`}
                 record={record}
                 label={label}
                 url={url}
-                linkKind={linkKind}
+                linkLabel={linkLabel}
                 settled={callsAreSettled}
                 onLinkClick={trackLinkClick(linkKind)}
               />
@@ -628,12 +638,12 @@ function CodeModeCallRow({
   record,
   label,
   url,
-  linkKind,
+  linkLabel,
   settled,
   onLinkClick,
 }: {
   label: string;
-  linkKind: string;
+  linkLabel: string | null;
   record: CallRecord;
   settled: boolean;
   url: LocationDescriptor | null;
@@ -649,7 +659,7 @@ function CodeModeCallRow({
       reference={
         url
           ? {
-              value: navLinkLabel(linkKind) ?? t('Open'),
+              value: linkLabel ?? t('Open'),
               to: url,
               icon: <IconLink size="xs" />,
               onClick: onLinkClick,
