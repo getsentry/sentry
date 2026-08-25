@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
@@ -46,16 +46,15 @@ export function SsoForm({authConfig}: Props) {
     },
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {organization: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       return mutation.mutateAsync(value).catch(() => {});
     },
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         {error && (
           <Alert.Container>
@@ -64,7 +63,7 @@ export function SsoForm({authConfig}: Props) {
             </Alert>
           </Alert.Container>
         )}
-        <form.AppField name="organization">
+        <form.Field name="organization">
           {field => (
             <field.Layout.Stack
               label={t('Organization ID')}
@@ -78,18 +77,18 @@ export function SsoForm({authConfig}: Props) {
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="acme"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex justify="end">
           <form.SubmitButton>{t('Continue')}</form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

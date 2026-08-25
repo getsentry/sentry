@@ -1,6 +1,6 @@
 import {useMutation} from '@tanstack/react-query';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -36,7 +36,6 @@ export default function PartnershipAgreement({
     },
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {},
     onSubmit: () => {
       return mutation.mutateAsync().catch(() => {});
@@ -70,11 +69,11 @@ export default function PartnershipAgreement({
                 )}
           </Text>
         </Stack>
-        <form.AppForm form={form}>
+        <ScrapsForm form={form}>
           <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
             <form.SubmitButton>{t('Continue')}</form.SubmitButton>
           </Flex>
-        </form.AppForm>
+        </ScrapsForm>
       </Stack>
     </NarrowLayout>
   );

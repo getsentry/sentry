@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -34,9 +34,8 @@ function BeaconConsent({onSubmitSuccess}: Props) {
     onSuccess: onSubmitSuccess,
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: async ({value}) => {
       try {
         await mutation.mutateAsync(value);
@@ -62,12 +61,12 @@ function BeaconConsent({onSubmitSuccess}: Props) {
           )}
         </Text>
         <Stack.Separator />
-        <form.AppForm form={form}>
+        <ScrapsForm form={form}>
           <Stack gap="xl">
-            <form.AppField name="beacon.record_cpu_ram_usage">
+            <form.Field name="beacon.record_cpu_ram_usage">
               {field => (
                 <field.Radio.Group
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => field.handleChange(consentChoiceSchema.parse(value))}
                 >
                   <field.Layout.Stack
@@ -92,12 +91,12 @@ function BeaconConsent({onSubmitSuccess}: Props) {
                   </field.Layout.Stack>
                 </field.Radio.Group>
               )}
-            </form.AppField>
+            </form.Field>
             <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
               <form.SubmitButton>{t('Continue')}</form.SubmitButton>
             </Flex>
           </Stack>
-        </form.AppForm>
+        </ScrapsForm>
       </Stack>
     </NarrowLayout>
   );
