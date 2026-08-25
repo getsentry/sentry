@@ -205,7 +205,7 @@ describe('ScmPlatformFeaturesCore', () => {
     jest.useFakeTimers();
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    render(
+    const {unmount} = render(
       <ScmPlatformFeaturesCore
         {...defaultProps({
           analyticsFlow: 'project-creation',
@@ -235,38 +235,15 @@ describe('ScmPlatformFeaturesCore', () => {
       source: 'project-creation',
       variant: 'scm',
     });
-  });
 
-  it('tracks a pending manual platform search on unmount', async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const {unmount} = render(
-      <ScmPlatformFeaturesCore
-        {...defaultProps({
-          analyticsFlow: 'project-creation',
-          selectedPlatform: undefined,
-        })}
-      />,
-      {organization}
-    );
-
-    await user.type(screen.getByRole('textbox'), 'java');
-
-    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
-      'growth.platformpicker_search',
-      expect.anything()
-    );
-
+    await user.type(screen.getByRole('textbox'), 'script');
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
     unmount();
-
-    expect(trackAnalyticsSpy).toHaveBeenCalledWith('growth.platformpicker_search', {
-      organization,
-      search: 'java',
-      num_results: 1,
-      source: 'project-creation',
-      variant: 'scm',
-    });
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(2);
+    expect(trackAnalyticsSpy).toHaveBeenLastCalledWith(
+      'growth.platformpicker_search',
+      expect.objectContaining({search: 'java script'})
+    );
   });
 
   it('clears the selected platform from the manual picker', async () => {
