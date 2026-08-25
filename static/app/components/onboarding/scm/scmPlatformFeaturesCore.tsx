@@ -347,7 +347,10 @@ export function ScmPlatformFeaturesCore({
         variant: 'scm',
       });
     },
-    {wait: DEFAULT_DEBOUNCE_DURATION}
+    {
+      wait: DEFAULT_DEBOUNCE_DURATION,
+      onUnmount: debouncer => debouncer.flush(),
+    }
   );
 
   function handleManualPickerSearch(query: string, {action}: {action: string}) {

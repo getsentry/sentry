@@ -237,6 +237,38 @@ describe('ScmPlatformFeaturesCore', () => {
     });
   });
 
+  it('tracks a pending manual platform search on unmount', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const {unmount} = render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    await user.type(screen.getByRole('textbox'), 'java');
+
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'growth.platformpicker_search',
+      expect.anything()
+    );
+
+    unmount();
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith('growth.platformpicker_search', {
+      organization,
+      search: 'java',
+      num_results: 1,
+      source: 'project-creation',
+      variant: 'scm',
+    });
+  });
+
   it('clears the selected platform from the manual picker', async () => {
     const onPlatformChange = jest.fn();
     const onFeaturesChange = jest.fn();
