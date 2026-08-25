@@ -11,6 +11,7 @@ import {
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {EVIDENCE_ICON, type EvidenceType} from '@sentry/scraps/evidence';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -59,6 +60,21 @@ const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
 // nothing. These rows are built from the calls the execute reported instead; the tool's own label
 // is never rendered, and a call that produced nothing to show renders no row at all.
 const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
+
+// Which `EvidenceType` glyph a call row's reference chip shows, keyed by the `links.tsx` rule id
+// that resolved it (`linkKind`) — not every rule has a Telemetry Icons entry (`get_project_details`
+// falls back to the generic link icon below).
+const LINK_KIND_EVIDENCE_TYPE: Partial<Record<string, EvidenceType>> = {
+  get_issue_details: 'issue',
+  get_event_details: 'issue',
+  get_trace_waterfall: 'trace',
+  get_span_details: 'span',
+  get_replay_details: 'replay',
+  get_profile_flamegraph: 'profiling',
+  get_log_attributes: 'log',
+  get_metric_attributes: 'metrics',
+  telemetry_live_search: 'query',
+};
 
 // Identity for deduping a bus link against the positional row link. Params are sorted so the key
 // does not depend on object key order — today both channels derive params from the same object, but
@@ -488,6 +504,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
                 label={label}
                 url={url}
                 linkLabel={linkLabel}
+                evidenceType={LINK_KIND_EVIDENCE_TYPE[linkKind]}
                 settled={callsAreSettled}
                 onLinkClick={trackLinkClick(linkKind)}
               />
@@ -639,9 +656,11 @@ function CodeModeCallRow({
   label,
   url,
   linkLabel,
+  evidenceType,
   settled,
   onLinkClick,
 }: {
+  evidenceType: EvidenceType | undefined;
   label: string;
   linkLabel: string | null;
   record: CallRecord;
@@ -651,6 +670,9 @@ function CodeModeCallRow({
 }) {
   const detail = callRecordDetail(record);
   const failure = callRecordFailure(record);
+  // Falls back to the generic link glyph for a destination the Telemetry Icons board does not
+  // cover yet (e.g. `get_project_details`) rather than rendering no icon at all.
+  const Icon = evidenceType ? EVIDENCE_ICON[evidenceType] : IconLink;
 
   return (
     <ToolCall
@@ -661,7 +683,7 @@ function CodeModeCallRow({
           ? {
               value: linkLabel ?? t('Open'),
               to: url,
-              icon: <IconLink size="xs" />,
+              icon: <Icon />,
               onClick: onLinkClick,
             }
           : undefined
