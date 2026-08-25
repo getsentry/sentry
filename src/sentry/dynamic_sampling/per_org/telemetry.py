@@ -26,6 +26,33 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
 
 PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC = "dynamic_sampling.per_org.projects_below_full_sample_rate"
 
+SERVING_SOURCE_METRIC = "dynamic_sampling.per_org.serving_source"
+
+
+class ServedValue(StrEnum):
+    """The piece of data rule generation reads from a cache."""
+
+    PROJECT_SAMPLE_RATE = "project_sample_rate"
+    TRANSACTION_SAMPLE_RATES = "transaction_sample_rates"
+    RECALIBRATION_FACTOR = "recalibration_factor"
+
+
+class ServingSource(StrEnum):
+    """Which pipeline supplied a value that rule generation served."""
+
+    LEGACY = "legacy"
+    PER_ORG = "per_org"
+    # The organization serves from the per-org caches, but they held no value for it, so
+    # the legacy caches supplied one. Counts the coverage gap between the two pipelines.
+    PER_ORG_FALLBACK = "per_org_fallback"
+
+
+def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
+    metrics.incr(
+        SERVING_SOURCE_METRIC,
+        tags={"value": value.value, "source": source.value},
+    )
+
 
 class DynamicSamplingStatus(StrEnum):
     ALL_PROJECTS_AT_FULL_SAMPLE_RATE = "all_projects_at_full_sample_rate"

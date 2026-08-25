@@ -482,6 +482,62 @@ class RunCalculationsPerOrgTest(TestCase):
             "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
+    def test_run_calculations_per_org_stores_the_computed_sample_rates(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        project_volumes = [make_project_volume(project.id)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
+        rebalanced_transactions = {
+            project.id: ([RebalancedItem(id="checkout", count=10, new_sample_rate=0.3)], 0.4)
+        }
+        transaction_volumes = [
+            ProjectTransactionCounts(
+                org_id=org.id,
+                project_id=project.id,
+                transaction_counts=[("checkout", 10.0)],
+            )
+        ]
+        redis = get_redis_client_for_ds()
+        self.addCleanup(
+            redis.delete,
+            per_org_recalibration_cache.generate_project_sample_rates_cache_key(org.id),
+            per_org_recalibration_cache.generate_transaction_sample_rates_cache_key(
+                org.id, project.id
+            ),
+        )
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                ORG_VOLUME: org_volume,
+                PROJECT_VOLUMES: project_volumes,
+                PROJECT_BALANCING: rebalanced_projects,
+                CACHED_PROJECT_RATES: {},
+                COMPARE_PROJECTS: DEFAULT,
+                TRANSACTION_VOLUMES: transaction_volumes,
+                TRANSACTION_BALANCING: rebalanced_transactions,
+                RECALIBRATION_VOLUME: None,
+                CACHED_FACTOR: 1.0,
+                PREVIOUS_EAP_FACTOR: 1.0,
+                LEGACY_VOLUME: None,
+                COMPARE_FACTOR: DEFAULT,
+            }
+        ):
+            assert run_calculations_per_org_task(org.id) is None
+
+        assert per_org_recalibration_cache.get_project_sample_rate(org.id, project.id) == 0.5
+        assert per_org_recalibration_cache.get_transaction_sample_rates(org.id, project.id) == (
+            {"checkout": 0.3},
+            0.4,
+        )
+
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+        }
+    )
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)

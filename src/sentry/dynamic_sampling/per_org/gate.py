@@ -6,6 +6,7 @@ from sentry.options.rollout import in_rollout_group
 KILLSWITCH_OPTION = "dynamic-sampling.per_org.killswitch"
 ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.rollout-rate"
 RECALIBRATION_ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.recalibration-rollout-rate"
+SERVING_ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.serving-rollout-rate"
 METRICS_SAMPLE_RATE_OPTION = "dynamic-sampling.per_org.metrics-sample-rate"
 PROJECT_BALANCING_DEBUG_PROJECT_IDS_OPTION = (
     "dynamic-sampling.per_org.project-balancing-debug-project-ids"
@@ -41,6 +42,16 @@ def is_org_in_rollout(org_id: int) -> bool:
 
 def is_org_in_recalibration_rollout(org_id: int) -> bool:
     return in_rollout_group(RECALIBRATION_ROLLOUT_RATE_OPTION, org_id)
+
+
+def is_org_in_serving_rollout(org_id: int) -> bool:
+    """Whether rule generation reads this organization's sample rates from the per-org caches.
+
+    Independent of ROLLOUT_RATE_OPTION, which only decides whether the pipeline computes
+    them. An organization has to be in both groups for the per-org caches to hold anything,
+    and the killswitch takes precedence over both.
+    """
+    return not is_killswitch_engaged() and in_rollout_group(SERVING_ROLLOUT_RATE_OPTION, org_id)
 
 
 def is_org_in_sample_rates_summary_log_rollout(org_id: int) -> bool:

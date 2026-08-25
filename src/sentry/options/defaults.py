@@ -2375,6 +2375,19 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
+# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
+# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
+# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too;
+# rule generation falls back to the legacy caches for anything the per-org pipeline has not
+# stored.
+register(
+    "dynamic-sampling.per_org.serving-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
 # (status counters, org_status counters, duration timer). 1.0 emits every
 # event; lower values drop events proportionally. Use this to reduce metric

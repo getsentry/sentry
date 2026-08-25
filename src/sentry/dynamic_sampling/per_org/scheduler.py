@@ -9,6 +9,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import features
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org import cache as per_org_cache
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
     compare_organization_sliding_window_sample_rates,
@@ -116,6 +117,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         rebalanced_projects = run_project_balancing(config, project_volumes)
         rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
         config.set_rebalanced_project_sample_rates(rebalanced_projects)
+        per_org_cache.set_project_sample_rates(config.organization.id, rebalanced_projects)
         compare_rebalanced_projects_with_cache(
             config, rebalanced_projects, cached_sample_rates, project_volumes
         )
@@ -156,6 +158,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     rebalanced_transactions = run_transaction_balancing(
         config, project_volumes, transaction_volumes
     )
+    per_org_cache.set_transaction_sample_rates(config.organization.id, rebalanced_transactions)
     # When the summary log is on, the cache is read for every project rather than only the
     # EAP-rebalanced ones, so the log can report a generic metrics side even where EAP
     # produced no transaction rates.
