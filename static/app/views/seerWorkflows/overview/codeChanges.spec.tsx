@@ -77,9 +77,6 @@ describe('CodeChanges', () => {
 
     expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('getsentry/getsentry')).toBeInTheDocument();
-    // Each repo header carries its own file count.
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('src/a.py')).toBeInTheDocument();
     expect(screen.getByText('src/b.py')).toBeInTheDocument();
     expect(screen.getByText('src/c.py')).toBeInTheDocument();

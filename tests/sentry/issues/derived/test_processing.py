@@ -98,6 +98,17 @@ class ProcessGroupLogTest(TestCase):
         processing.PIPELINE = self._original_pipeline
         super().tearDown()
 
+    def test_missing_group_raises_does_not_exist(self) -> None:
+        group = self.create_group()
+
+        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+            with pytest.raises(Group.DoesNotExist):
+                process_group_log(9_999_999_999)
+
+            # The failed insert rolls back to its savepoint without breaking this transaction.
+            derived = process_group_log(group.id)
+            assert derived.group_id == group.id
+
     def test_records_and_processes(self) -> None:
         group = self.create_group()
         user = self.user

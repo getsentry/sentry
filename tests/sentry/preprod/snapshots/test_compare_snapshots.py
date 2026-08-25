@@ -6,6 +6,7 @@ import orjson
 import pytest
 from objectstore_client import RequestError
 
+from sentry.preprod.snapshots.image_diff.types import ImageSize
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 from sentry.preprod.snapshots.tasks import _retry_objectstore
 from sentry.testutils.cases import TestCase
@@ -190,6 +191,7 @@ class ProcessChunkTest(TestCase):
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
         ):
             process_snapshot_comparison_chunk(
@@ -292,6 +294,7 @@ class ProcessChunkTest(TestCase):
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[self._diff_result()],
@@ -331,6 +334,7 @@ class ProcessChunkTest(TestCase):
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[self._diff_result()],
@@ -382,6 +386,7 @@ class ProcessChunkTest(TestCase):
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[unchanged_diff],
@@ -1651,6 +1656,7 @@ class EndToEndFanoutTest(TestCase):
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 side_effect=lambda pairs, server: [self._diff_result() for _ in pairs],

@@ -7,7 +7,6 @@ import {useComboBoxState} from '@react-stately/combobox';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -17,14 +16,8 @@ import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerC
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
-import type {
-  AskSeerSearchItems,
-  QueryTokensProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  generateQueryTokensString,
-  isNoneOfTheseItem,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {generateQueryTokensString} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
@@ -123,7 +116,6 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const {projects} = useProjects();
 
   const openForm = useFeedbackForm();
@@ -142,51 +134,21 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
   const analyticsArea = useAnalyticsArea();
 
-  const handleNoneOfTheseClick = () => {
-    if (openForm) {
-      openForm({
-        messagePlaceholder: t('Why were these queries incorrect?'),
-        tags: {
-          'feedback.source': `ai_query.${analyticsArea}`,
-          'feedback.owner': 'ml-ai',
-          'feedback.natural_language_query': searchQuery,
-          'feedback.raw_result': JSON.stringify(queries).replace(/\n/g, ''),
-          'feedback.num_queries_returned': queries.length,
-        },
-      });
-    } else {
-      addErrorMessage(t('Unable to open feedback form'));
-    }
-  };
-
-  const items = useMemo(() => {
-    if (queries.length > 0) {
-      const results: Array<AskSeerSearchItems<T>> = queries.map((query, index) => ({
+  const items = useMemo(
+    () =>
+      queries.map((query, index) => ({
         ...query,
         key: `${index}-${query.query}`,
-      }));
-
-      if (hasAskSeerUxRework) {
-        return results;
-      }
-
-      results.push({
-        key: 'none-of-these',
-        label: t('None of these'),
-      });
-
-      return results;
-    }
-
-    return [];
-  }, [queries, hasAskSeerUxRework]);
+      })),
+    [queries]
+  );
 
   const applySelectedQuery = (item: T) => {
     askSeerNLQueryRef.current = searchQuery.trim();
     skipNextSearchQueryBuilderAutoFocusRef.current = true;
     inputRef.current?.blur();
     applySeerSearchQuery(item);
-    setDisplayAskSeerFeedback(!hasAskSeerUxRework);
+    setDisplayAskSeerFeedback(false);
     setDisplayAskSeer(false);
     onReset?.();
   };
@@ -207,19 +169,8 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
         return;
       }
 
-      if (key === 'none-of-these') {
-        trackAnalytics('ai_query.rejected', {
-          organization,
-          area: analyticsArea,
-          natural_language_query: searchQuery,
-          num_queries_returned: queries.length,
-        });
-        handleNoneOfTheseClick();
-        return;
-      }
-
       const item = items.find(i => i.key === key);
-      if (!item || isNoneOfTheseItem(item)) {
+      if (!item) {
         addErrorMessage(t('Failed to find AI query to apply'));
         return;
       }
@@ -228,14 +179,6 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       state.close();
     },
     children: item => {
-      if (isNoneOfTheseItem(item)) {
-        return (
-          <Item key={item.key} textValue={item.label} data-is-none-of-these>
-            <Text variant="muted">{item.label}</Text>
-          </Item>
-        );
-      }
-
       const readableQuery = generateQueryTokensString(item, projects);
 
       return (
@@ -293,21 +236,9 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             state.close();
             return;
           case 'Enter':
-            if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
-              trackAnalytics('ai_query.rejected', {
-                organization,
-                area: analyticsArea,
-                natural_language_query: searchQuery,
-                num_queries_returned: queries.length,
-              });
-              handleNoneOfTheseClick();
-              state.open();
-              return;
-            }
-
             if (state.isOpen && state.selectionManager.focusedKey) {
               const item = items.find(i => i.key === state.selectionManager.focusedKey);
-              if (!item || isNoneOfTheseItem(item)) {
+              if (!item) {
                 addErrorMessage(t('Failed to find AI query to apply'));
                 return;
               }
@@ -421,28 +352,19 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const hasResults = queries.length > 0;
   const isDisplayingResults = !isPending && !isError && hasResults;
   const isUnsupported = Boolean(unsupportedReason) && !hasResults;
-  const hasQueryStatus =
-    hasAskSeerUxRework && (isPending || isError || hasResults || isUnsupported);
+  const hasQueryStatus = isPending || isError || hasResults || isUnsupported;
 
   useEffect(() => {
-    if (enableAISearch && hasAskSeerUxRework && isDisplayingResults) {
+    if (enableAISearch && isDisplayingResults) {
       setDisplayAskSeerFeedback(true);
     }
-  }, [
-    enableAISearch,
-    hasAskSeerUxRework,
-    isDisplayingResults,
-    setDisplayAskSeerFeedback,
-  ]);
+  }, [enableAISearch, isDisplayingResults, setDisplayAskSeerFeedback]);
 
   if (!enableAISearch) {
     return null;
   }
 
-  const showLeftFooterAction = hasAskSeerUxRework;
-  const showFooter = hasAskSeerUxRework
-    ? isDisplayingResults || isError
-    : Boolean(openForm);
+  const showFooter = isDisplayingResults || isError;
 
   return (
     <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -500,16 +422,12 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             loadingContent
           ) : isError ? (
             <Stack flex="1">
-              <AskSeerSearchHeader title={errorTitle} isError={hasAskSeerUxRework} />
+              <AskSeerSearchHeader title={errorTitle} isError />
             </Stack>
           ) : hasResults ? (
             <Stack flex="1" onMouseLeave={onMouseLeave}>
-              {hasAskSeerUxRework ? null : (
-                <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
-              )}
               <AskSeerSearchListBox
                 {...listBoxProps}
-                hasAskSeerUxRework={hasAskSeerUxRework}
                 listBoxRef={listBoxRef}
                 state={state}
               />
@@ -528,14 +446,14 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
           {showFooter ? (
             <Flex
               containerType="inline-size"
-              justify={showLeftFooterAction ? 'between' : 'end'}
+              justify="between"
               align="start"
               borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
               paddingLeft="md"
               paddingRight="md"
-              background={showLeftFooterAction ? 'secondary' : 'primary'}
+              background="secondary"
               onMouseDown={e => e.preventDefault()}
             >
               <Flex
@@ -543,37 +461,34 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                 align={{zero: 'start', md: 'center'}}
                 gap="sm"
               >
-                {showLeftFooterAction ? (
-                  <Button
-                    icon={<IconSync />}
-                    size="zero"
-                    onClick={() => {
-                      const query =
-                        searchQuery.trim() || askSeerNLQueryRef.current?.trim();
-                      if (!query) {
-                        return;
-                      }
+                <Button
+                  icon={<IconSync />}
+                  size="zero"
+                  onClick={() => {
+                    const query = searchQuery.trim() || askSeerNLQueryRef.current?.trim();
+                    if (!query) {
+                      return;
+                    }
 
-                      trackAnalytics('ai_query.regenerated', {
-                        organization,
-                        area: analyticsArea,
-                        natural_language_query: query,
-                      });
-                      setDisplayAskSeerFeedback(false);
-                      onReset?.();
-                      submitQuery(query);
-                    }}
-                  >
-                    {isError ? t('Try again') : t('Generate again')}
-                  </Button>
-                ) : null}
-                {showLeftFooterAction && displayAskSeerFeedback && isDisplayingResults ? (
+                    trackAnalytics('ai_query.regenerated', {
+                      organization,
+                      area: analyticsArea,
+                      natural_language_query: query,
+                    });
+                    setDisplayAskSeerFeedback(false);
+                    onReset?.();
+                    submitQuery(query);
+                  }}
+                >
+                  {isError ? t('Try again') : t('Generate again')}
+                </Button>
+                {displayAskSeerFeedback && isDisplayingResults ? (
                   <AskSeerFeedback />
                 ) : null}
               </Flex>
               {openForm ? (
                 <Button
-                  size={showLeftFooterAction ? 'zero' : 'xs'}
+                  size="zero"
                   icon={<IconMegaphone />}
                   onClick={() =>
                     openForm({

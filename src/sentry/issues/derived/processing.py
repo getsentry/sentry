@@ -13,6 +13,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.store import GroupDerivedDataStore
@@ -97,7 +98,7 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
 
     try:
         # Contain a possible database error so an enclosing transaction remains usable.
-        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+        with enforce_constraints(transaction.atomic(using=router.db_for_write(GroupDerivedData))):
             derived, _created = GroupDerivedData.objects.get_or_create(
                 group_id=group_id,
                 defaults={
