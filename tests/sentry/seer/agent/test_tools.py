@@ -2036,11 +2036,11 @@ class TestGetGroupAssignees(APITestCase):
         )
 
         assert result["assignees"] == {
-            second_group.id: {
+            str(second_group.id): {
                 "id": second_user.id,
                 "username": second_user.username,
             },
-            first_group.id: {
+            str(first_group.id): {
                 "id": self.user.id,
                 "username": self.user.username,
             },

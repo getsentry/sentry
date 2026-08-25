@@ -2017,7 +2017,7 @@ def get_group_assignees(
     }
     return GroupAssigneesResponse(
         assignees={
-            group_id: UserIdentity(
+            str(group_id): UserIdentity(
                 id=user.id,
                 username=user.username,
             )

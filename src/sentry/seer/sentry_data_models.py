@@ -554,7 +554,9 @@ class UserIdentity(BaseModel):
 
 
 class GroupAssigneesResponse(_DictProxyMixin):
-    assignees: dict[int, UserIdentity]
+    # Dict keys are int issue IDs, but JSON serializes them as strings, so make that explicit.
+    # Consumer will convert back to int.
+    assignees: dict[str, UserIdentity]
 
 
 class TransactionsForProjectResponse(BaseModel):
