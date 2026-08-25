@@ -71,6 +71,30 @@ class TestDetectorUtils:
             "user:[Filtered]@dogs.are.great",
             ("https://user:[Filtered]@dogs.are.great/x", [], {}),
         ),
+        URLTestCase(
+            "https://user:[Filtered]@[4:15::9:8]/x",
+            True,
+            "user:[Filtered]@[4:15::9:8]",
+            ("https://user:[Filtered]@[4:15::9:8]/x", [], {}),
+        ),
+        URLTestCase(
+            "https://[int]:[int]@dogs.are.great/x",
+            True,
+            "[int]:[int]@dogs.are.great",
+            ("https://[int]:[int]@dogs.are.great/x", [], {}),
+        ),
+        URLTestCase(
+            "https://[user]:[password]@dogs.are.great/x",
+            True,
+            "[user]:[password]@dogs.are.great",
+            ("https://[user]:[password]@dogs.are.great/x", [], {}),
+        ),
+        URLTestCase(
+            "https://[user]:[password]@[4:15::9:8]/x",
+            True,
+            "[user]:[password]@[4:15::9:8]",
+            ("https://[user]:[password]@[4:15::9:8]/x", [], {}),
+        ),
         URLTestCase(  # protocol-relative
             "//[Filtered]/dogs/2012",
             True,
