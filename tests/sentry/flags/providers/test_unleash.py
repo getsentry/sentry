@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 
 from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import DeserializationError, UnleashProvider
@@ -150,7 +151,7 @@ def test_partial_fill() -> None:
 
 
 def test_long_flag_name() -> None:
-    def make_request(feature_name: str):
+    def make_request(feature_name: str) -> dict[str, Any]:
         return {
             "id": 28,
             "tags": [],

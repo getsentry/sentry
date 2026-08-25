@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 
 from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import DeserializationError, GenericProvider
@@ -102,7 +103,7 @@ def test_empty_data_item() -> None:
 
 
 def test_long_flag_name() -> None:
-    def make_request(flag: str):
+    def make_request(flag: str) -> dict[str, Any]:
         return {
             "data": [
                 {
