@@ -8,6 +8,9 @@ from sentry.testutils.cases import APITestCase
 _PATCH_VERIFY = (
     "sentry.api.endpoints.organization_monitoring_provider_verify_connection.verify_gcp_connection"
 )
+_PATCH_SA_EMAIL = "sentry.api.endpoints.organization_monitoring_provider_verify_connection.integration_service.get_gcp_service_account_email"
+
+_SA_EMAIL = "sa@sentry-connectors.iam.gserviceaccount.com"
 
 
 class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
@@ -21,14 +24,16 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
     def test_requires_feature_flag(self) -> None:
         response = self.get_response(
             self.organization.slug,
-            sentry_sa_email="sa@sentry-connectors.iam.gserviceaccount.com",
             customer_sa_email="cust@customer.iam.gserviceaccount.com",
             gcp_project_ids=["proj-a"],
         )
         assert response.status_code == 404
 
+    @patch(_PATCH_SA_EMAIL, return_value=_SA_EMAIL)
     @patch(_PATCH_VERIFY)
-    def test_successful_verification(self, mock_verify: MagicMock) -> None:
+    def test_successful_verification(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock
+    ) -> None:
         mock_verify.return_value = {
             "connection_status": "connected",
             "projects": [
@@ -49,25 +54,25 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_success_response(
                 self.organization.slug,
-                sentry_sa_email="sa@sentry-connectors.iam.gserviceaccount.com",
                 customer_sa_email="cust@customer.iam.gserviceaccount.com",
                 gcp_project_ids=["proj-a"],
             )
 
         assert response.data["connection_status"] == "connected"
         assert len(response.data["projects"]) == 1
+        mock_sa_email.assert_called_once_with(organization_id=self.organization.id)
         mock_verify.assert_called_once_with(
-            sentry_sa_email="sa@sentry-connectors.iam.gserviceaccount.com",
+            sentry_sa_email=_SA_EMAIL,
             customer_sa_email="cust@customer.iam.gserviceaccount.com",
             gcp_project_ids=["proj-a"],
         )
 
+    @patch(_PATCH_SA_EMAIL, return_value=_SA_EMAIL)
     @patch(_PATCH_VERIFY, side_effect=IntegrationError("Failed to verify GCP connection."))
-    def test_seer_error_returns_502(self, mock_verify: MagicMock) -> None:
+    def test_seer_error_returns_502(self, mock_verify: MagicMock, mock_sa_email: MagicMock) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(
                 self.organization.slug,
-                sentry_sa_email="sa@sentry-connectors.iam.gserviceaccount.com",
                 customer_sa_email="cust@customer.iam.gserviceaccount.com",
                 gcp_project_ids=["proj-a"],
             )
@@ -80,17 +85,53 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
             response = self.get_response(self.organization.slug)
 
         assert response.status_code == 400
-        assert "sentrySaEmail" in response.data
         assert "customerSaEmail" in response.data
         assert "gcpProjectIds" in response.data
 
-    def test_empty_project_ids_rejected(self) -> None:
+    @patch(_PATCH_SA_EMAIL, return_value=_SA_EMAIL)
+    def test_empty_project_ids_rejected(self, mock_sa_email: MagicMock) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(
                 self.organization.slug,
-                sentry_sa_email="sa@sentry-connectors.iam.gserviceaccount.com",
                 customer_sa_email="cust@customer.iam.gserviceaccount.com",
                 gcp_project_ids=[],
             )
 
         assert response.status_code == 400
+
+    @patch(_PATCH_SA_EMAIL, return_value=None)
+    def test_no_service_account_returns_404(self, mock_sa_email: MagicMock) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug,
+                customer_sa_email="cust@customer.iam.gserviceaccount.com",
+                gcp_project_ids=["proj-a"],
+            )
+
+        assert response.status_code == 404
+        assert "No GCP service account" in response.data["detail"]
+
+    @patch(_PATCH_SA_EMAIL, return_value=_SA_EMAIL)
+    @patch(_PATCH_VERIFY)
+    def test_ignores_sentry_sa_email_from_request_body(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock
+    ) -> None:
+        mock_verify.return_value = {
+            "connection_status": "connected",
+            "projects": [],
+            "error_detail": None,
+        }
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            self.get_success_response(
+                self.organization.slug,
+                sentry_sa_email="evil@attacker.iam.gserviceaccount.com",
+                customer_sa_email="cust@customer.iam.gserviceaccount.com",
+                gcp_project_ids=["proj-a"],
+            )
+
+        mock_verify.assert_called_once_with(
+            sentry_sa_email=_SA_EMAIL,
+            customer_sa_email="cust@customer.iam.gserviceaccount.com",
+            gcp_project_ids=["proj-a"],
+        )

@@ -14,12 +14,12 @@ from sentry.api.endpoints.organization_monitoring_provider_index import (
 )
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.gcp.client import verify_gcp_connection
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class GcpVerifyConnectionSerializer(CamelSnakeSerializer["GcpVerifyConnectionSerializer"]):
-    sentry_sa_email = CharField(required=True)
     customer_sa_email = CharField(required=True)
     gcp_project_ids = ListField(
         child=CharField(max_length=64), required=True, min_length=1, max_length=100
@@ -44,9 +44,18 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
 
         data = serializer.validated_data
 
+        sentry_sa_email = integration_service.get_gcp_service_account_email(
+            organization_id=organization.id,
+        )
+        if sentry_sa_email is None:
+            return Response(
+                {"detail": "No GCP service account configured for this organization."},
+                status=404,
+            )
+
         try:
             result = verify_gcp_connection(
-                sentry_sa_email=data["sentry_sa_email"],
+                sentry_sa_email=sentry_sa_email,
                 customer_sa_email=data["customer_sa_email"],
                 gcp_project_ids=data["gcp_project_ids"],
             )

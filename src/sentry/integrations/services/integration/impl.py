@@ -609,6 +609,19 @@ class DatabaseBackedIntegrationService(IntegrationService):
             user=user,
         )
 
+    def get_gcp_service_account_email(
+        self,
+        *,
+        organization_id: int,
+    ) -> str | None:
+        from sentry.integrations.models.gcp_service_account import GcpServiceAccount
+
+        try:
+            sa = GcpServiceAccount.objects.get(organization_id=organization_id)
+        except GcpServiceAccount.DoesNotExist:
+            return None
+        return sa.service_account_email
+
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
