@@ -27,13 +27,19 @@ describe('AdjustedFiltersAlert', () => {
 
     render(<AdjustedFiltersAlert hasUnsavedChanges />);
 
-    // Every explanation reads as one paragraph rather than one line each.
+    // Every explanation reads on its own line, with the prompt to save last.
     expect(
       screen.getByText(
-        "Your project selection changed because it included projects you don't have access to. " +
-          'Your date range changed to 30 days, the longest range your organization can query. ' +
-          'Save this dashboard to keep the new selection.'
+        "Your project selection changed because it included projects you don't have access to."
       )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Your date range changed to 30 days, the longest range your organization can query.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Save this dashboard to keep the new selection.')
     ).toBeInTheDocument();
   });
 

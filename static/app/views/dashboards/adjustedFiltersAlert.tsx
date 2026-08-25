@@ -1,4 +1,5 @@
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
@@ -41,7 +42,11 @@ export function AdjustedFiltersAlert({hasUnsavedChanges}: AdjustedFiltersAlertPr
 
   return (
     <Alert variant="info" showIcon>
-      <Text>{sentences.join(' ')}</Text>
+      <Stack gap="xs">
+        {sentences.map(sentence => (
+          <Text key={sentence}>{sentence}</Text>
+        ))}
+      </Stack>
     </Alert>
   );
 }
