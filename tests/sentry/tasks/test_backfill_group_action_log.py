@@ -739,16 +739,36 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         ):
             backfill_group_action_log_for_all_projects()
 
-        mock_apply.assert_called_once_with(
-            kwargs={
-                "project_id": incomplete_project.id,
-                "reset": False,
-                "chain_pr_lifecycle": True,
-            },
-            headers={"sentry-propagate-traces": False},
-        )
+        dispatched_project_ids = {
+            call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
+        }
+        assert dispatched_project_ids == {incomplete_project.id, inactive_project.id}
         assert project_without_option.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
         mock_coordinator_apply.assert_not_called()
+
+    def test_complete_options_still_advance_cursor(self) -> None:
+        complete_project_1 = self.create_project(organization=self.organization)
+        complete_project_2 = self.create_project(organization=self.organization)
+        incomplete_project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(complete_project_1, True)
+        complete_option_2 = self._set_backfill_complete(complete_project_2, True)
+        self._set_backfill_complete(incomplete_project, False)
+
+        with (
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 2}),
+            patch.object(
+                backfill_group_action_log_for_project, "apply_async"
+            ) as mock_project_apply,
+            patch.object(
+                backfill_group_action_log_for_all_projects, "apply_async"
+            ) as mock_coordinator_apply,
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        mock_project_apply.assert_not_called()
+        assert mock_coordinator_apply.call_args.kwargs["kwargs"]["last_project_option_id"] == (
+            complete_option_2.id
+        )
 
     def test_self_chains_when_more_projects_remain(self) -> None:
         for _ in range(3):
