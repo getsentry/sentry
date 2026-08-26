@@ -18,7 +18,7 @@ interface UseFormattedCodeOptions {
  */
 async function loadBeautifier() {
   const {default: beautify} = await import(
-    /* webpackChunkName: "js-beautify" */ 'js-beautify'
+    /* rspackChunkName: "js-beautify" */ 'js-beautify'
   );
   return beautify;
 }
