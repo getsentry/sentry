@@ -398,7 +398,7 @@ class ProcessGroupLogTest(TestCase):
 
         with (
             patch("sentry.issues.derived.processing._process_batch", return_value=True),
-            patch.object(processing.process_group_log_task, "delay") as mock_delay,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_delay,
         ):
             processing.trigger_group_log_processing(
                 group.id,
