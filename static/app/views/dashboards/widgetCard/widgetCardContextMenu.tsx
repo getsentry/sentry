@@ -318,7 +318,6 @@ export function getMenuOptions(
             baseQuery: widgetQuery?.conditions,
             dashboardFilters,
             widgetType: widget.widgetType,
-            widgetId: widget.id,
           }) ?? '';
 
         // Add group-by values as filters to the alert query
