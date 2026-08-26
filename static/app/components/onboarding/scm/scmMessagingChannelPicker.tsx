@@ -113,6 +113,7 @@ export function ScmMessagingChannelPicker({
 
   const handleIntegrationChange = (option: SelectValue<OrganizationIntegration>) => {
     setSelectedIntegrationId(option.value.id);
+    setChannel(undefined);
     clearChannelValidation();
   };
 
