@@ -6,7 +6,9 @@ from django.db import migrations
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
-# Bare on purpose: the PK swap's ADD CONSTRAINT ... USING INDEX rejects a constraint-owned index.
+# Exception to the usual pattern: a unique index normally comes from unique=True on the
+# field. Not here. Django attaches a constraint to the index it builds, and the later PK
+# swap's ADD CONSTRAINT ... PRIMARY KEY USING INDEX is refused on a constraint-owned index.
 NEW_ID_INDEX = "sentry_organizationmember_teams_new_id_uniq"
 
 # Django derives this name as md5(table, column); it must match what AlterField emits.
@@ -38,6 +40,8 @@ class Migration(CheckedMigration):
             f'DROP INDEX CONCURRENTLY IF EXISTS "{NEW_ID_INDEX}"',
             reverse_sql=migrations.RunSQL.noop,
             hints={"tables": ["sentry_organizationmember_teams"]},
+            # The drop waits for open transactions, which can outlast the timeout.
+            use_statement_timeout=False,
         ),
         SafeRunSQL(
             f'CREATE UNIQUE INDEX CONCURRENTLY "{NEW_ID_INDEX}" '
