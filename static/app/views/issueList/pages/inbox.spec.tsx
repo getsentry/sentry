@@ -21,6 +21,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {ProgressState} from 'sentry/types/group';
@@ -1244,6 +1245,21 @@ describe('InboxPage', () => {
         autofix: ExplorerAutofixStateFixture({
           blocks: [
             ExplorerAutofixBlockFixture({
+              merged_file_patches: [
+                {
+                  repo_name: 'org/repository',
+                  diff: 'diff --git a/src/user.ts b/src/user.ts',
+                  patch: {
+                    path: 'src/user.ts',
+                    added: 1,
+                    removed: 0,
+                    hunks: [],
+                    source_file: 'src/user.ts',
+                    target_file: 'src/user.ts',
+                    type: DiffFileType.MODIFIED,
+                  },
+                },
+              ],
               message: {
                 content: 'Code changes complete',
                 metadata: {step: 'code_changes'},
