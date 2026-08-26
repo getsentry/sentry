@@ -34,6 +34,7 @@ def emit_pr_ready_for_review(
     run_id: int,
     sentry_run_id: str | None,
     state: SeerRunState,
+    filtered_repos: list[str] | None = None,
 ) -> None:
     """
     Record the PR Ready for Review activity and broadcast the public webhook.
@@ -45,11 +46,15 @@ def emit_pr_ready_for_review(
     )
     from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 
+    pull_requests = format_pull_requests_payload(state)
+    if filtered_repos:
+        pull_requests = [pr for pr in pull_requests if pr["repo_name"] in filtered_repos]
+
     payload = {
         "run_id": run_id,
         "sentry_run_id": sentry_run_id,
         "group_id": group.id,
-        "pull_requests": format_pull_requests_payload(state),
+        "pull_requests": pull_requests,
     }
     log_extra = {
         "run_id": run_id,

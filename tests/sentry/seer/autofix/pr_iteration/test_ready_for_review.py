@@ -15,6 +15,10 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
+from sentry.seer.autofix.pr_ready_for_review import (
+    emit_pr_ready_for_review,
+    format_pull_requests_payload,
+)
 from sentry.testutils.cases import TestCase
 
 READY_FOR_REVIEW_PATH = "sentry.seer.autofix.pr_iteration.ready_for_review"
@@ -89,6 +93,89 @@ def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
     if ctx is None:
         return
     mark_ready_for_review(ctx)
+
+
+class PrReadyForReviewPayloadTest(TestCase):
+    """The ``emit_pr_ready_for_review`` payload must be repo-scoped on the
+    green-CI undraft path: each repo undrafts independently (its own CI), so a
+    single-repo undraft cannot claim every repo's PR is ready."""
+
+    def _run_state(self, repo_names: list[str] = [REPO_NAME]) -> SeerRunState:
+        return SeerRunState(
+            run_id=RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                name: RepoPRState(
+                    repo_name=name,
+                    provider="github",
+                    pr_id=555,
+                    pr_number=PR_NUMBER,
+                    pr_url=f"https://github.com/{name}/pull/{PR_NUMBER}",
+                    pr_creation_status="completed",
+                )
+                for name in repo_names
+            },
+        )
+
+    def test_emit_scopes_payload_to_filtered_repos(self) -> None:
+        state = self._run_state(["owner/repo", "owner/other-repo"])
+
+        with patch(
+            "sentry.seer.entrypoints.operator.SeerAutofixOperator.has_access",
+            return_value=False,
+        ):
+            mock_broadcast = MagicMock()
+            with patch(
+                "sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay",
+                mock_broadcast,
+            ):
+                emit_pr_ready_for_review(
+                    organization=self.organization,
+                    group=self.group,
+                    run_id=RUN_ID,
+                    sentry_run_id=None,
+                    state=state,
+                    filtered_repos=["owner/repo"],
+                )
+
+        payload = mock_broadcast.call_args.kwargs["payload"]
+        assert len(payload["pull_requests"]) == 1
+        assert payload["pull_requests"][0]["repo_name"] == "owner/repo"
+
+    def test_emit_no_filter_includes_all_repos(self) -> None:
+        state = self._run_state(["owner/repo", "owner/other-repo"])
+
+        with patch(
+            "sentry.seer.entrypoints.operator.SeerAutofixOperator.has_access",
+            return_value=False,
+        ):
+            mock_broadcast = MagicMock()
+            with patch(
+                "sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay",
+                mock_broadcast,
+            ):
+                emit_pr_ready_for_review(
+                    organization=self.organization,
+                    group=self.group,
+                    run_id=RUN_ID,
+                    sentry_run_id=None,
+                    state=state,
+                )
+
+        payload = mock_broadcast.call_args.kwargs["payload"]
+        assert {pr["repo_name"] for pr in payload["pull_requests"]} == {
+            "owner/repo",
+            "owner/other-repo",
+        }
+
+    def test_format_pull_requests_payload_includes_all_repos(self) -> None:
+        state = self._run_state(["owner/repo", "owner/other-repo"])
+
+        payload = format_pull_requests_payload(state)
+
+        assert {pr["repo_name"] for pr in payload} == {"owner/repo", "owner/other-repo"}
 
 
 class MarkReadyForReviewTest(TestCase):
@@ -321,6 +408,9 @@ class MarkReadyForReviewTest(TestCase):
         assert kwargs["organization"].id == self.organization.id
         assert kwargs["run_id"] == RUN_ID
         assert kwargs["sentry_run_id"] == str(self.seer_run.uuid)
+        # Undraft emits with the repo scoped so only the PR just undrafted is
+        # signalled as ready — other repos may still be draft.
+        assert kwargs["filtered_repos"] == [REPO_NAME]
 
     @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
     @patch(f"{EMIT_PATH}.emit_pr_ready_for_review")
