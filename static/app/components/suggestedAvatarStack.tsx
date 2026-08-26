@@ -10,6 +10,10 @@ interface SuggestedAvatarStackProps extends Omit<
   'actor' | 'hasTooltip'
 > {
   owners: Actor[];
+  /**
+   * Render owners in their original order when true and reversed when false.
+   * The first owner remains visually on top in either direction.
+   */
   reverse?: boolean;
 }
 
