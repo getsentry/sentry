@@ -321,6 +321,20 @@ describe('SpansTable', () => {
       await screen.findByText('No attributes found for this span')
     ).toBeInTheDocument();
   });
+
+  it('does not link empty span detail identifiers', async () => {
+    mockSpanDetails(firstRow, [
+      {name: 'profile.id', type: 'str', value: ''},
+      {name: 'replayId', type: 'str', value: ''},
+      {name: 'trace', type: 'str', value: ''},
+    ]);
+
+    renderTable({tableRows: [firstRow]});
+    await userEvent.click(screen.getByRole('button', {name: 'Show span details'}));
+
+    const attributesTree = await screen.findByTestId('fields-tree');
+    expect(within(attributesTree).queryByRole('link')).not.toBeInTheDocument();
+  });
 });
 
 function makeQueryResult(

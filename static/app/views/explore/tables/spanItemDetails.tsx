@@ -188,7 +188,12 @@ function useSpanAttributeRenderers({
 }): Record<string, SpanAttributeRenderer> {
   return useMemo(() => {
     const profileRenderer: SpanAttributeRenderer = ({item, basicRendered}) => {
-      if (!organization || !projectSlug || typeof item.value !== 'string') {
+      if (
+        !organization ||
+        !projectSlug ||
+        typeof item.value !== 'string' ||
+        !item.value
+      ) {
         return basicRendered;
       }
 
@@ -209,7 +214,7 @@ function useSpanAttributeRenderers({
     };
 
     const replayRenderer: SpanAttributeRenderer = ({item, basicRendered}) => {
-      if (!organization || typeof item.value !== 'string') {
+      if (!organization || typeof item.value !== 'string' || !item.value) {
         return basicRendered;
       }
 
@@ -240,7 +245,7 @@ function useSpanAttributeRenderers({
       [FieldKey.PROFILE_ID]: profileRenderer,
       [SpanFields.PROFILE_ID]: profileRenderer,
       [FieldKey.TRACE]: ({item, basicRendered}) => {
-        if (!organization || typeof item.value !== 'string') {
+        if (!organization || typeof item.value !== 'string' || !item.value) {
           return basicRendered;
         }
 
