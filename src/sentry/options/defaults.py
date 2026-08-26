@@ -1264,6 +1264,13 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Deterministic % of organizations that use Seer's one-shot title generator.
+register(
+    "ai-monitoring.conversation-title-generation.oneshot-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.night_shift.enable",
     type=Bool,
