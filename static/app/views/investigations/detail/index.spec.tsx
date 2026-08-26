@@ -190,6 +190,8 @@ describe('Investigation detail', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+    expect(screen.getByText('Completed')).toBeInTheDocument();
+    expect(screen.queryByText('Active')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Summary')).toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
     expect(

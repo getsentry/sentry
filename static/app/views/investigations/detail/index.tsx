@@ -347,7 +347,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <Container as="header" width="100%" padding="xl" borderBottom="primary">
+        <InvestigationHeader as="header" width="100%" padding="xl">
           <Grid
             columns="minmax(0, 1fr) auto"
             align="start"
@@ -399,7 +399,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               <IconSeer size="sm" />
             </Flex>
           </Grid>
-        </Container>
+        </InvestigationHeader>
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
@@ -551,6 +551,9 @@ function formatSourceType(sourceType: string) {
 }
 
 function formatStatus(status: string) {
+  if (status === 'active') {
+    return t('Completed');
+  }
   return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
 }
 
@@ -571,6 +574,18 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
 const InvestigationCanvas = styled(Stack)`
   width: min(100%, 884px);
   margin: 0 auto;
+`;
+
+const InvestigationHeader = styled(Container)`
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    background: ${p => p.theme.tokens.background.secondary};
+  }
 `;
 
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
