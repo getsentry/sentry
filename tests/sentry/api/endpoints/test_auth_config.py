@@ -137,6 +137,7 @@ class AuthConfigEndpointTest(APITestCase):
         assert "github_login_link" not in response.data
         assert "google_login_link" not in response.data
         assert "vsts_login_link" not in response.data
+
     @pytest.mark.skipif(
         settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
         reason="Requires DummyNewsletter.",
