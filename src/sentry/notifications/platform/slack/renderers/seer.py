@@ -261,7 +261,14 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         except Organization.DoesNotExist:
             organization = None
         if organization and features.has("organizations:seer-run-id-in-slack", organization):
-            blocks.append(ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]))
+            run_url = organization.absolute_url(
+                f"/organizations/{organization.slug}/explore/agents/conversations/{data.run_id}/"
+            )
+            blocks.append(
+                ContextBlock(
+                    elements=[MarkdownTextObject(text=f"Run ID: <{run_url}|{data.run_id}>")]
+                )
+            )
 
         if data.missing_scope_settings_url:
             blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
