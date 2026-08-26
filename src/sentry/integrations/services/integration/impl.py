@@ -164,7 +164,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not integration_kwargs:
             return None
 
-        queryset = Integration.objects
+        queryset = Integration.objects.all()
         if using_replica:
             queryset = Integration.objects.using_replica()
 
@@ -215,7 +215,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not oi_kwargs:
             return []
 
-        queryset = OrganizationIntegration.objects
+        queryset = OrganizationIntegration.objects.all()
         if using_replica:
             queryset = OrganizationIntegration.objects.using_replica()
 
