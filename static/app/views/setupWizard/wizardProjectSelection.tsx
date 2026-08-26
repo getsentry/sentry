@@ -290,7 +290,7 @@ export function WizardProjectSelection({
               const selectedPlatform = field.state.value;
               return (
                 <StyledCompactSelect
-                  value={field.state.value!}
+                  value={field.state.value ?? undefined}
                   search
                   options={platformOptions}
                   trigger={triggerProps => (
@@ -304,7 +304,8 @@ export function WizardProjectSelection({
                       }
                     >
                       {selectedPlatform
-                        ? platforms.find(p => p.id === selectedPlatform)!.name
+                        ? (platforms.find(p => p.id === selectedPlatform)?.name ??
+                          selectedPlatform)
                         : t('Select a platform')}
                     </OverlayTrigger.Button>
                   )}
@@ -350,7 +351,7 @@ export function WizardProjectSelection({
                 {baseProps => (
                   <StyledCompactSelect
                     autoFocus
-                    value={field.state.value!}
+                    value={field.state.value ?? undefined}
                     search
                     options={orgOptions}
                     trigger={triggerProps => (
@@ -485,7 +486,7 @@ export function WizardProjectSelection({
                           );
                           return (
                             <StyledCompactSelect
-                              value={field.state.value!}
+                              value={field.state.value ?? undefined}
                               options={
                                 selectableTeams?.map(team => ({
                                   value: team.slug,
