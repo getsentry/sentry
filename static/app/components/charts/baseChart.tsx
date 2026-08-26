@@ -9,10 +9,11 @@ import 'zrender/lib/svg/svg';
 // another module importing the full `echarts` bundle.
 import 'zrender/lib/canvas/canvas';
 
-import {useId, useMemo} from 'react';
+import {useEffect, useId, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import type {
   AxisPointerComponentOption,
   ECharts,
@@ -690,15 +691,83 @@ export function BaseChart({
     };
   }, [style, autoHeightResize, height, width]);
 
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const echartsInstanceRef = useRef<ReactEchartsCore | null>(null);
+  const mergedEchartsInstanceRef = useMemo(
+    () => mergeRefs(ref, echartsInstanceRef),
+    [ref]
+  );
+
+  // Adds a resize observer to handle echarts instance resizing when container size changes.
+  // We use our own resize handler because echarts native autoResize has edge cases caused
+  // by debounce where chart instances can be mis-sized too big or too small.
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container || window.ResizeObserver === undefined) {
+      return () => {};
+    }
+
+    let resizeFrame: number | null = null;
+    let lastResizedHeight = 0;
+    let lastResizedWidth = 0;
+
+    const handleResize = () => {
+      resizeFrame = null;
+
+      const instance = echartsInstanceRef.current?.getEchartsInstance();
+      if (!instance || instance.isDisposed()) {
+        return;
+      }
+
+      const dom = instance.getDom();
+      if (!dom) {
+        return;
+      }
+
+      const {clientWidth, clientHeight} = dom;
+      if (!clientWidth && !clientHeight) {
+        return;
+      }
+
+      // Only resize if the size has changed
+      if (clientWidth === lastResizedWidth && clientHeight === lastResizedHeight) {
+        return;
+      }
+
+      lastResizedHeight = clientHeight;
+      lastResizedWidth = clientWidth;
+      instance.resize({width: 'auto', height: 'auto'});
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Only schedule one resize frame at a time
+      if (resizeFrame === null) {
+        resizeFrame = window.requestAnimationFrame(handleResize);
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    // Destroy observer and cancel pending resize on unmount
+    return () => {
+      if (resizeFrame !== null) {
+        window.cancelAnimationFrame(resizeFrame);
+      }
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <ChartContainer
+      ref={chartContainerRef}
       id={isTooltipPortalled ? chartId : undefined}
       autoHeightResize={autoHeightResize}
       data-test-id={dataTestId}
     >
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
-        ref={ref}
+        ref={mergedEchartsInstanceRef}
+        autoResize={false}
         echarts={echarts}
         notMerge={notMerge}
         replaceMerge={replaceMerge}

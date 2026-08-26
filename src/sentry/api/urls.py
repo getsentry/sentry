@@ -6,8 +6,10 @@ from django.urls import URLPattern, URLResolver, re_path
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
+from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
+    OrganizationAIConversationsEndpoint,
+)
 from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
-from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
@@ -24,6 +26,9 @@ from sentry.api.endpoints.organization_monitoring_provider_details import (
 )
 from sentry.api.endpoints.organization_monitoring_provider_index import (
     OrganizationMonitoringProviderIndexEndpoint,
+)
+from sentry.api.endpoints.organization_monitoring_provider_verify_connection import (
+    OrganizationMonitoringProviderVerifyConnectionEndpoint,
 )
 from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_project_keys import OrganizationProjectKeysEndpoint
@@ -723,6 +728,7 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
 from .endpoints.assistant import AssistantEndpoint
+from .endpoints.auth_2fa import AuthTwoFactorChallengeEndpoint, AuthTwoFactorEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
@@ -1078,6 +1084,16 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^2fa/$",
+        AuthTwoFactorEndpoint.as_view(),
+        name="sentry-api-0-auth-2fa",
+    ),
+    re_path(
+        r"^2fa/challenge/$",
+        AuthTwoFactorChallengeEndpoint.as_view(),
+        name="sentry-api-0-auth-2fa-challenge",
     ),
     re_path(
         r"^validate/$",
@@ -2026,6 +2042,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/$",
         OrganizationMonitoringProviderIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitoring-providers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/gcp/verify-connection/$",
+        OrganizationMonitoringProviderVerifyConnectionEndpoint.as_view(),
+        name="sentry-api-0-organization-monitoring-provider-gcp-verify-connection",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/(?P<provider_key>[^/]+)/$",
