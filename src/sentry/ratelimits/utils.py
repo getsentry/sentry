@@ -47,11 +47,34 @@ def concurrent_limiter() -> ConcurrentRateLimiter:
     return _CONCURRENT_RATE_LIMITER
 
 
+def is_session_request(request: HttpRequest) -> bool:
+    """Whether the request authenticated with a browser session rather than a token.
+
+    This is the middleware-time equivalent of DRF's
+    ``isinstance(request.successful_authenticator, SessionAuthentication)``, which is not resolved
+    until view dispatch. `sentry.middleware.AuthenticationMiddleware` runs before the rate limit
+    middleware and has already resolved token auth into ``request.auth`` by this point.
+
+    Prefer this over `sentry.middleware.is_frontend_request` when the answer is enforced against:
+    that one keys off cookie presence, so any client can land on either side of it.
+    """
+    if getattr(request, "auth", None) is not None:
+        return False
+    # ViewerContextAuthentication (trusted service callbacks, e.g. Seer) deliberately leaves auth
+    # as None to mimic session auth for permission derivation.
+    if getattr(request, "user_from_viewer_context", False):
+        return False
+    user = getattr(request, "user", None)
+    return user is not None and user.is_authenticated
+
+
 def get_rate_limit_key(
     view_func: EndpointFunction,
     request: HttpRequest,
     rate_limit_group: str,
     rate_limit_config: RateLimitConfig | None = None,
+    *,
+    user_api_split: bool = False,
 ) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
     from sentry.models.apitoken import ApiToken, is_api_token_auth
@@ -131,6 +154,13 @@ def get_rate_limit_key(
     # If IP address doesn't exist, skip ratelimiting for now
     else:
         return None
+
+    if (
+        user_api_split
+        and category == RateLimitCategory.USER.value
+        and not is_session_request(request)
+    ):
+        category = RateLimitCategory.USER_API.value
 
     if rate_limit_config and rate_limit_config.has_custom_limit():
         # if there is a custom rate limit on the endpoint, we add view to the key

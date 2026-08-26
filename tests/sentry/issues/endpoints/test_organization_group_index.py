@@ -24,6 +24,7 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.issues.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.issues.grouptype import (
     FeedbackGroup,
     NoiseConfig,
@@ -57,6 +58,7 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
+from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -75,6 +77,7 @@ from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 from sentry.utils.snuba import SnubaQueryParams
@@ -4814,3 +4817,25 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert response.status_code == 204
 
         self.assert_deleted_groups(groups)
+
+
+def test_rate_limits_only_override_user_api() -> None:
+    config = OrganizationGroupIndexEndpoint.rate_limits
+    assert isinstance(config, RateLimitConfig)
+
+    assert config.get_rate_limit("GET", RateLimitCategory.USER_API) == RateLimit(
+        limit=20, window=1, concurrent_limit=10
+    )
+    for category in (RateLimitCategory.IP, RateLimitCategory.USER, RateLimitCategory.ORGANIZATION):
+        assert config.get_rate_limit("GET", category) == get_default_rate_limits_for_group(
+            config.group, category
+        )
+
+
+def test_rate_limits_only_split_on_get() -> None:
+    config = OrganizationGroupIndexEndpoint.rate_limits
+    assert isinstance(config, RateLimitConfig)
+
+    assert config.has_user_api_override("GET")
+    assert not config.has_user_api_override("PUT")
+    assert not config.has_user_api_override("DELETE")

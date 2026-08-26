@@ -10,6 +10,10 @@ from django.conf import settings
 class RateLimitCategory(str, Enum):
     IP = "ip"
     USER = "user"
+    # The token-authenticated subset of USER. Only reached on endpoints that declare a USER_API
+    # limit override *and* are listed in the `api.rate-limit.user-api-split-views` option;
+    # everywhere else token traffic stays in USER.
+    USER_API = "user_api"
     ORGANIZATION = "org"
 
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest
@@ -253,4 +255,87 @@ class TestDefaultToGroup(TestCase):
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
             == f"user:default:GET:{user.id}"
+        )
+
+
+class UserAPISplitEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {RateLimitCategory.USER_API: RateLimit(20, 1, CONCURRENT_RATE_LIMIT)},
+        },
+    )
+
+    def get(self, request: Request) -> Response:
+        raise NotImplementedError
+
+
+@all_silo_test
+class GetRateLimitKeyUserAPISplitTest(TestCase):
+    def setUp(self) -> None:
+        self.view = UserAPISplitEndpoint.as_view()
+        self.unsplit_view = APITestEndpoint.as_view()
+        self.request = RequestFactory().get("/")
+        self.request.session = SessionBase()
+
+    def _key(self, view: Any, **kwargs: Any) -> str | None:
+        config = get_rate_limit_config(view.view_class)
+        return get_rate_limit_key(view, self.request, config.group, config, **kwargs)
+
+    def _authenticate_with_token(self) -> None:
+        with assume_test_silo_mode_of(User):
+            token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+            self.request.auth = AuthenticatedToken.from_token(token)
+        self.request.user = self.user
+
+    def test_token_request_splits(self) -> None:
+        self._authenticate_with_token()
+
+        assert (
+            self._key(self.view, user_api_split=True)
+            == f"user_api:default:UserAPISplitEndpoint:GET:{self.user.id}"
+        )
+
+    def test_session_request_does_not_split(self) -> None:
+        self.request.user = self.user
+        self.request.auth = None
+
+        assert (
+            self._key(self.view, user_api_split=True)
+            == f"user:default:UserAPISplitEndpoint:GET:{self.user.id}"
+        )
+
+    def test_split_disabled_matches_unsplit_key(self) -> None:
+        self._authenticate_with_token()
+
+        assert self._key(self.view) == self._key(self.view, user_api_split=False)
+        assert self._key(self.view) == f"user:default:UserAPISplitEndpoint:GET:{self.user.id}"
+
+    def test_endpoint_without_override_is_unaffected(self) -> None:
+        self._authenticate_with_token()
+
+        assert self._key(self.unsplit_view, user_api_split=False) == self._key(self.unsplit_view)
+        assert self._key(self.unsplit_view) == f"user:default:APITestEndpoint:GET:{self.user.id}"
+
+    def test_sentry_app_token_stays_on_org(self) -> None:
+        install = self.create_sentry_app_installation(organization=self.organization)
+        with assume_test_silo_mode_of(User):
+            self.request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
+            self.request.auth = AuthenticatedToken.from_token(install.api_token)
+
+        assert (
+            self._key(self.view, user_api_split=True)
+            == f"org:default:UserAPISplitEndpoint:GET:{self.organization.id}"
+        )
+
+    def test_org_auth_token_stays_on_ip(self) -> None:
+        self.request.user = AnonymousUser()
+        self.request.auth = AuthenticatedToken.from_token(
+            self.create_org_auth_token(organization_id=self.organization.id, scope_list=["org:ci"])
+        )
+
+        assert (
+            self._key(self.view, user_api_split=True)
+            == "ip:default:UserAPISplitEndpoint:GET:127.0.0.1"
         )

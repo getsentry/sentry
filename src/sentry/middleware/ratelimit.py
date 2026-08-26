@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Callable
+from dataclasses import replace
 from math import ceil
 from typing import Any, cast
 
@@ -11,6 +12,7 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 
+from sentry import options
 from sentry.api.base import apply_cors_headers
 from sentry.ratelimits import (
     above_rate_limit_check,
@@ -34,6 +36,16 @@ DEFAULT_CONCURRENT_ERROR_MESSAGE = (
     "{limit}"
 )
 logger = logging.getLogger("sentry.api.rate-limit")
+
+
+def _user_api_split_enabled(view_name: str) -> bool:
+    # Read outside process_view's blanket except: an options failure there would fail open on rate
+    # limiting entirely, rather than just on the split.
+    try:
+        return view_name in options.get("api.rate-limit.user-api-split-views")
+    except Exception:
+        logger.warning("ratelimit.user_api_split_option_unavailable", exc_info=True)
+        return False
 
 
 def _normalize_and_min_limit(a_limit: int, a_window: int, b_limit: int, b_window: int) -> int:
@@ -97,10 +109,7 @@ class RatelimitMiddleware:
                 )
             limit_overrides[method] = method_limits
 
-        return RateLimitConfig(
-            group=rate_limit_config.group,
-            limit_overrides=limit_overrides,
-        )
+        return replace(rate_limit_config, limit_overrides=limit_overrides)
 
     def process_view(
         self,
@@ -138,6 +147,12 @@ class RatelimitMiddleware:
                     view_class, view_args, {**view_kwargs, "request": request}
                 )
 
+                # Resolved before the impersonation rewrite below, which synthesizes overrides
+                # for every method and category and would otherwise opt every endpoint in.
+                user_api_split = rate_limit_config.has_user_api_override(
+                    cast(str, request.method)
+                ) and _user_api_split_enabled(view_class.__name__)
+
                 # Apply stricter limits during impersonation
                 if is_impersonating:
                     rate_limit_config = self._apply_impersonation_limits(rate_limit_config)
@@ -150,6 +165,7 @@ class RatelimitMiddleware:
                     request,
                     rate_limit_group,
                     rate_limit_config,
+                    user_api_split=user_api_split,
                 )
                 setattr(request, "rate_limit_key", rate_limit_key)
                 if rate_limit_key is None:
