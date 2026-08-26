@@ -6,16 +6,8 @@ function filterFor(attribute: string, values: string[]): string {
 }
 
 /**
- * Widens global filters whose attribute is missing from the rows a widget
- * aggregates, using the fallback attributes the widget query declares.
- *
- * With a `screen` -> `transaction` fallback, `os.name:Android screen:Main`
- * becomes `os.name:Android (screen:Main OR transaction:Main)`. The filtered
- * attribute is replaced in place so the remaining filters still apply to both
- * sides of the OR.
- *
- * Negated and `has:` filters are left alone; only a positive value filter can be
- * widened to another attribute.
+ * Rewrites `attribute:value` to `(attribute:value OR fallback:value)`.
+ * Leaves unrelated, negated, and `has:` filters unchanged.
  */
 export function expandGlobalFilterFallbacks(
   filterConditions: string,
@@ -29,9 +21,7 @@ export function expandGlobalFilterFallbacks(
   const expanded: string[] = [];
 
   for (const {attribute, fallbackAttribute} of fallbacks) {
-    // getFilterValues() normalizes away negation, so an excluded attribute would
-    // otherwise come back as an inclusive OR branch. `has:` forms are already
-    // skipped because they tokenize under a `has` key rather than the attribute.
+    // Skip negated filters: getFilterValues() drops the `!`, which would OR them in.
     if (filterConditions.includes(`!${attribute}:`)) {
       continue;
     }
