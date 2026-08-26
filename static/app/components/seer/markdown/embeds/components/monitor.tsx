@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LazyLoad} from 'sentry/components/lazyLoad';
@@ -35,6 +35,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
@@ -51,10 +52,28 @@ const LazyMetricDetectorDetails = lazy(async () => {
   return {default: MetricDetectorDetailsDetect};
 });
 
+const LazyMetricDetectorChart = lazy(async () => {
+  const {MetricDetectorDetailsChart} =
+    await import('sentry/views/detectors/components/details/metric/chart');
+  return {default: MetricDetectorDetailsChart};
+});
+
 const LazyMobileBuildDetectorDetails = lazy(async () => {
   const {MobileBuildDetectorDetailsDetect} =
     await import('sentry/views/detectors/components/details/mobileBuild/detect');
   return {default: MobileBuildDetectorDetailsDetect};
+});
+
+const LazyMonitorCheckIns = lazy(async () => {
+  const {MonitorCheckIns} =
+    await import('sentry/views/insights/crons/components/monitorCheckIns');
+  return {default: MonitorCheckIns};
+});
+
+const LazyDetectorDetailsOpenPeriodIssues = lazy(async () => {
+  const {DetectorDetailsOpenPeriodIssues} =
+    await import('sentry/views/detectors/components/details/common/openPeriodIssues');
+  return {default: DetectorDetailsOpenPeriodIssues};
 });
 
 function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) {
@@ -110,7 +129,25 @@ function ErrorMonitorBlock({id, statsPeriod}: {id: string; statsPeriod?: string}
 }
 
 function MetricMonitorBlock({detector}: {detector: MetricDetector}) {
-  return <LazyLoad LazyComponent={LazyMetricDetectorDetails} detector={detector} />;
+  return (
+    <Stack gap="md">
+      <Stack gap="sm">
+        <Heading as="h4" size="xs">
+          {t('Metric data')}
+        </Heading>
+        <ErrorBoundary mini>
+          <LazyLoad LazyComponent={LazyMetricDetectorChart} detector={detector} />
+        </ErrorBoundary>
+      </Stack>
+      <Stack.Separator />
+      <Stack gap="sm">
+        <Heading as="h4" size="xs">
+          {t('Rules')}
+        </Heading>
+        <LazyLoad LazyComponent={LazyMetricDetectorDetails} detector={detector} />
+      </Stack>
+    </Stack>
+  );
 }
 
 function UptimeMonitorBlock({detector}: {detector: UptimeDetector}) {
@@ -150,37 +187,81 @@ function UptimeMonitorBlock({detector}: {detector: UptimeDetector}) {
 function CronMonitorBlock({detector}: {detector: CronDetector}) {
   const monitor = detector.dataSources[0].queryObj;
   const environment = getNextCheckInEnv(monitor.environments);
+  const project = useProjectFromId({project_id: detector.projectId});
 
   return (
-    <Grid columns="max-content minmax(0, 1fr)" gap="sm md">
-      <Text variant="muted">{t('Schedule')}</Text>
-      <Text>{scheduleAsText(monitor.config)}</Text>
-      <Text variant="muted">{t('Monitor slug')}</Text>
-      <Text monospace ellipsis>
-        {monitor.slug}
-      </Text>
-      <Text variant="muted">{t('Last check-in')}</Text>
-      <Text>
-        {environment?.lastCheckIn ? (
-          <TimeSince date={environment.lastCheckIn} />
+    <Stack gap="md">
+      <Stack gap="sm">
+        <Heading as="h4" size="xs">
+          {t('Recent check-ins')}
+        </Heading>
+        {project ? (
+          <Container overflowX="auto">
+            <ErrorBoundary mini>
+              <LazyLoad
+                LazyComponent={LazyMonitorCheckIns}
+                monitorSlug={monitor.slug}
+                monitorEnvs={monitor.environments}
+                project={project}
+              />
+            </ErrorBoundary>
+          </Container>
         ) : (
-          t('No check-ins')
+          <Text variant="muted">{t('Unable to load recent check-ins.')}</Text>
         )}
-      </Text>
-      <Text variant="muted">{t('Next check-in')}</Text>
-      <Text>
-        {environment?.nextCheckIn ? (
-          <TimeSince date={environment.nextCheckIn} />
-        ) : (
-          t('Not scheduled')
-        )}
-      </Text>
-    </Grid>
+      </Stack>
+      <Stack.Separator />
+      <Stack gap="sm">
+        <Heading as="h4" size="xs">
+          {t('Monitor configuration')}
+        </Heading>
+        <Grid columns="max-content minmax(0, 1fr)" gap="sm md">
+          <Text variant="muted">{t('Schedule')}</Text>
+          <Text>{scheduleAsText(monitor.config)}</Text>
+          <Text variant="muted">{t('Monitor slug')}</Text>
+          <Text monospace ellipsis>
+            {monitor.slug}
+          </Text>
+          <Text variant="muted">{t('Last check-in')}</Text>
+          <Text>
+            {environment?.lastCheckIn ? (
+              <TimeSince date={environment.lastCheckIn} />
+            ) : (
+              t('No check-ins')
+            )}
+          </Text>
+          <Text variant="muted">{t('Next check-in')}</Text>
+          <Text>
+            {environment?.nextCheckIn ? (
+              <TimeSince date={environment.nextCheckIn} />
+            ) : (
+              t('Not scheduled')
+            )}
+          </Text>
+        </Grid>
+      </Stack>
+    </Stack>
   );
 }
 
 function MobileBuildMonitorBlock({detector}: {detector: PreprodDetector}) {
-  return <LazyLoad LazyComponent={LazyMobileBuildDetectorDetails} detector={detector} />;
+  return (
+    <Stack gap="md">
+      <ErrorBoundary mini>
+        <LazyLoad
+          LazyComponent={LazyDetectorDetailsOpenPeriodIssues}
+          detector={detector}
+        />
+      </ErrorBoundary>
+      <Stack.Separator />
+      <Stack gap="sm">
+        <Heading as="h4" size="xs">
+          {t('Rules')}
+        </Heading>
+        <LazyLoad LazyComponent={LazyMobileBuildDetectorDetails} detector={detector} />
+      </Stack>
+    </Stack>
+  );
 }
 
 function MonitorBlockContent({

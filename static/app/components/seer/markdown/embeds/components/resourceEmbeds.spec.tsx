@@ -1,3 +1,4 @@
+import {CheckInFixture} from 'sentry-fixture/checkIn';
 import {
   CronDetectorFixture,
   ErrorDetectorFixture,
@@ -5,11 +6,14 @@ import {
   PreprodDetectorFixture,
   UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
@@ -51,7 +55,7 @@ describe('Seer resource embeds', () => {
   });
 
   afterEach(() => {
-    ConfigStore.loadInitialData(initialConfig);
+    act(() => ConfigStore.loadInitialData(initialConfig));
   });
 
   it('links a dashboard title to the dashboard in the current organization', async () => {
@@ -200,9 +204,21 @@ describe('Seer resource embeds', () => {
       );
     });
 
-    it('renders the query and thresholds for a metric monitor', async () => {
+    it('renders the chart, query, and thresholds for a metric monitor', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/open-periods/',
+        body: [],
+      });
+      const chartRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {data: [[Date.now() / 1000, [{count: 100}]]]},
+      });
+
       renderMonitor(MetricDetectorFixture({id: '3', name: 'Request volume'}));
 
+      expect(await screen.findByText('Metric data')).toBeInTheDocument();
+      await waitFor(() => expect(chartRequest).toHaveBeenCalled());
+      expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
       expect(await screen.findByText('Dataset:')).toBeInTheDocument();
       expect(screen.getByText('Threshold:')).toBeInTheDocument();
     });
@@ -215,17 +231,48 @@ describe('Seer resource embeds', () => {
       expect(screen.getByText('Creates an issue')).toBeInTheDocument();
     });
 
-    it('renders the schedule and check-ins for a cron monitor', async () => {
-      renderMonitor(CronDetectorFixture({id: '5'}));
+    it('renders recent check-ins and the schedule for a cron monitor', async () => {
+      const project = ProjectFixture({id: '1'});
+      const detector = CronDetectorFixture({id: '5', projectId: project.id});
+      const monitor = detector.dataSources[0].queryObj;
+      ProjectsStore.loadInitialData([project]);
+      const checkInsRequest = MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.slug}/monitors/${monitor.slug}/checkins/`,
+        body: [CheckInFixture()],
+      });
 
+      renderMonitor(detector);
+
+      expect(await screen.findByText('Recent check-ins')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('columnheader', {name: 'Status'})
+      ).toBeInTheDocument();
+      await waitFor(() => expect(checkInsRequest).toHaveBeenCalled());
       expect(await screen.findByText('Schedule')).toBeInTheDocument();
       expect(screen.getByText('Monitor slug')).toBeInTheDocument();
       expect(screen.getByText('Last check-in')).toBeInTheDocument();
     });
 
-    it('renders the measurement and thresholds for a mobile build monitor', async () => {
-      renderMonitor(PreprodDetectorFixture({id: '6'}));
+    it('renders ongoing issues and thresholds for a mobile build monitor', async () => {
+      const detector = PreprodDetectorFixture({id: '6'});
+      const groupId = detector.latestGroup!.id;
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${groupId}/`,
+        body: GroupFixture({id: groupId}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/open-periods/',
+        body: [],
+      });
 
+      renderMonitor(detector);
+
+      expect(await screen.findByText('Ongoing Issue')).toBeInTheDocument();
+      expect((await screen.findAllByRole('table')).length).toBeGreaterThan(0);
       expect(await screen.findByText('Measurement:')).toBeInTheDocument();
       expect(screen.getByText('Threshold Type:')).toBeInTheDocument();
     });
