@@ -7,7 +7,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -62,6 +62,7 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
 }
 
 function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
+  const getPaginationCaption = useGetPaginationCaption();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const onSearch = useCallback((query: string) => {

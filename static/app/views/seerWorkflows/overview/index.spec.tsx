@@ -3,6 +3,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -21,6 +22,7 @@ import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
@@ -35,7 +37,7 @@ describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
     features: ['seer-night-shift-ui', 'gen-ai-features'],
   });
-  const basePath = `/organizations/${organization.slug}/issues/autofix/overview/`;
+  const basePath = `/organizations/${organization.slug}/issues/autofix/`;
 
   const emptyMilestones = {
     autofix_root_cause: [],
@@ -254,6 +256,51 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Merged/})).not.toBeInTheDocument();
     expect(screen.queryByText('No issues')).not.toBeInTheDocument();
+  });
+
+  it('batches project member fetches into a single request across projects', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '2', slug: 'project-slug'}),
+      ProjectFixture({id: '3', slug: 'other-project'}),
+    ]);
+    const runOne = {
+      ...rootCauseRun,
+      groupId: '2',
+      seerRunId: 'run-1',
+      title: 'First project issue',
+      issue: issueFixture({project: {id: '2', slug: 'project-slug', platform: 'python'}}),
+    };
+    const runTwo = {
+      ...rootCauseRun,
+      groupId: '3',
+      seerRunId: 'run-2',
+      title: 'Second project issue',
+      issue: issueFixture({
+        project: {id: '3', slug: 'other-project', platform: 'python'},
+      }),
+    };
+    mockOverview({base: {autofix_root_cause: [runOne, runTwo]}});
+    const usersMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('First project issue')).toBeInTheDocument();
+    expect(await screen.findByText('Second project issue')).toBeInTheDocument();
+
+    // Both visible projects should be fetched in one batched request, not one
+    // request per project.
+    await waitFor(() =>
+      expect(usersMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/users/`,
+        expect.objectContaining({
+          query: expect.objectContaining({project: expect.arrayContaining(['2', '3'])}),
+        })
+      )
+    );
+    expect(usersMock).toHaveBeenCalledTimes(1);
   });
 
   it('refetches the overview after a card action is dispatched', async () => {
@@ -564,6 +611,33 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('No issues')).not.toBeInTheDocument();
   });
 
+  it('offers activity periods up to 30 days but not 90 days', async () => {
+    mockOverview({base: {}});
+
+    renderPage();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Autofix Activity 7D'})
+    );
+
+    expect(await screen.findByRole('option', {name: 'Last 30 days'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Last 90 days'})).not.toBeInTheDocument();
+  });
+
+  it('keeps a stale 90-day selection valid on the trigger', async () => {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({datetime: {period: '90d', start: null, end: null, utc: null}})
+    );
+    setPageFiltersStorage(organization.slug, new Set(['datetime']));
+    mockOverview({base: {}});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Autofix Activity 90D'})
+    ).toBeInTheDocument();
+  });
+
   it('renders card prose and links from the endpoint payload', async () => {
     mockOverview({
       base: {
@@ -595,6 +669,36 @@ describe('AutofixOverview', () => {
     // the plan label.
     expect(screen.getAllByText('Root Cause')).toHaveLength(2);
     expect(screen.getAllByText('Plan')).toHaveLength(1);
+  });
+
+  it('shows "0 users" for a card with events but zero affected users', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, issue: issueFixture({count: '1200', userCount: 0})},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('0 users')).toBeInTheDocument();
+    expect(screen.getByText('1.2K events')).toBeInTheDocument();
+  });
+
+  it('omits the users datapoint when the stat is unavailable', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, issue: issueFixture({count: '1200', userCount: null})},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    expect(screen.queryByText('0 users')).not.toBeInTheDocument();
   });
 
   it('renders inline code in root cause and plan summaries', async () => {
@@ -792,23 +896,16 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps the list up silently while a sort change reloads', async () => {
-    const {statusPollRequest} = mockOverview({
-      base: {autofix_root_cause: [rootCauseRun]},
-    });
+  it('shows the skeleton while a sort change reloads', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
 
-    // The events sort returns a different run; hold its enrichment open to keep
-    // the reloading state on screen.
-    const eventsEnriched = deferEnriched();
+    // A sort change is a new scope, so previous data is dropped instead of held.
+    // Hold the events-sorted response open to keep the skeleton on screen.
+    const events = deferEnriched();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
-      match: [
-        MockApiClient.matchQuery({
-          sort: 'events',
-          expand: ['scmInfo', 'issueStats', 'status'],
-        }),
-      ],
-      asyncDelay: eventsEnriched.promise,
+      match: [MockApiClient.matchQuery({sort: 'events'})],
+      asyncDelay: events.promise,
       body: {runsByMilestone: {...emptyMilestones, autofix_solution: [solutionRun]}},
     });
 
@@ -817,29 +914,25 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(statusPollRequest).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole('button', {name: /Sort/}));
     await userEvent.click(screen.getByRole('option', {name: 'Most events'}));
 
-    // The status poll refetches for the new sort, but the old list stays up
-    // silently (keepPreviousData) while the enriched request reloads — no spinner
-    // and no skeleton.
-    await waitFor(() => expect(statusPollRequest).toHaveBeenCalledTimes(2));
+    // The old list drops out and the skeleton shows while the reordered results
+    // load — matching a project or date change.
+    expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
+      0
+    );
     expect(
-      screen.getByRole('link', {name: 'TypeError in checkout cart'})
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
 
-    eventsEnriched.resolve();
+    events.resolve();
 
     expect(
       await screen.findByRole('link', {name: 'KeyError in proxy handler'})
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
   });
 
   it('shows the skeleton again when the selected project changes', async () => {
@@ -1678,7 +1771,7 @@ describe('AutofixOverview', () => {
       expect(screen.queryByRole('tab', {name: /All Runs/})).not.toBeInTheDocument();
     });
 
-    it('shows a truncation notice when the backend caps a section', async () => {
+    it('shows a truncation notice in the assignee menu when the backend caps a section', async () => {
       mockOverview({
         base: {autofix_root_cause: [assignedRun]},
         truncated: ['autofix_root_cause'],
@@ -1686,11 +1779,35 @@ describe('AutofixOverview', () => {
 
       renderPage();
 
+      await userEvent.click(await screen.findByRole('button', {name: /Assignee/}));
+
       expect(
-        await screen.findByText(
-          'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
-        )
+        await screen.findByText('Assignee counts may be incomplete')
       ).toBeInTheDocument();
+    });
+
+    it('omits the truncation notice when nothing is capped', async () => {
+      mockOverview({base: {autofix_root_cause: [assignedRun]}});
+
+      renderPage();
+
+      await userEvent.click(await screen.findByRole('button', {name: /Assignee/}));
+
+      expect(
+        screen.queryByText('Assignee counts may be incomplete')
+      ).not.toBeInTheDocument();
+    });
+
+    it('omits the truncation notice when the menu has no assignee options', async () => {
+      mockOverview({base: {}, truncated: ['autofix_root_cause']});
+
+      renderPage();
+
+      await userEvent.click(await screen.findByRole('button', {name: /Assignee/}));
+
+      expect(
+        screen.queryByText('Assignee counts may be incomplete')
+      ).not.toBeInTheDocument();
     });
 
     it('formats team assignees with a # prefix', async () => {
@@ -1709,6 +1826,91 @@ describe('AutofixOverview', () => {
       await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
 
       expect(await screen.findByRole('option', {name: /#squad/})).toBeInTheDocument();
+    });
+
+    it('batches team avatar fetches into a single request across cards', async () => {
+      act(() => {
+        TeamStore.loadInitialData([]);
+      });
+      const teamOne: Actor = {type: 'team', id: '8', name: 'team-eight'};
+      const teamTwo: Actor = {type: 'team', id: '9', name: 'team-nine'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {
+              ...rootCauseRun,
+              groupId: '2',
+              seerRunId: 'run-1',
+              title: 'First team issue',
+              issue: issueFixture({assignedTo: teamOne}),
+            },
+            {
+              ...rootCauseRun,
+              groupId: '3',
+              seerRunId: 'run-2',
+              title: 'Second team issue',
+              issue: issueFixture({assignedTo: teamTwo}),
+            },
+          ],
+        },
+      });
+      const teamsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [
+          TeamFixture({id: '8', slug: 'team-eight'}),
+          TeamFixture({id: '9', slug: 'team-nine'}),
+        ],
+      });
+
+      renderPage();
+
+      expect(await screen.findByText('First team issue')).toBeInTheDocument();
+      expect(await screen.findByText('Second team issue')).toBeInTheDocument();
+
+      // Both assignee teams should resolve via one batched request, not one per team.
+      await waitFor(() => {
+        const batched = teamsMock.mock.calls.find(([, options]: any) => {
+          const query = options?.query?.query ?? '';
+          return query.includes('id:8') && query.includes('id:9');
+        });
+        expect(batched).toBeDefined();
+      });
+      expect(teamsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('restores a usable assignee control when an assigned team never resolves', async () => {
+      act(() => {
+        TeamStore.loadInitialData([]);
+      });
+      const deletedTeam: Actor = {type: 'team', id: '404', name: 'gone'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {
+              ...rootCauseRun,
+              groupId: '2',
+              seerRunId: 'run-1',
+              title: 'Orphaned issue',
+              issue: issueFixture({assignedTo: deletedTeam}),
+            },
+          ],
+        },
+      });
+      // The batched request omits the assigned team (deleted / inaccessible),
+      // so it never enters the resolved set.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
+      });
+
+      renderPage();
+
+      expect(await screen.findByText('Orphaned issue')).toBeInTheDocument();
+      // Once the batch settles, the card must fall back to the interactive
+      // assignee control rather than hang on a placeholder.
+      expect(
+        await screen.findByRole('button', {name: 'Modify issue assignee'})
+      ).toBeInTheDocument();
     });
 
     it('clears the filter and restores all sections', async () => {
@@ -1735,7 +1937,7 @@ describe('AutofixOverview', () => {
       const nextAssignee = UserFixture({id: '42', name: 'Next Assignee'});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
-        body: [MemberFixture({user: nextAssignee})],
+        body: [MemberFixture({user: nextAssignee, projects: ['project-slug']})],
       });
       mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       const assignRequest = MockApiClient.addMockResponse({

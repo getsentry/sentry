@@ -265,10 +265,15 @@ function RelayUsageList({
       .map(relay => omit(relay, ['created', 'lastModified']));
 
     try {
-      const response = await api.requestPromise(`/organizations/${orgSlug}/`, {
-        method: 'PUT',
-        data: {trustedRelays},
-      });
+      const response = await api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        {
+          method: 'PUT',
+          data: {trustedRelays},
+        }
+      );
       addSuccessMessage(t('Successfully deleted Relay public key'));
       onRelaysChange(response.trustedRelays ?? []);
     } catch {

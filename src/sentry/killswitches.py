@@ -218,6 +218,17 @@ ALL_KILLSWITCH_OPTIONS = {
             "org_id": "An organization ID to filter segments by.",
         },
     ),
+    "deletions.nodestore.killswitch-projects": KillswitchInfo(
+        description="""
+        Halt the self-chaining nodestore group-event deletion task for the given projects.
+
+        Note that this leaves partial cleanup: remaining nodestore, eventstore, and EAP
+        data will not be deleted and must be cleaned up manually.
+        """,
+        fields={
+            "project_id": "A project ID to halt nodestore group-event deletion for.",
+        },
+    ),
     "unmerge.killswitch-projects": KillswitchInfo(
         description="""
         Halt the self-chaining unmerge task for the given projects.

@@ -283,11 +283,6 @@ export type IssueEventParameters = {
     area: string;
     priority: PriorityLevel;
   };
-  'project_modal.created': {
-    issue_alert: 'Default' | 'Custom' | 'No Rule';
-    project_id: string;
-    rule_id: string;
-  };
   'quick_trace.connected_services': {
     projects: number;
   };
@@ -385,7 +380,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
-  'project_modal.created': 'Project Modal: Created',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
   'settings.inbound_filter_updated': 'Settings: Inbound Filter Updated',

@@ -117,6 +117,12 @@ function InvestigationsPage() {
   const {data, isPending, isError, error} = useQuery({
     ...listOptions,
     select: selectJsonWithHeaders,
+    refetchInterval: queryState =>
+      queryState.state.data?.json.some(item =>
+        ['pending', 'running'].includes(item.titleGeneration?.status ?? '')
+      )
+        ? 2000
+        : false,
   });
 
   const createMutation = useCreateInvestigationMutation(organization.slug, {
