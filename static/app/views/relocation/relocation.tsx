@@ -402,7 +402,7 @@ const AdaptivePageCorners = styled(PageCorners)`
 
 const BackMotionDiv = styled(motion.div)`
   position: absolute;
-  top: 40px;
+  top: ${p => p.theme.space.xl};
   left: 20px;
 
   button {
