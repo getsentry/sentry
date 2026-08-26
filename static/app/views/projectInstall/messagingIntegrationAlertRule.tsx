@@ -20,17 +20,6 @@ import {
 
 export type {Channel};
 
-type Input = Pick<
-  IssueAlertNotificationProps,
-  | 'channel'
-  | 'integration'
-  | 'provider'
-  | 'providersToIntegrations'
-  | 'setChannel'
-  | 'setIntegration'
-  | 'setProvider'
->;
-
 /**
  * Shared data + handlers for the messaging-integration alert rule. Owns the
  * provider/integration option lists and change handlers; delegates channel
@@ -49,7 +38,7 @@ export function useMessagingIntegrationAlertRule(
     setIntegration,
     setProvider,
     providersToIntegrations,
-  }: Input,
+  }: IssueAlertNotificationProps,
   // For project creation, `variant` identifies the SCM or legacy experience.
   // Other flows leave it undefined and do not emit these change events.
   variant?: 'scm' | 'legacy'
