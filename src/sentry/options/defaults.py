@@ -2385,21 +2385,11 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Organizations the per-org pipeline computes sample rates for, whatever
-# dynamic-sampling.per_org.rollout-rate selects. Names a single org to pilot before its
-# rate group exists; a non-empty list also keeps the pipeline running at a rate of 0.
-register(
-    "dynamic-sampling.per_org.rollout-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
 # id. Above 0.0, rule generation reads the project, transaction and recalibration sample
 # rates of the selected orgs from the per-org caches instead of the legacy ones. An org
-# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate or
-# dynamic-sampling.per_org.rollout-org-ids selects it too. An org switches over as a whole:
+# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
+# An org switches over as a whole:
 # until a pass has stored its project sample rates, rule generation serves all of its
 # values from the legacy caches, and from then on all of them from the per-org ones.
 register(
@@ -2410,8 +2400,8 @@ register(
 )
 
 # Organizations rule generation serves from the per-org caches, whatever
-# dynamic-sampling.per_org.serving-rollout-rate selects. Pair with
-# dynamic-sampling.per_org.rollout-org-ids to pilot one org end to end.
+# dynamic-sampling.per_org.serving-rollout-rate selects. Names a single org to pilot
+# before a rate group exists.
 register(
     "dynamic-sampling.per_org.serving-org-ids",
     type=Sequence,

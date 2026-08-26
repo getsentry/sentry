@@ -5,7 +5,6 @@ from sentry.options.rollout import in_rollout_group
 
 KILLSWITCH_OPTION = "dynamic-sampling.per_org.killswitch"
 ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.rollout-rate"
-ROLLOUT_ORG_IDS_OPTION = "dynamic-sampling.per_org.rollout-org-ids"
 RECALIBRATION_ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.recalibration-rollout-rate"
 SERVING_ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.serving-rollout-rate"
 SERVING_ORG_IDS_OPTION = "dynamic-sampling.per_org.serving-org-ids"
@@ -34,15 +33,6 @@ def _org_ids(option_name: str) -> set[int]:
     }
 
 
-def _in_rollout(rate_option: str, org_ids_option: str, org_id: int) -> bool:
-    """Whether an organization is selected, by name or by the deterministic % rollout.
-
-    The list is how a single organization is piloted before its rate group exists: it
-    only ever adds, so raising the rate keeps every organization already selected.
-    """
-    return org_id in _org_ids(org_ids_option) or in_rollout_group(rate_option, org_id)
-
-
 def is_killswitch_engaged() -> bool:
     return bool(options.get(KILLSWITCH_OPTION))
 
@@ -52,15 +42,11 @@ def rollout_rate() -> float:
 
 
 def is_rollout_enabled() -> bool:
-    """Whether the pipeline runs at all.
-
-    A listed organization keeps it running at a rate of 0, which is how a pilot starts.
-    """
-    return rollout_rate() > 0 or bool(_org_ids(ROLLOUT_ORG_IDS_OPTION))
+    return rollout_rate() > 0
 
 
 def is_org_in_rollout(org_id: int) -> bool:
-    return _in_rollout(ROLLOUT_RATE_OPTION, ROLLOUT_ORG_IDS_OPTION, org_id)
+    return in_rollout_group(ROLLOUT_RATE_OPTION, org_id)
 
 
 def is_org_in_recalibration_rollout(org_id: int) -> bool:
@@ -71,11 +57,14 @@ def is_org_in_serving_rollout(org_id: int) -> bool:
     """Whether rule generation reads this organization's sample rates from the per-org caches.
 
     Independent of the compute rollout, which only decides whether the pipeline fills those
-    caches. An organization has to be in both for the per-org caches to hold anything, and
-    the killswitch takes precedence over both.
+    caches. Named organizations are served whatever the rate is, which is how one is piloted
+    before a rate group exists; the list only ever adds, so raising the rate later keeps
+    every organization already selected. The killswitch takes precedence over both.
     """
-    return not is_killswitch_engaged() and _in_rollout(
-        SERVING_ROLLOUT_RATE_OPTION, SERVING_ORG_IDS_OPTION, org_id
+    if is_killswitch_engaged():
+        return False
+    return org_id in _org_ids(SERVING_ORG_IDS_OPTION) or in_rollout_group(
+        SERVING_ROLLOUT_RATE_OPTION, org_id
     )
 
 
