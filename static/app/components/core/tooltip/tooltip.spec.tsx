@@ -256,8 +256,22 @@ describe('Tooltip', () => {
       // Every section doing this would collapse the space between two of them.
       const rules = getEmotionRules(await showTooltip()).join('');
 
-      expect(rules).toMatch(/:first-child\s*{[^}]*margin-block-start:\s*calc\(-1 \*/);
+      expect(rules).toMatch(
+        /\[data-tooltip-section\]\s*~\s*\[data-tooltip-section\]\s*{[^}]*margin-block-start:\s*0/
+      );
       expect(rules).toMatch(/:last-child\s*{[^}]*margin-block-end:\s*calc\(-1 \*/);
+    });
+
+    it('does not depend on a section being the overlay first child', async () => {
+      // `Overlay` renders its arrow ahead of the content whenever arrowProps is
+      // passed, which Tooltip always does. Keying the block-start cancel off
+      // `:first-child` therefore silently never applies, which is why the rule
+      // above selects on a preceding section instead.
+      await showTooltip(<Tooltip.Header>test</Tooltip.Header>);
+
+      const section = document.querySelector('[data-tooltip-section]');
+      expect(section).toBeInTheDocument();
+      expect(section).not.toBe(section!.parentElement!.firstElementChild);
     });
 
     it('marks a section composed directly into the title', async () => {
