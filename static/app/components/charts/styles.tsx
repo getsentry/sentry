@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type FlexProps, type GridProps} from '@sentry/scraps/layout';
 
 export const SectionHeading = styled('h4')`
   display: inline-grid;
@@ -29,17 +29,19 @@ export function InlineContainer(props: GridProps) {
   );
 }
 
-export const ChartControls = styled('div')`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md}
-    ${p => p.theme.space['2xl']};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-`;
+export function ChartControls(props: FlexProps) {
+  return (
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      justify={{zero: 'start', xl: 'between'}}
+      wrap={{zero: 'nowrap', xl: 'wrap'}}
+      padding="md"
+      paddingLeft="2xl"
+      borderTop="primary"
+      {...props}
+    />
+  );
+}
 
 // Header element for charts within panels.
 // @TODO(jonasbadalic) This should be a title component and not a div
