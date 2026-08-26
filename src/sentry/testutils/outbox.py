@@ -6,13 +6,15 @@ from typing import Any
 
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
+from django.utils import timezone
 
 from sentry.hybridcloud.models.outbox import OutboxBase
-from sentry.hybridcloud.models.webhookpayload import THE_PAST, DestinationType, WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.tasks.deliver_from_outbox import (
     enqueue_outbox_jobs,
     enqueue_outbox_jobs_control,
 )
+from sentry.hybridcloud.tasks.deliver_webhooks import BATCH_SCHEDULE_OFFSET
 from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.silo.base import SiloMode
@@ -98,7 +100,12 @@ def assert_webhook_payloads_for_mailbox(
         assert message.request_path == expected_payload["request_path"]
         assert message.request_headers == expected_payload["request_headers"]
         assert message.request_body == expected_payload["request_body"]
-        assert message.schedule_for == THE_PAST
+        # Parsers that route to a cell fire a push-triggered drain, which claims
+        # the mailbox head before the request returns. So a queued payload is
+        # either still due (THE_PAST) or claimed no further out than a drain's
+        # own deadline — anything beyond that was deferred, which is the bug
+        # this guards against.
+        assert message.schedule_for <= timezone.now() + BATCH_SCHEDULE_OFFSET
         assert message.attempts == 0
 
         if destination_types:

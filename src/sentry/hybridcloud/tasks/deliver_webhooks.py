@@ -321,8 +321,6 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
 
     Falls back gracefully if the cache backend is unavailable — the scheduler handles delivery.
     """
-    if not options.get("hybridcloud.webhookpayload.push_drain_trigger"):
-        return
     trigger_tags = {"provider": _provider_from_mailbox(mailbox_name)}
     lock_acquired = False
     try:
