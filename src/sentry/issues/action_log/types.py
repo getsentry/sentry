@@ -765,11 +765,18 @@ class SeerCodingCompletedAction(GroupAction):
         return GroupActionType.SEER_CODING_COMPLETED
 
 
+class SeerPullRequestEntry(BaseModel):
+    provider: Optional[str] = None
+    repo_name: Optional[str] = None
+    status: Optional[str] = None
+    error: Optional[dict[str, str]] = None
+    pull_request: Optional[dict[str, Optional[str | int]]] = None
+
+
 class SeerPRCreatedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
-    # TODO Break out as separate model?
-    pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]] = None
+    pull_requests: Optional[list[SeerPullRequestEntry]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

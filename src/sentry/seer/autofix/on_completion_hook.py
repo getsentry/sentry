@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -526,7 +526,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             seer_run_state_id=run_id,
         ).first()
 
-        webhook_payload = {
+        webhook_payload: dict[str, Any] = {
             "run_id": run_id,
             "sentry_run_id": str(seer_run.uuid) if seer_run is not None else None,
             "group_id": group.id,
@@ -535,8 +535,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # Iterate through blocks in reverse order (most recent first)
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
-
-        is_pr_created = False
+        has_pr_result = False
 
         if current_step is not None:
             artifact = cls.find_latest_artifact_for_step(state, current_step)
@@ -557,16 +556,20 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # per seer run.
                 webhook_action_type = SeerActionType.PR_CREATED
                 webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
-                is_pr_created = True
-                analytics.record(
-                    AiAutofixPrCreatedCompletedEvent(
-                        organization_id=organization.id,
-                        project_id=group.project_id,
-                        group_id=group.id,
-                        referrer=None if current_referrer is None else current_referrer.value,
-                        run_id=run_id,
+                has_pr_result = True
+                if any(
+                    pull_request["status"] == "completed"
+                    for pull_request in webhook_payload["pull_requests"]
+                ):
+                    analytics.record(
+                        AiAutofixPrCreatedCompletedEvent(
+                            organization_id=organization.id,
+                            project_id=group.project_id,
+                            group_id=group.id,
+                            referrer=None if current_referrer is None else current_referrer.value,
+                            run_id=run_id,
+                        )
                     )
-                )
             else:
                 webhook_action_type = SeerActionType.CODING_COMPLETED
                 webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
@@ -591,7 +594,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             reconcile_milestones(seer_run, state)
 
         event_name = webhook_action_type.value
-
         event_type = f"seer.{event_name}"
         try:
             sentry_app_event_type = SentryAppEventType(event_type)
@@ -636,7 +638,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             )
 
-        if current_step is not None and not is_pr_created:
+        if current_step is not None and not has_pr_result:
             referrer = current_referrer.value if current_referrer is not None else None
             iteration_index = get_latest_iteration_index(state)
             metrics.incr(
@@ -682,18 +684,35 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls,
         state: SeerRunState,
     ) -> list[dict]:
-        return [
-            {
-                "provider": pull_request.provider or "unknown",
-                "repo_name": pull_request.repo_name,
-                "pull_request": {
-                    "pr_id": pull_request.pr_id,
-                    "pr_number": pull_request.pr_number,
-                    "pr_url": pull_request.pr_url,
-                },
-            }
-            for pull_request in state.repo_pr_states.values()
-        ]
+        entries = []
+        for pull_request in state.repo_pr_states.values():
+            status = "completed" if pull_request.pr_creation_status == "completed" else "error"
+            entries.append(
+                {
+                    "provider": pull_request.provider or "unknown",
+                    "repo_name": pull_request.repo_name,
+                    "status": status,
+                    "error": (
+                        {"code": pull_request.pr_creation_error_code or "unknown"}
+                        if status == "error"
+                        else None
+                    ),
+                    "pull_request": (
+                        {
+                            "pr_id": pull_request.pr_id,
+                            "pr_number": pull_request.pr_number,
+                            "pr_url": pull_request.pr_url,
+                        }
+                        if (
+                            pull_request.pr_id is not None
+                            and pull_request.pr_number is not None
+                            and pull_request.pr_url is not None
+                        )
+                        else None
+                    ),
+                }
+            )
+        return entries
 
     @classmethod
     def _get_current_step(
