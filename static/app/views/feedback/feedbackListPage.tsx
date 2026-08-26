@@ -3,7 +3,7 @@ import {Fragment, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container as LayoutContainer, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -46,10 +46,7 @@ const pageLayout = {
     '3xl': 'minmax(195px, 1fr) 1.5fr',
     '4xl': 'minmax(390px, 1fr) 2fr',
   },
-  rows: {
-    zero: 'max-content 76vh',
-    '3xl': 'max-content minmax(0, 1fr)',
-  },
+  rows: 'max-content minmax(0, 1fr)',
 } as const;
 
 function PageContent({
@@ -112,16 +109,13 @@ function PageContent({
               }}
               width="100%"
             >
-              <LayoutContainer
-                area="filters"
-                justifySelf={{zero: 'stretch', sm: 'start'}}
-              >
+              <Container area="filters" justifySelf={{zero: 'stretch', sm: 'start'}}>
                 <FeedbackFilters />
-              </LayoutContainer>
-              <LayoutContainer area="search">
+              </Container>
+              <Container area="search">
                 <FeedbackSearch />
-              </LayoutContainer>
-              <LayoutContainer
+              </Container>
+              <Container
                 area="actions"
                 alignSelf="start"
                 justifySelf={{zero: 'stretch', sm: 'end'}}
@@ -132,14 +126,14 @@ function PageContent({
                     {t('Create Alert')}
                   </LinkButton>
                 )}
-              </LayoutContainer>
+              </Container>
             </Grid>
             {hasFeedbackContent ? (
               content
             ) : (
-              <LayoutContainer overflow="hidden" column="1 / -1">
+              <Container overflow="hidden" column="1 / -1">
                 <FeedbackSetupPanel />
-              </LayoutContainer>
+              </Container>
             )}
           </Grid>
         </Stack>
@@ -214,16 +208,16 @@ export default function FeedbackListPage() {
         <FeedbackPanel>
           <FeedbackList onItemSelect={handleItemSelect} />
           {selectedItemIndex !== null && (
-            <LayoutContainer display={{zero: 'block', '3xl': 'none'}}>
+            <Container display={{zero: 'block', '3xl': 'none'}}>
               <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
                 {t('Jump to selected item')}
               </JumpToSelectedButton>
-            </LayoutContainer>
+            </Container>
           )}
         </FeedbackPanel>
       </Stack>
 
-      <LayoutContainer
+      <Container
         area={{zero: 'list', '3xl': 'details'}}
         display={{zero: showItemPreview ? 'flex' : 'none', '3xl': 'flex'}}
         minHeight={0}
@@ -233,7 +227,7 @@ export default function FeedbackListPage() {
             <FeedbackItemLoader onBackToList={handleBackToList} />
           </AnalyticsArea>
         </FeedbackPanel>
-      </LayoutContainer>
+      </Container>
     </Fragment>
   );
 
