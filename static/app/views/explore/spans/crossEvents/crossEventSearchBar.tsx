@@ -50,7 +50,7 @@ export const SpansTabCrossEventSearchBar = memo(
     const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
       useTraceItemDatasetAttributes(traceItemType, {}, 'boolean');
     const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-      useTraceItemDatasetAttributes(traceItemType, {}, 'array');
+      useTraceItemDatasetAttributes(traceItemType, {enabled: supportsArrays}, 'array');
 
     const eapSpanSearchQueryBuilderProps = useMemo(
       () => ({

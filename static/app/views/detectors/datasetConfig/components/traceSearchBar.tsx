@@ -26,7 +26,11 @@ export function TraceSearchBar({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceItemDatasetAttributes(traceDataset, {projects: projectIds}, 'boolean');
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useTraceItemDatasetAttributes(traceDataset, {projects: projectIds}, 'array');
+    useTraceItemDatasetAttributes(
+      traceDataset,
+      {projects: projectIds, enabled: supportsArrays},
+      'array'
+    );
 
   return (
     <TraceItemSearchQueryBuilder

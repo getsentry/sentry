@@ -21,6 +21,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {getShortEventId} from 'sentry/utils/events';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -53,6 +54,8 @@ export function OurlogsDrawer({
   embeddedOptions,
   additionalData: propAdditionalData,
 }: LogIssueDrawerProps) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const setLogsQuery = useSetQueryParamsQuery();
   const logsSearch = useQueryParamsSearch();
 
@@ -63,7 +66,7 @@ export function OurlogsDrawer({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean');
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useLogItemAttributes({}, 'array');
+    useLogItemAttributes({enabled: supportsArrays}, 'array');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),

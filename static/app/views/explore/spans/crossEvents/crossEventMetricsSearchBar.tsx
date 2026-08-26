@@ -72,7 +72,7 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
       );
     const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
       useTraceMetricItemAttributes(
-        attributeOptions,
+        {...attributeOptions, enabled: supportsArrays},
         'array',
         HiddenTraceMetricSearchFields
       );

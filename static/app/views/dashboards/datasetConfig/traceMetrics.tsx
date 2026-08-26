@@ -125,7 +125,7 @@ function TraceMetricsSearchBar({
     useTraceMetricItemAttributes(
       {
         query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
+        enabled: defined(traceMetrics[0]) && supportsArrays,
       },
       'array',
       HiddenTraceMetricSearchFields
@@ -186,7 +186,7 @@ function useTraceMetricsSearchBarDataProvider(
     );
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      {query: attributeQuery, enabled: defined(traceMetrics[0]) && supportsArrays},
       'array',
       HiddenTraceMetricSearchFields
     );

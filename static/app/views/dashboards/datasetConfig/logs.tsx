@@ -129,7 +129,10 @@ function LogsSearchBar({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'array');
+    useLogItemAttributes(
+      {enabled: isLogsEnabled(organization) && supportsArrays},
+      'array'
+    );
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
@@ -165,7 +168,10 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'array');
+    useLogItemAttributes(
+      {enabled: isLogsEnabled(organization) && supportsArrays},
+      'array'
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

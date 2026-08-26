@@ -139,6 +139,8 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
     sortBys: aggregateSortBys,
   });
 
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useLogItemAttributes({}, 'string', HiddenLogSearchFields);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
@@ -146,7 +148,7 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useLogItemAttributes({}, 'array', HiddenLogSearchFields);
+    useLogItemAttributes({enabled: supportsArrays}, 'array', HiddenLogSearchFields);
 
   const {data: validatedSearchQueryData} = useValidateLogsTab();
 
@@ -163,7 +165,6 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
       validatedSearchQueryData,
     });
 
-  const organization = useOrganization();
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
