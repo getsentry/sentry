@@ -62,6 +62,16 @@ function renderTitle() {
   renderGlobalModal();
 }
 
+describe('DashboardBreadcrumbTitle actions', () => {
+  it('keeps the acceptance-test hook on the edit action', async () => {
+    renderTitle();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+
+    expect(screen.getByTestId('dashboard-edit')).toHaveTextContent('Edit');
+  });
+});
+
 async function openRevisionHistory() {
   await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
   await userEvent.click(

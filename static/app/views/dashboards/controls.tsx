@@ -65,7 +65,12 @@ export function DashboardActionBar({
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
       <DashboardControls>
-        <Button size="sm" onClick={handleCommit} variant="primary">
+        <Button
+          size="sm"
+          onClick={handleCommit}
+          variant="primary"
+          data-test-id="dashboard-commit"
+        >
           {t('Save and Finish')}
         </Button>
         <Confirm
@@ -73,11 +78,16 @@ export function DashboardActionBar({
           message={t('Are you sure you want to delete this dashboard?')}
           onConfirm={onDelete}
         >
-          <Button size="sm" variant="danger">
+          <Button size="sm" variant="danger" data-test-id="dashboard-delete">
             {t('Delete')}
           </Button>
         </Confirm>
-        <Button size="sm" variant="transparent" onClick={handleCancel}>
+        <Button
+          size="sm"
+          variant="transparent"
+          onClick={handleCancel}
+          data-test-id="dashboard-cancel"
+        >
           {t('Cancel')}
         </Button>
       </DashboardControls>
@@ -87,10 +97,20 @@ export function DashboardActionBar({
   if (dashboardState === DashboardState.CREATE) {
     return (
       <DashboardControls>
-        <Button size="sm" variant="transparent" onClick={handleCancel}>
+        <Button
+          size="sm"
+          variant="transparent"
+          onClick={handleCancel}
+          data-test-id="dashboard-cancel"
+        >
           {t('Cancel')}
         </Button>
-        <Button size="sm" onClick={handleCommit} variant="primary">
+        <Button
+          size="sm"
+          onClick={handleCommit}
+          variant="primary"
+          data-test-id="dashboard-commit"
+        >
           {t('Save and Finish')}
         </Button>
       </DashboardControls>
@@ -100,7 +120,7 @@ export function DashboardActionBar({
   if (dashboardState === DashboardState.PREVIEW) {
     return (
       <DashboardControls>
-        <Button size="sm" onClick={handleCancel}>
+        <Button size="sm" onClick={handleCancel} data-test-id="dashboard-cancel">
           {t('Go Back')}
         </Button>
         <DashboardCreateLimitWrapper>
@@ -109,6 +129,7 @@ export function DashboardActionBar({
               size="sm"
               onClick={handleCommit}
               variant="primary"
+              data-test-id="dashboard-commit"
               disabled={hasReachedDashboardLimit || isLoading}
               tooltipProps={{isHoverable: true, title: limitMessage}}
             >
