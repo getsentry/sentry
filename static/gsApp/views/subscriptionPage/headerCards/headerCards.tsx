@@ -77,12 +77,10 @@ export function HeaderCards({organization, subscription}: HeaderCardsProps) {
       <SeerAutomationAlert organization={organization} />
       <Grid
         columns={{
-          'screen:xs': '1fr',
-          'screen:sm': `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
-          'screen:md': navIsCollapsed
-            ? `repeat(${cards.length}, minmax(0, 1fr))`
-            : undefined,
-          'screen:lg': `repeat(${cards.length}, minmax(0, 1fr))`,
+          zero: '1fr',
+          xl: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
+          '3xl': navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
+          '4xl': `repeat(${cards.length}, minmax(0, 1fr))`,
         }}
         gap="lg"
         data-test-id="subscription-header-cards"
