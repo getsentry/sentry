@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -6,34 +6,25 @@ import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import type {ReplayReader} from 'sentry/utils/replays/replayReader';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 interface Props {
-  replay: ReplayReader | null;
   className?: string;
 }
 
-export function ReplayProcessingError({className, replay}: Props) {
+export function ReplayProcessingError({className}: Props) {
+  const replay = useReplayReader();
   const {sdk} = replay?.getReplay() || {};
-  const processingErrors = replay?.processingErrors();
-  const hasReported = useRef(false);
 
   useEffect(() => {
-    if (hasReported.current) {
-      return;
-    }
-    hasReported.current = true;
-
     Sentry.withScope(scope => {
       scope.setLevel('warning');
       scope.setFingerprint(['replay-processing-error']);
       if (sdk) {
         scope.setTag('sdk.version', sdk.version);
       }
-      scope.setExtra('processingErrors', processingErrors);
-      Sentry.captureMessage('Replay processing error');
     });
-  }, [processingErrors, sdk]);
+  }, [sdk]);
 
   return (
     <StyledAlert variant="info" className={className}>
