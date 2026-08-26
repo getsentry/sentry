@@ -1,8 +1,14 @@
+import {focusManager} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
@@ -32,7 +38,11 @@ function renderProviders() {
 }
 
 describe('useScmMessagingProviders', () => {
-  afterEach(() => MockApiClient.clearMockResponses());
+  afterEach(() => {
+    cleanup();
+    focusManager.setFocused(undefined);
+    MockApiClient.clearMockResponses();
+  });
 
   it('returns one installable row per provider when no integrations are connected', async () => {
     mockProviders();
@@ -273,6 +283,63 @@ describe('useScmMessagingProviders', () => {
     result.current.retry();
 
     await waitFor(() => expect(result.current.isError).toBe(false));
+    expect(result.current.providers).toHaveLength(3);
+  });
+
+  it('refetches integrations on window focus and marks a newly connected provider', async () => {
+    mockProviders();
+    mockIntegrations([]);
+
+    const {result} = renderProviders();
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(result.current.providers.find(p => p.providerKey === 'slack')?.status).toBe(
+      'installable'
+    );
+
+    mockIntegrations([
+      OrganizationIntegrationsFixture({
+        id: '10',
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+      }),
+    ]);
+    act(() => {
+      focusManager.setFocused(false);
+    });
+    act(() => {
+      focusManager.setFocused(true);
+    });
+
+    await waitFor(() =>
+      expect(result.current.providers.find(p => p.providerKey === 'slack')?.status).toBe(
+        'connected'
+      )
+    );
+  });
+
+  it('keeps cached providers when a window-focus refetch fails', async () => {
+    mockProviders();
+    mockIntegrations([]);
+
+    const {result} = renderProviders();
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(result.current.isError).toBe(false);
+    expect(result.current.providers).toHaveLength(3);
+
+    const failingRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+    act(() => {
+      focusManager.setFocused(false);
+    });
+    act(() => {
+      focusManager.setFocused(true);
+    });
+
+    await waitFor(() => expect(failingRequest).toHaveBeenCalled());
+    expect(result.current.isError).toBe(false);
     expect(result.current.providers).toHaveLength(3);
   });
 

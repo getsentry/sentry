@@ -54,16 +54,17 @@ export function useScmMessagingProviders(): {
 } {
   const organization = useOrganization();
 
-  const integrationsQuery = useQuery(
-    apiOptions.as<OrganizationIntegration[]>()(
+  const integrationsQuery = useQuery({
+    ...apiOptions.as<OrganizationIntegration[]>()(
       '/organizations/$organizationIdOrSlug/integrations/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {integrationType: 'messaging'},
-        staleTime: Infinity,
+        staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
 
   const providerQueries = useQueries({
     queries: SCM_MESSAGING_PROVIDER_KEYS.map(providerKey =>
@@ -88,7 +89,9 @@ export function useScmMessagingProviders(): {
   });
 
   const isPending = integrationsQuery.isPending || providerQueries.isPending;
-  const isError = integrationsQuery.isError || providerQueries.isError;
+  // Loading errors only: a failed focus refetch keeps cached data, and
+  // consumers treat this flag as fatal (full error screen).
+  const isError = integrationsQuery.isLoadingError || providerQueries.isError;
 
   const providers = useMemo<ScmMessagingProviderViewModel[]>(() => {
     if (isPending || isError) {

@@ -96,8 +96,8 @@ export function useScmMessagingSetupValidation({
   const [staleReason, setStaleReason] = useState<StaleDestinationReason>();
   const hasSelectedDestination = messagingSetup.mode === 'selected';
 
-  const integrationQuery = useQuery(
-    apiOptions.as<OrganizationIntegration>()(
+  const integrationQuery = useQuery({
+    ...apiOptions.as<OrganizationIntegration>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {
         path: hasSelectedDestination
@@ -108,8 +108,9 @@ export function useScmMessagingSetupValidation({
           : skipToken,
         staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
 
   const isMissingIntegration = isNotFoundError(integrationQuery.error);
   const fetchedIntegration = isMissingIntegration ? undefined : integrationQuery.data;
@@ -127,8 +128,8 @@ export function useScmMessagingSetupValidation({
   const validateParam =
     integration === undefined ? undefined : channelValidateParam(messagingSetup);
 
-  const channelValidateQuery = useQuery(
-    apiOptions.as<{valid: boolean; detail?: string}>()(
+  const channelValidateQuery = useQuery({
+    ...apiOptions.as<{valid: boolean; detail?: string}>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
       {
         path:
@@ -141,8 +142,9 @@ export function useScmMessagingSetupValidation({
         query: validateParam === undefined ? undefined : {channel: validateParam},
         staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
 
   const isChannelSettled =
     channelValidateQuery.isSuccess && !channelValidateQuery.isFetching;

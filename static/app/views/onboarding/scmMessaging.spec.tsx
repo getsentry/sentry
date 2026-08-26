@@ -1,10 +1,16 @@
 import {act, Fragment, useState} from 'react';
-import {QueryClientProvider} from '@tanstack/react-query';
+import {focusManager, QueryClientProvider} from '@tanstack/react-query';
 import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   OnboardingContextProvider,
@@ -135,6 +141,9 @@ describe('ScmMessaging', () => {
   });
 
   afterEach(() => {
+    // Unmount active queries before restoring focus to avoid triggering another refetch.
+    cleanup();
+    focusManager.setFocused(undefined);
     MockApiClient.clearMockResponses();
     // Context-backed tests persist onboarding state to session storage, and
     // useSessionStorage prefers a stored value over initialValue.
@@ -211,6 +220,29 @@ describe('ScmMessaging', () => {
     // effect cannot be what clears the warning.
     mockChannelValidate(true);
     await queryClient.invalidateQueries();
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+    await waitFor(() => expect(screen.queryByText(warning)).not.toBeInTheDocument());
+  });
+
+  it('clears the stale channel warning once a window-focus refetch resolves the channel', async () => {
+    mockIntegration();
+    mockChannelValidate(false);
+    renderMessaging(jest.fn());
+
+    const warning = "We couldn't verify the saved channel. Choose a destination again.";
+    expect(await screen.findByText(warning)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+
+    mockChannelValidate(true);
+    act(() => {
+      focusManager.setFocused(false);
+    });
+    act(() => {
+      focusManager.setFocused(true);
+    });
 
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
