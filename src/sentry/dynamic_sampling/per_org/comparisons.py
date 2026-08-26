@@ -19,7 +19,6 @@ from sentry.dynamic_sampling.per_org.configuration import (
     BaseDynamicSamplingConfiguration,
 )
 from sentry.dynamic_sampling.per_org.gate import (
-    is_org_in_recalibration_rollout,
     is_org_in_sample_rates_summary_log_rollout,
     project_balancing_debug_project_ids,
     sliding_window_comparison_org_ids,
@@ -67,10 +66,7 @@ def emit_comparisons(config: BaseDynamicSamplingConfiguration) -> None:
         config.organization.id
     ):
         comparisons.append(lambda: log_sample_rates_summary(config))
-    if (
-        is_org_in_recalibration_rollout(config.organization.id)
-        and config.get_sample_rate() is not None
-    ):
+    if config.get_sample_rate() is not None:
         comparisons.append(lambda: compare_recalibration_factor_with_cache(config))
 
     for comparison in comparisons:

@@ -577,7 +577,7 @@ function MenuItem(props: {
                 <ProfilingContextMenuItemButton
                   {...props.contextMenu.getMenuItemProps({
                     onClick: () => {
-                      window.open(`/stories/?name=${props.storybook}`, '_blank');
+                      window.open(`/scraps/?name=${props.storybook}`, '_blank');
                       props.onAction();
                     },
                   })}

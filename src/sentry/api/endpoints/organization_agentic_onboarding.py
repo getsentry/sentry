@@ -1,4 +1,4 @@
-from typing import Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
@@ -25,7 +25,9 @@ from sentry.onboarding.agentic_progress.model import (
     ProgressUpdate,
     RunStatus,
     Stage,
+    StageExtra,
     StageStatus,
+    get_stage_definition,
     validate_update,
 )
 from sentry.onboarding.agentic_progress.service import (
@@ -62,13 +64,12 @@ class AgenticOnboardingStatusRequest(TypedDict):
     status: StageStatusValue
     run_status: NotRequired[Literal["completed", "failed"]]
     event_note: NotRequired[str]
-    project_slugs: NotRequired[list[str]]
-    issue_ids: NotRequired[list[str]]
+    extra: NotRequired[dict[str, Any]]
 
 
 class AgenticOnboardingStatusData(TypedDict):
     run_token: str
-    update: ProgressUpdate
+    update: ProgressUpdate[Any]
 
 
 class AgenticOnboardingPermission(OrganizationPermission):
@@ -81,6 +82,35 @@ class AgenticOnboardingPermission(OrganizationPermission):
 class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardingRunRequest]):
     client_run_id = serializers.UUIDField()
     onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
+
+
+class CreateProjectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    project_slugs = serializers.ListField(child=serializers.SlugField())
+
+
+class VerificationErrorExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    issue_ids = serializers.ListField(child=serializers.CharField())
+
+
+EXTRA_SERIALIZER_BY_STAGE = {
+    Stage.CREATE_PROJECT: CreateProjectExtraSerializer,
+    Stage.RECEIVE_VERIFICATION_ERROR: VerificationErrorExtraSerializer,
+}
+
+
+def deserialize_stage_extra(stage: Stage, value: dict[str, Any]) -> StageExtra:
+    serializer_type = EXTRA_SERIALIZER_BY_STAGE.get(stage)
+    if serializer_type is None:
+        raise serializers.ValidationError(f"Extra data is not valid for the {stage.value} stage")
+
+    serializer = serializer_type(data=value)
+    unknown_fields = set(value) - set(serializer.fields)
+    if unknown_fields:
+        raise serializers.ValidationError(
+            {field: "Unknown extra field" for field in sorted(unknown_fields)}
+        )
+    serializer.is_valid(raise_exception=True)
+    return get_stage_definition(stage).parse_extra(serializer.validated_data)
 
 
 class AgenticOnboardingStatusRequestSerializer(CamelSnakeSerializer[AgenticOnboardingStatusData]):
@@ -100,20 +130,15 @@ class AgenticOnboardingStatusRequestSerializer(CamelSnakeSerializer[AgenticOnboa
     event_note = serializers.CharField(
         required=False, allow_blank=False, max_length=MAX_EVENT_NOTE_LENGTH
     )
-    project_slugs = serializers.ListField(
-        child=serializers.SlugField(), required=False, allow_empty=False, max_length=100
-    )
-    issue_ids = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_empty=False, max_length=100
-    )
+    extra = serializers.DictField(required=False, allow_empty=False)
 
     def validate(self, attrs: AgenticOnboardingStatusRequest) -> AgenticOnboardingStatusData:
+        stage = Stage(attrs["stage"])
         update = ProgressUpdate(
-            stage=Stage(attrs["stage"]),
+            stage=stage,
             status=StageStatus(attrs["status"]),
             event_note=attrs.get("event_note"),
-            project_slugs=tuple(attrs.get("project_slugs", [])),
-            issue_ids=tuple(attrs.get("issue_ids", [])),
+            extra=deserialize_stage_extra(stage, attrs["extra"]) if "extra" in attrs else None,
             run_status=(RunStatus(attrs["run_status"]) if "run_status" in attrs else None),
         )
         try:

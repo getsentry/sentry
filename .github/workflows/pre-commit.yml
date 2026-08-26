@@ -32,6 +32,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      pull-requests: read
     steps:
       - # get a non-default github token so that any changes are verified by CI
         if: env.SECRET_ACCESS == 'true'
@@ -45,7 +46,7 @@ jobs:
         id: changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         with:
-          token: ''
+          token: ${{ github.token }}
           # Enable listing of files matching each filter.
           # Paths to files will be available in `${FILTER_NAME}_files` output variable.
           list-files: json

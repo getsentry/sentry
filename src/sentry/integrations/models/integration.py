@@ -15,10 +15,12 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressError
 from sentry.signals import integration_added
 from sentry.types.cell import find_cells_for_orgs
 
@@ -121,14 +123,57 @@ class Integration(DefaultFieldsModelExisting):
 
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
-                org_integration, created = OrganizationIntegration.objects.get_or_create(
-                    organization_id=organization_id,
-                    integration_id=self.id,
-                    defaults={"default_auth_id": default_auth_id, "config": {}},
+                # We're using select_for_update here to guard against a deletion race.
+                # You can find the other side of the lock here:
+                #   src/sentry/deletions/defaults/organizationintegration.py
+                org_integration, created = (
+                    OrganizationIntegration.objects.select_for_update().get_or_create(
+                        organization_id=organization_id,
+                        integration_id=self.id,
+                        defaults={"default_auth_id": default_auth_id, "config": {}},
+                    )
                 )
                 # TODO(Steve): add audit log if created
-                if not created and default_auth_id:
-                    org_integration.update(default_auth_id=default_auth_id)
+                if not created:
+                    # The deletion task has already claimed the row. Exit early. We
+                    # can not honor the re-installation request.
+                    #
+                    # There is a chance that a failed deletion leaves this
+                    # stuck. Deletes are periodically retried but there could
+                    # be significant time delay. Ideally we're not mutating shared
+                    # state in this way. We should be creating new integration rows
+                    # not fighting over the old one. Or just not deleting it at all
+                    # but I don't know enough to determine the side effects.
+                    if org_integration.status == ObjectStatus.DELETION_IN_PROGRESS:
+                        logger.info(
+                            "add-organization-deletion-in-progress",
+                            extra={
+                                "organization_id": organization_id,
+                                "integration_id": self.id,
+                                "organization_integration_id": org_integration.id,
+                            },
+                        )
+                        # Raise rather than return None: this is transient and
+                        # retryable, and callers that discard the return value
+                        # would otherwise report success having linked nothing.
+                        raise IntegrationDeletionInProgressError(
+                            "Integration deletion is already in progress. Please try again in a few minutes."
+                        )
+
+                    # We've locked the row so, technically, we can rescue the row
+                    # from deletion without risking a concurrent delete. This is in
+                    # all likelihood the source of our deletion race.
+                    reactivating = org_integration.status == ObjectStatus.PENDING_DELETION
+
+                    updates: dict[str, Any] = {}
+                    if default_auth_id:
+                        updates["default_auth_id"] = default_auth_id
+                    if reactivating:
+                        updates["status"] = ObjectStatus.ACTIVE
+                    if updates:
+                        org_integration.update(**updates)
+                    if reactivating:
+                        ScheduledDeletion.cancel(org_integration)
 
                 if created:
                     organization_service.schedule_signal(

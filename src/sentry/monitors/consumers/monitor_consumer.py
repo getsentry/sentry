@@ -17,6 +17,7 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
+from django.conf import settings
 from django.db import router, transaction
 from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
@@ -1039,17 +1040,20 @@ def process_checkin(item: CheckinItem) -> None:
     """
     Process an individual check-in
     """
-    try:
-        with start_span(
-            op="_process_checkin", name="monitors.monitor_consumer", transaction=True
-        ) as txn:
+    with start_span(
+        op="_process_checkin",
+        name="monitors.monitor_consumer",
+        transaction=True,
+        custom_sampling_context={"sample_rate": settings.SENTRY_MONITORS_CHECKIN_APM_SAMPLING},
+    ) as txn:
+        try:
             # Deepcopy the checkin here so that it's not modified. We need the original when we get a
             # `ProcessingErrorsException`
             _process_checkin(deepcopy(item), txn)
-    except ProcessingErrorsException as e:
-        handle_processing_errors(item, e)
-    except Exception:
-        logger.exception("Failed to process check-in")
+        except ProcessingErrorsException as e:
+            handle_processing_errors(item, e)
+        except Exception:
+            logger.exception("Failed to process check-in")
 
 
 def process_checkin_group(items: list[CheckinItem]) -> None:
