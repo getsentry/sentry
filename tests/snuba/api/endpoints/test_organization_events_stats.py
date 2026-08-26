@@ -3497,6 +3497,30 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
+    def test_top_events_empty_orderby(self) -> None:
+        """The non-RPC discover path must also treat an empty orderby as "no sort".
+
+        It fails with a different message than the RPC path ("Cannot sort by a field that is
+        not selected."), so it needs its own coverage.
+        """
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": [""],
+                    "field": ["count()", "message", "user.email"],
+                    "dataset": "errors",
+                    "topEvents": "5",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
     def test_top_event_with_null_value(self):
         self.store_event(
             {

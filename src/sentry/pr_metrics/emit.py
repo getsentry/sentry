@@ -16,7 +16,7 @@ from typing import Any, NamedTuple, cast
 from django.db.models import Count, Q
 from django.utils import timezone as dj_timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
@@ -138,12 +138,12 @@ def select_verdict(
       ``NEEDS_JUDGE``.
 
     The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
-    to the PR branch after it opened. Those rows are only written under
-    ``pr-metrics-activity``, which is flagged independently of emission; without it
-    a clean merge is indistinguishable from one with later commits, so we defer
-    every outcome (``INDETERMINATE``) rather than read its absence as "no later
-    commits". A missing ``PullRequestMetrics`` row is an error state —
-    ``handle_metrics`` persists it before emission under the same flag, so its
+    to the PR branch after it opened. Those rows are only written while
+    ``pr-metrics`` is on; without it a clean merge is indistinguishable from one
+    with later commits, so we defer every outcome (``INDETERMINATE``) rather than
+    read its absence as "no later commits". A missing ``PullRequestMetrics`` row is
+    an error state — ``handle_metrics`` persists it before emission under the same
+    flag, so its
     absence means it failed — and we defer (``INDETERMINATE``) for both outcomes
     rather than emit zeroed counters (merge) or guess abandoned (close).
     """
@@ -564,9 +564,9 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
     )
     # Canonical is the winner among only the rows that would actually emit (see
     # _emitting_rows); comparing its id to this row's — rather than short-circuiting
-    # on a count — means a row that can't emit (e.g. it lost the emit flag after the
-    # cooldown was claimed) defers instead of emitting a duplicate alongside the real
-    # one. Emit when nothing would qualify, so the PR is never dropped entirely.
+    # on a count — means an untracked row defers instead of emitting a duplicate
+    # alongside the real one. Emit when nothing would qualify, so the PR is never
+    # dropped entirely.
     emitting = _emitting_rows(siblings)
     if not emitting:
         return True
@@ -574,32 +574,28 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
 
 
 def _emitting_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
-    """The subset that would actually emit: a valid attribution *and* the row's org
-    with ``pr-metrics-emit`` on — the two gates every emission path applies.
+    """The subset that would actually emit: the rows carrying a valid attribution,
+    which is the gate every emission path applies.
 
-    Canonical selection runs over these so a row that can't emit — untracked (e.g. a
-    run-less MCP PR whose attribution feature is on in only one org), or emit-gated
-    off for its org mid-rollout — never wins canonical and drops the PR by
-    suppressing a sibling that would emit.
+    Canonical selection runs over these so an untracked row never wins canonical and
+    drops the PR by suppressing a sibling that would emit. A run-less MCP PR is the
+    usual case: ``_write_mcp_attribution`` records only for the org whose issues the
+    PR resolves, leaving the sibling rows untracked.
+
+    ``pr-metrics`` is deliberately not re-checked per row. Flagpole evaluates it
+    against the process's own cell rather than the organization, so every sibling
+    returns the same answer — and when that answer is False this returns nothing and
+    ``is_canonical_github_pr_row`` falls through to emitting anyway. An org losing the
+    flag between attribution (although this shouldn't really happen with the flag being
+    per-installation-site) and emission is caught upstream instead: ``select_verdict``
+    defers to ``INDETERMINATE`` and ``_forward_to_judge`` then drops it.
     """
     tracked_ids = set(
         PullRequestAttribution.objects.filter(pull_request__in=pull_requests, is_valid=True)
         .values_list("pull_request_id", flat=True)
         .distinct()
     )
-    tracked = [pr for pr in pull_requests if pr.id in tracked_ids]
-    if not tracked:
-        return []
-    orgs = {
-        org.id: org
-        for org in Organization.objects.filter(id__in={pr.organization_id for pr in tracked})
-    }
-    return [
-        pr
-        for pr in tracked
-        if (org := orgs.get(pr.organization_id)) is not None
-        and features.has("organizations:pr-metrics-emit", org)
-    ]
+    return [pr for pr in pull_requests if pr.id in tracked_ids]
 
 
 def _attribution_completeness(siblings: list[PullRequest]) -> dict[int, tuple[bool, bool, int]]:
@@ -990,7 +986,7 @@ def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
     - ``opened_and_closed_by_same_actor``: whether the opener and closer logins
       match, or ``None`` when either is unknown.
 
-    All are only meaningful under ``pr-metrics-activity`` (no activity rows → the
+    All are only meaningful under ``pr-metrics`` (no activity rows → the
     counts are 0 and the bool signals ``None``).
     """
     doc = load_activity_document(pull_request)

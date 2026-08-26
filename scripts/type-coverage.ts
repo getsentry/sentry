@@ -57,16 +57,33 @@ function parseArgs(): Options {
   return opts;
 }
 
-const isAny = (type: ts.Type, typeChecker: ts.TypeChecker) => {
+const isAny = (type: ts.Type, typeChecker: ts.TypeChecker): boolean => {
   if (type.flags & ts.TypeFlags.Any) {
     return true;
   }
-  const typeText = typeChecker.typeToString(type);
-  if (typeText === 'any') {
+
+  // Check direct type arguments. Nested library types may contain unrelated `any`.
+  const aliasTypeArguments = type.aliasTypeArguments ?? [];
+  const referenceTypeArguments =
+    type.flags & ts.TypeFlags.Object &&
+    (type as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference
+      ? typeChecker.getTypeArguments(type as ts.TypeReference)
+      : [];
+
+  if (
+    [...aliasTypeArguments, ...referenceTypeArguments].some(
+      typeArgument => !!(typeArgument.flags & ts.TypeFlags.Any)
+    )
+  ) {
     return true;
   }
-  // Check for 'any' within generic types like Record<string, any>, Array<any>, etc.
-  return /\bany\b/.test(typeText);
+
+  // Check union members after direct arguments to support aliases like Maybe<any>.
+  if (type.isUnionOrIntersection()) {
+    return type.types.some(member => isAny(member, typeChecker));
+  }
+
+  return false;
 };
 
 function hasExplicitType(

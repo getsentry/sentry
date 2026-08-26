@@ -6,4 +6,5 @@ export interface ProjectDetailsFormState {
   notificationSelection?: NotificationSelection;
   projectName?: string;
   teamSlug?: string;
+  wasNameManuallyModified?: boolean;
 }

@@ -25,6 +25,47 @@ const chartSeriesSchema = z.union([
   }),
 ]);
 
+/**
+ * Page filters shared by every query embed. Seer supplies these separately from
+ * the search string so the frontend can hand them to the canonical URL builders
+ * rather than parsing them back out of a pre-built querystring.
+ */
+const pageFilterFields = {
+  projects: z
+    .array(z.string())
+    .optional()
+    .describe('Project IDs. Omit for the "My Projects" selection.'),
+  environments: z.array(z.string()).optional(),
+  statsPeriod: z
+    .string()
+    .regex(/^\d+[smhdw]$/)
+    .optional()
+    .describe(
+      'Relative time range, e.g. "24h" or "7d". Mutually exclusive with start/end.'
+    ),
+  start: isoTimestampSchema.optional(),
+  end: isoTimestampSchema.optional(),
+};
+
+/**
+ * Explore surfaces (spans, logs, metrics) share a samples/aggregate mode. In
+ * aggregate mode `groupBy` and `yAxes` drive the chart and table; in samples
+ * mode they are ignored in favour of `fields`.
+ */
+const exploreQueryFields = {
+  ...pageFilterFields,
+  query: z.string().default(''),
+  mode: z.enum(['samples', 'aggregate']).default('samples'),
+  groupBy: z.array(z.string()).optional(),
+  yAxes: z
+    .array(z.string())
+    .optional()
+    .describe('Aggregate functions to chart, e.g. "count()" or "p95(span.duration)".'),
+  sort: z.string().optional(),
+  fields: z.array(z.string()).optional(),
+  title: z.string().min(1).optional(),
+};
+
 type SeerEmbedLevel = 'inline' | 'block';
 
 export interface SeerEmbedExample {
@@ -66,6 +107,26 @@ export const SEER_EMBED_SCHEMAS = {
       {
         label: 'Doc link',
         data: {href: 'https://docs.sentry.io/product/issues/', title: 'Issues'},
+      },
+    ],
+  },
+  dashboard: {
+    description:
+      'The ONLY way to reference a saved Sentry dashboard. ' +
+      'Use the dashboard ID exactly as returned by the dashboard API. ' +
+      'Include the API-provided title when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders a standalone dashboard reference. ' +
+      'Never use a markdown link for dashboard references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      title: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Dashboard',
+        data: {id: '123', title: 'Application health'},
       },
     ],
   },
@@ -130,6 +191,32 @@ export const SEER_EMBED_SCHEMAS = {
         label: 'Block',
         level: 'block',
         data: {ids: ['JAVASCRIPT-22SP', 'JAVASCRIPT-39HX', 'JAVASCRIPT-39ZF']},
+      },
+    ],
+  },
+  replay: {
+    description:
+      'The ONLY way to reference a Sentry Session Replay. ' +
+      'Use the replay ID, not the legacy project-slug:replay-id form. ' +
+      'Provide eventTimestamp as an ISO 8601 timestamp with a timezone offset ' +
+      '(for example, Z or +00:00) when the replay should open around a relevant event. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders a standalone replay reference. ' +
+      'Never use a markdown link for replay references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      eventTimestamp: isoTimestampSchema
+        .describe('ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)')
+        .optional(),
+    }),
+    examples: [
+      {
+        label: 'Replay',
+        data: {
+          id: '4c1f2e3d1234567890',
+          eventTimestamp: '2026-08-25T16:37:12Z',
+        },
       },
     ],
   },
@@ -236,6 +323,269 @@ export const SEER_EMBED_SCHEMAS = {
           result:
             'The root cause of the issue is that the code is not working correctly.',
           step: 'root_cause' as const,
+        },
+      },
+    ],
+  },
+  alert: {
+    description:
+      'The ONLY way to reference a Sentry alert. ' +
+      'Use `id` exactly as the alerts API returns it, and set `kind` to match: ' +
+      '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
+      'uptime alert, "cron" for a cron alert. ' +
+      'Include the API-provided name when available. ' +
+      'Never use a markdown link for alert references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      kind: z.enum(['metric', 'issue', 'uptime', 'cron']),
+      name: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Metric alert',
+        data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
+      },
+      {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
+    ],
+  },
+  monitor: {
+    description:
+      'The ONLY way to reference a Sentry monitor (cron, uptime, or metric ' +
+      'detector). Use the detector ID exactly as the monitors API returns it. ' +
+      'Include the API-provided name when available. ' +
+      'Never use a markdown link for monitor references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      name: z.string().min(1).optional(),
+    }),
+    examples: [{label: 'Monitor', data: {id: '9931', name: 'nightly-billing-sync'}}],
+  },
+  savedIssueView: {
+    description:
+      'The ONLY way to reference a saved Sentry issue view. ' +
+      'Use the view ID exactly as the issue-views API returns it. ' +
+      'Include the API-provided name when available. ' +
+      'Never use a markdown link for issue view references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      name: z.string().min(1).optional(),
+    }),
+    examples: [
+      {label: 'Saved issue view', data: {id: '77', name: 'Unresolved in checkout'}},
+    ],
+  },
+  savedQuery: {
+    description:
+      'The ONLY way to reference a saved Explore query. ' +
+      'Use the saved query ID exactly as the API returns it and set `dataset` ' +
+      'to the dataset it was saved against. ' +
+      'Include the API-provided name when available. ' +
+      'Never use a markdown link for saved query references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      dataset: z.enum(['spans', 'logs', 'metrics', 'replays']),
+      name: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Saved query',
+        data: {id: '312', dataset: 'spans', name: 'Slow checkout spans'},
+      },
+    ],
+  },
+  trace: {
+    description:
+      'The ONLY way to reference a Sentry trace (the trace waterfall view). ' +
+      'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
+      'waterfall opens on the right time range, and `spanId` to focus a span. ' +
+      'Never use a markdown link for trace references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      traceId: z.string().min(1),
+      timestamp: isoTimestampSchema.optional(),
+      spanId: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Trace',
+        data: {
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          timestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+    ],
+  },
+  profile: {
+    description:
+      'The ONLY way to reference a Sentry profile (the flamegraph view). ' +
+      'Requires both the profile ID and the slug of the project it belongs to. ' +
+      'Never use a markdown link for profile references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      projectSlug: z.string().min(1),
+      profileId: z.string().min(1),
+    }),
+    examples: [
+      {
+        label: 'Profile',
+        data: {projectSlug: 'javascript', profileId: '7f3c2b1a9d8e4f60'},
+      },
+    ],
+  },
+  issuesQuery: {
+    description:
+      'Link to the issue stream filtered by a search query. ' +
+      'Use this when pointing the user at a SET of issues defined by a search ' +
+      'rather than specific known issues — if you already have the short IDs, ' +
+      'use the `issue` or `issues` embed instead. ' +
+      '`query` uses issue search syntax, e.g. "is:unresolved level:error".',
+    level: ['inline', 'block'],
+    schema: z.object({
+      ...pageFilterFields,
+      query: z.string().default(''),
+      sort: z.string().optional(),
+      title: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Unresolved errors',
+        data: {
+          query: 'is:unresolved level:error',
+          statsPeriod: '7d',
+          title: 'Unresolved errors',
+        },
+      },
+    ],
+  },
+  errorsQuery: {
+    description:
+      'Link to an errors (Discover) query results page. ' +
+      'Use this for tabular error exploration across events. ' +
+      '`query` uses event search syntax and `fields` are the table columns. ' +
+      'Provide `yAxes` to chart aggregates alongside the table.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      ...pageFilterFields,
+      query: z.string().default(''),
+      fields: z.array(z.string()).optional(),
+      yAxes: z.array(z.string()).optional(),
+      sort: z.string().optional(),
+      title: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Errors by URL',
+        data: {
+          query: 'event.type:error',
+          fields: ['title', 'count()', 'url'],
+          statsPeriod: '24h',
+          title: 'Checkout errors',
+        },
+      },
+    ],
+  },
+  spansQuery: {
+    description:
+      'Link to an Explore > Traces (spans) query. ' +
+      'Use mode "samples" to show individual spans and "aggregate" to group and ' +
+      'chart them. In aggregate mode supply `groupBy` and `yAxes`. ' +
+      '`query` uses span search syntax, e.g. "span.op:http.client".',
+    level: ['inline', 'block'],
+    schema: z.object(exploreQueryFields),
+    examples: [
+      {
+        label: 'Slow HTTP spans',
+        data: {
+          query: 'span.op:http.client',
+          mode: 'samples',
+          sort: '-span.duration',
+          statsPeriod: '24h',
+        },
+      },
+      {
+        label: 'p95 by span op',
+        data: {
+          query: '',
+          mode: 'aggregate',
+          groupBy: ['span.op'],
+          yAxes: ['p95(span.duration)'],
+          statsPeriod: '7d',
+        },
+      },
+    ],
+  },
+  logsQuery: {
+    description:
+      'Link to an Explore > Logs query. ' +
+      'Use mode "samples" to show individual log rows and "aggregate" to group ' +
+      'and chart them. In aggregate mode supply `groupBy` and `yAxes`. ' +
+      '`query` uses log search syntax, e.g. "severity:error".',
+    level: ['inline', 'block'],
+    schema: z.object(exploreQueryFields),
+    examples: [
+      {
+        label: 'Error logs',
+        data: {query: 'severity:error', mode: 'samples', statsPeriod: '24h'},
+      },
+      {
+        label: 'Log volume by severity',
+        data: {
+          query: '',
+          mode: 'aggregate',
+          groupBy: ['severity'],
+          yAxes: ['count(message)'],
+          statsPeriod: '7d',
+        },
+      },
+    ],
+  },
+  replaysQuery: {
+    description:
+      'Link to the Session Replay list filtered by a search query. ' +
+      'Use this when pointing the user at a SET of replays — if you have a ' +
+      'specific replay ID, use the `replay` embed instead. ' +
+      '`query` uses replay search syntax, e.g. "user.email:user@example.com".',
+    level: ['inline', 'block'],
+    schema: z.object({
+      ...pageFilterFields,
+      query: z.string().default(''),
+      sort: z.string().optional(),
+      title: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Replays with rage clicks',
+        data: {query: 'count_rage_clicks:>0', statsPeriod: '7d'},
+      },
+    ],
+  },
+  metricsQuery: {
+    description:
+      'Link to an Explore > Metrics query for a single trace metric. ' +
+      'Requires the metric `name` and `type` exactly as the metrics API returns ' +
+      'them. Use mode "aggregate" with `groupBy`/`yAxes` to chart the metric, or ' +
+      '"samples" to list raw points.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      ...exploreQueryFields,
+      name: z.string().min(1),
+      type: z.string().min(1),
+      unit: z.string().min(1).nullish(),
+    }),
+    examples: [
+      {
+        label: 'Checkout latency metric',
+        data: {
+          name: 'checkout.latency',
+          type: 'distribution',
+          unit: 'millisecond',
+          mode: 'aggregate',
+          yAxes: ['p95(value)'],
+          statsPeriod: '24h',
         },
       },
     ],
