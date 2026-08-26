@@ -261,7 +261,11 @@ const NodeLabel = styled('button')<{color: (typeof DEPTH_COLORS)[number]; flip: 
   ${p =>
     p.flip
       ? css`
-          top: 100%;
+          /* Anchored to the box's own top edge (which is near the
+             viewport's top — that's what triggers the flip), not its
+             bottom: a nav box can be viewport-height tall, and \`top: 100%\`
+             would put the label at the bottom of the page instead. */
+          top: 0;
           border-radius: 0 0 ${p.theme.radius.xs} ${p.theme.radius.xs};
         `
       : css`
