@@ -337,6 +337,16 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for PullRequest deletions across all concurrent
+# deletion tasks. 0 disables rate limiting. Sized to sit well above the
+# steady-state deletion rate while keeping any backlog drain gentle, so it
+# needs no tuning around deploys.
+register(
+    "deletions.pull-request.rate-limit",
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -677,6 +687,12 @@ register(
     "github-app.fetch-commits.max-compare-commits",
     type=Int,
     default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-app.pull-request-status.chunk-size",
+    type=Int,
+    default=25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1319,6 +1335,12 @@ register(
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.read_path_checks.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "issues.backfill_group_action_log.killswitch",
@@ -2512,14 +2534,15 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Fraction of integrations (bucketed by the provider:integration_id prefix of
-# mailbox_name, so all of an integration's mailboxes switch together) whose
-# drains are dispatched via batch claims instead of the drain-lock lease.
+# Remove the rows a claim-bounded drain finishes with — delivered, attempts
+# exhausted, or stale — in batches instead of one DELETE per row. Such a drain
+# stays inside a claim reserved for its whole run, so deferring deletes cannot
+# hand rows to a concurrent drain; a crashed worker reprocesses at most one
+# unflushed batch, which redelivers the delivered rows and re-discards the rest.
 register(
-    "hybridcloud.webhookpayload.claim_dispatch_rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+    "hybridcloud.webhookpayload.drain_batch_deletes",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Providers whose mailbox drains skip a failed message and keep going instead of
 # aborting. Only safe for providers whose cell-side handlers tolerate reordering,
@@ -2538,6 +2561,14 @@ register(
         "gitlab",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Dispatch skip-on-failure providers' mailboxes from their oldest due record
+# instead of gating on the absolute head, so one record in retry backoff cannot
+# hide every due record behind it. Strict-ordering providers keep the gate.
+register(
+    "hybridcloud.webhookpayload.dispatch_from_due_head",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Drops GitHub check webhooks that reference no pull request based in their own
 # repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape
@@ -3295,7 +3326,7 @@ register(
 register(
     "spans.buffer.process-segments-task-rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -7,7 +7,7 @@ import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/secti
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 describe('IssuesSecondaryNavigation', () => {
-  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
     features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
@@ -52,6 +52,7 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
+    expect(query).toContain('identified');
     expect(query).toContain('is:unresolved');
     expect(query).toContain('assigned_or_suggested:me');
   });
@@ -95,7 +96,7 @@ describe('IssuesSecondaryNavigation', () => {
     const overviewLink = await screen.findByRole('link', {name: /Overview/});
     expect(overviewLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/autofix/overview/'
+      '/organizations/org-slug/issues/autofix/'
     );
   });
 

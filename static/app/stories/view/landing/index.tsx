@@ -33,7 +33,7 @@ const frontmatter = {
     actions: [
       {
         children: 'Get Started',
-        to: '/stories/principles/tokens/',
+        to: '/scraps/principles/tokens/',
         variant: 'primary',
       },
       {
@@ -100,7 +100,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/principles/tokens/`
+                  `/organizations/${organization.slug}/scraps/principles/tokens/`
                 ),
               }}
               title="Tokens"
@@ -112,7 +112,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/principles/icons/`
+                  `/organizations/${organization.slug}/scraps/principles/icons/`
                 ),
               }}
               title="Icons"
@@ -124,7 +124,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/core/text/`
+                  `/organizations/${organization.slug}/scraps/core/text/`
                 ),
               }}
               title="Typography"
@@ -136,7 +136,7 @@ export function StoryLanding() {
             <Card
               to={{
                 pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/stories/core/flex/`
+                  `/organizations/${organization.slug}/scraps/core/flex/`
                 ),
               }}
               title="Layout"

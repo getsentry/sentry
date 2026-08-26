@@ -13,7 +13,11 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
-import {investigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import {
+  investigationCandidatesQueryOptions,
+  getInvestigationDetailQueryOptions,
+  investigationListQueryOptions,
+} from 'sentry/views/investigations/api';
 import type {
   InvestigationDetail,
   InvestigationListItem,
@@ -61,6 +65,9 @@ function InvestigationFixture(
     version: 3,
     blockCount: 4,
     isFavorited: false,
+    summary: null,
+    summaryDescription: null,
+    titleGeneration: {status: null},
     ...overrides,
   };
 }
@@ -208,7 +215,7 @@ describe('Explore Investigations', () => {
     await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(1));
   });
 
-  it('creates an untitled investigation and refreshes the list', async () => {
+  it('creates an untitled investigation and opens it', async () => {
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [],
@@ -220,7 +227,7 @@ describe('Explore Investigations', () => {
     });
 
     const {queryClient, router} = renderView();
-    const unrelatedOptions = investigationDetailQueryOptions('org-slug', 'existing');
+    const unrelatedOptions = getInvestigationDetailQueryOptions('org-slug', 'existing');
     const unrelatedDetail = InvestigationFixture({id: 'existing'});
     queryClient.setQueryData(unrelatedOptions.queryKey, {
       headers: {},
@@ -230,6 +237,10 @@ describe('Explore Investigations', () => {
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [InvestigationFixture({title: 'Untitled investigation'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/',
+      body: InvestigationFixture({title: 'Untitled investigation'}),
     });
     await userEvent.click(screen.getByRole('button', {name: 'Launch investigation'}));
 
@@ -241,12 +252,53 @@ describe('Explore Investigations', () => {
     );
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/investigations/'
+      '/organizations/org-slug/seer/investigation/1/'
     );
     expect(queryClient.getQueryData(unrelatedOptions.queryKey)?.json).toBe(
       unrelatedDetail
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Investigation created.');
+  });
+
+  it('refreshes running title and summary generation in the list', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          title: 'Untitled investigation',
+          titleGeneration: {status: 'running'},
+        }),
+      ],
+    });
+
+    const {queryClient} = renderView();
+    await screen.findByText('Untitled investigation');
+    const completedRequest = MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          title: 'Checkout errors across releases',
+          summary: 'Errors rose across releases',
+          summaryDescription: 'All active releases increased together.',
+          titleGeneration: {status: 'completed'},
+        }),
+      ],
+    });
+
+    expect(
+      await screen.findByText('Checkout errors across releases', {}, {timeout: 3000})
+    ).toBeInTheDocument();
+    expect(completedRequest).toHaveBeenCalled();
+    expect(
+      queryClient.getQueryData(
+        investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
+      )?.json[0]
+    ).toEqual(
+      expect.objectContaining({
+        summary: 'Errors rose across releases',
+        summaryDescription: 'All active releases increased together.',
+      })
+    );
   });
 
   it('toggles an investigation favorite and refreshes the list', async () => {
@@ -306,7 +358,7 @@ describe('Explore Investigations', () => {
     });
 
     const {queryClient} = renderView();
-    const detailOptions = investigationDetailQueryOptions('org-slug', '1');
+    const detailOptions = getInvestigationDetailQueryOptions('org-slug', '1');
     queryClient.setQueryData(detailOptions.queryKey, {
       headers: {Link: 'preserved'},
       json: investigation satisfies InvestigationDetail,
@@ -335,7 +387,7 @@ describe('Explore Investigations', () => {
     });
 
     const {queryClient} = renderView();
-    const unrelatedOptions = investigationDetailQueryOptions('org-slug', 'existing');
+    const unrelatedOptions = getInvestigationDetailQueryOptions('org-slug', 'existing');
     const unrelatedDetail = InvestigationFixture({id: 'existing'});
     queryClient.setQueryData(unrelatedOptions.queryKey, {
       headers: {},
@@ -431,7 +483,7 @@ describe('Explore Investigations', () => {
     });
 
     const {queryClient} = renderView();
-    const detailOptions = investigationDetailQueryOptions('org-slug', '1');
+    const detailOptions = getInvestigationDetailQueryOptions('org-slug', '1');
     queryClient.setQueryData(detailOptions.queryKey, {
       headers: {},
       json: investigation satisfies InvestigationDetail,
@@ -445,6 +497,42 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(queryClient.getQueryData(detailOptions.queryKey)).toBeUndefined()
+    );
+  });
+
+  it('invalidates breached-metric entry points after deletion', async () => {
+    const investigation = InvestigationFixture();
+    MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/',
+      method: 'DELETE',
+    });
+
+    const {queryClient} = renderView();
+    const candidateOptions = investigationCandidatesQueryOptions({
+      organizationSlug: 'org-slug',
+      sources: [
+        {
+          type: 'metric_open_period',
+          ref: {groupId: '123', openPeriodId: '456'},
+        },
+      ],
+    });
+    queryClient.setQueryData(candidateOptions.queryKey, {
+      json: {items: [{status: 'view', investigationId: '1'}]},
+      headers: {},
+    });
+    await userEvent.click(
+      await screen.findByLabelText('More options for Database latency investigation')
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(queryClient.getQueryState(candidateOptions.queryKey)?.isInvalidated).toBe(
+        true
+      )
     );
   });
 

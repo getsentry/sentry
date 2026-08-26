@@ -1122,10 +1122,12 @@ def _make_deprecated_metadata(
     attr_type: AttributeType,
     replacement: str,
     status: DeprecationStatus = DeprecationStatus.BACKFILL,
+    keys: tuple[str, ...] = (),
 ) -> AttributeMetadata:
     return AttributeMetadata(
         brief="",
         type=attr_type,
+        keys=keys,
         apply_scrubbing=ApplyScrubbingInfo(key=ApplyScrubbing.NEVER),
         is_in_otel=False,
         visibility=Visibility.PUBLIC,
