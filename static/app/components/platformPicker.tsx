@@ -224,7 +224,7 @@ export function PlatformPicker({
             </TabList>
           </Tabs>
         </Container>
-        <Container width="100%" maxWidth={{zero: '100%', xl: '12rem'}} justifySelf="end">
+        <Container width="100%" justifySelf="end">
           <SearchBar
             size="sm"
             query={filter}
