@@ -361,7 +361,9 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
     keeps other dispatchers off the mailbox. The lock only serializes the claim
     and is always released before returning, never held for the drain's run.
 
-    Falls back gracefully if the cache backend is unavailable — the scheduler handles delivery.
+    Runs inline in the inbound webhook request, so nothing may escape it: the whole
+    body sits under the try, and every failure degrades to the scheduler delivering
+    on its next cycle.
     """
     trigger_tags = {"provider": _provider_from_mailbox(mailbox_name)}
     guard = _acquire_drain_guard(mailbox_name)
