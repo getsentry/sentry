@@ -45,7 +45,6 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -79,7 +78,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
+  const hasNewBreadcrumbs = true;
   const issueItem = useIssueIdBreadcrumbItem({project, group});
 
   return (

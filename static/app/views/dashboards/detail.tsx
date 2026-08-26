@@ -79,7 +79,6 @@ import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
@@ -1551,7 +1550,6 @@ export function DashboardDetailWithInjectedProps(
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
   const updateDashboard = useUpdateDashboard();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1570,7 +1568,7 @@ export function DashboardDetailWithInjectedProps(
       widgetInterval={widgetInterval}
       queryClient={queryClient}
       updateDashboard={updateDashboard.mutateAsync}
-      hasNewBreadcrumbs={hasNewBreadcrumbs}
+      hasNewBreadcrumbs
     />
   );
 }

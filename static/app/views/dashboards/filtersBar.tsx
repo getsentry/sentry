@@ -46,7 +46,6 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -96,7 +95,6 @@ export function FiltersBar({
   widgetLimitReached = false,
 }: FiltersBarProps) {
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
@@ -219,7 +217,6 @@ export function FiltersBar({
       : null
     : t('You do not have permission to edit this dashboard');
   const showAddWidgetButton =
-    !hasNewBreadcrumbs &&
     !isPrebuiltDashboard &&
     !isEditingDashboard &&
     !isPreview &&
@@ -228,12 +225,12 @@ export function FiltersBar({
 
   return (
     <Flex
-      align={hasNewBreadcrumbs ? {zero: 'stretch', xl: 'start'} : 'start'}
-      direction={hasNewBreadcrumbs ? {zero: 'column', xl: 'row'} : 'row'}
+      align={{zero: 'stretch', xl: 'start'}}
+      direction={{zero: 'column', xl: 'row'}}
       wrap="wrap"
       gap="lg"
-      marginBottom={hasNewBreadcrumbs ? '0' : 'xl'}
-      padding={hasNewBreadcrumbs ? 'lg xl xl' : 'lg xl'}
+      marginBottom="0"
+      padding="lg xl xl"
     >
       <FiltersRow>
         <PageFilterBar condensed>

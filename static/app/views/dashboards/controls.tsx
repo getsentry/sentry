@@ -31,7 +31,6 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardRevisionsButton} from './dashboardRevisions';
@@ -55,16 +54,12 @@ type Props = {
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
-export function Controls(props: Props) {
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
-
-  if (hasNewBreadcrumbs) {
-    return null;
-  }
-
-  return <LegacyDashboardControls {...props} />;
+export function Controls(_props: Props) {
+  return null;
 }
 
+// TODO(ui-migration): Remove legacy dashboard controls with the backend flag cleanup.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function LegacyDashboardControls({
   dashboardState,
   dashboard,
@@ -370,14 +365,9 @@ export function DashboardActionBar({
   onDelete,
   widgetLimitReached,
 }: Props) {
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-
-  if (!hasNewBreadcrumbs) {
-    return null;
-  }
 
   function handleCancel(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();

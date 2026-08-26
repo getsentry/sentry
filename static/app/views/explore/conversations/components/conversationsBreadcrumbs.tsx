@@ -19,7 +19,6 @@ import {
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 const COPY_ID_LABEL = t('Copy conversation ID');
 
@@ -36,7 +35,7 @@ export function ConversationsBreadcrumbs({
   conversationId,
 }: ConversationsBreadcrumbsProps) {
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
+  const hasNewBreadcrumbs = true;
   const location = useLocation();
   const conversationsBaseUrl = normalizeUrl(
     `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
