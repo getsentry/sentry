@@ -133,9 +133,6 @@ class BaseTSDB(Service):
             "record_multi",
             "merge_distinct_counts",
             "delete_distinct_counts",
-            "record_frequency_multi",
-            "merge_frequencies",
-            "delete_frequencies",
             "flush",
         ]
     )
@@ -643,20 +640,6 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def record_frequency_multi(
-        self,
-        requests: Sequence[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]],
-        timestamp: datetime | None = None,
-        environment_id: int | None = None,
-    ) -> None:
-        """
-        Record items in a frequency table.
-
-        Metrics to increment should be passed as sequence pairs, using this
-        structure: ``(model, {key: {item: score, ...}, ...})``
-        """
-        raise NotImplementedError
-
     def get_frequency_series(
         self,
         model: TSDBModel,
@@ -678,34 +661,6 @@ class BaseTSDB(Service):
         Results are returned as a mapping, where the key is the key requested
         and the value is a list of ``(timestamp, {item: score, ...})`` pairs
         over the series.
-        """
-        raise NotImplementedError
-
-    def merge_frequencies(
-        self,
-        model: TSDBModel,
-        destination: str,
-        sources: Sequence[TSDBKey],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        """
-        Transfer all frequency tables from the source keys to the destination
-        key.
-        """
-        raise NotImplementedError
-
-    def delete_frequencies(
-        self,
-        models: list[TSDBModel],
-        keys: Iterable[str],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        """
-        Delete all frequency tables.
         """
         raise NotImplementedError
 

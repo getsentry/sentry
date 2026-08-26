@@ -7,7 +7,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -35,7 +35,10 @@ import type {
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
 import {OpenSeerButton} from './openSeerButton';
@@ -139,7 +142,17 @@ function OverviewAction({
   run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
+  const organization = useOrganization();
   const {pullRequests, status} = run;
+  const trackPrClicked = (section: 'merged' | 'review_pr', pr: OverviewPullRequest) =>
+    trackAnalytics('autofix.overview.pr_clicked', {
+      organization,
+      group_id: run.groupId,
+      run_id: run.seerRunId,
+      section,
+      checks_status: pr.checksStatus ?? undefined,
+      review_status: pr.reviewStatus ?? undefined,
+    });
   if (status === 'processing') {
     return (
       <ButtonBar>
@@ -152,7 +165,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <OpenSeerButton run={run} size="sm" variant="secondary" />
+        <OpenSeerButton run={run} section={sectionKey} size="sm" variant="secondary" />
       </ButtonBar>
     );
   }
@@ -182,11 +195,17 @@ function OverviewAction({
                     icon={<IconMerge />}
                     href={pullRequest.url}
                     external
+                    onClick={() => trackPrClicked('merged', pullRequest)}
                   >
                     {label}
                   </LinkButton>
                 </Tooltip>
-                <OpenSeerButton run={run} size="sm" variant="secondary" />
+                <OpenSeerButton
+                  run={run}
+                  section={sectionKey}
+                  size="sm"
+                  variant="secondary"
+                />
               </ButtonBar>
             );
           })}
@@ -211,21 +230,27 @@ function OverviewAction({
       : null;
     const failedChecks =
       reviewPullRequest.checksStatus === 'failure'
-        ? (reviewPullRequest.failedChecks ?? [])
+        ? (reviewPullRequest.failedCheckDetails ?? [])
         : [];
 
     return (
       <Stack align="end" gap="xs">
         <ButtonBar>
           <Tooltip title={REVIEW_PR_META.description} skipWrapper>
-            <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
+            <LinkButton
+              size="sm"
+              variant="primary"
+              href={reviewPullRequest.url}
+              external
+              onClick={() => trackPrClicked('review_pr', reviewPullRequest)}
+            >
               <Flex as="span" gap="xs" align="center">
                 {t('Review PR #%s', reviewPullRequest.number)}
                 <IconOpen size="xs" />
               </Flex>
             </LinkButton>
           </Tooltip>
-          <OpenSeerButton run={run} size="sm" variant="primary" />
+          <OpenSeerButton run={run} section={sectionKey} size="sm" variant="primary" />
         </ButtonBar>
         {enrichmentPending ? (
           // Two slots mirror the review + checks tags the enriched response
@@ -250,13 +275,17 @@ function OverviewAction({
                       {t('Failing checks:')}
                     </Text>
                     <Stack gap="2xs" align="start">
-                      {failedChecks.map((name, index) => (
-                        <Flex key={`${name}-${index}`} gap="xs" align="start">
+                      {failedChecks.map((check, index) => (
+                        <Flex key={`${check.name}-${index}`} gap="xs" align="start">
                           <Text size="sm" variant="muted">
                             •
                           </Text>
                           <Text size="sm" align="left">
-                            {name}
+                            {check.url ? (
+                              <ExternalLink href={check.url}>{check.name}</ExternalLink>
+                            ) : (
+                              check.name
+                            )}
                           </Text>
                         </Flex>
                       ))}
@@ -357,7 +386,7 @@ function IssueVitals({
   statsPeriod: string | null;
 }) {
   const eventCount = run.issue.count ? Number(run.issue.count) : null;
-  const userCount = run.issue.userCount ?? 0;
+  const userCount = run.issue.userCount ?? null;
   const windowLabel = periodWindowLabel(statsPeriod);
   return (
     <Fragment>
@@ -365,6 +394,10 @@ function IssueVitals({
         <Fragment>
           <Flex gap="xs" align="center">
             <IconGraph size="xs" variant="muted" aria-hidden />
+            <Placeholder height="1rem" width="4rem" />
+          </Flex>
+          <Flex gap="xs" align="center">
+            <IconUser size="xs" variant="muted" aria-hidden />
             <Placeholder height="1rem" width="4rem" />
           </Flex>
           <Flex gap="xs" align="center">
@@ -392,7 +425,7 @@ function IssueVitals({
               </InfoText>
             </Flex>
           )}
-          {userCount > 0 && (
+          {userCount !== null && (
             <Flex gap="xs" align="center">
               <IconUser size="xs" variant="muted" aria-hidden />
               <InfoText
@@ -436,7 +469,15 @@ function IssueVitals({
   );
 }
 
-function PriorityAndAssignee({run}: {run: OverviewRun}) {
+function PriorityAndAssignee({
+  run,
+  memberList,
+  assigneeReady,
+}: {
+  assigneeReady: boolean;
+  run: OverviewRun;
+  memberList?: User[];
+}) {
   const {issue} = run;
   const priorityGroup: OverviewIssuePriorityGroup = {
     id: run.groupId,
@@ -455,13 +496,18 @@ function PriorityAndAssignee({run}: {run: OverviewRun}) {
   return (
     <Flex gap="xs" align="center">
       <OverviewIssuePriority group={priorityGroup} />
-      <OverviewIssueAssignee
-        groupId={run.groupId}
-        projectId={issue.project.id}
-        projectSlug={issue.project.slug}
-        assignedTo={issue.assignedTo ?? undefined}
-        owners={issue.owners}
-      />
+      {assigneeReady ? (
+        <OverviewIssueAssignee
+          groupId={run.groupId}
+          projectId={issue.project.id}
+          projectSlug={issue.project.slug}
+          assignedTo={issue.assignedTo ?? undefined}
+          owners={issue.owners}
+          memberList={memberList}
+        />
+      ) : (
+        <Placeholder shape="circle" width="24px" height="24px" />
+      )}
     </Flex>
   );
 }
@@ -472,19 +518,31 @@ export function OverviewCard({
   sectionKey,
   statsPeriod,
   enrichmentPending,
+  memberList,
+  assigneeReady,
 }: {
+  assigneeReady: boolean;
   enrichmentPending: boolean;
   orgSlug: string;
   run: OverviewRun;
   sectionKey: AutofixStateKey;
   statsPeriod: string | null;
+  memberList?: User[];
 }) {
+  const organization = useOrganization();
   const rootCause = run.rootCause?.oneLineDescription;
   const proposedFix = run.proposedFix?.oneLineSummary;
   const issueUrl = `/organizations/${orgSlug}/issues/${run.groupId}/`;
   const reviewPullRequest =
     sectionKey === 'review_pr' ? selectReviewPullRequest(run.pullRequests) : undefined;
   const changedFiles = reviewPullRequest?.files ?? [];
+  const trackCodeChangesExpanded = () =>
+    trackAnalytics('autofix.overview.code_changes_expanded', {
+      organization,
+      group_id: run.groupId,
+      run_id: run.seerRunId,
+      section: sectionKey,
+    });
 
   return (
     <CardFrame
@@ -497,7 +555,11 @@ export function OverviewCard({
             issueUrl={issueUrl}
             enrichmentPending={enrichmentPending}
           />
-          <PriorityAndAssignee run={run} />
+          <PriorityAndAssignee
+            run={run}
+            memberList={memberList}
+            assigneeReady={assigneeReady}
+          />
         </Fragment>
       }
     >
@@ -507,7 +569,19 @@ export function OverviewCard({
         <LevelBar level={run.issue.level ?? undefined} />
         <Stack minWidth="0" gap="xs">
           <Text bold display="block" textWrap="pretty" wordBreak="break-word" size="lg">
-            <TitleLink to={issueUrl}>{run.title}</TitleLink>
+            <TitleLink
+              to={issueUrl}
+              onClick={() =>
+                trackAnalytics('autofix.overview.issue_clicked', {
+                  organization,
+                  group_id: run.groupId,
+                  run_id: run.seerRunId,
+                  section: sectionKey,
+                })
+              }
+            >
+              {run.title}
+            </TitleLink>
           </Text>
           <Flex wrap="wrap" gap="md" align="center">
             <Flex gap="xs" align="center">
@@ -546,12 +620,19 @@ export function OverviewCard({
         </NarrativeBlock>
       )}
       {sectionKey === 'code_changes_ready' && run.codeChanges?.length ? (
-        <CodeChanges codeChanges={run.codeChanges} />
+        <CodeChanges
+          codeChanges={run.codeChanges}
+          onFirstExpand={trackCodeChangesExpanded}
+        />
       ) : null}
       {enrichmentPending && reviewPullRequest?.url ? (
         <Placeholder height="3rem" />
       ) : reviewPullRequest && changedFiles.length > 0 ? (
-        <PullRequestFiles orgSlug={orgSlug} pullRequest={reviewPullRequest} />
+        <PullRequestFiles
+          orgSlug={orgSlug}
+          pullRequest={reviewPullRequest}
+          onFirstExpand={trackCodeChangesExpanded}
+        />
       ) : null}
     </CardFrame>
   );
@@ -621,7 +702,7 @@ export function OverviewCardSkeleton() {
         <Stack minWidth="0" gap="xs">
           <TextLineSkeleton size="lg" width="70%" />
           <Flex wrap="wrap" gap="md" align="center">
-            {['4.5rem', '4rem', '5rem', '5rem'].map((width, index) => (
+            {['4.5rem', '4rem', '4rem', '5rem', '5rem'].map((width, index) => (
               <TextLineSkeleton key={index} size="sm" width={width} />
             ))}
           </Flex>

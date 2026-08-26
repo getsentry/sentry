@@ -260,13 +260,13 @@ export function AutofixWarnings({
       >
         {repoNames.length
           ? tct(
-              'The configured GitHub App for [repoNames] is missing permissions. Update the app and ask Seer to retry.',
+              "Seer can't fix the failing CI on your pull request because the configured GitHub App for [repoNames] is missing permissions. Update the app.",
               {
                 repoNames: repoNamesNode,
               }
             )
           : t(
-              'The configured GitHub App is missing permissions. Update the app and ask Seer to retry.'
+              "Seer can't fix the failing CI on your pull request because the configured GitHub App is missing permissions. Update the app."
             )}
       </Alert>
     </Stack>

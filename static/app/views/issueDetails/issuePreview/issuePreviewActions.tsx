@@ -10,7 +10,11 @@ import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNex
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
+  collectPatches,
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  isCodeChangesArtifact,
+  type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
@@ -18,9 +22,13 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconAdd,
+  IconBug,
   IconChevron,
+  IconCode,
   IconGithub,
+  IconList,
   IconOpen,
+  IconPullRequest,
   IconRefresh,
   IconSeer,
 } from 'sentry/icons';
@@ -32,10 +40,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
+function hasCodeChanges(section: AutofixSection): boolean {
+  const artifact = getAutofixArtifactFromSection(section);
+  return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
+}
+
 interface IssuePreviewActionsProps {
   autofix: ExplorerAutofix;
   group: Group;
   onContinueInSeer: () => void;
+  onRetryCodeChanges: () => void;
   disabled?: boolean;
 }
 
@@ -44,6 +58,7 @@ interface AutofixActionProps {
   group: Group;
   linkedPullRequestsData: ReturnType<typeof useLinkedPullRequests>['data'];
   onContinueInSeer: () => void;
+  onRetryCodeChanges: () => void;
   disabled?: boolean;
 }
 
@@ -87,20 +102,20 @@ function StartAutofixAction({
   codingAgentStep,
   disabled,
   group,
-  icon = <IconSeer />,
+  icon,
   label,
   onContinueInSeer,
   tooltip,
   waiting,
-}: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
+}: Omit<AutofixActionProps, 'linkedPullRequestsData' | 'onRetryCodeChanges'> & {
   action: () => unknown | Promise<unknown>;
   analyticsAction: string;
   analyticsEventKey: string;
   analyticsEventName: string;
+  icon: ReactNode;
   label: string;
   analyticsParams?: ButtonProps['analyticsParams'];
   codingAgentStep?: 'root_cause' | 'solution';
-  icon?: ReactNode;
   tooltip?: string | null;
   variant?: 'primary' | 'secondary';
   waiting?: boolean;
@@ -213,12 +228,15 @@ function NextAutofixStepButton({
   disabled,
   group,
   onContinueInSeer,
+  onRetryCodeChanges,
+  suppressResultLink = false,
   variant = 'primary',
 }: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   autofix: ExplorerAutofix;
   group: Group;
   onContinueInSeer: () => void;
   disabled?: boolean;
+  suppressResultLink?: boolean;
   variant?: 'primary' | 'secondary';
 }) {
   const {runState, isWaitingForRun} = autofix;
@@ -234,6 +252,7 @@ function NextAutofixStepButton({
         autofix={autofix}
         disabled={disabled}
         group={group}
+        icon={<IconBug data-test-id="autofix-root-cause-icon" />}
         label={t('Find Root Cause')}
         onContinueInSeer={onContinueInSeer}
         variant={variant}
@@ -302,7 +321,7 @@ function NextAutofixStepButton({
   const codingAgentResult = codingAgentWithResult?.results?.find(result => result.pr_url);
   const resultLink = findCodingAgentResultLink(codingAgents);
 
-  if (resultLink) {
+  if (resultLink && !suppressResultLink) {
     return (
       <LinkButton
         {...getAutofixActionProps({
@@ -320,7 +339,7 @@ function NextAutofixStepButton({
         icon={<IconOpen />}
         variant={variant}
       >
-        {resultLink.label}
+        {defined(resultLink.prNumber) ? t('View PR') : resultLink.label}
       </LinkButton>
     );
   }
@@ -350,12 +369,21 @@ function NextAutofixStepButton({
 
   const nextStep = getAutofixNextStep({sections});
   if (autofix.isProcessing) {
-    const label =
+    const {icon, label} =
       nextStep?.action === 'solution'
-        ? t('Make a Plan')
+        ? {
+            icon: <IconList data-test-id="autofix-plan-icon" />,
+            label: t('Make a Plan'),
+          }
         : nextStep?.action === 'code_changes'
-          ? t('Write a Code Fix')
-          : t('Find Root Cause');
+          ? {
+              icon: <IconCode data-test-id="autofix-code-changes-icon" />,
+              label: t('Write a Code Fix'),
+            }
+          : {
+              icon: <IconBug data-test-id="autofix-root-cause-icon" />,
+              label: t('Find Root Cause'),
+            };
 
     return (
       <StartAutofixAction
@@ -366,11 +394,34 @@ function NextAutofixStepButton({
         autofix={autofix}
         disabled
         group={group}
+        icon={icon}
         label={label}
         onContinueInSeer={onContinueInSeer}
         variant={variant}
         waiting
       />
+    );
+  }
+
+  // Seer can finish the code changes step without producing a diff. The full
+  // Seer drawer offers a retry for this state, so send users there instead of
+  // offering to create an empty PR.
+  if (nextStep?.action === 'create_pr' && !hasCodeChanges(nextStep.section)) {
+    return (
+      <Button
+        {...getAutofixActionProps({
+          analyticsAction: 'retry_code_changes',
+          analyticsEventKey: 'issue_inbox.retry_code_changes_clicked',
+          analyticsEventName: 'Issue Inbox: Retry Code Changes Clicked',
+          group,
+        })}
+        disabled={disabled}
+        icon={<IconRefresh />}
+        onClick={onRetryCodeChanges}
+        variant={variant}
+      >
+        {t('Add context & retry')}
+      </Button>
     );
   }
 
@@ -386,6 +437,7 @@ function NextAutofixStepButton({
           autofix={autofix}
           disabled={disabled}
           group={group}
+          icon={<IconPullRequest data-test-id="autofix-pull-request-icon" />}
           label={t('Create PR')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -402,6 +454,7 @@ function NextAutofixStepButton({
           disabled={disabled}
           group={group}
           codingAgentStep="solution"
+          icon={<IconCode data-test-id="autofix-code-changes-icon" />}
           label={t('Write a Code Fix')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -418,6 +471,7 @@ function NextAutofixStepButton({
           disabled={disabled}
           group={group}
           codingAgentStep="root_cause"
+          icon={<IconList data-test-id="autofix-plan-icon" />}
           label={t('Make a Plan')}
           onContinueInSeer={onContinueInSeer}
           variant={variant}
@@ -450,39 +504,47 @@ function ActionButtons({
   group,
   linkedPullRequestsData,
   onContinueInSeer,
+  onRetryCodeChanges,
 }: AutofixActionProps) {
-  const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
-    .filter(
-      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
-    )
-    .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated))[0];
+  const openPullRequests =
+    linkedPullRequestsData?.pullRequests
+      .filter(
+        pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+      )
+      .sort((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated)) ?? [];
+  const hasMultiplePullRequests = openPullRequests.length > 1;
+  const displayedPullRequests = hasMultiplePullRequests
+    ? openPullRequests.slice(0, 2)
+    : openPullRequests.slice(0, 1);
 
-  if (latestOpenPullRequest) {
+  if (displayedPullRequests.length > 0) {
     return (
       <Fragment>
-        <LinkButton
-          {...getAutofixActionProps({
-            analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-            analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
-            analyticsParams: {destination: 'pull_request'},
-            group,
-          })}
-          external
-          disabled={disabled}
-          href={latestOpenPullRequest.externalUrl}
-          icon={<IconGithub data-test-id="pull-request-github" />}
-        >
-          {t(
-            'View %s#%s',
-            latestOpenPullRequest.repository.name,
-            latestOpenPullRequest.id
-          )}
-        </LinkButton>
+        {displayedPullRequests.map((pullRequest, index) => (
+          <LinkButton
+            key={pullRequest.externalUrl}
+            {...getAutofixActionProps({
+              analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+              analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+              analyticsParams: {destination: 'pull_request'},
+              group,
+            })}
+            external
+            disabled={disabled}
+            href={pullRequest.externalUrl}
+            icon={<IconGithub data-test-id="pull-request-github" />}
+            variant={index === 0 ? 'primary' : 'secondary'}
+          >
+            {hasMultiplePullRequests ? t('View PR #%s', pullRequest.id) : t('View PR')}
+          </LinkButton>
+        ))}
         <NextAutofixStepButton
           autofix={autofix}
           disabled={disabled}
           group={group}
           onContinueInSeer={onContinueInSeer}
+          onRetryCodeChanges={onRetryCodeChanges}
+          suppressResultLink={hasMultiplePullRequests}
           variant="secondary"
         />
       </Fragment>
@@ -495,6 +557,7 @@ function ActionButtons({
       disabled={disabled}
       group={group}
       onContinueInSeer={onContinueInSeer}
+      onRetryCodeChanges={onRetryCodeChanges}
     />
   );
 }
@@ -504,6 +567,7 @@ export function IssuePreviewActions({
   disabled,
   group,
   onContinueInSeer,
+  onRetryCodeChanges,
 }: IssuePreviewActionsProps) {
   const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
     useLinkedPullRequests({group});
@@ -520,6 +584,7 @@ export function IssuePreviewActions({
         group={group}
         linkedPullRequestsData={linkedPullRequestsData}
         onContinueInSeer={onContinueInSeer}
+        onRetryCodeChanges={onRetryCodeChanges}
       />{' '}
     </Flex>
   );
