@@ -5,7 +5,7 @@ import partition from 'lodash/partition';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
-import {CompactSelect, type SelectProps} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -82,7 +82,7 @@ export function TeamFilter({
   }, [selectedTeams, teams]);
 
   return (
-    <TeamFilterSelect
+    <CompactSelect
       multiple
       clearable
       search={{onChange: handleSearch}}
@@ -130,18 +130,10 @@ const StyledBadge = styled(Badge)`
   flex-shrink: 0;
 `;
 
-function StringCompactSelect(props: SelectProps<string>) {
-  return <CompactSelect {...props} />;
-}
-
-const TeamFilterSelect = styled(StringCompactSelect)`
-  width: 100%;
-
-  @container (min-width: ${p => p.theme.container.sm}) {
-    width: max-content;
-  }
-`;
-
 const TeamFilterTrigger = styled(OverlayTrigger.Button)`
   width: 100%;
+
+  @container (min-width: ${p => p.theme.container.xl}) {
+    width: auto;
+  }
 `;
