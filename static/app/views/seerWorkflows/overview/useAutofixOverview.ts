@@ -67,8 +67,6 @@ export function detectMilestoneAdvances(
   return advances;
 }
 
-// Poll run ids the issueStats response doesn't cover yet; a non-empty result
-// means a new run appeared and its vitals still need fetching.
 export function runsMissingStats(
   poll: AutofixOverviewResponse | undefined,
   statsByRunId: ReadonlyMap<string, unknown>
@@ -87,8 +85,6 @@ export function runsMissingStats(
   return missing;
 }
 
-// Overlays the window's SCM fields (checks/review/files) onto the matching poll
-// PR by id, so the poll's live PR identity/status isn't clobbered by a snapshot.
 function overlayPullRequest(
   base: OverviewPullRequest,
   scm: OverviewPullRequest
@@ -103,8 +99,6 @@ function overlayPullRequest(
   };
 }
 
-// Merges each fetched window's SCM detail onto the poll's live PRs per run;
-// unfetched runs and uncovered PRs keep poll data, so no PR link is dropped.
 function mergeScmInfo(
   base: AutofixOverviewResponse,
   scmByRunId: Map<string, OverviewPullRequest[]>
@@ -134,8 +128,6 @@ function mergeScmInfo(
   return {...base, runsByMilestone};
 }
 
-// The status poll leaves count/userCount/lastSeen null; overlay them from the
-// issueStats query once it lands so cards paint fast and vitals fill in after.
 type IssueStats = {
   count: string | null;
   lastSeen: string | null;
@@ -200,8 +192,6 @@ export function useAutofixOverview({
     refetchInterval: POLL_INTERVAL,
   });
 
-  // Snuba vitals ride off the fast poll's path: fetched once, then refetched only
-  // when the poll surfaces a new run that could be missing counts.
   const issueStatsQuery = useQuery({
     ...overviewQuery({expand: ['issueStats']}),
     enabled,
@@ -234,8 +224,6 @@ export function useAutofixOverview({
     [organization.slug, selection.projects]
   );
 
-  // Requested ids (dedup) live in a ref so a window request never re-reads state
-  // during render; the shimmer clears off `settledRunIds`.
   const requestedRunIdsRef = useRef<Set<string>>(new Set());
   const [settledRunIds, setSettledRunIds] = useState<Set<string>>(() => new Set());
   const [scmByRunId, setScmByRunId] = useState<Map<string, OverviewPullRequest[]>>(
@@ -245,10 +233,12 @@ export function useAutofixOverview({
   // Ids we've already refetched issueStats for, so a run persistently missing
   // from the stats response can't loop the Snuba call every poll.
   const refetchedRunIdsRef = useRef<Set<string>>(new Set());
+  // Runs still absent from issueStats after their one refetch settled; drop their
+  // vitals shimmer so a deleted/inaccessible issue's card doesn't shimmer forever.
+  const [statsUnavailableRunIds, setStatsUnavailableRunIds] = useState<Set<string>>(
+    () => new Set()
+  );
 
-  // Fetches one positional window of PR-bearing runs (the caller partitions runs
-  // by render order). Any card in a window scrolling into view pulls the whole
-  // window, so the runs just below it are enriched before they are reached.
   const requestScmWindow = useCallback(
     (runIds: string[]) => {
       const fresh = runIds.filter(id => !requestedRunIdsRef.current.has(id));
@@ -260,8 +250,6 @@ export function useAutofixOverview({
       }
       // Snapshot the scope so a window landing after a scope change is dropped.
       const generation = scopeGenerationRef.current;
-      // Mark the window settled once its request finishes (success or failure);
-      // the shimmer is on by default for un-enriched cards until then.
       const settle = () => {
         if (scopeGenerationRef.current !== generation) {
           return;
@@ -297,13 +285,12 @@ export function useAutofixOverview({
   // so the reshown cards re-window instead of being deduped against the old scope.
   const scopeKey = JSON.stringify([selection.projects, selection.datetime, sort]);
   useEffect(() => {
-    // Bump the generation so an in-flight window from the old scope is ignored
-    // when it settles instead of writing stale data into the new scope.
     scopeGenerationRef.current += 1;
     requestedRunIdsRef.current.clear();
     refetchedRunIdsRef.current.clear();
     setScmByRunId(new Map());
     setSettledRunIds(new Set());
+    setStatsUnavailableRunIds(new Set());
   }, [scopeKey]);
 
   const isScmSettled = useCallback(
@@ -325,8 +312,6 @@ export function useAutofixOverview({
     return map;
   }, [issueStatsQuery.data]);
 
-  // Refetch vitals only when the poll brings in a run the issueStats response
-  // doesn't cover (a new run), and only once per run (guarded by the ref above).
   const issueStatsRefetch = issueStatsQuery.refetch;
   const issueStatsFetching = issueStatsQuery.isFetching;
   const hasIssueStats = Boolean(issueStatsQuery.data);
@@ -334,9 +319,16 @@ export function useAutofixOverview({
     if (!hasIssueStats || issueStatsFetching) {
       return;
     }
-    const fresh = runsMissingStats(statusPollQuery.data, issueStatsByRunId).filter(
-      id => !refetchedRunIdsRef.current.has(id)
-    );
+    const missing = runsMissingStats(statusPollQuery.data, issueStatsByRunId);
+    // A run still missing after its one refetch settled won't self-heal; mark it
+    // so its vitals stop shimmering instead of hanging on forever.
+    const exhausted = missing.filter(id => refetchedRunIdsRef.current.has(id));
+    if (exhausted.length > 0) {
+      setStatsUnavailableRunIds(prev =>
+        exhausted.every(id => prev.has(id)) ? prev : new Set([...prev, ...exhausted])
+      );
+    }
+    const fresh = missing.filter(id => !refetchedRunIdsRef.current.has(id));
     if (fresh.length === 0) {
       return;
     }
@@ -353,8 +345,11 @@ export function useAutofixOverview({
   ]);
 
   const isVitalsPending = useCallback(
-    (seerRunId: string) => !issueStatsByRunId.has(seerRunId) && !issueStatsQuery.isError,
-    [issueStatsByRunId, issueStatsQuery.isError]
+    (seerRunId: string) =>
+      !issueStatsByRunId.has(seerRunId) &&
+      !issueStatsQuery.isError &&
+      !statsUnavailableRunIds.has(seerRunId),
+    [issueStatsByRunId, issueStatsQuery.isError, statsUnavailableRunIds]
   );
 
   const data = useMemo(
@@ -374,9 +369,9 @@ export function useAutofixOverview({
     projectConfigPending: projectConfigQuery.isLoading,
     isPending: !data,
     isError: statusPollQuery.isError && !data,
-    // Poll-based: true once the sole source has painted, so milestone toasts
-    // baseline off a real payload.
-    dataSettled: !statusPollQuery.isPending && Boolean(statusPollQuery.data),
+    // isFetching, not isPending: a stale-cache remount must wait for the refetch
+    // so milestone toasts baseline off fresh data, not the stale snapshot.
+    dataSettled: !statusPollQuery.isFetching && Boolean(statusPollQuery.data),
     requestScmWindow,
     isScmSettled,
     isVitalsPending,
