@@ -1,4 +1,5 @@
 import {lazy} from 'react';
+import styled from '@emotion/styled';
 import queryString from 'query-string';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
@@ -53,29 +54,39 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
 
   return (
     <ReplayAccess fallback={<ReplayLink id={id} eventTimestamp={eventTimestamp} />}>
-      <LazyLoad
-        analyticsContext="seer_embed"
-        replaySlug={id}
-        orgSlug={organization.slug}
-        eventTimestampMs={eventTimestampMs}
-        clipOffsets={CLIP_OFFSETS}
-        fullReplayButtonProps={{
-          analyticsEventKey: 'seer_embed.open_replay_details_clicked',
-          analyticsEventName: 'Seer Embed: Open Replay Details Clicked',
-        }}
-        loadingFallback={
-          <NegativeSpaceContainer
-            style={{height: REPLAY_LOADING_HEIGHT}}
-            data-test-id="replay-loading-placeholder"
-          >
-            <LoadingIndicator />
-          </NegativeSpaceContainer>
-        }
-        LazyComponent={ReplayClipPreview}
-      />
+      <ReplayBlockContainer>
+        <LazyLoad
+          analyticsContext="seer_embed"
+          replaySlug={id}
+          orgSlug={organization.slug}
+          eventTimestampMs={eventTimestampMs}
+          clipOffsets={CLIP_OFFSETS}
+          fullReplayButtonProps={{
+            analyticsEventKey: 'seer_embed.open_replay_details_clicked',
+            analyticsEventName: 'Seer Embed: Open Replay Details Clicked',
+          }}
+          loadingFallback={
+            <NegativeSpaceContainer
+              style={{height: REPLAY_LOADING_HEIGHT}}
+              data-test-id="replay-loading-placeholder"
+            >
+              <LoadingIndicator />
+            </NegativeSpaceContainer>
+          }
+          LazyComponent={ReplayClipPreview}
+        />
+      </ReplayBlockContainer>
     </ReplayAccess>
   );
 }
+
+const ReplayBlockContainer = styled('div')`
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.secondary};
+  padding: ${p => p.theme.space.md};
+  overflow: hidden;
+`;
 
 export const Replay = defineSeerEmbed({
   name: 'replay',
