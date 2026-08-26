@@ -10,7 +10,11 @@ import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNex
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
+  collectPatches,
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  isCodeChangesArtifact,
+  type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
@@ -36,10 +40,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
+function hasCodeChanges(section: AutofixSection): boolean {
+  const artifact = getAutofixArtifactFromSection(section);
+  return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
+}
+
 interface IssuePreviewActionsProps {
   autofix: ExplorerAutofix;
   group: Group;
   onContinueInSeer: () => void;
+  onRetryCodeChanges: () => void;
   disabled?: boolean;
 }
 
@@ -48,6 +58,7 @@ interface AutofixActionProps {
   group: Group;
   linkedPullRequestsData: ReturnType<typeof useLinkedPullRequests>['data'];
   onContinueInSeer: () => void;
+  onRetryCodeChanges: () => void;
   disabled?: boolean;
 }
 
@@ -96,7 +107,7 @@ function StartAutofixAction({
   onContinueInSeer,
   tooltip,
   waiting,
-}: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
+}: Omit<AutofixActionProps, 'linkedPullRequestsData' | 'onRetryCodeChanges'> & {
   action: () => unknown | Promise<unknown>;
   analyticsAction: string;
   analyticsEventKey: string;
@@ -217,6 +228,7 @@ function NextAutofixStepButton({
   disabled,
   group,
   onContinueInSeer,
+  onRetryCodeChanges,
   variant = 'primary',
 }: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   autofix: ExplorerAutofix;
@@ -389,6 +401,28 @@ function NextAutofixStepButton({
     );
   }
 
+  // Seer can finish the code changes step without producing a diff. The full
+  // Seer drawer offers a retry for this state, so send users there instead of
+  // offering to create an empty PR.
+  if (nextStep?.action === 'create_pr' && !hasCodeChanges(nextStep.section)) {
+    return (
+      <Button
+        {...getAutofixActionProps({
+          analyticsAction: 'retry_code_changes',
+          analyticsEventKey: 'issue_inbox.retry_code_changes_clicked',
+          analyticsEventName: 'Issue Inbox: Retry Code Changes Clicked',
+          group,
+        })}
+        disabled={disabled}
+        icon={<IconRefresh />}
+        onClick={onRetryCodeChanges}
+        variant={variant}
+      >
+        {t('Add context & retry')}
+      </Button>
+    );
+  }
+
   switch (nextStep?.action) {
     case 'create_pr':
       return (
@@ -468,6 +502,7 @@ function ActionButtons({
   group,
   linkedPullRequestsData,
   onContinueInSeer,
+  onRetryCodeChanges,
 }: AutofixActionProps) {
   const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
     .filter(
@@ -497,6 +532,7 @@ function ActionButtons({
           disabled={disabled}
           group={group}
           onContinueInSeer={onContinueInSeer}
+          onRetryCodeChanges={onRetryCodeChanges}
           variant="secondary"
         />
       </Fragment>
@@ -509,6 +545,7 @@ function ActionButtons({
       disabled={disabled}
       group={group}
       onContinueInSeer={onContinueInSeer}
+      onRetryCodeChanges={onRetryCodeChanges}
     />
   );
 }
@@ -518,6 +555,7 @@ export function IssuePreviewActions({
   disabled,
   group,
   onContinueInSeer,
+  onRetryCodeChanges,
 }: IssuePreviewActionsProps) {
   const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
     useLinkedPullRequests({group});
@@ -534,6 +572,7 @@ export function IssuePreviewActions({
         group={group}
         linkedPullRequestsData={linkedPullRequestsData}
         onContinueInSeer={onContinueInSeer}
+        onRetryCodeChanges={onRetryCodeChanges}
       />{' '}
     </Flex>
   );

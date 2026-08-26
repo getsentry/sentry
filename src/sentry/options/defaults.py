@@ -690,6 +690,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "github-app.pull-request-status.chunk-size",
+    type=Int,
+    default=25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "integrations.backfill_github_external_actor.gh_api_fetch_interval_s",
     type=Float,
     default=0.1,
