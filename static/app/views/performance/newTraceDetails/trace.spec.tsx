@@ -1008,7 +1008,7 @@ describe('trace view', () => {
     expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
   });
 
-  it('selects and zooms to a vital pill source node on double click', async () => {
+  it('selects and zooms to a vital pill source node on click', async () => {
     const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const zoomSpy = jest.spyOn(VirtualizedViewManager.prototype, 'onZoomIntoSpace');
     const {start} = await completeTestSetup({
@@ -1024,12 +1024,6 @@ describe('trace view', () => {
 
     await userEvent.click(vitalPill!);
 
-    expect(analyticsSpy).not.toHaveBeenCalled();
-    expect(zoomSpy).not.toHaveBeenCalled();
-    expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(0);
-
-    await userEvent.dblClick(vitalPill!);
-
     expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
       'TransactionID: 0'
     );
@@ -1039,7 +1033,7 @@ describe('trace view', () => {
     expect(zoomSpy).toHaveBeenCalledWith([start * 1e3, 2000]);
   });
 
-  it('reveals a hidden vital pill source node on double click', async () => {
+  it('reveals a hidden vital pill source node on click', async () => {
     const start = Date.now() / 1e3;
     const organization = OrganizationFixture({features: ['trace-spans-format']});
     const vitalSpanDescription = 'standalone LCP span';
@@ -1146,7 +1140,7 @@ describe('trace view', () => {
     );
     expect(vitalPill).toBeDefined();
 
-    await userEvent.dblClick(vitalPill!);
+    await userEvent.click(vitalPill!);
 
     const vitalSpanRow = (await screen.findByText(vitalSpanDescription)).closest(
       VISIBLE_TRACE_ROW_SELECTOR

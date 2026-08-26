@@ -494,7 +494,7 @@ export function Trace({
                     key={i}
                     ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
                     className={`TraceIndicatorLabelContainer ${status} ${colorMode}`}
-                    onDoubleClick={
+                    onClick={
                       onScrollToNode
                         ? event => {
                             trackAnalytics('trace.trace_layout.zoom_to_fill', {
