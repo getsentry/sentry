@@ -131,7 +131,9 @@ export function RelayWrapper() {
           mutationOptions={{
             mutationFn: data =>
               fetchMutation<Organization>({
-                url: `/organizations/${organization.slug}/`,
+                url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+                  path: {organizationIdOrSlug: organization.slug},
+                }),
                 method: 'PUT',
                 data: {
                   ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
@@ -166,7 +168,9 @@ export function RelayWrapper() {
           mutationOptions={{
             mutationFn: data =>
               fetchMutation<Organization>({
-                url: `/organizations/${organization.slug}/`,
+                url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+                  path: {organizationIdOrSlug: organization.slug},
+                }),
                 method: 'PUT',
                 data: {relayDsnEndpoint: data.relayDsnEndpoint},
               }),
