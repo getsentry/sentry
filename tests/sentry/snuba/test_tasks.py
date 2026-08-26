@@ -160,6 +160,13 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_organization_id(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.CREATING)
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+            create_subscription_in_snuba(sub.id)
+            request_body = json.loads(urlopen.call_args[1]["body"])
+            assert request_body["organization"] == self.organization.id
+
     def test_group_id(self) -> None:
         group_id = 1234
         sub = self.create_subscription(

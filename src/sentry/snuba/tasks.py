@@ -276,6 +276,9 @@ def _create_snql_in_snuba(
 ) -> str:
     body = {
         "project_id": subscription.project_id,
+        # Snuba attributes the resulting queries to this organization. Metrics entities
+        # also send it via get_entity_extra_params, which stays authoritative below.
+        "organization": subscription.project.organization_id,
         "query": str(snql_query.query),
         "time_window": snuba_query.time_window,
         "resolution": snuba_query.resolution,
