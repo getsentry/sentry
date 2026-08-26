@@ -197,7 +197,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
@@ -226,7 +225,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_skips_transaction_volumes_at_full_sample_rate(self) -> None:
@@ -358,7 +356,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
@@ -428,7 +425,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
@@ -476,7 +472,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_skips_the_factor_without_stored_segments(
@@ -512,7 +507,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 0.0,
         }
     )
     def test_run_calculations_per_org_skips_recalibration_outside_its_rollout(self) -> None:
