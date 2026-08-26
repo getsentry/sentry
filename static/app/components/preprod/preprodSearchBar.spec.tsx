@@ -85,4 +85,38 @@ describe('PreprodSearchBar', () => {
       ''
     );
   });
+
+  it('keeps array attributes whose unwrapped name is in the allowlist', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {key: 'app_name', name: 'app_name', attributeType: 'string'},
+        {
+          key: 'tags[install_groups,array]',
+          name: 'install_groups',
+          attributeType: 'array',
+        },
+      ],
+    });
+
+    render(
+      <PreprodSearchBar
+        initialQuery=""
+        projects={[1]}
+        allowedKeys={['app_name', 'install_groups']}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['trace-item-array-query-support'],
+        }),
+      }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('preprod-search')).toHaveAttribute(
+        'data-array-attributes',
+        expect.stringContaining('tags[install_groups,array]')
+      );
+    });
+  });
 });

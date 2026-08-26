@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
@@ -47,8 +48,17 @@ function filterToAllowedKeys(
   const allowedSet = new Set(allowedKeys);
   const result: TagCollection = {};
   for (const key in attributes) {
-    if (allowedSet.has(key) && attributes[key]) {
-      result[key] = attributes[key];
+    const tag = attributes[key];
+    if (!tag) {
+      continue;
+    }
+    // Array attributes are keyed by their wrapped backend form
+    // (`tags[name,array]`), so match them on the unwrapped `name` the allowlist
+    // uses instead of the key.
+    const matches =
+      allowedSet.has(key) || (tag.kind === FieldKind.ARRAY && allowedSet.has(tag.name));
+    if (matches) {
+      result[key] = tag;
     }
   }
   return result;
