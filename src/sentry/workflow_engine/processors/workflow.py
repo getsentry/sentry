@@ -259,7 +259,7 @@ def evaluate_workflows_action_filters(
     set[DataConditionGroup],
     dict[Workflow, DelayedWorkflowItem],
     EvaluationStats,
-    dict[Workflow, list[DataConditionGroupEvaluation]],
+    dict[Workflow, dict[int, DataConditionGroupEvaluation]],
 ]:
     """
     Evaluate the action filters for the given workflows.
@@ -304,7 +304,9 @@ def evaluate_workflows_action_filters(
     workflow_to_result: dict[int, DataConditionGroupEvaluation] = {
         wf.id: result for wf, result in triggered_workflows.items()
     }
-    filter_evals_by_workflow: dict[Workflow, list[DataConditionGroupEvaluation]] = defaultdict(list)
+    filter_evals_by_workflow: dict[Workflow, dict[int, DataConditionGroupEvaluation]] = defaultdict(
+        dict
+    )
     for action_condition_group, workflow in action_conditions_to_workflow.items():
         with log_context.new_context(
             workflow_id=workflow.id,
@@ -317,7 +319,7 @@ def evaluate_workflows_action_filters(
                 workflow_event_data,
                 data_conditions_by_dcg_id.get(action_condition_group.id),
             )
-            filter_evals_by_workflow[workflow].append(group_evaluation)
+            filter_evals_by_workflow[workflow][action_condition_group.id] = group_evaluation
 
             if slow_conditions:
                 # If there are remaining conditions for the action filter to evaluate,
@@ -443,7 +445,7 @@ def _build_workflow_evaluations(
     detector: Detector,
     event_data: WorkflowEventData,
     trigger_evals: dict[Workflow, DataConditionGroupEvaluation],
-    filter_evals: dict[Workflow, list[DataConditionGroupEvaluation]],
+    filter_evals: dict[Workflow, dict[int, DataConditionGroupEvaluation]],
     delayed_items: dict[Workflow, DelayedWorkflowItem],
     actions: Iterable[Action],
     action_to_workflow_id: dict[int, WorkflowId],
@@ -484,14 +486,15 @@ def _build_workflow_evaluations(
             or next(
                 (
                     evaluation.error
-                    for evaluation in filter_evals.get(workflow, [])
+                    for evaluation in filter_evals.get(workflow, {}).values()
                     if evaluation.error
                 ),
                 None,
             ),
             data={
+                "trigger_group_id": workflow.when_condition_group_id,
                 "trigger_group_eval": trigger_eval,
-                "filter_group_evals": filter_evals.get(workflow, []),
+                "filter_group_evals": filter_evals.get(workflow, {}),
                 "event": event_data,
             },
         )

@@ -45,7 +45,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         error: ConditionError | None = None,
         deferred: bool = False,
         workflow_id: int = 10,
-        filter_group_evaluations: list[DataConditionGroupEvaluation] | None = None,
+        filter_group_evaluations: dict[int, DataConditionGroupEvaluation] | None = None,
     ) -> WorkflowEvaluation:
         trigger_evaluation = DataConditionGroupEvaluation(
             result=triggered,
@@ -72,8 +72,9 @@ class TestWorkflowEvaluationArtifact(TestCase):
             triggered=triggered,
             error=error,
             data={
+                "trigger_group_id": 20,
                 "trigger_group_eval": trigger_evaluation,
-                "filter_group_evals": filter_group_evaluations or [],
+                "filter_group_evals": filter_group_evaluations or {},
                 "event": self.event_data,
             },
         )
@@ -113,6 +114,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             "outcome": WorkflowEvaluationOutcome.ERROR,
             "triggered_action_ids": [],
             "trigger_group_evaluation": {
+                "condition_group_id": 20,
                 "triggered": True,
                 "error": "evaluation failed",
                 "logic_type": DataConditionGroup.Type.ANY,
@@ -154,10 +156,20 @@ class TestWorkflowEvaluationArtifact(TestCase):
         )
         evaluation = self._build_evaluation(
             triggered=True,
-            filter_group_evaluations=[filter_evaluation],
+            filter_group_evaluations={30: filter_evaluation},
         )
 
         assert evaluation.outcome == WorkflowEvaluationOutcome.ERROR
+        assert evaluation.to_artifact()["filter_group_evaluations"] == [
+            {
+                "condition_group_id": 30,
+                "logic_type": DataConditionGroup.Type.ANY,
+                "result": False,
+                "condition_evaluations": [],
+                "triggered": False,
+                "error": "action filter failed",
+            }
+        ]
 
     def test_condition_artifact_excludes_raw_input_data(self) -> None:
         condition = self.create_data_condition()
