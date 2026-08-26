@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container as LayoutContainer, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -209,7 +209,7 @@ export function RelocationOnboarding() {
       <Header>
         <LogoSvg />
         {stepIndex !== -1 && (
-          <LayoutContainer display={{zero: 'none', md: 'block'}} justifySelf="center">
+          <Container display={{zero: 'none', md: 'block'}} justifySelf="center">
             <Stepper
               numSteps={onboardingSteps.length}
               currentStepIndex={stepIndex}
@@ -218,7 +218,7 @@ export function RelocationOnboarding() {
                 goToStep(onboardingSteps[i]);
               }}
             />
-          </LayoutContainer>
+          </Container>
         )}
       </Header>
     );
@@ -314,19 +314,19 @@ export function RelocationOnboarding() {
     <Stack as="main" flexGrow={1} minWidth="0" width="100%">
       <SentryDocumentTitle title={stepObj.title} />
       {headerView}
-      <Container>
+      <PageContainer>
         {backButtonView}
         {contentView}
         <AdaptivePageCorners
           animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
         />
         {errView}
-      </Container>
+      </PageContainer>
     </Stack>
   );
 }
 
-const Container = styled('div')`
+const PageContainer = styled('div')`
   box-sizing: border-box;
   flex-grow: 1;
   display: flex;
