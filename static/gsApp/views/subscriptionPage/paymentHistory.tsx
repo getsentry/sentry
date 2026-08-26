@@ -144,7 +144,7 @@ function ReceiptGrid({
       >
         <Grid
           align="start"
-          columns={isXSmallContainer ? 'repeat(4, 1fr)' : 'repeat(4, 1fr) 2fr'}
+          columns={{zero: 'repeat(4, 1fr)', sm: 'repeat(4, 1fr) 2fr'}}
           gap="xl"
           padding="xl"
         >
@@ -162,7 +162,7 @@ function ReceiptGrid({
             <Grid
               key={payment.id}
               align="center"
-              columns={isXSmallContainer ? 'repeat(4, 1fr)' : 'repeat(4, 1fr) 2fr'}
+              columns={{zero: 'repeat(4, 1fr)', sm: 'repeat(4, 1fr) 2fr'}}
               gap="xl"
               borderTop="primary"
               padding="xl"
