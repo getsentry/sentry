@@ -38,18 +38,18 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
-import {IssuePreviewActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewActions';
-import {IssuePreviewSection} from 'sentry/views/issueDetails/issuePreview/issuePreviewSection';
-import {
-  IssuePreviewSeerContent,
-  useIssuePreviewSeer,
-} from 'sentry/views/issueDetails/issuePreview/issuePreviewSeer';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {IssuePreviewActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
+import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
+import {
+  IssuePreviewSeerContent,
+  useIssuePreviewSeer,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 
 interface IssuePreviewProps {
