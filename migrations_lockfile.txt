@@ -13,7 +13,7 @@ explore: 0013_delete_project_column_from_metric_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
-flags: 0001_squashed_0004_add_flag_audit_log_provider_column
+flags: 0005_increase_flag_max_length
 
 hybridcloud: 0034_drop_webhookpayload_priority_index
 
