@@ -47,8 +47,8 @@ export function extractTraceMetricFromColumn(column: Column): TraceMetric | unde
 
 /**
  * Returns the aggregate columns for trace metric widgets based on display type.
- * Time-series uses yAxis, categorical bar filters to FUNCTION fields only,
- * and all other display types use fields directly.
+ * Time-series uses yAxis. All other display types keep aggregates alongside
+ * grouping fields in `fields`, so filter out the grouping fields here.
  */
 export function getTraceMetricAggregateSource(
   displayType: DisplayType | undefined,
@@ -58,12 +58,9 @@ export function getTraceMetricAggregateSource(
   if (usesTimeSeriesData(displayType)) {
     return yAxis;
   }
-  if (displayType === DisplayType.CATEGORICAL_BAR) {
-    return fields?.filter(
-      f => f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
-    );
-  }
-  return fields;
+  return fields?.filter(
+    f => f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+  );
 }
 
 /**
