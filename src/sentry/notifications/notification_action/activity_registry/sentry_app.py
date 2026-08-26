@@ -129,7 +129,7 @@ def _build_activity_data(activity: Activity) -> ActivityData:
         case ActivityAlertType.SEER_RCA_COMPLETED | ActivityAlertType.SEER_SOLUTION_COMPLETED:
             summary = activity.data.get("summary", "")
             details["summary"] = summary
-        case ActivityAlertType.SEER_PR_CREATED:
+        case ActivityAlertType.SEER_PR_CREATED | ActivityAlertType.SEER_PR_READY_FOR_REVIEW:
             pull_requests_data = activity.data.get("pull_requests", [])
             pull_requests = [
                 {
