@@ -8,12 +8,6 @@ export function getInstallSnippet({isSelfHosted, organization, project}: DocsPar
 }
 
 export function getClientSetupSnippet(params: DocsParams) {
-  const logsSnippet = params.isLogsSelected
-    ? `
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-    : '';
-
   const performanceSnippet = params.isPerformanceSelected
     ? `
   tracesSampleRate: 1.0, // Capture 100% of the transactions
@@ -71,7 +65,7 @@ Sentry.init({
     // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#dataCollection
     // userInfo: false,
     // httpBodies: [],
-  },${integrationsCode}${logsSnippet}${performanceSnippet}${replaySnippet}
+  },${integrationsCode}${performanceSnippet}${replaySnippet}
 });
 
 startTransition(() => {

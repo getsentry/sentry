@@ -483,6 +483,79 @@ class ScheduleWebhooksTest(TestCase):
         # Null provider (default priority) should be last
         assert call_args_list[1] == null_provider_webhook.id
 
+    def scheduler_skips(self, mock_metrics: MagicMock) -> list[dict[str, str]]:
+        return [
+            c[1]["tags"]
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.scheduler.skipped"
+        ]
+
+    @patch.object(deliver_webhooks, "BATCH_SIZE", 2)
+    @patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 4)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_overselect_covers_mailboxes_lost_to_other_dispatchers(
+        self, mock_drain: MagicMock
+    ) -> None:
+        webhooks = [
+            self.create_webhook_payload(mailbox_name=f"github:{i}", cell_name="us")
+            for i in range(3)
+        ]
+        # A dispatcher is mid-claim on the first mailbox; the surplus select must
+        # let the cycle still reach its dispatch target.
+        cache.set(f"wh:drain_active:{webhooks[0].mailbox_name}", 1, timeout=DRAIN_LOCK_TTL)
+
+        schedule_webhook_delivery()
+
+        dispatched = [call[0][0] for call in mock_drain.delay.call_args_list]
+        assert dispatched == [webhooks[1].id, webhooks[2].id]
+
+    @patch.object(deliver_webhooks, "BATCH_SIZE", 2)
+    @patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 4)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_stops_at_dispatch_target(self, mock_drain: MagicMock) -> None:
+        webhooks = [
+            self.create_webhook_payload(mailbox_name=f"github:{i}", cell_name="us")
+            for i in range(3)
+        ]
+
+        schedule_webhook_delivery()
+
+        dispatched = [call[0][0] for call in mock_drain.delay.call_args_list]
+        assert dispatched == [webhooks[0].id, webhooks[1].id]
+        # The surplus head is untouched — still due for the next cycle.
+        webhooks[2].refresh_from_db()
+        assert webhooks[2].schedule_for <= timezone.now()
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_records_lock_skip(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        cache.set(f"wh:drain_active:{webhook.mailbox_name}", 1, timeout=DRAIN_LOCK_TTL)
+
+        schedule_webhook_delivery()
+
+        assert mock_drain.delay.call_count == 0
+        assert self.scheduler_skips(mock_metrics) == [{"provider": "github", "reason": "lock_held"}]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks._claim_mailbox_batch", return_value=0)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_records_claim_lost(
+        self, mock_drain: MagicMock, mock_claim: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # Another dispatcher claimed the head between this cycle's discovery and
+        # its own claim, so the claim finds nothing due.
+        self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        schedule_webhook_delivery()
+
+        assert mock_drain.delay.call_count == 0
+        assert self.scheduler_skips(mock_metrics) == [
+            {"provider": "github", "reason": "claim_lost"}
+        ]
+
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
     # Keep path aligned with provider so responses mocks aren't misleading.
