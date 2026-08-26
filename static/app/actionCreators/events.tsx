@@ -196,10 +196,15 @@ export function fetchTagFacets(
 
   const queryOption = {...urlParams, query: query.query};
 
-  return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
-    query: queryOption,
-    includeAllArgs: true,
-  });
+  return api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/events-facets/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {
+      query: queryOption,
+      includeAllArgs: true,
+    }
+  );
 }
 
 /**
@@ -219,9 +224,14 @@ export function fetchTotalCount(
   };
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
-      query: queryOption,
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/events-meta/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        query: queryOption,
+      }
+    )
     .then((res: Response) => res.count);
 }
 
