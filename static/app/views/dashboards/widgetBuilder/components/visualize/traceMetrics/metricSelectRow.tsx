@@ -19,6 +19,7 @@ import {
   getTraceMetricAggregateActionType,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
   DEFAULT_YAXIS_BY_TYPE,
   doesMetricSupportHeatMapVisualization,
@@ -100,20 +101,36 @@ export function MetricSelectRow({
 
   const onMetricChange = useCallback(
     (newTraceMetric: TraceMetric) => {
-      if (field.kind !== 'function' || !newTraceMetric) {
+      if (!newTraceMetric) {
         return;
       }
 
       let updatedAggregates: Column[] | undefined;
       if (hasMultiMetricSelection) {
-        updatedAggregates = getUpdatedAggregatesMultiMetric(
-          aggregateSource ?? [],
-          index,
-          newTraceMetric
-        );
+        updatedAggregates =
+          field.kind === FieldValueKind.FUNCTION
+            ? getUpdatedAggregatesMultiMetric(
+                aggregateSource ?? [],
+                index,
+                newTraceMetric
+              )
+            : (() => {
+                const aggregate =
+                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
+                  OPTIONS_BY_TYPE[newTraceMetric.type]?.[0]?.value;
+                if (!aggregate) {
+                  return;
+                }
+                const nextAggregates = [...(aggregateSource ?? [])];
+                nextAggregates[index] = buildTraceMetricAggregate(
+                  aggregate as AggregationKeyWithAlias,
+                  newTraceMetric
+                );
+                return nextAggregates;
+              })();
       } else {
         const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
-        updatedAggregates = (aggregateSource ?? []).map(f => {
+        updatedAggregates = (aggregateSource ?? []).map((f, aggregateIndex) => {
           if (f.kind === 'function' && f.function?.[0]) {
             const aggregate = f.function[0];
             const isValid = validAggregateOptions.some(opt => opt.value === aggregate);
@@ -127,6 +144,17 @@ export function MetricSelectRow({
             }
 
             return buildTraceMetricAggregate(aggregate, newTraceMetric);
+          }
+          if (aggregateIndex === index) {
+            const aggregate =
+              DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
+              validAggregateOptions[0]?.value;
+            if (aggregate) {
+              return buildTraceMetricAggregate(
+                aggregate as AggregationKeyWithAlias,
+                newTraceMetric
+              );
+            }
           }
           return f;
         });
@@ -146,9 +174,29 @@ export function MetricSelectRow({
     [aggregateSource, dispatch, field, hasMultiMetricSelection, index, state.displayType]
   );
 
+  const onSelectField = useCallback(() => {
+    if (state.displayType !== DisplayType.TABLE) {
+      return;
+    }
+
+    const newFields = [...(aggregateSource ?? [])];
+    newFields[index] = {kind: FieldValueKind.FIELD, field: ''};
+    dispatch({
+      type: getTraceMetricAggregateActionType(state.displayType),
+      payload: newFields,
+    });
+  }, [aggregateSource, dispatch, index, state.displayType]);
+
+  const hasOnlyAggregate =
+    aggregateSource?.filter(
+      aggregate => aggregate.kind === 'function' || aggregate.kind === 'equation'
+    ).length === 1;
+
   return (
     <Flex gap="0" width="100%" minWidth="0">
-      <MetricSelectorWrapper>
+      <MetricSelectorWrapper
+        hasAggregateSelector={field.kind === FieldValueKind.FUNCTION}
+      >
         <MetricSelector
           traceMetric={traceMetric}
           usePortal
@@ -157,28 +205,41 @@ export function MetricSelectRow({
               ? getDisabledOptionReason
               : undefined
           }
+          fieldOption={
+            state.displayType === DisplayType.TABLE
+              ? {
+                  isSelected: field.kind === FieldValueKind.FIELD,
+                  disabledReason: hasOnlyAggregate
+                    ? t('Add another aggregate before adding a field.')
+                    : undefined,
+                  onSelect: onSelectField,
+                }
+              : undefined
+          }
           onChange={onMetricChange}
         />
       </MetricSelectorWrapper>
-      <AggregateSelectorWrapper>
-        <AggregateSelector
-          disabled={disabled}
-          traceMetric={traceMetric}
-          field={field}
-          index={index}
-        />
-      </AggregateSelectorWrapper>
+      {field.kind === FieldValueKind.FUNCTION && (
+        <AggregateSelectorWrapper>
+          <AggregateSelector
+            disabled={disabled}
+            traceMetric={traceMetric}
+            field={field}
+            index={index}
+          />
+        </AggregateSelectorWrapper>
+      )}
     </Flex>
   );
 }
 
-const MetricSelectorWrapper = styled('div')`
+const MetricSelectorWrapper = styled('div')<{hasAggregateSelector: boolean}>`
   flex: 1 1 auto;
   min-width: 0;
 
   button {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+    border-top-right-radius: ${p => (p.hasAggregateSelector ? 0 : undefined)};
+    border-bottom-right-radius: ${p => (p.hasAggregateSelector ? 0 : undefined)};
     width: 100%;
   }
 

@@ -47,6 +47,7 @@ import {
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
 const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
+const FIELD_OPTION_VALUE = '__field__';
 function maybePortal(element: React.ReactElement, portal?: boolean) {
   return portal ? createPortal(element, document.body) : element;
 }
@@ -86,6 +87,7 @@ export function MetricSelector({
   projectIds,
   environments,
   usePortal,
+  fieldOption,
   getDisabledOptionReason,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
@@ -95,6 +97,11 @@ export function MetricSelector({
   // undefined to leave it enabled. Lets callers constrain the selectable
   // metrics to those their context supports (e.g. only distributions for heat
   // maps). Omitting it leaves every option enabled.
+  fieldOption?: {
+    isSelected: boolean;
+    onSelect: () => void;
+    disabledReason?: string;
+  };
   getDisabledOptionReason?: (option: MetricSelectorOption) => string | undefined;
   projectIds?: number[];
   usePortal?: boolean;
@@ -251,11 +258,28 @@ export function MetricSelector({
         optionFromTraceMetric)
       : null;
 
-    return [
+    const options = [
       ...(selectedOption ? [selectedOption] : []),
       ...selectedApiOptions.filter(o => o.value !== selectedOption?.value),
     ];
+
+    if (!fieldOption) {
+      return options;
+    }
+
+    return [
+      {
+        label: t('Field'),
+        value: FIELD_OPTION_VALUE,
+        metricName: t('Field'),
+        metricType: 'counter',
+        tooltip: fieldOption.disabledReason,
+        trailingItems: () => null,
+      },
+      ...options,
+    ];
   }, [
+    fieldOption,
     metricOptionsData,
     optionFromTraceMetric,
     traceMetric.name,
@@ -277,12 +301,12 @@ export function MetricSelector({
   // default synchronously (or otherwise closing that gap) so the preview never
   // flashes. See newWidgetBuilder's `isResolving`.
   useEffect(() => {
-    if (traceMetric.name) {
+    if (traceMetric.name || fieldOption?.isSelected) {
       return;
     }
-    const firstSelectable = getDisabledOptionReason
-      ? metricOptions.find(option => !getDisabledOptionReason(option))
-      : metricOptions[0];
+    const firstSelectable = metricOptions.find(
+      option => option.value !== FIELD_OPTION_VALUE && !getDisabledOptionReason?.(option)
+    );
     if (firstSelectable) {
       onChange({
         name: firstSelectable.metricName,
@@ -290,7 +314,13 @@ export function MetricSelector({
         unit: firstSelectable.metricUnit,
       });
     }
-  }, [metricOptions, onChange, traceMetric.name, getDisabledOptionReason]);
+  }, [
+    fieldOption?.isSelected,
+    getDisabledOptionReason,
+    metricOptions,
+    onChange,
+    traceMetric.name,
+  ]);
 
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
@@ -320,25 +350,30 @@ export function MetricSelector({
   // Attach a tooltip to options the caller disables, and collect their keys so
   // the combobox renders them disabled. Both no-op without getDisabledOptionReason.
   const displayedOptionsWithDisabledState = useMemo(() => {
-    if (!getDisabledOptionReason) {
-      return displayedOptions;
-    }
     return displayedOptions.map(option => {
+      if (option.value === FIELD_OPTION_VALUE) {
+        return option;
+      }
+      if (!getDisabledOptionReason) {
+        return option;
+      }
       const reason = getDisabledOptionReason(option);
       return reason ? {...option, tooltip: reason} : option;
     });
   }, [displayedOptions, getDisabledOptionReason]);
 
   const disabledOptionKeys = useMemo(() => {
-    if (!getDisabledOptionReason) {
-      return new Set<string>();
-    }
     return new Set(
       displayedOptions
-        .filter(option => getDisabledOptionReason(option))
+        .filter(option => {
+          if (option.value === FIELD_OPTION_VALUE) {
+            return Boolean(fieldOption?.disabledReason);
+          }
+          return Boolean(getDisabledOptionReason?.(option));
+        })
         .map(option => option.value)
     );
-  }, [displayedOptions, getDisabledOptionReason]);
+  }, [displayedOptions, fieldOption?.disabledReason, getDisabledOptionReason]);
 
   const displayedOptionsMap = useMemo(
     () =>
@@ -384,12 +419,21 @@ export function MetricSelector({
     defaultFilter: () => true,
     inputValue: searchInputValue,
     onInputChange: setSearchInputValue,
-    value: traceMetric.name ? traceMetricSelectValue : null,
+    value: fieldOption?.isSelected
+      ? FIELD_OPTION_VALUE
+      : traceMetric.name
+        ? traceMetricSelectValue
+        : null,
     // This intentionally uses the legacy callback because selecting the current metric
     // still needs to normalize stale aggregate metadata. `onChange` only fires when the
     // value changes.
     onSelectionChange: key => {
       if (!key) {
+        return;
+      }
+      if (String(key) === FIELD_OPTION_VALUE && fieldOption) {
+        fieldOption.onSelect();
+        comboBoxState.toggle();
         return;
       }
       const selectedOption = displayedOptionsMap.get(String(key));
@@ -550,7 +594,7 @@ export function MetricSelector({
 
   const sidePanelAnchorPosition =
     sidePanelAnchorOffset === null ? '0px' : `${sidePanelAnchorOffset}px`;
-  const hasSelectedMetric = Boolean(traceMetric.name);
+  const hasSelectedMetric = Boolean(traceMetric.name) && !fieldOption?.isSelected;
 
   return (
     <Container width="100%" position="relative">
@@ -558,9 +602,13 @@ export function MetricSelector({
         {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
         disabled={isFetching && !traceMetric.name}
-        tooltipProps={{title: traceMetric.name || t('None')}}
+        tooltipProps={{
+          title: fieldOption?.isSelected ? t('Field') : traceMetric.name || t('None'),
+        }}
       >
-        <Text ellipsis>{traceMetric.name || t('None')}</Text>
+        <Text ellipsis>
+          {fieldOption?.isSelected ? t('Field') : traceMetric.name || t('None')}
+        </Text>
       </OverlayTrigger.Button>
       {maybePortal(
         <PositionWrapper
