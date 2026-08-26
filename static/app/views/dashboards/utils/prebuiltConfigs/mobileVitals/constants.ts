@@ -1,4 +1,4 @@
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import type {GlobalFilterFallback} from 'sentry/views/dashboards/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
@@ -46,8 +46,9 @@ const APP_START_NAME_EXCLUSIONS = `!${SpanFields.NAME}:"App Start" !${SpanFields
 // V1: child spans under a ui.load/navigation transaction; display name in
 // span.description, cold/warm via app_start_type, has:ttid, op whitelist.
 // V1 children carry transaction (the screen name) but not start.screen, so a
-// screen filter needs expandAppStartScreenFilter below. The ui.load transaction
-// root is excluded with !is_transaction; nested ui.load children still match.
+// screen filter needs APP_START_SCREEN_FILTER_FALLBACK below. The ui.load
+// transaction root is excluded with !is_transaction; nested ui.load children
+// still match.
 // V2 (pre-standalone): non-transaction spans with start.type and the same
 // op whitelist; display names in span.name.
 // Standalone: any non-root span tagged with start.screen. No op whitelist —
@@ -67,44 +68,13 @@ const WARM_START_V2_OPERATIONS_CONDITION = `!${SpanFields.IS_TRANSACTION}:true $
 const WARM_START_STANDALONE_OPERATIONS_CONDITION = `${APP_START_STANDALONE_OPERATIONS_CONDITION} ${SpanFields.APP_VITALS_START_TYPE}:warm`;
 export const WARM_START_TABLE_OPERATIONS_CONDITION = `(${WARM_START_V1_OPERATIONS_CONDITION} OR ${WARM_START_V2_OPERATIONS_CONDITION} OR ${WARM_START_STANDALONE_OPERATIONS_CONDITION})`;
 
-export function isAppStartOperationsQuery(conditions: string | undefined): boolean {
-  return (
-    conditions === COLD_START_TABLE_OPERATIONS_CONDITION ||
-    conditions === WARM_START_TABLE_OPERATIONS_CONDITION
-  );
-}
-
-/**
- * Widens an `app.vitals.start.screen` filter to also match app-start child
- * spans, which carry `transaction` (the screen name) but not the screen
- * attribute. Children only: the sibling ui.load transaction is named the screen
- * too, and it is a screen load rather than an app-start operation.
- *
- * Scoped to the operations tables via isAppStartOperationsQuery. Every other
- * widget either has start.screen on the rows it aggregates or has nothing to do
- * with app starts.
- */
-export function expandAppStartScreenFilter(conditions: string): string {
-  if (
-    !conditions ||
-    conditions.includes(`!${SpanFields.APP_VITALS_START_SCREEN}`) ||
-    conditions.includes(`!has:${SpanFields.APP_VITALS_START_SCREEN}`)
-  ) {
-    return conditions;
-  }
-
-  const screenValues = new MutableSearch(conditions).getFilterValues(
-    SpanFields.APP_VITALS_START_SCREEN
-  );
-  if (screenValues.length === 0) {
-    return conditions;
-  }
-
-  const childSpans = new MutableSearch('');
-  childSpans.addFilterValueList(SpanFields.TRANSACTION, screenValues);
-  childSpans.addFilterValue(`!${SpanFields.IS_TRANSACTION}`, 'true');
-  return `(${conditions} OR (${childSpans.formatString()}))`;
-}
+// The operations tables declare a start.screen -> transaction global filter
+// fallback so a screen filter reaches these child spans. Every branch above
+// requires !is_transaction, which keeps the screen-load transaction out.
+export const APP_START_SCREEN_FILTER_FALLBACK: GlobalFilterFallback = {
+  attribute: SpanFields.APP_VITALS_START_SCREEN,
+  fallbackAttribute: SpanFields.TRANSACTION,
+};
 
 // Screen load operation rows have the same naming split: legacy spans populate
 // span.description, while newer span data populates span.name. Include both fields

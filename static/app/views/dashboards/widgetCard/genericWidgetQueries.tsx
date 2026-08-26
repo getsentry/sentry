@@ -24,10 +24,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {
-  expandAppStartScreenFilter,
-  isAppStartOperationsQuery,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
+import {expandGlobalFilterFallbacks} from 'sentry/views/dashboards/utils/expandGlobalFilterFallbacks';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -375,9 +372,10 @@ export function applyDashboardFiltersToWidget(
     );
 
     filtered.queries.forEach(query => {
-      const filterConditions = isAppStartOperationsQuery(query.conditions)
-        ? expandAppStartScreenFilter(dashboardFilterConditions)
-        : dashboardFilterConditions;
+      const filterConditions = expandGlobalFilterFallbacks(
+        dashboardFilterConditions,
+        query.globalFilterFallbacks
+      );
 
       if (filterConditions) {
         if (query.conditions && !skipParens) {

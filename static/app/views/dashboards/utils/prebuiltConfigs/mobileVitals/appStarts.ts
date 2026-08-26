@@ -4,6 +4,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
+  APP_START_SCREEN_FILTER_FALLBACK,
   AVG_START_VALUE,
   COLD_START_CONDITION,
   COLD_START_TABLE_OPERATIONS_CONDITION,
@@ -259,6 +260,7 @@ const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.avg,
       ],
       conditions: COLD_START_TABLE_OPERATIONS_CONDITION,
+      globalFilterFallbacks: [APP_START_SCREEN_FILTER_FALLBACK],
       orderby: '-avg(span.self_time)',
     },
   ],
@@ -297,6 +299,7 @@ const WARM_OPERATIONS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.avg,
       ],
       conditions: WARM_START_TABLE_OPERATIONS_CONDITION,
+      globalFilterFallbacks: [APP_START_SCREEN_FILTER_FALLBACK],
       orderby: '-avg(span.self_time)',
     },
   ],

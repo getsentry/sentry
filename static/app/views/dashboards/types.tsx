@@ -112,6 +112,16 @@ export type LinkedDashboard = {
 };
 
 /**
+ * Widens a global filter on `attribute` to also match `fallbackAttribute`, for
+ * widgets whose rows carry the filtered value under a different attribute than
+ * the one the filter targets.
+ */
+export type GlobalFilterFallback = {
+  attribute: string;
+  fallbackAttribute: string;
+};
+
+/**
  * A widget query is one or more aggregates and a single filter string (conditions.)
  * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
  */
@@ -130,6 +140,9 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  // Fallback attributes for global filters. Currently not stored in the
+  // backend, only used by prebuilt dashboards in the frontend.
+  globalFilterFallbacks?: GlobalFilterFallback[];
   isHidden?: boolean | null;
   linkedDashboards?: LinkedDashboard[];
   // Contains the on-demand entries for the widget query.
