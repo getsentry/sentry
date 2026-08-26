@@ -500,7 +500,7 @@ function ActionButtons({
             icon={<IconGithub data-test-id="pull-request-github" />}
             variant={index === 0 ? 'primary' : 'secondary'}
           >
-            {hasMultiplePullRequests ? t('PR #%s', pullRequest.id) : t('View PR')}
+            {hasMultiplePullRequests ? t('View PR #%s', pullRequest.id) : t('View PR')}
           </LinkButton>
         ))}
         <NextAutofixStepButton

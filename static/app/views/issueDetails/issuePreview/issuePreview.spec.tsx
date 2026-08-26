@@ -157,11 +157,11 @@ describe('IssuePreview', () => {
 
     render(<IssuePreview groupId={group.id} />, {organization});
 
-    expect(await screen.findByRole('button', {name: 'PR #11'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'View PR #11'})).toHaveAttribute(
       'href',
       'https://github.com/example/repo-name/pull/11'
     );
-    expect(screen.getByRole('button', {name: 'PR #10'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'View PR #10'})).toHaveAttribute(
       'href',
       'https://github.com/example/repo-name/pull/10'
     );
