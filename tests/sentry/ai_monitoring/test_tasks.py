@@ -300,13 +300,18 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Later Title")
     def test_skips_when_existing_title_is_earlier(self, mock_generate: MagicMock) -> None:
         earlier = _ts()
-        self._create_metadata(title="Earlier Title", source_timestamp=earlier)
+        metadata = self._create_metadata(title="Earlier Title", source_timestamp=earlier)
+        stale_date_updated = datetime.now(UTC) - timedelta(days=1)
+        AIConversationMetadata.objects.filter(id=metadata.id).update(
+            date_updated=stale_date_updated
+        )
 
         generate_ai_conversation_title(**self._task_kwargs(source_timestamp=TS + 60))
 
         row = self._row()
         assert row.title == "Earlier Title"
         assert row.title_source_timestamp == earlier
+        assert row.date_updated > stale_date_updated
         mock_generate.assert_not_called()
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Same Ts Title")
