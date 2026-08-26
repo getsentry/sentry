@@ -837,9 +837,7 @@ class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
     def test_settings_form_omits_duplicate_x509cert(self) -> None:
         """Regression for ISWF-3364 / getsentry/sentry#122561."""
         self.login_as(self.user, organization_id=self.organization.id)
-        path = reverse(
-            "sentry-organization-auth-provider-settings", args=[self.organization.slug]
-        )
+        path = reverse("sentry-organization-auth-provider-settings", args=[self.organization.slug])
 
         with self.feature("organizations:sso-saml2"):
             resp = self.client.get(path)
