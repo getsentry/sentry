@@ -1,0 +1,121 @@
+---
+title: EvidenceReference
+description: A reference to something Seer looked at, iconed and labeled the same way everywhere it shows up.
+category: display
+source: '@sentry/scraps/evidence'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/evidence/evidenceReference.tsx
+---
+
+import {EvidenceReference} from '@sentry/scraps/evidence';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation =
+  import('!!type-loader!@sentry/scraps/evidence/evidenceReference');
+
+The `EvidenceReference` renders a reference to something Seer looked at — a
+trace, an issue, a search, a doc — iconed and labeled the same way everywhere
+it shows up. The `type` → icon (and, for the `button` variant, label prefix)
+mapping is the Telemetry Icons board, kept in one place so a trace looks like
+a trace whether it is a Code Mode call's destination chip, a markdown embed,
+or an autofix evidence link.
+
+## Variants
+
+`variant: 'button'` renders a standalone chip — `Icon Type: value` — for a
+call-to-action like a `ToolCall` reference (see
+[ToolCall's Resource icons](/stories/core/toolcall/#resource-icons)).
+`variant: 'link'` renders a plain inline anchor — `Icon value`, no type prefix
+— for prose contexts like a seer markdown embed.
+
+<Storybook.Demo align="stretch">
+  <Stack gap="md" align="start">
+    <EvidenceReference
+      variant="button"
+      type="trace"
+      value="a3805648"
+      to="/traces/a3805648/"
+    />
+    <Text>
+      Investigated{' '}
+      <EvidenceReference
+        variant="link"
+        type="trace"
+        value="a3805648"
+        href="/traces/a3805648/"
+      />{' '}
+      for the slow endpoint.
+    </Text>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<EvidenceReference variant="button" type="trace" value="a3805648" to="/traces/a3805648/" />
+
+<Text>
+  Investigated{' '}
+  <EvidenceReference variant="link" type="trace" value="a3805648" href="/traces/a3805648/" />{' '}
+  for the slow endpoint.
+</Text>
+```
+
+## Icons
+
+Every `type` the Telemetry Icons board defines. Import `EVIDENCE_ICON` when
+you need the icon component alone — for instance to build a custom reference
+chip (see `ToolCall`'s `reference` prop) rather than rendering
+`EvidenceReference` itself.
+
+<Storybook.Demo>
+  <Flex gap="lg" wrap="wrap">
+    <EvidenceReference variant="button" type="log" value="integration.http_response" />
+    <EvidenceReference variant="button" type="trace" value="a3805648" />
+    <EvidenceReference variant="button" type="span" value="a469c305" />
+    <EvidenceReference variant="button" type="profiling" value="e53b897" />
+    <EvidenceReference variant="button" type="error" value="5254308c" />
+    <EvidenceReference variant="button" type="issue" value="SEER-123" />
+    <EvidenceReference variant="button" type="query" value="spans" />
+    <EvidenceReference variant="button" type="metrics" value="query_time" />
+    <EvidenceReference variant="button" type="monitor" value="Send to Slack" />
+    <EvidenceReference variant="button" type="replay" value="67ad746a" />
+    <EvidenceReference variant="button" type="docs" value="Metric Issues" />
+    <EvidenceReference variant="button" type="code" value="src/github_sdk.py:136" />
+    <EvidenceReference variant="button" type="dashboard" value="Frontend Issues" />
+  </Flex>
+</Storybook.Demo>
+
+Note `code` has no label prefix — its value is already a path, not a bare id,
+so a prefix would only repeat what the icon already says.
+
+## Interactivity
+
+The `button` variant renders a real anchor when given `to` (so middle/cmd-click
+and keyboard access work), an interactive button when given only `onClick`, or
+a non-interactive display chip when given neither.
+
+<Storybook.Demo>
+  <Flex gap="lg" wrap="wrap" align="center">
+    <EvidenceReference variant="button" type="issue" value="SEER-123" to="/issues/123/" />
+    <EvidenceReference
+      variant="button"
+      type="issue"
+      value="SEER-123"
+      onClick={() => {}}
+    />
+    <EvidenceReference variant="button" type="issue" value="SEER-123" />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<EvidenceReference variant="button" type="issue" value="SEER-123" to="/issues/123/" />
+<EvidenceReference variant="button" type="issue" value="SEER-123" onClick={() => trackClick()} />
+<EvidenceReference variant="button" type="issue" value="SEER-123" />
+```
+
+The `link` variant only ever renders an anchor, and only for a safe `href`: an
+`http(s)://` URL, or a path starting with a single `/`. Anything else (an
+unsafe scheme, a bare word) renders nothing — a dropped link beats a dead or
+unsafe one.

@@ -8,6 +8,7 @@ resources:
 ---
 
 import {ToolCall} from '@sentry/scraps/chat';
+import {EVIDENCE_ICON} from '@sentry/scraps/evidence';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -156,4 +157,41 @@ toggling the title.
     GET /api/0/organizations/sentry/traces/
   </Text>
 </ToolCall>
+```
+
+## Resource icons
+
+`reference`/`output` take any `icon`, but a chip pointing at a Sentry resource
+— an issue, a trace, a replay, a search — should source it from
+[`EvidenceReference`](/stories/core/evidencereference/)'s `EVIDENCE_ICON` map
+rather than picking one ad hoc. It keys off the same kinds the Telemetry Icons
+board defines, so a trace looks like a trace wherever it is referenced, not
+just inside a `ToolCall`. Seer Explorer's Code Mode call rows source their
+reference chip's icon this way today, keyed off which `links.tsx` rule
+resolved the destination.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Retrieve an issue"
+      status="success"
+      reference={{
+        value: 'Issue: SEER-123',
+        icon: <EVIDENCE_ICON.issue />,
+        to: '/issues/123/',
+      }}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+import {EVIDENCE_ICON} from '@sentry/scraps/evidence';
+
+const IssueIcon = EVIDENCE_ICON.issue;
+
+<ToolCall
+  title="Retrieve an issue"
+  status="success"
+  reference={{value: 'Issue: SEER-123', icon: <IssueIcon />, to: '/issues/123/'}}
+/>;
 ```
