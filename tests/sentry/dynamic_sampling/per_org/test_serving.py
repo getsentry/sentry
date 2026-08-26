@@ -189,7 +189,7 @@ class TestGetRecalibrationFactor:
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
         legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-        per_org_cache.set_guarded_adjusted_factor(ORG_ID, 3.0)
+        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
 
         assert get_recalibration_factor(ORG_ID) == 3.0
         assert emitted_sources == [("recalibration_factor", "per_org")]
@@ -199,7 +199,7 @@ class TestGetRecalibrationFactor:
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
         legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-        per_org_cache.set_guarded_adjusted_factor(ORG_ID, 3.0)
+        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
 
         assert get_recalibration_factor(ORG_ID) == 2.0
         assert emitted_sources == [("recalibration_factor", "legacy")]
@@ -209,7 +209,7 @@ class TestGetRecalibrationFactor:
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
         legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-        per_org_cache.set_guarded_adjusted_factor(ORG_ID, 3.0)
+        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
 
         assert get_recalibration_factor(ORG_ID) == 2.0
         assert emitted_sources == [("recalibration_factor", "legacy")]
