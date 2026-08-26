@@ -1,11 +1,7 @@
-import {ThemeFixture} from 'sentry-fixture/theme';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
 import {InfoText} from '@sentry/scraps/info';
-
-const theme = ThemeFixture();
 
 describe('InfoText', () => {
   function mockOverflow(width: number, containerWidth: number) {
@@ -71,23 +67,6 @@ describe('InfoText', () => {
     render(<InfoText title="Tooltip content">Text content</InfoText>);
 
     expect(screen.getByText('Text content')).toHaveAttribute('tabindex', '0');
-  });
-
-  it('forwards padding to the tooltip', async () => {
-    // InfoText forwards an explicit list of tooltip props, so a tooltip built
-    // out of Tooltip.Header/Grid/Row can only opt out of the shared content
-    // padding if `padding` is on that list.
-    render(
-      <InfoText title="Tooltip content" padding="0">
-        Text content
-      </InfoText>
-    );
-
-    await userEvent.hover(screen.getByText('Text content'));
-
-    const content = screen.getByText('Tooltip content');
-    expect(content).toHaveAttribute('data-tooltip');
-    expect(getEmotionRules(content).join('')).toContain(`padding: ${theme.space['0']};`);
   });
 
   it('supports ellipsis with the regular always-on tooltip', () => {

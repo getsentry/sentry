@@ -5,15 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {
-  Container,
-  type ContainerProps,
-  Flex,
-  getSpacing,
-  Grid,
-  type GridProps,
-  rc,
-} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 // Imported from the module rather than the `text` barrel on purpose. That
 // barrel also re-exports `Prose`, which reaches `code` -> `codeBlock` ->
 // `Button`, and `Button` imports this file — so going through it would close an
@@ -56,17 +48,6 @@ export interface TooltipProps extends UseHoverOverlayProps {
    * Additional style rules for the tooltip content.
    */
   overlayStyle?: React.CSSProperties | SerializedStyles;
-  /**
-   * Padding around the tooltip content.
-   *
-   * Set this to `'0'` when `title` is built from `Tooltip.Header`,
-   * `Tooltip.Grid` or `Tooltip.Footer`. Those sections apply their own padding
-   * so that they can span the full width of the overlay, which a shared outer
-   * padding would prevent.
-   *
-   * @default 'md lg'
-   */
-  padding?: ContainerProps['padding'];
 }
 
 function TooltipComponent({
@@ -75,7 +56,6 @@ function TooltipComponent({
   title,
   disabled = false,
   maxWidth,
-  padding = 'md lg',
   isHoverable = true,
   ...hoverOverlayProps
 }: TooltipProps) {
@@ -143,7 +123,6 @@ function TooltipComponent({
                 <TooltipContent
                   animated
                   maxWidth={maxWidth}
-                  padding={padding}
                   arrowProps={arrowProps}
                   originPoint={arrowData}
                   placement={placement}
@@ -167,9 +146,24 @@ function stopPropagation(e: React.SyntheticEvent) {
 }
 
 const TooltipContent = styled(Overlay, {
-  shouldForwardProp: prop => prop !== 'maxWidth' && prop !== 'padding',
-})<{maxWidth?: number; padding?: TooltipProps['padding']}>`
-  ${p => rc('padding', p.padding, p.theme, getSpacing)};
+  shouldForwardProp: prop => prop !== 'maxWidth',
+})<{maxWidth?: number}>`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+
+  /*
+   * A tooltip built from sections drops this, because each section pads itself
+   * so that it can span the overlay's full width — a shared outer padding
+   * would stop it reaching the edges.
+   *
+   * Matched in CSS rather than by inspecting children, so it still applies when
+   * a component renders the sections internally and this tooltip only ever sees
+   * one opaque element. A RelativeTime card passed as the title is the case
+   * that matters.
+   */
+  &:has([data-tooltip-section]) {
+    padding: 0;
+  }
+
   overflow-wrap: break-word;
   max-width: ${p => p.maxWidth ?? 225}px;
   color: ${p => p.theme.tokens.content.primary};
@@ -202,7 +196,7 @@ interface TooltipHeaderProps {
  */
 function TooltipHeader({children, leadingItems, trailingItems}: TooltipHeaderProps) {
   return (
-    <Flex align="center" justify="between" gap="xs" padding="md lg">
+    <Flex align="center" justify="between" gap="xs" padding="md lg" data-tooltip-section>
       <Flex align="center" gap="xs">
         {leadingItems}
         <Text bold align="left">
@@ -243,7 +237,7 @@ interface TooltipGridProps {
  */
 function TooltipGrid({children, columns = '1fr', gap = '2xs sm'}: TooltipGridProps) {
   return (
-    <Grid columns={columns} gap={gap} align="center" padding="md lg">
+    <Grid columns={columns} gap={gap} align="center" padding="md lg" data-tooltip-section>
       {children}
     </Grid>
   );
@@ -302,7 +296,7 @@ interface TooltipFooterProps {
  */
 function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterProps) {
   return (
-    <Flex align="center" justify="between" gap="xs" padding="md lg">
+    <Flex align="center" justify="between" gap="xs" padding="md lg" data-tooltip-section>
       <Flex align="center" gap="xs">
         {leadingItems}
         <Text variant="muted" align="left">
@@ -322,13 +316,12 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
  * Tooltips show contextual information about an element on hover.
  *
  * For content that is a row of labelled values rather than a sentence, compose
- * it from the sections rather than passing a block of markup. Pass
- * `padding="0"` alongside them, so that each section can apply its own and span
- * the full width:
+ * it from the sections rather than passing a block of markup. The overlay drops
+ * its own padding when it contains one, so that each section can apply its own
+ * and span the full width:
  *
  * ```tsx
  * <Tooltip
- *   padding="0"
  *   title={
  *     <Fragment>
  *       <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
@@ -345,7 +338,8 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
  * ```
  *
  * That holds wherever the sections are rendered from. A component that renders
- * them internally passes `padding="0"` on the tooltip it owns, the same way.
+ * them internally is covered too, because the overlay matches on what it
+ * contains rather than on what it was handed.
  *
  * Sections set their own text alignment, because a tooltip centers its content
  * by default — right for a sentence, wrong for a row of labelled values. Cells

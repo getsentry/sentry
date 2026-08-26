@@ -219,53 +219,56 @@ describe('Tooltip', () => {
 
   describe('content padding', () => {
     // `getComputedStyle` is stubbed in tests/js/setup.ts and cannot see emotion
-    // rules, so read the generated CSS rather than using toHaveStyle, which
-    // would pass vacuously against an empty declaration.
-    async function contentRules(
-      padding?: TooltipProps['padding'],
-      title: TooltipProps['title'] = 'test'
-    ) {
+    // rules, and jsdom does not resolve `:has()` either. So the standing-down
+    // behaviour is covered in two halves: that the overlay carries the rule,
+    // and that the marker the rule looks for really is in the DOM in each case.
+    async function showTooltip(title: TooltipProps['title'] = 'test') {
       render(
-        <Tooltip title={title} padding={padding}>
+        <Tooltip title={title}>
           <button>My Button</button>
         </Tooltip>
       );
       await userEvent.hover(screen.getByText('My Button'));
 
-      // The overlay itself, not the text inside it — a section title nests the
-      // text a few levels down, so it is not the element carrying the padding.
       const content = document.querySelector('[data-tooltip]');
       expect(content).toBeInTheDocument();
-      expect(content).toHaveTextContent('test');
 
-      return getEmotionRules(content as HTMLElement).join('');
+      return content as HTMLElement;
     }
 
     it('pads the content by default', async () => {
-      // Every tooltip that has not opted out depends on this, so it is the
-      // regression guard for the existing call sites.
-      expect(await contentRules()).toContain(
-        `padding: ${theme.space.md} ${theme.space.lg};`
-      );
+      // Every tooltip that is not built from sections depends on this, so it is
+      // the regression guard for the existing call sites.
+      const rules = getEmotionRules(await showTooltip()).join('');
+
+      expect(rules).toContain(`padding: ${theme.space.md} ${theme.space.lg};`);
     });
 
-    it('drops the content padding when opted out', async () => {
-      expect(await contentRules('0')).toContain(`padding: ${theme.space['0']};`);
+    it('stands that padding down when the content carries a section', async () => {
+      const rules = getEmotionRules(await showTooltip()).join('');
+
+      expect(rules).toContain('[data-tooltip-section]');
+      expect(rules).toMatch(/:has\(\[data-tooltip-section\]\)\s*{[^}]*padding:\s*0/);
     });
 
-    it('keeps the padding when the title composes sections', async () => {
-      // Sections pad themselves, so a tooltip built from them wants `'0'`. It
-      // is passed rather than inferred: inferring it would mean inspecting
-      // children, which cannot see sections behind a component boundary anyway.
-      expect(
-        await contentRules(undefined, <Tooltip.Header>test</Tooltip.Header>)
-      ).toContain(`padding: ${theme.space.md} ${theme.space.lg};`);
+    it('marks a section composed directly into the title', async () => {
+      await showTooltip(<Tooltip.Header>test</Tooltip.Header>);
+
+      expect(document.querySelector('[data-tooltip-section]')).toBeInTheDocument();
     });
 
-    it('lets a component that renders sections opt out with the prop', async () => {
-      expect(await contentRules('0', <SectionCard />)).toContain(
-        `padding: ${theme.space['0']};`
-      );
+    it('marks sections a component of its own renders', async () => {
+      // The case `TimeSince` is in. Inspecting children could never see these,
+      // because the tooltip is handed one opaque element -- matching in CSS can.
+      await showTooltip(<SectionCard />);
+
+      expect(document.querySelector('[data-tooltip-section]')).toBeInTheDocument();
+    });
+
+    it('leaves a plain sentence unmarked, so it keeps the padding', async () => {
+      await showTooltip('just a sentence');
+
+      expect(document.querySelector('[data-tooltip-section]')).not.toBeInTheDocument();
     });
   });
 
