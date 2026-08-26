@@ -388,8 +388,6 @@ def find_latest_installable_artifact(
         PreprodArtifact.objects.filter(**filter_kwargs)
         .annotate(build_number_suffix=_build_number_suffix())
         .order_by(
-            # build_number encodes the first three components. Break prefix ties
-            # with a valid raw suffix; otherwise fall back to date_added.
             "-mobile_app_info__build_number",
             F("build_number_suffix").desc(nulls_last=True),
             "-date_added",
