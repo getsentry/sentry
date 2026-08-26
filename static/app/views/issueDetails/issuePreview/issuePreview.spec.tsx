@@ -165,6 +165,7 @@ describe('IssuePreview', () => {
       'href',
       'https://github.com/example/repo-name/pull/10'
     );
+    expect(screen.getByRole('button', {name: 'Restart Autofix'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
 

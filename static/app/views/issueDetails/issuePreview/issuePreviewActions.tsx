@@ -217,12 +217,14 @@ function NextAutofixStepButton({
   disabled,
   group,
   onContinueInSeer,
+  suppressResultLink = false,
   variant = 'primary',
 }: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   autofix: ExplorerAutofix;
   group: Group;
   onContinueInSeer: () => void;
   disabled?: boolean;
+  suppressResultLink?: boolean;
   variant?: 'primary' | 'secondary';
 }) {
   const {runState, isWaitingForRun} = autofix;
@@ -307,7 +309,7 @@ function NextAutofixStepButton({
   const codingAgentResult = codingAgentWithResult?.results?.find(result => result.pr_url);
   const resultLink = findCodingAgentResultLink(codingAgents);
 
-  if (resultLink) {
+  if (resultLink && !suppressResultLink) {
     return (
       <LinkButton
         {...getAutofixActionProps({
@@ -474,7 +476,7 @@ function ActionButtons({
       .filter(
         pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
       )
-      .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated)) ?? [];
+      .sort((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated)) ?? [];
   const hasMultiplePullRequests = openPullRequests.length > 1;
   const displayedPullRequests = hasMultiplePullRequests
     ? openPullRequests.slice(0, 2)
@@ -501,15 +503,14 @@ function ActionButtons({
             {hasMultiplePullRequests ? t('PR #%s', pullRequest.id) : t('View PR')}
           </LinkButton>
         ))}
-        {!hasMultiplePullRequests && (
-          <NextAutofixStepButton
-            autofix={autofix}
-            disabled={disabled}
-            group={group}
-            onContinueInSeer={onContinueInSeer}
-            variant="secondary"
-          />
-        )}
+        <NextAutofixStepButton
+          autofix={autofix}
+          disabled={disabled}
+          group={group}
+          onContinueInSeer={onContinueInSeer}
+          suppressResultLink={hasMultiplePullRequests}
+          variant="secondary"
+        />
       </Fragment>
     );
   }
