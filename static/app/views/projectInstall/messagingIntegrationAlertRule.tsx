@@ -13,12 +13,7 @@ import {
   type IntegrationChannel,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
-  type Channel,
-  useMessagingChannel,
-} from 'sentry/views/projectInstall/useMessagingChannel';
-
-export type {Channel};
+import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
 
 /**
  * Shared data + handlers for the messaging-integration alert rule. Owns the

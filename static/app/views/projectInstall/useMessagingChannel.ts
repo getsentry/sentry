@@ -20,7 +20,7 @@ export type Channel = {
   type: string;
 };
 
-export type ChannelListResponse = {
+type ChannelListResponse = {
   results: Channel[];
 };
 
