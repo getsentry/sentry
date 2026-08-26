@@ -32,14 +32,13 @@ it renders one for every timestamp — pass `tooltipPrefix` to give the card its
 ```
 
 Reach for `RelativeTime` directly only when you are building the tooltip yourself. It is
-composed out of `Tooltip.Header` and `Tooltip.Grid`, which pad themselves, so the tooltip
-needs `padding="0"` to get its own padding out of their way, plus the card's width.
+composed out of `Tooltip.Header` and `Tooltip.Grid`, which pad themselves, and the overlay
+drops its own padding on seeing them, so all you pass is the card's width.
 
 ```jsx
 import {RELATIVE_TIME_MAX_WIDTH, RelativeTime} from '@sentry/scraps/relativeTime';
 
 <Tooltip
-  padding="0"
   maxWidth={RELATIVE_TIME_MAX_WIDTH}
   title={<RelativeTime date={date} label={t('Last Seen')} />}
 >

@@ -55,7 +55,7 @@ interface Props extends Omit<
   suffix?: string;
   /**
    * Customize the tooltip content. This replaces the `RelativeTime` card
-   * completely, including its padding.
+   * completely.
    */
   tooltipBody?: React.ReactNode;
   /**
@@ -118,8 +118,8 @@ export function TimeSince({
 
   const dateObj = getDateObj(date);
 
-  // A caller that supplies its own body owns the whole overlay, so neither the
-  // card's width nor its padding override applies to it.
+  // A caller that supplies its own body owns the whole overlay, so the card's
+  // width does not apply to it.
   const showsCard = !tooltipBody;
 
   return (
@@ -128,9 +128,6 @@ export function TimeSince({
       dateTime={dateObj?.toISOString()}
       variant={variant}
       maxWidth={maxWidth ?? (showsCard ? RELATIVE_TIME_MAX_WIDTH : undefined)}
-      // The card's sections pad themselves, so the overlay's shared padding
-      // has to get out of their way.
-      padding={showsCard ? '0' : undefined}
       title={
         disabledAbsoluteTooltip
           ? null

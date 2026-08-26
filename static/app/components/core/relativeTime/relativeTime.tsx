@@ -6,9 +6,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {useTimezone} from '@sentry/scraps/datetime';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
 import {getRelativeDate, type RelaxedDateType, type UnitStyle} from './getRelativeDate';
@@ -70,12 +70,11 @@ interface RelativeTimeProps {
  *
  * This is tooltip content rather than a standalone element. `TimeSince` renders
  * it for you; reach for it directly only when you are building the tooltip
- * yourself, in which case pass `padding="0"` so the sections it composes can
- * apply their own:
+ * yourself. The overlay drops its own padding on seeing the sections this
+ * composes, so there is nothing to pass but the card's width:
  *
  * ```tsx
  * <Tooltip
- *   padding="0"
  *   maxWidth={RELATIVE_TIME_MAX_WIDTH}
  *   title={<RelativeTime date={date} label={t('Last Seen')} />}
  * >
@@ -86,14 +85,19 @@ interface RelativeTimeProps {
 export function RelativeTime({
   date,
   label,
-  // Defaulted to match <TimeSince>, so a card that omits them reads the same
-  // as the trigger that also omitted them.
-  prefix = t('in'),
-  suffix = t('ago'),
+  prefix,
+  suffix,
   unitStyle,
   showSeconds,
 }: RelativeTimeProps) {
   const timezone = useTimezone();
+  const {t} = useTranslation();
+
+  // Defaulted to match <TimeSince>, so a card that omits them reads the same as
+  // the trigger that also omitted them. Resolved here rather than as default
+  // parameters because the words come from a provider.
+  const resolvedPrefix = prefix ?? t('in');
+  const resolvedSuffix = suffix ?? t('ago');
 
   const abbreviation = moment.tz(date, timezone).format('z');
   // Zones that resolve to UTC itself would render the second row identically to
@@ -104,7 +108,9 @@ export function RelativeTime({
   return (
     <Fragment>
       {defined(label) && (
-        <Tooltip.Header trailingItems={getRelativeDate(date, suffix, prefix, unitStyle)}>
+        <Tooltip.Header
+          trailingItems={getRelativeDate(date, resolvedSuffix, resolvedPrefix, unitStyle)}
+        >
           {label}
         </Tooltip.Header>
       )}
