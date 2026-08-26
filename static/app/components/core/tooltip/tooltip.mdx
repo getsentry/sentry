@@ -202,9 +202,9 @@ Tooltips can display rich content including formatted text, multiple lines, and 
 ## Structured Content
 
 When a tooltip carries labelled values rather than a sentence, compose it out of
-`Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Footer`. Each section applies its own
-padding so that it spans the full width of the overlay, and the overlay drops its own
-padding when it contains one, so there is nothing to pass.
+`Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Footer`. Sections pull back out to the
+overlay's edges and re-apply the padding themselves, so a full width row can reach the
+edges while its content stays inset. There is nothing to pass.
 
 `Tooltip.Row` takes `leadingItems` and `trailingItems` either side of its main cell, and
 renders all three directly into the column tracks declared by `Tooltip.Grid`. That is what
@@ -213,8 +213,7 @@ and `UTC` are different widths. A row that owned its own grid would only align a
 itself.
 
 That holds wherever the sections come from. A component that renders them internally is
-covered too, because the overlay matches on what it ends up containing rather than on
-what it was handed.
+covered too, because its sections are still the overlay's own children in the DOM.
 
 <Storybook.Demo>
   <Tooltip

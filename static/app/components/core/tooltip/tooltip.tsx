@@ -151,17 +151,22 @@ const TooltipContent = styled(Overlay, {
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 
   /*
-   * A tooltip built from sections drops this, because each section pads itself
-   * so that it can span the overlay's full width — a shared outer padding
-   * would stop it reaching the edges.
-   *
-   * Matched in CSS rather than by inspecting children, so it still applies when
-   * a component renders the sections internally and this tooltip only ever sees
-   * one opaque element. A RelativeTime card passed as the title is the case
-   * that matters.
+   * Sections pull back out to the overlay's edges, cancelling the padding above
+   * so that a full width row or separator can reach them, and re-applying it
+   * themselves so their own content stays inset. Only the first and last cancel
+   * it vertically — doing it on every section would collapse the space between
+   * two of them.
    */
-  &:has([data-tooltip-section]) {
-    padding: 0;
+  > [data-tooltip-section] {
+    margin-inline: calc(-1 * ${p => p.theme.space.lg});
+  }
+
+  > [data-tooltip-section]:first-child {
+    margin-block-start: calc(-1 * ${p => p.theme.space.md});
+  }
+
+  > [data-tooltip-section]:last-child {
+    margin-block-end: calc(-1 * ${p => p.theme.space.md});
   }
 
   overflow-wrap: break-word;
@@ -316,9 +321,9 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
  * Tooltips show contextual information about an element on hover.
  *
  * For content that is a row of labelled values rather than a sentence, compose
- * it from the sections rather than passing a block of markup. The overlay drops
- * its own padding when it contains one, so that each section can apply its own
- * and span the full width:
+ * it from the sections rather than passing a block of markup. Sections pull back
+ * out to the overlay's edges and re-apply the padding themselves, so a full
+ * width row reaches the edges while its content stays inset. Nothing to pass:
  *
  * ```tsx
  * <Tooltip
@@ -338,8 +343,8 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
  * ```
  *
  * That holds wherever the sections are rendered from. A component that renders
- * them internally is covered too, because the overlay matches on what it
- * contains rather than on what it was handed.
+ * them internally is covered too, because its sections are still the overlay's
+ * own children in the DOM.
  *
  * Sections set their own text alignment, because a tooltip centers its content
  * by default — right for a sentence, wrong for a row of labelled values. Cells

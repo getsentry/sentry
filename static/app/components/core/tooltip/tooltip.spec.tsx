@@ -219,9 +219,9 @@ describe('Tooltip', () => {
 
   describe('content padding', () => {
     // `getComputedStyle` is stubbed in tests/js/setup.ts and cannot see emotion
-    // rules, and jsdom does not resolve `:has()` either. So the standing-down
-    // behaviour is covered in two halves: that the overlay carries the rule,
-    // and that the marker the rule looks for really is in the DOM in each case.
+    // rules, so the overlay's own rules are read from the generated CSS. What
+    // those rules select on -- the section marker -- is asserted against the DOM
+    // separately, since jsdom does no layout.
     async function showTooltip(title: TooltipProps['title'] = 'test') {
       render(
         <Tooltip title={title}>
@@ -244,11 +244,20 @@ describe('Tooltip', () => {
       expect(rules).toContain(`padding: ${theme.space.md} ${theme.space.lg};`);
     });
 
-    it('stands that padding down when the content carries a section', async () => {
+    it('pulls sections back out to the overlay edges', async () => {
       const rules = getEmotionRules(await showTooltip()).join('');
 
-      expect(rules).toContain('[data-tooltip-section]');
-      expect(rules).toMatch(/:has\(\[data-tooltip-section\]\)\s*{[^}]*padding:\s*0/);
+      expect(rules).toMatch(
+        />\s*\[data-tooltip-section\]\s*{[^}]*margin-inline:\s*calc\(-1 \*/
+      );
+    });
+
+    it('cancels the block padding at the ends only', async () => {
+      // Every section doing this would collapse the space between two of them.
+      const rules = getEmotionRules(await showTooltip()).join('');
+
+      expect(rules).toMatch(/:first-child\s*{[^}]*margin-block-start:\s*calc\(-1 \*/);
+      expect(rules).toMatch(/:last-child\s*{[^}]*margin-block-end:\s*calc\(-1 \*/);
     });
 
     it('marks a section composed directly into the title', async () => {
@@ -258,14 +267,15 @@ describe('Tooltip', () => {
     });
 
     it('marks sections a component of its own renders', async () => {
-      // The case `TimeSince` is in. Inspecting children could never see these,
-      // because the tooltip is handed one opaque element -- matching in CSS can.
+      // The case `TimeSince` is in. The sections are behind a component
+      // boundary, but they are still the overlay's own children in the DOM,
+      // which is what the rules above select on.
       await showTooltip(<SectionCard />);
 
       expect(document.querySelector('[data-tooltip-section]')).toBeInTheDocument();
     });
 
-    it('leaves a plain sentence unmarked, so it keeps the padding', async () => {
+    it('leaves a plain sentence unmarked, so nothing is pulled out', async () => {
       await showTooltip('just a sentence');
 
       expect(document.querySelector('[data-tooltip-section]')).not.toBeInTheDocument();
