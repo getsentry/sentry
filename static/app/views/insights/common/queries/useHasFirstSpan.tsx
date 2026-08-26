@@ -29,7 +29,6 @@ const modulePropertyMap: Record<
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans
-  // Mobile vitals overview covers screen loads and app starts.
   [ModuleName.MOBILE_VITALS]: ['hasInsightsScreenLoad', 'hasInsightsAppStart'],
 };
 
@@ -38,8 +37,6 @@ function projectHasModuleData(
   module: Exclude<ModuleName, ExcludedModuleNames>
 ): boolean {
   const property = modulePropertyMap[module];
-  // Prefer string narrowing over Array.isArray: keyof Project can include array-like
-  // keys, so Array.isArray does not cleanly exclude the readonly-array branch.
   if (typeof property === 'string') {
     return project[property] === true;
   }

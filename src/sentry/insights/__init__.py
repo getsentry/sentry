@@ -61,10 +61,6 @@ def is_app_start(span: FilterSpan) -> bool:
 
 
 def is_screen_load(span: FilterSpan) -> bool:
-    # Mobile vitals dashboards query root transactions with
-    # transaction.op:[ui.load,navigation], plus standalone display spans such as
-    # ui.load.initial_display / ui.load.full_display. Keep flag detection aligned
-    # with those shapes so explore-visible data unlocks the module gate.
     if span.transaction_op in {"ui.load", "navigation"}:
         return True
     if span.op in {"ui.load", "navigation"}:
