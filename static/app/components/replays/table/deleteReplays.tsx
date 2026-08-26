@@ -26,6 +26,7 @@ import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeList} from 'sentry/utils/queryString';
 import {
+  getBulkDeleteErrorReason,
   type ReplayBulkDeletePayload,
   useDeleteReplays,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
@@ -131,16 +132,23 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
                     // TODO: get the list to refetch
                     refetchAuditLog();
                   },
-                  onError: () =>
+                  onError: error => {
+                    const count =
+                      selectedIds === 'all'
+                        ? Number.MAX_SAFE_INTEGER
+                        : selectedIds.length;
+                    const reason = getBulkDeleteErrorReason(error);
                     addErrorMessage(
-                      tn(
-                        'Failed to delete replay',
-                        'Failed to delete replays',
-                        selectedIds === 'all'
-                          ? Number.MAX_SAFE_INTEGER
-                          : selectedIds.length
-                      )
-                    ),
+                      reason
+                        ? tn(
+                            'Failed to delete replay: %2$s',
+                            'Failed to delete replays: %2$s',
+                            count,
+                            reason
+                          )
+                        : tn('Failed to delete replay', 'Failed to delete replays', count)
+                    );
+                  },
                   onSettled: () => {},
                 });
               },
