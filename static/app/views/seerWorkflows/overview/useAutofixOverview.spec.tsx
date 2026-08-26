@@ -1,5 +1,5 @@
 import type {AutofixOverviewResponse, OverviewRun, RunStatus} from './types';
-import {detectMilestoneAdvances} from './useAutofixOverview';
+import {detectMilestoneAdvances, runsMissingStats} from './useAutofixOverview';
 
 const emptyMilestones = {
   autofix_root_cause: [],
@@ -79,5 +79,35 @@ describe('detectMilestoneAdvances', () => {
 
     expect(advanced).toEqual(expect.arrayContaining(['r1', 'r2']));
     expect(advanced).toHaveLength(2);
+  });
+});
+
+describe('runsMissingStats', () => {
+  it('returns nothing when the poll is missing', () => {
+    expect(runsMissingStats(undefined, new Map())).toEqual([]);
+  });
+
+  it('returns nothing when every run already has stats', () => {
+    const poll = response({
+      autofix_root_cause: [run('r1')],
+      autofix_solution: [run('r2')],
+    });
+    expect(
+      runsMissingStats(
+        poll,
+        new Map([
+          ['r1', {}],
+          ['r2', {}],
+        ])
+      )
+    ).toEqual([]);
+  });
+
+  it('returns run ids the stats response does not cover', () => {
+    const poll = response({
+      autofix_root_cause: [run('r1'), run('r2')],
+      autofix_code_changes: [run('r3')],
+    });
+    expect(runsMissingStats(poll, new Map([['r1', {}]])).sort()).toEqual(['r2', 'r3']);
   });
 });

@@ -114,12 +114,16 @@ describe('AutofixOverview', () => {
     truncated,
     projectConfig,
     projectConfigAsyncDelay,
+    issueStatsAsyncDelay,
+    issueStatsStatusCode,
     scmInfo,
     scmInfoStatusCode,
     scmInfoAsyncDelay,
   }: {
     base: Partial<AutofixOverviewResponse['runsByMilestone']>;
     baseStatusCode?: number;
+    issueStatsAsyncDelay?: number | Promise<void>;
+    issueStatsStatusCode?: number;
     projectConfig?: AutofixOverviewResponse['projectConfig'];
     projectConfigAsyncDelay?: number | Promise<void>;
     scmInfo?: Record<string, {pullRequests: OverviewPullRequest[]}>;
@@ -127,21 +131,31 @@ describe('AutofixOverview', () => {
     scmInfoStatusCode?: number;
     truncated?: AutofixOverviewResponse['truncatedMilestones'];
   }) {
+    const overviewBody = {
+      runsByMilestone: {...emptyMilestones, ...base},
+      truncatedMilestones: truncated ?? [],
+    };
+    // Three expands, three cadences: the fast status poll, the fetch-once Snuba
+    // vitals, and the one-shot project config.
     const statusPollRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({expand: ['status']})],
       statusCode: baseStatusCode,
-      body: {
-        runsByMilestone: {...emptyMilestones, ...base},
-        truncatedMilestones: truncated ?? [],
-      },
+      body: overviewBody,
+    });
+    const issueStatsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({expand: ['issueStats']})],
+      asyncDelay: issueStatsAsyncDelay,
+      statusCode: issueStatsStatusCode,
+      body: overviewBody,
     });
     const projectConfigRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({expand: ['projectConfig']})],
       asyncDelay: projectConfigAsyncDelay,
       body: {
-        runsByMilestone: {...emptyMilestones, ...base},
-        truncatedMilestones: truncated ?? [],
+        ...overviewBody,
         ...(projectConfig ? {projectConfig} : {}),
       },
     });
@@ -151,7 +165,7 @@ describe('AutofixOverview', () => {
       statusCode: scmInfoStatusCode,
       body: {scmInfoByRunId: scmInfo ?? {}},
     });
-    return {statusPollRequest, projectConfigRequest, scmInfoRequest};
+    return {statusPollRequest, issueStatsRequest, projectConfigRequest, scmInfoRequest};
   }
 
   // Holds a mocked response open so a pending state can be asserted, with no
@@ -733,6 +747,39 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('0 users')).not.toBeInTheDocument();
   });
 
+  it('shimmers the Snuba vitals until the issueStats call resolves', async () => {
+    const issueStats = deferredResponse();
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      issueStatsAsyncDelay: issueStats.promise,
+    });
+
+    renderPage();
+
+    // The card paints from the status poll with the counts still behind a shimmer.
+    expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+    expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
+    expect(screen.queryByText('1.2K events')).not.toBeInTheDocument();
+
+    issueStats.resolve();
+
+    // Once vitals land, the counts replace the shimmer.
+    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    expect(screen.getByText('5 users')).toBeInTheDocument();
+  });
+
+  it('fetches the vitals once for a stable run set, without looping', async () => {
+    const {issueStatsRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    // No new run appears, so the Snuba fetch never re-triggers.
+    expect(issueStatsRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('renders inline code in root cause and plan summaries', async () => {
     mockOverview({
       base: {
@@ -799,8 +846,8 @@ describe('AutofixOverview', () => {
     );
   });
 
-  it('paints from the light status+snuba poll and never an scmInfo expand', async () => {
-    const {statusPollRequest, scmInfoRequest} = mockOverview({
+  it('polls status only and fetches Snuba vitals off the hot path', async () => {
+    const {statusPollRequest, issueStatsRequest, scmInfoRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
     // Overview reads everything from the overview endpoint; the legacy
@@ -823,25 +870,23 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
+    // The 10s poll carries only status; Snuba vitals ride a separate one-shot call.
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
-        query: expect.objectContaining({expand: ['status', 'issueStats']}),
+        query: expect.objectContaining({expand: ['status']}),
+      })
+    );
+    expect(issueStatsRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/seer/autofix-overview/`,
+      expect.objectContaining({
+        query: expect.objectContaining({expand: ['issueStats']}),
       })
     );
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.not.objectContaining({environment: expect.anything()}),
-      })
-    );
-    // The enriched scmInfo expand is gone; nothing ever requests it.
-    expect(statusPollRequest).not.toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          expand: expect.arrayContaining(['scmInfo']),
-        }),
       })
     );
     // A run with no PRs, and no card scrolled into view, never windows SCM info.

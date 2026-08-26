@@ -386,10 +386,50 @@ function NarrativeBlock({
   );
 }
 
-function IssueVitals({run, statsPeriod}: {run: OverviewRun; statsPeriod: string | null}) {
+function IssueVitals({
+  run,
+  statsPeriod,
+  vitalsPending,
+}: {
+  run: OverviewRun;
+  statsPeriod: string | null;
+  vitalsPending: boolean;
+}) {
   const eventCount = run.issue.count ? Number(run.issue.count) : null;
   const userCount = run.issue.userCount ?? null;
   const windowLabel = periodWindowLabel(statsPeriod);
+  // lastTriggeredAt rides the status poll, so keep it visible even while the
+  // Snuba-sourced counts are still shimmering in.
+  const seerActivity = (
+    <Flex gap="xs" align="center">
+      <IconSeer size="xs" variant="muted" aria-hidden />
+      <Text size="sm" variant="muted">
+        <TimeSince
+          date={run.lastTriggeredAt}
+          tooltipPrefix={t('Last activity on this Seer run')}
+        />
+      </Text>
+    </Flex>
+  );
+  if (vitalsPending) {
+    return (
+      <Fragment>
+        <Flex gap="xs" align="center">
+          <IconGraph size="xs" variant="muted" aria-hidden />
+          <Placeholder height="1rem" width="4rem" />
+        </Flex>
+        <Flex gap="xs" align="center">
+          <IconUser size="xs" variant="muted" aria-hidden />
+          <Placeholder height="1rem" width="4rem" />
+        </Flex>
+        <Flex gap="xs" align="center">
+          <IconClock size="xs" variant="muted" aria-hidden />
+          <Placeholder height="1rem" width="5rem" />
+        </Flex>
+        {seerActivity}
+      </Fragment>
+    );
+  }
   return (
     <Fragment>
       {eventCount !== null && (
@@ -501,6 +541,7 @@ export function OverviewCard({
   sectionKey,
   statsPeriod,
   scmSettled,
+  vitalsPending,
   requestScmWindow,
   scmWindows,
   projectConfig,
@@ -516,6 +557,7 @@ export function OverviewCard({
   scmWindows: string[][] | undefined;
   sectionKey: AutofixStateKey;
   statsPeriod: string | null;
+  vitalsPending: boolean;
   memberList?: User[];
 }) {
   const organization = useOrganization();
@@ -606,7 +648,11 @@ export function OverviewCard({
                 {run.shortId}
               </Text>
             </Flex>
-            <IssueVitals run={run} statsPeriod={statsPeriod} />
+            <IssueVitals
+              run={run}
+              statsPeriod={statsPeriod}
+              vitalsPending={vitalsPending}
+            />
           </Flex>
         </Stack>
       </Grid>

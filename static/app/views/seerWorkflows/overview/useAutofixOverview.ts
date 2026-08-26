@@ -67,6 +67,26 @@ export function detectMilestoneAdvances(
   return advances;
 }
 
+// Poll run ids the issueStats response doesn't cover yet; a non-empty result
+// means a new run appeared and its vitals still need fetching.
+export function runsMissingStats(
+  poll: AutofixOverviewResponse | undefined,
+  statsByRunId: ReadonlyMap<string, unknown>
+): string[] {
+  if (!poll) {
+    return [];
+  }
+  const missing: string[] = [];
+  for (const runs of Object.values(poll.runsByMilestone)) {
+    for (const run of runs) {
+      if (!statsByRunId.has(run.seerRunId)) {
+        missing.push(run.seerRunId);
+      }
+    }
+  }
+  return missing;
+}
+
 // Overlays the window's SCM fields (checks/review/files) onto the matching poll
 // PR by id, so the poll's live PR identity/status isn't clobbered by a snapshot.
 function overlayPullRequest(
@@ -114,8 +134,35 @@ function mergeScmInfo(
   return {...base, runsByMilestone};
 }
 
-// Progressive load: the 10s status+Snuba poll paints cards fast; slow GitHub
-// PR/SCM detail is windowed lazily, only for cards scrolled into view.
+// The status poll leaves count/userCount/lastSeen null; overlay them from the
+// issueStats query once it lands so cards paint fast and vitals fill in after.
+type IssueStats = {
+  count: string | null;
+  lastSeen: string | null;
+  userCount: number | null;
+};
+
+function overlayIssueStats(
+  base: AutofixOverviewResponse,
+  statsByRunId: Map<string, IssueStats>
+): AutofixOverviewResponse {
+  if (statsByRunId.size === 0) {
+    return base;
+  }
+  const runsByMilestone = Object.fromEntries(
+    Object.entries(base.runsByMilestone).map(([milestone, runs]) => [
+      milestone,
+      runs.map(run => {
+        const stats = statsByRunId.get(run.seerRunId);
+        return stats ? {...run, issue: {...run.issue, ...stats}} : run;
+      }),
+    ])
+  ) as AutofixOverviewResponse['runsByMilestone'];
+  return {...base, runsByMilestone};
+}
+
+// Progressive load: the 10s status poll paints cards fast; slower Snuba vitals
+// and GitHub SCM detail fill in afterward without blocking the poll.
 export function useAutofixOverview({
   organization,
   selection,
@@ -148,9 +195,17 @@ export function useAutofixOverview({
     );
 
   const statusPollQuery = useQuery({
-    ...overviewQuery({expand: ['status', 'issueStats']}),
+    ...overviewQuery({expand: ['status']}),
     enabled,
     refetchInterval: POLL_INTERVAL,
+  });
+
+  // Snuba vitals ride off the fast poll's path: fetched once, then refetched only
+  // when the poll surfaces a new run that could be missing counts.
+  const issueStatsQuery = useQuery({
+    ...overviewQuery({expand: ['issueStats']}),
+    enabled,
+    retry: 1,
   });
 
   const projectConfigQuery = useQuery({
@@ -187,6 +242,9 @@ export function useAutofixOverview({
     () => new Map()
   );
   const scopeGenerationRef = useRef(0);
+  // Ids we've already refetched issueStats for, so a run persistently missing
+  // from the stats response can't loop the Snuba call every poll.
+  const refetchedRunIdsRef = useRef<Set<string>>(new Set());
 
   // Fetches one positional window of PR-bearing runs (the caller partitions runs
   // by render order). Any card in a window scrolling into view pulls the whole
@@ -243,6 +301,7 @@ export function useAutofixOverview({
     // when it settles instead of writing stale data into the new scope.
     scopeGenerationRef.current += 1;
     requestedRunIdsRef.current.clear();
+    refetchedRunIdsRef.current.clear();
     setScmByRunId(new Map());
     setSettledRunIds(new Set());
   }, [scopeKey]);
@@ -252,10 +311,61 @@ export function useAutofixOverview({
     [settledRunIds]
   );
 
+  const issueStatsByRunId = useMemo(() => {
+    const map = new Map<string, IssueStats>();
+    for (const runs of Object.values(issueStatsQuery.data?.runsByMilestone ?? {})) {
+      for (const run of runs) {
+        map.set(run.seerRunId, {
+          count: run.issue.count,
+          lastSeen: run.issue.lastSeen,
+          userCount: run.issue.userCount,
+        });
+      }
+    }
+    return map;
+  }, [issueStatsQuery.data]);
+
+  // Refetch vitals only when the poll brings in a run the issueStats response
+  // doesn't cover (a new run), and only once per run (guarded by the ref above).
+  const issueStatsRefetch = issueStatsQuery.refetch;
+  const issueStatsFetching = issueStatsQuery.isFetching;
+  const hasIssueStats = Boolean(issueStatsQuery.data);
+  useEffect(() => {
+    if (!hasIssueStats || issueStatsFetching) {
+      return;
+    }
+    const fresh = runsMissingStats(statusPollQuery.data, issueStatsByRunId).filter(
+      id => !refetchedRunIdsRef.current.has(id)
+    );
+    if (fresh.length === 0) {
+      return;
+    }
+    for (const id of fresh) {
+      refetchedRunIdsRef.current.add(id);
+    }
+    issueStatsRefetch();
+  }, [
+    statusPollQuery.data,
+    issueStatsByRunId,
+    hasIssueStats,
+    issueStatsFetching,
+    issueStatsRefetch,
+  ]);
+
+  const isVitalsPending = useCallback(
+    (seerRunId: string) => !issueStatsByRunId.has(seerRunId) && !issueStatsQuery.isError,
+    [issueStatsByRunId, issueStatsQuery.isError]
+  );
+
   const data = useMemo(
     () =>
-      statusPollQuery.data ? mergeScmInfo(statusPollQuery.data, scmByRunId) : undefined,
-    [statusPollQuery.data, scmByRunId]
+      statusPollQuery.data
+        ? mergeScmInfo(
+            overlayIssueStats(statusPollQuery.data, issueStatsByRunId),
+            scmByRunId
+          )
+        : undefined,
+    [statusPollQuery.data, issueStatsByRunId, scmByRunId]
   );
 
   return {
@@ -269,8 +379,10 @@ export function useAutofixOverview({
     dataSettled: !statusPollQuery.isPending && Boolean(statusPollQuery.data),
     requestScmWindow,
     isScmSettled,
+    isVitalsPending,
     refetch: () => {
       statusPollQuery.refetch();
+      issueStatsQuery.refetch();
       projectConfigQuery.refetch();
     },
   };
