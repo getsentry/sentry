@@ -101,6 +101,7 @@ class AuthConfigEndpointTest(APITestCase):
             "mfaRequired": True,
             "mfaMethods": [{"id": "totp"}],
         }
+
     @pytest.mark.skipif(
         settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
         reason="Requires DummyNewsletter.",
