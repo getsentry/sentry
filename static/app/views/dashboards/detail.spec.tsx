@@ -725,7 +725,6 @@ describe('Dashboards > Detail', () => {
     it('keeps supported breadcrumb actions on prebuilt dashboards', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: organization.features,
       });
 
       render(
@@ -775,7 +774,6 @@ describe('Dashboards > Detail', () => {
       );
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: organization.features,
       });
 
       render(
@@ -810,7 +808,6 @@ describe('Dashboards > Detail', () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
         access: ['org:read', 'org:write'],
-        features: organization.features,
       });
 
       render(
@@ -839,7 +836,6 @@ describe('Dashboards > Detail', () => {
     it('disables the breadcrumb edit action with unsaved filters', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: organization.features,
       });
 
       render(
@@ -878,7 +874,6 @@ describe('Dashboards > Detail', () => {
     it('does not show breadcrumb actions in dashboard preview', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: organization.features,
       });
 
       render(
@@ -909,7 +904,6 @@ describe('Dashboards > Detail', () => {
     it('renders the dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: organization.features,
       });
 
       render(

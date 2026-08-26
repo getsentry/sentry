@@ -216,12 +216,7 @@ export function FiltersBar({
       ? t('Max widgets reached.')
       : null
     : t('You do not have permission to edit this dashboard');
-  const showAddWidgetButton =
-    !isPrebuiltDashboard &&
-    !isEditingDashboard &&
-    !isPreview &&
-    defined(dashboard?.id) &&
-    defined(onAddWidget);
+  const showAddWidgetButton = false;
 
   return (
     <Flex

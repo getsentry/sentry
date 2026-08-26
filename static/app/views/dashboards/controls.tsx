@@ -55,11 +55,10 @@ type Props = {
 };
 
 export function Controls(_props: Props) {
+  void LegacyDashboardControls;
   return null;
 }
 
-// TODO(ui-migration): Remove legacy dashboard controls with the backend flag cleanup.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function LegacyDashboardControls({
   dashboardState,
   dashboard,
