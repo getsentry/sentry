@@ -9,6 +9,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -51,7 +52,9 @@ type SeerExplorerUpdateResponse = {
  * prevent path traversal in the resulting same-origin POST.
  */
 const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null) =>
-  `/organizations/${orgSlug}/seer/explorer-update/${encodeURIComponent(String(runId))}/`;
+  getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
+    path: {organizationIdOrSlug: orgSlug, runId: String(runId)},
+  });
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set([

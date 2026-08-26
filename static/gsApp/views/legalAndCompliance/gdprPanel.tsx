@@ -20,6 +20,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -52,7 +53,9 @@ function GDPREditModal({
     mutationFn: (value: GDPRFormValues) => {
       addLoadingMessage();
       return fetchMutation<Subscription>({
-        url: `/customers/${subscription.slug}/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: subscription.slug},
+        }),
         method: 'PUT',
         data: {
           gdprDetails: {
