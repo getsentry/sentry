@@ -4,6 +4,7 @@ import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
+import sentry_sdk
 from taskbroker_client.retry import Retry
 
 from sentry import features
@@ -14,7 +15,10 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_transaction_balancing,
 )
 from sentry.dynamic_sampling.per_org.comparisons import emit_comparisons
-from sentry.dynamic_sampling.per_org.configuration import get_configuration
+from sentry.dynamic_sampling.per_org.configuration import (
+    BaseDynamicSamplingConfiguration,
+    get_configuration,
+)
 from sentry.dynamic_sampling.per_org.feature_cache import (
     candidate_organizations,
     get_orgs_with_dynamic_sampling,
@@ -47,6 +51,46 @@ logger = logging.getLogger(__name__)
 
 # How long a full pass through all organizations should take.
 CYCLE_DURATION = timedelta(minutes=10)
+
+
+class PerOrgCalculationError(Exception):
+    """One organization's pass through the per-org pipeline failed.
+
+    Deliberately not a ``DynamicSamplingException``: that one reports an expected outcome
+    as a status and is swallowed by ``track_dynamic_sampling``, while a failure here has
+    to reach Sentry and fail the task.
+    """
+
+
+def _failure_context(
+    org_id: OrganizationId, config: BaseDynamicSamplingConfiguration
+) -> dict[str, object]:
+    """The pipeline inputs that explain a failed pass, for the Sentry event.
+
+    Every value is read behind a guard, so that a second failure while describing the
+    first one cannot replace it with a less useful error.
+    """
+    context: dict[str, object] = {"organization_id": org_id}
+    try:
+        results = config.results
+        org_volume = results.organization_volume
+        context.update(
+            {
+                "organization_slug": config.organization.slug,
+                "configuration": type(config).__name__,
+                "target_sample_rate": config.get_sample_rate(),
+                "projects": len(config.projects),
+                "projects_to_balance": len(results.projects_to_balance),
+                "project_volumes": len(results.project_volumes),
+                "transaction_volumes": len(results.transaction_volumes),
+                "organization_total": org_volume.total if org_volume else None,
+                "organization_indexed": org_volume.indexed if org_volume else None,
+                "recalibration_factor": results.recalibration_factor,
+            }
+        )
+    except Exception:
+        context["incomplete"] = True
+    return context
 
 
 @instrumented_task(
@@ -105,11 +149,19 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 
         if is_org_in_recalibration_rollout(config.organization.id):
             config.recalibrate(results.organization_volume)
-
+        write_caches(config)
         return None
+
+    except Exception as e:
+        context = _failure_context(org_id, config)
+        # Attached to the isolation scope, so that the capture_exception in
+        # track_dynamic_sampling reports it with the event.
+        sentry_sdk.set_context("dynamic_sampling_per_org", context)
+        raise PerOrgCalculationError(
+            f"Per-org calculations failed for organization {org_id}"
+        ) from e
     finally:
         emit_comparisons(config)
-        write_caches(config)
 
 
 @instrumented_task(
