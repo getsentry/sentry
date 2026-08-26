@@ -295,10 +295,27 @@ export const integrationRequiresUpgrade = (integration: Integration): boolean =>
 
 /**
  * URL where a user can review and accept a GitHub App installation's updated
- * permissions. Mirrors `_build_permissions_update_url` on the backend.
+ * permissions. Mirrors `get_github_permissions_update_url` on the backend.
+ *
+ * Org-owned installations live under the organization's settings namespace, so
+ * the personal-account path only applies when the install is user-owned or the
+ * account is unknown.
  */
-export const getGithubPermissionsUpdateUrl = (installationId: string): string =>
-  `https://github.com/settings/installations/${installationId}/permissions/update`;
+export const getGithubPermissionsUpdateUrl = (
+  integration: Pick<Integration, 'externalId' | 'accountType' | 'name'>
+): string | undefined => {
+  const installationId = integration.externalId;
+  if (!installationId) {
+    return undefined;
+  }
+
+  if (integration.accountType === 'Organization') {
+    return integration.name
+      ? `https://github.com/organizations/${integration.name}/settings/installations/${installationId}/permissions/update`
+      : undefined;
+  }
+  return `https://github.com/settings/installations/${installationId}/permissions/update`;
+};
 
 export const canManageIntegrations = (organization: Organization): boolean =>
   isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});

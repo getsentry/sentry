@@ -2,6 +2,7 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 
 import {
   getAlertText,
+  getGithubPermissionsUpdateUrl,
   getIntegrationNoun,
   getIntegrationSourceUrl,
 } from 'sentry/utils/integrationUtil';
@@ -95,5 +96,49 @@ describe('getAlertText()', () => {
       },
     });
     expect(getAlertText([integration])).toBeUndefined();
+  });
+});
+
+describe('getGithubPermissionsUpdateUrl()', () => {
+  it('uses the personal namespace for a user-owned installation', () => {
+    expect(
+      getGithubPermissionsUpdateUrl({
+        externalId: '123456',
+        accountType: 'User',
+        name: 'example-user',
+      })
+    ).toBe('https://github.com/settings/installations/123456/permissions/update');
+  });
+
+  it('uses the organization namespace for an org-owned installation', () => {
+    expect(
+      getGithubPermissionsUpdateUrl({
+        externalId: '654321',
+        accountType: 'Organization',
+        name: 'example-org',
+      })
+    ).toBe(
+      'https://github.com/organizations/example-org/settings/installations/654321/permissions/update'
+    );
+  });
+
+  it('returns undefined without an installation id', () => {
+    expect(
+      getGithubPermissionsUpdateUrl({
+        externalId: undefined,
+        accountType: 'User',
+        name: 'example-user',
+      })
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for an org install with no account name', () => {
+    expect(
+      getGithubPermissionsUpdateUrl({
+        externalId: '654321',
+        accountType: 'Organization',
+        name: '',
+      })
+    ).toBeUndefined();
   });
 });

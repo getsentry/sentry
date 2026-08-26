@@ -17,16 +17,12 @@ import {
  * the integration detail page.
  */
 export function openGithubPermissionsUpdateModal(integration: Integration) {
-  const installationUrl = integration.externalId
-    ? getGithubPermissionsUpdateUrl(integration.externalId)
-    : undefined;
-
   openModal(deps => (
     <AutofixGithubAppPermissionsModal
       {...deps}
-      installationUrl={installationUrl}
+      installationUrl={getGithubPermissionsUpdateUrl(integration)}
       description={t(
-        'This GitHub App installation is missing permissions required for the latest features. Update the installation to grant the required permissions.'
+        'This GitHub App installation is missing permissions required for the latest features.'
       )}
     />
   ));

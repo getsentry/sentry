@@ -3,7 +3,6 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
@@ -24,7 +23,6 @@ import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
@@ -157,13 +155,12 @@ function useHandleOpenSeerAgent({
 type AutofixWarning = {
   warning_type: string;
   installation_id?: string;
+  installation_url?: string;
   repo_name?: string;
 };
 
-function InstallationPermissionsButton({installationId}: {installationId: string}) {
+function InstallationPermissionsButton({installationUrl}: {installationUrl?: string}) {
   const {openModal} = useModal();
-  const installationUrl = getGithubPermissionsUpdateUrl(installationId);
-
   return (
     <Button
       variant="primary"
@@ -173,10 +170,7 @@ function InstallationPermissionsButton({installationId}: {installationId: string
           <AutofixGithubAppPermissionsModal
             {...deps}
             installationUrl={installationUrl}
-            description={tct(
-              'Seer had trouble talking to GitHub while running Autofix. Please update your [link:GitHub App installation settings] to grant the required permissions.',
-              {link: <ExternalLink href={installationUrl} />}
-            )}
+            description={t('Seer had trouble talking to GitHub while running Autofix.')}
           />
         ))
       }
@@ -229,7 +223,12 @@ export function AutofixWarnings({
 
   const comp =
     installationIds.length === 1 && defined(installationId) ? (
-      <InstallationPermissionsButton installationId={installationId} />
+      <InstallationPermissionsButton
+        installationUrl={
+          permissionWarnings.find(w => w.installation_id === installationId)
+            ?.installation_url
+        }
+      />
     ) : (
       <ConfigurationPermissionsButton />
     );
