@@ -133,7 +133,7 @@ const StyledBadge = styled(Badge)`
 const TeamFilterTrigger = styled(OverlayTrigger.Button)`
   width: 100%;
 
-  @container (min-width: ${p => p.theme.container.md}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     width: auto;
   }
 `;
