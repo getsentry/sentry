@@ -907,8 +907,16 @@ describe('TraceTree', () => {
       const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
       expect(tree.vitals.get(span1!)).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({key: 'fcp', measurement: {value: 100}}),
-          expect.objectContaining({key: 'lcp', measurement: {value: 200}}),
+          expect.objectContaining({
+            key: 'fcp',
+            measurement: {value: 100},
+            timestamp: start * 1e3 + 100,
+          }),
+          expect.objectContaining({
+            key: 'lcp',
+            measurement: {value: 200},
+            timestamp: start * 1e3 + 200,
+          }),
         ])
       );
 

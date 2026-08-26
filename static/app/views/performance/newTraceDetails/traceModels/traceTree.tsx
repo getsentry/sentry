@@ -325,6 +325,7 @@ export declare namespace TraceTree {
     measurement: Measurement;
     node: BaseNode;
     score?: number;
+    timestamp?: number;
   };
 }
 
