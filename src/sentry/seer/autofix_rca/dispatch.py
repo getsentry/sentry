@@ -7,6 +7,7 @@ from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_utils import AgentRunOptions
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -74,8 +75,10 @@ def trigger_autofix_rca_feature(
         flush=flush,
         extras=extras,
         referrer=referrer.value,
-        force_ce=False,
-        force_frontend_code_search=False,
+        agent_run_options=AgentRunOptions(
+            is_context_engine_enabled=False,
+            enable_frontend_code_search=False,
+        ),
     )
 
     quotas.backend.record_seer_run(

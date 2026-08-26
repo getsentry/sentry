@@ -13,6 +13,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -93,7 +94,16 @@ function DashboardRevisionsModal({
         return Promise.reject(new Error('No revision selected'));
       }
       return api.requestPromise(
-        `/organizations/${organization.slug}/dashboards/${dashboardId}/revisions/${selectedRevision.id}/restore/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/$revisionId/restore/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              dashboardId,
+              revisionId: selectedRevision.id,
+            },
+          }
+        ),
         {method: 'POST'}
       );
     },
