@@ -103,8 +103,8 @@ export function WidgetBuilderV2({
     }
 
     const navigationElement = document.querySelector(
-      'nav[aria-label="Primary Navigation"]'
-    )?.parentElement;
+      '[data-navigation-component="navigation-layout"]'
+    );
     if (navigationElement) {
       navigationElementRef.current = navigationElement as HTMLDivElement;
     }

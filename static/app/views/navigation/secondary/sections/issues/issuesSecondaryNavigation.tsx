@@ -5,7 +5,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {t} from 'sentry/locale';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useInboxIssueCount} from 'sentry/views/issueList/queries/useInboxIssueCount';
+import {useInboxIssueCount} from 'sentry/views/issueList/pages/inbox/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
