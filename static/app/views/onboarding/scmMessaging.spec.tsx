@@ -141,7 +141,6 @@ describe('ScmMessaging', () => {
   });
 
   afterEach(() => {
-    // Unmount active queries before restoring focus to avoid triggering another refetch.
     cleanup();
     focusManager.setFocused(undefined);
     MockApiClient.clearMockResponses();

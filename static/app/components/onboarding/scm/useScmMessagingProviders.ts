@@ -89,8 +89,6 @@ export function useScmMessagingProviders(): {
   });
 
   const isPending = integrationsQuery.isPending || providerQueries.isPending;
-  // Loading errors only: a failed focus refetch keeps cached data, and
-  // consumers treat this flag as fatal (full error screen).
   const isError = integrationsQuery.isLoadingError || providerQueries.isError;
 
   const providers = useMemo<ScmMessagingProviderViewModel[]>(() => {
