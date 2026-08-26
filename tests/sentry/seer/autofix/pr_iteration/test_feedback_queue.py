@@ -8,7 +8,6 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.pause import pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.queue import (
     _parse_queued_item,
     peek_queued_autofix_feedback,
@@ -18,7 +17,6 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
-PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
 
 
 def _run_state(*, repo_pr_states=None) -> SeerRunState:
@@ -131,26 +129,6 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert queued[0].feedback.source._autofix_run is None
         assert "autofix_run" not in queued[0].feedback.source.dict()
         mock_resolve.assert_not_called()
-
-    def test_rejects_feedback_while_paused(self) -> None:
-        self.create_seer_run(
-            organization=self.organization, seer_run_state_id=4545, user_id=self.user.id
-        )
-        pause_pr_iteration(run_id=4545, organization_id=self.organization.id)
-        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
-
-        with (
-            patch.object(UserUIFeedbackSource, "should_queue") as mock_should_queue,
-            patch(f"{PAUSE_PATH}.metrics") as mock_metrics,
-        ):
-            assert self._enqueue(run_id=4545, feedback=feedback) is False
-
-        # should_queue can make Seer calls that a paused run must not pay for.
-        mock_should_queue.assert_not_called()
-        assert peek_queued_autofix_feedback(4545) == []
-        mock_metrics.incr.assert_any_call(
-            "autofix.pr_iteration.paused.blocked", tags={"gate": "enqueue"}
-        )
 
 
 class ParseQueuedItemTest(TestCase):

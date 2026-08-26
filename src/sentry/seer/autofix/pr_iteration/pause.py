@@ -12,7 +12,7 @@ import logging
 from django.utils import timezone
 
 from sentry.seer.autofix.pr_iteration.queue import clear_queued_autofix_feedback
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra, record_run_extra
+from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra, record_run_extras
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
 
@@ -47,12 +47,12 @@ def pause_pr_iteration(
 
     try:
         if get_run_extra(seer_run, PAUSED_EXTRA) is None:
-            # Write the marker first, because it stops every later enqueue.
-            record_run_extra(
-                seer_run,
-                PAUSED_EXTRA,
-                {"paused_at": timezone.now().isoformat(), "actor_user_id": actor_user_id},
-            )
+            # Write the marker first, because it stops every later consume.
+            with record_run_extras(seer_run) as extras:
+                extras[PAUSED_EXTRA] = {
+                    "paused_at": timezone.now().isoformat(),
+                    "actor_user_id": actor_user_id,
+                }
     except SeerRun.DoesNotExist:
         # The run was deleted between the lookup and the marker write.
         return False

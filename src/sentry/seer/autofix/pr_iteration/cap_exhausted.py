@@ -136,7 +136,6 @@ def assign_user_for_exhausted_cap(
         return
 
     if is_pr_iteration_paused(run_id=resolved.run_state.run_id, organization_id=organization_id):
-        # The listener routes every rejected enqueue here, so a paused run gets no comment.
         record_pause_blocked("cap_exhausted")
         _skip("paused", log_extra)
         return

@@ -53,7 +53,6 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
-    PrIterationPausedException,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
@@ -132,6 +131,10 @@ def trigger_consume_pr_iteration_feedback(
     bypass: bool = False,
     delay: int | None = None,
 ) -> None:
+    if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+        record_pause_blocked("trigger_consume")
+        return
+
     if bypass:
         task: ConsumeTask | None = ConsumeTask.Now
     else:
@@ -278,7 +281,6 @@ def consume_queued_autofix_feedback(
         except (
             PrIterationNoPullRequestException,
             PrIterationNotEnabledException,
-            PrIterationPausedException,
             SeerPermissionError,
         ) as error:
             logger.info(

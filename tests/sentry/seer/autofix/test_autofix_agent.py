@@ -18,7 +18,6 @@ from sentry.seer.autofix.autofix_agent import (
     NoSeerQuotaException,
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
-    PrIterationPausedException,
     _build_base_shas_metadata,
     build_step_prompt,
     generate_autofix_handoff_prompt,
@@ -31,7 +30,6 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.pause import pause_pr_iteration
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -821,51 +819,6 @@ class TestTriggerAutofixAgent(TestCase):
         with self.feature("organizations:autofix-pr-iteration-manual"):
             trigger()
         assert mock_client.continue_run.call_count == 2
-
-    @patch("sentry.seer.autofix.pr_iteration.pause.metrics")
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_pr_iteration_blocked_while_paused(
-        self, mock_client_class, mock_broadcast, mock_metrics
-    ):
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.get_run.return_value = _state_with_blocks(
-            [_iteration_block(1)],
-            group_id=self.group.id,
-            repo_pr_states={
-                "owner/repo": RepoPRState(
-                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
-                )
-            },
-        )
-        mock_client.continue_run.return_value = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
-        pause_pr_iteration(run_id=67890, organization_id=self.group.organization.id)
-
-        with self.feature("organizations:autofix-pr-iteration"):
-            with pytest.raises(PrIterationPausedException):
-                trigger_autofix_agent(
-                    group=self.group,
-                    step=AutofixStep.PR_ITERATION,
-                    referrer=AutofixReferrer.GITHUB_PR_COMMENT,
-                    run_id=67890,
-                )
-            mock_client.continue_run.assert_not_called()
-
-            # The pause stops PR iteration only. Other steps on the run continue.
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.CODE_CHANGES,
-                referrer=AutofixReferrer.WEB,
-                run_id=67890,
-            )
-
-        assert mock_client.continue_run.call_count == 1
-        mock_metrics.incr.assert_called_once_with(
-            "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger"}
-        )
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)

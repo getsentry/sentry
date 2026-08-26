@@ -1,7 +1,7 @@
 from sentry.seer.autofix.pr_iteration.run_markers import (
     get_run_extra,
     get_run_marker,
-    record_run_extra,
+    record_run_extras,
     record_run_marker,
 )
 from sentry.seer.models.run import SeerRun
@@ -86,7 +86,8 @@ class RunExtrasTest(TestCase):
 
     def test_run_level_and_per_repo_writes_coexist(self) -> None:
         stale = SeerRun.objects.get(id=self.seer_run.id)
-        record_run_extra(self.seer_run, "pr_iteration_paused", {"paused_at": "now"})
+        with record_run_extras(self.seer_run) as extras:
+            extras["pr_iteration_paused"] = {"paused_at": "now"}
 
         record_run_marker(stale, "review_requests", REPO_NAME, {"reviewers": ["octocat"]})
 

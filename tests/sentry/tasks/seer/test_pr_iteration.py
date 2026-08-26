@@ -24,13 +24,13 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA
+from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
-from sentry.seer.autofix.pr_iteration.run_markers import record_run_extra
+from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.tasks.seer.pr_iteration import (
@@ -606,11 +606,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             referrer=AutofixReferrer.WEB,
             run_state=self._state(),
         )
-        record_run_extra(
-            SeerRun.objects.get(seer_run_state_id=67890),
-            PAUSED_EXTRA,
-            {"paused_at": "2024-01-01T00:00:00+00:00"},
-        )
+        with record_run_extras(SeerRun.objects.get(seer_run_state_id=67890)) as extras:
+            extras[PAUSED_EXTRA] = {"paused_at": "2024-01-01T00:00:00+00:00"}
 
         with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
             self._call()
@@ -1068,6 +1065,27 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
+        )
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_skips_when_paused(self, mock_apply: MagicMock) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(run_id=67890, organization_id=self.organization.id)
+
+        with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
+            trigger_consume_pr_iteration_feedback(
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=self._feedback(),
+                run_state=self._state(),
+                bypass=True,
+            )
+
+        mock_apply.assert_not_called()
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
         )
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")

@@ -7,6 +7,8 @@ under a row lock and merges only its own key.
 
 from __future__ import annotations
 
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import Any
 
 from django.db import router, transaction
@@ -18,33 +20,28 @@ def get_run_marker(seer_run: SeerRun, extra_key: str, repo_name: str) -> dict[st
     return ((seer_run.extras or {}).get(extra_key) or {}).get(repo_name)
 
 
-def record_run_marker(
-    seer_run: SeerRun, extra_key: str, repo_name: str, marker: dict[str, Any]
-) -> None:
-    """Atomically set ``extras[extra_key][repo_name] = marker`` on the run.
-
-    The merge happens against a freshly locked row, so a stale ``seer_run``
-    instance can't clobber markers written concurrently under other keys.
-    """
-    with transaction.atomic(router.db_for_write(SeerRun)):
-        locked = SeerRun.objects.select_for_update().get(id=seer_run.id)
-        extras = dict(locked.extras or {})
-        markers = dict(extras.get(extra_key) or {})
-        markers[repo_name] = marker
-        extras[extra_key] = markers
-        locked.update(extras=extras)
-    seer_run.extras = extras
-
-
 def get_run_extra(seer_run: SeerRun, extra_key: str) -> Any | None:
     return (seer_run.extras or {}).get(extra_key)
 
 
-def record_run_extra(seer_run: SeerRun, extra_key: str, value: Any) -> None:
-    """Atomically set ``extras[extra_key] = value`` on the run."""
+@contextmanager
+def record_run_extras(seer_run: SeerRun) -> Generator[dict[str, Any]]:
+    """Yield ``extras`` from a locked row and save the edits on exit.
+    The row stays locked inside the ``with`` block, so keep the body short.
+    """
     with transaction.atomic(router.db_for_write(SeerRun)):
         locked = SeerRun.objects.select_for_update().get(id=seer_run.id)
         extras = dict(locked.extras or {})
-        extras[extra_key] = value
+        yield extras
         locked.update(extras=extras)
     seer_run.extras = extras
+
+
+def record_run_marker(
+    seer_run: SeerRun, extra_key: str, repo_name: str, marker: dict[str, Any]
+) -> None:
+    """Atomically set ``extras[extra_key][repo_name] = marker`` on the run."""
+    with record_run_extras(seer_run) as extras:
+        markers = dict(extras.get(extra_key) or {})
+        markers[repo_name] = marker
+        extras[extra_key] = markers

@@ -37,14 +37,6 @@ def try_enqueue_autofix_feedback(
     run_state: SeerRunState,
     actor_user_id: int | None = None,
 ) -> bool:
-    # Circular import: pause.py imports this module to clear the queue.
-    from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused, record_pause_blocked
-
-    # Read the pause first: should_queue can make Seer calls.
-    if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
-        record_pause_blocked("enqueue")
-        return False
-
     if not feedback.source.should_queue(run_state):
         logger.info(
             "autofix.feedback_queue.skipped_stale_feedback",

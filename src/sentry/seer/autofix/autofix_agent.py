@@ -38,7 +38,6 @@ from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
-from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused, record_pause_blocked
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
     code_changes_prompt,
@@ -88,10 +87,6 @@ class PrIterationNoPullRequestException(Exception):
 
 
 class PrIterationNotEnabledException(Exception):
-    pass
-
-
-class PrIterationPausedException(Exception):
     pass
 
 
@@ -608,12 +603,6 @@ def trigger_autofix_agent(
     if is_iteration_step:
         if not pr_iteration_enabled:
             raise PrIterationNotEnabledException()
-
-        if run_id is not None and is_pr_iteration_paused(
-            run_id=run_id, organization_id=group.organization.id
-        ):
-            record_pause_blocked("trigger")
-            raise PrIterationPausedException()
 
         if run_state is None or not run_state.repo_pr_states:
             raise PrIterationNoPullRequestException()
