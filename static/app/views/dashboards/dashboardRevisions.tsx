@@ -13,6 +13,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -32,20 +33,11 @@ interface DashboardRevisionsButtonProps {
 }
 
 export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonProps) {
-  const {openModal} = useModal();
+  const openDashboardRevisions = useOpenDashboardRevisions(dashboard);
 
   if (!dashboard.id || defined(dashboard.prebuiltId)) {
     return null;
   }
-
-  const handleClick = () => {
-    openModal(props => <DashboardRevisionsModal {...props} dashboard={dashboard} />, {
-      modalCss: css`
-        max-width: 720px;
-        width: 90vw;
-      `,
-    });
-  };
 
   return (
     <Tooltip title={t('Dashboard Revisions')}>
@@ -53,10 +45,23 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
         size="sm"
         icon={<IconClock />}
         aria-label={t('Dashboard Revisions')}
-        onClick={handleClick}
+        onClick={openDashboardRevisions}
       />
     </Tooltip>
   );
+}
+
+export function useOpenDashboardRevisions(dashboard: DashboardDetails) {
+  const {openModal} = useModal();
+
+  return () => {
+    openModal(props => <DashboardRevisionsModal {...props} dashboard={dashboard} />, {
+      modalCss: css`
+        max-width: 720px;
+        width: 90vw;
+      `,
+    });
+  };
 }
 
 function DashboardRevisionsModal({
@@ -89,7 +94,16 @@ function DashboardRevisionsModal({
         return Promise.reject(new Error('No revision selected'));
       }
       return api.requestPromise(
-        `/organizations/${organization.slug}/dashboards/${dashboardId}/revisions/${selectedRevision.id}/restore/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/$revisionId/restore/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              dashboardId,
+              revisionId: selectedRevision.id,
+            },
+          }
+        ),
         {method: 'POST'}
       );
     },

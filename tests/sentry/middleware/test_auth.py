@@ -119,8 +119,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
         return token
 
     def test_process_request_valid_agent_token(self) -> None:
-        # The agent is a non-user actor: the request user stays anonymous; the credential
-        # records the delegating user and org.
         with (
             override_settings(SEER_API_SHARED_SECRET="test-secret"),
             self.feature(agent_token.FEATURE_FLAG),
@@ -128,7 +126,8 @@ class AuthenticationMiddlewareTestCase(TestCase):
             request = Request(self.make_request(method="GET", path="/api/0/organizations/"))
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(self.user)}"
             self.middleware.process_request(request)
-        assert request.user.is_anonymous
+        assert request.user.is_authenticated
+        assert request.user.id == self.user.id
         assert request.auth is not None
         assert request.auth.kind == agent_token.AGENT_TOKEN_KIND
         assert request.auth.user_id == self.user.id
@@ -151,9 +150,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
         assert request.auth is None
 
-    def test_process_request_agent_token_never_becomes_a_user(self) -> None:
-        # Even on a non-API path, the agent authenticates as a non-user actor: the request
-        # user is anonymous, so user-only web views fail closed. (No path gate needed.)
+    def test_process_request_agent_token_supplies_compatibility_user_on_non_api_path(self) -> None:
         with (
             override_settings(SEER_API_SHARED_SECRET="test-secret"),
             self.feature(agent_token.FEATURE_FLAG),
@@ -161,23 +158,25 @@ class AuthenticationMiddlewareTestCase(TestCase):
             request = Request(self.make_request(method="GET", path="/organizations/"))
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(self.user)}"
             self.middleware.process_request(request)
-        assert request.user.is_anonymous
+        assert request.user.is_authenticated
+        assert request.user.id == self.user.id
         assert request.auth is not None
         assert request.auth.user_id == self.user.id
 
     def test_process_request_agent_token_wins_over_session(self) -> None:
-        # An Authorization header takes precedence over a session cookie: the agent bearer
-        # is processed and the session user is not adopted. The agent stays a non-user actor.
+        session_user = self.create_user()
         request = Request(self.make_request(method="GET", path="/api/0/organizations/"))
         with assume_test_silo_mode(SiloMode.MONOLITH):
-            assert login(request, self.user)
+            assert login(request, session_user)
         with (
             override_settings(SEER_API_SHARED_SECRET="test-secret"),
             self.feature(agent_token.FEATURE_FLAG),
         ):
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(self.user)}"
             self.middleware.process_request(request)
-        assert request.user.is_anonymous
+        assert request.user.is_authenticated
+        assert request.user.id == self.user.id
+        assert request.user.id != session_user.id
         assert request.auth is not None
         assert request.auth.user_id == self.user.id
 

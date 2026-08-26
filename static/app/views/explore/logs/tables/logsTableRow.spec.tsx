@@ -411,6 +411,64 @@ describe('logsTableRow', () => {
     );
   });
 
+  it('renders a received time in the details timestamp tooltip when the observed timestamp uses its internal name', async () => {
+    const {
+      [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: observedTimestamp,
+      ...rowDataWithInternalObservedTimestamp
+    } = LogFixture({
+      [OurLogKnownFieldKey.ID]: '4',
+      [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/4/`,
+      method: 'GET',
+      body: {
+        itemId: '4',
+        links: null,
+        meta: {},
+        timestamp: rowDataWithInternalObservedTimestamp[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: [
+          ...Object.entries(rowDataWithInternalObservedTimestamp).map(
+            ([k, v]) =>
+              ({
+                name: k,
+                value: v,
+                type: typeof v === 'string' ? 'str' : 'float',
+              }) as TraceItemResponseAttribute
+          ),
+          {
+            name: OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS,
+            value: String(observedTimestamp),
+            type: 'str',
+          },
+        ],
+      },
+    });
+
+    render(
+      <LogRowContent
+        dataRow={rowDataWithInternalObservedTimestamp}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithInternalObservedTimestamp)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    await userEvent.click(await screen.findByTestId('log-table-row'));
+
+    const attributesTree = await screen.findByTestId('fields-tree');
+    const [treeTimestamp] = within(attributesTree).getAllByText(
+      'Apr 10, 2025 7:21:10.049 PM'
+    );
+    await userEvent.hover(treeTimestamp!);
+
+    expect(await screen.findByText('Received')).toBeInTheDocument();
+    expect(screen.getByText('Apr 10, 2025 7:21:10 PM UTC')).toBeInTheDocument();
+  });
+
   it('adds a similar spans action to the log message dropdown', async () => {
     const rowDataWithQuotedMessage = {
       ...rowData,

@@ -280,8 +280,13 @@ def devserver(
         os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 
         if ingest and not workers:
-            click.echo("--ingest was provided, implicitly enabling --workers")
-            workers = True
+            if silo == "control":
+                # The control silo starts no ingest consumers, so --ingest only adds
+                # a taskworker. That worker fails region tasks with AvailabilityError.
+                click.echo("--ingest has no effect on the control silo, ignoring")
+            else:
+                click.echo("--ingest was provided, implicitly enabling --workers")
+                workers = True
 
         if task_scheduler and silo != "control":
             daemons.append(_get_daemon("taskworker-scheduler"))
@@ -308,7 +313,6 @@ def devserver(
             if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
                 kafka_consumers.add("ingest-metrics")
                 kafka_consumers.add("ingest-generic-metrics")
-                kafka_consumers.add("billing-metrics-consumer")
 
             if settings.SENTRY_USE_UPTIME:
                 kafka_consumers.add("uptime-results")
@@ -330,7 +334,6 @@ def devserver(
                 if settings.SENTRY_USE_SPANS_BUFFER:
                     kafka_consumers.add("process-spans")
                     kafka_consumers.add("ingest-occurrences")
-                    kafka_consumers.add("process-segments")
 
             if occurrence_ingest:
                 kafka_consumers.add("ingest-occurrences")

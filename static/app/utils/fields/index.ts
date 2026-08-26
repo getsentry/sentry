@@ -1,7 +1,11 @@
 import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 
 import {t, td} from 'sentry/locale';
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
+import {
+  CONDITIONS_ARGUMENTS,
+  EQUALITY_CONDITIONS_ARGUMENTS,
+  WEB_VITALS_QUALITY,
+} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
@@ -21,6 +25,7 @@ export enum FieldKind {
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
   BOOLEAN = 'boolean',
+  ARRAY = 'array',
 }
 
 export enum FieldKey {
@@ -305,6 +310,7 @@ export enum FieldValueType {
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
   CURRENCY = 'currency',
+  ARRAY = 'array',
 }
 
 export enum WebVital {
@@ -395,6 +401,7 @@ export enum AggregationKey {
   P100 = 'p100',
   PERCENTILE = 'percentile',
   AVG = 'avg',
+  AVG_IF = 'avg_if',
   APDEX = 'apdex',
   USER_MISERY = 'user_misery',
   FAILURE_RATE = 'failure_rate',
@@ -457,6 +464,7 @@ type AggregateColumnParameter = {
   kind: 'column';
   name: string;
   required: boolean;
+  defaultLabel?: string;
   defaultValue?: string;
 };
 
@@ -997,6 +1005,47 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       },
     ],
   },
+  [AggregationKey.AVG_IF]: {
+    desc: t('Returns averages for a selected field, for events matching a condition'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'transaction',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '/',
+        required: true,
+      },
+    ],
+  },
   [AggregationKey.APDEX]: {
     desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
@@ -1106,6 +1155,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
 
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey.AVG_IF,
   AggregationKey.COUNT_IF,
   AggregationKey.APDEX,
   AggregationKey.USER_MISERY,
@@ -1330,6 +1380,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
             (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
           );
         },
+        defaultLabel: 'spans',
         defaultValue: 'span.duration',
         required: false,
       },
@@ -1420,6 +1471,46 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG_IF],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: 'db',
         required: true,
       },
     ],
@@ -3674,6 +3765,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'log':
@@ -3696,6 +3791,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'tracemetric':
@@ -3716,6 +3815,10 @@ function _getFieldFromMappings(
 
       if (kind === FieldKind.BOOLEAN) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
       }
 
       return null;

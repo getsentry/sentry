@@ -23,6 +23,7 @@ MAILBOX_PENDING_METRIC = "hybridcloud.webhookpayload.mailbox.pending_count"
 MAILBOX_ACTIVE_METRIC = "hybridcloud.webhookpayload.mailbox.active_count"
 MAILBOX_MAX_DEPTH_METRIC = "hybridcloud.webhookpayload.mailbox.max_depth"
 MAILBOX_AGE_METRIC = "hybridcloud.webhookpayload.mailbox.oldest_pending_age_seconds"
+MAILBOX_DEPTH_QUANTILE_METRIC = "hybridcloud.webhookpayload.mailbox.depth_quantile"
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> None:
@@ -37,6 +38,15 @@ def gauge_calls(mock_metrics: MagicMock, key: str) -> list[tuple[float, dict[str
         for call in mock_metrics.gauge.call_args_list
         if call[0][0] == key
     ]
+
+
+def depth_quantiles(mock_metrics: MagicMock, provider: str) -> dict[str, float]:
+    """{quantile: depth} reported for `provider`."""
+    return {
+        tags["quantile"]: value
+        for value, tags in gauge_calls(mock_metrics, MAILBOX_DEPTH_QUANTILE_METRIC)
+        if tags["provider"] == provider
+    }
 
 
 @control_silo_test
@@ -103,7 +113,7 @@ class WebhookBacklogMetricsTest(TestCase):
         create_payloads(1, "github:123", provider="github")
 
         with patch(
-            "sentry.hybridcloud.tasks.webhook_backlog_metrics._statement_timeout",
+            "sentry.hybridcloud.tasks.webhook_backlog_metrics.statement_timeout",
             side_effect=OperationalError("canceling statement due to statement timeout"),
         ):
             record_webhook_backlog_metrics()
@@ -124,7 +134,7 @@ class WebhookBacklogMetricsTest(TestCase):
         # average down) -- and must not take out the unrelated age gauge below it,
         # which comes from an independent query. Only the first cursor (the raw
         # pg_class lookup) is faked; everything after -- including the age
-        # lookup's own cursor use inside `_statement_timeout` -- runs for real, so
+        # lookup's own cursor use inside `statement_timeout` -- runs for real, so
         # a regression that coupled the two would fail this test rather than the
         # `db_table`-patching approach this replaced, which broke the age query
         # too and couldn't tell the difference.
@@ -170,16 +180,18 @@ class WebhookBacklogMetricsTest(TestCase):
 class MailboxDepthMetricsTest(TestCase):
     @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
     def test_depth_is_grouped_by_provider(self, mock_metrics: MagicMock) -> None:
-        create_payloads(3, "github:123", provider="github")
-        create_payloads(1, "github:456", provider="github")
+        create_payloads(3, "github:123:push", provider="github")
+        create_payloads(1, "github:456:push", provider="github")
         create_payloads(2, "gitlab:789", provider="gitlab")
 
         record_mailbox_depth_metrics()
 
         assert sorted(gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC)) == [
-            (2, {"provider": "gitlab"}),
-            (4, {"provider": "github"}),
+            (2, {"provider": "gitlab", "event_type": "none"}),
+            (4, {"provider": "github", "event_type": "push"}),
         ]
+        # Only pending_count carries event_type; the rest would cost a series per
+        # event type per control worker to say something they already say.
         assert sorted(gauge_calls(mock_metrics, MAILBOX_ACTIVE_METRIC)) == [
             (1, {"provider": "gitlab"}),
             (2, {"provider": "github"}),
@@ -196,17 +208,77 @@ class MailboxDepthMetricsTest(TestCase):
 
         record_mailbox_depth_metrics()
 
-        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [(1, {"provider": "unknown"})]
+        # No event type either: the provider column is the only thing that says whether
+        # the mailbox name encodes one, and these legacy rows have none.
+        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [
+            (1, {"provider": "unknown", "event_type": "none"})
+        ]
 
     @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
-    def test_bucketed_mailboxes_roll_up_to_one_provider(self, mock_metrics: MagicMock) -> None:
+    def test_bucketed_mailboxes_roll_up_within_an_event_type(self, mock_metrics: MagicMock) -> None:
         create_payloads(2, "github:123:7:pull_request", provider="github")
-        create_payloads(1, "github:123:8:push", provider="github")
+        create_payloads(1, "github:123:8:pull_request", provider="github")
 
         record_mailbox_depth_metrics()
 
-        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [(3, {"provider": "github"})]
+        # Repository buckets are an implementation detail of parallel delivery, so they
+        # collapse; the event type they carry does not.
+        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [
+            (3, {"provider": "github", "event_type": "pull_request"})
+        ]
         assert gauge_calls(mock_metrics, MAILBOX_ACTIVE_METRIC) == [(2, {"provider": "github"})]
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_event_types_are_reported_separately(self, mock_metrics: MagicMock) -> None:
+        create_payloads(3, "github:123:7:check_run", provider="github")
+        create_payloads(1, "github:123:7:push", provider="github")
+
+        record_mailbox_depth_metrics()
+
+        # The point of the dimension: one event type dominating the backlog is exactly
+        # what the provider-only rollup hid, and what `github.webhook.forwarded_event`
+        # is joined against to size a parser-side drop.
+        assert sorted(gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC)) == [
+            (1, {"provider": "github", "event_type": "push"}),
+            (3, {"provider": "github", "event_type": "check_run"}),
+        ]
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_github_enterprise_mailboxes_carry_an_event_type(self, mock_metrics: MagicMock) -> None:
+        # GithubEnterpriseRequestParser inherits get_mailbox_identifier, so its mailbox
+        # names have the same shape.
+        create_payloads(1, "github_enterprise:123:7:push", provider="github_enterprise")
+
+        record_mailbox_depth_metrics()
+
+        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [
+            (1, {"provider": "github_enterprise", "event_type": "push"})
+        ]
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_unparseable_event_type_is_bounded(self, mock_metrics: MagicMock) -> None:
+        # A delivery with no X-GitHub-Event header mailboxes without an event suffix,
+        # leaving a bucket number where this reads. Tagging that verbatim would put an
+        # unbounded id into the tag, so anything that isn't a known event is "unknown".
+        create_payloads(1, "github:123:7", provider="github")
+
+        record_mailbox_depth_metrics()
+
+        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [
+            (1, {"provider": "github", "event_type": "unknown"})
+        ]
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_control_only_event_names_are_not_trusted(self, mock_metrics: MagicMock) -> None:
+        # Installation events are answered in control and never reach a cell mailbox, so
+        # a mailbox claiming to hold them is not a name this task should report back.
+        create_payloads(1, "github:123:7:installation", provider="github")
+
+        record_mailbox_depth_metrics()
+
+        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [
+            (1, {"provider": "github", "event_type": "unknown"})
+        ]
 
     @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
     def test_oldest_age_is_per_provider(self, mock_metrics: MagicMock) -> None:
@@ -237,6 +309,54 @@ class MailboxDepthMetricsTest(TestCase):
         assert ages["github"] == pytest.approx(timedelta(hours=2).total_seconds(), abs=60)
         assert ages["gitlab"] == pytest.approx(timedelta(minutes=5).total_seconds(), abs=60)
 
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_only_pending_count_is_tagged_by_event_type(self, mock_metrics: MagicMock) -> None:
+        # Each event_type value costs a series per control worker on every metric that
+        # carries it, so the dimension is confined to the one metric that needs it.
+        create_payloads(1, "github:123:7:check_run", provider="github")
+        create_payloads(1, "github:123:7:push", provider="github")
+
+        record_mailbox_depth_metrics()
+
+        for metric in (MAILBOX_ACTIVE_METRIC, MAILBOX_MAX_DEPTH_METRIC, MAILBOX_AGE_METRIC):
+            assert [tags for _, tags in gauge_calls(mock_metrics, metric)] == [
+                {"provider": "github"}
+            ], metric
+        assert all(
+            "event_type" not in tags
+            for _, tags in gauge_calls(mock_metrics, MAILBOX_DEPTH_QUANTILE_METRIC)
+        )
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_depth_quantiles_describe_the_distribution(self, mock_metrics: MagicMock) -> None:
+        for depth, mailbox in enumerate(("a", "b", "c", "d"), start=1):
+            create_payloads(depth, f"github:{mailbox}:push", provider="github")
+
+        # Nearest-rank over [1, 2, 3, 4].
+        record_mailbox_depth_metrics()
+
+        assert depth_quantiles(mock_metrics, "github") == {"p50": 2, "p90": 4, "p99": 4}
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_depth_quantiles_hold_for_a_single_mailbox(self, mock_metrics: MagicMock) -> None:
+        create_payloads(5, "github:123:push", provider="github")
+
+        record_mailbox_depth_metrics()
+
+        # Covers the index clamp; a wrap to -1 is only visible in the test above.
+        assert depth_quantiles(mock_metrics, "github") == {"p50": 5, "p90": 5, "p99": 5}
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_depth_quantiles_are_per_provider(self, mock_metrics: MagicMock) -> None:
+        create_payloads(1, "github:1:push", provider="github")
+        create_payloads(9, "github:2:push", provider="github")
+        create_payloads(4, "gitlab:3", provider="gitlab")
+
+        record_mailbox_depth_metrics()
+
+        assert depth_quantiles(mock_metrics, "github") == {"p50": 1, "p90": 9, "p99": 9}
+        assert depth_quantiles(mock_metrics, "gitlab") == {"p50": 4, "p90": 4, "p99": 4}
+
     def test_aggregate_runs_under_a_statement_timeout(self) -> None:
         create_payloads(1, "github:123", provider="github")
         replica = WebhookPayload.objects.using_replica()
@@ -260,7 +380,7 @@ class MailboxDepthMetricsTest(TestCase):
         # A backlog deep enough to blow the statement timeout must cost us the
         # breakdown, not the task — record_webhook_backlog_metrics still reports.
         with patch(
-            "sentry.hybridcloud.tasks.webhook_backlog_metrics.transaction.atomic",
+            "sentry.hybridcloud.tasks.webhook_backlog_metrics.statement_timeout",
             side_effect=OperationalError("canceling statement due to statement timeout"),
         ):
             record_mailbox_depth_metrics()

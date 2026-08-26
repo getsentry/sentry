@@ -2,7 +2,7 @@ import logging
 
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.seer.smart_assignment.models import RESOLUTION_ACTIVITIES
+from sentry.seer.smart_assignment.models import SMART_ASSIGNMENT_ACTIVITIES
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector
@@ -30,19 +30,6 @@ SUPPORTED_ACTIVITIES = [
     # We omit SET_RESOLVED_IN_PULL_REQUEST because it's a misnomer.
     # When it fires, it means the issue was referenced in a pull request, not resolved.
 ]
-
-# Activities the smart assignment feature reacts to: a Seer AI step starting, an
-# assignment, or a resolution. Each triggers a prediction (deduped to one per group)
-# and records ground truth; gating lives in trigger_smart_assignment. The exact
-# ActivityType is forwarded through as the trigger (see smart_assignment.models).
-_SMART_ASSIGNMENT_ACTIVITIES = RESOLUTION_ACTIVITIES | frozenset(
-    {
-        ActivityType.SEER_RCA_STARTED,
-        ActivityType.SEER_SOLUTION_STARTED,
-        ActivityType.SEER_CODING_STARTED,
-        ActivityType.ASSIGNED,
-    }
-)
 
 
 @workflow_activity_registry.register("seer_activity")
@@ -111,7 +98,7 @@ def smart_assignment_trigger_handler(
     except ValueError:
         return
 
-    if activity_type not in _SMART_ASSIGNMENT_ACTIVITIES:
+    if activity_type not in SMART_ASSIGNMENT_ACTIVITIES:
         return
 
     from sentry.seer.smart_assignment.trigger import trigger_smart_assignment

@@ -8,6 +8,7 @@ import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {
   StoryTreeNode,
@@ -26,10 +27,10 @@ import {useStoriesLoader} from './useStoriesLoader';
 
 export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: string} {
   const location = useLocation();
-  // Match: /stories/:category/(one/optional/or/more/path/segments)
-  // Handles both /stories/... and /organizations/{org}/stories/...
+  // Match: /scraps/:category/(one/optional/or/more/path/segments)
+  // Handles both /scraps/... and /organizations/{org}/scraps/...
   // Supports optional trailing slashes
-  const match = location.pathname.match(/\/stories\/([^/]+)\/(.+?)\/?$/);
+  const match = location.pathname.match(/\/scraps\/([^/]+)\/(.+?)\/?$/);
   return {
     storyCategory: match?.[1] as StoryCategory | undefined,
     storySlug: match?.[2] ?? undefined,
@@ -120,7 +121,7 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer>
+        <StoryMainContainer onClick={handleExpressiveCodeCopyClick}>
           {story.data.map(s => {
             return <StoryExports key={s.filename} story={s} />;
           })}
@@ -213,8 +214,8 @@ function StoriesLayout(props: PropsWithChildren) {
 }
 
 function isLandingPage(location: ReturnType<typeof useLocation>) {
-  // Handles both /stories and /organizations/{org}/stories
-  return /\/stories\/?$/.test(location.pathname);
+  // Handles both /scraps and /organizations/{org}/scraps
+  return /\/scraps\/?$/.test(location.pathname);
 }
 
 function getStoryFromParams(
@@ -253,9 +254,11 @@ function GlobalStoryStyles() {
   const styles = css`
     /* match body background with header story styles */
     body {
-      background-color: ${isIndex
-        ? darkTheme.tokens.background.secondary
-        : theme.tokens.background.secondary};
+      background-color: ${
+        isIndex
+          ? darkTheme.tokens.background.secondary
+          : theme.tokens.background.secondary
+      };
     }
     /* fixed position color block to match overscroll color to story background */
     body::after {

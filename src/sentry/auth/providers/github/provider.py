@@ -77,6 +77,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
         return {
             "id": user_data["id"],
             "email": user_data["email"],
+            "email_verified": user_data.get("email_verified", False),
             "name": user_data["name"],
             "data": self.get_oauth_data(data),
         }

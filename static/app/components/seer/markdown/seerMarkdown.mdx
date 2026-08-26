@@ -10,12 +10,12 @@ import * as Storybook from 'sentry/stories';
 
 import {
   BasicDemo,
-  EmbedRegistry,
+  EmbedExamples,
   LinkifyDemo,
-  StreamingEmbedDemo,
+  StreamingEmbedExamples,
 } from './__stories__/components';
 
-`<SeerMarkdown>` wraps the core [`<Markdown>`](/stories/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
+`<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
 
 ```jsx
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -39,17 +39,95 @@ Renders standard markdown with Seer's component overrides and opinionated embeds
 
 Embeds are rich widgets rendered inline from [Markdoc-style tag syntax](https://markdoc.dev/). The Seer agent produces these tags; the frontend resolves them through a **registry + schema** system.
 
-### Syntax
+Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
 
-```
-{% timestamp %}{"value":"2025-07-15T14:30:00Z","format":"relative"}{% /timestamp %}
-```
+### timestamp
 
-The JSON body between the opening and closing tags is the embed's data payload. It is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
+<EmbedExamples name="timestamp" />
 
-### Registry
+### docs
 
-<EmbedRegistry />
+<EmbedExamples name="docs" />
+
+### dashboard
+
+<EmbedExamples name="dashboard" />
+
+### dsn
+
+<EmbedExamples name="dsn" />
+
+### user
+
+<EmbedExamples name="user" />
+
+### issue
+
+<EmbedExamples name="issue" />
+
+### issues
+
+<EmbedExamples name="issues" />
+
+### replay
+
+<EmbedExamples name="replay" />
+
+### chart
+
+<EmbedExamples name="chart" />
+
+### autofix
+
+<EmbedExamples name="autofix" />
+
+### alert
+
+<EmbedExamples name="alert" />
+
+### monitor
+
+<EmbedExamples name="monitor" />
+
+### savedIssueView
+
+<EmbedExamples name="savedIssueView" />
+
+### savedQuery
+
+<EmbedExamples name="savedQuery" />
+
+### trace
+
+<EmbedExamples name="trace" />
+
+### profile
+
+<EmbedExamples name="profile" />
+
+### issuesQuery
+
+<EmbedExamples name="issuesQuery" />
+
+### errorsQuery
+
+<EmbedExamples name="errorsQuery" />
+
+### spansQuery
+
+<EmbedExamples name="spansQuery" />
+
+### logsQuery
+
+<EmbedExamples name="logsQuery" />
+
+### replaysQuery
+
+<EmbedExamples name="replaysQuery" />
+
+### metricsQuery
+
+<EmbedExamples name="metricsQuery" />
 
 ## Embed Architecture
 
@@ -134,4 +212,4 @@ All other `Markdown` props are supported except `components`, which is pre-confi
 
 ## See Also
 
-- [Markdown](/stories/core/markdown/) — the base component this wraps; covers streaming, component overrides, and tag syntax in detail
+- [Markdown](/scraps/core/markdown/) — the base component this wraps; covers streaming, component overrides, and tag syntax in detail

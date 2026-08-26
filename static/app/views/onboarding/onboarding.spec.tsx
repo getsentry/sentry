@@ -1,3 +1,4 @@
+import {AgenticProgressRunFixture} from 'sentry-fixture/agenticProgressRun';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -121,7 +122,9 @@ describe('Onboarding', () => {
       );
 
       await waitFor(() => {
-        expect(sessionStorage.getItem('onboarding')).toBeNull();
+        expect(
+          JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')
+        ).not.toHaveProperty('selectedPlatform');
       });
 
       expect(
@@ -540,7 +543,7 @@ describe('Onboarding', () => {
 
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
-      features: ['onboarding-scm-experiment'],
+      features: ['onboarding-scm-experiment', 'onboarding-agentic-setup'],
     });
 
     // Shares scmOrganization's slug, so the mocks registered in beforeEach below
@@ -567,7 +570,11 @@ describe('Onboarding', () => {
       providerKey: 'slack',
       integrationId: '15',
       channelId: 'C123',
+      channelName: '#alerts',
     } as const satisfies ScmMessagingSetup;
+
+    let agenticRunRequestMock: ReturnType<typeof MockApiClient.addMockResponse>;
+    let resolveAgenticRunRequest: () => void;
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -581,6 +588,28 @@ describe('Onboarding', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/repos/`,
         body: [],
+      });
+      const agenticRun = AgenticProgressRunFixture();
+      const agenticRunRequest = Promise.withResolvers<void>();
+      resolveAgenticRunRequest = agenticRunRequest.resolve;
+      agenticRunRequestMock = MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/onboarding/agent/runs/`,
+        method: 'POST',
+        body: agenticRun,
+        asyncDelay: agenticRunRequest.promise,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/onboarding/agent/runs/${agenticRun.runId}/`,
+        body: AgenticProgressRunFixture({
+          stages: [
+            {
+              stage: 'connect_mcp',
+              status: 'completed',
+              eventNote: null,
+              extra: null,
+            },
+          ],
+        }),
       });
     });
 
@@ -644,6 +673,7 @@ describe('Onboarding', () => {
       const {router} = renderOnboarding('welcome');
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Start setup'}));
 
       // Wait for scm-connect to render and its queries to resolve so the
       // mounted-effect fetches hit the mocked endpoints before afterEach
@@ -653,6 +683,54 @@ describe('Onboarding', () => {
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/scm-connect/`
       );
+    });
+
+    it('shows the agent setup on start click without leaving welcome', async () => {
+      const {router} = renderOnboarding('welcome');
+
+      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+
+      expect(
+        await screen.findByDisplayValue('npx @sentry/agent-plugin install')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Connect your repository')).toBeInTheDocument();
+      expect(screen.getByText('Choose your platform')).toBeInTheDocument();
+      expect(screen.getByText('Install the SDK')).toBeInTheDocument();
+      expect(screen.getByText('Verify your setup')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Detect your framework and language')
+      ).not.toBeInTheDocument();
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_present_agentic_interstitial_clicked',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(router.location.pathname).toBe(
+        `/onboarding/${scmOrganization.slug}/welcome/`
+      );
+    });
+
+    it('preloads agent setup while the welcome screen is visible', async () => {
+      renderOnboarding('welcome');
+
+      await waitFor(() => expect(agenticRunRequestMock).toHaveBeenCalledTimes(1));
+    });
+
+    it('replaces setup instructions with agent progress', async () => {
+      renderOnboarding('welcome');
+
+      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+
+      expect(
+        await screen.findByDisplayValue('npx @sentry/agent-plugin install')
+      ).toBeInTheDocument();
+
+      act(resolveAgenticRunRequest);
+
+      expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Switch to Manual'})).toBeInTheDocument();
+      expect(
+        screen.queryByDisplayValue('npx @sentry/agent-plugin install')
+      ).not.toBeInTheDocument();
     });
 
     it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
@@ -668,7 +746,7 @@ describe('Onboarding', () => {
       );
     });
 
-    it('clears the whole session when returning to the welcome step', async () => {
+    it('clears prior setup state when returning to the welcome step', async () => {
       // Returning to welcome restarts the flow, so nothing is carried over —
       // including messagingSetup, which only has to survive local repository
       // and platform changes.
@@ -679,6 +757,10 @@ describe('Onboarding', () => {
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
           createdProjectSlug: 'javascript-nextjs',
           messagingSetup: selectedMessagingSetup,
+          agentSetupProjectBaseline: {
+            organizationId: scmOrganization.id,
+            projectIds: ['1'],
+          },
         })
       );
 
@@ -688,14 +770,30 @@ describe('Onboarding', () => {
       renderOnboarding('welcome');
 
       await waitFor(() => {
-        expect(sessionStorage.getItem('onboarding')).toBeNull();
+        expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual({
+          agenticProgressClientRunId: expect.any(String),
+          agenticProgressOnboardingCode: expect.any(String),
+        });
       });
     });
 
-    it('fires scm_welcome_continue_clicked on start click and not the legacy event', async () => {
+    it('goes straight to scm-connect when the agentic setup is off', async () => {
+      const organization = OrganizationFixture({
+        features: ['onboarding-scm-experiment'],
+      });
+      const {router} = renderFlow(organization, 'welcome');
+
+      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+
+      expect(await screen.findByText('GitHub')).toBeInTheDocument();
+      expect(router.location.pathname).toContain('/scm-connect/');
+    });
+
+    it('fires scm_welcome_continue_clicked on browser setup click and not the legacy event', async () => {
       renderOnboarding('welcome');
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Start setup'}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_continue_clicked',

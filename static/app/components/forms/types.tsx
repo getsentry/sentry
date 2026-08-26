@@ -3,10 +3,8 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
-import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import type {FormModel} from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
-import type {AvatarProject, Project} from 'sentry/types/project';
 
 type FieldType =
   | 'array'
@@ -26,10 +24,7 @@ type FieldType =
   | 'string'
   | 'text'
   | 'url'
-  | 'table'
-  | 'project_mapper'
-  | 'sentry_project_selector'
-  | 'select_async';
+  | 'table';
 
 export type FieldValue = any;
 
@@ -103,13 +98,6 @@ interface BaseField {
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
 
-interface CollapsibleSectionType {
-  fields: FieldObject[];
-  label: React.ReactNode | (() => React.ReactNode);
-  type: 'collapsible';
-  initiallyCollapsed?: boolean;
-}
-
 interface CustomType {
   Component: (arg: BaseField) => React.ReactElement;
   type: 'custom';
@@ -168,49 +156,11 @@ export interface TableType {
   // TODO(TS): Should we have addButtonText and allowEmpty here as well?
 }
 
-// maps a sentry project to another field
-export type ProjectMapperType = {
-  iconType: string;
-  mappedDropdown: {
-    items: Array<{label: string; url: string; value: string | number}>;
-    placeholder: string;
-  };
-  nextButton: {
-    allowedDomain: string;
-    text: string;
-    // url comes from the `next` parameter in the QS
-    description?: string;
-  };
-  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
-  type: 'project_mapper';
-};
-
 type ChoiceMapperType = {
   type: 'choice_mapper';
 } & ChoiceMapperProps;
 
-// selects a sentry project with avatars
-type SentryProjectSelectorType = {
-  projects: Project[];
-  type: 'sentry_project_selector';
-  avatarSize?: number;
-};
-
-type SentryMemberSelectorType = {
-  type: 'sentry_member_selector';
-  multiple?: boolean;
-};
-
-type SentryOrganizationRoleSelectorType = {
-  type: 'sentry_organization_role_selector';
-};
-
-type SelectAsyncType = {
-  type: 'select_async';
-} & SelectAsyncFieldProps;
-
 export type Field = (
-  | CollapsibleSectionType
   | CustomType
   | SelectControlType
   | InputType
@@ -218,11 +168,6 @@ export type Field = (
   | NumberType
   | RangeType
   | TableType
-  | ProjectMapperType
-  | SentryProjectSelectorType
-  | SentryMemberSelectorType
-  | SentryOrganizationRoleSelectorType
-  | SelectAsyncType
   | ChoiceMapperType
   | {type: FieldType}
   | FileType

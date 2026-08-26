@@ -10,8 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Callable, Mapping
-from datetime import datetime
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, NotRequired, TypedDict
 
 import orjson
@@ -62,6 +61,10 @@ class AgentStateRequest(TypedDict):
     organization_id: int
 
 
+class RunsByIdsRequest(TypedDict):
+    run_ids: list[int]
+
+
 class AgentChatRequest(TypedDict):
     organization_id: int
     query: str
@@ -70,6 +73,8 @@ class AgentChatRequest(TypedDict):
     on_page_context: str | None
     external_idempotency_key: NotRequired[str]
     page_name: NotRequired[str | None]
+    page_location: NotRequired[dict[str, Any] | None]
+    sent_at: NotRequired[list[str] | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
@@ -91,20 +96,6 @@ class AgentChatRequest(TypedDict):
     available_monitoring_providers: NotRequired[list[dict[str, Any]]]
 
 
-class AgentRunsRequest(TypedDict):
-    organization_id: int
-    user_id: NotRequired[int]
-    category_key: NotRequired[str]
-    category_value: NotRequired[str]
-    offset: NotRequired[int]
-    project_ids: NotRequired[list[int]]
-    limit: NotRequired[int]
-    expand: NotRequired[str]
-    start: NotRequired[datetime]
-    end: NotRequired[datetime]
-    query: NotRequired[str]
-
-
 class AgentUpdateRequest(TypedDict):
     run_id: int
     organization_id: int
@@ -117,12 +108,20 @@ class AgentPrStateRequest(TypedDict):
     pr_id: int
 
 
-class SeerFeatureRunRequest(TypedDict):
-    """The feature-run body as enqueued onto the SEER_RUN_CREATE outbox."""
+class AgentRunOptions(TypedDict):
+    enable_frontend_code_search: NotRequired[bool | None]
+    is_context_engine_enabled: NotRequired[bool]
+    enable_coding: NotRequired[bool]
+    enable_tool_summary: NotRequired[bool]
+    embed_widgets: NotRequired[list[dict[str, Any]] | None]
+    enable_streaming: NotRequired[bool]
+    is_agentic_triage_sort: NotRequired[bool]
 
+
+class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
-    agent_run_options: NotRequired[dict[str, Any]]
+    agent_run_options: NotRequired[AgentRunOptions]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
@@ -150,6 +149,19 @@ def make_agent_state_request(
     )
 
 
+def make_runs_by_ids_request(
+    body: RunsByIdsRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or agent_connection_pool,
+        "/v1/automation/explorer/runs/by-ids",
+        body=orjson.dumps(body),
+        viewer_context=viewer_context,
+    )
+
+
 def make_agent_repos_request(
     body: AgentReposRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -171,19 +183,6 @@ def make_agent_chat_request(
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/chat",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        viewer_context=viewer_context,
-    )
-
-
-def make_agent_runs_request(
-    body: AgentRunsRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or agent_connection_pool,
-        "/v1/automation/explorer/runs",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
@@ -500,6 +499,33 @@ def fetch_run_status(
     return SeerRunState(**session)
 
 
+def fetch_run_statuses(
+    run_state_ids: Sequence[int],
+    organization: Organization,
+    viewer_context: SeerViewerContext | None = None,
+) -> dict[int, str]:
+    """Batch-fetch live Explorer run statuses. Best-effort: returns {} on failure."""
+    if not run_state_ids:
+        return {}
+    try:
+        response = make_runs_by_ids_request(
+            {"run_ids": list(run_state_ids)},
+            viewer_context=viewer_context or SeerViewerContext(organization_id=organization.id),
+        )
+        if response.status >= 400:
+            logger.warning("seer.run_statuses.error", extra={"status": response.status})
+            return {}
+        data = response.json()
+        return {
+            int(run_id): run["status"]
+            for run_id, run in data.get("data", {}).items()
+            if run.get("status") is not None
+        }
+    except Exception:
+        logger.warning("seer.run_statuses.request_failed", exc_info=True)
+        return {}
+
+
 def poll_until_done(
     run_id: int,
     organization: Organization,
@@ -576,6 +602,32 @@ def _get_priority(node: dict[str, Any]) -> int:
     return priority if isinstance(priority, int) else 0
 
 
+def _render_location(location: Any) -> str:
+    """Render the snapshot's location block, or "" when it carries nothing.
+
+    Seer also receives `page_location` as a structured field and renders it there;
+    this keeps it in the markdown too so a client that only sends the snapshot is
+    not silently missing it. Every field is optional.
+    """
+    if not isinstance(location, dict):
+        return ""
+
+    lines = []
+    for label, key in (("URL", "url"), ("Route", "name")):
+        value = location.get(key)
+        if isinstance(value, str) and value:
+            lines.append(f"- **{label}**: {value}")
+    for label, key in (("Route params", "params"), ("Query params", "query")):
+        value = location.get(key)
+        if isinstance(value, dict) and value:
+            lines.append(f"- **{label}**: {orjson.dumps(value).decode()}")
+
+    if not lines:
+        return ""
+
+    return "## Current Page\n" + "\n".join(lines) + "\n\n"
+
+
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     """Convert an LLMContextSnapshot dict to a markdown string.
 
@@ -587,13 +639,16 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     guard against runaway token usage.
     """
     nodes = snapshot.get("nodes", [])
+    location = _render_location(snapshot.get("location"))
     if not nodes:
-        return ""
+        # Most routes register no nodes, but they still know where the user is —
+        # returning "" here would throw that away.
+        return location
     sorted_nodes = sorted(nodes, key=_get_priority, reverse=True)
     top_priority = _get_priority(sorted_nodes[0])
     selected = [n for n in sorted_nodes if _get_priority(n) == top_priority][:_MAX_ROOT_NODES]
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    result = preamble + "\n".join(_render_node(node, 0) for node in selected)
+    result = location + preamble + "\n".join(_render_node(node, 0) for node in selected)
     return _normalize_wildcard_operators(result)

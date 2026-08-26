@@ -102,13 +102,6 @@ Sentry.init({
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,`
       : ''
-  }${
-    params.isLogsSelected
-      ? `
-
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-      : ''
   }
 });`,
             },
@@ -222,13 +215,6 @@ Sentry.init({
   // We recommend adjusting this value in production.
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
-      : ''
-  }${
-    params.isLogsSelected
-      ? `
-
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
       : ''
   }
 });`,
@@ -560,6 +546,14 @@ const route = createRoute({
               code: `<button
   type="button"
   onClick={() => {${
+    params.isLogsSelected
+      ? `
+    // Send a log before throwing the error
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_button_click',
+    });`
+      : ''
+  }${
     params.isMetricsSelected
       ? `
     // Send a test metric before throwing the error
@@ -695,4 +689,40 @@ export const Route = createFileRoute("/api/sentry-example")({
       ],
     },
   ],
+  nextSteps: params => {
+    const steps = [
+      {
+        id: 'tanstackstart-features',
+        name: t('TanStack Start Features'),
+        description: t(
+          'Learn about our first class integration with the TanStack Start framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Application Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/metrics/',
+      });
+    }
+
+    return steps;
+  },
 };

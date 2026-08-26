@@ -135,6 +135,7 @@ export function SelectField<TValue>({
             multiple={multiple}
             value={value}
             inputRef={applyInputToRef(fieldRef)}
+            {...(autoSaveContext && {blurInputOnSelect: false})}
             components={
               {
                 ...props.components,
@@ -169,12 +170,18 @@ export function SelectField<TValue>({
                 if (!option) {
                   // Clearable single select - type system allows null via discriminated union
                   (onChange as (value: TValue | null) => void)(null);
+                  if (autoSaveContext) {
+                    fieldProps.onBlur();
+                  }
                   return;
                 }
                 // For single-select, option is a single value
                 (onChange as (value: TValue) => void)(
                   (option as SelectValue<TValue>).value
                 );
+                if (autoSaveContext) {
+                  fieldProps.onBlur();
+                }
               }
             }}
           />

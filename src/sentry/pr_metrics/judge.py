@@ -22,6 +22,7 @@ from django.utils import timezone
 from pydantic import ValidationError
 from urllib3.exceptions import HTTPError
 
+from sentry import features
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -108,8 +109,9 @@ def _pr_activity_timeline(pull_request: PullRequest) -> tuple[list[PrActivityEve
     can't balloon the Seer request.
 
     Document-path PRs project the same wire shape: lifecycle entries pass through,
-    and each checks group becomes one synthesized ``check_suite_completed`` (the
-    collapse Seer's timeline does anyway), so the Seer contract is unchanged.
+    and each checks group becomes one synthesized ``check_suite_completed`` — one
+    per suite (GitHub's own cardinality), with additive payload keys legacy rows
+    never carried; Seer ignores unknown keys, so the contract stays compatible.
     """
     doc = load_activity_document(pull_request)
     if doc is not None:
@@ -579,6 +581,13 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
         organization = Organization.objects.get(id=pull_request.organization_id)
     except Organization.DoesNotExist:
         metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "org_gone"})
+        return
+
+    if not features.has("organizations:pr-metrics", organization):
+        # Org lost pr-metrics mid-forward: release the claim so the row can't sit
+        # at the sentinel forever, but settle nothing for a pipeline that no longer runs.
+        if _release_judge_sentinel(pull_request):
+            metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "feature_disabled"})
         return
 
     outcome = select_verdict(pull_request, organization)

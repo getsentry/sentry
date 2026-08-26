@@ -8,6 +8,7 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -19,7 +20,7 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
+// eslint-disable-next-line boundaries/dependencies
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
@@ -38,6 +39,7 @@ const storybookFilesLookup = storyFiles.reduce<Record<string, string>>((acc, fil
 
 export function SentryComponentInspector() {
   const theme = useTheme();
+  const {t} = useTranslation();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
   const skipShowingTooltipRef = useRef(false);
@@ -464,6 +466,7 @@ function MenuItem(props: {
   storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
+  const {t} = useTranslation();
   const figmaUrl = props.storybook
     ? storyFrontmatterIndex[props.storybook]?.figma
     : undefined;
@@ -574,7 +577,7 @@ function MenuItem(props: {
                 <ProfilingContextMenuItemButton
                   {...props.contextMenu.getMenuItemProps({
                     onClick: () => {
-                      window.open(`/stories/?name=${props.storybook}`, '_blank');
+                      window.open(`/scraps/?name=${props.storybook}`, '_blank');
                       props.onAction();
                     },
                   })}

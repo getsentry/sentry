@@ -81,6 +81,8 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const orgSlug = organization.slug;
+  // Use devtoolbar to toggle frontend FF value and pass this as an override (toggle for internal testing)
+  const codeModeToggle = organization.features.includes('seer-assisted-query-codemode');
 
   const [runId, setRunId] = useState<number | string | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
@@ -119,14 +121,19 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/search-agent/start/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/search-agent/start/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
           {
             method: 'POST',
             data: {
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
-              ...(options.options ? {options: options.options} : {}),
+              options: {
+                ...options.options,
+                code_mode: codeModeToggle,
+              },
             },
           }
         )) as AskSeerStartResponse;
@@ -152,7 +159,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
         options.onError?.(error as Error);
       }
     },
-    [api, orgSlug, options, queryClient]
+    [api, orgSlug, options, queryClient, codeModeToggle]
   );
 
   useEffect(() => {

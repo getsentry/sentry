@@ -98,6 +98,54 @@ export function MetricSelectRow({
     []
   );
 
+  const onMetricChange = useCallback(
+    (newTraceMetric: TraceMetric) => {
+      if (field.kind !== 'function' || !newTraceMetric) {
+        return;
+      }
+
+      let updatedAggregates: Column[] | undefined;
+      if (hasMultiMetricSelection) {
+        updatedAggregates = getUpdatedAggregatesMultiMetric(
+          aggregateSource ?? [],
+          index,
+          newTraceMetric
+        );
+      } else {
+        const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
+        updatedAggregates = (aggregateSource ?? []).map(f => {
+          if (f.kind === 'function' && f.function?.[0]) {
+            const aggregate = f.function[0];
+            const isValid = validAggregateOptions.some(opt => opt.value === aggregate);
+
+            if (!isValid && validAggregateOptions.length > 0) {
+              return buildTraceMetricAggregate(
+                (DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
+                  validAggregateOptions[0]?.value) as AggregationKeyWithAlias,
+                newTraceMetric
+              );
+            }
+
+            return buildTraceMetricAggregate(aggregate, newTraceMetric);
+          }
+          return f;
+        });
+      }
+
+      if (!updatedAggregates) {
+        return;
+      }
+
+      // Sort fixup is handled by the dispatch handlers
+      // (SET_Y_AXIS, SET_FIELDS, SET_CATEGORICAL_AGGREGATE)
+      dispatch({
+        type: getTraceMetricAggregateActionType(state.displayType),
+        payload: updatedAggregates,
+      });
+    },
+    [aggregateSource, dispatch, field, hasMultiMetricSelection, index, state.displayType]
+  );
+
   return (
     <Flex gap="0" width="100%" minWidth="0">
       <MetricSelectorWrapper>
@@ -109,52 +157,7 @@ export function MetricSelectRow({
               ? getDisabledOptionReason
               : undefined
           }
-          onChange={newTraceMetric => {
-            if (field.kind !== 'function' || !newTraceMetric) {
-              return;
-            }
-
-            let updatedAggregates: Column[] | undefined;
-            if (hasMultiMetricSelection) {
-              updatedAggregates = getUpdatedAggregatesMultiMetric(
-                aggregateSource ?? [],
-                index,
-                newTraceMetric
-              );
-            } else {
-              const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
-              updatedAggregates = (aggregateSource ?? []).map(f => {
-                if (f.kind === 'function' && f.function?.[0]) {
-                  const aggregate = f.function[0];
-                  const isValid = validAggregateOptions.some(
-                    opt => opt.value === aggregate
-                  );
-
-                  if (!isValid && validAggregateOptions.length > 0) {
-                    return buildTraceMetricAggregate(
-                      (DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
-                        validAggregateOptions[0]?.value) as AggregationKeyWithAlias,
-                      newTraceMetric
-                    );
-                  }
-
-                  return buildTraceMetricAggregate(aggregate, newTraceMetric);
-                }
-                return f;
-              });
-            }
-
-            if (!updatedAggregates) {
-              return;
-            }
-
-            // Sort fixup is handled by the dispatch handlers
-            // (SET_Y_AXIS, SET_FIELDS, SET_CATEGORICAL_AGGREGATE)
-            dispatch({
-              type: getTraceMetricAggregateActionType(state.displayType),
-              payload: updatedAggregates,
-            });
-          }}
+          onChange={onMetricChange}
         />
       </MetricSelectorWrapper>
       <AggregateSelectorWrapper>

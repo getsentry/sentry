@@ -18,7 +18,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 
 logger = logging.getLogger("sentry.auth.email_verification")
-TRUSTED_EMAIL_VERIFIED_PROVIDERS = frozenset({"google"})
+TRUSTED_EMAIL_VERIFIED_PROVIDERS = frozenset({"github", "google"})
 DEFAULT_MAX_AGE_MINUTES = 120
 
 
@@ -87,7 +87,10 @@ def send_signup_verification_email(
 
     logger.info(
         "signup_verification.sent",
-        extra={"email_hash": hash_email(email)},
+        extra={
+            "email_hash": hash_email(email),
+            "signup_method": url_name,
+        },
     )
 
 
