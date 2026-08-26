@@ -529,13 +529,15 @@ function fetchTransactionSpans(
   event_id: string
 ): Promise<EventTransaction> {
   return api.requestPromise(
-    getApiUrl('/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/', {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project_slug,
-        eventId: event_id,
-      },
-    }),
-    {query: {averageColumn: ['span.self_time', 'span.duration']}}
+    `${getApiUrl(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project_slug,
+          eventId: event_id,
+        },
+      }
+    )}?averageColumn=span.self_time&averageColumn=span.duration`
   );
 }
