@@ -71,3 +71,38 @@ class GetAggregationValueTest(TestCase):
             mock_logger.info.assert_called_once()
             call_args = mock_logger.info.call_args
             assert "non-existent issue IDs" in call_args[0][0]
+
+
+class GetAggregationValueHelperTest(TestCase):
+    def test_none_defaults_to_zero(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        update: QuerySubscriptionUpdate = {
+            "entity": "events",
+            "subscription_id": "test-sub-id",
+            "timestamp": timezone.now(),
+            "values": {"data": [{"count": None}]},
+        }
+        assert get_aggregation_value_helper(update) == 0
+
+    def test_empty_string_returns_none(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        update: QuerySubscriptionUpdate = {
+            "entity": "events",
+            "subscription_id": "test-sub-id",
+            "timestamp": timezone.now(),
+            "values": {"data": [{"max_transaction_duration": ""}]},
+        }
+        assert get_aggregation_value_helper(update) is None
+
+    def test_numeric_string_coerces(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        update: QuerySubscriptionUpdate = {
+            "entity": "events",
+            "subscription_id": "test-sub-id",
+            "timestamp": timezone.now(),
+            "values": {"data": [{"count": "12.5"}]},
+        }
+        assert get_aggregation_value_helper(update) == 12.5

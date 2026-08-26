@@ -250,7 +250,11 @@ class SubscriptionProcessor:
             comparison_delta = self.get_comparison_delta(self.detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
-            if aggregation_value is None or math.isnan(aggregation_value):
+            if (
+                aggregation_value is None
+                or not isinstance(aggregation_value, (int, float))
+                or math.isnan(aggregation_value)
+            ):
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 # We have an invalid aggregate, but we _did_ process the update, so we store
                 # last_update to reflect that and avoid reprocessing.
