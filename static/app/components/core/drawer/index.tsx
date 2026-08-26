@@ -33,7 +33,8 @@ export interface DrawerOptions {
    */
   drawerKey?: string;
   /**
-   * Custom max width for the drawer, as any CSS length
+   * Custom max width for the drawer, as any CSS length. Applies on top of the
+   * default percentage ceiling rather than replacing it.
    */
   drawerMaxWidth?: string;
   /**

@@ -365,7 +365,7 @@ describe('GlobalDrawer', () => {
     const drawer = screen.getByRole('complementary', {name: ariaLabel});
 
     expect(drawer.style.getPropertyValue('--drawer-width')).toBe('80%');
-    expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('1600px');
+    expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('min(85%, 1600px)');
   });
 
   it('falls back to the default max width when drawerMaxWidth is omitted', async () => {

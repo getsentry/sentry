@@ -87,7 +87,9 @@ export function useDrawerResizing({
       panelRef.current?.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
       panelRef.current?.style.setProperty(
         '--drawer-max-width',
-        drawerMaxWidth ?? `${MAX_WIDTH_PERCENT}%`
+        drawerMaxWidth
+          ? `min(${MAX_WIDTH_PERCENT}%, ${drawerMaxWidth})`
+          : `${MAX_WIDTH_PERCENT}%`
       );
     }
   }, [persistedWidthPercent, isSmallScreen, drawerWidth, drawerMaxWidth, enabled]);
