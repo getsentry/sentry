@@ -762,6 +762,12 @@ class DummyGenericSAML2Provider(GenericSAML2Provider):
     key = "saml2_generic_dummy"
 
 
+# Mirrors Active Directory / Azure Entra: GenericSAML2 configure view, non-"SAML2" name.
+class DummyActiveDirectorySAML2Provider(GenericSAML2Provider):
+    name = "Active Directory"
+    key = "active-directory-dummy"
+
+
 @control_silo_test
 class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
     provider = DummyGenericSAML2Provider
@@ -811,6 +817,37 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
 
         assert actual.provider == self.auth_provider_inst.provider
         assert actual.flags == self.auth_provider_inst.flags
+
+
+@control_silo_test
+class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
+    provider = DummyActiveDirectorySAML2Provider
+    provider_name = "active-directory-dummy"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user("foobar@sentry.io")
+        self.organization = self.create_organization(owner=self.user, name="ad-saml2-org")
+        self.auth_provider_inst = AuthProvider.objects.create(
+            provider=self.provider_name,
+            config=dummy_provider_config,
+            organization_id=self.organization.id,
+        )
+
+    def test_settings_form_omits_duplicate_x509cert(self) -> None:
+        """Regression for ISWF-3364 / getsentry/sentry#122561."""
+        self.login_as(self.user, organization_id=self.organization.id)
+        path = reverse(
+            "sentry-organization-auth-provider-settings", args=[self.organization.slug]
+        )
+
+        with self.feature("organizations:sso-saml2"):
+            resp = self.client.get(path)
+
+        assert resp.status_code == 200
+        # Certificate belongs only in the provider configure view, not General Settings.
+        assert "x509cert" not in resp.context["form"].fields
+        assert resp.content.count(b"x509 public certificate") == 1
 
 
 @control_silo_test
