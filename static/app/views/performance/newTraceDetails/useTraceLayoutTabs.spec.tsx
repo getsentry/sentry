@@ -100,29 +100,23 @@ describe('getInitialTab', () => {
     }
   );
 
-  it('does not preserve logs while loading when trace meta reports no logs', () => {
-    expect(
-      getInitialTab({
-        isLoading: true,
-        meta: makeEapMeta({logsCount: 0, metricsCount: 1}),
-        sections,
-        tabOptions: [],
-        tabSlugFromUrl: TraceLayoutTabKeys.LOGS,
-      }).slug
-    ).toBe(TraceLayoutTabKeys.WATERFALL);
-  });
-
-  it('preserves metrics while the filtered count is loading', () => {
-    expect(
-      getInitialTab({
-        isLoading: true,
-        meta: makeEapMeta({metricsCount: 0}),
-        sections,
-        tabOptions: [],
-        tabSlugFromUrl: TraceLayoutTabKeys.METRICS,
-      }).slug
-    ).toBe(TraceLayoutTabKeys.METRICS);
-  });
+  it.each([
+    [TraceLayoutTabKeys.LOGS, makeEapMeta({logsCount: 0, metricsCount: 1})],
+    [TraceLayoutTabKeys.METRICS, makeEapMeta({logsCount: 1, metricsCount: 0})],
+  ])(
+    'does not preserve %s while loading when trace meta reports no tab data',
+    (tabSlugFromUrl, meta) => {
+      expect(
+        getInitialTab({
+          isLoading: true,
+          meta,
+          sections,
+          tabOptions: [],
+          tabSlugFromUrl,
+        }).slug
+      ).toBe(TraceLayoutTabKeys.WATERFALL);
+    }
+  );
 
   it('does not preserve trace-dependent tabs while loading', () => {
     expect(

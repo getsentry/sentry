@@ -37,13 +37,12 @@ function makeEapMeta(overrides: Partial<EAPTraceMeta> = {}): EAPTraceMeta {
 }
 
 describe('useTraceContextSections', () => {
-  it('uses trace meta for logs and the filtered count for metrics', () => {
+  it('uses trace meta counts to show tabs before tab data has loaded', () => {
     const {result} = renderHook(() =>
       useTraceContextSections({
         tree: makeTree(),
         logs: undefined,
         metrics: undefined,
-        metricsCount: 3,
         meta: makeEapMeta({
           logsCount: 2,
           metricsCount: 3,
@@ -59,7 +58,7 @@ describe('useTraceContextSections', () => {
     expect(result.current.hasTraceEvents).toBe(true);
   });
 
-  it('treats the filtered metrics count as authoritative over trace meta', () => {
+  it('treats zero trace meta counts as authoritative for logs and metrics', () => {
     const {result} = renderHook(() =>
       useTraceContextSections({
         tree: makeTree({
@@ -69,8 +68,7 @@ describe('useTraceContextSections', () => {
         }),
         logs: [{}] as unknown as OurLogsResponseItem[],
         metrics: {count: 1},
-        metricsCount: 0,
-        meta: makeEapMeta({metricsCount: 3}),
+        meta: makeEapMeta(),
       })
     );
 

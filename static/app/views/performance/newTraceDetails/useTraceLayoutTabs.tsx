@@ -7,6 +7,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   getTraceMetaLogsCount,
+  getTraceMetaMetricsCount,
   type TraceMetaQueryResults,
 } from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -118,12 +119,13 @@ export function getInitialTab({
   metricsEnabled?: boolean;
 }): Tab {
   const hasNoLogs = logsEnabled && getTraceMetaLogsCount(meta) === 0;
+  const hasNoMetrics = metricsEnabled && getTraceMetaMetricsCount(meta) === 0;
 
   const shouldKeepLogsTabWhileLoading =
     logsEnabled && !hasNoLogs && tabSlugFromUrl === TraceLayoutTabKeys.LOGS;
 
   const shouldKeepMetricsTabWhileLoading =
-    metricsEnabled && tabSlugFromUrl === TraceLayoutTabKeys.METRICS;
+    metricsEnabled && !hasNoMetrics && tabSlugFromUrl === TraceLayoutTabKeys.METRICS;
 
   if (isLoading) {
     if (shouldKeepLogsTabWhileLoading) {

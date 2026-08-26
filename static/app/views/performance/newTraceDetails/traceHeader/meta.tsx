@@ -9,6 +9,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   getTraceMetaLogsCount,
+  getTraceMetaMetricsCount,
   getTraceMetaSpanCount,
   type TraceMetaQueryResults,
 } from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -104,7 +105,8 @@ export function Meta(props: MetaProps) {
   const logsCount = getTraceMetaLogsCount(props.meta) ?? props.overview.logs.count ?? 0;
   const hasLogs = props.logsEnabled && logsCount > 0;
   const logsLoading = props.logsEnabled && props.overview.logs.availability === 'loading';
-  const metricsCount = props.overview.metrics.count ?? 0;
+  const metricsCount =
+    getTraceMetaMetricsCount(props.meta) ?? props.overview.metrics.count ?? 0;
   const hasMetrics = props.metricsEnabled && metricsCount > 0;
   const metricsLoading =
     props.metricsEnabled && props.overview.metrics.availability === 'loading';
