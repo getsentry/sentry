@@ -54,22 +54,12 @@ CYCLE_DURATION = timedelta(minutes=10)
 
 
 class PerOrgCalculationError(Exception):
-    """One organization's pass through the per-org pipeline failed.
-
-    Deliberately not a ``DynamicSamplingException``: that one reports an expected outcome
-    as a status and is swallowed by ``track_dynamic_sampling``, while a failure here has
-    to reach Sentry and fail the task.
-    """
+    pass
 
 
 def _failure_context(
     org_id: OrganizationId, config: BaseDynamicSamplingConfiguration
 ) -> dict[str, object]:
-    """The pipeline inputs that explain a failed pass, for the Sentry event.
-
-    Every value is read behind a guard, so that a second failure while describing the
-    first one cannot replace it with a less useful error.
-    """
     context: dict[str, object] = {"organization_id": org_id}
     try:
         results = config.results
@@ -149,19 +139,17 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 
         if is_org_in_recalibration_rollout(config.organization.id):
             config.recalibrate(results.organization_volume)
-        write_caches(config)
+
         return None
 
     except Exception as e:
-        context = _failure_context(org_id, config)
-        # Attached to the isolation scope, so that the capture_exception in
-        # track_dynamic_sampling reports it with the event.
-        sentry_sdk.set_context("dynamic_sampling_per_org", context)
+        sentry_sdk.set_context("dynamic_sampling_per_org", _failure_context(org_id, config))
         raise PerOrgCalculationError(
             f"Per-org calculations failed for organization {org_id}"
         ) from e
     finally:
         emit_comparisons(config)
+        write_caches(config)
 
 
 @instrumented_task(

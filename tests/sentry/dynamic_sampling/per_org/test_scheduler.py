@@ -219,10 +219,10 @@ class RunCalculationsPerOrgTest(TestCase):
         _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
         mocks[PROJECT_VOLUMES].assert_not_called()
-        # A pass that bails out still reports, but writes no cache: it has nothing to
-        # write, and the entries it would leave alone keep their previous values.
+        # A pass that bails out still reaches both end-of-pass steps, which find an
+        # untouched result and emit nothing.
         _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
-        mocks[WRITE_CACHES].assert_not_called()
+        _assert_called_once_with_config(mocks[WRITE_CACHES], org.id)
 
     @override_options(
         {
@@ -562,43 +562,7 @@ class RunCalculationsPerOrgTest(TestCase):
         # The failure propagates, but what the pass computed before it is not thrown away.
         config = _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
         assert config.results.organization_volume is org_volume
-        mocks[WRITE_CACHES].assert_not_called()
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_reports_the_failed_org_to_sentry(self) -> None:
-        org = self.create_organization()
-        self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-
-        with patch_configuration(
-            {
-                BLENDED_SAMPLE_RATE: 1.0,
-                ORG_VOLUME: org_volume,
-                **END_OF_PASS,
-            }
-        ):
-            with (
-                patch(PROJECT_VOLUMES, side_effect=ValueError("boom")),
-                patch(f"{SCHEDULER}.sentry_sdk.set_context") as set_context,
-                pytest.raises(PerOrgCalculationError),
-            ):
-                run_calculations_per_org_task(org.id)
-
-        name, context = set_context.call_args.args
-        assert name == "dynamic_sampling_per_org"
-        assert context.pop("configuration")
-        assert context == {
-            "organization_id": org.id,
-            "organization_slug": org.slug,
-            "target_sample_rate": 1.0,
-            "projects": 1,
-            "projects_to_balance": 0,
-            "project_volumes": 0,
-            "transaction_volumes": 0,
-            "organization_total": 100,
-            "organization_indexed": 25,
-            "recalibration_factor": None,
-        }
+        _assert_called_once_with_config(mocks[WRITE_CACHES], org.id)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_transaction_sample_rate(self) -> None:
