@@ -138,51 +138,46 @@ export function IssueAlertOptions({
     [RuleAction.DEFAULT_ALERT, t('Alert me on high priority issues')],
     [
       RuleAction.CUSTOMIZED_ALERTS,
-      tct(
-        '[thresholdGroup:When there are more than [threshold][metric]] [intervalGroup:a unique error in [interval]]',
-        {
-          thresholdGroup: <Flex align="center" wrap="nowrap" gap="md" />,
-          intervalGroup: <Flex align="center" wrap="nowrap" gap="md" />,
-          threshold: (
-            // 80px is just enough to see 6 digits at a time
-            <div style={{width: '80px'}}>
-              <Input
-                type="number"
-                min="0"
-                name=""
-                placeholder="10"
-                value={threshold}
-                onChange={e => {
-                  onFieldChange('threshold', e.target.value);
-                }}
-                data-test-id="range-input"
-              />
-            </div>
-          ),
-          metric: (
-            <div style={{width: '170px'}} onClick={e => e.preventDefault()}>
-              <Select
-                value={metric}
-                options={METRIC_CHOICES}
-                onChange={(option: (typeof METRIC_CHOICES)[number]) => {
-                  onFieldChange('metric', option.value);
-                }}
-              />
-            </div>
-          ),
-          interval: (
-            <div style={{width: '140px'}} onClick={e => e.preventDefault()}>
-              <Select
-                value={interval}
-                options={INTERVAL_CHOICES}
-                onChange={(option: (typeof INTERVAL_CHOICES)[number]) => {
-                  onFieldChange('interval', option.value);
-                }}
-              />
-            </div>
-          ),
-        }
-      ),
+      tct('When there are more than [threshold][metric] a unique error in [interval]', {
+        threshold: (
+          // 80px is just enough to see 6 digits at a time
+          <div style={{width: '80px'}}>
+            <Input
+              type="number"
+              min="0"
+              name=""
+              placeholder="10"
+              value={threshold}
+              onChange={e => {
+                onFieldChange('threshold', e.target.value);
+              }}
+              data-test-id="range-input"
+            />
+          </div>
+        ),
+        metric: (
+          <div style={{width: '170px'}} onClick={e => e.preventDefault()}>
+            <Select
+              value={metric}
+              options={METRIC_CHOICES}
+              onChange={(option: (typeof METRIC_CHOICES)[number]) => {
+                onFieldChange('metric', option.value);
+              }}
+            />
+          </div>
+        ),
+        interval: (
+          <div style={{width: '140px'}} onClick={e => e.preventDefault()}>
+            <Select
+              value={interval}
+              options={INTERVAL_CHOICES}
+              onChange={(option: (typeof INTERVAL_CHOICES)[number]) => {
+                onFieldChange('interval', option.value);
+              }}
+            />
+          </div>
+        ),
+      }),
     ],
     [RuleAction.CREATE_ALERT_LATER, t("I'll create my own alerts later")],
   ];
