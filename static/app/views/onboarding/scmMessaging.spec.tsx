@@ -681,11 +681,15 @@ describe('ScmMessaging', () => {
 
       act(() => releaseRefetch());
 
-      await waitFor(() =>
-        expect(
-          screen.queryByRole('button', {name: 'Set up later'})
-        ).not.toBeInTheDocument()
-      );
+      // Refetch settled: picker auto-opened (its "Workspace" label), Connect
+      // gone, footer still hidden.
+      expect(await screen.findByText('Workspace')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /Connect slack/i})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
     });
   });
 });
