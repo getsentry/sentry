@@ -42,7 +42,11 @@ from sentry.workflow_engine.processors.detector import (
     process_detectors,
 )
 from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationOutcome
+from sentry.workflow_engine.processors.evaluations import (
+    DetectorEvaluationOutcome,
+    EvaluationPhase,
+    EvaluationType,
+)
 from sentry.workflow_engine.types import (
     ConditionError,
     DetectorPriorityLevel,
@@ -120,10 +124,13 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_detectors.evaluation",
             extra={
+                "evaluation_type": EvaluationType.DETECTOR,
+                "evaluation_phase": EvaluationPhase.INITIAL,
                 "detector_id": detector.id,
                 "detector_type": detector.type,
                 "project_id": detector.linked_project.id,
-                "outcome": DetectorEvaluationOutcome.COMPLETED,
+                "outcome": DetectorEvaluationOutcome.TRIGGERED,
+                "event_id": None,
                 "group_key": None,
                 "priority": DetectorPriorityLevel.HIGH.value,
                 "trigger_group_evaluation": {
@@ -156,6 +163,8 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_detectors.evaluation",
             extra={
+                "evaluation_type": EvaluationType.DETECTOR,
+                "evaluation_phase": EvaluationPhase.INITIAL,
                 "detector_id": detector.id,
                 "detector_type": detector.type,
                 "project_id": detector.linked_project.id,
@@ -362,6 +371,8 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_detectors.evaluation",
             extra={
+                "evaluation_type": EvaluationType.DETECTOR,
+                "evaluation_phase": EvaluationPhase.INITIAL,
                 "detector_id": 1,
                 "detector_type": self.handler_type.slug,
                 "project_id": None,

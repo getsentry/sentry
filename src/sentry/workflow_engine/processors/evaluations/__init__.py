@@ -6,6 +6,8 @@ __all__ = [
     "DetectorEvaluationData",
     "DetectorEvaluationOutcome",
     "DeferredWorkflowEvaluationResult",
+    "EvaluationPhase",
+    "EvaluationType",
     "ProcessDetectorsResult",
     "ProcessWorkflowsResult",
     "WorkflowEvaluation",
@@ -13,6 +15,7 @@ __all__ = [
     "WorkflowEvaluationOutcome",
 ]
 
+from .base import EvaluationPhase, EvaluationType
 from .condition import DataConditionEvaluation, DataConditionEvaluationException
 from .condition_group import DataConditionGroupEvaluation
 from .detector import (

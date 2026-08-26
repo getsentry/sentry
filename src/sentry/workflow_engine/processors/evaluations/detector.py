@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, TypedDict
 
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.workflow_engine.types import (
     ConditionError,
     DetectorGroupKey,
@@ -9,7 +11,7 @@ from sentry.workflow_engine.types import (
     DetectorResult,
 )
 
-from .base import BaseWorkflowEngineEvaluation
+from .base import BaseWorkflowEngineEvaluation, EvaluationPhase, EvaluationType
 from .condition_group import DataConditionGroupEvaluation
 
 
@@ -23,6 +25,9 @@ class DetectorEvaluationOutcome(StrEnum):
     COMPLETED = "completed"
     ERROR = "error"
     NO_RESULTS = "no_results"
+    NOT_TRIGGERED = "not_triggered"
+    RESOLVED = "resolved"
+    TRIGGERED = "triggered"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -53,10 +58,23 @@ class DetectorEvaluation(
     priority: DetectorPriorityLevel
 
     @property
+    def outcome(self) -> DetectorEvaluationOutcome:
+        if self.error:
+            return DetectorEvaluationOutcome.ERROR
+        if isinstance(self.result, StatusChangeMessage):
+            return DetectorEvaluationOutcome.RESOLVED
+        if self.triggered or isinstance(self.result, IssueOccurrence):
+            return DetectorEvaluationOutcome.TRIGGERED
+        return DetectorEvaluationOutcome.NOT_TRIGGERED
+
+    @property
     def artifact_fields(self) -> dict[str, Any]:
         # Each trigger group evaluation will log the value used in evaluation
         # We only need to extract the top level detector items for tracking here.
+        event_data = self.data["event_data"] or {}
+        event_id = event_data.get("event_id")
         return {
+            "event_id": str(event_id) if event_id else None,
             "group_key": self.data["group_key"],
             "priority": self.priority.value,
             "trigger_group_evaluation": self.data["trigger_group_evaluation"].to_artifact(),
@@ -89,6 +107,8 @@ class ProcessDetectorsResult:
     @property
     def artifact_data(self) -> dict[str, object]:
         return {
+            "evaluation_type": EvaluationType.DETECTOR,
+            "evaluation_phase": EvaluationPhase.INITIAL,
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
             "project_id": self.project_id,
@@ -104,6 +124,10 @@ class ProcessDetectorsResult:
             return [self.to_artifact()]
 
         return [
-            {**self.artifact_data, **evaluation.to_artifact()}
+            {
+                **self.artifact_data,
+                **evaluation.to_artifact(),
+                "outcome": evaluation.outcome,
+            }
             for evaluation in self.evaluations.values()
         ]

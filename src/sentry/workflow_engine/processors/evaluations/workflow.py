@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Protocol, TypedDict, cast
 
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import (
@@ -12,11 +12,15 @@ from sentry.workflow_engine.types import (
     WorkflowId,
 )
 
-from .base import BaseWorkflowEngineEvaluation
+from .base import BaseWorkflowEngineEvaluation, EvaluationPhase, EvaluationType
 from .condition_group import DataConditionGroupEvaluation
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Action
+
+
+class _ProjectScopedEvent(Protocol):
+    project_id: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -98,15 +102,13 @@ class WorkflowEvaluation(
     @property
     def artifact_fields(self) -> dict[str, object]:
         if isinstance(self.result, DeferredWorkflowEvaluationResult):
-            result_type = "deferred"
             triggered_action_ids: list[int] = []
             deferred: dict[str, object] | None = {
-                "delayed_when_group_id": self.result.delayed_when_group_id,
-                "delayed_if_group_ids": sorted(self.result.delayed_if_group_ids),
-                "passing_if_group_ids": sorted(self.result.passing_if_group_ids),
+                "trigger_group_id": self.result.delayed_when_group_id,
+                "filter_group_ids": sorted(self.result.delayed_if_group_ids),
+                "passing_filter_group_ids": sorted(self.result.passing_if_group_ids),
             }
         else:
-            result_type = "actions"
             triggered_action_ids = [action.id for action in self.result]
             deferred = None
 
@@ -117,16 +119,17 @@ class WorkflowEvaluation(
             else event_data.event.id
         )
         return {
+            "evaluation_type": EvaluationType.WORKFLOW,
+            "evaluation_phase": EvaluationPhase.INITIAL,
             "workflow_id": self.workflow_id,
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
-            "project_id": event_data.event.project_id,
+            "project_id": cast(_ProjectScopedEvent, event_data.event).project_id,
             "event_id": str(event_id) if event_id else None,
             "group_id": event_data.group.id,
             "outcome": self.outcome,
-            "result_type": result_type,
             "triggered_action_ids": triggered_action_ids,
-            "deferred": deferred,
+            **({"deferred": deferred} if deferred else {}),
             "trigger_group_evaluation": self.data["trigger_group_eval"].to_artifact(),
             "filter_group_evaluations": [
                 evaluation.to_artifact() for evaluation in self.data["filter_group_evals"]
@@ -153,10 +156,13 @@ class ProcessWorkflowsResult:
 
     def to_artifact(self) -> dict[str, object]:
         return {
+            "evaluation_type": EvaluationType.WORKFLOW,
+            "evaluation_phase": EvaluationPhase.INITIAL,
             "outcome": self.outcome,
             "project_id": self.project_id,
             "group_id": self.group_id,
             "event_id": self.event_id,
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
+            "error": None,
         }
