@@ -1,24 +1,22 @@
-import {useEffect, useMemo} from 'react';
-import {type QueryKey, useQuery} from '@tanstack/react-query';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {CanonicalApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 import {
   type AutofixOverviewResponse,
+  type AutofixScmInfoResponse,
   type MilestoneKey,
+  type OverviewPullRequest,
   type OverviewRun,
   OVERVIEW_SECTIONS,
   type OverviewSort,
   PIPELINE,
   POLL_INTERVAL,
   QUERY_STALE_TIME,
-  type RunStatus,
 } from './types';
 
 export interface MilestoneAdvance {
@@ -69,87 +67,55 @@ export function detectMilestoneAdvances(
   return advances;
 }
 
-function statusByRunId(
-  data: AutofixOverviewResponse | undefined
-): Map<string, RunStatus | null> {
-  const map = new Map<string, RunStatus | null>();
-  for (const runs of Object.values(data?.runsByMilestone ?? {})) {
-    for (const run of runs) {
-      map.set(run.seerRunId, run.status);
-    }
-  }
-  return map;
+// Overlays the window's SCM fields (checks/review/files) onto the matching poll
+// PR by id, so the poll's live PR identity/status isn't clobbered by a snapshot.
+function overlayPullRequest(
+  base: OverviewPullRequest,
+  scm: OverviewPullRequest
+): OverviewPullRequest {
+  return {
+    ...base,
+    checksStatus: scm.checksStatus,
+    reviewStatus: scm.reviewStatus,
+    files: scm.files,
+    failedCheckDetails: scm.failedCheckDetails,
+    repoName: base.repoName ?? scm.repoName,
+  };
 }
 
-// Fingerprint of which run sits in which section; a change cues an enrichment refetch.
-export function sectionSignature(
-  data: AutofixOverviewResponse | undefined
-): string | null {
-  if (!data) {
-    return null;
-  }
-  const pairs: string[] = [];
-  for (const [milestone, runs] of Object.entries(data.runsByMilestone)) {
-    for (const run of runs) {
-      pairs.push(`${run.seerRunId}:${milestone}`);
-    }
-  }
-  return pairs.sort().join(',');
-}
-
-export function shouldRefetchEnriched(
-  pollData: AutofixOverviewResponse | undefined,
-  enrichedData: AutofixOverviewResponse | undefined
-): boolean {
-  const pollSignature = sectionSignature(pollData);
-  const enrichedSignature = sectionSignature(enrichedData);
-  return (
-    pollSignature !== null &&
-    enrichedSignature !== null &&
-    pollSignature !== enrichedSignature
-  );
-}
-
-type QueryParams = Record<string, unknown> | undefined;
-
-const SCOPE_FREE_PARAMS = ['expand'];
-
-export function isSameScope(previous: QueryParams, next: QueryParams): boolean {
-  return isEqual(omit(previous, SCOPE_FREE_PARAMS), omit(next, SCOPE_FREE_PARAMS));
-}
-
-function queryParamsOf(queryKey: QueryKey): QueryParams {
-  const [, options] = queryKey as CanonicalApiQueryKey;
-  return options?.query;
-}
-
-export function overlayStatus(
+// Merges each fetched window's SCM detail onto the poll's live PRs per run;
+// unfetched runs and uncovered PRs keep poll data, so no PR link is dropped.
+function mergeScmInfo(
   base: AutofixOverviewResponse,
-  poll: AutofixOverviewResponse | undefined
+  scmByRunId: Map<string, OverviewPullRequest[]>
 ): AutofixOverviewResponse {
-  const statuses = statusByRunId(poll);
-  if (statuses.size === 0) {
+  if (scmByRunId.size === 0) {
     return base;
   }
-  let changed = false;
   const runsByMilestone = Object.fromEntries(
     Object.entries(base.runsByMilestone).map(([milestone, runs]) => [
       milestone,
       runs.map(run => {
-        const next = statuses.get(run.seerRunId);
-        if (typeof next === 'string' && next !== run.status) {
-          changed = true;
-          return {...run, status: next};
+        const enriched = scmByRunId.get(run.seerRunId);
+        if (!enriched) {
+          return run;
         }
-        return run;
+        const scmById = new Map(enriched.map(pr => [pr.id, pr]));
+        return {
+          ...run,
+          pullRequests: run.pullRequests.map(pr => {
+            const scm = scmById.get(pr.id);
+            return scm ? overlayPullRequest(pr, scm) : pr;
+          }),
+        };
       }),
     ])
   ) as AutofixOverviewResponse['runsByMilestone'];
-  return changed ? {...base, runsByMilestone} : base;
+  return {...base, runsByMilestone};
 }
 
-// Progressive load: a light `status` poll paints cards fast and stays live every 10s;
-// the enriched `expand` request fills in Snuba/SCM detail and refetches on section change.
+// Progressive load: the 10s status+Snuba poll paints cards fast; slow GitHub
+// PR/SCM detail is windowed lazily, only for cards scrolled into view.
 export function useAutofixOverview({
   organization,
   selection,
@@ -161,10 +127,12 @@ export function useAutofixOverview({
   selection: PageFilters;
   sort: OverviewSort;
 }) {
+  const queryClient = useQueryClient();
+
   const overviewQuery = (query: {
-    expand?: Array<'scmInfo' | 'issueStats' | 'status' | 'projectConfig'>;
-  }) => {
-    const options = apiOptions.as<AutofixOverviewResponse>()(
+    expand?: Array<'issueStats' | 'status' | 'projectConfig'>;
+  }) =>
+    apiOptions.as<AutofixOverviewResponse>()(
       '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
       {
         path: {organizationIdOrSlug: organization.slug},
@@ -178,32 +146,9 @@ export function useAutofixOverview({
         staleTime: QUERY_STALE_TIME,
       }
     );
-    return {
-      ...options,
-      placeholderData: <T>(
-        previousData: T | undefined,
-        previousQuery: {queryKey: QueryKey} | undefined
-      ) =>
-        previousQuery &&
-        isSameScope(
-          queryParamsOf(previousQuery.queryKey),
-          queryParamsOf(options.queryKey)
-        )
-          ? previousData
-          : undefined,
-    };
-  };
-
-  const enrichedQuery = useQuery({
-    ...overviewQuery({expand: ['scmInfo', 'issueStats', 'status']}),
-    enabled,
-    // Enrichment is progressive polish: fail fast to empty slots rather than
-    // shimmering through the default retry backoff.
-    retry: 1,
-  });
 
   const statusPollQuery = useQuery({
-    ...overviewQuery({expand: ['status']}),
+    ...overviewQuery({expand: ['status', 'issueStats']}),
     enabled,
     refetchInterval: POLL_INTERVAL,
   });
@@ -213,17 +158,110 @@ export function useAutofixOverview({
     enabled,
   });
 
-  const enrichedRefetch = enrichedQuery.refetch;
-  useEffect(() => {
-    if (shouldRefetchEnriched(statusPollQuery.data, enrichedQuery.data)) {
-      enrichedRefetch();
-    }
-  }, [statusPollQuery.data, enrichedQuery.data, enrichedRefetch]);
+  const scmInfoQueryOptions = useCallback(
+    (runIds: string[]) =>
+      apiOptions.as<AutofixScmInfoResponse>()(
+        '/organizations/$organizationIdOrSlug/seer/autofix-scm-info/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+          query: {
+            // Same project scope as the poll so the endpoint resolves the same
+            // runs; otherwise All-Projects/extra-access runs stay un-enriched.
+            project: selection.projects,
+            // Sorted so concurrent identical windows share one request.
+            runIds: runIds.toSorted(),
+          },
+          // Within-scope dedup is handled by requestedRunIdsRef, so freshness is
+          // ours to manage: always hit the network so a scope reset re-fetches.
+          staleTime: 0,
+        }
+      ),
+    [organization.slug, selection.projects]
+  );
 
-  const source = enrichedQuery.data ?? statusPollQuery.data;
+  // Requested ids (dedup) live in a ref so a window request never re-reads state
+  // during render; the shimmer reads `pendingRunIds`.
+  const requestedRunIdsRef = useRef<Set<string>>(new Set());
+  const [pendingRunIds, setPendingRunIds] = useState<Set<string>>(() => new Set());
+  const [scmByRunId, setScmByRunId] = useState<Map<string, OverviewPullRequest[]>>(
+    () => new Map()
+  );
+  const scopeGenerationRef = useRef(0);
+
+  // Fetches one positional window of PR-bearing runs (the caller partitions runs
+  // by render order). Any card in a window scrolling into view pulls the whole
+  // window, so the runs just below it are enriched before they are reached.
+  const requestScmWindow = useCallback(
+    (runIds: string[]) => {
+      const fresh = runIds.filter(id => !requestedRunIdsRef.current.has(id));
+      if (fresh.length === 0) {
+        return;
+      }
+      for (const id of fresh) {
+        requestedRunIdsRef.current.add(id);
+      }
+      // Shimmer the whole window now, before the request resolves.
+      setPendingRunIds(prev => new Set([...prev, ...fresh]));
+      // Snapshot the scope so a window landing after a scope change is dropped.
+      const generation = scopeGenerationRef.current;
+      const settle = () => {
+        if (scopeGenerationRef.current !== generation) {
+          return;
+        }
+        setPendingRunIds(prev => {
+          const next = new Set(prev);
+          for (const id of fresh) {
+            next.delete(id);
+          }
+          return next;
+        });
+      };
+
+      queryClient
+        // Fail fast to un-enriched cards rather than shimmering through retries.
+        .fetchQuery({...scmInfoQueryOptions(fresh), retry: false})
+        .then(({json}) => {
+          if (scopeGenerationRef.current !== generation) {
+            return;
+          }
+          setScmByRunId(prev => {
+            const next = new Map(prev);
+            for (const id of fresh) {
+              const entry = json.scmInfoByRunId?.[id];
+              if (entry) {
+                next.set(id, entry.pullRequests);
+              }
+            }
+            return next;
+          });
+          settle();
+        })
+        .catch(settle);
+    },
+    [queryClient, scmInfoQueryOptions]
+  );
+
+  // A scope change (sort/project/date) remounts the cards; clear the SCM caches
+  // so the reshown cards re-window instead of being deduped against the old scope.
+  const scopeKey = JSON.stringify([selection.projects, selection.datetime, sort]);
+  useEffect(() => {
+    // Bump the generation so an in-flight window from the old scope is ignored
+    // when it settles instead of writing stale data into the new scope.
+    scopeGenerationRef.current += 1;
+    requestedRunIdsRef.current.clear();
+    setScmByRunId(new Map());
+    setPendingRunIds(new Set());
+  }, [scopeKey]);
+
+  const isScmPending = useCallback(
+    (seerRunId: string) => pendingRunIds.has(seerRunId),
+    [pendingRunIds]
+  );
+
   const data = useMemo(
-    () => (source ? overlayStatus(source, statusPollQuery.data) : undefined),
-    [source, statusPollQuery.data]
+    () =>
+      statusPollQuery.data ? mergeScmInfo(statusPollQuery.data, scmByRunId) : undefined,
+    [statusPollQuery.data, scmByRunId]
   );
 
   return {
@@ -231,15 +269,14 @@ export function useAutofixOverview({
     projectConfig: projectConfigQuery.data?.projectConfig,
     projectConfigPending: projectConfigQuery.isLoading,
     isPending: !data,
-    // Error only once both fail with nothing to show; the poll alone may still be
-    // recovered by an in-flight enriched call.
-    isError: statusPollQuery.isError && enrichedQuery.isError && !data,
-    // Cold-load shimmer only: the poll painted but no enriched payload yet.
-    enrichmentPending: Boolean(data) && !enrichedQuery.data && !enrichedQuery.isError,
-    enrichedSettled: !enrichedQuery.isFetching && Boolean(enrichedQuery.data),
+    isError: statusPollQuery.isError && !data,
+    // Poll-based: true once the sole source has painted, so milestone toasts
+    // baseline off a real payload.
+    dataSettled: !statusPollQuery.isPending && Boolean(statusPollQuery.data),
+    requestScmWindow,
+    isScmPending,
     refetch: () => {
       statusPollQuery.refetch();
-      enrichedQuery.refetch();
       projectConfigQuery.refetch();
     },
   };

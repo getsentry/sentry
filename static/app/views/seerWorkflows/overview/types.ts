@@ -192,8 +192,6 @@ export interface OverviewRunIssue {
   project: {
     id: string;
     slug: string;
-    hasNonGithubRepo?: boolean;
-    hasReposConnected?: boolean;
     platform?: PlatformKey;
   };
   substatus: string | null;
@@ -218,6 +216,7 @@ export interface ProjectConfig {
   hasReposConnected: boolean;
   id: string;
   slug: string;
+  hasNonGithubRepo?: boolean;
 }
 
 export interface AutofixOverviewResponse {
@@ -225,3 +224,14 @@ export interface AutofixOverviewResponse {
   projectConfig?: ProjectConfig[];
   truncatedMilestones?: MilestoneKey[];
 }
+
+// PR/SCM enrichment fetched per window of run ids from the autofix-scm-info
+// endpoint, keyed by seerRunId.
+export interface AutofixScmInfoResponse {
+  scmInfoByRunId: Record<string, {pullRequests: OverviewPullRequest[]}>;
+}
+
+// Positional window size: PR-bearing runs are partitioned by render order into
+// chunks of this many, and any card in a chunk scrolling into view fetches the
+// whole chunk. Owned here — the endpoint serves whatever it is given.
+export const SCM_WINDOW_SIZE = 5;

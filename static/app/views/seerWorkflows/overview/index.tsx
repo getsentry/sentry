@@ -62,7 +62,13 @@ import {
   type StatusGroupKey,
   StatusGroupTooltip,
 } from './statusGroups';
-import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
+import {
+  OVERVIEW_SECTIONS,
+  type OverviewRun,
+  type OverviewSort,
+  type ProjectConfig,
+  SCM_WINDOW_SIZE,
+} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
 import {useOverviewAnalytics} from './useOverviewAnalytics';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
@@ -177,16 +183,21 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     projectConfigPending,
     isPending,
     isError,
-    enrichmentPending,
+    dataSettled,
+    requestScmWindow,
+    isScmPending,
     refetch,
-    enrichedSettled,
   } = useAutofixOverview({
     organization,
     selection,
     sort,
     enabled: pageFiltersReady,
   });
-  useMilestoneAdvanceToasts(data, enrichedSettled);
+  useMilestoneAdvanceToasts(data, dataSettled);
+  const projectConfigById = useMemo(
+    () => new Map((projectConfig ?? []).map(config => [config.id, config])),
+    [projectConfig]
+  );
   const unconfiguredProjects =
     projectConfig?.filter(project => !project.hasReposConnected) ?? [];
   useOverviewAnalytics({
@@ -257,6 +268,28 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       run => passesAssignee(run) && (view === 'all' || run.status === 'processing')
     ),
   })).filter(section => section.runs.length > 0);
+
+  // Only the Review-PR section renders SCM detail (checks/review/files). Its runs
+  // in render order are partitioned into positional windows of SCM_WINDOW_SIZE. A
+  // card scrolling into view enriches its own window and prefetches the next one,
+  // so the following window is already loading before the user reaches it.
+  const orderedPrRunIds = populatedSections
+    .filter(section => section.key === 'review_pr')
+    .flatMap(section => section.runs)
+    .filter(run => run.pullRequests.length > 0)
+    .map(run => run.seerRunId);
+  const scmWindows: string[][] = [];
+  for (let start = 0; start < orderedPrRunIds.length; start += SCM_WINDOW_SIZE) {
+    scmWindows.push(orderedPrRunIds.slice(start, start + SCM_WINDOW_SIZE));
+  }
+  const scmWindowsByRunId = new Map<string, string[][]>();
+  scmWindows.forEach((window, index) => {
+    const nextWindow = scmWindows[index + 1];
+    const toRequest = nextWindow ? [window, nextWindow] : [window];
+    for (const id of window) {
+      scmWindowsByRunId.set(id, toRequest);
+    }
+  });
 
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
     setCollapsedGroups(previous =>
@@ -397,7 +430,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   onToggle={toggleGroup}
                   orgSlug={organization.slug}
                   statsPeriod={selection.datetime.period}
-                  enrichmentPending={enrichmentPending}
+                  requestScmWindow={requestScmWindow}
+                  scmWindowsByRunId={scmWindowsByRunId}
+                  isScmPending={isScmPending}
+                  projectConfigById={projectConfigById}
                   membersByProject={membersByProject}
                   resolvedTeamIds={resolvedTeamIds}
                   teamsSettled={teamsSettled}
@@ -417,17 +453,23 @@ function OverviewSectionList({
   onToggle,
   orgSlug,
   statsPeriod,
-  enrichmentPending,
+  requestScmWindow,
+  scmWindowsByRunId,
+  isScmPending,
+  projectConfigById,
   membersByProject,
   resolvedTeamIds,
   teamsSettled,
 }: {
   collapsedGroups: StatusGroupKey[];
-  enrichmentPending: boolean;
+  isScmPending: (seerRunId: string) => boolean;
   membersByProject: IndexedMembersByProject;
   onToggle: (groupKey: StatusGroupKey, expanded: boolean) => void;
   orgSlug: string;
+  projectConfigById: Map<string, ProjectConfig>;
+  requestScmWindow: (runIds: string[]) => void;
   resolvedTeamIds: Set<string>;
+  scmWindowsByRunId: Map<string, string[][]>;
   sections: Array<(typeof OVERVIEW_SECTIONS)[number] & {runs: OverviewRun[]}>;
   statsPeriod: ComponentProps<typeof OverviewCard>['statsPeriod'];
   teamsSettled: boolean;
@@ -471,7 +513,10 @@ function OverviewSectionList({
                       orgSlug={orgSlug}
                       sectionKey={key}
                       statsPeriod={statsPeriod}
-                      enrichmentPending={enrichmentPending}
+                      enrichmentPending={isScmPending(run.seerRunId)}
+                      requestScmWindow={requestScmWindow}
+                      scmWindows={scmWindowsByRunId.get(run.seerRunId)}
+                      projectConfig={projectConfigById.get(run.issue.project.id)}
                       memberList={membersByProject.get(run.issue.project.slug) ?? []}
                       assigneeReady={assigneeReady}
                     />

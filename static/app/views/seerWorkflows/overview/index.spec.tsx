@@ -31,6 +31,7 @@ import type {
   OverviewPullRequest,
   OverviewRunIssue,
 } from 'sentry/views/seerWorkflows/overview/types';
+import {SCM_WINDOW_SIZE} from 'sentry/views/seerWorkflows/overview/types';
 import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOverviewSeerDrawer';
 
 describe('AutofixOverview', () => {
@@ -109,21 +110,21 @@ describe('AutofixOverview', () => {
 
   function mockOverview({
     base,
-    enriched,
-    enrichedAsyncDelay,
-    enrichedStatusCode,
     baseStatusCode,
     truncated,
     projectConfig,
     projectConfigAsyncDelay,
+    scmInfo,
+    scmInfoStatusCode,
+    scmInfoAsyncDelay,
   }: {
     base: Partial<AutofixOverviewResponse['runsByMilestone']>;
     baseStatusCode?: number;
-    enriched?: Partial<AutofixOverviewResponse['runsByMilestone']>;
-    enrichedAsyncDelay?: number | Promise<void>;
-    enrichedStatusCode?: number;
     projectConfig?: AutofixOverviewResponse['projectConfig'];
     projectConfigAsyncDelay?: number | Promise<void>;
+    scmInfo?: Record<string, {pullRequests: OverviewPullRequest[]}>;
+    scmInfoAsyncDelay?: number | Promise<void>;
+    scmInfoStatusCode?: number;
     truncated?: AutofixOverviewResponse['truncatedMilestones'];
   }) {
     const statusPollRequest = MockApiClient.addMockResponse({
@@ -131,16 +132,6 @@ describe('AutofixOverview', () => {
       statusCode: baseStatusCode,
       body: {
         runsByMilestone: {...emptyMilestones, ...base},
-        truncatedMilestones: truncated ?? [],
-      },
-    });
-    const enrichedRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
-      match: [MockApiClient.matchQuery({expand: ['scmInfo', 'issueStats', 'status']})],
-      asyncDelay: enrichedAsyncDelay,
-      statusCode: enrichedStatusCode,
-      body: {
-        runsByMilestone: {...emptyMilestones, ...(enriched ?? base)},
         truncatedMilestones: truncated ?? [],
       },
     });
@@ -154,23 +145,61 @@ describe('AutofixOverview', () => {
         ...(projectConfig ? {projectConfig} : {}),
       },
     });
-    return {statusPollRequest, enrichedRequest, projectConfigRequest};
+    const scmInfoRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-scm-info/`,
+      asyncDelay: scmInfoAsyncDelay,
+      statusCode: scmInfoStatusCode,
+      body: {scmInfoByRunId: scmInfo ?? {}},
+    });
+    return {statusPollRequest, projectConfigRequest, scmInfoRequest};
   }
 
-  // The un-expanded call cannot reach Snuba, so it nulls out the issue stats.
-  const unenrichedRootCauseRun = {
-    ...rootCauseRun,
-    issue: issueFixture({count: null, userCount: null, lastSeen: null}),
-  };
-
-  // Holds the enriched response open so the pending state can be asserted, with
-  // no reliance on real timers.
-  function deferEnriched() {
+  // Holds a mocked response open so a pending state can be asserted, with no
+  // reliance on real timers.
+  function deferredResponse() {
     let resolve!: () => void;
     const promise = new Promise<void>(r => {
       resolve = r;
     });
     return {promise, resolve};
+  }
+
+  // Cards enrich only once scrolled into view; this makes the IntersectionObserver
+  // report observed cards as visible. `onlyMatching` restricts visibility to the
+  // card whose element contains that text; `deferred` reports on a separate task
+  // like a real per-card observer.
+  const originalIntersectionObserver = window.IntersectionObserver;
+  function makeCardsVisible({
+    deferred = false,
+    onlyMatching,
+  }: {deferred?: boolean; onlyMatching?: string} = {}) {
+    class VisibleObserver {
+      root = null;
+      rootMargin = '';
+      thresholds = [];
+      constructor(private callback: IntersectionObserverCallback) {}
+      observe(target: Element) {
+        const isIntersecting =
+          !onlyMatching || (target.textContent ?? '').includes(onlyMatching);
+        const fire = () =>
+          this.callback(
+            [{isIntersecting, target} as IntersectionObserverEntry],
+            this as unknown as IntersectionObserver
+          );
+        if (deferred) {
+          setTimeout(fire, 0);
+        } else {
+          fire();
+        }
+      }
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    }
+    window.IntersectionObserver =
+      VisibleObserver as unknown as typeof IntersectionObserver;
   }
 
   beforeEach(() => {
@@ -203,6 +232,10 @@ describe('AutofixOverview', () => {
     });
   });
 
+  afterEach(() => {
+    window.IntersectionObserver = originalIntersectionObserver;
+  });
+
   function renderPage(query: Record<string, string> = {}) {
     return render(<AutofixOverview />, {
       organization,
@@ -217,7 +250,7 @@ describe('AutofixOverview', () => {
   }
 
   it('gates the page and issues no requests when the feature is disabled', async () => {
-    const {statusPollRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest, scmInfoRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -231,7 +264,7 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Autofix Overview')).not.toBeInTheDocument();
     expect(statusPollRequest).not.toHaveBeenCalled();
-    expect(enrichedRequest).not.toHaveBeenCalled();
+    expect(scmInfoRequest).not.toHaveBeenCalled();
   });
 
   it('renders only populated sections with counts from the single endpoint', async () => {
@@ -304,7 +337,7 @@ describe('AutofixOverview', () => {
   });
 
   it('refetches the overview after a card action is dispatched', async () => {
-    const {enrichedRequest} = mockOverview({
+    const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
     MockApiClient.addMockResponse({
@@ -318,7 +351,7 @@ describe('AutofixOverview', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Create Plan'}));
 
     expect(await screen.findByRole('button', {name: /Creating Plan/})).toBeDisabled();
-    await waitFor(() => expect(enrichedRequest).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(statusPollRequest).toHaveBeenCalledTimes(2));
   });
 
   describe('Seer drawer', () => {
@@ -481,7 +514,7 @@ describe('AutofixOverview', () => {
   });
 
   it('filters to only in-progress runs when the In Progress tab is selected', async () => {
-    const {statusPollRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest} = mockOverview({
       base: {
         autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
         autofix_solution: [solutionRun],
@@ -505,7 +538,6 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledTimes(1);
-    expect(enrichedRequest).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a pinned time window through param navigation instead of resetting it', async () => {
@@ -767,8 +799,8 @@ describe('AutofixOverview', () => {
     );
   });
 
-  it('issues a cheap request and an enriched expand request', async () => {
-    const {statusPollRequest, enrichedRequest} = mockOverview({
+  it('paints from the light status+snuba poll and never an scmInfo expand', async () => {
+    const {statusPollRequest, scmInfoRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
     // Overview reads everything from the overview endpoint; the legacy
@@ -794,7 +826,7 @@ describe('AutofixOverview', () => {
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
-        query: expect.objectContaining({expand: ['status']}),
+        query: expect.objectContaining({expand: ['status', 'issueStats']}),
       })
     );
     expect(statusPollRequest).toHaveBeenCalledWith(
@@ -803,14 +835,17 @@ describe('AutofixOverview', () => {
         query: expect.not.objectContaining({environment: expect.anything()}),
       })
     );
-    await waitFor(() =>
-      expect(enrichedRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/seer/autofix-overview/`,
-        expect.objectContaining({
-          query: expect.objectContaining({expand: ['scmInfo', 'issueStats', 'status']}),
-        })
-      )
+    // The enriched scmInfo expand is gone; nothing ever requests it.
+    expect(statusPollRequest).not.toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/seer/autofix-overview/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          expand: expect.arrayContaining(['scmInfo']),
+        }),
+      })
     );
+    // A run with no PRs, and no card scrolled into view, never windows SCM info.
+    expect(scmInfoRequest).not.toHaveBeenCalled();
     expect(runsRequest).not.toHaveBeenCalled();
     expect(autofixRequest).not.toHaveBeenCalled();
     expect(issuesRequest).not.toHaveBeenCalled();
@@ -839,61 +874,244 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('Working…')).toBeInTheDocument();
   });
 
-  it('shimmers the enriched slots until the expand request resolves', async () => {
-    const enriched = deferEnriched();
-    mockOverview({
-      base: {autofix_root_cause: [unenrichedRootCauseRun]},
-      enriched: {autofix_root_cause: [rootCauseRun]},
-      enrichedAsyncDelay: enriched.promise,
+  it('windows scm-info for a visible PR card and shimmers until it resolves', async () => {
+    makeCardsVisible();
+    const scmInfo = deferredResponse();
+    const basePullRequest: OverviewPullRequest = {
+      id: '42',
+      number: 42,
+      url: 'https://github.com/getsentry/sentry/pull/42',
+      status: 'open',
+      checksStatus: null,
+      reviewStatus: null,
+      repoName: 'getsentry/sentry',
+      files: [],
+    };
+    const {scmInfoRequest} = mockOverview({
+      base: {has_pull_request: [{...rootCauseRun, pullRequests: [basePullRequest]}]},
+      scmInfoAsyncDelay: scmInfo.promise,
+      // The window fills in every SCM-sourced field: checks, review, and files.
+      scmInfo: {
+        'run-1': {
+          pullRequests: [
+            {
+              ...basePullRequest,
+              checksStatus: 'success',
+              reviewStatus: 'approved',
+              files: [
+                {
+                  path: 'src/sentry/foo.py',
+                  additions: 10,
+                  deletions: 2,
+                  changeType: 'MODIFIED',
+                },
+              ],
+            },
+          ],
+        },
+      },
     });
 
     renderPage();
 
+    // The base PR link paints immediately from the poll.
     expect(
-      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+      await screen.findByRole('button', {name: /Review PR #42/})
     ).toBeInTheDocument();
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
+    await waitFor(() =>
+      expect(scmInfoRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/seer/autofix-scm-info/`,
+        expect.objectContaining({query: expect.objectContaining({runIds: ['run-1']})})
+      )
+    );
 
-    enriched.resolve();
+    scmInfo.resolve();
 
-    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    // The enriched checks/review tags and changed files land; the shimmer clears.
+    expect(await screen.findByText('Checks Passing')).toBeInTheDocument();
+    expect(screen.getByText('Approved')).toBeInTheDocument();
+    expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('src/sentry/foo.py')).toBeInTheDocument();
     expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
   });
 
-  it('stops shimmering when the enriched request fails', async () => {
-    mockOverview({
-      base: {autofix_root_cause: [unenrichedRootCauseRun]},
-      enrichedStatusCode: 500,
+  it('does not window scm-info for a card that never becomes visible', async () => {
+    const {scmInfoRequest} = mockOverview({
+      base: {
+        has_pull_request: [
+          {
+            ...rootCauseRun,
+            pullRequests: [pullRequestFixture({number: 42, status: 'open'})],
+          },
+        ],
+      },
     });
 
     renderPage();
 
     expect(
-      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+      await screen.findByRole('button', {name: /Review PR #42/})
     ).toBeInTheDocument();
+    // The default no-op observer never reports the card visible.
+    expect(scmInfoRequest).not.toHaveBeenCalled();
+  });
 
+  it('scopes the scm-info window request to the selected project', async () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
+    makeCardsVisible();
+    const {scmInfoRequest} = mockOverview({
+      base: {
+        has_pull_request: [
+          {
+            ...rootCauseRun,
+            pullRequests: [pullRequestFixture({number: 42, status: 'open'})],
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: /Review PR #42/})
+    ).toBeInTheDocument();
+    // The window carries the same project scope as the poll so the endpoint
+    // resolves the same runs.
+    await waitFor(() =>
+      expect(scmInfoRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/seer/autofix-scm-info/`,
+        expect.objectContaining({
+          query: expect.objectContaining({project: [2], runIds: ['run-1']}),
+        })
+      )
+    );
+  });
+
+  const windowedRuns = (count: number) =>
+    Array.from({length: count}, (_, i) => ({
+      ...rootCauseRun,
+      groupId: String(100 + i),
+      seerRunId: `run-${i}`,
+      title: `Windowed run ${i}`,
+      pullRequests: [pullRequestFixture({number: 100 + i, status: 'open'})],
+    }));
+
+  it('prefetches the next window when only the first card is visible', async () => {
+    // Only the first card is in view. Its own window is fetched, and the next
+    // window is prefetched so it is enriched before the user reaches it.
+    makeCardsVisible({onlyMatching: 'Windowed run 0'});
+    // Two full windows worth of runs so both are exactly SCM_WINDOW_SIZE.
+    const runCount = SCM_WINDOW_SIZE * 2;
+    const {scmInfoRequest} = mockOverview({
+      base: {has_pull_request: windowedRuns(runCount)},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Windowed run 0')).toBeInTheDocument();
+
+    // The visible window plus the prefetched next window, each fetched once.
+    await waitFor(() => expect(scmInfoRequest).toHaveBeenCalledTimes(2));
+    const windows = scmInfoRequest.mock.calls.map(
+      ([, options]: [string, {query: {runIds: string[]}}]) => options.query.runIds
+    );
+    expect(windows.map(ids => ids.length)).toEqual([SCM_WINDOW_SIZE, SCM_WINDOW_SIZE]);
+    const requestedIds = windows.flat();
+    expect(new Set(requestedIds)).toEqual(
+      new Set(Array.from({length: runCount}, (_, i) => `run-${i}`))
+    );
+  });
+
+  it('partitions PR cards into disjoint windows of SCM_WINDOW_SIZE', async () => {
+    // Each card reports visible on its own task, like a real per-card observer.
+    makeCardsVisible({deferred: true});
+    // Two full windows plus a trailing partial one.
+    const runCount = SCM_WINDOW_SIZE * 2 + 1;
+    const {scmInfoRequest} = mockOverview({
+      base: {has_pull_request: windowedRuns(runCount)},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Windowed run 0')).toBeInTheDocument();
+
+    // The runs form three disjoint windows, each fetched once, not one per card.
+    await waitFor(() => expect(scmInfoRequest).toHaveBeenCalledTimes(3));
+    const windows = scmInfoRequest.mock.calls.map(
+      ([, options]: [string, {query: {runIds: string[]}}]) => options.query.runIds
+    );
+    expect(windows.map(ids => ids.length).sort((a, b) => b - a)).toEqual([
+      SCM_WINDOW_SIZE,
+      SCM_WINDOW_SIZE,
+      1,
+    ]);
+    // Every run enriched exactly once — no id dropped or requested twice.
+    const requestedIds = windows.flat();
+    expect(requestedIds).toHaveLength(runCount);
+    expect(new Set(requestedIds).size).toBe(runCount);
+  });
+
+  it('re-windows scm-info for cards reshown after a sort change', async () => {
+    makeCardsVisible();
+    const prRun = {
+      ...rootCauseRun,
+      pullRequests: [pullRequestFixture({number: 42, status: 'open'})],
+    };
+    const {scmInfoRequest} = mockOverview({base: {has_pull_request: [prRun]}});
+    // The re-sorted scope returns the same PR-bearing run.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      match: [MockApiClient.matchQuery({sort: 'events'})],
+      body: {
+        runsByMilestone: {...emptyMilestones, has_pull_request: [prRun]},
+        truncatedMilestones: [],
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: /Review PR #42/})
+    ).toBeInTheDocument();
+    await waitFor(() => expect(scmInfoRequest).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole('button', {name: /Sort/}));
+    await userEvent.click(screen.getByRole('option', {name: 'Most events'}));
+
+    // The scope change clears the latch, so the reshown card re-windows
+    // instead of being deduped against the previous scope.
+    await waitFor(() => expect(scmInfoRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('degrades a visible PR card gracefully when scm-info fails', async () => {
+    makeCardsVisible();
+    const basePullRequest: OverviewPullRequest = {
+      id: '42',
+      number: 42,
+      url: 'https://github.com/getsentry/sentry/pull/42',
+      status: 'open',
+      checksStatus: null,
+      reviewStatus: null,
+      files: [],
+    };
+    const {scmInfoRequest} = mockOverview({
+      base: {has_pull_request: [{...rootCauseRun, pullRequests: [basePullRequest]}]},
+      scmInfoStatusCode: 500,
+    });
+
+    renderPage();
+
+    // The base PR link still renders...
+    expect(
+      await screen.findByRole('button', {name: /Review PR #42/})
+    ).toBeInTheDocument();
+    await waitFor(() => expect(scmInfoRequest).toHaveBeenCalled());
+    // ...and the checks/review shimmer clears instead of hanging forever.
     await waitFor(() =>
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument()
     );
-    expect(screen.queryByText(/events/)).not.toBeInTheDocument();
-    expect(screen.getByText('PROJ-1')).toBeInTheDocument();
-  });
-
-  it('renders the enriched payload when the base request fails', async () => {
-    mockOverview({
-      base: {},
-      enriched: {autofix_root_cause: [rootCauseRun]},
-      baseStatusCode: 500,
-    });
-
-    renderPage();
-
-    expect(
-      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText('There was an error loading data.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Checks Passing')).not.toBeInTheDocument();
   });
 
   it('shows the skeleton while a sort change reloads', async () => {
@@ -901,7 +1119,7 @@ describe('AutofixOverview', () => {
 
     // A sort change is a new scope, so previous data is dropped instead of held.
     // Hold the events-sorted response open to keep the skeleton on screen.
-    const events = deferEnriched();
+    const events = deferredResponse();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({sort: 'events'})],
@@ -937,7 +1155,7 @@ describe('AutofixOverview', () => {
 
   it('shows the skeleton again when the selected project changes', async () => {
     mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
-    const otherProject = deferEnriched();
+    const otherProject = deferredResponse();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({project: [3]})],
@@ -969,7 +1187,7 @@ describe('AutofixOverview', () => {
 
   it('shows the skeleton again when the time window changes', async () => {
     mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
-    const narrower = deferEnriched();
+    const narrower = deferredResponse();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({statsPeriod: '24h'})],
@@ -1015,67 +1233,6 @@ describe('AutofixOverview', () => {
     act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
 
     expect(await screen.findByRole('button', {name: 'project-slug'})).toBeInTheDocument();
-  });
-
-  it('renders the changed files of an open pull request', async () => {
-    // Without `expand=scmInfo` the endpoint still returns the pull request, but
-    // its SCM-sourced fields come back empty.
-    const unenrichedPullRequest: OverviewPullRequest = {
-      id: '42',
-      number: 42,
-      url: 'https://github.com/getsentry/sentry/pull/42',
-      status: 'open',
-      checksStatus: null,
-      reviewStatus: null,
-      repoName: 'getsentry/sentry',
-      files: [],
-    };
-
-    const enriched = deferEnriched();
-    mockOverview({
-      enrichedAsyncDelay: enriched.promise,
-      base: {
-        has_pull_request: [{...rootCauseRun, pullRequests: [unenrichedPullRequest]}],
-      },
-      enriched: {
-        has_pull_request: [
-          {
-            ...rootCauseRun,
-            pullRequests: [
-              {
-                ...unenrichedPullRequest,
-                files: [
-                  {
-                    path: 'src/sentry/foo.py',
-                    additions: 10,
-                    deletions: 2,
-                    changeType: 'MODIFIED',
-                  },
-                  {
-                    path: 'src/sentry/bar.py',
-                    additions: 3,
-                    deletions: 0,
-                    changeType: 'ADDED',
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    });
-
-    renderPage();
-
-    expect(await screen.findByText('PROJ-1')).toBeInTheDocument();
-
-    enriched.resolve();
-
-    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
-    expect(screen.getByText('src/sentry/foo.py')).toBeInTheDocument();
-    expect(screen.getByText('src/sentry/bar.py')).toBeInTheDocument();
-    expect(screen.getByText('+10')).toBeInTheDocument();
-    expect(screen.getByText('-2')).toBeInTheDocument();
   });
 
   it('falls back to a file count when a pull request has no repo name', async () => {
@@ -1696,13 +1853,15 @@ describe('AutofixOverview', () => {
     );
   });
 
-  // A sort change refetches only the enriched request, not the base bootstrap.
+  // A sort change re-scopes the status poll, which carries the sort to the endpoint.
   it.each([
     {option: 'Most events', sort: 'events'},
     {option: 'Recent Issue Activity', sort: 'issue'},
     {option: 'Most users', sort: 'users'},
   ])('sends the $sort sort to the endpoint and URL', async ({option, sort}) => {
-    const {enrichedRequest} = mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
 
     const {router} = renderPage();
 
@@ -1714,7 +1873,7 @@ describe('AutofixOverview', () => {
     await userEvent.click(screen.getByRole('option', {name: option}));
 
     await waitFor(() =>
-      expect(enrichedRequest).toHaveBeenCalledWith(
+      expect(statusPollRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/seer/autofix-overview/`,
         expect.objectContaining({
           query: expect.objectContaining({sort}),
@@ -1732,7 +1891,7 @@ describe('AutofixOverview', () => {
     };
 
     it('derives options with counts and filters sections via the URL', async () => {
-      const {enrichedRequest} = mockOverview({
+      const {statusPollRequest} = mockOverview({
         base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
       });
 
@@ -1755,7 +1914,7 @@ describe('AutofixOverview', () => {
         screen.queryByRole('button', {name: /Generate code changes/})
       ).not.toBeInTheDocument();
       expect(router.location.query.assignee).toBe('user:7');
-      expect(enrichedRequest).toHaveBeenCalledTimes(1);
+      expect(statusPollRequest).toHaveBeenCalledTimes(1);
     });
 
     it('shows a filtered empty state when no runs match the assignee', async () => {
@@ -1972,7 +2131,6 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    // Error waits for the enriched request (retry: 1) to also fail.
     expect(
       await screen.findByText('There was an error loading data.', undefined, {
         timeout: 5000,
@@ -1984,7 +2142,6 @@ describe('AutofixOverview', () => {
     const {projectConfigRequest} = mockOverview({
       base: {},
       baseStatusCode: 500,
-      enrichedStatusCode: 500,
       projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
     });
 
@@ -1999,7 +2156,7 @@ describe('AutofixOverview', () => {
   });
 
   it('replaces the overview content when the org is eligible for Seer but has not purchased it', () => {
-    const {statusPollRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest, scmInfoRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -2014,7 +2171,7 @@ describe('AutofixOverview', () => {
     expect(screen.queryByRole('button', {name: /Sort/})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Create Plan/})).not.toBeInTheDocument();
     expect(statusPollRequest).not.toHaveBeenCalled();
-    expect(enrichedRequest).not.toHaveBeenCalled();
+    expect(scmInfoRequest).not.toHaveBeenCalled();
   });
 
   it('renders the overview normally when the org has seat-based Seer', async () => {
@@ -2051,7 +2208,7 @@ describe('AutofixOverview', () => {
   });
 
   it('does not flash the generic empty state while project config is loading', async () => {
-    const deferred = deferEnriched();
+    const deferred = deferredResponse();
     mockOverview({
       base: {},
       projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
@@ -2079,7 +2236,7 @@ describe('AutofixOverview', () => {
       base: {},
       projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
     });
-    const configured = deferEnriched();
+    const configured = deferredResponse();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({project: [3]})],
@@ -2115,7 +2272,7 @@ describe('AutofixOverview', () => {
   });
 
   it('waits for project config before painting cards so the warning does not pop in', async () => {
-    const deferred = deferEnriched();
+    const deferred = deferredResponse();
     mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
       projectConfig: [

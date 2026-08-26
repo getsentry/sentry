@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -51,7 +51,13 @@ import {
 } from './overviewIssuePriority';
 import {periodWindowLabel} from './periods';
 import {PullRequestFiles} from './pullRequestFiles';
-import type {AutofixStateKey, OverviewPullRequest, OverviewRun} from './types';
+import type {
+  AutofixStateKey,
+  OverviewPullRequest,
+  OverviewRun,
+  ProjectConfig,
+} from './types';
+import {useIsInView} from './useIsInView';
 
 // The endpoint orders links oldest-first and only enriches open/draft PRs, so
 // the newest actionable link is the one carrying badges and files.
@@ -135,9 +141,11 @@ function OverviewAction({
   reviewPullRequest,
   issueUrl,
   enrichmentPending,
+  projectConfig,
 }: {
   enrichmentPending: boolean;
   issueUrl: string;
+  projectConfig: ProjectConfig | undefined;
   reviewPullRequest: OverviewPullRequest | undefined;
   run: OverviewRun;
   sectionKey: AutofixStateKey;
@@ -321,7 +329,9 @@ function OverviewAction({
     );
   }
 
-  return <OverviewCardAction run={run} sectionKey={sectionKey} />;
+  return (
+    <OverviewCardAction run={run} sectionKey={sectionKey} projectConfig={projectConfig} />
+  );
 }
 
 const TitleLink = styled(Link)`
@@ -376,85 +386,58 @@ function NarrativeBlock({
   );
 }
 
-function IssueVitals({
-  run,
-  statsPeriod,
-  enrichmentPending,
-}: {
-  enrichmentPending: boolean;
-  run: OverviewRun;
-  statsPeriod: string | null;
-}) {
+function IssueVitals({run, statsPeriod}: {run: OverviewRun; statsPeriod: string | null}) {
   const eventCount = run.issue.count ? Number(run.issue.count) : null;
   const userCount = run.issue.userCount ?? null;
   const windowLabel = periodWindowLabel(statsPeriod);
   return (
     <Fragment>
-      {enrichmentPending ? (
-        <Fragment>
-          <Flex gap="xs" align="center">
-            <IconGraph size="xs" variant="muted" aria-hidden />
-            <Placeholder height="1rem" width="4rem" />
-          </Flex>
-          <Flex gap="xs" align="center">
-            <IconUser size="xs" variant="muted" aria-hidden />
-            <Placeholder height="1rem" width="4rem" />
-          </Flex>
-          <Flex gap="xs" align="center">
-            <IconClock size="xs" variant="muted" aria-hidden />
-            <Placeholder height="1rem" width="5rem" />
-          </Flex>
-        </Fragment>
-      ) : (
-        <Fragment>
-          {eventCount !== null && (
-            <Flex gap="xs" align="center">
-              <IconGraph size="xs" variant="muted" aria-hidden />
-              <InfoText
-                size="sm"
-                variant="muted"
-                title={
-                  windowLabel
-                    ? t('%s events %s', eventCount.toLocaleString(), windowLabel)
-                    : t('%s events', eventCount.toLocaleString())
-                }
-              >
-                {eventCount === 1
-                  ? t('1 event')
-                  : t('%s events', formatAbbreviatedNumber(eventCount))}
-              </InfoText>
-            </Flex>
-          )}
-          {userCount !== null && (
-            <Flex gap="xs" align="center">
-              <IconUser size="xs" variant="muted" aria-hidden />
-              <InfoText
-                size="sm"
-                variant="muted"
-                title={
-                  windowLabel
-                    ? t('%s affected users %s', userCount.toLocaleString(), windowLabel)
-                    : t('%s affected users', userCount.toLocaleString())
-                }
-              >
-                {userCount === 1
-                  ? t('1 user')
-                  : t('%s users', formatAbbreviatedNumber(userCount))}
-              </InfoText>
-            </Flex>
-          )}
-          {run.issue.lastSeen && (
-            <Flex gap="xs" align="center">
-              <IconClock size="xs" variant="muted" aria-hidden />
-              <Text size="sm" variant="muted">
-                <TimeSince
-                  date={run.issue.lastSeen}
-                  tooltipPrefix={t('The most recent event in this issue occurred')}
-                />
-              </Text>
-            </Flex>
-          )}
-        </Fragment>
+      {eventCount !== null && (
+        <Flex gap="xs" align="center">
+          <IconGraph size="xs" variant="muted" aria-hidden />
+          <InfoText
+            size="sm"
+            variant="muted"
+            title={
+              windowLabel
+                ? t('%s events %s', eventCount.toLocaleString(), windowLabel)
+                : t('%s events', eventCount.toLocaleString())
+            }
+          >
+            {eventCount === 1
+              ? t('1 event')
+              : t('%s events', formatAbbreviatedNumber(eventCount))}
+          </InfoText>
+        </Flex>
+      )}
+      {userCount !== null && (
+        <Flex gap="xs" align="center">
+          <IconUser size="xs" variant="muted" aria-hidden />
+          <InfoText
+            size="sm"
+            variant="muted"
+            title={
+              windowLabel
+                ? t('%s affected users %s', userCount.toLocaleString(), windowLabel)
+                : t('%s affected users', userCount.toLocaleString())
+            }
+          >
+            {userCount === 1
+              ? t('1 user')
+              : t('%s users', formatAbbreviatedNumber(userCount))}
+          </InfoText>
+        </Flex>
+      )}
+      {run.issue.lastSeen && (
+        <Flex gap="xs" align="center">
+          <IconClock size="xs" variant="muted" aria-hidden />
+          <Text size="sm" variant="muted">
+            <TimeSince
+              date={run.issue.lastSeen}
+              tooltipPrefix={t('The most recent event in this issue occurred')}
+            />
+          </Text>
+        </Flex>
       )}
       <Flex gap="xs" align="center">
         <IconSeer size="xs" variant="muted" aria-hidden />
@@ -518,18 +501,35 @@ export function OverviewCard({
   sectionKey,
   statsPeriod,
   enrichmentPending,
+  requestScmWindow,
+  scmWindows,
+  projectConfig,
   memberList,
   assigneeReady,
 }: {
   assigneeReady: boolean;
   enrichmentPending: boolean;
   orgSlug: string;
+  projectConfig: ProjectConfig | undefined;
+  requestScmWindow: (runIds: string[]) => void;
   run: OverviewRun;
+  scmWindows: string[][] | undefined;
   sectionKey: AutofixStateKey;
   statsPeriod: string | null;
   memberList?: User[];
 }) {
   const organization = useOrganization();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const inView = useIsInView(cardRef);
+  useEffect(() => {
+    // Scrolling a card into view enriches its own window and prefetches the next,
+    // so the following window is already loading before the user reaches it.
+    if (inView && scmWindows) {
+      for (const window of scmWindows) {
+        requestScmWindow(window);
+      }
+    }
+  }, [inView, scmWindows, requestScmWindow]);
   const rootCause = run.rootCause?.oneLineDescription;
   const proposedFix = run.proposedFix?.oneLineSummary;
   const issueUrl = `/organizations/${orgSlug}/issues/${run.groupId}/`;
@@ -546,6 +546,7 @@ export function OverviewCard({
 
   return (
     <CardFrame
+      containerRef={cardRef}
       aside={
         <Fragment>
           <OverviewAction
@@ -554,6 +555,7 @@ export function OverviewCard({
             reviewPullRequest={reviewPullRequest}
             issueUrl={issueUrl}
             enrichmentPending={enrichmentPending}
+            projectConfig={projectConfig}
           />
           <PriorityAndAssignee
             run={run}
@@ -595,11 +597,7 @@ export function OverviewCard({
                 {run.shortId}
               </Text>
             </Flex>
-            <IssueVitals
-              run={run}
-              statsPeriod={statsPeriod}
-              enrichmentPending={enrichmentPending}
-            />
+            <IssueVitals run={run} statsPeriod={statsPeriod} />
           </Flex>
         </Stack>
       </Grid>
@@ -641,12 +639,20 @@ export function OverviewCard({
 function CardFrame({
   aside,
   children,
+  containerRef,
 }: {
   aside: React.ReactNode;
   children: React.ReactNode;
+  containerRef?: React.Ref<HTMLDivElement>;
 }) {
   return (
-    <Container background="primary" border="primary" radius="md" padding="xl">
+    <Container
+      ref={containerRef}
+      background="primary"
+      border="primary"
+      radius="md"
+      padding="xl"
+    >
       <Stack gap="xl">
         <Flex
           gap={{xs: 'xl', sm: '3xl'}}
