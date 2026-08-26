@@ -140,17 +140,34 @@ export function SeerXRayOverlay() {
       setMeasured(measureAllNodes(getOverlayNodes()));
     }
 
+    // Scroll/resize can fire many times per frame; coalesce bursts into at
+    // most one measure-and-render per animation frame instead of thrashing
+    // layout on every event.
+    let rafId: number | null = null;
+    function scheduleRecompute() {
+      if (rafId !== null) {
+        return;
+      }
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        recompute();
+      });
+    }
+
     recompute();
     const intervalId = window.setInterval(recompute, POLL_INTERVAL_MS);
-    window.addEventListener('resize', recompute);
+    window.addEventListener('resize', scheduleRecompute);
     // capture: layout-affecting scrolls commonly happen in nested containers
     // (a panel, a table), which don't bubble scroll events to window.
-    window.addEventListener('scroll', recompute, true);
+    window.addEventListener('scroll', scheduleRecompute, true);
 
     return () => {
       window.clearInterval(intervalId);
-      window.removeEventListener('resize', recompute);
-      window.removeEventListener('scroll', recompute, true);
+      window.removeEventListener('resize', scheduleRecompute);
+      window.removeEventListener('scroll', scheduleRecompute, true);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
     };
   }, [enabled, getOverlayNodes]);
 

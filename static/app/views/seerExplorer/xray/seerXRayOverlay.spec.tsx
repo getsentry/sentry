@@ -36,6 +36,11 @@ function rect(overrides: Partial<DOMRect> = {}): DOMRect {
 }
 
 describe('SeerXRayOverlay', () => {
+  // jsdom doesn't implement Range#getBoundingClientRect at all, so this is
+  // `undefined` — captured here so afterEach can put the prototype back the
+  // way it found it instead of leaking the stub to other spec files.
+  const originalRangeGetBoundingClientRect = Range.prototype.getBoundingClientRect;
+
   beforeEach(() => {
     // jsdom does no real layout and doesn't even implement
     // Range#getBoundingClientRect (which the overlay uses to measure each
@@ -54,6 +59,7 @@ describe('SeerXRayOverlay', () => {
     // the just-finished test's SeerXRayOverlay may still be mounted here.
     act(() => setXRayModeEnabled(false));
     jest.useRealTimers();
+    Range.prototype.getBoundingClientRect = originalRangeGetBoundingClientRect;
   });
 
   it('renders nothing when XRay mode is disabled', () => {
