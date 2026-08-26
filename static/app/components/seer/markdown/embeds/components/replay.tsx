@@ -5,6 +5,7 @@ import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceC
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {
   defineSeerEmbed,
@@ -51,26 +52,28 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
   const eventTimestampMs = Math.floor(new Date(eventTimestamp).getTime());
 
   return (
-    <LazyLoad
-      analyticsContext="seer_embed"
-      replaySlug={id}
-      orgSlug={organization.slug}
-      eventTimestampMs={eventTimestampMs}
-      clipOffsets={CLIP_OFFSETS}
-      fullReplayButtonProps={{
-        analyticsEventKey: 'seer_embed.open_replay_details_clicked',
-        analyticsEventName: 'Seer Embed: Open Replay Details Clicked',
-      }}
-      loadingFallback={
-        <NegativeSpaceContainer
-          style={{height: REPLAY_LOADING_HEIGHT}}
-          data-test-id="replay-loading-placeholder"
-        >
-          <LoadingIndicator />
-        </NegativeSpaceContainer>
-      }
-      LazyComponent={ReplayClipPreview}
-    />
+    <ReplayAccess fallback={<ReplayLink id={id} eventTimestamp={eventTimestamp} />}>
+      <LazyLoad
+        analyticsContext="seer_embed"
+        replaySlug={id}
+        orgSlug={organization.slug}
+        eventTimestampMs={eventTimestampMs}
+        clipOffsets={CLIP_OFFSETS}
+        fullReplayButtonProps={{
+          analyticsEventKey: 'seer_embed.open_replay_details_clicked',
+          analyticsEventName: 'Seer Embed: Open Replay Details Clicked',
+        }}
+        loadingFallback={
+          <NegativeSpaceContainer
+            style={{height: REPLAY_LOADING_HEIGHT}}
+            data-test-id="replay-loading-placeholder"
+          >
+            <LoadingIndicator />
+          </NegativeSpaceContainer>
+        }
+        LazyComponent={ReplayClipPreview}
+      />
+    </ReplayAccess>
   );
 }
 
