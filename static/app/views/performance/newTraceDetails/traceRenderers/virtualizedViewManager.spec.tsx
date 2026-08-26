@@ -668,6 +668,42 @@ describe('VirtualizedViewManger', () => {
       ]);
     });
 
+    it('starts a fresh vital zoom sequence after wheel zoom', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      const zoomSpy = jest.spyOn(manager, 'onZoomIntoSpace').mockImplementation(() => {});
+      const wheelEvent = new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        ctrlKey: true,
+        deltaY: -10,
+      });
+      Object.defineProperty(wheelEvent, 'offsetX', {value: 500});
+
+      manager.onZoomAroundTimestamp(425, 'lcp');
+      manager.onWheel(wheelEvent);
+      manager.onZoomAroundTimestamp(425, 'lcp');
+
+      expect(zoomSpy).toHaveBeenNthCalledWith(1, [212.5, 500], {
+        padding: false,
+        preserveVitalZoom: true,
+      });
+      expect(zoomSpy).toHaveBeenNthCalledWith(2, [212.5, 500], {
+        padding: false,
+        preserveVitalZoom: true,
+      });
+    });
+
     it('uses compressed viewport width when the real viewport is at max zoom', () => {
       const manager = new VirtualizedViewManager(
         {

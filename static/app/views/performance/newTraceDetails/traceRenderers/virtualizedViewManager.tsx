@@ -605,6 +605,7 @@ export class VirtualizedViewManager {
             : newView[0],
         width: newView[2],
       });
+      this.vitalZoomSession = null;
     } else {
       if (!this.timers.onWheelEnd) {
         this.onWheelStart();
@@ -632,6 +633,9 @@ export class VirtualizedViewManager {
           physicalDeltaPct
         )
       );
+      if (distance !== 0) {
+        this.vitalZoomSession = null;
+      }
     }
   }
 
