@@ -1265,6 +1265,14 @@ class GitHubBaseClient(
 
         # GitHub terminates a GraphQL query it can't process in ~10s, so fetch in
         # bounded chunks (one query each) rather than a single oversized query.
+        #
+        # Chunks run sequentially, not in parallel. Chunk *size* alone keeps each
+        # query under the 10s timeout, so parallel would clear that too -- but the
+        # `files` block makes each query CPU-heavy for GitHub, and running them
+        # concurrently concentrates that CPU into a short real-time window. That
+        # trips GitHub's secondary rate limit (~90s of CPU per 60s of real time),
+        # which 403s the whole installation token -- shared with every other org
+        # using it -- and is worse than a slightly slower serial fetch.
         chunk_size = max(options.get("github-app.pull-request-status.chunk-size"), 1)
         for chunk in chunked(uncached_pull_requests, chunk_size):
             fetched_results = self._fetch_pull_request_status_batch(chunk)
