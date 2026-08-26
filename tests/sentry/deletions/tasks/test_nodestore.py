@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -102,7 +102,7 @@ class NodestoreDeletionTaskTest(TestCase):
         )
 
     @patch("sentry.deletions.tasks.nodestore.current_task")
-    def test_selfchain_skips_when_already_spawned(self, mock_current_task) -> None:
+    def test_selfchain_skips_when_already_spawned(self, mock_current_task: MagicMock) -> None:
         activation_id = "nodestore-delete-act-skip"
         mock_current_task.return_value = SimpleNamespace(id=activation_id)
         mark_spawned(_TASK_KEY, activation_id)
@@ -121,7 +121,9 @@ class NodestoreDeletionTaskTest(TestCase):
         mock_apply_async.assert_not_called()
 
     @patch("sentry.deletions.tasks.nodestore.current_task")
-    def test_selfchain_marks_and_dedupes_across_deliveries(self, mock_current_task) -> None:
+    def test_selfchain_marks_and_dedupes_across_deliveries(
+        self, mock_current_task: MagicMock
+    ) -> None:
         activation_id = "nodestore-delete-act-dedupe"
         mock_current_task.return_value = SimpleNamespace(id=activation_id)
         events = [SimpleNamespace(event_id="event-id", timestamp="2025-01-01T00:00:00")]
@@ -149,7 +151,7 @@ class NodestoreDeletionTaskTest(TestCase):
     @patch("sentry.deletions.tasks.nodestore.mark_spawned")
     @patch("sentry.deletions.tasks.nodestore.current_task", return_value=None)
     def test_selfchain_is_inert_without_activation(
-        self, mock_current_task, mock_mark_spawned
+        self, mock_current_task: MagicMock, mock_mark_spawned: MagicMock
     ) -> None:
         events = [SimpleNamespace(event_id="event-id", timestamp="2025-01-01T00:00:00")]
 
