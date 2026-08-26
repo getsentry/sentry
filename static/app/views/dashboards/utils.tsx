@@ -48,6 +48,7 @@ import {
   WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {isAppStartOperationsWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -253,6 +254,7 @@ export function getWidgetDiscoverUrl(
   discoverLocation.query.query = applyDashboardFilters({
     baseQuery: query.conditions,
     dashboardFilters,
+    widgetId: widget.id,
   });
 
   // Pass empty string when projects is empty to preserve "My Projects" selection in URL
@@ -283,6 +285,7 @@ export function getWidgetIssueUrl(
       baseQuery: widget.queries?.[0]?.conditions,
       dashboardFilters,
       widgetType: widget.widgetType,
+      widgetId: widget.id,
       skipParens: true, // Issue search does not support parens
     }),
     sort: widget.queries?.[0]?.orderby,
@@ -520,10 +523,14 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
 const APP_VITALS_START_SCREEN = 'app.vitals.start.screen';
 
 /**
- * `app.vitals.start.screen` lives on the app-start parent span. Child operation
- * spans inherit `transaction` (the V1 screen name, which Relay also backfills
- * into start.screen on the root) but not the screen attribute itself. OR the
- * two so a screen chip still matches operations tables.
+ * `app.vitals.start.screen` lives on the app-start parent span. V1 child
+ * operation spans inherit `transaction` (the screen name) but not start.screen.
+ * Only App Starts operations widgets should OR the two; parent widgets already
+ * have start.screen and unrelated dashboards must not match on transaction.
+ *
+ * The transaction fallback is children-only. The sibling ui.load/navigation
+ * screen-load transaction is named the screen, so `transaction:X` alone would
+ * put that root back in the operations table.
  */
 function expandAppStartScreenFilterValue(filterValue: string): string {
   if (
@@ -542,12 +549,13 @@ function expandAppStartScreenFilterValue(filterValue: string): string {
 
   const transactionSearch = new MutableSearch('');
   transactionSearch.addFilterValueList('transaction', screenValues);
-  return `(${filterValue} OR ${transactionSearch.formatString()})`;
+  return `(${filterValue} OR (${transactionSearch.formatString()} !is_transaction:true))`;
 }
 
 export function dashboardFiltersToString(
   dashboardFilters: DashboardFilters | null | undefined,
-  widgetType?: WidgetType
+  widgetType?: WidgetType,
+  widgetId?: string
 ): string {
   let dashboardFilterConditions = '';
 
@@ -565,13 +573,18 @@ export function dashboardFiltersToString(
   }
 
   const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
+  const expandScreenFilter = isAppStartOperationsWidget(widgetId);
 
   // If widgetType is provided, concatenate global filters that apply
   if (widgetType && globalFilters) {
     dashboardFilterConditions +=
       globalFilters
         .filter(globalFilter => globalFilter.dataset === widgetType)
-        .map(globalFilter => expandAppStartScreenFilterValue(globalFilter.value))
+        .map(globalFilter =>
+          expandScreenFilter
+            ? expandAppStartScreenFilterValue(globalFilter.value)
+            : globalFilter.value
+        )
         .join(' ') ?? '';
   }
 
@@ -623,16 +636,19 @@ export function applyDashboardFilters({
   baseQuery,
   dashboardFilters,
   widgetType,
+  widgetId,
   skipParens,
 }: {
   baseQuery: string | undefined;
   dashboardFilters: DashboardFilters | undefined;
   skipParens?: boolean;
+  widgetId?: string;
   widgetType?: WidgetType;
 }): string | undefined {
   const dashboardFilterConditions = dashboardFiltersToString(
     dashboardFilters,
-    widgetType
+    widgetType,
+    widgetId
   );
   if (dashboardFilterConditions) {
     if (baseQuery) {

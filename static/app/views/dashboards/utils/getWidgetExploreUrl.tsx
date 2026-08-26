@@ -343,6 +343,7 @@ function _getWidgetExploreUrl(
       baseQuery: overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
       dashboardFilters,
       widgetType: widget.widgetType,
+      widgetId: widget.id,
     }),
     sort: sort || undefined,
     interval:

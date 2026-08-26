@@ -411,7 +411,8 @@ function DataWidgetViewerModal(props: Props) {
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(
       dashboardFilters,
-      widget.widgetType
+      widget.widgetType,
+      widget.id
     );
 
     const getHighlightedQuery = (

@@ -6,9 +6,11 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {
   AVG_START_VALUE,
   COLD_START_CONDITION,
+  COLD_START_OPERATIONS_WIDGET_ID,
   COLD_START_TABLE_OPERATIONS_CONDITION,
   TRANSACTION_COUNT,
   WARM_START_CONDITION,
+  WARM_START_OPERATIONS_WIDGET_ID,
   WARM_START_TABLE_OPERATIONS_CONDITION,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 import {APP_STARTS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
@@ -234,7 +236,7 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
 };
 
 const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
-  id: 'cold-operations-table',
+  id: COLD_START_OPERATIONS_WIDGET_ID,
   title: t('Cold Start Operations'),
   description: '',
   displayType: DisplayType.TABLE,
@@ -272,7 +274,7 @@ const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
 };
 
 const WARM_OPERATIONS_TABLE: PrebuiltWidget = {
-  id: 'warm-operations-table',
+  id: WARM_START_OPERATIONS_WIDGET_ID,
   title: t('Warm Start Operations'),
   description: '',
   displayType: DisplayType.TABLE,

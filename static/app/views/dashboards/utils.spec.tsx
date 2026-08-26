@@ -18,6 +18,10 @@ import {
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
 } from 'sentry/views/dashboards/utils';
+import {
+  COLD_START_OPERATIONS_WIDGET_ID,
+  WARM_START_OPERATIONS_WIDGET_ID,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 
 describe('Dashboards util', () => {
   const selection = {
@@ -226,23 +230,47 @@ describe('Dashboards util', () => {
   });
 
   describe('dashboardFiltersToString', () => {
-    it('ORs app.vitals.start.screen with transaction so operation children still match', () => {
-      const result = dashboardFiltersToString(
+    const screenFilter = {
+      [DashboardFilterKeys.GLOBAL_FILTER]: [
         {
-          [DashboardFilterKeys.GLOBAL_FILTER]: [
-            {
-              dataset: WidgetType.SPANS,
-              tag: {key: 'app.vitals.start.screen', name: 'app.vitals.start.screen'},
-              value: 'app.vitals.start.screen:[MainActivity]',
-            },
-          ],
+          dataset: WidgetType.SPANS,
+          tag: {key: 'app.vitals.start.screen', name: 'app.vitals.start.screen'},
+          value: 'app.vitals.start.screen:[MainActivity]',
         },
-        WidgetType.SPANS
-      );
+      ],
+    };
 
-      expect(result).toBe(
-        '(app.vitals.start.screen:[MainActivity] OR transaction:[MainActivity])'
+    it('leaves app.vitals.start.screen unchanged for non-operations widgets', () => {
+      expect(dashboardFiltersToString(screenFilter, WidgetType.SPANS)).toBe(
+        'app.vitals.start.screen:[MainActivity]'
       );
+      expect(
+        dashboardFiltersToString(
+          screenFilter,
+          WidgetType.SPANS,
+          'avg-cold-starts-big-number'
+        )
+      ).toBe('app.vitals.start.screen:[MainActivity]');
+    });
+
+    it('ORs app.vitals.start.screen with child transactions for App Starts operations widgets', () => {
+      const expected =
+        '(app.vitals.start.screen:[MainActivity] OR (transaction:[MainActivity] !is_transaction:true))';
+
+      expect(
+        dashboardFiltersToString(
+          screenFilter,
+          WidgetType.SPANS,
+          COLD_START_OPERATIONS_WIDGET_ID
+        )
+      ).toBe(expected);
+      expect(
+        dashboardFiltersToString(
+          screenFilter,
+          WidgetType.SPANS,
+          WARM_START_OPERATIONS_WIDGET_ID
+        )
+      ).toBe(expected);
     });
 
     it('does not rewrite has: or negated screen filters', () => {
@@ -257,7 +285,8 @@ describe('Dashboards util', () => {
               },
             ],
           },
-          WidgetType.SPANS
+          WidgetType.SPANS,
+          COLD_START_OPERATIONS_WIDGET_ID
         )
       ).toBe('has:app.vitals.start.screen');
 
@@ -272,7 +301,8 @@ describe('Dashboards util', () => {
               },
             ],
           },
-          WidgetType.SPANS
+          WidgetType.SPANS,
+          COLD_START_OPERATIONS_WIDGET_ID
         )
       ).toBe('!app.vitals.start.screen:MainActivity');
     });

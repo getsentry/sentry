@@ -37,6 +37,16 @@ export const SCREEN_RENDERING_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${S
 export const SCREEN_RENDERING_TABLE_CONDITION = `${SCREEN_RENDERING_CONDITION} has:${SpanFields.TRANSACTION}`;
 export const SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION = `!${SpanFields.IS_TRANSACTION}:true has:${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT} has:${SpanFields.SPAN_OP}`;
 
+export const COLD_START_OPERATIONS_WIDGET_ID = 'cold-operations-table';
+export const WARM_START_OPERATIONS_WIDGET_ID = 'warm-operations-table';
+
+export function isAppStartOperationsWidget(widgetId: string | undefined): boolean {
+  return (
+    widgetId === COLD_START_OPERATIONS_WIDGET_ID ||
+    widgetId === WARM_START_OPERATIONS_WIDGET_ID
+  );
+}
+
 const APP_START_OPERATIONS = `${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
 const APP_START_DESCRIPTION_EXCLUSIONS = `!${SpanFields.SPAN_DESCRIPTION}:"Cold Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm Start" !${SpanFields.SPAN_DESCRIPTION}:"Cold App Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm App Start" !${SpanFields.SPAN_DESCRIPTION}:"Initial Frame Render"`;
 const APP_START_NAME_EXCLUSIONS = `!${SpanFields.NAME}:"App Start" !${SpanFields.NAME}:"Cold Start" !${SpanFields.NAME}:"Warm Start" !${SpanFields.NAME}:"Cold App Start" !${SpanFields.NAME}:"Warm App Start" !${SpanFields.NAME}:"Initial Frame Render"`;
@@ -44,8 +54,10 @@ const APP_START_NAME_EXCLUSIONS = `!${SpanFields.NAME}:"App Start" !${SpanFields
 // App start operation rows need a compatibility layer.
 // V1: child spans under a ui.load/navigation transaction; display name in
 // span.description, cold/warm via app_start_type, has:ttid, op whitelist.
-// dashboardFiltersToString ORs start.screen with transaction so these still
-// match on screen drill-down.
+// V1 children inherit transaction (the screen name) but not start.screen, so
+// applyDashboardFilters ORs those fields only for these operations widgets.
+// The ui.load transaction root is excluded with !is_transaction; nested
+// ui.load children still match the whitelist.
 // V2 (pre-standalone): non-transaction spans with start.type and the same
 // op whitelist; display names in span.name.
 // Standalone: any non-root span tagged with start.screen. No op whitelist —

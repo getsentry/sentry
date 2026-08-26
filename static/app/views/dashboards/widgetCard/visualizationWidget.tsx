@@ -331,6 +331,7 @@ function VisualizationWidgetContent({
               baseQuery: exploreQuery.formatString(),
               dashboardFilters,
               widgetType: widget.widgetType,
+              widgetId: widget.id,
             }),
           });
           labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;

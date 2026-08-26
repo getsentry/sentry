@@ -367,7 +367,8 @@ export function applyDashboardFiltersToWidget(
     const filtered = cloneDeep(widget);
     const dashboardFilterConditions = dashboardFiltersToString(
       dashboardFilters,
-      filtered.widgetType
+      filtered.widgetType,
+      filtered.id
     );
 
     filtered.queries.forEach(query => {
