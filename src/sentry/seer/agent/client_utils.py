@@ -108,12 +108,20 @@ class AgentPrStateRequest(TypedDict):
     pr_id: int
 
 
-class SeerFeatureRunRequest(TypedDict):
-    """The feature-run body as enqueued onto the SEER_RUN_CREATE outbox."""
+class AgentRunOptions(TypedDict):
+    enable_frontend_code_search: bool | None
+    is_context_engine_enabled: bool = False
+    enable_coding: bool = False
+    enable_tool_summary: bool = False
+    embed_widgets: list[dict[str, Any]] | None = None
+    enable_streaming: bool = False
+    is_agentic_triage_sort: bool = False
 
+
+class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
-    agent_run_options: NotRequired[dict[str, Any]]
+    agent_run_options: NotRequired[AgentRunOptions]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):

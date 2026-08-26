@@ -29,6 +29,7 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
     AgentReposRequest,
+    AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
     collect_user_org_context,
@@ -552,9 +553,7 @@ class SeerAgentClient:
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
         referrer: str | None = None,
-        force_ce: bool | None = None,  # Deprecated, use agent_run_options instead
-        force_frontend_code_search: bool | None = None,  # Deprecated, use agent_run_options instead
-        agent_run_options: dict[str, Any] | None = None,
+        agent_run_options: AgentRunOptions | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -593,6 +592,14 @@ class SeerAgentClient:
             if on_run_created is not None:
                 on_run_created(run)
 
+        # Merging the default options from config with any provided options
+        resolved_agent_run_options = AgentRunOptions(
+            **{
+                **self._build_agent_run_options(),
+                **(agent_run_options or {}),
+            }
+        )
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
@@ -600,10 +607,7 @@ class SeerAgentClient:
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
-                agent_run_options=self._build_agent_run_options(
-                    force_ce=force_ce,
-                    force_frontend_code_search=force_frontend_code_search,
-                ),
+                agent_run_options=resolved_agent_run_options,
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
@@ -638,48 +642,52 @@ class SeerAgentClient:
         override_ce_enable: bool = True,
         force_ce: bool | None = None,
         force_frontend_code_search: bool | None = None,
-    ) -> dict[str, Any]:
+    ) -> AgentRunOptions:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run.
 
         force_ce if set forces context engine on/off, force_frontend_code_search
         likewise for frontend source code search.
         """
-        opts: dict[str, Any] = {}
 
+        is_context_engine_enabled = False
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                opts["is_context_engine_enabled"] = True
+                is_context_engine_enabled = True
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
             self.organization,
             actor=self.user,
         ):
-            opts["is_context_engine_enabled"] = override_ce_enable
+            is_context_engine_enabled = override_ce_enable
 
         if force_ce is not None:
-            opts["is_context_engine_enabled"] = force_ce
+            is_context_engine_enabled = force_ce
 
+        enable_frontend_code_search = False
         if features.has(
             "organizations:seer-agent-source-code-search",
             self.organization,
             actor=self.user,
         ):
-            opts["enable_frontend_code_search"] = True
+            enable_frontend_code_search = True
 
         if force_frontend_code_search is not None:
-            opts["enable_frontend_code_search"] = force_frontend_code_search
+            enable_frontend_code_search = force_frontend_code_search
 
+        enable_tool_summary = False
         if features.has(
             "organizations:seer-explorer-thinking-summary",
             self.organization,
             actor=self.user,
         ):
-            opts["enable_tool_summary"] = True
+            enable_tool_summary = True
 
+        embed_widgets = None
         if self._embed_widgets_enabled():
-            opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
+            embed_widgets = get_embed_widgets(self.organization, self.user)
 
+        enable_streaming = False
         if self.enable_streaming is True or (
             self.enable_streaming is None
             and features.has(
@@ -688,16 +696,24 @@ class SeerAgentClient:
                 actor=self.user,
             )
         ):
-            opts["enable_streaming"] = True
+            enable_streaming = True
 
+        is_agentic_triage_sort = False
         if features.has(
             "organizations:agentic-triage-sort",
             self.organization,
             actor=self.user,
         ):
-            opts["is_agentic_triage_sort"] = True
+            is_agentic_triage_sort = True
 
-        return opts
+        return AgentRunOptions(
+            is_context_engine_enabled=is_context_engine_enabled,
+            enable_frontend_code_search=enable_frontend_code_search,
+            enable_tool_summary=enable_tool_summary,
+            embed_widgets=embed_widgets,
+            enable_streaming=enable_streaming,
+            is_agentic_triage_sort=is_agentic_triage_sort,
+        )
 
     def continue_run(
         self,
