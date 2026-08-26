@@ -5,10 +5,10 @@ import {z} from 'zod';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {IdBadge} from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -36,6 +36,14 @@ const CREATE_PROJECT_VALUE = 'create-new-project';
 const urlParams = new URLSearchParams(location.search);
 const platformParam = urlParams.get('project_platform');
 const orgSlugParam = urlParams.get('org_slug');
+
+type WizardFormValues = {
+  newProjectName: string;
+  newProjectPlatform: string | null;
+  newProjectTeam: string | null;
+  organizationId: string | null;
+  projectId: string | null;
+};
 
 const wizardSchema = z.object({
   organizationId: z
@@ -87,56 +95,11 @@ export function WizardProjectSelection({
 
   const debouncedSearch = useDebouncedValue(search, 300);
   const isSearchStale = search !== debouncedSearch;
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() =>
-    getInitialOrgId(organizations)
-  );
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const isCreateProjectSelected = selectedProjectId === CREATE_PROJECT_VALUE;
-
-  const selectedOrg = useMemo(
-    () => organizations.find(org => org.id === selectedOrgId),
-    [organizations, selectedOrgId]
-  );
-
-  const orgDetailsRequest = useOrganizationDetails({
-    organization: selectedOrg,
-  });
-  const teamsRequest = useOrganizationTeams({organization: selectedOrg});
-
-  const accessTeams = useMemo(() => {
-    return teamsRequest.data?.filter(team => team.access.includes('team:admin'));
-  }, [teamsRequest.data]);
-
-  const selectableTeams = useMemo(() => {
-    if (orgDetailsRequest.data?.access.includes('org:admin')) {
-      return teamsRequest.data;
-    }
-    return accessTeams;
-  }, [orgDetailsRequest.data, teamsRequest.data, accessTeams]);
-
-  const orgProjectsRequest = useOrganizationProjects({
-    organization: selectedOrg,
-    query: debouncedSearch,
-  });
-
-  const canCreateTeam = orgDetailsRequest.data?.access.includes('project:admin') ?? false;
-  const isOrgMemberWithNoAccess = (accessTeams ?? []).length === 0 && !canCreateTeam;
-  const canUserCreateProject = orgDetailsRequest.data
-    ? canCreateProject(orgDetailsRequest.data, selectableTeams)
-    : false;
-  const hasSelectableTeams = (selectableTeams ?? []).length > 0;
-  const isCreationEnabled =
-    canUserCreateProject && (isOrgMemberWithNoAccess || hasSelectableTeams);
-
   const updateWizardCacheMutation = useUpdateWizardCache(hash);
   const createProjectMutation = useCreateProjectFromWizard();
 
-  const isSuccess = isCreateProjectSelected
-    ? updateWizardCacheMutation.isSuccess && createProjectMutation.isSuccess
-    : updateWizardCacheMutation.isSuccess;
-
-  const defaultValues: z.input<typeof wizardSchema> = {
-    organizationId: selectedOrgId,
+  const defaultValues: WizardFormValues = {
+    organizationId: getInitialOrgId(organizations),
     projectId: null,
     newProjectName: platformParam || '',
     newProjectPlatform: platformParam || null,
@@ -181,6 +144,48 @@ export function WizardProjectSelection({
         .catch(() => {});
     },
   });
+  const selectedOrgId = useStore(form.store, state => state.values.organizationId);
+  const selectedProjectId = useStore(form.store, state => state.values.projectId);
+  const isCreateProjectSelected = selectedProjectId === CREATE_PROJECT_VALUE;
+
+  const selectedOrg = useMemo(
+    () => organizations.find(org => org.id === selectedOrgId),
+    [organizations, selectedOrgId]
+  );
+
+  const orgDetailsRequest = useOrganizationDetails({
+    organization: selectedOrg,
+  });
+  const teamsRequest = useOrganizationTeams({organization: selectedOrg});
+
+  const accessTeams = useMemo(() => {
+    return teamsRequest.data?.filter(team => team.access.includes('team:admin'));
+  }, [teamsRequest.data]);
+
+  const selectableTeams = useMemo(() => {
+    if (orgDetailsRequest.data?.access.includes('org:admin')) {
+      return teamsRequest.data;
+    }
+    return accessTeams;
+  }, [orgDetailsRequest.data, teamsRequest.data, accessTeams]);
+
+  const orgProjectsRequest = useOrganizationProjects({
+    organization: selectedOrg,
+    query: debouncedSearch,
+  });
+
+  const canCreateTeam = orgDetailsRequest.data?.access.includes('project:admin') ?? false;
+  const isOrgMemberWithNoAccess = (accessTeams ?? []).length === 0 && !canCreateTeam;
+  const canUserCreateProject = orgDetailsRequest.data
+    ? canCreateProject(orgDetailsRequest.data, selectableTeams)
+    : false;
+  const hasSelectableTeams = (selectableTeams ?? []).length > 0;
+  const isCreationEnabled =
+    canUserCreateProject && (isOrgMemberWithNoAccess || hasSelectableTeams);
+
+  const isSuccess = isCreateProjectSelected
+    ? updateWizardCacheMutation.isSuccess && createProjectMutation.isSuccess
+    : updateWizardCacheMutation.isSuccess;
 
   const orgOptions = useMemo(
     () =>
@@ -225,10 +230,9 @@ export function WizardProjectSelection({
   useEffect(() => {
     // We need to check the cached options as they hold all options that were fetched for the org
     // and not just the options that match the search query
-    if (cachedProjectOptions.length === 1) {
-      const projectId = cachedProjectOptions[0]!.value;
-      setSelectedProjectId(projectId);
-      form.setFieldValue('projectId', projectId);
+    const firstProjectOption = cachedProjectOptions.at(0);
+    if (cachedProjectOptions.length === 1 && firstProjectOption) {
+      form.setFieldValue('projectId', firstProjectOption.value);
     }
   }, [cachedProjectOptions, form]);
 
@@ -362,9 +366,9 @@ export function WizardProjectSelection({
                         {selectedOrg ? (
                           getOrgDisplayName(selectedOrg)
                         ) : (
-                          <SelectPlaceholder>
+                          <Text ellipsis variant="muted" bold={false} align="left">
                             {t('Select an organization')}
-                          </SelectPlaceholder>
+                          </Text>
                         )}
                       </OverlayTrigger.Button>
                     )}
@@ -372,9 +376,7 @@ export function WizardProjectSelection({
                       if (value !== selectedOrgId) {
                         const organizationId = value as string;
                         field.handleChange(organizationId);
-                        setSelectedOrgId(organizationId);
                         form.setFieldValue('projectId', null);
-                        setSelectedProjectId(null);
                         clearProjectOptions();
                       }
                     }}
@@ -422,16 +424,14 @@ export function WizardProjectSelection({
                           {isCreateProjectSelected
                             ? t('Create Project')
                             : selectedProject?.slug || (
-                                <SelectPlaceholder>
+                                <Text ellipsis variant="muted" bold={false} align="left">
                                   {t('Select a project')}
-                                </SelectPlaceholder>
+                                </Text>
                               )}
                         </OverlayTrigger.Button>
                       )}
                       onChange={({value}) => {
-                        const projectId = value as string;
-                        field.handleChange(projectId);
-                        setSelectedProjectId(projectId);
+                        field.handleChange(value as string);
                       }}
                       emptyMessage={emptyMessage}
                       menuFooter={
@@ -440,7 +440,6 @@ export function WizardProjectSelection({
                               <MenuComponents.CTAButton
                                 onClick={() => {
                                   field.handleChange(CREATE_PROJECT_VALUE);
-                                  setSelectedProjectId(CREATE_PROJECT_VALUE);
                                   closeOverlay();
                                 }}
                                 icon={<IconAdd />}
@@ -541,15 +540,4 @@ const StyledCompactSelect = styled(CompactSelect)`
   & > button {
     width: 100%;
   }
-`;
-
-const SelectPlaceholder = styled('span')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: normal;
-  text-align: left;
 `;
