@@ -635,12 +635,13 @@ def backfill_group_action_log_for_all_projects(
     project_options = list(
         ProjectOption.objects.filter(
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+            value=False,
             id__gt=last_project_option_id,
         )
         .order_by("id")
-        .values_list("id", "project_id", "value")[:batch_size]
+        .values_list("id", "project_id")[:batch_size]
     )
-    incomplete_option_count = sum(value is False for _, _, value in project_options)
+    incomplete_option_count = len(project_options)
     logger.info(
         "backfill_group_action_log.coordinator.query_completed",
         extra={
@@ -662,9 +663,7 @@ def backfill_group_action_log_for_all_projects(
         extra={"project_count": incomplete_option_count},
     )
     dispatched_project_count = 0
-    for _, project_id, value in project_options:
-        if value is not False:
-            continue
+    for _, project_id in project_options:
         backfill_group_action_log_for_project.apply_async(
             kwargs={
                 "project_id": project_id,
