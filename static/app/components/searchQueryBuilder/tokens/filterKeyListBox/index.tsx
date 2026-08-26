@@ -334,8 +334,13 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
   const {query} = useSearchQueryBuilderState();
-  const {filterKeyMenuWidth, wrapperRef, portalTarget, size} =
-    useSearchQueryBuilderLayout();
+  const {
+    disableFullWidthFilterKeyMenu,
+    filterKeyMenuWidth,
+    wrapperRef,
+    portalTarget,
+    size,
+  } = useSearchQueryBuilderLayout();
   const {enableAISearch} = useSearchQueryBuilderAI();
 
   const hiddenOptionsWithRecents = useMemo<Set<SelectKey>>(
@@ -360,8 +365,9 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   useSwitchToValidSection({sections, selectedSection, setSelectedSection});
 
   // Full-width mode works well for wide search bars, but for narrow bars it over-constrains
-  // the filter menu and makes the details pane unreadable.
-  const fullWidth = !query && size === 'normal';
+  // the filter menu and makes the details pane unreadable. It also anchors the menu inside
+  // the search bar, which ignores `portalTarget`.
+  const fullWidth = !query && size === 'normal' && !disableFullWidthFilterKeyMenu;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
   // Remove bottom border radius of top-level component while the full-width menu is open

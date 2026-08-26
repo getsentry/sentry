@@ -23,6 +23,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -608,6 +609,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
             identity=identity,
             user=user,
         )
+
+    def get_gcp_service_account_email(
+        self,
+        *,
+        organization_id: int,
+    ) -> str | None:
+        try:
+            sa = GcpServiceAccount.objects.get(organization_id=organization_id)
+        except GcpServiceAccount.DoesNotExist:
+            return None
+        return sa.service_account_email
 
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int

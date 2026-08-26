@@ -71,6 +71,30 @@ class EventAttachmentPutfileTest(TestCase):
 
         assert result.blob_path == "v2/some-key"
         assert mock_get_session.return_value.put.call_args.kwargs["filename"] == "hello.png"
+        assert mock_get_session.return_value.put.call_args.kwargs["content_type"] == "image/png"
+
+    @mock.patch("sentry.models.eventattachment.get_attachments_session")
+    @mock.patch("sentry.models.eventattachment._get_organization", return_value=1)
+    @override_options({"objectstore.enable_for.attachments": 1})
+    def test_objectstore_upload_stores_normalized_content_type(
+        self,
+        mock_get_org: mock.Mock,
+        mock_get_session: mock.Mock,
+    ) -> None:
+        mock_get_session.return_value.put.return_value = "some-key"
+
+        result = EventAttachment.putfile(
+            self.project.id,
+            # Long enough that it cannot be stored inline.
+            CachedAttachment(
+                name="one.txt", content_type="application/octet-stream", data=b"x" * 200
+            ),
+        )
+
+        # The uninformative `application/octet-stream` is upgraded from the filename, and
+        # objectstore must record the same value as the `content_type` column.
+        assert result.content_type == "text/plain"
+        assert mock_get_session.return_value.put.call_args.kwargs["content_type"] == "text/plain"
 
 
 class NormalizeContentTypeTest(TestCase):
