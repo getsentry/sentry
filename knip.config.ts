@@ -22,6 +22,9 @@ const productionEntryPoints = [
   // TODO: Remove when wired into Seer Explorer
   'static/app/components/core/chat/thinkingBlock.tsx',
   'static/app/components/core/chat/toolCall.tsx',
+  // TODO: Remove when ResourceLink/autofixEvidence.tsx migrate to it; only its icon
+  // map (EVIDENCE_ICON) is consumed by seerExplorer's toolUse.tsx today
+  'static/app/components/core/evidence/evidenceReference.tsx',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works

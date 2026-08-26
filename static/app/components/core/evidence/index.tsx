@@ -1,1 +1,3 @@
-export {EVIDENCE_ICON, EvidenceReference, type EvidenceType} from './evidenceReference';
+export {EVIDENCE_ICON, type EvidenceType} from './evidenceReference';
+/** @public */
+export {EvidenceReference} from './evidenceReference';
