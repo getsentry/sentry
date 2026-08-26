@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, tagstore, tsdb
+from sentry import analytics, features, options, tagstore, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
@@ -136,6 +136,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
         This is a best-effort, non-essential side effect on a read path; callers
         must ensure a failure here never breaks the group view.
         """
+        if options.get("issues.derived_data.read_path_checks.killswitch"):
+            return
+
         if not (
             features.has("projects:issue-status-reconciliation", group.project)
             or derived_should_be_correct(group.project)

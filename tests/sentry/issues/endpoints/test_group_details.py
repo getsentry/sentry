@@ -42,6 +42,7 @@ from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -474,7 +475,13 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         log.assert_not_logged(ReconcileStatusAction)
 
-    def test_feature_flag_off_skips(self) -> None:
+    @with_feature(
+        {
+            "projects:issue-status-reconciliation": False,
+            "projects:issue-action-log-write-to-db": False,
+        }
+    )
+    def test_feature_flags_off_skip(self) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         GroupDerivedData.objects.create(group=group, data={"status": "open"})
 
@@ -483,7 +490,12 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         log.assert_not_logged(ReconcileStatusAction)
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature(
+        {
+            "projects:issue-status-reconciliation": False,
+            "projects:issue-action-log-write-to-db": True,
+        }
+    )
     @mock.patch("sentry.issues.endpoints.group_details.logger")
     def test_backfilled_project_logs_without_reconciliation_flag(
         self, mock_logger: mock.MagicMock
@@ -503,6 +515,17 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
                 "expected_status": "open",
             },
         )
+
+    @override_options({"issues.derived_data.read_path_checks.killswitch": True})
+    @with_feature("projects:issue-status-reconciliation")
+    @mock.patch("sentry.issues.endpoints.group_details.logger")
+    def test_read_path_checks_killswitch(self, mock_logger: mock.MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        GroupDerivedData.objects.create(group=group, data={"status": "closed"})
+
+        self._get(group)
+
+        mock_logger.info.assert_not_called()
 
 
 class GroupUpdateTest(APITestCase):
