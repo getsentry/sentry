@@ -51,7 +51,6 @@ export function useProfileEventsStats<F extends string>({
       },
       staleTime: Infinity,
     }),
-    enabled: true,
   });
 
   const transformed = useMemo(

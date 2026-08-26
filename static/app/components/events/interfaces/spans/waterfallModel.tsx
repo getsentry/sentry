@@ -17,7 +17,6 @@ import type {
   ParsedTraceType,
   RawSpanType,
   TraceBound,
-  TraceInfo,
 } from './types';
 import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
 
@@ -39,7 +38,6 @@ export class WaterfallModel {
   hiddenSpanSubTrees: Set<string>;
   traceBounds: TraceBound[];
   focusedSpanIds: Set<string> | undefined = undefined;
-  traceInfo: TraceInfo | undefined = undefined;
 
   constructor(event: Readonly<EventTransaction | AggregateEventTransaction>) {
     this.event = event;
@@ -277,15 +275,8 @@ export class WaterfallModel {
     viewEnd: number;
     viewStart: number; // in [0, 1]
   }) => {
-    const bounds = this.traceInfo
-      ? {
-          traceEndTimestamp: this.traceInfo.endTimestamp,
-          traceStartTimestamp: this.traceInfo.startTimestamp,
-        }
-      : this.getTraceBounds();
-
     return boundsGenerator({
-      ...bounds,
+      ...this.getTraceBounds(),
       viewStart,
       viewEnd,
     });

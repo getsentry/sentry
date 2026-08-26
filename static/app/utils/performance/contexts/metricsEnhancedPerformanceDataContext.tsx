@@ -71,7 +71,7 @@ export function MEPDataProvider({
 // co-located since a local provider doesn't work in that case.
 interface PerformanceDataMultipleMetaContext {
   metricsExtractedDataMap: ExtractedDataMap;
-  setIsMetricsExtractedData: (mapKey: MetricsResultsMetaMapKey) => void;
+  setIsMetricsExtractedData: (mapKey: MetricsResultsMetaMapKey, value: boolean) => void;
 }
 
 const MetricsResultsMetaContext = createContext<
@@ -86,9 +86,9 @@ export function MetricsResultsMetaProvider({children}: {children: ReactNode}) {
   const [metricsExtractedDataMap, _setMetricsExtractedDataMap] = useState(new Map());
 
   const setIsMetricsExtractedData = useCallback(
-    (mapKey: MetricsResultsMetaMapKey) => {
+    (mapKey: MetricsResultsMetaMapKey, value: boolean) => {
       if (mapKey.id) {
-        metricsExtractedDataMap.set(mapKey.id, undefined);
+        metricsExtractedDataMap.set(mapKey.id, value);
       }
     },
     [metricsExtractedDataMap]
