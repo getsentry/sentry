@@ -1,3 +1,4 @@
+import {useEffect, type ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -14,6 +15,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {
+  AsyncSDKIntegrationContextProvider,
+  useAsyncSDKIntegrationStore,
+} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import {
   getInvestigationDetailQueryOptions,
   investigationExecutionDetailQueryOptions,
@@ -34,6 +41,36 @@ const organization = OrganizationFixture({
 const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
 const titleGenerationUrl =
   '/organizations/org-slug/investigations/investigation-1/title-generation/';
+
+const feedbackForm = {
+  appendToDom: jest.fn(),
+  open: jest.fn(),
+  close: jest.fn(),
+  removeFromDom: jest.fn(),
+};
+const createFeedbackForm = jest.fn().mockResolvedValue(feedbackForm);
+const feedbackIntegration = {
+  createForm: createFeedbackForm,
+} as unknown as FeedbackIntegration;
+
+function FeedbackProvider({children}: {children: ReactNode}) {
+  return (
+    <AsyncSDKIntegrationContextProvider>
+      <InstallFeedbackIntegration />
+      <GlobalFeedbackForm>{children}</GlobalFeedbackForm>
+    </AsyncSDKIntegrationContextProvider>
+  );
+}
+
+function InstallFeedbackIntegration() {
+  const {setState} = useAsyncSDKIntegrationStore();
+
+  useEffect(() => {
+    setState({Feedback: feedbackIntegration});
+  }, [setState]);
+
+  return null;
+}
 
 function InvestigationDetailFixture(
   overrides: Partial<InvestigationDetail> = {}
@@ -105,11 +142,14 @@ function InvestigationDetailFixture(
 
 function renderView(
   renderOrganization = organization,
-  queryClient = makeTestQueryClient()
+  queryClient = makeTestQueryClient(),
+  withFeedback = false
 ) {
   const result = render(<InvestigationDetailView />, {
     additionalWrapper: ({children}) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        {withFeedback ? <FeedbackProvider>{children}</FeedbackProvider> : children}
+      </QueryClientProvider>
     ),
     organization: renderOrganization,
     initialRouterConfig: {
@@ -127,6 +167,7 @@ describe('Investigation detail', () => {
   beforeEach(() => {
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    createFeedbackForm.mockClear();
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -149,6 +190,36 @@ describe('Investigation detail', () => {
     expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+  });
+
+  it('opens feedback scoped to the investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        sourceType: 'metric_open_period',
+        template: {key: 'breached_metric', version: 1},
+      }),
+    });
+
+    renderView(organization, makeTestQueryClient(), true);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Give feedback'}));
+
+    await waitFor(() => {
+      expect(createFeedbackForm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          formTitle: 'Give feedback on this investigation',
+          messagePlaceholder: 'What was useful, incorrect, or missing?',
+          tags: {
+            'feedback.source': 'investigation',
+            'feedback.owner': 'ml-ai',
+            'investigation.id': 'investigation-1',
+            'investigation.source_type': 'metric_open_period',
+            'investigation.template': 'breached_metric',
+          },
+        })
+      );
+    });
   });
 
   it('renders completed investigation metadata above the first block', async () => {
