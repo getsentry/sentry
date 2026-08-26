@@ -41,14 +41,8 @@ class ServingSource(StrEnum):
     # The organization is not in the serving rollout.
     LEGACY = "legacy"
     PER_ORG = "per_org"
-    # The organization is in the serving rollout, but no pass has stored its project sample
-    # rates yet, so the legacy caches serve all of its values. Counts the organizations
-    # waiting to switch over.
     PER_ORG_FALLBACK = "per_org_fallback"
-    # The organization serves from the per-org caches, but they hold nothing for this
-    # project: it was created since the last pass. Counts the projects a pass has not
-    # reached yet.
-    PER_ORG_UNBALANCED = "per_org_unbalanced"
+    PER_ORG_NO_DATA = "per_org_no_data"
 
 
 def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
