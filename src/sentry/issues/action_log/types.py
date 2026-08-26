@@ -780,8 +780,7 @@ class SeerPRCreatedAction(GroupAction):
 class SeerPRReadyForReviewAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
-    # Same shape as SeerPRCreatedAction: the PR is the same one, only its draft
-    # state changed.
+    # Same PR as SeerPRCreatedAction, but will not be in draft mode
     pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]] = None
 
     @classmethod

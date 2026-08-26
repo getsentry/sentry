@@ -1,18 +1,3 @@
-"""Emitting the "Seer's PR is ready for a human" signal.
-
-Unlike the other Seer step signals, this one has two triggers and so cannot live
-in the completion hook alone:
-
-* the PR was opened undrafted (no CI access, or the green-CI flow is off), in
-  which case opening it *is* the ready moment — emitted from
-  ``on_completion_hook`` alongside ``pr_created``;
-* the PR was opened as a draft and CI later went green, in which case the
-  undraft in ``pr_iteration.ready_for_review`` is the moment.
-
-Both go through ``emit_pr_ready_for_review`` so the activity, the entrypoint
-fan-out, and the public webhook stay identical whichever way we got here.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -50,13 +35,9 @@ def emit_pr_ready_for_review(
     sentry_run_id: str | None,
     state: SeerRunState,
 ) -> None:
-    """Record the ready-for-review activity and broadcast the public webhook.
-
-    Never raises: this runs as a side effect of undrafting a PR, and a failure
-    here must not undo work we already did on the SCM.
     """
-    # Lazy: ``operator`` pulls in the notification templates, which cycle back
-    # through the SCM integration handlers when imported at module scope.
+    Record the PR Ready for Review activity and broadcast the public webhook.
+    """
     from sentry.seer.entrypoints.operator import (
         SeerAutofixOperator,
         process_autofix_updates,

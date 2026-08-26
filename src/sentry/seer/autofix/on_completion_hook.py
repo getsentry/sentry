@@ -641,9 +641,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             )
 
+        # If this PR is not opened in draft mode, we should immediately emit the ready signal
         if is_pr_created and not should_open_autofix_pr_as_draft(organization):
-            # The PR went up ready to read, so opening it *is* the ready moment.
-            # When it goes up as a draft instead, the green-CI undraft emits.
+            # Not a cls method since draft -> ready signal also emits this same signal elsewhere
             emit_pr_ready_for_review(
                 organization=organization,
                 group=group,

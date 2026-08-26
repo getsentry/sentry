@@ -70,14 +70,10 @@ def record_ready_for_review_marker(seer_run: SeerRun, repo_name: str, *, head_sh
 
 
 def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
-    """Tell the rest of Sentry the PR is now waiting on a human.
-
-    Only the undraft path emits: a PR opened undrafted already emitted from the
-    completion hook. Best-effort — the undraft itself is done and must stand
-    even if the signal does not go out.
     """
-    # Lazy: ``pr_ready_for_review`` reaches the notification platform, which
-    # cycles back through the SCM integration handlers.
+    Private because we only need run on this on the transition from Draft -> Ready.
+    When a PR is opened as Ready from the start, we emit this same signal from the completion hook.
+    """
     from sentry.seer.autofix.pr_ready_for_review import emit_pr_ready_for_review
 
     resolved = ctx.resolved
