@@ -56,7 +56,7 @@ const pageFilterBarStyles = (p: {
 except in mobile */
     &:first-child {
       flex-shrink: 0;
-      @container (max-width: ${p.theme.container.xl}) {
+      @media only screen and (max-width: ${p.theme.breakpoints.sm}) {
         flex-shrink: 1;
       }
     }
