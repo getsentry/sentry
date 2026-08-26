@@ -744,6 +744,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
                 rerender={rerender}
                 trace_id={waterfallTraceId}
                 onRowClick={onRowClick}
+                onScrollToNode={onTabScrollToNode}
                 onTraceSearch={onTraceSearch}
                 previouslyFocusedNodeRef={previouslyFocusedNodeRef}
                 manager={viewManager}
