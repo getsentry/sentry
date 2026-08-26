@@ -19,6 +19,17 @@ describe('LogFileViewer', () => {
   });
   const attachmentUrl = `/api/0/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`;
 
+  function renderViewer() {
+    render(
+      <LogFileViewer
+        attachment={attachment}
+        eventId={event.id}
+        orgSlug={organization.id}
+        projectSlug={project.slug}
+      />
+    );
+  }
+
   afterEach(() => {
     fetchMock.resetMocks();
   });
@@ -54,15 +65,4 @@ describe('LogFileViewer', () => {
 
     expect(await screen.findByText('Failed to download attachment.')).toBeInTheDocument();
   });
-
-  function renderViewer() {
-    render(
-      <LogFileViewer
-        attachment={attachment}
-        eventId={event.id}
-        orgSlug={organization.id}
-        projectSlug={project.slug}
-      />
-    );
-  }
 });
