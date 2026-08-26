@@ -54,13 +54,6 @@ def is_org_in_recalibration_rollout(org_id: int) -> bool:
 
 
 def is_org_in_serving_rollout(org_id: int) -> bool:
-    """Whether rule generation reads this organization's sample rates from the per-org caches.
-
-    Independent of the compute rollout, which only decides whether the pipeline fills those
-    caches. Named organizations are served whatever the rate is, which is how one is piloted
-    before a rate group exists; the list only ever adds, so raising the rate later keeps
-    every organization already selected. The killswitch takes precedence over both.
-    """
     if is_killswitch_engaged():
         return False
     return org_id in _org_ids(SERVING_ORG_IDS_OPTION) or in_rollout_group(
