@@ -146,7 +146,6 @@ export function ExploreSecondaryNavigation() {
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="beta" />}
                 >
                   {t('Agents')}
                 </SecondaryNavigation.Link>
