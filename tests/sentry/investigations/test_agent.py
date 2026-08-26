@@ -58,6 +58,15 @@ def test_completion_metadata_accepts_concise_variable_summary_lengths() -> None:
     )
 
 
+def test_completion_metadata_accepts_single_line_description() -> None:
+    assert (
+        _parse_completion_metadata(
+            completion_metadata(description="Checkout errors came from one endpoint.")
+        )
+        is not None
+    )
+
+
 def test_completion_metadata_ignores_extra_keys() -> None:
     payload = json.loads(completion_metadata())
     payload["confidence"] = 0.9
@@ -1117,6 +1126,9 @@ class InvestigationAgentTest(TestCase):
         assert "checkout-api" in prompt
         assert "at most 5 words" in prompt
         assert "summary_description" in prompt
+        assert "casual, plain language" in prompt
+        assert "1 or 2 short" in prompt
+        assert "Avoid headings and jargon" in prompt
 
     @patch("sentry.investigations.agent.record_investigation_completed")
     @patch("sentry.investigations.agent.SeerAgentClient")

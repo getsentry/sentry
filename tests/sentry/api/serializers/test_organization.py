@@ -53,7 +53,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "discover-basic",
             "discover-query",
             "event-attachments",
-            "incidents",
             "insight-modules",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
