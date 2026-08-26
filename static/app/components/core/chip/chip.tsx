@@ -453,6 +453,16 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
   &:has([data-chip-dismiss]) {
     padding-right: 0;
   }
+  /*
+   * The dismiss button's own inline padding already supplies the flat gap
+   * on this seam (see DismissButton below), so cancel out the inert
+   * layout's uniform gap here rather than doubling it. Only applies when
+   * there are no interactive segments — that layout redistributes this
+   * seam's spacing itself, below.
+   */
+  &:not(:has([data-chip-interactive])) > [data-chip-dismiss] {
+    margin-inline-start: calc(-1 * ${p => p.theme.space.xs});
+  }
 
   /*
    * Interactive layout: segmented buttons abut and fill the chip. Redistribute
@@ -473,9 +483,13 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
   &:has([data-chip-interactive]) > [data-chip-interactive]:last-child {
     padding-inline-end: ${p => p.theme.space[SIZES[p.chipSize].pad]};
   }
-  /* A segment flush against the dismiss keeps a single flat gap on that seam. */
+  /*
+   * A segment flush against the dismiss yields its half of the seam — the
+   * dismiss button's own inline padding (see DismissButton below) supplies
+   * the single flat gap, same as the inert layout above.
+   */
   &:has([data-chip-interactive]) > [data-chip-interactive]:has(+ [data-chip-dismiss]) {
-    padding-inline-end: ${p => p.theme.space.xs};
+    padding-inline-end: 0;
   }
 
   /*
