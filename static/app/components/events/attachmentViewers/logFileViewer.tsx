@@ -16,6 +16,7 @@ export function LogFileViewer(props: ViewerProps) {
   const {data, isPending, isError} = useQuery({
     queryKey: ['attachment-text-preview', attachmentUrl],
     queryFn: async ({signal}) => {
+      // Fetch directly because the API client decodes text as UTF-8 before we can inspect the BOM.
       const response = await fetch(attachmentUrl, {
         credentials: 'include',
         headers: {Accept: '*/*'},
