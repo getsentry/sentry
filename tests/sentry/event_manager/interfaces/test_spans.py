@@ -99,3 +99,20 @@ def test_multiple_full(make_spans_snapshot: CustomSnapshotter) -> None:
             },
         ]
     )
+
+
+def test_none_span_entries_are_skipped(make_spans_snapshot: CustomSnapshotter) -> None:
+    # Null entries show up in some malformed payloads; interface parsing should
+    # skip them instead of raising AttributeError during grouping.
+    make_spans_snapshot(
+        [
+            None,
+            {
+                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                "span_id": "8c931f4740435fb8",
+                "start_timestamp": START_TIME,
+                "timestamp": END_TIME,
+            },
+            None,
+        ]
+    )
