@@ -86,6 +86,20 @@ describe('TraceMetaDataHeader', () => {
   });
 
   describe('breadcrumbs', () => {
+    function renderHeader(props: TraceMetadataHeaderProps) {
+      return render(
+        <TopBar.Slot.Provider>
+          <TopBar.Slot.Outlet name="breadcrumbs">
+            {slotProps => <div {...slotProps} />}
+          </TopBar.Slot.Outlet>
+          <TopBar.Slot.Outlet name="title">
+            {slotProps => <div {...slotProps} />}
+          </TopBar.Slot.Outlet>
+          <TraceMetaDataHeader {...props} organization={organization} />
+        </TopBar.Slot.Provider>
+      );
+    }
+
     it('should render module breadcrumbs', () => {
       useLocationMock.mockReturnValue(
         LocationFixture({
@@ -96,19 +110,13 @@ describe('TraceMetaDataHeader', () => {
         })
       );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      render(<TraceMetaDataHeader {...props} organization={organization} />);
+      renderHeader(props);
 
-      const breadcrumbs = screen.getByTestId('breadcrumb-list');
-      const breadcrumbsLinks = screen.getAllByTestId('breadcrumb-link');
-      const breadcrumbsItems = screen.getAllByTestId('breadcrumb-item');
-
-      expect(breadcrumbs.childElementCount).toBe(5);
-
+      const breadcrumbsLinks = screen.getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(2);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Backend');
       expect(breadcrumbsLinks[1]).toHaveTextContent('Domain Summary');
-      expect(breadcrumbsItems).toHaveLength(1);
-      expect(breadcrumbsItems[0]).toHaveTextContent(/trace-slug/);
+      expect(screen.getByText(/trace-slug/)).toBeInTheDocument();
     });
 
     it('should show insights from transaction summary with perf removal feature', () => {
@@ -122,23 +130,16 @@ describe('TraceMetaDataHeader', () => {
         })
       );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      render(<TraceMetaDataHeader {...props} organization={organization} />);
+      renderHeader(props);
 
-      const breadcrumbs = screen.getByTestId('breadcrumb-list');
-      const breadcrumbsLinks = screen.getAllByTestId('breadcrumb-link');
-      const breadcrumbsItems = screen.getAllByTestId('breadcrumb-item');
-
-      expect(breadcrumbs.childElementCount).toBe(5);
-
+      const breadcrumbsLinks = screen.getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(1);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsLinks[0]).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary?source=performance_transaction_summary&transaction=transaction-name'
       );
-      expect(breadcrumbsItems).toHaveLength(2);
-      expect(breadcrumbsItems[0]).toHaveTextContent('Insights');
-      expect(breadcrumbsItems[1]).toHaveTextContent(/trace-slug/);
+      expect(screen.getByText(/trace-slug/)).toBeInTheDocument();
     });
 
     it('should show insights from transaction summary', () => {
@@ -152,22 +153,16 @@ describe('TraceMetaDataHeader', () => {
         })
       );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      render(<TraceMetaDataHeader {...props} organization={organization} />);
+      renderHeader(props);
 
-      const breadcrumbs = screen.getByTestId('breadcrumb-list');
-      const breadcrumbsLinks = screen.getAllByTestId('breadcrumb-link');
-      const breadcrumbsItems = screen.getAllByTestId('breadcrumb-item');
-
-      expect(breadcrumbs.childElementCount).toBe(5);
+      const breadcrumbsLinks = screen.getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(1);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsLinks[0]).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary?source=performance_transaction_summary&transaction=transaction-name'
       );
-      expect(breadcrumbsItems).toHaveLength(2);
-      expect(breadcrumbsItems[0]).toHaveTextContent('Insights');
-      expect(breadcrumbsItems[1]).toHaveTextContent(/trace-slug/);
+      expect(screen.getByText(/trace-slug/)).toBeInTheDocument();
     });
 
     it('should render domain overview breadcrumbs', () => {
