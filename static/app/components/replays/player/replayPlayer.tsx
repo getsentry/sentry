@@ -6,7 +6,6 @@ import {
   baseReplayerCss,
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
-import {createReplayerLogger} from 'sentry/utils/replays/createReplayerLogger';
 import {useReplayPlayerPlugins} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {
   useReplayPlayerStateDispatch,
@@ -57,7 +56,6 @@ function useReplayerInstance() {
       plugins: getPlugins(webFrames),
       skipInactive: initialPrefsRef.current.isSkippingInactive,
       speed: initialPrefsRef.current.playbackSpeed,
-      logger: createReplayerLogger(),
     });
 
     replayerRef.current = replayer;

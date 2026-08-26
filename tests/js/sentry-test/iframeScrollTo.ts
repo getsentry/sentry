@@ -8,11 +8,7 @@ export function stubIframeScrollTo() {
   const getContentWindow = Object.getOwnPropertyDescriptor(
     HTMLIFrameElement.prototype,
     'contentWindow'
-  )?.get;
-
-  if (!getContentWindow) {
-    return;
-  }
+  )!.get!;
 
   jest
     .spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get')

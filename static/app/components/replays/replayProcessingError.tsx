@@ -19,8 +19,6 @@ export function ReplayProcessingError({className, replay}: Props) {
   const hasReported = useRef(false);
 
   useEffect(() => {
-    // The reader is rebuilt as attachment pages settle, so this can run more
-    // than once for a single view. Report the replay once instead.
     if (hasReported.current) {
       return;
     }
