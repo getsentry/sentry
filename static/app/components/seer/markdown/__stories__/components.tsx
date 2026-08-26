@@ -144,7 +144,7 @@ function useReplayExamples(): SeerEmbedExample[] | undefined {
 
   const replayData = {
     id: replay.id,
-    eventTimestamp: replay.started_at.toISOString(),
+    eventTimestamp: String(replay.started_at),
   };
 
   return [
