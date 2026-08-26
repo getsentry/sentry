@@ -1,11 +1,15 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Grid,
+  Stack,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -27,7 +31,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -71,25 +74,44 @@ function PageContent({
     <PageFiltersContainer>
       <ErrorBoundary>
         <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
-          <LayoutGrid hideTop={hideTop}>
+          <Grid
+            overflow="hidden"
+            flex={1}
+            minHeight={0}
+            gap="xl"
+            padding="lg xl"
+            columns={{
+              zero: '1fr',
+              '3xl': 'minmax(195px, 1fr) 1.5fr',
+              '4xl': 'minmax(390px, 1fr) 2fr',
+            }}
+            rows={{
+              zero: hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh',
+              '3xl': 'max-content minmax(0, 1fr)',
+            }}
+            areas={{
+              zero: hideTop ? "'.' 'content'" : "'top' 'content'",
+              '3xl': "'top top' 'list details'",
+            }}
+          >
             {!hideTop && (
               <Stack
                 flexGrow={1}
                 gap="md"
                 area="top"
-                direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
-                align={{'screen:xs': 'stretch', 'screen:sm': 'start'}}
+                direction={{zero: 'column', xl: 'row'}}
+                align={{zero: 'stretch', xl: 'start'}}
               >
                 <FeedbackFilters />
                 <Flex
                   flexGrow={1}
                   gap="md"
-                  direction={{'screen:xs': 'column', 'screen:md': 'row'}}
-                  align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
+                  direction={{zero: 'column', '3xl': 'row'}}
+                  align={{zero: 'stretch', '3xl': 'center'}}
                 >
-                  <SearchContainer>
+                  <Container flexGrow={1} minWidth={0}>
                     <FeedbackSearch />
-                  </SearchContainer>
+                  </Container>
                   <LinkButton {...createAlertAction} variant="primary">
                     {t('Create Alert')}
                   </LinkButton>
@@ -99,11 +121,11 @@ function PageContent({
             {hasFeedbackContent ? (
               content
             ) : (
-              <SetupContainer>
+              <Container overflow="hidden" column="1 / -1">
                 <FeedbackSetupPanel />
-              </SetupContainer>
+              </Container>
             )}
-          </LayoutGrid>
+          </Grid>
         </Stack>
       </ErrorBoundary>
     </PageFiltersContainer>
@@ -125,8 +147,8 @@ export default function FeedbackListPage() {
 
   useRedirectToFeedbackFromEvent();
 
-  const theme = useTheme();
-  const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
+  // breakpoints.md (992px) maps to container.3xl (1024px)
+  const isMediumOrSmaller = useResponsivePropValue({zero: true, '3xl': false});
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
@@ -174,38 +196,52 @@ export default function FeedbackListPage() {
     <Fragment>
       <Stack area="list" gap="md">
         <FeedbackSummaryCategories />
-        <Container>
+        <Stack border="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
           <FeedbackList onItemSelect={() => {}} />
-        </Container>
+        </Stack>
       </Stack>
 
-      <Container area="details">
+      <Stack
+        area="details"
+        border="primary"
+        radius="md"
+        flex={1}
+        minHeight={0}
+        overflow="hidden"
+      >
         <AnalyticsArea name="details">
           <FeedbackItemLoader />
         </AnalyticsArea>
-      </Container>
+      </Stack>
     </Fragment>
   );
 
   const smallerScreenView = (
     <Fragment>
       {showItemPreview ? (
-        <Container area="content">
+        <Stack
+          area="content"
+          border="primary"
+          radius="md"
+          flex={1}
+          minHeight={0}
+          overflow="hidden"
+        >
           <AnalyticsArea name="details">
             <FeedbackItemLoader onBackToList={handleBackToList} />
           </AnalyticsArea>
-        </Container>
+        </Stack>
       ) : (
         <Stack area="content" gap="md">
           <FeedbackSummaryCategories />
-          <Container>
+          <Stack border="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
             <FeedbackList onItemSelect={handleItemSelect} />
             {selectedItemIndex !== null && (
               <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
                 {t('Jump to selected item')}
               </JumpToSelectedButton>
             )}
-          </Container>
+          </Stack>
         </Stack>
       )}
     </Fragment>
@@ -253,66 +289,6 @@ export default function FeedbackListPage() {
     </SentryDocumentTitle>
   );
 }
-
-const LayoutGrid = styled('div')<{hideTop?: boolean}>`
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
-
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  place-items: stretch;
-
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-
-  grid-template-rows: max-content minmax(0, 1fr);
-  grid-template-areas:
-    'top top'
-    'list details';
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
-    grid-template-rows: ${p => (p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh')};
-    grid-template-areas: ${p => (p.hideTop ? "'.' 'content'" : "'top' 'content'")};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(195px, 1fr) 1.5fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: minmax(390px, 1fr) 2fr;
-  }
-`;
-
-const Container = styled('div')<{area?: string}>`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  ${p =>
-    p.area &&
-    css`
-      grid-area: ${p.area};
-    `}
-`;
-
-const SetupContainer = styled('div')`
-  overflow: hidden;
-  grid-column: 1 / -1;
-`;
-
-/**
- * Prevent the search box from growing infinitely.
- * See https://github.com/getsentry/sentry/pull/80328
- */
-const SearchContainer = styled('div')`
-  flex-grow: 1;
-  min-width: 0;
-`;
 
 const JumpToSelectedButton = styled(Button)`
   position: fixed;
