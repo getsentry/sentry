@@ -13,6 +13,8 @@ class GroupSeenSerializer(Serializer):
         )
         user_map = {}
         for serialized in serialized_users:
+            if serialized is None:
+                continue
             user_map[serialized["id"]] = serialized
 
         result = {}
