@@ -10,7 +10,7 @@ from tests.sentry.event_manager.interfaces import CustomSnapshotter as CustomSna
 START_TIME = 1562873192.624
 END_TIME = 1562873194.624
 
-SnapshotInput = list[dict[str, Any]]
+SnapshotInput = list[dict[str, Any] | None]
 CustomSnapshotter = CustomSnapshotterBase[SnapshotInput]
 
 
@@ -102,8 +102,6 @@ def test_multiple_full(make_spans_snapshot: CustomSnapshotter) -> None:
 
 
 def test_none_span_entries_are_skipped(make_spans_snapshot: CustomSnapshotter) -> None:
-    # Null entries show up in some malformed payloads; interface parsing should
-    # skip them instead of raising AttributeError during grouping.
     make_spans_snapshot(
         [
             None,

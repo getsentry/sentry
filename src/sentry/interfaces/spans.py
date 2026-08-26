@@ -41,11 +41,6 @@ class Span(Interface):
 
     @classmethod
     def to_python(cls, data):
-        # Malformed events can include null span entries; skip instead of crashing
-        # while building grouping interfaces.
-        if not isinstance(data, dict):
-            return None
-
         for key in SPAN_KEYS:
             data.setdefault(key, None)
 
@@ -63,16 +58,7 @@ class Spans(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if not isinstance(data, list):
-            return None
-
-        spans = []
-        for i, span in enumerate(data):
-            if span is None:
-                continue
-            parsed = Span.to_python(span if isinstance(span, dict) else data[i])
-            if parsed is not None:
-                spans.append(parsed)
+        spans = [Span.to_python(span) for span in data if span is not None]
         return super().to_python({"spans": spans})
 
     def __iter__(self):
