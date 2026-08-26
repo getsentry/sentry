@@ -153,16 +153,21 @@ const TooltipContent = styled(Overlay, {
   /*
    * Sections pull back out to the overlay's edges, cancelling the padding above
    * so that a full width row or separator can reach them, and re-applying it
-   * themselves so their own content stays inset. Only the first and last cancel
-   * it vertically — doing it on every section would collapse the space between
-   * two of them.
+   * themselves so their own content stays inset.
    */
   > [data-tooltip-section] {
     margin-inline: calc(-1 * ${p => p.theme.space.lg});
+    margin-block-start: calc(-1 * ${p => p.theme.space.md});
   }
 
-  > [data-tooltip-section]:first-child {
-    margin-block-start: calc(-1 * ${p => p.theme.space.md});
+  /*
+   * Only the outermost sections cancel the block padding — doing it on every
+   * one would collapse the space between two of them, since adjacent negative
+   * margins compound. This cannot key off the first child, because the overlay
+   * renders its arrow ahead of the content, so a section is never first.
+   */
+  > [data-tooltip-section] ~ [data-tooltip-section] {
+    margin-block-start: 0;
   }
 
   > [data-tooltip-section]:last-child {
