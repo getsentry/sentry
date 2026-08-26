@@ -16,6 +16,7 @@ from sentry.api.serializers.models.auth import (
     AuthMfaRequiredSerializerResponse,
     serialize_auth_mfa_required,
 )
+from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models.organization import Organization
@@ -36,7 +37,11 @@ class AuthConfigResponse(TypedDict):
     canRegister: bool
     hasNewsletter: bool
     pendingMfa: AuthMfaRequiredSerializerResponse | None
+    githubLoginLink: NotRequired[str]
+    googleLoginLink: NotRequired[str]
+    vstsLoginLink: NotRequired[str]
     warning: NotRequired[str]
+    loginBanner: NotRequired[str]
 
 
 @control_silo_endpoint
@@ -121,6 +126,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         if "session_expired" in request.COOKIES:
             context["warning"] = str(WARN_SESSION_EXPIRED)
 
-        context.update(additional_context.run_callbacks(request))
+        additional_login_context = convert_dict_key_case(
+            additional_context.run_callbacks(request), snake_to_camel_case
+        )
+        context.update(additional_login_context)
 
         return cast(AuthConfigResponse, context)
