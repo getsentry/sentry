@@ -67,7 +67,7 @@ def test_modules_detects_screen_load_from_ui_load_segment() -> None:
     assert InsightModules.SCREEN_LOAD in modules(spans)
 
 
-def test_modules_detects_screen_load_from_navigation_segment() -> None:
+def test_modules_does_not_detect_screen_load_from_navigation_segment() -> None:
     spans = [
         FilterSpan.from_span_attributes(
             {"sentry.op": {"type": "string", "value": "navigation"}},
@@ -75,7 +75,7 @@ def test_modules_detects_screen_load_from_navigation_segment() -> None:
         )
     ]
 
-    assert InsightModules.SCREEN_LOAD in modules(spans)
+    assert InsightModules.SCREEN_LOAD not in modules(spans)
 
 
 def test_modules_detects_screen_load_from_display_span_op() -> None:

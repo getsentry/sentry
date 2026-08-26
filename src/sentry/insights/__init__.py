@@ -61,9 +61,7 @@ def is_app_start(span: FilterSpan) -> bool:
 
 
 def is_screen_load(span: FilterSpan) -> bool:
-    if span.transaction_op in {"ui.load", "navigation"}:
-        return True
-    if span.op in {"ui.load", "navigation"}:
+    if span.transaction_op == "ui.load" or span.op == "ui.load":
         return True
     return span.op is not None and span.op.startswith("ui.load.")
 
