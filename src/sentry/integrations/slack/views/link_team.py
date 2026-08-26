@@ -24,7 +24,37 @@ from . import build_linking_url as base_build_linking_url
 ALREADY_LINKED_TITLE = "Already linked"
 ALREADY_LINKED_MESSAGE = "The {slug} team has already been linked to a Slack channel."
 SUCCESS_LINKED_TITLE = "Team linked"
-SUCCESS_LINKED_MESSAGE = "The {slug} team will now receive issue alert{workflow_addon} notifications in the {channel_name} channel."
+SUCCESS_LINKED_MESSAGE = (
+    "The {team} team will now receive issue alert{workflow_addon} notifications in the {channel} channel."
+)
+
+
+def build_team_linked_message(
+    *,
+    team: Team,
+    channel_id: str,
+    channel_name: str,
+    workflow_addon: str = "",
+    for_slack: bool = False,
+) -> str:
+    """Build the team-linked success message for Slack or the web confirmation page."""
+    if for_slack:
+        team_url = team.organization.absolute_url(
+            f"/settings/{team.organization.slug}/teams/{team.slug}/"
+        )
+        team_ref = f"<{team_url}|{team.slug}>"
+        # Slack channel mentions render as clickable #channel-name.
+        channel_ref = f"<#{channel_id}>"
+    else:
+        team_ref = team.slug
+        channel_ref = channel_name
+
+    return SUCCESS_LINKED_MESSAGE.format(
+        team=team_ref,
+        workflow_addon=workflow_addon,
+        channel=channel_ref,
+    )
+
 
 _logger = logging.getLogger(__name__)
 

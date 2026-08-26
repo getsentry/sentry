@@ -395,9 +395,9 @@ class LinkTeamView(TeamLinkageView, ABC):
     ) -> HttpResponseBase:
         from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
         from sentry.integrations.slack.views.link_team import (
-            SUCCESS_LINKED_MESSAGE,
             SUCCESS_LINKED_TITLE,
             SelectTeamForm,
+            build_team_linked_message,
         )
 
         user = serialize_generic_user(request.user)
@@ -513,12 +513,14 @@ class LinkTeamView(TeamLinkageView, ABC):
             types=[NotificationSettingEnum.ISSUE_ALERTS],
         )
 
-        message = SUCCESS_LINKED_MESSAGE.format(
-            slug=team.slug,
-            workflow_addon="",
+        slack_message = build_team_linked_message(
+            team=team,
+            channel_id=channel_id,
             channel_name=channel_name,
+            workflow_addon="",
+            for_slack=True,
         )
-        self.notify_on_success(channel_id, integration, message)
+        self.notify_on_success(channel_id, integration, slack_message)
 
         self.capture_metric("success")
 
@@ -527,7 +529,12 @@ class LinkTeamView(TeamLinkageView, ABC):
             request=request,
             context={
                 "heading_text": SUCCESS_LINKED_TITLE,
-                "body_text": message,
+                "body_text": build_team_linked_message(
+                    team=team,
+                    channel_id=channel_id,
+                    channel_name=channel_name,
+                    workflow_addon="",
+                ),
                 "channel_id": channel_id,
                 "team_id": integration.external_id,
             },
