@@ -9,6 +9,7 @@ from rest_framework import serializers
 from sentry_relay.processing import (
     convert_datascrubbing_config,
     pii_strip_event,
+    validate_datascrubbing_config,
     validate_pii_config,
     validate_pii_selector,
 )
@@ -152,6 +153,35 @@ def validate_pii_config_update(organization, value):
         validate_pii_config(value)
     except ValueError as e:
         raise serializers.ValidationError(str(e))
+
+    return value
+
+
+def validate_sensitive_fields_update(value):
+    """Validate that a list of sensitive field names won't produce a regex that exceeds Relay's
+    compiled size limit when converted to a PII scrubbing config.
+
+    This catches overly long or numerous field name lists that would create an alternation regex
+    too large to compile in Relay, which would silently disable those scrubbing rules.
+    """
+    if not value:
+        return value
+
+    # Construct the minimal datascrubbing config that Relay would use to produce the regex.
+    # scrubData must be True for sensitive_fields to generate a RedactPair rule.
+    config = {
+        "scrubData": True,
+        "scrubDefaults": False,
+        "sensitiveFields": value,
+        "excludeFields": [],
+        "scrubIpAddresses": False,
+    }
+    try:
+        validate_datascrubbing_config(config)
+    except ValueError as e:
+        raise serializers.ValidationError(
+            f"The combined sensitive fields list produces a regex that is too large for Relay to compile: {e}"
+        )
 
     return value
 
