@@ -205,12 +205,13 @@ export function useScmMessagingSetupValidation({
   const isChannelValidateError =
     integration !== undefined &&
     validateParam !== undefined &&
-    channelValidateQuery.isError;
+    channelValidateQuery.isLoadingError;
 
   return {
     isError:
       hasSelectedDestination &&
-      ((!isMissingIntegration && integrationQuery.isError) || isChannelValidateError),
+      ((!isMissingIntegration && integrationQuery.isLoadingError) ||
+        isChannelValidateError),
     isPending:
       hasSelectedDestination &&
       (integrationQuery.isFetching ||
