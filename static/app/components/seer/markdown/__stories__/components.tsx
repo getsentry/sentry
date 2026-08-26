@@ -179,7 +179,7 @@ function EmbedSection({
       </Text>
       {md && (
         <Stack gap="sm">
-          <Demo>
+          <Demo maxHeight={name === 'replay' ? '900px' : undefined}>
             <SeerMarkdown raw={md} />
           </Demo>
           <CodeBlock language="markdown" dark>
