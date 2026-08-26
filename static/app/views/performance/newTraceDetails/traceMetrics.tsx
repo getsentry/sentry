@@ -70,7 +70,11 @@ export function TraceViewMetricsProviderWrapper({
   const setMetricsQueryParams = useCallback(
     (newQueryParams: ReadableQueryParams) => {
       const target = {...location, query: {...location.query}};
-      updateNullableLocation(target, TRACE_METRICS_QUERY_KEY, newQueryParams.query);
+      if (newQueryParams.query) {
+        updateNullableLocation(target, TRACE_METRICS_QUERY_KEY, newQueryParams.query);
+      } else {
+        delete target.query[TRACE_METRICS_QUERY_KEY];
+      }
       navigateIfQueryChanged(navigate, location, target);
     },
     [location, navigate]

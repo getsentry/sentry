@@ -169,6 +169,13 @@ describe('TraceViewMetricsSection', () => {
     expect(currentMetricsQuery).not.toContain('sentry.metric.source');
     expect(router.location.query.metricsQuery).toBe(currentMetricsQuery);
     expect(router.location.query.query).toBe('unrelated:value');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+
+    await waitFor(() => {
+      expect(router.location.query.metricsQuery).toBeUndefined();
+    });
+    expect(router.location.query.query).toBe('unrelated:value');
   });
 
   it('preserves the initial metrics query from the URL', async () => {
