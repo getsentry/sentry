@@ -5,7 +5,6 @@ import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   APP_START_TABLE_CONDITION,
-  APP_VITALS_START_SCREEN,
   AVG_COLD_START,
   AVG_WARM_START,
   COLD_START_CONDITION,
@@ -308,13 +307,13 @@ const APP_START_TABLE: PrebuiltWidget = {
     {
       name: '',
       fields: [
-        APP_VITALS_START_SCREEN,
+        SpanFields.APP_VITALS_START_SCREEN,
         AVG_COLD_START,
         AVG_WARM_START,
         TRANSACTION_COUNT,
       ],
       aggregates: [AVG_COLD_START, AVG_WARM_START, TRANSACTION_COUNT],
-      columns: [APP_VITALS_START_SCREEN],
+      columns: [SpanFields.APP_VITALS_START_SCREEN],
       fieldAliases: [
         t('Screen'),
         t('Avg Cold Start'),
@@ -325,7 +324,7 @@ const APP_START_TABLE: PrebuiltWidget = {
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
-          field: APP_VITALS_START_SCREEN,
+          field: SpanFields.APP_VITALS_START_SCREEN,
           dashboardId: '-1',
           staticDashboardId: 9,
         },
