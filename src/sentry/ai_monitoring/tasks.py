@@ -77,6 +77,8 @@ def generate_ai_conversation_title(
 
     # Skip Seer if we already have a title from an earlier-or-equal span.
     existing = qs.first()
+    if existing is not None:
+        existing.save(update_fields=["date_updated"])
     if (
         existing is not None
         and existing.title_source_timestamp is not None
