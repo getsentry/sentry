@@ -1,4 +1,5 @@
 import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -6,8 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Hovercard} from 'sentry/components/hovercard';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconBot, IconChat, IconCheckmark, IconInfo, IconTerminal} from 'sentry/icons';
+import {IconBot, IconCheckmark, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export type AgentSetupCopySource = 'install_command' | 'prompt';
@@ -57,14 +57,13 @@ export function AgentSetupCard({onCopyCommand, prompt}: AgentSetupCardProps) {
           <ListItem>
             <Stack gap="md" paddingBottom="xl">
               <StepLabel>{t('Install Sentry plugin')}</StepLabel>
-              <TextCopyInput
-                size="sm"
-                monospace
-                icon={<IconTerminal size="xs" variant="secondary" />}
+              <CodeBlock
+                alwaysShowCopyButton
                 onCopy={() => onCopyCommand('install_command')}
+                wrapMode="wrap"
               >
                 {INSTALL_PLUGIN_COMMAND}
-              </TextCopyInput>
+              </CodeBlock>
             </Stack>
           </ListItem>
           <ListItem>
@@ -72,14 +71,13 @@ export function AgentSetupCard({onCopyCommand, prompt}: AgentSetupCardProps) {
               <Stack gap="md">
                 <StepLabel>{t('Then open your agent in your project and ask')}</StepLabel>
                 <Stack gap="sm">
-                  <TextCopyInput
-                    size="sm"
-                    monospace
-                    icon={<IconChat size="xs" variant="secondary" />}
+                  <CodeBlock
+                    alwaysShowCopyButton
                     onCopy={() => onCopyCommand('prompt')}
+                    wrapMode="wrap"
                   >
                     {prompt}
-                  </TextCopyInput>
+                  </CodeBlock>
                   <Flex>
                     <Hovercard
                       position="top"
