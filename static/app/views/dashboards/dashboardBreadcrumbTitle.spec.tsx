@@ -8,7 +8,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {DashboardBreadcrumbTitle} from './dashboardBreadcrumbTitle';
@@ -72,20 +71,7 @@ async function openRevisionHistory() {
 }
 
 async function selectFirstRevision() {
-  const radios = await screen.findAllByRole('radio');
-  const firstRevision = radios[1];
-  if (!firstRevision) {
-    throw new Error('Expected a historical revision');
-  }
-  await userEvent.click(firstRevision);
-}
-
-function getItemContaining(text: string) {
-  const item = screen.getByText(text).closest('div');
-  if (!item) {
-    throw new Error(`Expected an item containing "${text}"`);
-  }
-  return item;
+  await userEvent.click(await screen.findByRole('radio', {name: 'Edit'}));
 }
 
 describe('DashboardBreadcrumbTitle revision history', () => {
@@ -138,13 +124,9 @@ describe('DashboardBreadcrumbTitle revision history', () => {
     await openRevisionHistory();
     await screen.findAllByRole('radio');
 
-    expect(
-      within(getItemContaining('Current Version')).getByText('Recent Editor')
-    ).toBeInTheDocument();
-
-    expect(
-      within(getItemContaining('Revert Dashboard')).getByText('Alice')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Recent Editor')).toBeInTheDocument();
+    expect(screen.getByText('Revert Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
   });
 
   it('selects Current Version by default and enables restore for a revision', async () => {
@@ -154,9 +136,8 @@ describe('DashboardBreadcrumbTitle revision history', () => {
     renderTitle();
     await openRevisionHistory();
 
-    const radios = await screen.findAllByRole('radio');
-    expect(radios).toHaveLength(2);
-    expect(radios[0]).toBeChecked();
+    expect(await screen.findAllByRole('radio')).toHaveLength(2);
+    expect(screen.getByRole('radio', {name: 'Select Current Version'})).toBeChecked();
     expect(screen.getByRole('button', {name: 'Revert to Selection'})).toBeDisabled();
 
     await selectFirstRevision();
