@@ -38,16 +38,28 @@ class ServedValue(StrEnum):
 class ServingSource(StrEnum):
     """Which pipeline supplied a value that rule generation served."""
 
+    # The organization is not in the serving rollout.
     LEGACY = "legacy"
     PER_ORG = "per_org"
-    # The organization serves from the per-org caches, but they held no value for it, so
-    # the legacy caches supplied one. Counts the coverage gap between the two pipelines.
+    # The organization is in the serving rollout, but no pass has stored its project sample
+    # rates yet, so the legacy caches serve all of its values. Counts the organizations
+    # waiting to switch over.
     PER_ORG_FALLBACK = "per_org_fallback"
+    # The organization serves from the per-org caches, but they hold nothing for this
+    # project: it was created since the last pass. Counts the projects a pass has not
+    # reached yet.
+    PER_ORG_UNBALANCED = "per_org_unbalanced"
 
 
 def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
+    """Record which pipeline supplied a value that rule generation served.
+
+    Sampled like the rest of the per-org metrics: this runs on every rule generation, and
+    the legacy-to-per-org ratio survives sampling because both sides are sampled alike.
+    """
     metrics.incr(
         SERVING_SOURCE_METRIC,
+        sample_rate=metrics_sample_rate(),
         tags={"value": value.value, "source": source.value},
     )
 

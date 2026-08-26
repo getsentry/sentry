@@ -16,6 +16,7 @@ _GATE_OPTIONS = {
     "dynamic-sampling.per_org.killswitch": False,
     "dynamic-sampling.per_org.metrics-sample-rate": 1.0,
     "dynamic-sampling.per_org.rollout-rate": 1.0,
+    "dynamic-sampling.per_org.rollout-org-ids": [],
 }
 
 
