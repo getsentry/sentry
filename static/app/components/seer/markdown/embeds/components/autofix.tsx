@@ -7,7 +7,6 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {
   collectPatches,
@@ -27,6 +26,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -121,8 +121,7 @@ const ERROR_TEXT: Record<AutofixExplorerStep, string> = {
 /**
  * The step to continue to once the given step completes. `code_changes` has no
  * entry — its completion offers "Draft a pull request" instead, a different
- * action (createPR) rather than another startStep call. `pr_iteration` has no
- * next step; it's the end of the line.
+ * action. `pr_iteration` has no next step; it's the end of the line.
  */
 export const NEXT_STEP: Partial<Record<AutofixExplorerStep, AutofixExplorerStep>> = {
   root_cause: 'solution',
@@ -134,28 +133,28 @@ interface AutofixRefContentProps extends Pick<Group, 'id' | 'shortId'> {
   step: AutofixExplorerStep;
 }
 
-function AutofixRefContent({id, shortId, runId, step}: AutofixRefContentProps) {
+function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const autofix = useExplorerAutofix({id, shortId});
-  const {runState, isLoading, isPolling, startStep, createPR} = autofix;
+  const {runState, isLoading, isPolling} = autofix;
+  const {sendMessage} = useAutofixChat();
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
 
-  const activeRunId = getAutofixRunId(runState) ?? runId;
-
   const handleRetry = () => {
-    startStep(step, {runId: activeRunId, insertIndex: section?.index});
+    sendMessage?.(t('Retry the %s step for %s.', STEP_LABELS[step], shortId));
   };
 
   const handleContinue = (nextStep: AutofixExplorerStep) => {
-    startStep(nextStep, {runId: activeRunId});
+    sendMessage?.(t('Continue to the %s step for %s.', STEP_LABELS[nextStep], shortId));
   };
 
   const handleCreatePR = () => {
-    createPR(activeRunId);
+    sendMessage?.(t('Draft a pull request for %s.', shortId));
   };
 
   const nextStep = NEXT_STEP[step];
+  const canAct = !!sendMessage && !isPolling;
 
   return (
     <AutofixDisclosure id={id} shortId={shortId} step={step}>
@@ -163,7 +162,7 @@ function AutofixRefContent({id, shortId, runId, step}: AutofixRefContentProps) {
         <AutofixRefBody isLoading={isLoading} section={section} step={step} />
         {section?.status === 'error' && (
           <Flex>
-            <Button size="sm" onClick={handleRetry} disabled={isPolling}>
+            <Button size="sm" onClick={handleRetry} disabled={!canAct}>
               {t('Try again')}
             </Button>
           </Flex>
@@ -175,7 +174,7 @@ function AutofixRefContent({id, shortId, runId, step}: AutofixRefContentProps) {
                 size="sm"
                 variant="primary"
                 onClick={handleCreatePR}
-                disabled={isPolling}
+                disabled={!canAct}
               >
                 {t('Draft a pull request')}
               </Button>
@@ -185,7 +184,7 @@ function AutofixRefContent({id, shortId, runId, step}: AutofixRefContentProps) {
                 size="sm"
                 variant="primary"
                 onClick={() => handleContinue(nextStep)}
-                disabled={isPolling}
+                disabled={!canAct}
               >
                 {t('Continue: %s', STEP_LABELS[nextStep])}
               </Button>
