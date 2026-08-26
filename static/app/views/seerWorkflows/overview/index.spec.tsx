@@ -3,6 +3,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -21,6 +22,7 @@ import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
@@ -35,7 +37,7 @@ describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
     features: ['seer-night-shift-ui', 'gen-ai-features'],
   });
-  const basePath = `/organizations/${organization.slug}/issues/autofix/overview/`;
+  const basePath = `/organizations/${organization.slug}/issues/autofix/`;
 
   const emptyMilestones = {
     autofix_root_cause: [],
@@ -254,6 +256,51 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Merged/})).not.toBeInTheDocument();
     expect(screen.queryByText('No issues')).not.toBeInTheDocument();
+  });
+
+  it('batches project member fetches into a single request across projects', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '2', slug: 'project-slug'}),
+      ProjectFixture({id: '3', slug: 'other-project'}),
+    ]);
+    const runOne = {
+      ...rootCauseRun,
+      groupId: '2',
+      seerRunId: 'run-1',
+      title: 'First project issue',
+      issue: issueFixture({project: {id: '2', slug: 'project-slug', platform: 'python'}}),
+    };
+    const runTwo = {
+      ...rootCauseRun,
+      groupId: '3',
+      seerRunId: 'run-2',
+      title: 'Second project issue',
+      issue: issueFixture({
+        project: {id: '3', slug: 'other-project', platform: 'python'},
+      }),
+    };
+    mockOverview({base: {autofix_root_cause: [runOne, runTwo]}});
+    const usersMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('First project issue')).toBeInTheDocument();
+    expect(await screen.findByText('Second project issue')).toBeInTheDocument();
+
+    // Both visible projects should be fetched in one batched request, not one
+    // request per project.
+    await waitFor(() =>
+      expect(usersMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/users/`,
+        expect.objectContaining({
+          query: expect.objectContaining({project: expect.arrayContaining(['2', '3'])}),
+        })
+      )
+    );
+    expect(usersMock).toHaveBeenCalledTimes(1);
   });
 
   it('refetches the overview after a card action is dispatched', async () => {
@@ -622,6 +669,36 @@ describe('AutofixOverview', () => {
     // the plan label.
     expect(screen.getAllByText('Root Cause')).toHaveLength(2);
     expect(screen.getAllByText('Plan')).toHaveLength(1);
+  });
+
+  it('shows "0 users" for a card with events but zero affected users', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, issue: issueFixture({count: '1200', userCount: 0})},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('0 users')).toBeInTheDocument();
+    expect(screen.getByText('1.2K events')).toBeInTheDocument();
+  });
+
+  it('omits the users datapoint when the stat is unavailable', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {...rootCauseRun, issue: issueFixture({count: '1200', userCount: null})},
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    expect(screen.queryByText('0 users')).not.toBeInTheDocument();
   });
 
   it('renders inline code in root cause and plan summaries', async () => {
@@ -1751,6 +1828,91 @@ describe('AutofixOverview', () => {
       expect(await screen.findByRole('option', {name: /#squad/})).toBeInTheDocument();
     });
 
+    it('batches team avatar fetches into a single request across cards', async () => {
+      act(() => {
+        TeamStore.loadInitialData([]);
+      });
+      const teamOne: Actor = {type: 'team', id: '8', name: 'team-eight'};
+      const teamTwo: Actor = {type: 'team', id: '9', name: 'team-nine'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {
+              ...rootCauseRun,
+              groupId: '2',
+              seerRunId: 'run-1',
+              title: 'First team issue',
+              issue: issueFixture({assignedTo: teamOne}),
+            },
+            {
+              ...rootCauseRun,
+              groupId: '3',
+              seerRunId: 'run-2',
+              title: 'Second team issue',
+              issue: issueFixture({assignedTo: teamTwo}),
+            },
+          ],
+        },
+      });
+      const teamsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [
+          TeamFixture({id: '8', slug: 'team-eight'}),
+          TeamFixture({id: '9', slug: 'team-nine'}),
+        ],
+      });
+
+      renderPage();
+
+      expect(await screen.findByText('First team issue')).toBeInTheDocument();
+      expect(await screen.findByText('Second team issue')).toBeInTheDocument();
+
+      // Both assignee teams should resolve via one batched request, not one per team.
+      await waitFor(() => {
+        const batched = teamsMock.mock.calls.find(([, options]: any) => {
+          const query = options?.query?.query ?? '';
+          return query.includes('id:8') && query.includes('id:9');
+        });
+        expect(batched).toBeDefined();
+      });
+      expect(teamsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('restores a usable assignee control when an assigned team never resolves', async () => {
+      act(() => {
+        TeamStore.loadInitialData([]);
+      });
+      const deletedTeam: Actor = {type: 'team', id: '404', name: 'gone'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {
+              ...rootCauseRun,
+              groupId: '2',
+              seerRunId: 'run-1',
+              title: 'Orphaned issue',
+              issue: issueFixture({assignedTo: deletedTeam}),
+            },
+          ],
+        },
+      });
+      // The batched request omits the assigned team (deleted / inaccessible),
+      // so it never enters the resolved set.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
+      });
+
+      renderPage();
+
+      expect(await screen.findByText('Orphaned issue')).toBeInTheDocument();
+      // Once the batch settles, the card must fall back to the interactive
+      // assignee control rather than hang on a placeholder.
+      expect(
+        await screen.findByRole('button', {name: 'Modify issue assignee'})
+      ).toBeInTheDocument();
+    });
+
     it('clears the filter and restores all sections', async () => {
       mockOverview({
         base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
@@ -1775,7 +1937,7 @@ describe('AutofixOverview', () => {
       const nextAssignee = UserFixture({id: '42', name: 'Next Assignee'});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
-        body: [MemberFixture({user: nextAssignee})],
+        body: [MemberFixture({user: nextAssignee, projects: ['project-slug']})],
       });
       mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       const assignRequest = MockApiClient.addMockResponse({

@@ -555,3 +555,45 @@ class SentryAppStatsPermission(SentryPermission):
 
         assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
+
+
+class SentryAppWebhookRequestsPermission(SentryPermission):
+    internal_app_scope_map: dict[str, Sequence[str]] = {
+        "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
+    }
+    public_app_scope_map: dict[str, Sequence[str]] = {
+        "GET": ("org:admin", "org:integrations"),
+    }
+    # Token authentication checks scopes before the Sentry App is resolved. The
+    # internal policy is the union of all scopes that can be valid for this endpoint.
+    scope_map = internal_app_scope_map
+
+    def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):
+        if not hasattr(request, "user") or not request.user:
+            return False
+
+        owner_app = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id
+        )
+        if owner_app is None:
+            logger.error(
+                "sentry_app_webhook_requests.permission_org_not_found",
+                extra={
+                    "sentry_app_id": sentry_app.id,
+                    "owner_org_id": sentry_app.owner_id,
+                    "user_id": request.user.id,
+                },
+            )
+            return False
+        self.determine_access(request, owner_app)
+
+        if is_active_superuser(request):
+            return True
+
+        assert request.method, "method must be present in request to get permissions"
+        allowed_scopes = (
+            self.internal_app_scope_map.get(request.method)
+            if sentry_app.is_internal
+            else self.public_app_scope_map.get(request.method)
+        )
+        return ensure_scoped_permission(request, allowed_scopes)

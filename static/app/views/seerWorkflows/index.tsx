@@ -589,7 +589,7 @@ function RunDetail({
             </Flex>
           </Disclosure.Title>
           <Disclosure.Content>
-            <DebugSection row={row} organizationSlug={organizationSlug} />
+            <DebugSection row={row} />
           </Disclosure.Content>
         </Disclosure>
       ) : null}
@@ -646,13 +646,7 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
   );
 }
 
-function DebugSection({
-  row,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  row: WorkflowRow;
-}) {
+function DebugSection({row}: {row: WorkflowRow}) {
   const {
     reasoning_effort,
     intelligence_level,
@@ -717,7 +711,7 @@ function DebugSection({
           {row.errorMessage}
         </Text>
       ) : null}
-      <TriageIssuesDebugAddendum row={row} organizationSlug={organizationSlug} />
+      <TriageIssuesDebugAddendum row={row} />
     </Stack>
   );
 }
@@ -864,13 +858,7 @@ function IssuePullRequestChip({
   );
 }
 
-function TriageIssuesDebugAddendum({
-  row,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  row: WorkflowRow;
-}) {
+function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
   const issues = row.triage?.issues ?? [];
   if (issues.length === 0) {
     return null;
@@ -918,10 +906,7 @@ function TriageIssuesDebugAddendum({
               key={`${issue.id}-explorer`}
               size="xs"
               icon={<IconOpen />}
-              to={{
-                pathname: `/organizations/${organizationSlug}/issues/autofix/`,
-                query: {explorerRunId: issue.seerRunId},
-              }}
+              to={getRelativeExplorerUrl(issue.seerRunId)}
             >
               {t('Explorer')}
             </LinkButton>

@@ -165,6 +165,19 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         # non-unique result
         assert integration_service.get_integration(organization_id=self.organization.id) is None
 
+    def test_get_gcp_service_account_email(self) -> None:
+        service_account_email = "sentry-test@sentry-connectors.iam.gserviceaccount.com"
+        self.create_gcp_service_account(
+            organization=self.organization,
+            service_account_email=service_account_email,
+        )
+
+        assert (
+            integration_service.get_gcp_service_account_email(organization_id=self.organization.id)
+            == service_account_email
+        )
+        assert integration_service.get_gcp_service_account_email(organization_id=-1) is None
+
     def test_update_integrations(self) -> None:
         new_metadata = {"new": "data"}
         integrations = [self.integration1, self.integration3]

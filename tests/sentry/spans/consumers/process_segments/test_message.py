@@ -462,6 +462,23 @@ class TestSpansTask(TestCase):
         assert "has_insights_vitals" in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
+    def test_record_signals_does_not_set_screen_load_from_navigation_segment(self, mock_track):
+        span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            span_op="navigation",
+            attributes={
+                "sentry.op": {"value": "navigation"},
+            },
+        )
+
+        spans = process_segment([span])
+        assert len(spans) == 1
+
+        signals = [args[0][1] for args in mock_track.call_args_list]
+        assert "has_insights_screen_load" not in signals
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
     def test_record_signals_agents_via_gen_ai_op_name(self, mock_track):
         """Test that spans with gen_ai.operation.name attribute trigger agents insight."""
         span = build_mock_span(

@@ -1,7 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {DateTimeProvider} from '@sentry/scraps/datetime';
+
 import {TimeSince} from 'sentry/components/timeSince';
-import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 
 describe('TimeSince', () => {
   const now = new Date();
@@ -61,9 +62,9 @@ describe('TimeSince', () => {
   it('respects timezone in tooltip', async () => {
     const date = new Date('2024-01-15T12:00:00Z');
     render(
-      <TimezoneProvider timezone="America/New_York">
+      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
         <TimeSince date={date} />
-      </TimezoneProvider>
+      </DateTimeProvider>
     );
     const timeElement = screen.getByRole('time');
     await userEvent.hover(timeElement);
