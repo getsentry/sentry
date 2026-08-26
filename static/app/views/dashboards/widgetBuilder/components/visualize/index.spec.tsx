@@ -2253,7 +2253,7 @@ describe('Visualize', () => {
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'alpha_metric'}))[0]!
     );
-    await userEvent.click(await screen.findByRole('option', {name: 'Field'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'field'}));
 
     expect(
       await screen.findByRole('button', {name: 'Column Selection'})
@@ -2269,7 +2269,7 @@ describe('Visualize', () => {
       );
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Field'}));
+    await userEvent.click(screen.getByRole('button', {name: 'field'}));
     await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
 
     await waitFor(() => {

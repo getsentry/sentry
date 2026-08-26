@@ -22,7 +22,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -269,9 +269,10 @@ export function MetricSelector({
 
     return [
       {
-        label: t('Field'),
+        label: tct('[emphasis:field]', {emphasis: <em />}),
+        textValue: t('field'),
         value: FIELD_OPTION_VALUE,
-        metricName: t('Field'),
+        metricName: t('field'),
         metricType: 'counter',
         tooltip: fieldOption.disabledReason,
         trailingItems: () => null,
@@ -410,7 +411,11 @@ export function MetricSelector({
   }
 
   const comboBoxState = useComboBoxState<MetricSelectorOption>({
-    children: (item: MetricSelectorOption) => <Item key={item.value}>{item.label}</Item>,
+    children: (item: MetricSelectorOption) => (
+      <Item key={item.value} textValue={item.textValue}>
+        {item.label}
+      </Item>
+    ),
     items: displayedOptionsWithDisabledState,
     disabledKeys: disabledOptionKeys,
     allowsEmptyCollection: true,
@@ -603,12 +608,16 @@ export function MetricSelector({
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
         disabled={isFetching && !traceMetric.name}
         tooltipProps={{
-          title: fieldOption?.isSelected ? t('Field') : traceMetric.name || t('None'),
+          title: fieldOption?.isSelected ? t('field') : traceMetric.name || t('None'),
         }}
       >
-        <Text ellipsis>
-          {fieldOption?.isSelected ? t('Field') : traceMetric.name || t('None')}
-        </Text>
+        {fieldOption?.isSelected ? (
+          <Text ellipsis italic>
+            {t('field')}
+          </Text>
+        ) : (
+          <Text ellipsis>{traceMetric.name || t('None')}</Text>
+        )}
       </OverlayTrigger.Button>
       {maybePortal(
         <PositionWrapper
