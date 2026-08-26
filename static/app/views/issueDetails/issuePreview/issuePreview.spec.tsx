@@ -8,7 +8,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -95,6 +95,48 @@ describe('IssuePreview', () => {
       'https://github.com/example/repo-name/pull/10'
     );
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+  });
+
+  it('offers a retry instead of a PR when Autofix produced no code changes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          blocks: [
+            ExplorerAutofixBlockFixture(),
+            ExplorerAutofixBlockFixture({
+              id: 'code-changes',
+              artifacts: [],
+              message: {
+                content: "Seer couldn't apply the fix automatically.",
+                metadata: {step: 'code_changes'},
+                role: 'assistant',
+              },
+            }),
+          ],
+        }),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+
+    const {router} = render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(screen.queryByRole('button', {name: 'Create PR'})).not.toBeInTheDocument();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Add context & retry'})
+    );
+
+    expect(router.location.pathname).toBe(
+      `/organizations/${organization.slug}/issues/${group.id}/`
+    );
+    expect(router.location.query).toEqual({
+      seerDrawer: 'true',
+      seerDrawerAction: 'retry_code_changes',
+    });
   });
 
   it('offers to restart Autofix after PR creation when the linked PR is closed', async () => {
