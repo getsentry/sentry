@@ -2257,12 +2257,13 @@ describe('Visualize', () => {
 
     expect(
       await screen.findByRole('button', {name: 'Column Selection'})
-    ).toBeInTheDocument();
+    ).toHaveTextContent('span.description');
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            field: ['', 'sum(value,alpha_metric,counter,none)'],
+            field: ['span.description', 'sum(value,alpha_metric,counter,none)'],
           }),
         }),
         expect.anything()

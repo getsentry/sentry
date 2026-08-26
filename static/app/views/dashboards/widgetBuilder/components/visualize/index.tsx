@@ -889,9 +889,10 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                         disableTransactionWidget || isHeatmapWidget
                                       }
                                       field={field}
-                                      fieldSelector={
+                                      fieldSelector={autoSelectFirstColumn =>
                                         field.kind === FieldValueKind.FIELD ? (
                                           <SelectRow
+                                            autoSelectFirstColumn={autoSelectFirstColumn}
                                             showAggregateSelector={false}
                                             field={field}
                                             index={index}

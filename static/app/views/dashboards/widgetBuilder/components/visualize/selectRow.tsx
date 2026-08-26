@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -62,6 +62,7 @@ interface SelectRowProps {
   index: number;
   isEditing: boolean;
   source: string;
+  autoSelectFirstColumn?: boolean;
   columnFilterMethod?: (
     option: FieldValueOption,
     fieldValue?: QueryFieldValue
@@ -150,12 +151,15 @@ export function SelectRow({
   columnFilterMethod,
   aggregates,
   disabled,
+  autoSelectFirstColumn = false,
   showAggregateSelector = true,
 }: SelectRowProps) {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
   const datasetConfig = getDatasetConfig(state.dataset);
   const columnSelectRef = useRef<HTMLDivElement>(null);
+  const hasAutoSelectedFirstColumn = useRef(false);
+  const hasOpenedColumnSelect = useRef(false);
 
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
   // Derived from state rather than passed as prop - categorical bars use a dedicated action
@@ -341,6 +345,52 @@ export function SelectRow({
     }
     return columnOptionsWithSearched;
   }, [columnValue, columnOptionsWithSearched]);
+
+  useEffect(() => {
+    if (!autoSelectFirstColumn || hasOpenedColumnSelect.current) {
+      return;
+    }
+
+    hasOpenedColumnSelect.current = true;
+    openColumnSelect();
+  }, [autoSelectFirstColumn, openColumnSelect]);
+
+  useEffect(() => {
+    if (
+      !autoSelectFirstColumn ||
+      hasAutoSelectedFirstColumn.current ||
+      field.kind !== FieldValueKind.FIELD ||
+      field.field
+    ) {
+      return;
+    }
+
+    const firstColumn = columnOptions.find(
+      option => !('disabled' in option && option.disabled)
+    );
+    if (!firstColumn) {
+      return;
+    }
+
+    const newFields = cloneDeep(fields);
+    newFields[index] = {kind: FieldValueKind.FIELD, field: firstColumn.value};
+    hasAutoSelectedFirstColumn.current = true;
+    dispatch({
+      type: updateAction,
+      payload: newFields,
+    });
+    setError?.({...error, queries: []});
+  }, [
+    autoSelectFirstColumn,
+    columnOptions,
+    dispatch,
+    error,
+    field,
+    fields,
+    index,
+    setError,
+    updateAction,
+  ]);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>

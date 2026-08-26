@@ -1,4 +1,4 @@
-import {useCallback, type ReactNode} from 'react';
+import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -72,10 +72,11 @@ export function MetricSelectRow({
   disabled: boolean;
   field: QueryFieldValue;
   index: number;
-  fieldSelector?: ReactNode;
+  fieldSelector?: (autoSelectFirstColumn: boolean) => ReactNode;
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
   const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
+  const [shouldAutoSelectFirstColumn, setShouldAutoSelectFirstColumn] = useState(false);
 
   const aggregateSource = getTraceMetricAggregateSource(
     state.displayType,
@@ -181,6 +182,7 @@ export function MetricSelectRow({
       return;
     }
 
+    setShouldAutoSelectFirstColumn(true);
     const newFields = [...(aggregateSource ?? [])];
     newFields[index] = {kind: FieldValueKind.FIELD, field: ''};
     dispatch({
@@ -189,17 +191,24 @@ export function MetricSelectRow({
     });
   }, [aggregateSource, dispatch, index, state.displayType]);
 
+  useEffect(() => {
+    if (field.kind !== FieldValueKind.FIELD) {
+      setShouldAutoSelectFirstColumn(false);
+    }
+  }, [field.kind]);
+
   const hasOnlyAggregate =
     aggregateSource?.filter(
       aggregate => aggregate.kind === 'function' || aggregate.kind === 'equation'
     ).length === 1;
+  const renderedFieldSelector = fieldSelector?.(shouldAutoSelectFirstColumn);
 
   return (
     <Flex gap="0" width="100%" minWidth="0">
       <MetricSelectorWrapper
         isFieldSelected={field.kind === FieldValueKind.FIELD}
         hasTrailingSelector={
-          field.kind === FieldValueKind.FUNCTION || Boolean(fieldSelector)
+          field.kind === FieldValueKind.FUNCTION || Boolean(renderedFieldSelector)
         }
       >
         <MetricSelector
@@ -234,9 +243,9 @@ export function MetricSelectRow({
           />
         </AggregateSelectorWrapper>
       )}
-      {fieldSelector && (
+      {renderedFieldSelector && (
         <Flex flex="1" minWidth="0">
-          {fieldSelector}
+          {renderedFieldSelector}
         </Flex>
       )}
     </Flex>
