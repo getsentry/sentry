@@ -49,12 +49,7 @@ SCHEDULER_SKIPPED_METRIC = "hybridcloud.deliver_webhooks.scheduler.skipped"
 
 
 class MetricCallsMixin:
-    """
-    Reads calls back off a patched `metrics` module.
-
-    Asserting on a metric means the same two lookups every time, and each class
-    here had grown its own copy of them bound to one metric name.
-    """
+    """Read `metrics.incr` / `metrics.distribution` calls off a patched module."""
 
     def tags_for(self, mock_metrics: MagicMock, metric: str) -> list[dict[str, str]]:
         """Tags of each `metrics.incr` call for `metric`, in call order."""
@@ -2110,8 +2105,7 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
         # No dispatch means no claim; the head must stay due for the scheduler.
         webhook.refresh_from_db()
         assert webhook.schedule_for < timezone.now()
-        # An outage arrives at webhook rate. Tagged apart, it cannot drown out a
-        # fault in the counter that is supposed to surface one.
+        # Tagged apart so an outage cannot drown out a real fault.
         assert self.tags_for(mock_metrics, PUSH_TRIGGER_ERROR_METRIC) == [
             {"provider": "github", "reason": "cache_unavailable"}
         ]

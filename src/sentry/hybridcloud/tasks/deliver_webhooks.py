@@ -184,10 +184,9 @@ def _acquire_drain_guard(mailbox_name: str) -> bool | None:
     """
     Take the mailbox's claim guard.
 
-    True when this caller holds it, False when another dispatcher does, and None
-    when the cache is unreachable. An outage is its own answer because the two
-    dispatchers treat it differently: the scheduler claims without serialization,
-    the push trigger stands down and leaves the mailbox to the scheduler.
+    True when this caller holds it, False when another dispatcher does, None when
+    the cache is unreachable — its own answer because the dispatchers diverge
+    there: the scheduler claims unserialized, the push trigger stands down.
     """
     try:
         return bool(cache.add(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL))
@@ -208,10 +207,8 @@ def _is_due(schedule_for: datetime.datetime) -> bool:
     Whether a payload is ready to deliver.
 
     The in-Python mirror of the `schedule_for__lte=timezone.now()` bound that
-    `_claim_mailbox_batch`'s due-gate and the scheduler's select apply in SQL.
-    Only the push trigger short-circuits on it, ahead of attempting a claim, so
-    if the SQL bound moves this has to move with it — otherwise the trigger
-    stands down on heads the claim would have taken.
+    `_claim_mailbox_batch`'s due-gate applies in SQL. The push trigger is the
+    only caller and short-circuits on it ahead of a claim, so move one, move both.
     """
     return schedule_for <= timezone.now()
 
@@ -343,8 +340,8 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
     guard = _acquire_drain_guard(mailbox_name)
     try:
         if guard is None:
-            # Every inbound webhook reaches this line, so a cache outage would
-            # otherwise bury real faults under its own volume.
+            # Every inbound webhook reaches here, so an outage would otherwise
+            # bury real faults under its own volume.
             metrics.incr(
                 "hybridcloud.deliver_webhooks.push_trigger.error",
                 tags={**trigger_tags, "reason": "cache_unavailable"},
@@ -384,8 +381,8 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
             tags={**trigger_tags, "reason": "dispatch_failed"},
         )
     finally:
-        # Only release the guard this caller took. Releasing unconditionally
-        # would delete another dispatcher's.
+        # Only the guard this caller took; releasing unconditionally would
+        # delete another dispatcher's.
         if guard:
             _release_drain_lock(mailbox_name)
 
@@ -472,8 +469,8 @@ def schedule_webhook_delivery() -> None:
                 tags={**skip_tags, "reason": "lock_held"},
             )
             continue
-        # A None guard means the cache is down. Claims still keep dispatchers apart
-        # across cycles, so proceed — just without serialization against push triggers.
+        # A None guard is a cache outage. Claims still keep dispatchers apart across
+        # cycles, so proceed — just unserialized against push triggers.
         try:
             outcome = _claim_and_dispatch(
                 record["id"], mailbox_name, dispatcher=Dispatcher.SCHEDULER

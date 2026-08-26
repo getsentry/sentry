@@ -100,11 +100,9 @@ def assert_webhook_payloads_for_mailbox(
         assert message.request_path == expected_payload["request_path"]
         assert message.request_headers == expected_payload["request_headers"]
         assert message.request_body == expected_payload["request_body"]
-        # Parsers that route to a cell fire a push-triggered drain, which claims
-        # the mailbox head before the request returns. So a queued payload is
-        # either still due (THE_PAST) or claimed no further out than a drain's
-        # own deadline — anything beyond that was deferred, which is the bug
-        # this guards against.
+        # A cell-routed parser fires a push drain, which claims the head before
+        # the request returns. So: due (THE_PAST) or claimed — anything further
+        # out was queued deferred, which is what this catches.
         assert message.schedule_for <= timezone.now() + BATCH_SCHEDULE_OFFSET
         assert message.attempts == 0
 
