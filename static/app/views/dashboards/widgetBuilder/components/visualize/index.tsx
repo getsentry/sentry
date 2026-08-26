@@ -881,38 +881,38 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                               ) : (
                                 <Fragment>
                                   {state.dataset === WidgetType.TRACEMETRICS ? (
-                                    <Fragment>
-                                      <MetricSelectRow
-                                        // Heat maps always count() the metric, so
-                                        // the aggregate function is locked (only the
-                                        // metric is selectable), mirroring Explore.
-                                        disabled={
-                                          disableTransactionWidget || isHeatmapWidget
-                                        }
-                                        field={field}
-                                        index={index}
-                                      />
-                                      {field.kind === FieldValueKind.FIELD && (
-                                        <SelectRow
-                                          showAggregateSelector={false}
-                                          field={field}
-                                          index={index}
-                                          hasColumnParameter={hasColumnParameter}
-                                          columnOptions={columnOptions}
-                                          aggregateOptions={aggregateOptions}
-                                          stringFields={stringFields}
-                                          error={error}
-                                          setError={setError}
-                                          fields={fields}
-                                          source={source}
-                                          isEditing={isEditing}
-                                          fieldOptions={fieldOptions}
-                                          columnFilterMethod={columnFilterMethod}
-                                          aggregates={aggregates}
-                                          disabled={disableTransactionWidget}
-                                        />
-                                      )}
-                                    </Fragment>
+                                    <MetricSelectRow
+                                      // Heat maps always count() the metric, so
+                                      // the aggregate function is locked (only the
+                                      // metric is selectable), mirroring Explore.
+                                      disabled={
+                                        disableTransactionWidget || isHeatmapWidget
+                                      }
+                                      field={field}
+                                      fieldSelector={
+                                        field.kind === FieldValueKind.FIELD ? (
+                                          <SelectRow
+                                            showAggregateSelector={false}
+                                            field={field}
+                                            index={index}
+                                            hasColumnParameter={hasColumnParameter}
+                                            columnOptions={columnOptions}
+                                            aggregateOptions={aggregateOptions}
+                                            stringFields={stringFields}
+                                            error={error}
+                                            setError={setError}
+                                            fields={fields}
+                                            source={source}
+                                            isEditing={isEditing}
+                                            fieldOptions={fieldOptions}
+                                            columnFilterMethod={columnFilterMethod}
+                                            aggregates={aggregates}
+                                            disabled={disableTransactionWidget}
+                                          />
+                                        ) : undefined
+                                      }
+                                      index={index}
+                                    />
                                   ) : (
                                     <SelectRow
                                       field={field}

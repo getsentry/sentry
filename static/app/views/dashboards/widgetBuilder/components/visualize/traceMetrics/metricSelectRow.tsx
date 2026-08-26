@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -66,11 +66,13 @@ function getUpdatedAggregatesMultiMetric(
 export function MetricSelectRow({
   disabled,
   field,
+  fieldSelector,
   index,
 }: {
   disabled: boolean;
   field: QueryFieldValue;
   index: number;
+  fieldSelector?: ReactNode;
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
   const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
@@ -195,7 +197,10 @@ export function MetricSelectRow({
   return (
     <Flex gap="0" width="100%" minWidth="0">
       <MetricSelectorWrapper
-        hasAggregateSelector={field.kind === FieldValueKind.FUNCTION}
+        isFieldSelected={field.kind === FieldValueKind.FIELD}
+        hasTrailingSelector={
+          field.kind === FieldValueKind.FUNCTION || Boolean(fieldSelector)
+        }
       >
         <MetricSelector
           traceMetric={traceMetric}
@@ -229,17 +234,26 @@ export function MetricSelectRow({
           />
         </AggregateSelectorWrapper>
       )}
+      {fieldSelector && (
+        <Flex flex="1" minWidth="0">
+          {fieldSelector}
+        </Flex>
+      )}
     </Flex>
   );
 }
 
-const MetricSelectorWrapper = styled('div')<{hasAggregateSelector: boolean}>`
-  flex: 1 1 auto;
+const MetricSelectorWrapper = styled('div')<{
+  hasTrailingSelector: boolean;
+  isFieldSelected: boolean;
+}>`
+  flex: ${p => (p.isFieldSelected ? '0 0 80px' : '1 1 auto')};
+  max-width: ${p => (p.isFieldSelected ? '80px' : undefined)};
   min-width: 0;
 
   button {
-    border-top-right-radius: ${p => (p.hasAggregateSelector ? 0 : undefined)};
-    border-bottom-right-radius: ${p => (p.hasAggregateSelector ? 0 : undefined)};
+    border-top-right-radius: ${p => (p.hasTrailingSelector ? 0 : undefined)};
+    border-bottom-right-radius: ${p => (p.hasTrailingSelector ? 0 : undefined)};
     width: 100%;
   }
 
