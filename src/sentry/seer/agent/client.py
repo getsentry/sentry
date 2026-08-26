@@ -571,8 +571,8 @@ class SeerAgentClient:
         flush=False: leave the row for the async outbox runner to drain and
         retry. Use for background callers (e.g. night shift).
 
-        force_ce if set forces context engine on/off, force_frontend_code_search
-        likewise for frontend source code search.
+        Explicit agent_run_options override any options derived from organization
+        configuration.
         """
         user_id = (
             self.user.id
@@ -592,13 +592,9 @@ class SeerAgentClient:
             if on_run_created is not None:
                 on_run_created(run)
 
-        # Merging the default options from config with any provided options
-        resolved_agent_run_options = AgentRunOptions(
-            **{
-                **self._build_agent_run_options(),
-                **(agent_run_options or {}),
-            }
-        )
+        resolved_agent_run_options = self._build_agent_run_options()
+        if agent_run_options is not None:
+            resolved_agent_run_options.update(agent_run_options)
 
         return enqueue_seer_run(
             organization=self.organization,
@@ -649,45 +645,42 @@ class SeerAgentClient:
         likewise for frontend source code search.
         """
 
-        is_context_engine_enabled = False
+        opts = AgentRunOptions()
+
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                is_context_engine_enabled = True
+                opts["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
             self.organization,
             actor=self.user,
         ):
-            is_context_engine_enabled = override_ce_enable
+            opts["is_context_engine_enabled"] = override_ce_enable
 
         if force_ce is not None:
-            is_context_engine_enabled = force_ce
+            opts["is_context_engine_enabled"] = force_ce
 
-        enable_frontend_code_search = False
         if features.has(
             "organizations:seer-agent-source-code-search",
             self.organization,
             actor=self.user,
         ):
-            enable_frontend_code_search = True
+            opts["enable_frontend_code_search"] = True
 
         if force_frontend_code_search is not None:
-            enable_frontend_code_search = force_frontend_code_search
+            opts["enable_frontend_code_search"] = force_frontend_code_search
 
-        enable_tool_summary = False
         if features.has(
             "organizations:seer-explorer-thinking-summary",
             self.organization,
             actor=self.user,
         ):
-            enable_tool_summary = True
+            opts["enable_tool_summary"] = True
 
-        embed_widgets = None
         if self._embed_widgets_enabled():
-            embed_widgets = get_embed_widgets(self.organization, self.user)
+            opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
-        enable_streaming = False
         if self.enable_streaming is True or (
             self.enable_streaming is None
             and features.has(
@@ -696,24 +689,16 @@ class SeerAgentClient:
                 actor=self.user,
             )
         ):
-            enable_streaming = True
+            opts["enable_streaming"] = True
 
-        is_agentic_triage_sort = False
         if features.has(
             "organizations:agentic-triage-sort",
             self.organization,
             actor=self.user,
         ):
-            is_agentic_triage_sort = True
+            opts["is_agentic_triage_sort"] = True
 
-        return AgentRunOptions(
-            is_context_engine_enabled=is_context_engine_enabled,
-            enable_frontend_code_search=enable_frontend_code_search,
-            enable_tool_summary=enable_tool_summary,
-            embed_widgets=embed_widgets,
-            enable_streaming=enable_streaming,
-            is_agentic_triage_sort=is_agentic_triage_sort,
-        )
+        return opts
 
     def continue_run(
         self,

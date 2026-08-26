@@ -109,13 +109,13 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
-    enable_frontend_code_search: bool | None
-    is_context_engine_enabled: bool = False
-    enable_coding: bool = False
-    enable_tool_summary: bool = False
-    embed_widgets: list[dict[str, Any]] | None = None
-    enable_streaming: bool = False
-    is_agentic_triage_sort: bool = False
+    enable_frontend_code_search: NotRequired[bool | None]
+    is_context_engine_enabled: NotRequired[bool]
+    enable_coding: NotRequired[bool]
+    enable_tool_summary: NotRequired[bool]
+    embed_widgets: NotRequired[list[dict[str, Any]] | None]
+    enable_streaming: NotRequired[bool]
+    is_agentic_triage_sort: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):
