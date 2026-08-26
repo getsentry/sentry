@@ -1,9 +1,10 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
@@ -16,7 +17,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {TimeSince} from 'sentry/components/timeSince';
-import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconJson} from 'sentry/icons';
@@ -76,7 +76,13 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const location = useLocation();
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
+  const clockDisplay = useClockDisplay();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
+
+  const dateTime = useMemo(
+    () => ({timezone: timezoneOverride, clockDisplay}),
+    [timezoneOverride, clockDisplay]
+  );
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
   const queryClient = useQueryClient();
 
@@ -158,7 +164,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   }, []);
 
   return (
-    <TimezoneProvider timezone={timezoneOverride}>
+    <DateTimeProvider value={dateTime}>
       <DetailLayout>
         <DetectorDetailsHeader detector={detector} />
         <DetailLayout.Body>
@@ -328,7 +334,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
           </DetailLayout.Sidebar>
         </DetailLayout.Body>
       </DetailLayout>
-    </TimezoneProvider>
+    </DateTimeProvider>
   );
 }
 

@@ -420,13 +420,14 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable per-series `_if` filters on Explore / compare / dashboard visualize aggregates
     manager.add("organizations:explore-conditional-aggregates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable viewing trace item details for spans
+    manager.add("organizations:explore-span-item-details", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Show combined resolved "past issues" section instead of separate key errors / performance issues
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show top spans chart in weekly email reports
     manager.add("organizations:weekly-report-spans-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable week-over-week percentage change metric in weekly email reports
-    manager.add("organizations:weekly-report-week-over-week-metric", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Disable issue stream detector notifications for metric issues
