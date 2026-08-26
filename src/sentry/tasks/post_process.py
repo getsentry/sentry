@@ -1556,6 +1556,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    # Only run for new issues.
     if not job["group_state"]["is_new"]:
         return
 
