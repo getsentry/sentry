@@ -7,10 +7,13 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
+import {
+  GROUP_PRIORITY_BARS,
+  GroupPriorityDropdown,
+  type GroupPriorityTrigger,
+} from 'sentry/components/badge/groupPriority';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
-import type {DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {PriorityLevel, type Group} from 'sentry/types/group';
@@ -23,13 +26,7 @@ import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 type GroupDetailsPriorityProps = {
   group: Group;
   onChange?: (priority: PriorityLevel) => void;
-  trigger?: DropdownMenuProps['trigger'];
-};
-
-const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
-  [PriorityLevel.HIGH]: 3,
-  [PriorityLevel.MEDIUM]: 2,
-  [PriorityLevel.LOW]: 1,
+  trigger?: GroupPriorityTrigger;
 };
 
 const getPriorityUpdateSuccessMessage = (priority: PriorityLevel) =>
@@ -114,7 +111,7 @@ export function GroupPriorityCommandPaletteAction({
     <CMDKAction
       display={{
         label: t('Set Priority'),
-        icon: <IconCellSignal bars={PRIORITY_BARS[priority]} />,
+        icon: <IconCellSignal bars={GROUP_PRIORITY_BARS[priority]} />,
       }}
     >
       <CMDKAction

@@ -32,8 +32,24 @@ type GroupPriorityDropdownProps = {
   value: PriorityLevel;
   disabled?: boolean;
   lastEditedBy?: 'system' | AvatarUser;
-  trigger?: DropdownMenuProps['trigger'];
+  trigger?: GroupPriorityTrigger;
 };
+
+type DropdownMenuTriggerProps = Parameters<NonNullable<DropdownMenuProps['trigger']>>[0];
+
+export interface GroupPriorityTriggerContext {
+  ariaLabel: string;
+  bars: 1 | 2 | 3;
+  disabled: boolean;
+  priority: PriorityLevel;
+  tooltip: React.ReactNode;
+}
+
+export type GroupPriorityTrigger = (
+  props: DropdownMenuTriggerProps,
+  isOpen: boolean,
+  context: GroupPriorityTriggerContext
+) => React.ReactNode;
 
 type GroupPriorityBadgeProps = {
   priority: PriorityLevel;
@@ -48,6 +64,12 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 };
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
+
+export const GROUP_PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
+  [PriorityLevel.HIGH]: 3,
+  [PriorityLevel.MEDIUM]: 2,
+  [PriorityLevel.LOW]: 1,
+};
 
 function useLastEditedBy({
   groupId,
@@ -102,8 +124,7 @@ export function GroupPriorityBadge({
   showLabel = true,
   children,
 }: GroupPriorityBadgeProps) {
-  const bars =
-    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+  const bars = GROUP_PRIORITY_BARS[priority];
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
@@ -198,9 +219,19 @@ export function GroupPriorityDropdown({
     () => makeGroupPriorityDropdownOptions({onChange}),
     [onChange]
   );
+  const triggerContext: GroupPriorityTriggerContext = {
+    ariaLabel: t('Modify issue priority'),
+    bars: GROUP_PRIORITY_BARS[value],
+    disabled,
+    priority: value,
+    tooltip: disabled
+      ? t('You cannot manually update the priority of a metric issue.')
+      : t('Update the priority of this issue.'),
+  };
 
   return (
     <DropdownMenu
+      isDisabled={disabled}
       size="sm"
       menuTitle={
         <Flex align="end" justify="between">
@@ -208,25 +239,22 @@ export function GroupPriorityDropdown({
         </Flex>
       }
       minMenuWidth={230}
-      trigger={
-        trigger ??
-        ((triggerProps, isOpen) => (
+      trigger={(triggerProps, isOpen) =>
+        trigger ? (
+          trigger(triggerProps, isOpen, triggerContext)
+        ) : (
           <DropdownButton
             {...triggerProps}
-            aria-label={t('Modify issue priority')}
+            aria-label={triggerContext.ariaLabel}
             size="zero"
-            disabled={disabled}
-            tooltipProps={{
-              title: disabled
-                ? t('You cannot manually update the priority of a metric issue.')
-                : t('Update the priority of this issue.'),
-            }}
+            disabled={triggerContext.disabled}
+            tooltipProps={{title: triggerContext.tooltip}}
           >
             <GroupPriorityBadge showLabel={false} priority={value}>
               <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
             </GroupPriorityBadge>
           </DropdownButton>
-        ))
+        )
       }
       items={options}
       menuFooter={

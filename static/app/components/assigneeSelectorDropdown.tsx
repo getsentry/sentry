@@ -64,9 +64,8 @@ export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
 };
 
 export interface AssigneeSelectorTriggerContext {
-  assignedTo: Actor | null | undefined;
-  avatar: React.ReactNode;
-  suggestedActors: SuggestedAssignee[];
+  loading: boolean;
+  renderAvatar: () => React.ReactNode;
 }
 
 export type AssigneeSelectorTrigger = (
@@ -492,16 +491,17 @@ export function AssigneeSelectorDropdown({
   };
 
   const makeTrigger = (props: TriggerProps, isOpen: boolean) => {
-    const suggestedActors = getSuggestedAssignees();
-    const avatarElement = (
-      <AssigneeAvatar assignedTo={group.assignedTo} suggestedActors={suggestedActors} />
+    const renderAvatar = () => (
+      <AssigneeAvatar
+        assignedTo={group.assignedTo}
+        suggestedActors={getSuggestedAssignees()}
+      />
     );
 
     if (trigger) {
       return trigger(props, isOpen, {
-        assignedTo: group.assignedTo,
-        avatar: avatarElement,
-        suggestedActors,
+        loading,
+        renderAvatar,
       });
     }
 
@@ -517,7 +517,7 @@ export function AssigneeSelectorDropdown({
             data-test-id="assignee-selector"
             {...props}
           >
-            {avatarElement}
+            {renderAvatar()}
           </AssigneeTrigger>
         )}
       </Fragment>

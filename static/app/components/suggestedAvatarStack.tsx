@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {ActorAvatar, type ActorAvatarProps} from '@sentry/scraps/avatar';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Actor} from 'sentry/types/core';
 
@@ -20,43 +21,48 @@ export function SuggestedAvatarStack({
   tooltip,
   tooltipOptions,
   reverse = true,
+  size = 24,
   suggested = true,
   ...props
 }: SuggestedAvatarStackProps) {
-  const [firstSuggestion, ...suggestedOwners] = owners;
-  const numAvatars = Math.min(owners.length, MAX_SUGGESTIONS);
+  const visibleOwners = owners
+    .slice(0, MAX_SUGGESTIONS)
+    .map((owner, index) => ({index, owner}));
+  const orderedOwners = reverse ? visibleOwners : visibleOwners.toReversed();
+
+  if (orderedOwners.length === 0) {
+    return null;
+  }
+
   return (
-    <AvatarStack reverse={reverse} data-test-id="suggested-avatar-stack">
-      {suggestedOwners.slice(0, numAvatars - 1).map((owner, i) => (
-        <Avatar
-          actor={owner}
-          hasTooltip={false}
-          {...props}
-          key={i}
-          index={i}
-          reverse={reverse}
-          suggested={suggested}
-        />
-      ))}
-      <Avatar
-        actor={firstSuggestion!}
-        tooltip={tooltip}
-        tooltipOptions={{...tooltipOptions, skipWrapper: true}}
-        {...props}
-        index={numAvatars - 1}
-        reverse={reverse}
-        suggested={suggested}
-      />
-    </AvatarStack>
+    <Tooltip title={tooltip} {...tooltipOptions} skipWrapper>
+      <AvatarStack overlap={size * 0.6} data-test-id="suggested-avatar-stack">
+        {orderedOwners.map(({index, owner}) => (
+          <Avatar
+            actor={owner}
+            hasTooltip={false}
+            {...props}
+            key={`${owner.type}:${owner.id}:${index}`}
+            size={size}
+            stackOrder={visibleOwners.length - index}
+            suggested={suggested}
+          />
+        ))}
+      </AvatarStack>
+    </Tooltip>
   );
 }
 
-const AvatarStack = styled('div')<{reverse: boolean}>`
-  display: flex;
-  align-content: center;
-  ${p => p.reverse && 'flex-direction: row-reverse;'}
+const AvatarStack = styled('div')<{overlap: number}>`
+  align-items: center;
+  display: inline-flex;
+
+  > * + * {
+    margin-inline-start: -${p => p.overlap}px;
+  }
 `;
 
-const Avatar = styled(ActorAvatar)<{index: number; reverse: boolean}>`
-  transform: translateX(${p => (p.reverse ? 60 * p.index : 60 * -p.index)}%);
+const Avatar = styled(ActorAvatar)<{stackOrder: number}>`
+  position: relative;
+  z-index: ${p => p.stackOrder};
 `;
