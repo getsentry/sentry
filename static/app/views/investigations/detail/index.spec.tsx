@@ -457,7 +457,7 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('shows running and dependency-waiting states for auto-run cells', async () => {
+  it('shows active auto-run cells, hides waiting cells, and opens agent steps', async () => {
     const investigation = InvestigationDetailFixture({
       template: {key: 'breached_metric', version: 1},
     });
@@ -512,12 +512,32 @@ describe('Investigation detail', () => {
         error: null,
       },
     });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-2/executions/execution-2/`,
+      body: {
+        id: 'execution-2',
+        status: 'pending',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
 
     renderView();
 
-    expect(await screen.findAllByText('Seer is working on this cell…')).toHaveLength(2);
-    expect(screen.getByText('Waiting for previous cells…')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Ask Seer about Synthesis'})).toBeDisabled();
+    expect(await screen.findAllByRole('button', {name: 'Close Seer panel'})).toHaveLength(
+      2
+    );
+    expect(screen.getByTestId('investigation-cell-block-1')).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-cell-block-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-cell-block-3')).not.toBeInTheDocument();
+    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   });
 
   it('keeps polling while an auto-run cell is waiting to start', async () => {
@@ -546,7 +566,8 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    expect(await screen.findByText('Waiting for previous cells…')).toBeInTheDocument();
+    await screen.findByText('Initial notes');
+    expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {timeout: 3000});
   });
 
@@ -622,10 +643,13 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    expect(
-      await screen.findByText('Cancelled because a previous cell failed.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Waiting for previous cells…')).toBeInTheDocument();
+    expect(await screen.findByTestId('investigation-cell-block-2')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.queryByTestId('investigation-cell-block-4')).not.toBeInTheDocument();
+    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('investigation-execution-failed')
     ).not.toBeInTheDocument();
@@ -742,6 +766,44 @@ describe('Investigation detail', () => {
     await userEvent.click(screen.getByTestId('query-cell-title'));
     expect(screen.queryByText('820ms')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Toggle Database latency'}));
+    expect(screen.getByText('820ms')).toBeVisible();
+  });
+
+  it('starts generated query evidence collapsed', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        config: {autoRun: true},
+        outputStatus: 'completed',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown: '| p95 |\n| --- |\n| 820ms |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+        currentExecution: {
+          id: 'execution-completed',
+          status: 'completed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: null,
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('820ms')).not.toBeInTheDocument();
+
+    await userEvent.click(toggle);
+
     expect(screen.getByText('820ms')).toBeVisible();
   });
 
@@ -1343,9 +1405,6 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
-    );
     expect(
       await screen.findByText('Which environment should I inspect?')
     ).toBeInTheDocument();

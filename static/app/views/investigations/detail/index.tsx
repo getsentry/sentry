@@ -41,6 +41,7 @@ import {
 } from 'sentry/views/investigations/api';
 import {
   InvestigationCell,
+  shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
@@ -263,6 +264,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const blocks = investigation.blocks ?? [];
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
+  const visibleSummaryBlock =
+    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
+      ? summaryBlock
+      : undefined;
+  const visibleNotebookCells = notebookCells.filter(block =>
+    shouldDisplayInvestigationBlock(block, blocks)
+  );
 
   async function handleAddBlock({
     kind,
@@ -400,16 +408,16 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 summaryDescription={investigation.summaryDescription}
               />
 
-              {summaryBlock ? (
+              {visibleSummaryBlock ? (
                 <InvestigationCell
-                  block={summaryBlock}
+                  block={visibleSummaryBlock}
                   canRun={investigation.status === 'active'}
                   investigation={investigation}
                 />
               ) : null}
 
               <Stack gap="xl">
-                {notebookCells.map(block => (
+                {visibleNotebookCells.map(block => (
                   <InvestigationCell
                     key={block.id}
                     block={block}

@@ -62,9 +62,15 @@ export function InvestigationCell({
   investigation,
 }: InvestigationCellProps) {
   const organizationSlug = useOrganization().slug;
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [traceExecutionId, setTraceExecutionId] = useState<string | null>(null);
-  const [showPrompt, setShowPrompt] = useState(true);
+  const activeExecutionId = isExecutionActive(block.currentExecution?.status)
+    ? (block.currentExecution?.id ?? null)
+    : null;
+  const autoOpenedExecutionId = useRef(activeExecutionId);
+  const [panelOpen, setPanelOpen] = useState(Boolean(activeExecutionId));
+  const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
+    activeExecutionId
+  );
+  const [showPrompt, setShowPrompt] = useState(!activeExecutionId);
   const [prompt, setPrompt] = useState(() =>
     block.outputStatus === 'notRun' ? block.generationPrompt : ''
   );
@@ -108,6 +114,16 @@ export function InvestigationCell({
     {onError: () => addErrorMessage(t('Unable to delete this cell.'))}
   );
 
+  useEffect(() => {
+    if (!activeExecutionId || autoOpenedExecutionId.current === activeExecutionId) {
+      return;
+    }
+    autoOpenedExecutionId.current = activeExecutionId;
+    setPanelOpen(true);
+    setTraceExecutionId(activeExecutionId);
+    setShowPrompt(false);
+  }, [activeExecutionId]);
+
   function openPanel() {
     setPanelOpen(true);
     if (block.currentExecution && isExecutionActive(block.currentExecution.status)) {
@@ -128,6 +144,7 @@ export function InvestigationCell({
       setPanelOpen(true);
       setTraceExecutionId(execution.id);
       setShowPrompt(false);
+      autoOpenedExecutionId.current = execution.id;
     } catch {
       // The mutation owns user-facing error handling.
     }
@@ -292,7 +309,7 @@ function QueryResult({
   block: InvestigationBlock;
   progressState: CellProgressState;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(block.config.autoRun !== true);
   const output = getQueryOutput(block.output);
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
@@ -447,6 +464,13 @@ function getCellProgressState(
     return 'blockedByCancellation';
   }
   return 'waiting';
+}
+
+export function shouldDisplayInvestigationBlock(
+  block: InvestigationBlock,
+  blocks: InvestigationBlock[]
+) {
+  return getCellProgressState(block, blocks) !== 'waiting';
 }
 
 export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
