@@ -38,6 +38,7 @@ import type {
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
@@ -236,20 +237,18 @@ function OverviewAction({
     return (
       <Stack align="end" gap="xs">
         <ButtonBar>
-          <Tooltip title={REVIEW_PR_META.description} skipWrapper>
-            <LinkButton
-              size="sm"
-              variant="primary"
-              href={reviewPullRequest.url}
-              external
-              onClick={() => trackPrClicked('review_pr', reviewPullRequest)}
-            >
-              <Flex as="span" gap="xs" align="center">
-                {t('Review PR #%s', reviewPullRequest.number)}
-                <IconOpen size="xs" />
-              </Flex>
-            </LinkButton>
-          </Tooltip>
+          <LinkButton
+            size="sm"
+            variant="primary"
+            href={reviewPullRequest.url}
+            external
+            onClick={() => trackPrClicked('review_pr', reviewPullRequest)}
+          >
+            <Flex as="span" gap="xs" align="center">
+              {t('Review PR #%s', reviewPullRequest.number)}
+              <IconOpen size="xs" />
+            </Flex>
+          </LinkButton>
           <OpenSeerButton run={run} section={sectionKey} size="sm" variant="primary" />
         </ButtonBar>
         {enrichmentPending ? (
@@ -267,38 +266,40 @@ function OverviewAction({
               </Tag>
             )}
             {checksStatusTag && (
-              <Tooltip
-                disabled={failedChecks.length === 0}
-                title={
-                  <Stack gap="xs" align="start">
-                    <Text size="sm" bold align="left">
-                      {t('Failing checks:')}
-                    </Text>
-                    <Stack gap="2xs" align="start">
-                      {failedChecks.map((check, index) => (
-                        <Flex key={`${check.name}-${index}`} gap="xs" align="start">
-                          <Text size="sm" variant="muted">
-                            •
-                          </Text>
-                          <Text size="sm" align="left">
-                            {check.url ? (
-                              <ExternalLink href={check.url}>{check.name}</ExternalLink>
-                            ) : (
-                              check.name
-                            )}
-                          </Text>
-                        </Flex>
-                      ))}
+              <HoverOverlayGroupProvider>
+                <Tooltip
+                  disabled={failedChecks.length === 0}
+                  title={
+                    <Stack gap="xs" align="start">
+                      <Text size="sm" bold align="left">
+                        {t('Failing checks:')}
+                      </Text>
+                      <Stack gap="2xs" align="start">
+                        {failedChecks.map((check, index) => (
+                          <Flex key={`${check.name}-${index}`} gap="xs" align="start">
+                            <Text size="sm" variant="muted">
+                              •
+                            </Text>
+                            <Text size="sm" align="left">
+                              {check.url ? (
+                                <ExternalLink href={check.url}>{check.name}</ExternalLink>
+                              ) : (
+                                check.name
+                              )}
+                            </Text>
+                          </Flex>
+                        ))}
+                      </Stack>
                     </Stack>
-                  </Stack>
-                }
-              >
-                <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
-                  {failedChecks.length > 0
-                    ? tn('%s Check Failing', '%s Checks Failing', failedChecks.length)
-                    : checksStatusTag.label}
-                </Tag>
-              </Tooltip>
+                  }
+                >
+                  <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
+                    {failedChecks.length > 0
+                      ? tn('%s Check Failing', '%s Checks Failing', failedChecks.length)
+                      : checksStatusTag.label}
+                  </Tag>
+                </Tooltip>
+              </HoverOverlayGroupProvider>
             )}
           </Fragment>
         )}
