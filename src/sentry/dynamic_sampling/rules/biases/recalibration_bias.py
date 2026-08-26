@@ -1,3 +1,5 @@
+from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
+from sentry.dynamic_sampling.per_org.gate import is_recalibration_served_by_per_org
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
@@ -23,6 +25,10 @@ class RecalibrationBias(Bias):
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         if is_project_mode_sampling(project.organization):
             adjusted_factor = get_adjusted_project_factor(project.id, source="serving")
+        elif is_recalibration_served_by_per_org(project.organization.id):
+            adjusted_factor = per_org_recalibration_cache.get_adjusted_factor(
+                project.organization.id, source="serving"
+            )
         else:
             adjusted_factor = get_adjusted_factor(project.organization.id, source="serving")
 

@@ -9,6 +9,7 @@ import pytest
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org.cache import RecalibrationSeed
 from sentry.dynamic_sampling.per_org.configuration import (
     AutomaticDynamicSamplingConfiguration,
     BaseDynamicSamplingConfiguration,
@@ -170,7 +171,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             {
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: None,
-                GET_FACTOR: 1.4,
+                GET_FACTOR: (1.4, RecalibrationSeed.LEGACY),
                 SET_FACTOR: DEFAULT,
                 CALCULATE_FACTOR: 0.7,
             }
@@ -182,7 +183,8 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.results.recalibration_factor == 0.7
         assert configuration.results.previous_recalibration_factor == 1.4
-        mocks[GET_FACTOR].assert_called_once_with(org.id, source="task")
+        assert configuration.results.recalibration_seed == RecalibrationSeed.LEGACY
+        mocks[GET_FACTOR].assert_called_once_with(org.id)
         mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5)
         mocks[SET_FACTOR].assert_not_called()
 
@@ -194,7 +196,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             {
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: None,
-                GET_FACTOR: 1.0,
+                GET_FACTOR: (1.0, RecalibrationSeed.LEGACY),
             }
         ):
             configuration = get_configuration(org.id)
@@ -214,7 +216,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             {
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: None,
-                GET_FACTOR: 1.0,
+                GET_FACTOR: (1.0, RecalibrationSeed.LEGACY),
             }
         ):
             configuration = get_configuration(org.id)
@@ -237,7 +239,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             {
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: None,
-                GET_FACTOR: 1.0,
+                GET_FACTOR: (1.0, RecalibrationSeed.LEGACY),
                 CALCULATE_FACTOR: None,
             }
         ):
@@ -275,7 +277,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             self.feature("organizations:dynamic-sampling-custom"),
             patch_configuration(
                 {
-                    GET_FACTOR: 1.2,
+                    GET_FACTOR: (1.2, RecalibrationSeed.LEGACY),
                     CALCULATE_FACTOR: 0.9,
                 }
             ) as mocks,

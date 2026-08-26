@@ -2417,6 +2417,24 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Organizations whose recalibration factor serving takes from the per-org pipeline
+# instead of the legacy one. For those orgs the per-org pipeline also steps from its own
+# factor rather than the legacy one, which closes its feedback loop. Use the id list for
+# a handful of canary orgs and the rate for the wider rollout; an org is switched over
+# when either includes it. The per-org killswitch overrides both.
+register(
+    "dynamic-sampling.per_org.recalibration-serving-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "dynamic-sampling.per_org.recalibration-serving-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
 # sample rate comparison. Empty disables the comparison entirely.
 register(

@@ -21,6 +21,10 @@ SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION = (
 SAMPLE_RATES_SUMMARY_LOG_ROLLOUT_RATE_OPTION = (
     "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate"
 )
+RECALIBRATION_SERVING_ORG_IDS_OPTION = "dynamic-sampling.per_org.recalibration-serving-org-ids"
+RECALIBRATION_SERVING_ROLLOUT_RATE_OPTION = (
+    "dynamic-sampling.per_org.recalibration-serving-rollout-rate"
+)
 
 
 def is_killswitch_engaged() -> bool:
@@ -45,6 +49,21 @@ def is_org_in_recalibration_rollout(org_id: int) -> bool:
 
 def is_org_in_sample_rates_summary_log_rollout(org_id: int) -> bool:
     return in_rollout_group(SAMPLE_RATES_SUMMARY_LOG_ROLLOUT_RATE_OPTION, org_id)
+
+
+def is_recalibration_served_by_per_org(org_id: int) -> bool:
+    """Whether serving applies the recalibration factor the per-org pipeline computes.
+
+    Off, serving applies the legacy factor and the per-org pipeline only shadows it. On,
+    the per-org factor drives sampling and the pipeline steps from its own factor. The
+    killswitch stops the pipeline, so it also hands the org back to the legacy factor
+    rather than leaving it on one that is no longer updated.
+    """
+    if is_killswitch_engaged():
+        return False
+    return org_id in _org_ids(RECALIBRATION_SERVING_ORG_IDS_OPTION) or in_rollout_group(
+        RECALIBRATION_SERVING_ROLLOUT_RATE_OPTION, org_id
+    )
 
 
 def metrics_sample_rate() -> float:
@@ -76,8 +95,12 @@ def transaction_volume_debug_project_ids() -> set[int]:
 
 
 def sliding_window_comparison_org_ids() -> set[int]:
+    return _org_ids(SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION)
+
+
+def _org_ids(option: str) -> set[int]:
     return {
         int(org_id)
-        for org_id in options.get(SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION)
+        for org_id in options.get(option)
         if isinstance(org_id, int) or (isinstance(org_id, str) and org_id.isdigit())
     }

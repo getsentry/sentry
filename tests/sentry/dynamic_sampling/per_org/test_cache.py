@@ -6,9 +6,12 @@ import orjson
 
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.cache import (
+    RecalibrationSeed,
+    generate_recalibrate_orgs_cache_key,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
+    get_previous_recalibration_factor,
     write_caches,
 )
 from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
@@ -24,6 +27,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     DELETE_FACTOR,
     SET_FACTOR,
@@ -114,6 +118,44 @@ class LegacyCacheReadersTest(TestCase):
         self.redis.set(cache_key, 2.5)
 
         assert get_cached_recalibration_factor(org.id) == 2.5
+
+    def test_get_previous_recalibration_factor_steps_from_the_legacy_factor(self) -> None:
+        org = self.create_organization()
+        legacy_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        per_org_key = generate_recalibrate_orgs_cache_key(org.id)
+        self.addCleanup(self.redis.delete, legacy_key, per_org_key)
+        self.redis.set(legacy_key, 2.5)
+        self.redis.set(per_org_key, 7.0)
+
+        # While serving applies the legacy factor, the per-org one is applied by nothing, so
+        # the step starts from the legacy factor no matter what the per-org cache holds.
+        assert get_previous_recalibration_factor(org.id) == (2.5, RecalibrationSeed.LEGACY)
+
+    def test_get_previous_recalibration_factor_steps_from_its_own_factor_once_served(
+        self,
+    ) -> None:
+        org = self.create_organization()
+        legacy_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        per_org_key = generate_recalibrate_orgs_cache_key(org.id)
+        self.addCleanup(self.redis.delete, legacy_key, per_org_key)
+        self.redis.set(legacy_key, 2.5)
+        self.redis.set(per_org_key, 7.0)
+
+        with override_options({"dynamic-sampling.per_org.recalibration-serving-org-ids": [org.id]}):
+            assert get_previous_recalibration_factor(org.id) == (7.0, RecalibrationSeed.PER_ORG)
+
+    def test_get_previous_recalibration_factor_starts_served_orgs_at_the_identity(self) -> None:
+        org = self.create_organization()
+        legacy_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        per_org_key = generate_recalibrate_orgs_cache_key(org.id)
+        self.addCleanup(self.redis.delete, legacy_key, per_org_key)
+        self.redis.set(legacy_key, 2.5)
+        self.redis.delete(per_org_key)
+
+        # A served org whose own cache is empty starts at 1.0, like the legacy pipeline
+        # does, rather than falling back to a legacy factor serving no longer applies.
+        with override_options({"dynamic-sampling.per_org.recalibration-serving-org-ids": [org.id]}):
+            assert get_previous_recalibration_factor(org.id) == (1.0, RecalibrationSeed.PER_ORG)
 
     def test_get_cached_recalibration_factor_reports_a_cache_miss_as_the_identity(self) -> None:
         org = self.create_organization()

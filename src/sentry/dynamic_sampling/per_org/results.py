@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org.cache import RecalibrationSeed
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.models.project import Project
@@ -27,4 +28,5 @@ class DynamicSamplingResults:
     projects_to_balance: list[Project] = field(default_factory=list)
     rebalanced_transactions: TransactionSampleRates = field(default_factory=dict)
     previous_recalibration_factor: float = 1.0
+    recalibration_seed: RecalibrationSeed | None = None
     recalibration_factor: float | None = None

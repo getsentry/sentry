@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 import orjson
 import sentry_sdk
 
+from sentry.dynamic_sampling.per_org.gate import is_recalibration_served_by_per_org
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
 from sentry.dynamic_sampling.tasks.constants import (
@@ -31,6 +33,13 @@ if TYPE_CHECKING:
 PER_ORG_RECALIBRATION_FACTOR_CACHE_KEY = "ds::per_org:o:{org_id}:recalibration_factor"
 
 CachedTransactionSampleRates = dict[int, tuple[dict[str, float], float] | None]
+
+
+class RecalibrationSeed(StrEnum):
+    """Which pipeline's factor a recalibration step started from."""
+
+    LEGACY = "legacy"
+    PER_ORG = "per_org"
 
 
 def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
@@ -144,3 +153,26 @@ def get_cached_rebalanced_transaction_sample_rates(
 
 def get_cached_recalibration_factor(org_id: int) -> float:
     return legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_comparison")
+
+
+def get_previous_recalibration_factor(org_id: int) -> tuple[float, RecalibrationSeed]:
+    """The factor the org's next recalibration step continues from.
+
+    The step multiplies the previous factor by how far the measured rate missed the
+    target, which only converges when the previous factor is the one that produced the
+    measurement. While the per-org pipeline shadows the legacy one, its own stored factor
+    is applied by nothing, so stepping from it would compound every earlier cycle's
+    measurement difference into a value that never corrects itself. Stepping from the
+    legacy factor instead makes each shadow pass one step from the applied state, which
+    is also what the comparison log's same-seed fields measure.
+
+    Once serving applies the per-org factor, that is the applied state and the legacy
+    one stops mattering, so the step continues from the per-org cache. The shadow passes
+    have kept that cache warm, so the switch does not restart the factor at 1.0.
+    """
+    if is_recalibration_served_by_per_org(org_id):
+        return get_adjusted_factor(org_id, source="task"), RecalibrationSeed.PER_ORG
+    return (
+        legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_seed"),
+        RecalibrationSeed.LEGACY,
+    )

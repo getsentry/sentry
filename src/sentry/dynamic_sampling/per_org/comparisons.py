@@ -289,6 +289,7 @@ def compare_recalibration_factor_with_cache(config: BaseDynamicSamplingConfigura
             "generic_metrics_factor": cached_factor,
             "eap_factor": calculated_factor,
             "previous_eap_factor": results.previous_recalibration_factor,
+            "recalibration_seed": results.recalibration_seed,
             "total_transactions": None if org_volume is None else org_volume.total,
             "stored_segments": None if org_volume is None else org_volume.indexed,
             "eap_effective_sample_rate": get_effective_sample_rate(org_volume),

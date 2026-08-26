@@ -117,8 +117,8 @@ class BaseDynamicSamplingConfiguration(ABC):
         if not self.projects or self.get_sample_rate() is None:
             return
 
-        results.previous_recalibration_factor = per_org_recalibration_cache.get_adjusted_factor(
-            self.organization.id, source="task"
+        results.previous_recalibration_factor, results.recalibration_seed = (
+            per_org_recalibration_cache.get_previous_recalibration_factor(self.organization.id)
         )
         results.recalibration_factor = calculate_recalibration_factor(
             org_volume,
