@@ -136,7 +136,15 @@ describe('TraceViewMetricsSection', () => {
         <TraceViewMetricsSection />
         <CurrentMetricsQuery />
       </TraceViewMetricsProviderWrapper>,
-      {organization}
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
+            query: {query: 'unrelated:value'},
+          },
+        },
+      }
     );
 
     const search = await screen.findByRole('combobox', {name: 'Add a search term'});
@@ -159,7 +167,8 @@ describe('TraceViewMetricsSection', () => {
     expect(currentMetricsQuery).toContain('duration');
     expect(currentMetricsQuery).toContain('distribution');
     expect(currentMetricsQuery).not.toContain('sentry.metric.source');
-    expect(router.location.query.query).toBe(currentMetricsQuery);
+    expect(router.location.query.metricsQuery).toBe(currentMetricsQuery);
+    expect(router.location.query.query).toBe('unrelated:value');
   });
 
   it('preserves the initial metrics query from the URL', async () => {
@@ -169,7 +178,7 @@ describe('TraceViewMetricsSection', () => {
       method: 'GET',
       body: [],
     });
-    render(
+    const {router} = render(
       <TraceViewMetricsProviderWrapper traceSlug={traceId}>
         <TraceViewMetricsSection />
         <CurrentMetricsQuery />
@@ -179,7 +188,10 @@ describe('TraceViewMetricsSection', () => {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
-            query: {query: 'metric.name:duration'},
+            query: {
+              metricsQuery: 'metric.name:duration',
+              query: 'unrelated:value',
+            },
           },
         },
       }
@@ -196,6 +208,7 @@ describe('TraceViewMetricsSection', () => {
     expect(eventsRequest.mock.calls.at(-1)?.[1]?.query?.query).toBe(
       `( !has:sentry.metric.source OR !sentry.metric.source:span ) AND ( metric.name:duration ) trace:[${traceId}]`
     );
+    expect(router.location.query.query).toBe('unrelated:value');
   });
 
   it('scopes attribute and value autocomplete requests to the trace', async () => {

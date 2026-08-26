@@ -42,6 +42,8 @@ type UseTraceViewMetricsDataProps = {
   traceSlug: string;
 };
 
+const TRACE_METRICS_QUERY_KEY = 'metricsQuery';
+
 export function TraceViewMetricsProviderWrapper({
   children,
   traceSlug,
@@ -49,12 +51,13 @@ export function TraceViewMetricsProviderWrapper({
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = useTraceQueryParams();
+  const metricsQuery = decodeScalar(location.query[TRACE_METRICS_QUERY_KEY], '');
   const metricsQueryParams = useMemo(
     () =>
       new ReadableQueryParams({
         extrapolate: true,
         mode: Mode.SAMPLES,
-        query: decodeScalar(location.query.query, ''),
+        query: metricsQuery,
         cursor: '',
         fields: ['id', 'timestamp'],
         sortBys: [{field: 'timestamp', kind: 'desc'}],
@@ -62,12 +65,12 @@ export function TraceViewMetricsProviderWrapper({
         aggregateFields: [],
         aggregateSortBys: [],
       }),
-    [location.query.query]
+    [metricsQuery]
   );
   const setMetricsQueryParams = useCallback(
     (newQueryParams: ReadableQueryParams) => {
       const target = {...location, query: {...location.query}};
-      updateNullableLocation(target, 'query', newQueryParams.query);
+      updateNullableLocation(target, TRACE_METRICS_QUERY_KEY, newQueryParams.query);
       navigateIfQueryChanged(navigate, location, target);
     },
     [location, navigate]
