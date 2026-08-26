@@ -16,6 +16,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   assignDefaultLayout,
+  assignTempId,
   getInitialColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
 import {enforceLayoutMinHeight} from 'sentry/views/dashboards/utils/enforceLayoutMinHeight';
@@ -75,7 +76,10 @@ function ImportDashboardFromFileModal({
       const newDashboard = await createDashboard(api, organization.slug, {
         ...dashboard,
         widgets: enforceLayoutMinHeight(
-          assignDefaultLayout(dashboard.widgets, getInitialColumnDepths())
+          assignDefaultLayout(
+            dashboard.widgets.map(assignTempId),
+            getInitialColumnDepths()
+          )
         ),
       });
 
