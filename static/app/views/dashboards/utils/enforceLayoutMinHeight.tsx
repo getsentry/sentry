@@ -1,3 +1,4 @@
+import {defined} from 'sentry/utils/defined';
 import {
   generateWidgetsAfterCompaction,
   getDefaultWidgetHeight,
@@ -10,7 +11,7 @@ import type {Widget} from 'sentry/views/dashboards/types';
 export function enforceLayoutMinHeight(widgets: Widget[]): Widget[] {
   for (const widget of widgets) {
     const minWidgetHeight = getDefaultWidgetHeight(widget.displayType);
-    if (widget.layout?.h && widget.layout.h < minWidgetHeight) {
+    if (defined(widget.layout?.h) && widget.layout.h < minWidgetHeight) {
       widget.layout.h = minWidgetHeight;
     }
   }
