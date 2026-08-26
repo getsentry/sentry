@@ -40,6 +40,8 @@ export const useOpenSeerDrawer = ({
     openDrawer(() => <SeerDrawer group={group} project={project} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
+      drawerWidth: '80%',
+      drawerMaxWidth: '1600px',
       resizable: true,
       mode: 'passive',
       shouldCloseOnLocationChange: nextLocation => {

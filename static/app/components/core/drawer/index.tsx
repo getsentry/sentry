@@ -33,6 +33,10 @@ export interface DrawerOptions {
    */
   drawerKey?: string;
   /**
+   * Custom max width for the drawer, as any CSS length
+   */
+  drawerMaxWidth?: string;
+  /**
    * Custom width for the drawer
    */
   drawerWidth?: string;
@@ -231,6 +235,7 @@ export function GlobalDrawer({children}: any) {
               ref={panelRef}
               mode={currentDrawerConfig.options.mode ?? 'blocking'}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+              drawerMaxWidth={currentDrawerConfig?.options?.drawerMaxWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
               resizable={currentDrawerConfig?.options?.resizable}
             >
