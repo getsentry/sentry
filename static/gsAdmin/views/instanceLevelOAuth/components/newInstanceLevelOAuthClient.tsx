@@ -1,7 +1,12 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  ScrapsForm,
+  toFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
@@ -95,16 +100,9 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
         />
       ));
     },
-    onError: error => {
-      if (error instanceof RequestError && setFieldErrors(form, error)) {
-        return;
-      }
-      addErrorMessage('Unable to create OAuth client.');
-    },
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       name: '',
       redirectUris: '',
@@ -113,19 +111,32 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
       privacyUrl: '',
       termsUrl: '',
     } satisfies ClientFormValues,
-    validators: {onDynamic: clientSchema},
-    onSubmit: ({value}) =>
-      mutation.mutateAsync(clientSchema.parse(value)).catch(() => {}),
+    validators: defaultFormValidators(clientSchema),
+    onSubmit: async ({value, createValidationError}) => {
+      try {
+        await mutation.mutateAsync(clientSchema.parse(value));
+        return;
+      } catch (error) {
+        if (error instanceof RequestError) {
+          const fieldErrors = toFieldErrors({value, createValidationError}, error);
+          if (fieldErrors) {
+            return fieldErrors;
+          }
+        }
+        addErrorMessage('Unable to create OAuth client.');
+        return;
+      }
+    },
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h4">Create New Instance Level OAuth Client</Heading>
       </Header>
       <Body>
         <Stack gap="lg">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack
                 label="Client Name"
@@ -133,14 +144,14 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. Sentry"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="redirectUris">
+          </form.Field>
+          <form.Field name="redirectUris">
             {field => (
               <field.Layout.Stack
                 label="Redirect URIs"
@@ -148,40 +159,40 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://sentry.io/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="allowedOrigins">
+          </form.Field>
+          <form.Field name="allowedOrigins">
             {field => (
               <field.Layout.Stack
                 label="Allowed Origins"
                 hintText="Allowed origins for the client. Space separated!"
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://sentry.io/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="homepageUrl">
+          </form.Field>
+          <form.Field name="homepageUrl">
             {field => (
               <field.Layout.Stack label="Homepage URL" hintText="Client's homepage">
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://sentry.io/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="privacyUrl">
+          </form.Field>
+          <form.Field name="privacyUrl">
             {field => (
               <field.Layout.Stack
                 label="Privacy Policy URL"
@@ -189,14 +200,14 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               >
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://sentry.io/privacy/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="termsUrl">
+          </form.Field>
+          <form.Field name="termsUrl">
             {field => (
               <field.Layout.Stack
                 label="Terms and Conditions URL"
@@ -204,18 +215,18 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
               >
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://sentry.io/terms/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>Create Client</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

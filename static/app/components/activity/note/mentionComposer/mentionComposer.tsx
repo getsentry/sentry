@@ -204,7 +204,7 @@ export function MentionComposer(props: MentionComposerProps) {
           {value: {text: '', mentions: []}},
           {
             // Prevent a saved draft from being restored after reset.
-            keepDefaultValues: true,
+            updateDefaultValues: false,
           }
         );
         setEditorMode('write');
