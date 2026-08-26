@@ -844,17 +844,19 @@ class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
 
         assert resp.status_code == 200
         # Nested crispy rendering of the configure SAMLForm also puts a `form` key in
-        # ContextList, so look up the general settings form by its fields instead.
-        settings_forms = []
+        # ContextList; template inheritance can repeat the same settings form. Pick the
+        # first general-settings form (has require_link) rather than counting entries.
+        settings_form = None
         for ctx in resp.context:
             try:
                 form = ctx["form"]
             except (KeyError, TypeError):
                 continue
             if hasattr(form, "fields") and "require_link" in form.fields:
-                settings_forms.append(form)
-        assert len(settings_forms) == 1
-        assert "x509cert" not in settings_forms[0].fields
+                settings_form = form
+                break
+        assert settings_form is not None
+        assert "x509cert" not in settings_form.fields
         # Certificate should appear once from the provider configure view only.
         assert resp.content.count(b"x509 public certificate") == 1
 
