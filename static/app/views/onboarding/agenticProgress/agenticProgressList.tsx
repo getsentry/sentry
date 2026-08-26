@@ -13,6 +13,7 @@ import {
   IconBot,
   IconCircle,
   IconCircleCheckmark,
+  IconCircleDashed,
   IconFatal,
   IconNot,
   IconPieHalf,
@@ -83,7 +84,7 @@ function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
     return <ActiveLoadingIndicator mini />;
   }
 
-  return <IconCircle size="md" variant="muted" />;
+  return <IconCircleDashed size="md" variant="muted" />;
 }
 
 const ActiveLoadingIndicator = styled(LoadingIndicator)`
