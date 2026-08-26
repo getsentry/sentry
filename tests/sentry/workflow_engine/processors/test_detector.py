@@ -42,7 +42,6 @@ from sentry.workflow_engine.processors.detector import (
 from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
 from sentry.workflow_engine.processors.evaluations import (
     DetectorEvaluationOutcome,
-    EvaluationPhase,
     EvaluationType,
 )
 from sentry.workflow_engine.types import (
@@ -127,7 +126,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             "workflow_engine.process_detectors.evaluation",
             extra={
                 "evaluation_type": EvaluationType.DETECTOR,
-                "evaluation_phase": EvaluationPhase.INITIAL,
                 "detector_id": detector.id,
                 "detector_type": detector.type,
                 "project_id": detector.linked_project.id,
@@ -170,7 +168,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             "workflow_engine.process_detectors.evaluation",
             extra={
                 "evaluation_type": EvaluationType.DETECTOR,
-                "evaluation_phase": EvaluationPhase.INITIAL,
                 "detector_id": detector.id,
                 "detector_type": detector.type,
                 "project_id": detector.linked_project.id,
@@ -346,7 +343,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             "workflow_engine.process_detectors.evaluation",
             extra={
                 "evaluation_type": EvaluationType.DETECTOR,
-                "evaluation_phase": EvaluationPhase.INITIAL,
                 "detector_id": 1,
                 "detector_type": self.handler_type.slug,
                 "project_id": None,
