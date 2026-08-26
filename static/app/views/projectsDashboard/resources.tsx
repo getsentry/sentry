@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 
 export function Resources() {
   return (
-    <Container data-test-id="resources" borderTop="primary" padding="xl 3xl">
+    <Container borderTop="primary" padding="xl 3xl">
       <Layout.Title>{t('Resources')}</Layout.Title>
       <Grid
         columns={{

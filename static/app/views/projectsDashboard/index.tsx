@@ -56,7 +56,7 @@ function ProjectCardList({projects}: {projects: Project[]}) {
       gap="2xl"
       columns={{
         zero: 'repeat(auto-fill, minmax(1fr, 400px))',
-        xl: 'repeat(auto-fill, minmax(470px, 1fr))',
+        lg: 'repeat(auto-fill, minmax(350px, 1fr))',
         '3xl': 'repeat(auto-fill, minmax(450px, 1fr))',
       }}
     >
