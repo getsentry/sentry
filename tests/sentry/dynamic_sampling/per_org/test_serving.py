@@ -124,7 +124,7 @@ class TestGetProjectSampleRate:
         switch_org_to_per_org(project_id=PROJECT_ID + 1)
 
         assert get_project_sample_rate(ORG_ID, PROJECT_ID, error_sample_rate_fallback=0.5) == 1.0
-        assert emitted_sources == [("project_sample_rate", "per_org_unbalanced")]
+        assert emitted_sources == [("project_sample_rate", "per_org_no_data")]
 
     @override_options({**SERVING_ON, "dynamic-sampling.per_org.killswitch": True})
     def test_the_killswitch_serves_the_legacy_cache(
