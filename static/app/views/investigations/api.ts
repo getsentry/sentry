@@ -118,12 +118,12 @@ export function investigationCandidatesQueryOptions({
   );
 }
 
-function investigationCandidatesQueryKey(organizationSlug: string) {
+function investigationCandidatesUrl(organizationSlug: string) {
   const [url] = investigationCandidatesQueryOptions({
     organizationSlug,
     sources: [],
   }).queryKey;
-  return [url] as const;
+  return url;
 }
 
 type FavoriteVariables = {
@@ -187,7 +187,7 @@ function useInvestigationMutation<TData, TVariables>(
         }),
         invalidateCandidates
           ? queryClient.invalidateQueries({
-              queryKey: investigationCandidatesQueryKey(organizationSlug),
+              queryKey: [investigationCandidatesUrl(organizationSlug)],
             })
           : Promise.resolve(),
       ]);
