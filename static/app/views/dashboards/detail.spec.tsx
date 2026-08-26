@@ -672,14 +672,10 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the redesigned dashboard breadcrumb in the top bar (flag on)', async () => {
+    it('renders the redesigned dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [
-          ...organization.features,
-          'dashboards-import',
-          'ui-migration-breadcrumbs',
-        ],
+        features: [...organization.features, 'dashboards-import'],
       });
 
       render(
@@ -729,7 +725,7 @@ describe('Dashboards > Detail', () => {
     it('keeps supported breadcrumb actions on prebuilt dashboards', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: organization.features,
       });
 
       render(
@@ -779,7 +775,7 @@ describe('Dashboards > Detail', () => {
       );
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: organization.features,
       });
 
       render(
@@ -814,7 +810,7 @@ describe('Dashboards > Detail', () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
         access: ['org:read', 'org:write'],
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: organization.features,
       });
 
       render(
@@ -843,7 +839,7 @@ describe('Dashboards > Detail', () => {
     it('disables the breadcrumb edit action with unsaved filters', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: organization.features,
       });
 
       render(
@@ -882,7 +878,7 @@ describe('Dashboards > Detail', () => {
     it('does not show breadcrumb actions in dashboard preview', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: organization.features,
       });
 
       render(
@@ -910,7 +906,7 @@ describe('Dashboards > Detail', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
+    it('renders the dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
         features: organization.features,
@@ -933,8 +929,7 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      // Without the flag, the legacy Breadcrumbs render: the Dashboards link and
-      // the (view-only) title are still present.
+      // The Dashboards link and view-only title are both present.
       expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/dashboards/'
