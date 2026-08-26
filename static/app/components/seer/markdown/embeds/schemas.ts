@@ -380,13 +380,7 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Inline',
-        level: 'inline',
-        data: {id: '9931', name: 'nightly-billing-sync'},
-      },
-      {
-        label: 'Block',
-        level: 'block',
+        label: 'Monitor',
         data: {id: '9931', name: 'nightly-billing-sync', statsPeriod: '24h'},
       },
     ],

@@ -522,14 +522,7 @@
     },
     "examples": [
       {
-        "label": "Inline",
-        "data": {
-          "id": "9931",
-          "name": "nightly-billing-sync"
-        }
-      },
-      {
-        "label": "Block",
+        "label": "Monitor",
         "data": {
           "id": "9931",
           "name": "nightly-billing-sync",
