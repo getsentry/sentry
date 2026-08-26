@@ -206,16 +206,26 @@ describe('useDeleteReplays', () => {
       );
     });
 
-    it('should join every message when multiple fields fail validation', () => {
+    it('should name the field when a single field fails validation', () => {
+      const error = makeRequestError({
+        data: {environments: ['This field is required.']},
+      });
+
+      expect(getBulkDeleteErrorReason(error)).toBe(
+        'environments — This field is required.'
+      );
+    });
+
+    it('should name each field when multiple fields fail validation', () => {
       const error = makeRequestError({
         data: {
           environments: ['This field is required.'],
-          query: ['This field is required.'],
+          rangeStart: ['Enter a valid date/time.'],
         },
       });
 
       expect(getBulkDeleteErrorReason(error)).toBe(
-        'This field is required. This field is required.'
+        'environments — This field is required. rangeStart — Enter a valid date/time.'
       );
     });
 

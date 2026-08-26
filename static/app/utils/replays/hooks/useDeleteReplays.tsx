@@ -96,15 +96,17 @@ export function useDeleteReplays({projectSlug}: Props) {
   };
 }
 
-function collectErrorStrings(value: unknown): string[] {
+function collectErrorStrings(value: unknown, field?: string): string[] {
   if (typeof value === 'string') {
-    return [value];
+    return [field ? `${field} — ${value}` : value];
   }
   if (Array.isArray(value)) {
-    return value.flatMap(collectErrorStrings);
+    return value.flatMap(item => collectErrorStrings(item, field));
   }
   if (value && typeof value === 'object') {
-    return Object.values(value).flatMap(collectErrorStrings);
+    return Object.entries(value).flatMap(([key, item]) =>
+      collectErrorStrings(item, key === 'non_field_errors' ? field : key)
+    );
   }
   return [];
 }
