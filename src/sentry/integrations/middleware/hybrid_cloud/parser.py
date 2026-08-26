@@ -174,9 +174,7 @@ class BaseRequestParser(ABC):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
-        # Create all payloads first, then trigger one drain per mailbox — each
-        # cell's copy queues under its own cell-scoped mailbox and drains
-        # independently.
+        # Create all payloads first, then trigger one drain per (cell-scoped) mailbox.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_CELL,

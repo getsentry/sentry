@@ -57,8 +57,6 @@ class WebhookPayloadTest(TestCase):
             request=request,
             integration_id=123,
         )
-        # The cell rides in the middle: the first segment stays the provider and
-        # the last stays the event type for providers that suffix one.
         assert hook.mailbox_name == "github:us:123:45:check_run"
         assert hook.cell_name == "us"
         assert event_type_from_mailbox("github", hook.mailbox_name) == "check_run"

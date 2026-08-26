@@ -124,7 +124,6 @@ class BaseRequestParserTest(TestCase):
         assert len(payloads) == 2
         for payload in payloads:
             assert payload.cell_name in ["us", "eu"]
-            # Each cell's copy queues under its own cell-scoped mailbox.
             assert payload.mailbox_name == f"slack:{payload.cell_name}:0"
             assert payload.request_path
             assert payload.request_method
@@ -143,8 +142,7 @@ class BaseRequestParserTest(TestCase):
 
         response = parser.get_response_from_webhookpayload(cells=self.region_config)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        # Each cell's copy queues under its own mailbox and gets its own drain
-        # trigger, so the copies deliver independently.
+        # One mailbox and one drain trigger per cell.
         payloads = WebhookPayload.objects.all()
         assert {(payload.cell_name, payload.mailbox_name) for payload in payloads} == {
             ("us", "slack:us:0"),

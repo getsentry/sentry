@@ -78,9 +78,8 @@ def assert_webhook_payloads_for_mailbox(
      the given request
 
     :param request:
-    :param mailbox_name: The cell-less `<provider>:<identifier>` mailbox name.
-        Payloads queue under the cell-scoped `<provider>:<cell>:<identifier>`
-        variant, which this helper derives per cell.
+    :param mailbox_name: The cell-less `<provider>:<identifier>` name; the
+        cell-scoped variant is derived per cell.
     :param cell_names: List of cells each messages should be queued for
     :param destination_types: Optional Mapping of destination types to the number of messages that should be found for that destination type
     """

@@ -113,13 +113,9 @@ class WebhookPayload(Model):
         integration_id: int | None = None,
     ) -> Self:
         metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": provider})
-        # The mailbox is scoped to its destination cell so an integration whose
-        # organizations span cells gets one mailbox per cell. The copies then
-        # drain independently instead of interleaving in one mailbox, where a
-        # single drain serializes deliveries to every cell and one cell's
-        # failure backoffs delay the others' copies. The cell rides in the
-        # middle so the first segment stays the provider and the last stays the
-        # event type for the providers that suffix one.
+        # One mailbox per destination cell, so each cell's copies drain
+        # independently. The cell rides in the middle: the first segment stays
+        # the provider, the last the event type for providers that suffix one.
         mailbox_name = f"{provider}:{cell}:{identifier}" if cell else f"{provider}:{identifier}"
         return cls.objects.create(
             mailbox_name=mailbox_name,
