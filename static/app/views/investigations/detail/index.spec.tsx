@@ -190,8 +190,8 @@ describe('Investigation detail', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
-    expect(screen.getByText('Completed')).toBeInTheDocument();
-    expect(screen.queryByText('Active')).not.toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Summary')).toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
     expect(
@@ -760,7 +760,7 @@ describe('Investigation detail', () => {
       'data-cell-variant',
       'bordered'
     );
-    expect(screen.getByTestId('query-cell-header')).toContainElement(
+    expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Database latency'})
     );
     expect(screen.getByTestId('investigation-cell-block-1')).toHaveAttribute(
@@ -820,6 +820,9 @@ describe('Investigation detail', () => {
     const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText('820ms')).not.toBeInTheDocument();
+    expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
+      screen.getByRole('button', {name: 'Cell actions for Latency query'})
+    );
 
     await userEvent.click(toggle);
 
@@ -1073,7 +1076,9 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(await screen.findByRole('button', {name: 'Text cell'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Add text cell (debug only)'})
+    );
     await userEvent.type(screen.getByLabelText('Cell title'), 'Working theory');
     await userEvent.type(
       screen.getByLabelText('Cell instructions'),
@@ -1112,7 +1117,9 @@ describe('Investigation detail', () => {
       method: 'POST',
       body: queryBlock,
     });
-    await userEvent.click(screen.getByRole('button', {name: 'Query cell'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Add query cell (debug only)'})
+    );
     await userEvent.type(screen.getByLabelText('Cell title'), 'Error volume');
     await userEvent.type(
       screen.getByLabelText('Cell instructions'),

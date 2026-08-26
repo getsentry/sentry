@@ -192,7 +192,7 @@ export function InvestigationCell({
   );
 
   const cellActions = (
-    <CellActions data-cell-actions flexShrink={0}>
+    <CellActions flexShrink={0}>
       <DropdownMenu
         position="bottom-end"
         usePortal
@@ -317,18 +317,21 @@ function QueryResult({
 
   return (
     <CellHoverSurface width="100%" gap="sm">
-      <QueryDisclosureButton
-        size="sm"
-        variant="transparent"
-        icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
-        aria-label={t('Toggle %s', title)}
-        aria-expanded={expanded}
-        onClick={() => setExpanded(value => !value)}
-      >
-        <Text data-test-id="query-cell-title" size="sm" tabular>
-          {title}
-        </Text>
-      </QueryDisclosureButton>
+      <Flex width="100%" align="center" gap="xs" data-test-id="query-cell-toolbar">
+        <QueryDisclosureButton
+          size="sm"
+          variant="transparent"
+          icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
+          aria-label={t('Toggle %s', title)}
+          aria-expanded={expanded}
+          onClick={() => setExpanded(value => !value)}
+        >
+          <Text data-test-id="query-cell-title" size="sm" tabular>
+            {title}
+          </Text>
+        </QueryDisclosureButton>
+        {actions}
+      </Flex>
       {expanded ? (
         <Stack
           width="100%"
@@ -360,7 +363,6 @@ function QueryResult({
                 </Text>
               ) : null}
             </Stack>
-            {actions}
           </Flex>
           <Container width="100%" overflow="hidden" padding={chart ? 'md lg' : '0'}>
             <CellExecutionAlert block={block} />
@@ -465,6 +467,8 @@ export function shouldDisplayInvestigationBlock(
   block: InvestigationBlock,
   blocks: InvestigationBlock[]
 ) {
+  // Waiting cells have no useful content yet. Dependency failures and cancellations
+  // remain visible so users can understand why downstream work stopped.
   return getCellProgressState(block, blocks) !== 'waiting';
 }
 
@@ -1121,7 +1125,7 @@ function getSeriesName(series: {label: string} | {name: string}) {
 }
 
 const QueryDisclosureButton = styled(Button)`
-  width: 100%;
+  flex: 1;
   justify-content: flex-start;
   padding-inline: ${p => p.theme.space.xs};
   text-align: left;
@@ -1129,17 +1133,20 @@ const QueryDisclosureButton = styled(Button)`
 
 const CellActions = styled(Flex)`
   opacity: 0;
+  pointer-events: none;
 `;
 
 const CellHoverSurface = styled(Stack)`
   &:hover ${CellActions},
   &:focus-within ${CellActions} {
     opacity: 1;
+    pointer-events: auto;
   }
 
   @media (hover: none) {
     ${CellActions} {
       opacity: 1;
+      pointer-events: auto;
     }
   }
 `;
@@ -1170,7 +1177,6 @@ const AgentActivityTitle = styled(Text)`
   letter-spacing: 0;
   vertical-align: middle;
   font-variant-numeric: lining-nums tabular-nums;
-  text-box-trim: none;
 `;
 
 const RefinementPrompt = styled('div')`
