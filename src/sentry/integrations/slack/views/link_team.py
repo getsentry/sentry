@@ -29,28 +29,15 @@ SUCCESS_LINKED_MESSAGE = (
 )
 
 
-def build_team_linked_message(
-    *,
-    team: Team,
-    channel_id: str,
-    channel_name: str,
-    for_slack: bool = False,
-) -> str:
-    """Build the team-linked success message for Slack or the web confirmation page."""
-    if for_slack:
-        team_url = team.organization.absolute_url(
-            f"/settings/{team.organization.slug}/teams/{team.slug}/"
-        )
-        team_ref = f"<{team_url}|{team.slug}>"
-        # Slack channel mentions render as clickable #channel-name.
-        channel_ref = f"<#{channel_id}>"
-    else:
-        team_ref = team.slug
-        channel_ref = channel_name
-
+def build_team_linked_message(*, team: Team, channel_id: str) -> str:
+    """Build the Slack success message after linking a team to a channel."""
+    team_url = team.organization.absolute_url(
+        f"/settings/{team.organization.slug}/teams/{team.slug}/"
+    )
     return SUCCESS_LINKED_MESSAGE.format(
-        team=team_ref,
-        channel=channel_ref,
+        team=f"<{team_url}|{team.slug}>",
+        # Slack channel mentions render as clickable #channel-name.
+        channel=f"<#{channel_id}>",
     )
 
 

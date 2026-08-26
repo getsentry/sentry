@@ -395,6 +395,7 @@ class LinkTeamView(TeamLinkageView, ABC):
     ) -> HttpResponseBase:
         from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
         from sentry.integrations.slack.views.link_team import (
+            SUCCESS_LINKED_MESSAGE,
             SUCCESS_LINKED_TITLE,
             SelectTeamForm,
             build_team_linked_message,
@@ -513,13 +514,8 @@ class LinkTeamView(TeamLinkageView, ABC):
             types=[NotificationSettingEnum.ISSUE_ALERTS],
         )
 
-        slack_message = build_team_linked_message(
-            team=team,
-            channel_id=channel_id,
-            channel_name=channel_name,
-            for_slack=True,
-        )
-        self.notify_on_success(channel_id, integration, slack_message)
+        message = build_team_linked_message(team=team, channel_id=channel_id)
+        self.notify_on_success(channel_id, integration, message)
 
         self.capture_metric("success")
 
@@ -528,10 +524,10 @@ class LinkTeamView(TeamLinkageView, ABC):
             request=request,
             context={
                 "heading_text": SUCCESS_LINKED_TITLE,
-                "body_text": build_team_linked_message(
-                    team=team,
-                    channel_id=channel_id,
-                    channel_name=channel_name,
+                # Web confirmation page stays plain text; Slack markup is only for chat.
+                "body_text": SUCCESS_LINKED_MESSAGE.format(
+                    team=team.slug,
+                    channel=channel_name,
                 ),
                 "channel_id": channel_id,
                 "team_id": integration.external_id,
