@@ -8,9 +8,11 @@ const excludedModuleNames = [ModuleName.OTHER, ModuleName.SESSIONS] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
 
+type ModuleProjectFlag = keyof Project;
+
 const modulePropertyMap: Record<
   Exclude<ModuleName, ExcludedModuleNames>,
-  keyof Project | ReadonlyArray<keyof Project>
+  ModuleProjectFlag | readonly ModuleProjectFlag[]
 > = {
   [ModuleName.HTTP]: 'hasInsightsHttp',
   [ModuleName.DB]: 'hasInsightsDb',
@@ -36,10 +38,12 @@ function projectHasModuleData(
   module: Exclude<ModuleName, ExcludedModuleNames>
 ): boolean {
   const property = modulePropertyMap[module];
-  if (Array.isArray(property)) {
-    return property.some(flag => project[flag] === true);
+  // Prefer string narrowing over Array.isArray: keyof Project can include array-like
+  // keys, so Array.isArray does not cleanly exclude the readonly-array branch.
+  if (typeof property === 'string') {
+    return project[property] === true;
   }
-  return project[property] === true;
+  return property.some(flag => project[flag] === true);
 }
 
 /**
