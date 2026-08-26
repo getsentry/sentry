@@ -22,7 +22,11 @@ export function expandGlobalFilterFallbacks(
 
   for (const {attribute, fallbackAttribute} of fallbacks) {
     // Skip negated filters: getFilterValues() drops the `!`, which would OR them in.
-    if (filterConditions.includes(`!${attribute}:`)) {
+    // Skip has:/!has: too, including value + "(no value)" like `(attr:X OR !has:attr)`.
+    if (
+      filterConditions.includes(`!${attribute}:`) ||
+      filterConditions.includes(`has:${attribute}`)
+    ) {
       continue;
     }
 

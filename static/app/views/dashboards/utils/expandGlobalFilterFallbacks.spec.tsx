@@ -66,4 +66,13 @@ describe('expandGlobalFilterFallbacks', () => {
       expandGlobalFilterFallbacks('!has:app.vitals.start.screen', SCREEN_FALLBACK)
     ).toBe('!has:app.vitals.start.screen');
   });
+
+  it('leaves value + (no value) combinations unchanged', () => {
+    expect(
+      expandGlobalFilterFallbacks(
+        '(app.vitals.start.screen:MainActivity OR !has:app.vitals.start.screen)',
+        SCREEN_FALLBACK
+      )
+    ).toBe('(app.vitals.start.screen:MainActivity OR !has:app.vitals.start.screen)');
+  });
 });
