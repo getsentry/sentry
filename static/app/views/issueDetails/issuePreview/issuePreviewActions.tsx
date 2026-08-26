@@ -229,12 +229,14 @@ function NextAutofixStepButton({
   group,
   onContinueInSeer,
   onRetryCodeChanges,
+  suppressResultLink = false,
   variant = 'primary',
 }: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   autofix: ExplorerAutofix;
   group: Group;
   onContinueInSeer: () => void;
   disabled?: boolean;
+  suppressResultLink?: boolean;
   variant?: 'primary' | 'secondary';
 }) {
   const {runState, isWaitingForRun} = autofix;
@@ -319,7 +321,7 @@ function NextAutofixStepButton({
   const codingAgentResult = codingAgentWithResult?.results?.find(result => result.pr_url);
   const resultLink = findCodingAgentResultLink(codingAgents);
 
-  if (resultLink) {
+  if (resultLink && !suppressResultLink) {
     return (
       <LinkButton
         {...getAutofixActionProps({
@@ -504,35 +506,45 @@ function ActionButtons({
   onContinueInSeer,
   onRetryCodeChanges,
 }: AutofixActionProps) {
-  const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
-    .filter(
-      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
-    )
-    .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated))[0];
+  const openPullRequests =
+    linkedPullRequestsData?.pullRequests
+      .filter(
+        pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+      )
+      .sort((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated)) ?? [];
+  const hasMultiplePullRequests = openPullRequests.length > 1;
+  const displayedPullRequests = hasMultiplePullRequests
+    ? openPullRequests.slice(0, 2)
+    : openPullRequests.slice(0, 1);
 
-  if (latestOpenPullRequest) {
+  if (displayedPullRequests.length > 0) {
     return (
       <Fragment>
-        <LinkButton
-          {...getAutofixActionProps({
-            analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-            analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
-            analyticsParams: {destination: 'pull_request'},
-            group,
-          })}
-          external
-          disabled={disabled}
-          href={latestOpenPullRequest.externalUrl}
-          icon={<IconGithub data-test-id="pull-request-github" />}
-        >
-          {t('View PR')}
-        </LinkButton>
+        {displayedPullRequests.map((pullRequest, index) => (
+          <LinkButton
+            key={pullRequest.externalUrl}
+            {...getAutofixActionProps({
+              analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+              analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+              analyticsParams: {destination: 'pull_request'},
+              group,
+            })}
+            external
+            disabled={disabled}
+            href={pullRequest.externalUrl}
+            icon={<IconGithub data-test-id="pull-request-github" />}
+            variant={index === 0 ? 'primary' : 'secondary'}
+          >
+            {hasMultiplePullRequests ? t('View PR #%s', pullRequest.id) : t('View PR')}
+          </LinkButton>
+        ))}
         <NextAutofixStepButton
           autofix={autofix}
           disabled={disabled}
           group={group}
           onContinueInSeer={onContinueInSeer}
           onRetryCodeChanges={onRetryCodeChanges}
+          suppressResultLink={hasMultiplePullRequests}
           variant="secondary"
         />
       </Fragment>
