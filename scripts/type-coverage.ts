@@ -314,7 +314,14 @@ function countBindingPatternElements(
       const parentType = parentDeclaration
         ? typeChecker.getTypeAtLocation(parentDeclaration)
         : undefined;
-      if (parentType && !isAny(parentType, typeChecker)) {
+      const isContextuallyTyped =
+        parentDeclaration &&
+        parentKind === 'param(binding)' &&
+        ts.isParameter(parentDeclaration) &&
+        !hasExplicitType(parentDeclaration) &&
+        isContextuallyTypedCallbackParam(parentDeclaration, typeChecker);
+
+      if ((parentType && !isAny(parentType, typeChecker)) || isContextuallyTyped) {
         typed = true;
       }
     } else if (
