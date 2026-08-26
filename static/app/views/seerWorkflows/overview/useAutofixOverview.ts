@@ -180,9 +180,9 @@ export function useAutofixOverview({
   );
 
   // Requested ids (dedup) live in a ref so a window request never re-reads state
-  // during render; the shimmer reads `pendingRunIds`.
+  // during render; the shimmer clears off `settledRunIds`.
   const requestedRunIdsRef = useRef<Set<string>>(new Set());
-  const [pendingRunIds, setPendingRunIds] = useState<Set<string>>(() => new Set());
+  const [settledRunIds, setSettledRunIds] = useState<Set<string>>(() => new Set());
   const [scmByRunId, setScmByRunId] = useState<Map<string, OverviewPullRequest[]>>(
     () => new Map()
   );
@@ -200,21 +200,15 @@ export function useAutofixOverview({
       for (const id of fresh) {
         requestedRunIdsRef.current.add(id);
       }
-      // Shimmer the whole window now, before the request resolves.
-      setPendingRunIds(prev => new Set([...prev, ...fresh]));
       // Snapshot the scope so a window landing after a scope change is dropped.
       const generation = scopeGenerationRef.current;
+      // Mark the window settled once its request finishes (success or failure);
+      // the shimmer is on by default for un-enriched cards until then.
       const settle = () => {
         if (scopeGenerationRef.current !== generation) {
           return;
         }
-        setPendingRunIds(prev => {
-          const next = new Set(prev);
-          for (const id of fresh) {
-            next.delete(id);
-          }
-          return next;
-        });
+        setSettledRunIds(prev => new Set([...prev, ...fresh]));
       };
 
       queryClient
@@ -250,12 +244,12 @@ export function useAutofixOverview({
     scopeGenerationRef.current += 1;
     requestedRunIdsRef.current.clear();
     setScmByRunId(new Map());
-    setPendingRunIds(new Set());
+    setSettledRunIds(new Set());
   }, [scopeKey]);
 
-  const isScmPending = useCallback(
-    (seerRunId: string) => pendingRunIds.has(seerRunId),
-    [pendingRunIds]
+  const isScmSettled = useCallback(
+    (seerRunId: string) => settledRunIds.has(seerRunId),
+    [settledRunIds]
   );
 
   const data = useMemo(
@@ -274,7 +268,7 @@ export function useAutofixOverview({
     // baseline off a real payload.
     dataSettled: !statusPollQuery.isPending && Boolean(statusPollQuery.data),
     requestScmWindow,
-    isScmPending,
+    isScmSettled,
     refetch: () => {
       statusPollQuery.refetch();
       projectConfigQuery.refetch();

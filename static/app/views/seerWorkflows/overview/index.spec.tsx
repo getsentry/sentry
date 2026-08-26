@@ -936,7 +936,7 @@ describe('AutofixOverview', () => {
     expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
   });
 
-  it('does not window scm-info for a card that never becomes visible', async () => {
+  it('shimmers an un-enriched PR card from first paint, before it is observed', async () => {
     const {scmInfoRequest} = mockOverview({
       base: {
         has_pull_request: [
@@ -953,7 +953,9 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: /Review PR #42/})
     ).toBeInTheDocument();
-    // The default no-op observer never reports the card visible.
+    // The shimmer is the default state, not toggled on after the window request:
+    // the no-op observer never reports the card visible, so nothing fetched.
+    expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
     expect(scmInfoRequest).not.toHaveBeenCalled();
   });
 

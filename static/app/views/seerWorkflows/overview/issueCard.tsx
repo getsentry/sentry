@@ -500,7 +500,7 @@ export function OverviewCard({
   run,
   sectionKey,
   statsPeriod,
-  enrichmentPending,
+  scmSettled,
   requestScmWindow,
   scmWindows,
   projectConfig,
@@ -508,11 +508,11 @@ export function OverviewCard({
   assigneeReady,
 }: {
   assigneeReady: boolean;
-  enrichmentPending: boolean;
   orgSlug: string;
   projectConfig: ProjectConfig | undefined;
   requestScmWindow: (runIds: string[]) => void;
   run: OverviewRun;
+  scmSettled: boolean;
   scmWindows: string[][] | undefined;
   sectionKey: AutofixStateKey;
   statsPeriod: string | null;
@@ -536,6 +536,15 @@ export function OverviewCard({
   const reviewPullRequest =
     sectionKey === 'review_pr' ? selectReviewPullRequest(run.pullRequests) : undefined;
   const changedFiles = reviewPullRequest?.files ?? [];
+  // An actionable PR without SCM detail is still awaiting its window fetch, so
+  // shimmer from first paint (not once observed) until that window settles.
+  const hasEnrichment = Boolean(
+    reviewPullRequest?.checksStatus ||
+    reviewPullRequest?.reviewStatus ||
+    reviewPullRequest?.files?.length
+  );
+  const enrichmentPending =
+    Boolean(reviewPullRequest?.url) && !hasEnrichment && !scmSettled;
   const trackCodeChangesExpanded = () =>
     trackAnalytics('autofix.overview.code_changes_expanded', {
       organization,

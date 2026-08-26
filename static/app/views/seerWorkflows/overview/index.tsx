@@ -185,7 +185,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     isError,
     dataSettled,
     requestScmWindow,
-    isScmPending,
+    isScmSettled,
     refetch,
   } = useAutofixOverview({
     organization,
@@ -432,7 +432,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   statsPeriod={selection.datetime.period}
                   requestScmWindow={requestScmWindow}
                   scmWindowsByRunId={scmWindowsByRunId}
-                  isScmPending={isScmPending}
+                  isScmSettled={isScmSettled}
                   projectConfigById={projectConfigById}
                   membersByProject={membersByProject}
                   resolvedTeamIds={resolvedTeamIds}
@@ -455,14 +455,14 @@ function OverviewSectionList({
   statsPeriod,
   requestScmWindow,
   scmWindowsByRunId,
-  isScmPending,
+  isScmSettled,
   projectConfigById,
   membersByProject,
   resolvedTeamIds,
   teamsSettled,
 }: {
   collapsedGroups: StatusGroupKey[];
-  isScmPending: (seerRunId: string) => boolean;
+  isScmSettled: (seerRunId: string) => boolean;
   membersByProject: IndexedMembersByProject;
   onToggle: (groupKey: StatusGroupKey, expanded: boolean) => void;
   orgSlug: string;
@@ -513,7 +513,7 @@ function OverviewSectionList({
                       orgSlug={orgSlug}
                       sectionKey={key}
                       statsPeriod={statsPeriod}
-                      enrichmentPending={isScmPending(run.seerRunId)}
+                      scmSettled={isScmSettled(run.seerRunId)}
                       requestScmWindow={requestScmWindow}
                       scmWindows={scmWindowsByRunId.get(run.seerRunId)}
                       projectConfig={projectConfigById.get(run.issue.project.id)}
