@@ -2692,3 +2692,142 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert not Dashboard.objects.filter(
             organization=self.organization, title="Invalid Dashboard"
         ).exists()
+
+    # resolve_params only raises on an empty project list outside tests.
+
+    def _single_widget_dashboard(
+        self, title: str, conditions: str = "event.type:transaction"
+    ) -> dict[str, Any]:
+        return {
+            "title": title,
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": conditions,
+                        }
+                    ],
+                },
+            ],
+        }
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_succeeds_for_user_without_team_membership(
+        self, mock_in_test_environment
+    ) -> None:
+        """get_projects filters by team membership, so this resolves to []."""
+        assert self.project  # lazy fixture; the org needs a project
+        teamless_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=teamless_user, role="member", teams=[]
+        )
+        self.login_as(teamless_user)
+
+        response = self.do_request(
+            "post", self.url + "?validateOnly=1", data=self._single_widget_dashboard("Teamless")
+        )
+        assert response.status_code == 200, response.data
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Teamless"
+        ).exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_creates_dashboard_for_teamless_member_of_open_membership_org(
+        self, mock_in_test_environment
+    ) -> None:
+        """Creation must work too, not just validation."""
+        org = self.create_organization(owner=self.user, flags=1)  # allow_joinleave
+        team = self.create_team(organization=org)
+        self.create_project(organization=org, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=org, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+        response = self.do_request("post", url, data=self._single_widget_dashboard("Open Org"))
+        assert response.status_code == 201, response.data
+        assert Dashboard.objects.filter(organization=org, title="Open Org").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_accepts_accessible_project_filters_for_teamless_member(
+        self, mock_in_test_environment
+    ) -> None:
+        org = self.create_organization(owner=self.user, flags=1)
+        team = self.create_team(organization=org)
+        project_one = self.create_project(organization=org, teams=[team])
+        project_two = self.create_project(organization=org, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=org, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+        response = self.do_request(
+            "post",
+            url + "?validateOnly=1",
+            data=self._single_widget_dashboard(
+                "Project Filters",
+                f"project:{project_one.slug} OR project:{project_two.slug}",
+            ),
+        )
+        assert response.status_code == 200, response.data
+        assert not Dashboard.objects.filter(organization=org, title="Project Filters").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_errors_when_no_project_is_accessible(
+        self, mock_in_test_environment
+    ) -> None:
+        """Without allow_joinleave a teamless member can reach no project."""
+        org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
+        team = self.create_team(organization=org)
+        self.create_project(organization=org, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=org, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+        response = self.do_request(
+            "post", url + "?validateOnly=1", data=self._single_widget_dashboard("Closed Org")
+        )
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["conditions"] == [
+            "Could not validate query: no project available."
+        ]
+        assert not Dashboard.objects.filter(organization=org, title="Closed Org").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_does_not_error_for_organization_without_projects(
+        self, mock_in_test_environment
+    ) -> None:
+        """With no projects there is no fallback, so this hits the backstop."""
+        empty_org = self.create_organization(owner=self.user)
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": empty_org.slug},
+        )
+        self.login_as(self.user)
+
+        response = self.do_request(
+            "post", url + "?validateOnly=1", data=self._single_widget_dashboard("No Projects")
+        )
+        assert response.status_code == 400, response.data
+        # Exact match: the exception text must not be echoed back.
+        assert response.data["widgets"][0]["queries"][0]["conditions"] == [
+            "Could not validate query: no project available."
+        ]
+        assert not Dashboard.objects.filter(organization=empty_org, title="No Projects").exists()

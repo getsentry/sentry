@@ -6,12 +6,15 @@ from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.pr_iteration.check_suites import (
     READY_FOR_REVIEW_EXTRA,
+    REVIEW_REQUESTS_EXTRA,
     CheckRunsSweep,
     CheckSuiteAutofixRun,
-    bootstrap_green_check_suite,
+    confirm_green_check_suite,
+    resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
+from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.testutils.cases import TestCase
 
 READY_FOR_REVIEW_PATH = "sentry.seer.autofix.pr_iteration.ready_for_review"
@@ -72,7 +75,15 @@ def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
 
 
 def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
-    ctx = bootstrap_green_check_suite(event or _green_event())
+    resolved = resolve_green_check_suite(event or _green_event())
+    if resolved is None:
+        return
+    if (
+        get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
+        and get_run_marker(resolved.seer_run, REVIEW_REQUESTS_EXTRA, resolved.repo_name) is not None
+    ):
+        return
+    ctx = confirm_green_check_suite(resolved)
     if ctx is None:
         return
     mark_ready_for_review(ctx)
