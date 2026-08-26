@@ -14,13 +14,13 @@ class GroupAutofixReposEndpointTest(APITestCase, SnubaTestCase):
             f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/autofix/repos/"
         )
 
-    @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
-    def test_success(self, mock_client_cls: MagicMock) -> None:
-        mock_run = MagicMock()
-        mock_run.run_id = 42
-        mock_client = MagicMock()
-        mock_client.get_runs.return_value = [mock_run]
+    def _create_run_mirror(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=42)
+        self.create_seer_agent_run(run, source="autofix", group=self.group)
 
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_repos")
+    def test_success(self, mock_get_repos: MagicMock) -> None:
+        self._create_run_mirror()
         mock_response = MagicMock()
         mock_response.status = 200
         mock_response.json.return_value = {
@@ -37,68 +37,50 @@ class GroupAutofixReposEndpointTest(APITestCase, SnubaTestCase):
                 }
             ]
         }
-        mock_client.get_repos.return_value = mock_response
-        mock_client_cls.return_value = mock_client
+        mock_get_repos.return_value = mock_response
 
         response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert len(response.data["repos"]) == 1
         assert response.data["repos"][0]["repo_name"] == "owner/repo"
-        mock_client.get_repos.assert_called_once_with(42)
+        mock_get_repos.assert_called_once_with(42)
 
-    @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
-    def test_no_runs_returns_empty(self, mock_client_cls: MagicMock) -> None:
-        mock_client = MagicMock()
-        mock_client.get_runs.return_value = []
-        mock_client_cls.return_value = mock_client
-
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_repos")
+    def test_no_runs_returns_empty(self, mock_get_repos: MagicMock) -> None:
         response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert response.data["repos"] == []
+        mock_get_repos.assert_not_called()
 
-    @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
-    def test_seer_404_returns_empty(self, mock_client_cls: MagicMock) -> None:
-        mock_run = MagicMock()
-        mock_run.run_id = 42
-        mock_client = MagicMock()
-        mock_client.get_runs.return_value = [mock_run]
-
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_repos")
+    def test_seer_404_returns_empty(self, mock_get_repos: MagicMock) -> None:
+        self._create_run_mirror()
         mock_response = MagicMock()
         mock_response.status = 404
-        mock_client.get_repos.return_value = mock_response
-        mock_client_cls.return_value = mock_client
+        mock_get_repos.return_value = mock_response
 
         response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert response.data["repos"] == []
 
-    @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
-    def test_seer_500(self, mock_client_cls: MagicMock) -> None:
-        mock_run = MagicMock()
-        mock_run.run_id = 42
-        mock_client = MagicMock()
-        mock_client.get_runs.return_value = [mock_run]
-
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_repos")
+    def test_seer_500(self, mock_get_repos: MagicMock) -> None:
+        self._create_run_mirror()
         mock_response = MagicMock()
         mock_response.status = 500
-        mock_client.get_repos.return_value = mock_response
-        mock_client_cls.return_value = mock_client
+        mock_get_repos.return_value = mock_response
 
         response = self.client.get(self.url)
 
         assert response.status_code == 500
 
-    @patch("sentry.seer.endpoints.group_autofix_repos.SeerAgentClient")
-    def test_seer_connection_error(self, mock_client_cls: MagicMock) -> None:
-        mock_run = MagicMock()
-        mock_run.run_id = 42
-        mock_client = MagicMock()
-        mock_client.get_runs.return_value = [mock_run]
-        mock_client.get_repos.side_effect = Exception("Connection refused")
-        mock_client_cls.return_value = mock_client
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_repos")
+    def test_seer_connection_error(self, mock_get_repos: MagicMock) -> None:
+        self._create_run_mirror()
+        mock_get_repos.side_effect = Exception("Connection refused")
 
         response = self.client.get(self.url)
 

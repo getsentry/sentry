@@ -8,7 +8,7 @@ import sentry_sdk
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
+from sentry.dynamic_sampling.tasks.common import are_equal_with_epsilon, sample_rate_to_float
 from sentry.dynamic_sampling.tasks.constants import (
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_REBALANCE_FACTOR,
@@ -57,7 +57,7 @@ def write_recalibration_factor(org_id: int, factor: float | None) -> None:
         return
 
     if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
-        set_guarded_adjusted_factor(org_id, factor)
+        set_adjusted_factor(org_id, factor)
     else:
         # A factor outside the rebalance bounds clears the cached one, so that a stale
         # factor cannot keep being applied.
@@ -76,14 +76,14 @@ def generate_transaction_sample_rates_cache_key(org_id: int, project_id: int) ->
     return PER_ORG_TRANSACTION_SAMPLE_RATES_CACHE_KEY.format(org_id=org_id, project_id=project_id)
 
 
-def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
+def set_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
     if adjusted_factor != 1.0:
         redis_client = get_redis_client_for_ds()
         cache_key = generate_recalibrate_orgs_cache_key(org_id)
         redis_client.set(cache_key, adjusted_factor)
         redis_client.pexpire(cache_key, adjusted_factor_ttl_ms())
         metrics.distribution(
-            "dynamic_sampling.per_org.recalibration.set_guarded_adjusted_factor",
+            "dynamic_sampling.per_org.recalibration.set_adjusted_factor",
             adjusted_factor,
         )
     else:
@@ -161,7 +161,7 @@ def get_cached_rebalanced_transaction_sample_rates(
 
 
 def get_cached_recalibration_factor(org_id: int) -> float:
-    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="task")
+    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_comparison")
 
 
 def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[RebalancedItem]) -> None:
@@ -169,6 +169,11 @@ def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[Rebalanc
 
     Mirrors the layout of the legacy ``prioritise_projects`` hash, so that both pipelines
     are readable the same way and one can replace the other for a single organization.
+
+    Only rates that moved are written. Most projects keep the same rate from one pass to
+    the next, and a project with no volume keeps it forever. The expiry is always renewed,
+    so that a project whose rate never moves does not fall out of the cache and back to the
+    fallback sample rate.
     """
     items = list(rebalanced_projects)
     if not items:
@@ -176,8 +181,18 @@ def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[Rebalanc
 
     redis_client = get_redis_client_for_ds()
     cache_key = generate_project_sample_rates_cache_key(org_id)
+    cached_rates = {
+        project_id: sample_rate_to_float(sample_rate)
+        for project_id, sample_rate in redis_client.hgetall(cache_key).items()
+    }
+
+    changed = [
+        item
+        for item in items
+        if not are_equal_with_epsilon(cached_rates.get(str(item.id)), item.new_sample_rate)
+    ]
     with redis_client.pipeline(transaction=False) as pipeline:
-        for item in items:
+        for item in changed:
             pipeline.hset(cache_key, str(item.id), item.new_sample_rate)
         pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
         pipeline.execute()

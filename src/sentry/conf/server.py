@@ -1580,6 +1580,9 @@ SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 # sample rate for the ingest-replay-recordings task
 SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
 
+# sample rate for the ingest-monitors per-check-in transaction
+SENTRY_MONITORS_CHECKIN_APM_SAMPLING = 1 if DEBUG else 0
+
 # ----
 # end APM config
 # ----
