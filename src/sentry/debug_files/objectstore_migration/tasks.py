@@ -19,7 +19,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 _SHARD_TASK_KEY = "debug_files_objectstore_migration_shard"
-_FILES_PER_ACTIVATION = 10
+_FILES_PER_ACTIVATION = 30
 _PROCESSING_DEADLINE_SECONDS = 10 * 60
 
 
