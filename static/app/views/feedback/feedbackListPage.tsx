@@ -37,26 +37,23 @@ const userFeedbackFeedbackOptions = {
 };
 
 const pageLayout = {
-  areas: {
-    zero: '"top" "list"',
-    '3xl': '"top top" "list details"',
-  },
   columns: {
     zero: '1fr',
     '3xl': 'minmax(195px, 1fr) 1.5fr',
     '4xl': 'minmax(390px, 1fr) 2fr',
   },
-  rows: 'max-content minmax(0, 1fr)',
 } as const;
 
 function PageContent({
   feedbackProjectSlug,
   hasFeedbackContent,
+  hideTop,
   content,
 }: {
   content: ReactNode;
   feedbackProjectSlug: string;
   hasFeedbackContent: boolean;
+  hideTop: boolean;
 }) {
   const organization = useOrganization();
   const createAlertAction = {
@@ -81,6 +78,14 @@ function PageContent({
         <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
           <Grid
             {...pageLayout}
+            areas={{
+              zero: hideTop ? '"list"' : '"top" "list"',
+              '3xl': '"top top" "list details"',
+            }}
+            rows={{
+              zero: hideTop ? 'minmax(0, 1fr)' : 'max-content minmax(0, 1fr)',
+              '3xl': 'max-content minmax(0, 1fr)',
+            }}
             flex={1}
             minHeight={0}
             gap="xl"
@@ -90,6 +95,7 @@ function PageContent({
             <Grid
               gap="md"
               area="top"
+              display={{zero: hideTop ? 'none' : 'grid', '3xl': 'grid'}}
               areas={{
                 zero: `
                     "filters"
@@ -262,6 +268,7 @@ export default function FeedbackListPage() {
           <PageContent
             feedbackProjectSlug={feedbackProjectSlug}
             hasFeedbackContent={hasFeedbackContent}
+            hideTop={showItemPreview}
             content={pageContent}
           />
         </FeedbackApiOptions>
