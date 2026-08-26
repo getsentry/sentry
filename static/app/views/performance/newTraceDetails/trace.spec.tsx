@@ -19,6 +19,7 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
+import * as analytics from 'sentry/utils/analytics';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
   makeEventTransaction,
@@ -553,8 +554,10 @@ async function simpleTestSetup() {
 
 async function completeTestSetup({
   organization,
+  rootMeasurements,
 }: {
   organization?: ReturnType<typeof OrganizationFixture>;
+  rootMeasurements?: TraceFullDetailed['measurements'];
 } = {}) {
   mockPerformanceSubscriptionDetailsResponse();
   mockProjectDetailsResponse();
@@ -570,6 +573,7 @@ async function completeTestSetup({
           project_slug: 'project_slug',
           start_timestamp: start,
           timestamp: start + 2,
+          measurements: rootMeasurements,
           children: [
             makeTransaction({
               event_id: '1',
@@ -770,7 +774,7 @@ async function completeTestSetup({
     printVirtualizedList(virtualizedContainer);
     throw e;
   }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
+  return {...value, start, virtualizedContainer, virtualizedScrollContainer};
 }
 
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
@@ -1000,6 +1004,33 @@ describe('trace view', () => {
 
     expect(await screen.findByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
+  });
+
+  it('zooms to a vital pill source node on double click', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const zoomSpy = jest.spyOn(VirtualizedViewManager.prototype, 'onZoomIntoSpace');
+    const {start} = await completeTestSetup({
+      rootMeasurements: {lcp: {value: 500, unit: 'millisecond'}},
+    });
+    const vitalPill = (await screen.findAllByText('LCP')).find(element =>
+      element.classList.contains('TraceIndicatorLabel')
+    );
+
+    expect(vitalPill).toBeDefined();
+    analyticsSpy.mockClear();
+    zoomSpy.mockClear();
+
+    await userEvent.click(vitalPill!);
+
+    expect(analyticsSpy).not.toHaveBeenCalled();
+    expect(zoomSpy).not.toHaveBeenCalled();
+
+    await userEvent.dblClick(vitalPill!);
+
+    expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
+      organization: expect.objectContaining({slug: 'org-slug'}),
+    });
+    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3, 2000]);
   });
 
   describe('pageload', () => {

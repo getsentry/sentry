@@ -492,6 +492,13 @@ export function Trace({
                     key={i}
                     ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
                     className={`TraceIndicatorLabelContainer ${status} ${colorMode}`}
+                    onDoubleClick={event => {
+                      trackAnalytics('trace.trace_layout.zoom_to_fill', {
+                        organization,
+                      });
+                      event.stopPropagation();
+                      manager.onZoomIntoSpace(indicator.node.space);
+                    }}
                   >
                     <Tooltip
                       title={
@@ -1111,6 +1118,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorLabel {
     padding: 2px;
     border-radius: 100px;
+    user-select: none;
   }
 
   .TraceIndicator {
