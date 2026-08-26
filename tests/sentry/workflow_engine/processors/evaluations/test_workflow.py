@@ -1,11 +1,19 @@
+from datetime import UTC, datetime
 from unittest import mock
 
+import orjson
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.processors.evaluation_logging import (
+    WORKFLOW_EVALUATION_EAP_FEATURE,
     emit_workflow_evaluation_logs,
+    emit_workflow_evaluations,
+    produce_workflow_evaluations_to_eap,
     should_log,
 )
 from sentry.workflow_engine.processors.evaluations import (
@@ -86,7 +94,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             evaluations=evaluations or {},
             outcome=outcome,
             project_id=self.project.id,
-            group_id=self.event.group.id,
+            group_id=self.group.id,
             event_id=self.event.event_id,
             detector_id=self.detector.id,
             detector_type=self.detector.type,
@@ -100,12 +108,13 @@ class TestWorkflowEvaluationArtifact(TestCase):
         assert evaluation.to_artifact() == {
             "triggered": True,
             "error": "evaluation failed",
+            "evaluation_id": evaluation.evaluation_id,
             "workflow_id": 10,
             "detector_id": self.detector.id,
             "detector_type": self.detector.type,
             "project_id": self.project.id,
             "event_id": self.event.event_id,
-            "group_id": self.event.group.id,
+            "group_id": self.group.id,
             "outcome": WorkflowEvaluationOutcome.ERROR,
             "result_type": "actions",
             "triggered_action_ids": [],
@@ -174,6 +183,8 @@ class TestWorkflowEvaluationArtifact(TestCase):
             "error": None,
             "condition_id": condition.id,
             "condition_type": condition.type,
+            "comparison": "10",
+            "condition_result": condition.condition_result,
             "input_type": "dict",
             "input": None,
             "result": True,
@@ -297,6 +308,124 @@ class TestWorkflowEvaluationArtifact(TestCase):
             11,
         ]
 
+    @mock.patch(f"{LOGGING_MODULE}._eap_producer")
+    def test_eap_feature_disabled_uses_logging_fallback(
+        self, mock_producer: mock.MagicMock
+    ) -> None:
+        mock_logger = mock.MagicMock()
+        with (
+            Feature(
+                {
+                    WORKFLOW_EVALUATION_EAP_FEATURE: False,
+                    "organizations:workflow-engine-log-evaluations": True,
+                }
+            ),
+            override_options({"workflow_engine.evaluation_logs_direct_to_sentry": False}),
+        ):
+            assert emit_workflow_evaluations(
+                mock_logger,
+                organization=self.organization,
+                result=self._build_batch_result({10: self._build_evaluation()}),
+                evaluated_at=datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC),
+            )
+
+        mock_logger.info.assert_called_once()
+        mock_producer.produce.assert_not_called()
+
+    @mock.patch(f"{LOGGING_MODULE}._eap_producer")
+    @mock.patch(f"{LOGGING_MODULE}.get_topic_definition")
+    def test_eap_feature_stores_queryable_evaluation_instead_of_logging(
+        self,
+        mock_get_topic_definition: mock.MagicMock,
+        mock_producer: mock.MagicMock,
+    ) -> None:
+        mock_get_topic_definition.return_value = {"real_topic_name": "test-eap-items"}
+        evaluation = self._build_evaluation(triggered=True)
+        result = self._build_batch_result({10: evaluation})
+        evaluated_at = datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)
+        mock_logger = mock.MagicMock()
+
+        with Feature({WORKFLOW_EVALUATION_EAP_FEATURE: True}):
+            assert emit_workflow_evaluations(
+                mock_logger,
+                organization=self.organization,
+                result=result,
+                evaluated_at=evaluated_at,
+            )
+
+        mock_logger.info.assert_not_called()
+        mock_producer.produce.assert_called_once()
+        topic, payload = mock_producer.produce.call_args.args
+        assert topic.name == "test-eap-items"
+
+        trace_item = get_topic_codec(Topic.SNUBA_ITEMS).decode(payload.value)
+        assert trace_item.organization_id == self.organization.id
+        assert trace_item.project_id == self.project.id
+        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
+        assert trace_item.timestamp.ToDatetime(tzinfo=UTC) == evaluated_at
+        assert trace_item.trace_id == self.event.event_id
+        assert trace_item.retention_days == 14
+        assert trace_item.attributes["evaluation_id"].string_value == evaluation.evaluation_id
+        assert trace_item.attributes["workflow_id"].int_value == 10
+        assert trace_item.attributes["event_id"].string_value == self.event.event_id
+        assert trace_item.attributes["outcome"].string_value == "no_actions"
+        assert trace_item.attributes["evaluation_type"].string_value == "workflow"
+        assert orjson.loads(trace_item.attributes["sentry.body"].string_value) == {
+            **evaluation.to_artifact(),
+            "organization_id": self.organization.id,
+        }
+
+    @mock.patch(f"{LOGGING_MODULE}._eap_producer")
+    @mock.patch(f"{LOGGING_MODULE}.get_topic_definition")
+    def test_eap_item_id_is_stable_across_task_retries(
+        self,
+        mock_get_topic_definition: mock.MagicMock,
+        mock_producer: mock.MagicMock,
+    ) -> None:
+        mock_get_topic_definition.return_value = {"real_topic_name": "test-eap-items"}
+        result = self._build_batch_result({10: self._build_evaluation()})
+        evaluated_at = datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)
+
+        assert produce_workflow_evaluations_to_eap(
+            organization_id=self.organization.id,
+            result=result,
+            evaluated_at=evaluated_at,
+        )
+        assert produce_workflow_evaluations_to_eap(
+            organization_id=self.organization.id,
+            result=result,
+            evaluated_at=evaluated_at,
+        )
+
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+        first_item = codec.decode(mock_producer.produce.call_args_list[0].args[1].value)
+        second_item = codec.decode(mock_producer.produce.call_args_list[1].args[1].value)
+        assert first_item.item_id == second_item.item_id
+
+    @mock.patch(f"{LOGGING_MODULE}.metrics.incr")
+    @mock.patch(f"{LOGGING_MODULE}.logger")
+    @mock.patch(f"{LOGGING_MODULE}._eap_producer")
+    def test_eap_failure_does_not_fail_workflow_processing(
+        self,
+        mock_producer: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics_incr: mock.MagicMock,
+    ) -> None:
+        mock_producer.produce.side_effect = RuntimeError("Kafka unavailable")
+
+        assert not produce_workflow_evaluations_to_eap(
+            organization_id=self.organization.id,
+            result=self._build_batch_result({10: self._build_evaluation()}),
+            evaluated_at=datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC),
+        )
+
+        mock_logger.exception.assert_called_once_with(
+            "workflow_engine.evaluation_eap.produce_failed"
+        )
+        mock_metrics_incr.assert_called_once_with(
+            "workflow_engine.evaluation_eap.produce_failed", sample_rate=1.0
+        )
+
     def test_emitter_logs_empty_batch_outcome(self) -> None:
         mock_logger = mock.MagicMock()
 
@@ -314,7 +443,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             extra={
                 "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
                 "project_id": self.project.id,
-                "group_id": self.event.group.id,
+                "group_id": self.group.id,
                 "event_id": self.event.event_id,
                 "detector_id": self.detector.id,
                 "detector_type": self.detector.type,

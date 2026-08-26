@@ -1,3 +1,5 @@
+# pyright: reportAttributeAccessIssue=false
+
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Sequence
 from dataclasses import asdict, dataclass, replace

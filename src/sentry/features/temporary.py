@@ -427,6 +427,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:weekly-report-spans-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable week-over-week percentage change metric in weekly email reports
     manager.add("organizations:weekly-report-week-over-week-metric", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Store workflow evaluation artifacts in EAP instead of emitting sampled logs
+    manager.add("organizations:workflow-engine-evaluation-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Disable issue stream detector notifications for metric issues

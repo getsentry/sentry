@@ -49,6 +49,8 @@ class DataConditionEvaluation(
         return {
             "condition_id": self.condition.id,
             "condition_type": self.condition.type,
+            "comparison": self.condition.comparison,
+            "condition_result": self.condition.condition_result,
             "input_type": type(self.data).__name__,
             "input": safe_input,
             "result": getattr(self.result, "value", self.result),

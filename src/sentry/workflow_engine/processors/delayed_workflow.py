@@ -1,3 +1,5 @@
+# pyright: reportAssignmentType=false, reportAttributeAccessIssue=false, reportPossiblyUnboundVariable=false
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -70,6 +72,8 @@ class EventInstance(BaseModel):
     event_id: str
     occurrence_id: str | None = None
     timestamp: datetime | None = None
+    # Optional for compatibility with entries buffered before evaluation IDs were added.
+    evaluation_id: str | None = None
 
     class Config:
         # Ignore unknown fields; we'd like to be able to add new fields easily.
@@ -115,14 +119,17 @@ class EventKey:
         parts = key.split(":")
         if len(parts) != 5:
             raise ValueError(f"Invalid key: {key}")
-        return cls(
-            workflow_id=int(parts[0]),
-            group_id=int(parts[1]),
-            when_dcg_id=int(parts[2]) if parts[2] else None,
-            if_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[3].split(",") if dcg_id),
-            passing_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[4].split(",") if dcg_id),
-            original_key=key,
-        )
+        try:
+            return cls(
+                workflow_id=int(parts[0]),
+                group_id=int(parts[1]),
+                when_dcg_id=int(parts[2]) if parts[2] else None,
+                if_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[3].split(",") if dcg_id),
+                passing_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[4].split(",") if dcg_id),
+                original_key=key,
+            )
+        except ValueError as error:
+            raise ValueError(f"Invalid key: {key}") from error
 
     def __str__(self) -> str:
         return self.original_key
@@ -589,16 +596,39 @@ class DelayedWorkflowEvaluationResult:
     # Condition-level detail is omitted; all conditions not in if_dcg_passed are assumed failed.
     if_dcg_failed: dict[WorkflowId, dict[GroupId, list[DataConditionGroupId]]]
 
-    def iter_per_workflow_log_dicts(self) -> Iterator[dict[str, Any]]:
-        """Yield one log-ready dict per workflow, keeping each entry bounded in size."""
-        for workflow_id in sorted(self.workflow_ids):
+    def iter_evaluation_log_dicts(self, event_data: EventRedisData) -> Iterator[dict[str, Any]]:
+        """Yield one log-ready dict per original workflow evaluation."""
+        sorted_events = sorted(
+            event_data.events.items(),
+            key=lambda item: (
+                item[0].workflow_id,
+                item[0].group_id,
+                item[1].evaluation_id or "",
+            ),
+        )
+        for event_key, event_instance in sorted_events:
+            workflow_id = event_key.workflow_id
+            group_id = event_key.group_id
+            passed_dcgs = self.if_dcg_passed.get(workflow_id, {}).get(group_id)
+            failed_dcgs = self.if_dcg_failed.get(workflow_id, {}).get(group_id)
             yield {
+                "evaluation_id": event_instance.evaluation_id,
                 "workflow_id": workflow_id,
-                "if_dcg_passed": self.if_dcg_passed.get(workflow_id, {}),
-                "if_dcg_failed": self.if_dcg_failed.get(workflow_id, {}),
-                "when_failed_untainted": self.when_failed_untainted.get(workflow_id, []),
-                "when_failed_tainted": self.when_failed_tainted.get(workflow_id, []),
-                "when_dcg_missing": self.when_dcg_missing.get(workflow_id, []),
+                "event_id": event_instance.event_id,
+                "group_id": group_id,
+                "if_dcg_passed": {group_id: passed_dcgs} if passed_dcgs is not None else {},
+                "if_dcg_failed": {group_id: failed_dcgs} if failed_dcgs is not None else {},
+                "when_failed_untainted": (
+                    [group_id]
+                    if group_id in self.when_failed_untainted.get(workflow_id, [])
+                    else []
+                ),
+                "when_failed_tainted": (
+                    [group_id] if group_id in self.when_failed_tainted.get(workflow_id, []) else []
+                ),
+                "when_dcg_missing": (
+                    [group_id] if group_id in self.when_dcg_missing.get(workflow_id, []) else []
+                ),
             }
 
     def summary_log_dict(self) -> dict[str, Any]:
@@ -1027,10 +1057,10 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
             project.organization, evaluation.groups_to_fire, group_to_groupevent
         )
 
-    for workflow_log in evaluation.iter_per_workflow_log_dicts():
+    for evaluation_log in evaluation.iter_evaluation_log_dicts(event_data):
         logger.debug(
             "workflow_engine.delayed_workflow.evaluation_result",
-            extra=workflow_log,
+            extra=evaluation_log,
         )
 
 

@@ -191,11 +191,14 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         event_id: str | None = None,
         occurrence_id: str | None = None,
         timestamp: datetime | None = None,
+        evaluation_id: str | None = None,
     ) -> None:
         value_dict: dict[str, str | None | datetime] = {
             "event_id": event_id,
             "occurrence_id": occurrence_id,
         }
+        if evaluation_id:
+            value_dict["evaluation_id"] = evaluation_id
         if timestamp:
             value_dict["timestamp"] = timestamp
         value = json.dumps(value_dict)
@@ -708,10 +711,10 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             events={
                 EventKey.from_redis_key(
                     f"{self.workflow1.id}:{self.group1.id}:{self.workflow1.when_condition_group_id}:{self.workflow1_if_dcgs[0].id}:{self.workflow1_if_dcgs[1].id}"
-                ): EventInstance(event_id="test-event-1"),
+                ): EventInstance(event_id="test-event-1", evaluation_id="evaluation-1"),
                 EventKey.from_redis_key(
                     f"{self.workflow2.id}:{self.group2.id}:{self.workflow2.when_condition_group_id}:{self.workflow2_if_dcgs[0].id}:{self.workflow2_if_dcgs[1].id}"
-                ): EventInstance(event_id="test-event-2"),
+                ): EventInstance(event_id="test-event-2", evaluation_id="evaluation-2"),
             }
         )
 
@@ -736,6 +739,11 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
                 },  # WHEN DCG passed so we have the passing if dcg here. IF DCG with slow condition did not pass
             }
         )
+        evaluation_logs = list(eval_result.iter_evaluation_log_dicts(self.event_data))
+        assert [(log["evaluation_id"], log["event_id"]) for log in evaluation_logs] == [
+            ("evaluation-1", "test-event-1"),
+            ("evaluation-2", "test-event-2"),
+        ]
 
     def test_missing_query_result_excludes_group(self) -> None:
         existing_query = UniqueConditionQuery(

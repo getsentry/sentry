@@ -11,6 +11,7 @@ import pydantic
 import sentry.workflow_engine.buffer as buffer
 from sentry.utils import json
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.utils import get_workflow_evaluation_id
 
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import GroupEvent
@@ -36,6 +37,20 @@ class DelayedWorkflowItem:
     # Should be close to when fast conditions were evaluated to try to be consistent.
     timestamp: datetime
 
+    # Correlates the fast evaluation with its eventual delayed evaluation.
+    evaluation_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.evaluation_id is not None:
+            return
+
+        self.evaluation_id = get_workflow_evaluation_id(
+            project_id=self.event.project_id,
+            group_id=self.event.group.id,
+            event_id=self.event.event_id,
+            workflow_id=self.workflow.id,
+        )
+
     def buffer_key(self) -> str:
         when_condition_group_str = (
             str(self.delayed_when_group_id) if self.delayed_when_group_id else ""
@@ -50,6 +65,7 @@ class DelayedWorkflowItem:
                 "event_id": self.event.event_id,
                 "occurrence_id": self.event.occurrence_id,
                 "timestamp": self.timestamp,
+                "evaluation_id": self.evaluation_id,
             }
         )
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Protocol, TypedDict, cast
 
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import (
@@ -11,12 +11,17 @@ from sentry.workflow_engine.types import (
     WorkflowEventData,
     WorkflowId,
 )
+from sentry.workflow_engine.utils import get_workflow_evaluation_id
 
 from .base import BaseWorkflowEngineEvaluation
 from .condition_group import DataConditionGroupEvaluation
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Action
+
+
+class _ProjectScopedEvent(Protocol):
+    project_id: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -83,6 +88,18 @@ class WorkflowEvaluation(
     detector_type: str
 
     @property
+    def evaluation_id(self) -> str:
+        event_data = self.data["event"]
+        event = event_data.event
+        event_id = event.event_id if isinstance(event, GroupEvent) else event.id
+        return get_workflow_evaluation_id(
+            project_id=cast(_ProjectScopedEvent, event).project_id,
+            group_id=event_data.group.id,
+            event_id=str(event_id),
+            workflow_id=self.workflow_id,
+        )
+
+    @property
     def outcome(self) -> WorkflowEvaluationOutcome:
         if isinstance(self.result, DeferredWorkflowEvaluationResult):
             return WorkflowEvaluationOutcome.DEFERRED
@@ -117,10 +134,11 @@ class WorkflowEvaluation(
             else event_data.event.id
         )
         return {
+            "evaluation_id": self.evaluation_id,
             "workflow_id": self.workflow_id,
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
-            "project_id": event_data.event.project_id,
+            "project_id": cast(_ProjectScopedEvent, event_data.event).project_id,
             "event_id": str(event_id) if event_id else None,
             "group_id": event_data.group.id,
             "outcome": self.outcome,

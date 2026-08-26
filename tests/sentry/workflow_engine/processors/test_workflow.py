@@ -23,6 +23,7 @@ from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHist
 from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
 )
+from sentry.workflow_engine.processors.delayed_workflow import EventRedisData
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionGroupEvaluation,
     ProcessWorkflowsResult,
@@ -978,13 +979,20 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
             condition_result=True,
         )
 
-        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
         project_ids = self.batch_client.get_project_ids(
             min=0,
             max=self.buffer_timestamp,
         )
         assert list(project_ids.keys()) == [self.project.id]
+
+        buffered_data = self.batch_client.for_project(self.project.id).get_hash_data()
+        delayed_event_data = EventRedisData.from_redis_data(buffered_data, continue_on_error=False)
+        delayed_event = next(iter(delayed_event_data.events.values()))
+        evaluation = result.evaluations[self.workflow.id]
+        assert delayed_event.evaluation_id == evaluation.evaluation_id
+        assert evaluation.to_artifact()["evaluation_id"] == evaluation.evaluation_id
 
     def test_enqueues_event_if_meets_fast_conditions(self) -> None:
         assert self.workflow.when_condition_group
@@ -1277,6 +1285,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
             comparison={"interval": "1d", "value": 7},
         )
         batch_client = Mock(spec=DelayedWorkflowClient)
+        evaluation_id = "a3b2c1d0e4f5489f8a7b6c5d4e3f2a10"
         enqueue_workflows(
             batch_client,
             {
@@ -1287,6 +1296,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                     [self.slow_workflow_filter_group.id, slow_workflow_filter_group_2.id],
                     [self.workflow_filter_group.id, workflow_filter_group_2.id],
                     timestamp=current_time,
+                    evaluation_id=evaluation_id,
                 )
             },
         )
@@ -1306,6 +1316,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                         "event_id": self.event.event_id,
                         "occurrence_id": self.group_event.occurrence_id,
                         "timestamp": current_time,
+                        "evaluation_id": evaluation_id,
                     }
                 )
             },

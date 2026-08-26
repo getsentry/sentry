@@ -22,7 +22,7 @@ from sentry.utils.exceptions import quiet_redis_noise, quiet_retriable_timeouts
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector
-from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluation_logs
+from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluations
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
     ProjectNotActiveError,
@@ -76,10 +76,11 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
             batch_client, event_data, event_start_time=activity.datetime, detector=detector
         )
 
-    emit_workflow_evaluation_logs(
+    emit_workflow_evaluations(
         logger,
         organization=event_data.event.project.organization,
         result=result,
+        evaluated_at=activity.datetime,
     )
 
     metrics.incr(
@@ -159,6 +160,7 @@ def _process_workflows_event(
             # We want to quietly retry these.
             # Both are expected transient errors from Bigtable interactions.
             retry_task(e)
+            return
 
         event_start_time = (
             datetime.fromtimestamp(start_timestamp_seconds, tz=UTC)
@@ -174,10 +176,11 @@ def _process_workflows_event(
                     result.has_triggered_actions(),
                 )
 
-    emit_workflow_evaluation_logs(
+    emit_workflow_evaluations(
         logger,
         organization=event_data.event.project.organization,
         result=result,
+        evaluated_at=event_start_time,
     )
     duration = time.time() - start_time
     is_slow = duration > 1.0
