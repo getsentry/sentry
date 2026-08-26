@@ -15,6 +15,7 @@ import {
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -516,6 +517,34 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
   return Object.keys(dashboardFilters).length > 0 ? dashboardFilters : null;
 }
 
+const APP_VITALS_START_SCREEN = 'app.vitals.start.screen';
+
+/**
+ * `app.vitals.start.screen` lives on the app-start parent span. Child operation
+ * spans inherit `transaction` (the V1 screen name, which Relay also backfills
+ * into start.screen on the root) but not the screen attribute itself. OR the
+ * two so a screen chip still matches operations tables.
+ */
+function expandAppStartScreenFilterValue(filterValue: string): string {
+  if (
+    !filterValue ||
+    filterValue.includes(`!${APP_VITALS_START_SCREEN}`) ||
+    filterValue.includes(`!has:${APP_VITALS_START_SCREEN}`)
+  ) {
+    return filterValue;
+  }
+
+  const search = new MutableSearch(filterValue);
+  const screenValues = search.getFilterValues(APP_VITALS_START_SCREEN);
+  if (screenValues.length === 0) {
+    return filterValue;
+  }
+
+  const transactionSearch = new MutableSearch('');
+  transactionSearch.addFilterValueList('transaction', screenValues);
+  return `(${filterValue} OR ${transactionSearch.formatString()})`;
+}
+
 export function dashboardFiltersToString(
   dashboardFilters: DashboardFilters | null | undefined,
   widgetType?: WidgetType
@@ -542,7 +571,7 @@ export function dashboardFiltersToString(
     dashboardFilterConditions +=
       globalFilters
         .filter(globalFilter => globalFilter.dataset === widgetType)
-        .map(globalFilter => globalFilter.value)
+        .map(globalFilter => expandAppStartScreenFilterValue(globalFilter.value))
         .join(' ') ?? '';
   }
 

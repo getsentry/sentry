@@ -9,26 +9,22 @@ export const TRANSACTION_COUNT = `count_unique(${SpanFields.TRANSACTION_SPAN_ID}
 // coalesces those old measurement keys into the app.vitals.* attributes below.
 // In the newer span shape, the same vital can arrive as a standalone span with a
 // specific span.op. Query both shapes so mixed SDK versions appear in one dashboard.
-//
-// App start vitals also appear on root transactions with transaction.op:app.start,
-// so use a broader op list for the cold/warm start conditions only. Screen load and
-// other conditions continue to use the narrower TRANSACTION_OP_CONDITION to avoid
-// pulling app.start transactions into unrelated queries.
-const APP_START_TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation,app.start]`;
-const ROOT_APP_START_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${APP_START_TRANSACTION_OP_CONDITION}`;
-export const COLD_START_CONDITION = `(${ROOT_APP_START_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_COLD_VALUE} OR ${SpanFields.SPAN_OP}:app.start.cold has:${SpanFields.APP_VITALS_START_COLD_VALUE})`;
-export const WARM_START_CONDITION = `(${ROOT_APP_START_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_WARM_VALUE} OR ${SpanFields.SPAN_OP}:app.start.warm has:${SpanFields.APP_VITALS_START_WARM_VALUE})`;
 export const TTID_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.initial_display has:${SpanFields.APP_VITALS_TTID_VALUE})`;
 export const TTFD_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.full_display has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
 
 // Group by app.vitals.start.screen. start.value is not a registered duration
 // yet, so has: uses tags[...,number] (search cannot parse millisecond) and
-// avg_if uses millisecond so the columns format as durations.
+// avg uses millisecond so the columns format as durations. Relay backfills
+// start.value / start.type / start.screen onto V1 ui.load roots, so this
+// matches both V1 (after normalization) and native V2 app-start spans.
 const START_VALUE_NUMBER = `tags[${SpanFields.APP_VITALS_START_VALUE},number]`;
 const START_VALUE_DURATION = `tags[${SpanFields.APP_VITALS_START_VALUE},millisecond]`;
 export const APP_START_TABLE_CONDITION = `(has:${SpanFields.APP_VITALS_START_SCREEN} AND has:${START_VALUE_NUMBER})`;
+export const AVG_START_VALUE = `avg(${START_VALUE_DURATION})`;
 export const AVG_COLD_START = `avg_if(${START_VALUE_DURATION},${SpanFields.APP_VITALS_START_TYPE},equals,cold)`;
 export const AVG_WARM_START = `avg_if(${START_VALUE_DURATION},${SpanFields.APP_VITALS_START_TYPE},equals,warm)`;
+export const COLD_START_CONDITION = `(${APP_START_TABLE_CONDITION} AND ${SpanFields.APP_VITALS_START_TYPE}:cold)`;
+export const WARM_START_CONDITION = `(${APP_START_TABLE_CONDITION} AND ${SpanFields.APP_VITALS_START_TYPE}:warm)`;
 
 // TTFD can be absent while TTID is present because reportFullyDrawn() is opt-in.
 export const SCREEN_LOAD_CONDITION = `(${TTID_CONDITION} OR ${TTFD_CONDITION})`;
@@ -50,7 +46,9 @@ const APP_START_NAME_EXCLUSIONS = `!${SpanFields.NAME}:"Cold Start" !${SpanField
 // the display name lives in span.description, cold/warm uses app_start_type, and
 // has:ttid scopes the rows to app-start traces. In the newer shape, operation spans
 // are standalone non-transaction spans; display names moved to span.name and
-// cold/warm uses app.vitals.start.type.
+// cold/warm uses app.vitals.start.type. Those children do not carry
+// app.vitals.start.screen (parent-only); dashboardFiltersToString ORs the
+// screen filter with transaction so V1 / ui.load-attached children still match.
 const APP_START_SPAN_NAME_OR_DESCRIPTION_CONDITION = `((has:${SpanFields.SPAN_DESCRIPTION} ${APP_START_DESCRIPTION_EXCLUSIONS}) OR (has:${SpanFields.NAME} ${APP_START_NAME_EXCLUSIONS}))`;
 const COLD_START_V1_OPERATIONS_CONDITION = `${APP_START_DESCRIPTION_EXCLUSIONS} has:${SpanFields.SPAN_DESCRIPTION} ${TRANSACTION_OP_CONDITION} has:ttid ${SpanFields.APP_START_TYPE}:cold ${APP_START_OPERATIONS}`;
 const COLD_START_V2_OPERATIONS_CONDITION = `!${SpanFields.IS_TRANSACTION}:true ${APP_START_SPAN_NAME_OR_DESCRIPTION_CONDITION} ${SpanFields.APP_VITALS_START_TYPE}:cold ${APP_START_OPERATIONS}`;

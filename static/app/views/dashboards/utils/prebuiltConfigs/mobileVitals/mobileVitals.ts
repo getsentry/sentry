@@ -6,6 +6,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {
   APP_START_TABLE_CONDITION,
   AVG_COLD_START,
+  AVG_START_VALUE,
   AVG_WARM_START,
   COLD_START_CONDITION,
   SCREEN_LOAD_TABLE_CONDITION,
@@ -40,8 +41,8 @@ const COLD_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       conditions: COLD_START_CONDITION,
       orderby: '',
@@ -73,8 +74,8 @@ const WARM_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       conditions: WARM_START_CONDITION,
       orderby: '',

@@ -4,6 +4,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
+  AVG_START_VALUE,
   COLD_START_CONDITION,
   COLD_START_TABLE_OPERATIONS_CONDITION,
   TRANSACTION_COUNT,
@@ -25,8 +26,8 @@ const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       conditions: COLD_START_CONDITION,
       orderby: '',
@@ -79,8 +80,8 @@ const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       conditions: WARM_START_CONDITION,
       orderby: '',
@@ -133,12 +134,12 @@ const AVG_COLD_START_LINE_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       fieldAliases: [],
       conditions: COLD_START_CONDITION,
-      orderby: `-avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
+      orderby: `-${AVG_START_VALUE}`,
     },
   ],
   layout: {
@@ -161,12 +162,12 @@ const AVG_WARM_START_LINE_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       fieldAliases: [],
       conditions: WARM_START_CONDITION,
-      orderby: `-avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
+      orderby: `-${AVG_START_VALUE}`,
     },
   ],
   layout: {
@@ -189,8 +190,8 @@ const COLD_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [SpanFields.DEVICE_CLASS, AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [SpanFields.DEVICE_CLASS],
       conditions: COLD_START_CONDITION,
       orderby: SpanFields.DEVICE_CLASS,
@@ -216,8 +217,8 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [SpanFields.DEVICE_CLASS, AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [SpanFields.DEVICE_CLASS],
       conditions: WARM_START_CONDITION,
       orderby: SpanFields.DEVICE_CLASS,

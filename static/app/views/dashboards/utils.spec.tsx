@@ -2,8 +2,13 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {
+  dashboardFiltersToString,
   eventViewFromWidget,
   flattenErrors,
   getCurrentPageFilters,
@@ -217,6 +222,76 @@ describe('Dashboards util', () => {
       const queryString = url.split('?')[1];
       const urlParams = new URLSearchParams(queryString);
       expect(urlParams.get('query')).toBe('is:unresolved transaction:/api/foo');
+    });
+  });
+
+  describe('dashboardFiltersToString', () => {
+    it('ORs app.vitals.start.screen with transaction so operation children still match', () => {
+      const result = dashboardFiltersToString(
+        {
+          [DashboardFilterKeys.GLOBAL_FILTER]: [
+            {
+              dataset: WidgetType.SPANS,
+              tag: {key: 'app.vitals.start.screen', name: 'app.vitals.start.screen'},
+              value: 'app.vitals.start.screen:[MainActivity]',
+            },
+          ],
+        },
+        WidgetType.SPANS
+      );
+
+      expect(result).toBe(
+        '(app.vitals.start.screen:[MainActivity] OR transaction:[MainActivity])'
+      );
+    });
+
+    it('does not rewrite has: or negated screen filters', () => {
+      expect(
+        dashboardFiltersToString(
+          {
+            [DashboardFilterKeys.GLOBAL_FILTER]: [
+              {
+                dataset: WidgetType.SPANS,
+                tag: {key: 'app.vitals.start.screen', name: 'app.vitals.start.screen'},
+                value: 'has:app.vitals.start.screen',
+              },
+            ],
+          },
+          WidgetType.SPANS
+        )
+      ).toBe('has:app.vitals.start.screen');
+
+      expect(
+        dashboardFiltersToString(
+          {
+            [DashboardFilterKeys.GLOBAL_FILTER]: [
+              {
+                dataset: WidgetType.SPANS,
+                tag: {key: 'app.vitals.start.screen', name: 'app.vitals.start.screen'},
+                value: '!app.vitals.start.screen:MainActivity',
+              },
+            ],
+          },
+          WidgetType.SPANS
+        )
+      ).toBe('!app.vitals.start.screen:MainActivity');
+    });
+
+    it('leaves unrelated global filters unchanged', () => {
+      const result = dashboardFiltersToString(
+        {
+          [DashboardFilterKeys.GLOBAL_FILTER]: [
+            {
+              dataset: WidgetType.SPANS,
+              tag: {key: 'os.name', name: 'os.name'},
+              value: 'os.name:Android',
+            },
+          ],
+        },
+        WidgetType.SPANS
+      );
+
+      expect(result).toBe('os.name:Android');
     });
   });
 
