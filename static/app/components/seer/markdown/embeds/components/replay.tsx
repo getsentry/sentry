@@ -1,6 +1,7 @@
 import {lazy} from 'react';
-import styled from '@emotion/styled';
 import queryString from 'query-string';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
@@ -54,7 +55,13 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
 
   return (
     <ReplayAccess fallback={<ReplayLink id={id} eventTimestamp={eventTimestamp} />}>
-      <ReplayBlockContainer>
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        padding="md"
+        overflow="hidden"
+      >
         <LazyLoad
           analyticsContext="seer_embed"
           replaySlug={id}
@@ -75,18 +82,10 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
           }
           LazyComponent={ReplayClipPreview}
         />
-      </ReplayBlockContainer>
+      </Container>
     </ReplayAccess>
   );
 }
-
-const ReplayBlockContainer = styled('div')`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space.md};
-  overflow: hidden;
-`;
 
 export const Replay = defineSeerEmbed({
   name: 'replay',
