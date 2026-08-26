@@ -360,11 +360,12 @@ export const SEER_EMBED_SCHEMAS = {
   },
   monitor: {
     description:
-      'The ONLY way to reference a Sentry monitor (cron, uptime, or metric ' +
-      'detector). Use the detector ID exactly as the monitors API returns it. ' +
+      'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
+      'or mobile build detector). Use the detector ID exactly as the monitors API returns it. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      "Block: renders the monitor's ongoing issues for the given time range. " +
+      'Block: loads the live monitor and renders its type-specific details. ' +
+      'For error monitors, statsPeriod scopes the unresolved issue list. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -373,15 +374,15 @@ export const SEER_EMBED_SCHEMAS = {
       statsPeriod: z
         .string()
         .regex(/^\d+[smhdw]$/)
-        .default('24h')
+        .optional()
         .describe(
-          'Relative time range for ongoing issues, e.g. "1h", "24h", "14d". Defaults to "24h".'
+          'For error monitors only, the relative time range for unresolved issues, e.g. "1h", "24h", or "14d". Defaults to "24h".'
         ),
     }),
     examples: [
       {
         label: 'Monitor',
-        data: {id: '9931', name: 'nightly-billing-sync', statsPeriod: '24h'},
+        data: {id: '9931', name: 'nightly-billing-sync'},
       },
     ],
   },
