@@ -474,7 +474,7 @@ const Header = styled('header')`
 
   margin: -${p => p.theme.space['3xl']} -${p => p.theme.space.xl}
     0 -${p => p.theme.space['2xl']};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
       0 -${p => p.theme.space['3xl']};
   }

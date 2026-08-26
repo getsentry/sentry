@@ -97,7 +97,7 @@ const FrameActionsSlot = styled(Flex)<{reserveSpace: boolean}>`
     pointer-events: auto;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     width: auto;
     flex: 0 1 auto;
     height: auto;

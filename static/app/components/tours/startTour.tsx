@@ -72,7 +72,7 @@ const ModalImage = styled('img')`
 // XXX: The negative margin is to undo the global modal styling
 const TourContainer = styled('div')`
   margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['2xl']};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     margin: -${p => p.theme.space['3xl']};
   }
   border-radius: ${p => p.theme.radius.md};
