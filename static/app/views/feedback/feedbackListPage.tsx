@@ -1,16 +1,9 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useLayoutEffect, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
-import {
-  Container as LayoutContainer,
-  Grid,
-  Stack,
-  useResponsivePropValue,
-} from '@sentry/scraps/layout';
+import {Container as LayoutContainer, Grid, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -43,15 +36,29 @@ const userFeedbackFeedbackOptions = {
   },
 };
 
+const pageLayout = {
+  areas: {
+    zero: '"top" "list"',
+    '3xl': '"top top" "list details"',
+  },
+  columns: {
+    zero: '1fr',
+    '3xl': 'minmax(195px, 1fr) 1.5fr',
+    '4xl': 'minmax(390px, 1fr) 2fr',
+  },
+  rows: {
+    zero: 'max-content 76vh',
+    '3xl': 'max-content minmax(0, 1fr)',
+  },
+} as const;
+
 function PageContent({
   feedbackProjectSlug,
   hasFeedbackContent,
-  forceCompact,
   content,
 }: {
   content: ReactNode;
   feedbackProjectSlug: string;
-  forceCompact: boolean;
   hasFeedbackContent: boolean;
 }) {
   const organization = useOrganization();
@@ -75,7 +82,14 @@ function PageContent({
     <PageFiltersContainer>
       <ErrorBoundary>
         <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
-          <LayoutGrid forceCompact={forceCompact}>
+          <Grid
+            {...pageLayout}
+            flex={1}
+            minHeight={0}
+            gap="xl"
+            overflow="hidden"
+            padding="lg xl"
+          >
             <Grid
               gap="md"
               area="top"
@@ -123,11 +137,11 @@ function PageContent({
             {hasFeedbackContent ? (
               content
             ) : (
-              <SetupContainer>
+              <LayoutContainer overflow="hidden" column="1 / -1">
                 <FeedbackSetupPanel />
-              </SetupContainer>
+              </LayoutContainer>
             )}
-          </LayoutGrid>
+          </Grid>
         </Stack>
       </ErrorBoundary>
     </PageFiltersContainer>
@@ -135,11 +149,7 @@ function PageContent({
 }
 
 export default function FeedbackListPage() {
-  return (
-    <Stack flex={1} minHeight={0} containerType="inline-size" overflow="hidden">
-      <FeedbackListPageContent />
-    </Stack>
-  );
+  return <FeedbackListPageContent />;
 }
 
 function FeedbackListPageContent() {
@@ -157,23 +167,17 @@ function FeedbackListPageContent() {
 
   useRedirectToFeedbackFromEvent();
 
-  const {isAnyDrawerOpen} = useDrawer();
-  const isMediumOrSmaller = useResponsivePropValue({zero: true, '3xl': false});
-  const isCompact = isMediumOrSmaller || isAnyDrawerOpen;
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
-  // Show the selected feedback item by itself whenever the page uses its compact layout.
+  // Keep the selected feedback in sync with the route. CSS decides whether it replaces
+  // the list or appears beside it based on the available container width.
   useLayoutEffect(() => {
-    if (isCompact) {
-      setShowItemPreview(Boolean(feedbackId));
-      if (feedbackId) {
-        window.scrollTo(0, 0);
-      }
-    } else {
-      setShowItemPreview(false);
+    setShowItemPreview(Boolean(feedbackId));
+    if (feedbackId) {
+      window.scrollTo(0, 0);
     }
-  }, [isCompact, feedbackId]);
+  }, [feedbackId]);
 
   useEffect(() => {
     setSelectedItemIndex(null);
@@ -208,41 +212,31 @@ function FeedbackListPageContent() {
       <Stack
         area="list"
         gap="md"
-        display={
-          isAnyDrawerOpen
-            ? showItemPreview
-              ? 'none'
-              : 'flex'
-            : {zero: showItemPreview ? 'none' : 'flex', '3xl': 'flex'}
-        }
+        display={{zero: showItemPreview ? 'none' : 'flex', '3xl': 'flex'}}
       >
         <FeedbackSummaryCategories />
-        <Container>
-          <FeedbackList onItemSelect={isCompact ? handleItemSelect : () => {}} />
-          {isCompact && selectedItemIndex !== null && (
-            <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
-              {t('Jump to selected item')}
-            </JumpToSelectedButton>
+        <FeedbackPanel>
+          <FeedbackList onItemSelect={handleItemSelect} />
+          {selectedItemIndex !== null && (
+            <LayoutContainer display={{zero: 'block', '3xl': 'none'}}>
+              <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
+                {t('Jump to selected item')}
+              </JumpToSelectedButton>
+            </LayoutContainer>
           )}
-        </Container>
+        </FeedbackPanel>
       </Stack>
 
       <LayoutContainer
-        area={isAnyDrawerOpen ? 'list' : {zero: 'list', '3xl': 'details'}}
-        display={
-          isAnyDrawerOpen
-            ? showItemPreview
-              ? 'flex'
-              : 'none'
-            : {zero: showItemPreview ? 'flex' : 'none', '3xl': 'flex'}
-        }
+        area={{zero: 'list', '3xl': 'details'}}
+        display={{zero: showItemPreview ? 'flex' : 'none', '3xl': 'flex'}}
         minHeight={0}
       >
-        <Container>
+        <FeedbackPanel>
           <AnalyticsArea name="details">
-            <FeedbackItemLoader onBackToList={isCompact ? handleBackToList : undefined} />
+            <FeedbackItemLoader onBackToList={handleBackToList} />
           </AnalyticsArea>
-        </Container>
+        </FeedbackPanel>
       </LayoutContainer>
     </Fragment>
   );
@@ -277,7 +271,6 @@ function FeedbackListPageContent() {
           </TopBar.Slot>
           <PageContent
             feedbackProjectSlug={feedbackProjectSlug}
-            forceCompact={isAnyDrawerOpen}
             hasFeedbackContent={hasFeedbackContent}
             content={pageContent}
           />
@@ -287,61 +280,13 @@ function FeedbackListPageContent() {
   );
 }
 
-const LayoutGrid = styled('div')<{forceCompact?: boolean}>`
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
-
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  place-items: stretch;
-
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-
-  grid-template-columns: 1fr;
-  grid-template-rows: max-content 76vh;
-  grid-template-areas: 'top' 'list';
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns: minmax(195px, 1fr) 1.5fr;
-    grid-template-rows: max-content minmax(0, 1fr);
-    grid-template-areas:
-      'top top'
-      'list details';
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    grid-template-columns: minmax(390px, 1fr) 2fr;
-  }
-
-  ${p =>
-    p.forceCompact &&
-    css`
-      grid-template-columns: 1fr;
-      grid-template-rows: max-content 76vh;
-      grid-template-areas: 'top' 'list';
-    `}
-`;
-
-const Container = styled('div')<{area?: string}>`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  ${p =>
-    p.area &&
-    css`
-      grid-area: ${p.area};
-    `}
-`;
-
-const SetupContainer = styled('div')`
-  overflow: hidden;
-  grid-column: 1 / -1;
-`;
+function FeedbackPanel({children}: {children: ReactNode}) {
+  return (
+    <Stack border="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
+      {children}
+    </Stack>
+  );
+}
 
 const JumpToSelectedButton = styled(Button)`
   position: fixed;
