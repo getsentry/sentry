@@ -63,10 +63,6 @@ class Topic(Enum):
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_ITEMS = "snuba-items"
     EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
-    # No consumer reads this topic anymore; segments go straight to
-    # process_segment_task. The schema is still used to validate the payload
-    # the flusher hands to that task.
-    BUFFERED_SEGMENTS = "buffered-segments"
     TASKWORKER = "taskworker"
     TASKWORKER_CONTROL = "taskworker-control"
 
