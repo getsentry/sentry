@@ -977,9 +977,10 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         "Describe a completed Sentry investigation. Do not use tools. Return exactly one raw JSON "
         "object with the keys title, summary, and summary_description and no other text. title "
         "must identify the incident in at most 5 words. summary must state what happened in at "
-        "most 10 words. summary_description must be 2 or 3 newline-separated, concise lines covering "
-        "the investigation's key evidence and the most useful next steps for a human fixing the "
-        "issue. Distinguish established facts from hypotheses and do not invent a cause. Put title "
+        "most 10 words. summary_description must use casual, plain language in 1 or 2 short "
+        "newline-separated sentences: lead with the strongest evidence and optionally add the most "
+        "useful next step. Avoid headings and jargon. Distinguish established facts from hypotheses "
+        "and do not invent a cause. Put title "
         "first in the JSON object. Do not call any function to write or save the result.\n"
         "<source_context>\n"
         f"{json.dumps(investigation_source(investigation))}\n</source_context>\n"
@@ -1121,7 +1122,7 @@ def _parse_completion_metadata(content: str) -> dict[str, str] | None:
     if not (
         1 <= len(title.split()) <= TITLE_WORD_LIMIT
         and SUMMARY_MIN_WORDS <= len(summary.split()) <= SUMMARY_WORD_LIMIT
-        and 2 <= len(description_lines) <= 3
+        and 1 <= len(description_lines) <= 3
     ):
         return None
     summary_description = "\n".join(description_lines)
