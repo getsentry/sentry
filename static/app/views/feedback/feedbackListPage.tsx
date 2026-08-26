@@ -5,7 +5,12 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {
+  Container as LayoutContainer,
+  Grid,
+  Stack,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -74,28 +79,50 @@ function PageContent({
         <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
           <LayoutGrid hideTop={hideTop} isCompact={isCompact}>
             {!hideTop && (
-              <Stack
-                flexGrow={1}
+              <Grid
                 gap="md"
                 area="top"
-                direction={{zero: 'column', xl: 'row'}}
-                align={{zero: 'stretch', xl: 'start'}}
+                areas={{
+                  zero: `
+                    "filters"
+                    "search"
+                    "actions"
+                  `,
+                  xl: `
+                    "filters actions"
+                    "search search"
+                  `,
+                  '3xl': '"filters search actions"',
+                }}
+                columns={{
+                  zero: '100%',
+                  xl: '1fr auto',
+                  '3xl': 'minmax(300px, auto) 1fr min-content',
+                }}
+                width="100%"
               >
-                <FeedbackFilters />
-                <Flex
-                  flexGrow={1}
-                  gap="md"
-                  direction={{zero: 'column', '3xl': 'row'}}
-                  align={{zero: 'stretch', '3xl': 'center'}}
+                <LayoutContainer
+                  area="filters"
+                  justifySelf={{zero: 'stretch', sm: 'start'}}
                 >
-                  <SearchContainer>
-                    <FeedbackSearch />
-                  </SearchContainer>
-                  <LinkButton {...createAlertAction} variant="primary">
-                    {t('Create Alert')}
-                  </LinkButton>
-                </Flex>
-              </Stack>
+                  <FeedbackFilters />
+                </LayoutContainer>
+                <LayoutContainer area="search">
+                  <FeedbackSearch />
+                </LayoutContainer>
+                <LayoutContainer
+                  area="actions"
+                  alignSelf="start"
+                  justifySelf={{zero: 'stretch', sm: 'end'}}
+                  width={{zero: '100%', sm: 'auto'}}
+                >
+                  {buttonProps => (
+                    <LinkButton {...buttonProps} {...createAlertAction} variant="primary">
+                      {t('Create Alert')}
+                    </LinkButton>
+                  )}
+                </LayoutContainer>
+              </Grid>
             )}
             {hasFeedbackContent ? (
               content
@@ -322,15 +349,6 @@ const Container = styled('div')<{area?: string}>`
 const SetupContainer = styled('div')`
   overflow: hidden;
   grid-column: 1 / -1;
-`;
-
-/**
- * Prevent the search box from growing infinitely.
- * See https://github.com/getsentry/sentry/pull/80328
- */
-const SearchContainer = styled('div')`
-  flex-grow: 1;
-  min-width: 0;
 `;
 
 const JumpToSelectedButton = styled(Button)`
