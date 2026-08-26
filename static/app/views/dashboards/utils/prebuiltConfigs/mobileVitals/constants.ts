@@ -39,24 +39,29 @@ export const SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION = `!${SpanFields.IS_TRAN
 
 const APP_START_OPERATIONS = `${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
 const APP_START_DESCRIPTION_EXCLUSIONS = `!${SpanFields.SPAN_DESCRIPTION}:"Cold Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm Start" !${SpanFields.SPAN_DESCRIPTION}:"Cold App Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm App Start" !${SpanFields.SPAN_DESCRIPTION}:"Initial Frame Render"`;
-const APP_START_NAME_EXCLUSIONS = `!${SpanFields.NAME}:"Cold Start" !${SpanFields.NAME}:"Warm Start" !${SpanFields.NAME}:"Cold App Start" !${SpanFields.NAME}:"Warm App Start" !${SpanFields.NAME}:"Initial Frame Render"`;
+const APP_START_NAME_EXCLUSIONS = `!${SpanFields.NAME}:"App Start" !${SpanFields.NAME}:"Cold Start" !${SpanFields.NAME}:"Warm Start" !${SpanFields.NAME}:"Cold App Start" !${SpanFields.NAME}:"Warm App Start" !${SpanFields.NAME}:"Initial Frame Render"`;
 
-// App start operation rows need a second compatibility layer. In the legacy shape,
-// contributing operations are child spans under a ui.load/navigation transaction;
-// the display name lives in span.description, cold/warm uses app_start_type, and
-// has:ttid scopes the rows to app-start traces. In the newer shape, operation spans
-// are standalone non-transaction spans; display names moved to span.name and
-// cold/warm uses app.vitals.start.type. Those children do not carry
-// app.vitals.start.screen (parent-only); dashboardFiltersToString ORs the
-// screen filter with transaction so V1 / ui.load-attached children still match.
+// App start operation rows need a compatibility layer.
+// V1: child spans under a ui.load/navigation transaction; display name in
+// span.description, cold/warm via app_start_type, has:ttid, op whitelist.
+// dashboardFiltersToString ORs start.screen with transaction so these still
+// match on screen drill-down.
+// V2 (pre-standalone): non-transaction spans with start.type and the same
+// op whitelist; display names in span.name.
+// Standalone: any non-root span tagged with start.screen. No op whitelist —
+// SDKs tag the children they want in this table. Exclude the App Start root
+// (transaction, op:app.start, or the start.value measurement).
 const APP_START_SPAN_NAME_OR_DESCRIPTION_CONDITION = `((has:${SpanFields.SPAN_DESCRIPTION} ${APP_START_DESCRIPTION_EXCLUSIONS}) OR (has:${SpanFields.NAME} ${APP_START_NAME_EXCLUSIONS}))`;
+const APP_START_STANDALONE_OPERATIONS_CONDITION = `!${SpanFields.IS_TRANSACTION}:true !${SpanFields.SPAN_OP}:app.start ${APP_START_NAME_EXCLUSIONS} ${APP_START_DESCRIPTION_EXCLUSIONS} has:${SpanFields.APP_VITALS_START_SCREEN} !has:${START_VALUE_NUMBER}`;
 const COLD_START_V1_OPERATIONS_CONDITION = `${APP_START_DESCRIPTION_EXCLUSIONS} has:${SpanFields.SPAN_DESCRIPTION} ${TRANSACTION_OP_CONDITION} has:ttid ${SpanFields.APP_START_TYPE}:cold ${APP_START_OPERATIONS}`;
 const COLD_START_V2_OPERATIONS_CONDITION = `!${SpanFields.IS_TRANSACTION}:true ${APP_START_SPAN_NAME_OR_DESCRIPTION_CONDITION} ${SpanFields.APP_VITALS_START_TYPE}:cold ${APP_START_OPERATIONS}`;
-export const COLD_START_TABLE_OPERATIONS_CONDITION = `(${COLD_START_V1_OPERATIONS_CONDITION} OR ${COLD_START_V2_OPERATIONS_CONDITION})`;
+const COLD_START_STANDALONE_OPERATIONS_CONDITION = `${APP_START_STANDALONE_OPERATIONS_CONDITION} ${SpanFields.APP_VITALS_START_TYPE}:cold`;
+export const COLD_START_TABLE_OPERATIONS_CONDITION = `(${COLD_START_V1_OPERATIONS_CONDITION} OR ${COLD_START_V2_OPERATIONS_CONDITION} OR ${COLD_START_STANDALONE_OPERATIONS_CONDITION})`;
 
 const WARM_START_V1_OPERATIONS_CONDITION = `${APP_START_DESCRIPTION_EXCLUSIONS} has:${SpanFields.SPAN_DESCRIPTION} ${TRANSACTION_OP_CONDITION} has:ttid ${SpanFields.APP_START_TYPE}:warm ${APP_START_OPERATIONS}`;
 const WARM_START_V2_OPERATIONS_CONDITION = `!${SpanFields.IS_TRANSACTION}:true ${APP_START_SPAN_NAME_OR_DESCRIPTION_CONDITION} ${SpanFields.APP_VITALS_START_TYPE}:warm ${APP_START_OPERATIONS}`;
-export const WARM_START_TABLE_OPERATIONS_CONDITION = `(${WARM_START_V1_OPERATIONS_CONDITION} OR ${WARM_START_V2_OPERATIONS_CONDITION})`;
+const WARM_START_STANDALONE_OPERATIONS_CONDITION = `${APP_START_STANDALONE_OPERATIONS_CONDITION} ${SpanFields.APP_VITALS_START_TYPE}:warm`;
+export const WARM_START_TABLE_OPERATIONS_CONDITION = `(${WARM_START_V1_OPERATIONS_CONDITION} OR ${WARM_START_V2_OPERATIONS_CONDITION} OR ${WARM_START_STANDALONE_OPERATIONS_CONDITION})`;
 
 // Screen load operation rows have the same naming split: legacy spans populate
 // span.description, while newer span data populates span.name. Include both fields
