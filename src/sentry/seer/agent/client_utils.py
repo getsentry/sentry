@@ -11,7 +11,6 @@ import logging
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
 import orjson
@@ -97,19 +96,6 @@ class AgentChatRequest(TypedDict):
     available_monitoring_providers: NotRequired[list[dict[str, Any]]]
 
 
-class AgentRunsRequest(TypedDict):
-    organization_id: int
-    user_id: NotRequired[int]
-    category_key: NotRequired[str]
-    category_value: NotRequired[str]
-    offset: NotRequired[int]
-    project_ids: NotRequired[list[int]]
-    limit: NotRequired[int]
-    start: NotRequired[datetime]
-    end: NotRequired[datetime]
-    query: NotRequired[str]
-
-
 class AgentUpdateRequest(TypedDict):
     run_id: int
     organization_id: int
@@ -189,19 +175,6 @@ def make_agent_chat_request(
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/chat",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        viewer_context=viewer_context,
-    )
-
-
-def make_agent_runs_request(
-    body: AgentRunsRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or agent_connection_pool,
-        "/v1/automation/explorer/runs",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )

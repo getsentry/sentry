@@ -41,6 +41,7 @@ cell_config = [Cell("us", 1, "http://us.testserver")]
 UNATTRIBUTED = {"dispatcher": "unknown"}
 
 PUSH_TRIGGER_OPTIONS = {"hybridcloud.webhookpayload.push_drain_trigger": True}
+DUE_HEAD_OPTIONS = {"hybridcloud.webhookpayload.dispatch_from_due_head": True}
 cell_config_with_gateway = [
     Cell(
         name="us",
@@ -125,6 +126,121 @@ class ScheduleWebhooksTest(TestCase):
 
         schedule_webhook_delivery()
         assert mock_deliver.delay.call_count == 0
+
+    @override_options(DUE_HEAD_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_due_head_dispatches_past_backoff_head(self, mock_deliver: MagicMock) -> None:
+        # Head in backoff, later message due: due-head mode dispatches the due
+        # message instead of gating the mailbox.
+        backoff = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        due = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+        )
+
+        schedule_webhook_delivery()
+
+        mock_deliver.delay.assert_called_once_with(
+            due.id, claimed_count=1, dispatcher=Dispatcher.SCHEDULER
+        )
+        # The backing-off record keeps its retry schedule.
+        backoff_schedule = backoff.schedule_for
+        backoff.refresh_from_db()
+        assert backoff.schedule_for == backoff_schedule
+
+    @override_options(DUE_HEAD_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_due_head_strict_provider_still_gated(self, mock_deliver: MagicMock) -> None:
+        # Jira is not skip-on-failure, so the head gate still applies.
+        self.create_webhook_payload(
+            mailbox_name="jira:123",
+            cell_name="us",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        webhook_two = self.create_webhook_payload(
+            mailbox_name="jira:123",
+            cell_name="us",
+        )
+        assert webhook_two.schedule_for < timezone.now()
+
+        schedule_webhook_delivery()
+        assert mock_deliver.delay.call_count == 0
+
+    @override_options(DUE_HEAD_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_due_head_claim_stops_at_backoff_record(self, mock_deliver: MagicMock) -> None:
+        # A backing-off record bounds the claim; records behind it wait.
+        due_one = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        backoff = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        due_two = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        schedule_webhook_delivery()
+
+        mock_deliver.delay.assert_called_once_with(
+            due_one.id, claimed_count=1, dispatcher=Dispatcher.SCHEDULER
+        )
+        backoff_schedule = backoff.schedule_for
+        backoff.refresh_from_db()
+        assert backoff.schedule_for == backoff_schedule
+        # The due record past the backoff stays claimable for the next dispatch.
+        due_two.refresh_from_db()
+        assert due_two.schedule_for < timezone.now()
+
+    @override_options(DUE_HEAD_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_due_head_does_not_reclaim_active_drain(self, mock_deliver: MagicMock) -> None:
+        # A backoff expiring behind an in-flight drain's claim must not sweep
+        # that claim into a second drain.
+        expired_backoff = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        claimed = create_payloads(3, "github:123")
+        WebhookPayload.objects.filter(id__in=[record.id for record in claimed]).update(
+            schedule_for=timezone.now() + timedelta(minutes=2)
+        )
+
+        schedule_webhook_delivery()
+
+        mock_deliver.delay.assert_called_once_with(
+            expired_backoff.id, claimed_count=1, dispatcher=Dispatcher.SCHEDULER
+        )
+
+    @override_options(DUE_HEAD_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_due_head_nothing_due(self, mock_deliver: MagicMock) -> None:
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        schedule_webhook_delivery()
+        assert mock_deliver.delay.call_count == 0
+
+    @override_options(DUE_HEAD_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_due_head_prioritizes_by_provider(self, mock_deliver: MagicMock) -> None:
+        github_webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            provider="github",
+            cell_name="us",
+        )
+        stripe_webhook = self.create_webhook_payload(
+            mailbox_name="stripe:123",
+            provider="stripe",
+            cell_name="us",
+        )
+
+        schedule_webhook_delivery()
+
+        assert mock_deliver.delay.call_count == 2
+        call_args_list = [call[0][0] for call in mock_deliver.delay.call_args_list]
+        assert call_args_list == [stripe_webhook.id, github_webhook.id]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_updates_mailbox_attributes(self, mock_deliver: MagicMock) -> None:
@@ -246,10 +362,10 @@ class ScheduleWebhooksTest(TestCase):
         mock_drain.delay.assert_called_once_with(
             webhook.id, claimed_count=1, dispatcher=Dispatcher.SCHEDULER
         )
+        # Option reads are served from the option store's cache in production,
+        # so only payload-table statements count toward the round-trip budget.
         queries = [
-            q["sql"]
-            for q in ctx.captured_queries
-            if not q["sql"].startswith(("SAVEPOINT", "RELEASE SAVEPOINT"))
+            q["sql"] for q in ctx.captured_queries if "hybridcloud_webhookpayload" in q["sql"]
         ]
         assert len(queries) == 1, queries
         assert "UPDATE" in queries[0]
@@ -366,6 +482,79 @@ class ScheduleWebhooksTest(TestCase):
         assert call_args_list[0] == stripe_webhook.id
         # Null provider (default priority) should be last
         assert call_args_list[1] == null_provider_webhook.id
+
+    def scheduler_skips(self, mock_metrics: MagicMock) -> list[dict[str, str]]:
+        return [
+            c[1]["tags"]
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.scheduler.skipped"
+        ]
+
+    @patch.object(deliver_webhooks, "BATCH_SIZE", 2)
+    @patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 4)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_overselect_covers_mailboxes_lost_to_other_dispatchers(
+        self, mock_drain: MagicMock
+    ) -> None:
+        webhooks = [
+            self.create_webhook_payload(mailbox_name=f"github:{i}", cell_name="us")
+            for i in range(3)
+        ]
+        # A dispatcher is mid-claim on the first mailbox; the surplus select must
+        # let the cycle still reach its dispatch target.
+        cache.set(f"wh:drain_active:{webhooks[0].mailbox_name}", 1, timeout=DRAIN_LOCK_TTL)
+
+        schedule_webhook_delivery()
+
+        dispatched = [call[0][0] for call in mock_drain.delay.call_args_list]
+        assert dispatched == [webhooks[1].id, webhooks[2].id]
+
+    @patch.object(deliver_webhooks, "BATCH_SIZE", 2)
+    @patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 4)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_stops_at_dispatch_target(self, mock_drain: MagicMock) -> None:
+        webhooks = [
+            self.create_webhook_payload(mailbox_name=f"github:{i}", cell_name="us")
+            for i in range(3)
+        ]
+
+        schedule_webhook_delivery()
+
+        dispatched = [call[0][0] for call in mock_drain.delay.call_args_list]
+        assert dispatched == [webhooks[0].id, webhooks[1].id]
+        # The surplus head is untouched — still due for the next cycle.
+        webhooks[2].refresh_from_db()
+        assert webhooks[2].schedule_for <= timezone.now()
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_records_lock_skip(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        cache.set(f"wh:drain_active:{webhook.mailbox_name}", 1, timeout=DRAIN_LOCK_TTL)
+
+        schedule_webhook_delivery()
+
+        assert mock_drain.delay.call_count == 0
+        assert self.scheduler_skips(mock_metrics) == [{"provider": "github", "reason": "lock_held"}]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks._claim_mailbox_batch", return_value=0)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_schedule_records_claim_lost(
+        self, mock_drain: MagicMock, mock_claim: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # Another dispatcher claimed the head between this cycle's discovery and
+        # its own claim, so the claim finds nothing due.
+        self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        schedule_webhook_delivery()
+
+        assert mock_drain.delay.call_count == 0
+        assert self.scheduler_skips(mock_metrics) == [
+            {"provider": "github", "reason": "claim_lost"}
+        ]
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
@@ -2060,6 +2249,35 @@ class PushTriggerTest(TestCase):
 
         maybe_trigger_drain(webhook_one.mailbox_name)
         assert mock_drain.delay.call_count == 2
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({**PUSH_TRIGGER_OPTIONS, **DUE_HEAD_OPTIONS})
+    def test_push_trigger_due_head_dispatches_past_backoff_head(
+        self, mock_drain: MagicMock
+    ) -> None:
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        due = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        maybe_trigger_drain("github:123")
+
+        mock_drain.delay.assert_called_once_with(
+            due.id, claimed_count=1, dispatcher=Dispatcher.PUSH
+        )
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({**PUSH_TRIGGER_OPTIONS, **DUE_HEAD_OPTIONS})
+    def test_push_trigger_due_head_skips_backoff_only_mailbox(self, mock_drain: MagicMock) -> None:
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        maybe_trigger_drain("github:123")
+        mock_drain.delay.assert_not_called()
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_push_trigger_noop_when_option_disabled(self, mock_drain: MagicMock) -> None:

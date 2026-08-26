@@ -690,6 +690,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "github-app.pull-request-status.chunk-size",
+    type=Int,
+    default=25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "integrations.backfill_github_external_actor.gh_api_fetch_interval_s",
     type=Float,
     default=0.1,
@@ -2556,6 +2562,14 @@ register(
         "gitlab",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Dispatch skip-on-failure providers' mailboxes from their oldest due record
+# instead of gating on the absolute head, so one record in retry backoff cannot
+# hide every due record behind it. Strict-ordering providers keep the gate.
+register(
+    "hybridcloud.webhookpayload.dispatch_from_due_head",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Drops GitHub check webhooks that reference no pull request based in their own
 # repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape

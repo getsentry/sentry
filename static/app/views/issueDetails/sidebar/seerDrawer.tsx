@@ -37,7 +37,6 @@ export const useOpenSeerDrawer = ({
     const issueBaseUrl = normalizeUrl(
       `/organizations/${organization.slug}/issues/${group.id}/`
     );
-
     openDrawer(() => <SeerDrawer group={group} project={project} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
@@ -56,6 +55,7 @@ export const useOpenSeerDrawer = ({
             query: {
               ...locationRef.current.query,
               seerDrawer: undefined,
+              seerDrawerAction: undefined,
             },
           },
           {replace: true, preventScrollReset: true}
