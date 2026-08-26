@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -41,6 +41,12 @@ interface PreprodSearchBarProps {
   searchSource?: string;
 }
 
+// Array attributes are keyed by their wrapped backend form (`tags[name,array]`),
+// so also match the unwrapped `name` that the allowlist / freeform lists use.
+function matchesKeyOrArrayName(tag: Tag, key: string, names: Set<string>): boolean {
+  return names.has(key) || (tag.kind === FieldKind.ARRAY && names.has(tag.name));
+}
+
 function filterToAllowedKeys(
   attributes: TagCollection,
   allowedKeys: string[]
@@ -49,15 +55,7 @@ function filterToAllowedKeys(
   const result: TagCollection = {};
   for (const key in attributes) {
     const tag = attributes[key];
-    if (!tag) {
-      continue;
-    }
-    // Array attributes are keyed by their wrapped backend form
-    // (`tags[name,array]`), so match them on the unwrapped `name` the allowlist
-    // uses instead of the key.
-    const matches =
-      allowedSet.has(key) || (tag.kind === FieldKind.ARRAY && allowedSet.has(tag.name));
-    if (matches) {
+    if (tag && matchesKeyOrArrayName(tag, key, allowedSet)) {
       result[key] = tag;
     }
   }
@@ -75,7 +73,9 @@ function markFreeformKeys(
     if (!tag) {
       continue;
     }
-    result[key] = freeformKeySet.has(key) ? {...tag, predefined: true} : tag;
+    result[key] = matchesKeyOrArrayName(tag, key, freeformKeySet)
+      ? {...tag, predefined: true}
+      : tag;
   }
   return result;
 }
@@ -170,10 +170,13 @@ export function PreprodSearchBar({
     if (!supportsArrays) {
       return {};
     }
-    return allowedKeys
-      ? filterToAllowedKeys(rawArrayAttributes, allowedKeys)
-      : rawArrayAttributes;
-  }, [allowedKeys, rawArrayAttributes, supportsArrays]);
+    return markFreeformKeys(
+      allowedKeys
+        ? filterToAllowedKeys(rawArrayAttributes, allowedKeys)
+        : rawArrayAttributes,
+      freeformKeys
+    );
+  }, [allowedKeys, freeformKeys, rawArrayAttributes, supportsArrays]);
 
   const arraySecondaryAliases = useMemo(() => {
     if (!supportsArrays) {

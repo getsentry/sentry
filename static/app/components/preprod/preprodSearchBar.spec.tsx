@@ -12,11 +12,15 @@ jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
   return {
     ...actual,
     TraceItemSearchQueryBuilder: (props: {
-      arrayAttributes?: Record<string, unknown>;
+      arrayAttributes?: Record<string, {predefined?: boolean}>;
       stringAttributes?: Record<string, unknown>;
     }) => (
       <div
         data-array-attributes={Object.keys(props.arrayAttributes ?? {}).join(',')}
+        data-array-predefined={Object.entries(props.arrayAttributes ?? {})
+          .filter(([, tag]) => tag?.predefined)
+          .map(([key]) => key)
+          .join(',')}
         data-string-attributes={Object.keys(props.stringAttributes ?? {}).join(',')}
         data-test-id="preprod-search"
       />
@@ -115,6 +119,40 @@ describe('PreprodSearchBar', () => {
     await waitFor(() => {
       expect(screen.getByTestId('preprod-search')).toHaveAttribute(
         'data-array-attributes',
+        expect.stringContaining('tags[install_groups,array]')
+      );
+    });
+  });
+
+  it('marks a freeform array attribute as predefined', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          key: 'tags[install_groups,array]',
+          name: 'install_groups',
+          attributeType: 'array',
+        },
+      ],
+    });
+
+    render(
+      <PreprodSearchBar
+        initialQuery=""
+        projects={[1]}
+        allowedKeys={['install_groups']}
+        freeformKeys={['install_groups']}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['trace-item-array-query-support'],
+        }),
+      }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('preprod-search')).toHaveAttribute(
+        'data-array-predefined',
         expect.stringContaining('tags[install_groups,array]')
       );
     });
