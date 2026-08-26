@@ -5,7 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  react-mentions>@babel/runtime: 7.28.6
   '@isaacs/brace-expansion': 5.0.1
   eslint-plugin-react-hooks>zod-validation-error: ^4.0.2
   diff@>=4.0.0 <4.0.4: 4.0.4
@@ -304,9 +303,6 @@ importers:
       '@types/react-lazyload':
         specifier: 3.2.3
         version: 3.2.3
-      '@types/react-mentions':
-        specifier: 4.4.1
-        version: 4.4.1
       '@types/react-select':
         specifier: 4.0.18
         version: 4.0.18
@@ -475,9 +471,6 @@ importers:
       react-lazyload:
         specifier: ^3.2.1
         version: 3.2.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      react-mentions:
-        specifier: 4.4.10
-        version: 4.4.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react-popper:
         specifier: ^2.3.0
         version: 2.3.0(@popperjs/core@2.11.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -3843,9 +3836,6 @@ packages:
 
   '@types/react-lazyload@3.2.3':
     resolution: {integrity: sha512-s03gWlHXiFqZr7TEFDTx8Lkl+ZEYrwTkXP9MNZ3Z3blzsPrnkYjgeSK2tjfzVv/TYVCnDk6TZwNRDHQlHy/1Ug==}
-
-  '@types/react-mentions@4.4.1':
-    resolution: {integrity: sha512-65QdcZYkGe2I4GnOLY2OhlXCGz/Csd8NhytwE5r59CoFeYafMltAE/WqFB/Y6SoPU8LvF7EyUrq6Rxrf0Kzxkg==}
 
   '@types/react-select@4.0.18':
     resolution: {integrity: sha512-uCPRMPshd96BwHuT7oCrFduiv5d6km3VwmtW7rVl9g4XetS3VoJ9nZo540LiwtQgaFcW96POwaxQDZDAyYaepg==}
@@ -7847,13 +7837,6 @@ packages:
     peerDependencies:
       react: 0.14 || 15 || 16 || 17
 
-  react-mentions@4.4.10:
-    resolution: {integrity: sha512-JHiQlgF1oSZR7VYPjq32wy97z1w1oE4x10EuhKjPr4WUKhVzG1uFQhQjKqjQkbVqJrmahf+ldgBTv36NrkpKpA==}
-    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
-    peerDependencies:
-      react: '>=16.8.3'
-      react-dom: '>=16.8.3'
-
   react-popper@2.3.0:
     resolution: {integrity: sha512-e1hj8lL3uM+sgSR4Lxzn5h1GxBlpa4CQz0XLF8kx4MDrDRWY0Ena4c97PUeSX9i5W3UAfDP0z0FXCTQkoXUl3Q==}
     peerDependencies:
@@ -8481,11 +8464,6 @@ packages:
 
   stylis@4.2.0:
     resolution: {integrity: sha512-Orov6g6BB1sDfYgzWfTHDOxamtX1bE/zo104Dh9e6fqJ3PooipYyfJ0pUmrZO2wAvO8YbEyeFrkV91XTsGMSrw==}
-
-  substyle@9.4.1:
-    resolution: {integrity: sha512-VOngeq/W1/UkxiGzeqVvDbGDPM8XgUyJVWjrqeh+GgKqspEPiLYndK+XRcsKUHM5Muz/++1ctJ1QCF/OqRiKWA==}
-    peerDependencies:
-      react: '>=16.8.3'
 
   superagent@7.1.6:
     resolution: {integrity: sha512-gZkVCQR1gy/oUXr+kxJMLDjla434KmSOKbx5iGD30Ql+AkJQ/YlPKECJy2nhqOsHLjGHzoDTXNSjhnvWhzKk7g==}
@@ -12364,10 +12342,6 @@ snapshots:
       '@types/react': 19.2.1
 
   '@types/react-lazyload@3.2.3':
-    dependencies:
-      '@types/react': 19.2.1
-
-  '@types/react-mentions@4.4.1':
     dependencies:
       '@types/react': 19.2.1
 
@@ -17338,15 +17312,6 @@ snapshots:
       prop-types: 15.8.1
       react: 19.2.3
 
-  react-mentions@4.4.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
-    dependencies:
-      '@babel/runtime': 7.28.6
-      invariant: 2.2.4
-      prop-types: 15.8.1
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
-      substyle: 9.4.1(react@19.2.3)
-
   react-popper@2.3.0(@popperjs/core@2.11.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
       '@popperjs/core': 2.11.5
@@ -18162,12 +18127,6 @@ snapshots:
       - typescript
 
   stylis@4.2.0: {}
-
-  substyle@9.4.1(react@19.2.3):
-    dependencies:
-      '@babel/runtime': 7.28.6
-      invariant: 2.2.4
-      react: 19.2.3
 
   superagent@7.1.6:
     dependencies:
