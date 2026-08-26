@@ -66,10 +66,10 @@ class PerOrgRecalibrationCacheTest(TestCase):
         self.addCleanup(redis.delete, cache_key)
         redis.delete(cache_key)
 
-        per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 2.5)
+        per_org_recalibration_cache.set_adjusted_factor(org.id, 2.5)
         assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 2.5
 
-        per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 1.0)
+        per_org_recalibration_cache.set_adjusted_factor(org.id, 1.0)
         assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
 
 
@@ -166,6 +166,34 @@ class PerOrgSampleRateCacheTest(TestCase):
         assert get_project_sample_rate(self.organization.id, self.project.id) == 0.25
         assert get_project_sample_rate(self.organization.id, other.id) == 1.0
         assert get_project_sample_rate(self.organization.id, missing.id) is None
+
+    def test_project_sample_rates_skip_a_rate_that_did_not_move(self) -> None:
+        other = self.create_project(organization=self.organization)
+        cache_key = generate_project_sample_rates_cache_key(self.organization.id)
+        # Stored out of band so that a skipped write is visible: the value is equal to 0.25
+        # within epsilon, so only a rewrite would replace it.
+        self.redis.hset(cache_key, str(self.project.id), "0.2500000000001")
+
+        set_project_sample_rates(
+            self.organization.id,
+            [
+                RebalancedItem(id=self.project.id, count=10, new_sample_rate=0.25),
+                RebalancedItem(id=other.id, count=20, new_sample_rate=0.75),
+            ],
+        )
+
+        assert self.redis.hget(cache_key, str(self.project.id)) == "0.2500000000001"
+        assert self.redis.hget(cache_key, str(other.id)) == "0.75"
+
+    def test_project_sample_rates_renew_the_expiry_when_no_rate_moved(self) -> None:
+        cache_key = generate_project_sample_rates_cache_key(self.organization.id)
+        items = [RebalancedItem(id=self.project.id, count=10, new_sample_rate=0.25)]
+        set_project_sample_rates(self.organization.id, items)
+        self.redis.pexpire(cache_key, 1000)
+
+        set_project_sample_rates(self.organization.id, items)
+
+        assert self.redis.pttl(cache_key) > 1000
 
     def test_project_sample_rates_do_not_share_keys_with_the_legacy_cache(self) -> None:
         legacy_key = generate_boost_low_volume_projects_cache_key(self.organization.id)
