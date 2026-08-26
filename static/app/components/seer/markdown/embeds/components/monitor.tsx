@@ -46,7 +46,7 @@ function MonitorBlock({id, name, statsPeriod}: EmbedOutput<'monitor'>) {
           LazyComponent={LazyGroupList}
           queryParams={{
             query: `is:unresolved detector:${id}`,
-            statsPeriod: statsPeriod ?? '14d',
+            statsPeriod: statsPeriod ?? '24h',
             limit: 5,
           }}
           numPlaceholderRows={3}

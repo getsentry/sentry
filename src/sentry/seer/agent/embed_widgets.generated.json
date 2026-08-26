@@ -511,8 +511,8 @@
           "minLength": 1
         },
         "statsPeriod": {
-          "default": "14d",
-          "description": "Relative time range for ongoing issues, e.g. \"1h\", \"24h\", \"14d\". Defaults to \"14d\".",
+          "default": "24h",
+          "description": "Relative time range for ongoing issues, e.g. \"1h\", \"24h\", \"14d\". Defaults to \"24h\".",
           "type": "string",
           "pattern": "^\\d+[smhdw]$"
         }

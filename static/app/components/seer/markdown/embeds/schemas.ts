@@ -373,9 +373,9 @@ export const SEER_EMBED_SCHEMAS = {
       statsPeriod: z
         .string()
         .regex(/^\d+[smhdw]$/)
-        .default('14d')
+        .default('24h')
         .describe(
-          'Relative time range for ongoing issues, e.g. "1h", "24h", "14d". Defaults to "14d".'
+          'Relative time range for ongoing issues, e.g. "1h", "24h", "14d". Defaults to "24h".'
         ),
     }),
     examples: [
