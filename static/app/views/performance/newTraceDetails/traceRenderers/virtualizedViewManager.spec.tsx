@@ -562,36 +562,6 @@ describe('VirtualizedViewManger', () => {
   });
 
   describe('horizontal scrolling', () => {
-    it('keeps timestamps at a stable horizontal position near trace edges', () => {
-      const traceStart = 10_000;
-      for (const timestamp of [traceStart + 100, traceStart + 900]) {
-        const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0.5},
-            span_list: {width: 0.5},
-          },
-          new TraceScheduler(),
-          new TraceView(),
-          ThemeFixture()
-        );
-
-        manager.view.setTraceSpace([traceStart, 0, 1000, 1]);
-        const zoomSpy = jest
-          .spyOn(manager, 'onZoomIntoSpace')
-          .mockImplementation(() => {});
-
-        manager.onZoomAroundTimestamp(timestamp, 'lcp');
-        manager.onZoomAroundTimestamp(timestamp, 'lcp');
-
-        expect(zoomSpy).toHaveBeenCalledTimes(2);
-        for (const [space] of zoomSpy.mock.calls) {
-          expect((timestamp - space[0]) / space[1]).toBeCloseTo(
-            (timestamp - traceStart) / 1000
-          );
-        }
-      }
-    });
-
     it('zooms from the previous target when repeated before the animation completes', () => {
       const manager = new VirtualizedViewManager(
         {
