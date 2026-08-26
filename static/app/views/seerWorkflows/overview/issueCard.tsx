@@ -564,8 +564,6 @@ export function OverviewCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const inView = useIsInView(cardRef);
   useEffect(() => {
-    // Scrolling a card into view enriches its own window and prefetches the next,
-    // so the following window is already loading before the user reaches it.
     if (inView && scmWindows) {
       for (const window of scmWindows) {
         requestScmWindow(window);
@@ -578,8 +576,6 @@ export function OverviewCard({
   const reviewPullRequest =
     sectionKey === 'review_pr' ? selectReviewPullRequest(run.pullRequests) : undefined;
   const changedFiles = reviewPullRequest?.files ?? [];
-  // An actionable PR without SCM detail is still awaiting its window fetch, so
-  // shimmer from first paint (not once observed) until that window settles.
   const hasEnrichment = Boolean(
     reviewPullRequest?.checksStatus ||
     reviewPullRequest?.reviewStatus ||

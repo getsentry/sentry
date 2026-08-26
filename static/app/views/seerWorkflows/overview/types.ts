@@ -225,13 +225,10 @@ export interface AutofixOverviewResponse {
   truncatedMilestones?: MilestoneKey[];
 }
 
-// PR/SCM enrichment fetched per window of run ids from the autofix-scm-info
-// endpoint, keyed by seerRunId.
 export interface AutofixScmInfoResponse {
   scmInfoByRunId: Record<string, {pullRequests: OverviewPullRequest[]}>;
 }
 
-// Positional window size: PR-bearing runs are partitioned by render order into
-// chunks of this many, and any card in a chunk scrolling into view fetches the
-// whole chunk. Owned here — the endpoint serves whatever it is given.
+// PR-bearing runs are partitioned by render order into windows of this size; a
+// card scrolling into view fetches its whole window and prefetches the next.
 export const SCM_WINDOW_SIZE = 5;

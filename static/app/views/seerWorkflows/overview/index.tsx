@@ -270,10 +270,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     ),
   })).filter(section => section.runs.length > 0);
 
-  // Only the Review-PR section renders SCM detail (checks/review/files). Its runs
-  // in render order are partitioned into positional windows of SCM_WINDOW_SIZE. A
-  // card scrolling into view enriches its own window and prefetches the next one,
-  // so the following window is already loading before the user reaches it.
   const orderedPrRunIds = populatedSections
     .filter(section => section.key === 'review_pr')
     .flatMap(section => section.runs)

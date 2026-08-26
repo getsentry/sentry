@@ -135,8 +135,6 @@ describe('AutofixOverview', () => {
       runsByMilestone: {...emptyMilestones, ...base},
       truncatedMilestones: truncated ?? [],
     };
-    // Three expands, three cadences: the fast status poll, the fetch-once Snuba
-    // vitals, and the one-shot project config.
     const statusPollRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({expand: ['status']})],
@@ -168,8 +166,6 @@ describe('AutofixOverview', () => {
     return {statusPollRequest, issueStatsRequest, projectConfigRequest, scmInfoRequest};
   }
 
-  // Holds a mocked response open so a pending state can be asserted, with no
-  // reliance on real timers.
   function deferredResponse() {
     let resolve!: () => void;
     const promise = new Promise<void>(r => {
@@ -178,10 +174,6 @@ describe('AutofixOverview', () => {
     return {promise, resolve};
   }
 
-  // Cards enrich only once scrolled into view; this makes the IntersectionObserver
-  // report observed cards as visible. `onlyMatching` restricts visibility to the
-  // card whose element contains that text; `deferred` reports on a separate task
-  // like a real per-card observer.
   const originalIntersectionObserver = window.IntersectionObserver;
   function makeCardsVisible({
     deferred = false,
@@ -756,14 +748,12 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    // The card paints from the status poll with the counts still behind a shimmer.
     expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
     expect(screen.queryByText('1.2K events')).not.toBeInTheDocument();
 
     issueStats.resolve();
 
-    // Once vitals land, the counts replace the shimmer.
     expect(await screen.findByText('1.2K events')).toBeInTheDocument();
     expect(screen.getByText('5 users')).toBeInTheDocument();
   });
@@ -776,7 +766,6 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(await screen.findByText('1.2K events')).toBeInTheDocument();
-    // No new run appears, so the Snuba fetch never re-triggers.
     expect(issueStatsRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -870,7 +859,6 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    // The 10s poll carries only status; Snuba vitals ride a separate one-shot call.
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
@@ -889,7 +877,6 @@ describe('AutofixOverview', () => {
         query: expect.not.objectContaining({environment: expect.anything()}),
       })
     );
-    // A run with no PRs, and no card scrolled into view, never windows SCM info.
     expect(scmInfoRequest).not.toHaveBeenCalled();
     expect(runsRequest).not.toHaveBeenCalled();
     expect(autofixRequest).not.toHaveBeenCalled();
@@ -935,7 +922,6 @@ describe('AutofixOverview', () => {
     const {scmInfoRequest} = mockOverview({
       base: {has_pull_request: [{...rootCauseRun, pullRequests: [basePullRequest]}]},
       scmInfoAsyncDelay: scmInfo.promise,
-      // The window fills in every SCM-sourced field: checks, review, and files.
       scmInfo: {
         'run-1': {
           pullRequests: [
@@ -959,7 +945,6 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    // The base PR link paints immediately from the poll.
     expect(
       await screen.findByRole('button', {name: /Review PR #42/})
     ).toBeInTheDocument();
@@ -973,7 +958,6 @@ describe('AutofixOverview', () => {
 
     scmInfo.resolve();
 
-    // The enriched checks/review tags and changed files land; the shimmer clears.
     expect(await screen.findByText('Checks Passing')).toBeInTheDocument();
     expect(screen.getByText('Approved')).toBeInTheDocument();
     expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
@@ -998,8 +982,6 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: /Review PR #42/})
     ).toBeInTheDocument();
-    // The shimmer is the default state, not toggled on after the window request:
-    // the no-op observer never reports the card visible, so nothing fetched.
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
     expect(scmInfoRequest).not.toHaveBeenCalled();
   });
@@ -1023,8 +1005,6 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: /Review PR #42/})
     ).toBeInTheDocument();
-    // The window carries the same project scope as the poll so the endpoint
-    // resolves the same runs.
     await waitFor(() =>
       expect(scmInfoRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/seer/autofix-scm-info/`,
@@ -1045,10 +1025,7 @@ describe('AutofixOverview', () => {
     }));
 
   it('prefetches the next window when only the first card is visible', async () => {
-    // Only the first card is in view. Its own window is fetched, and the next
-    // window is prefetched so it is enriched before the user reaches it.
     makeCardsVisible({onlyMatching: 'Windowed run 0'});
-    // Two full windows worth of runs so both are exactly SCM_WINDOW_SIZE.
     const runCount = SCM_WINDOW_SIZE * 2;
     const {scmInfoRequest} = mockOverview({
       base: {has_pull_request: windowedRuns(runCount)},
@@ -1058,7 +1035,6 @@ describe('AutofixOverview', () => {
 
     expect(await screen.findByText('Windowed run 0')).toBeInTheDocument();
 
-    // The visible window plus the prefetched next window, each fetched once.
     await waitFor(() => expect(scmInfoRequest).toHaveBeenCalledTimes(2));
     const windows = scmInfoRequest.mock.calls.map(
       ([, options]: [string, {query: {runIds: string[]}}]) => options.query.runIds
@@ -1071,9 +1047,7 @@ describe('AutofixOverview', () => {
   });
 
   it('partitions PR cards into disjoint windows of SCM_WINDOW_SIZE', async () => {
-    // Each card reports visible on its own task, like a real per-card observer.
     makeCardsVisible({deferred: true});
-    // Two full windows plus a trailing partial one.
     const runCount = SCM_WINDOW_SIZE * 2 + 1;
     const {scmInfoRequest} = mockOverview({
       base: {has_pull_request: windowedRuns(runCount)},
@@ -1083,7 +1057,6 @@ describe('AutofixOverview', () => {
 
     expect(await screen.findByText('Windowed run 0')).toBeInTheDocument();
 
-    // The runs form three disjoint windows, each fetched once, not one per card.
     await waitFor(() => expect(scmInfoRequest).toHaveBeenCalledTimes(3));
     const windows = scmInfoRequest.mock.calls.map(
       ([, options]: [string, {query: {runIds: string[]}}]) => options.query.runIds
@@ -1093,7 +1066,6 @@ describe('AutofixOverview', () => {
       SCM_WINDOW_SIZE,
       1,
     ]);
-    // Every run enriched exactly once — no id dropped or requested twice.
     const requestedIds = windows.flat();
     expect(requestedIds).toHaveLength(runCount);
     expect(new Set(requestedIds).size).toBe(runCount);
@@ -1106,7 +1078,6 @@ describe('AutofixOverview', () => {
       pullRequests: [pullRequestFixture({number: 42, status: 'open'})],
     };
     const {scmInfoRequest} = mockOverview({base: {has_pull_request: [prRun]}});
-    // The re-sorted scope returns the same PR-bearing run.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({sort: 'events'})],
@@ -1126,8 +1097,6 @@ describe('AutofixOverview', () => {
     await userEvent.click(screen.getByRole('button', {name: /Sort/}));
     await userEvent.click(screen.getByRole('option', {name: 'Most events'}));
 
-    // The scope change clears the latch, so the reshown card re-windows
-    // instead of being deduped against the previous scope.
     await waitFor(() => expect(scmInfoRequest).toHaveBeenCalledTimes(2));
   });
 
@@ -1149,12 +1118,10 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    // The base PR link still renders...
     expect(
       await screen.findByRole('button', {name: /Review PR #42/})
     ).toBeInTheDocument();
     await waitFor(() => expect(scmInfoRequest).toHaveBeenCalled());
-    // ...and the checks/review shimmer clears instead of hanging forever.
     await waitFor(() =>
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument()
     );
@@ -1900,7 +1867,6 @@ describe('AutofixOverview', () => {
     );
   });
 
-  // A sort change re-scopes the status poll, which carries the sort to the endpoint.
   it.each([
     {option: 'Most events', sort: 'events'},
     {option: 'Recent Issue Activity', sort: 'issue'},

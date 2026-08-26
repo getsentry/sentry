@@ -37,8 +37,6 @@ export function OverviewCardAction({
   const {autofix, config, isDispatched, trigger} = useNextAction({run, sectionKey});
   const {to: openSeerTo, trackOpen} = useOpenSeerLink(run, sectionKey);
 
-  // DB-only eligibility from the separately-fetched projectConfig; lets the hook
-  // skip its own repo pagination without waiting on GitHub enrichment.
   const repoEligibility = projectConfig
     ? {
         hasReposConnected: projectConfig.hasReposConnected,
