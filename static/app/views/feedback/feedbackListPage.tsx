@@ -118,7 +118,7 @@ function PageContent({
               <Container area="filters" justifySelf={{zero: 'stretch', sm: 'start'}}>
                 <FeedbackFilters />
               </Container>
-              <Container area="search">
+              <Container area="search" minWidth={0}>
                 <FeedbackSearch />
               </Container>
               <Container
