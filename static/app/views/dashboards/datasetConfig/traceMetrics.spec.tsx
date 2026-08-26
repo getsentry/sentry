@@ -92,6 +92,10 @@ describe('TraceMetricsConfig', () => {
     });
   });
 
+  it('supports table widgets', () => {
+    expect(TraceMetricsConfig.supportedDisplayTypes).toContain(DisplayType.TABLE);
+  });
+
   describe('transformSeries', () => {
     it('uniquely identifies series with single yAxis and no groupings', () => {
       const data: EventsTimeSeriesResponse = {

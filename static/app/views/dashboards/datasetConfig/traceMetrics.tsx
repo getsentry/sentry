@@ -289,6 +289,7 @@ export const TraceMetricsConfig: DatasetConfig<
     DisplayType.CATEGORICAL_BAR,
     DisplayType.HEATMAP,
     DisplayType.LINE,
+    DisplayType.TABLE,
   ],
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,
