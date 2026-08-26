@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -11,6 +12,8 @@ import {
   type SeerEmbedExample,
 } from 'sentry/components/seer/markdown/embeds/schemas';
 import {Demo} from 'sentry/stories';
+import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const BASIC_MD = `## Root Cause
 
@@ -124,38 +127,84 @@ function buildEmbedMarkdown(
     .join('\n');
 }
 
+function useReplayExamples(): SeerEmbedExample[] | undefined {
+  const organization = useOrganization();
+  const {data} = useQuery(
+    replayListApiOptions({
+      options: {query: {sort: '-started_at'}},
+      organization,
+      queryReferrer: 'replayList',
+    })
+  );
+
+  const replay = data?.data?.[0];
+  if (!replay?.started_at) {
+    return undefined;
+  }
+
+  const replayData = {
+    id: replay.id,
+    eventTimestamp: replay.started_at.toISOString(),
+  };
+
+  return [
+    {label: 'Inline', level: 'inline' as const, data: replayData},
+    {label: 'Block', level: 'block' as const, data: replayData},
+  ];
+}
+
+function EmbedSection({
+  name,
+  schema,
+  overrideExamples,
+}: {
+  name: string;
+  schema: (typeof SEER_EMBED_SCHEMAS)[keyof typeof SEER_EMBED_SCHEMAS];
+  overrideExamples?: SeerEmbedExample[];
+}) {
+  const examples = overrideExamples ?? schema.examples;
+  const md = examples ? buildEmbedMarkdown(name, schema.level, examples) : null;
+
+  return (
+    <Stack key={name} gap="md">
+      <Text bold size="md">
+        {name}
+      </Text>
+      <Text size="sm" variant="muted">
+        Level: {schema.level.join(', ')}
+        {'featureFlag' in schema ? ` · Flag: ${schema.featureFlag}` : null}
+      </Text>
+      <Text size="sm" variant="muted">
+        Prompt: {schema.description}
+      </Text>
+      {md && (
+        <Stack gap="sm">
+          <Demo>
+            <SeerMarkdown raw={md} />
+          </Demo>
+          <CodeBlock language="markdown" dark>
+            {md}
+          </CodeBlock>
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
 export function EmbedRegistry() {
   const entries = Object.entries(SEER_EMBED_SCHEMAS);
+  const replayExamples = useReplayExamples();
+
   return (
     <Stack gap="xl">
-      {entries.map(([name, schema]) => {
-        const examples = schema.examples;
-        const md = examples ? buildEmbedMarkdown(name, schema.level, examples) : null;
-        return (
-          <Stack key={name} gap="md">
-            <Text bold size="md">
-              {name}
-            </Text>
-            <Text size="sm" variant="muted">
-              Level: {schema.level.join(', ')}
-              {'featureFlag' in schema ? ` · Flag: ${schema.featureFlag}` : null}
-            </Text>
-            <Text size="sm" variant="muted">
-              Prompt: {schema.description}
-            </Text>
-            {md && (
-              <Stack gap="sm">
-                <Demo>
-                  <SeerMarkdown raw={md} />
-                </Demo>
-                <CodeBlock language="markdown" dark>
-                  {md}
-                </CodeBlock>
-              </Stack>
-            )}
-          </Stack>
-        );
-      })}
+      {entries.map(([name, schema]) => (
+        <EmbedSection
+          key={name}
+          name={name}
+          schema={schema}
+          overrideExamples={name === 'replay' ? replayExamples : undefined}
+        />
+      ))}
     </Stack>
   );
 }
