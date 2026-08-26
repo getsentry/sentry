@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -45,16 +45,14 @@ const userFeedbackFeedbackOptions = {
 
 function PageContent({
   feedbackProjectSlug,
-  hideTop,
   hasFeedbackContent,
-  isCompact,
+  forceCompact,
   content,
 }: {
   content: ReactNode;
   feedbackProjectSlug: string;
+  forceCompact: boolean;
   hasFeedbackContent: boolean;
-  hideTop: boolean;
-  isCompact: boolean;
 }) {
   const organization = useOrganization();
   const createAlertAction = {
@@ -77,53 +75,51 @@ function PageContent({
     <PageFiltersContainer>
       <ErrorBoundary>
         <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
-          <LayoutGrid hideTop={hideTop} isCompact={isCompact}>
-            {!hideTop && (
-              <Grid
-                gap="md"
-                area="top"
-                areas={{
-                  zero: `
+          <LayoutGrid forceCompact={forceCompact}>
+            <Grid
+              gap="md"
+              area="top"
+              areas={{
+                zero: `
                     "filters"
                     "search"
                     "actions"
                   `,
-                  xl: `
+                xl: `
                     "filters actions"
                     "search search"
                   `,
-                  '3xl': '"filters search actions"',
-                }}
-                columns={{
-                  zero: '100%',
-                  xl: '1fr auto',
-                  '3xl': 'minmax(300px, auto) 1fr min-content',
-                }}
-                width="100%"
+                '3xl': '"filters search actions"',
+              }}
+              columns={{
+                zero: '100%',
+                xl: '1fr auto',
+                '3xl': 'minmax(300px, auto) 1fr min-content',
+              }}
+              width="100%"
+            >
+              <LayoutContainer
+                area="filters"
+                justifySelf={{zero: 'stretch', sm: 'start'}}
               >
-                <LayoutContainer
-                  area="filters"
-                  justifySelf={{zero: 'stretch', sm: 'start'}}
-                >
-                  <FeedbackFilters />
-                </LayoutContainer>
-                <LayoutContainer area="search">
-                  <FeedbackSearch />
-                </LayoutContainer>
-                <LayoutContainer
-                  area="actions"
-                  alignSelf="start"
-                  justifySelf={{zero: 'stretch', sm: 'end'}}
-                  width={{zero: '100%', sm: 'auto'}}
-                >
-                  {buttonProps => (
-                    <LinkButton {...buttonProps} {...createAlertAction} variant="primary">
-                      {t('Create Alert')}
-                    </LinkButton>
-                  )}
-                </LayoutContainer>
-              </Grid>
-            )}
+                <FeedbackFilters />
+              </LayoutContainer>
+              <LayoutContainer area="search">
+                <FeedbackSearch />
+              </LayoutContainer>
+              <LayoutContainer
+                area="actions"
+                alignSelf="start"
+                justifySelf={{zero: 'stretch', sm: 'end'}}
+                width={{zero: '100%', sm: 'auto'}}
+              >
+                {buttonProps => (
+                  <LinkButton {...buttonProps} {...createAlertAction} variant="primary">
+                    {t('Create Alert')}
+                  </LinkButton>
+                )}
+              </LayoutContainer>
+            </Grid>
             {hasFeedbackContent ? (
               content
             ) : (
@@ -168,7 +164,7 @@ function FeedbackListPageContent() {
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
   // Show the selected feedback item by itself whenever the page uses its compact layout.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isCompact) {
       setShowItemPreview(Boolean(feedbackId));
       if (feedbackId) {
@@ -207,51 +203,51 @@ function FeedbackListPageContent() {
     setShowItemPreview(true);
   };
 
-  const largeScreenView = (
+  const pageContent = (
     <Fragment>
-      <Stack area="list" gap="md">
+      <Stack
+        area="list"
+        gap="md"
+        display={
+          isAnyDrawerOpen
+            ? showItemPreview
+              ? 'none'
+              : 'flex'
+            : {zero: showItemPreview ? 'none' : 'flex', '3xl': 'flex'}
+        }
+      >
         <FeedbackSummaryCategories />
         <Container>
-          <FeedbackList onItemSelect={() => {}} />
+          <FeedbackList onItemSelect={isCompact ? handleItemSelect : () => {}} />
+          {isCompact && selectedItemIndex !== null && (
+            <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
+              {t('Jump to selected item')}
+            </JumpToSelectedButton>
+          )}
         </Container>
       </Stack>
 
-      <Container area="details">
-        <AnalyticsArea name="details">
-          <FeedbackItemLoader />
-        </AnalyticsArea>
-      </Container>
-    </Fragment>
-  );
-
-  const smallerScreenView = (
-    <Fragment>
-      {showItemPreview ? (
-        <Container area="list">
+      <LayoutContainer
+        area={isAnyDrawerOpen ? 'list' : {zero: 'list', '3xl': 'details'}}
+        display={
+          isAnyDrawerOpen
+            ? showItemPreview
+              ? 'flex'
+              : 'none'
+            : {zero: showItemPreview ? 'flex' : 'none', '3xl': 'flex'}
+        }
+        minHeight={0}
+      >
+        <Container>
           <AnalyticsArea name="details">
-            <FeedbackItemLoader onBackToList={handleBackToList} />
+            <FeedbackItemLoader onBackToList={isCompact ? handleBackToList : undefined} />
           </AnalyticsArea>
         </Container>
-      ) : (
-        <Stack area="list" gap="md">
-          <FeedbackSummaryCategories />
-          <Container>
-            <FeedbackList onItemSelect={handleItemSelect} />
-            {selectedItemIndex !== null && (
-              <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
-                {t('Jump to selected item')}
-              </JumpToSelectedButton>
-            )}
-          </Container>
-        </Stack>
-      )}
+      </LayoutContainer>
     </Fragment>
   );
 
-  // Hide the search and filters when the compact layout is showing a feedback item.
-  const hideTop = isCompact && showItemPreview;
   const hasFeedbackContent = hasSetupOneFeedback || hasSlug;
-  const pageContent = isCompact ? smallerScreenView : largeScreenView;
   const titleContent = (
     <Fragment>
       {t('User Feedback')}
@@ -281,9 +277,8 @@ function FeedbackListPageContent() {
           </TopBar.Slot>
           <PageContent
             feedbackProjectSlug={feedbackProjectSlug}
-            hideTop={hideTop}
+            forceCompact={isAnyDrawerOpen}
             hasFeedbackContent={hasFeedbackContent}
-            isCompact={isCompact}
             content={pageContent}
           />
         </FeedbackApiOptions>
@@ -292,7 +287,7 @@ function FeedbackListPageContent() {
   );
 }
 
-const LayoutGrid = styled('div')<{hideTop?: boolean; isCompact?: boolean}>`
+const LayoutGrid = styled('div')<{forceCompact?: boolean}>`
   overflow: hidden;
   flex: 1;
   min-height: 0;
@@ -303,19 +298,16 @@ const LayoutGrid = styled('div')<{hideTop?: boolean; isCompact?: boolean}>`
 
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 
-  grid-template-rows: max-content minmax(0, 1fr);
-  grid-template-areas:
-    'top top'
-    'list details';
-
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns: 1fr;
-    grid-template-rows: ${p => (p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh')};
-    grid-template-areas: ${p => (p.hideTop ? "'.' 'list'" : "'top' 'list'")};
-  }
+  grid-template-columns: 1fr;
+  grid-template-rows: max-content 76vh;
+  grid-template-areas: 'top' 'list';
 
   @container (min-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: minmax(195px, 1fr) 1.5fr;
+    grid-template-rows: max-content minmax(0, 1fr);
+    grid-template-areas:
+      'top top'
+      'list details';
   }
 
   @container (min-width: ${p => p.theme.container['4xl']}) {
@@ -323,11 +315,11 @@ const LayoutGrid = styled('div')<{hideTop?: boolean; isCompact?: boolean}>`
   }
 
   ${p =>
-    p.isCompact &&
+    p.forceCompact &&
     css`
       grid-template-columns: 1fr;
-      grid-template-rows: ${p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh'};
-      grid-template-areas: ${p.hideTop ? "'.' 'list'" : "'top' 'list'"};
+      grid-template-rows: max-content 76vh;
+      grid-template-areas: 'top' 'list';
     `}
 `;
 
