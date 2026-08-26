@@ -105,6 +105,37 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain(`**Project:** ${group.project?.slug}`);
     });
 
+    it('uses the server-rendered body and does not add a second date', () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      ConfigStore.set('user', user);
+
+      const formattedEvent = EventFixture({
+        id: '123456',
+        dateCreated: '2023-01-01T00:00:00Z',
+        formatted: {
+          format: 'markdown',
+          content: '## Title\nboom\n**Date:** 2023-01-01 00:00:00 UTC',
+        },
+      });
+
+      try {
+        const result = issueAndEventToMarkdown({
+          group,
+          event: formattedEvent,
+          organization,
+        });
+
+        expect(result).toContain(`**Issue ID:** ${group.id}`);
+        expect(result).toContain('**Date:** 2023-01-01 00:00:00 UTC');
+        // the server body carries the only date; the header must not add a local-time one
+        expect(result.match(/\*\*Date:\*\*/g)).toHaveLength(1);
+        expect(result).not.toContain('EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
+    });
+
     it("renders the date in the user's timezone and clock preference", () => {
       const user = UserFixture();
       user.options.timezone = 'America/New_York';

@@ -6,7 +6,7 @@ import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
@@ -85,7 +85,7 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   to={
                     discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/homepage/`
+                      ? `${baseUrl}/errors/`
                       : `${baseUrl}/discover/homepage/`
                   }
                   activeTo={
@@ -142,16 +142,33 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
                   to={{
-                    pathname: `${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`,
+                    pathname: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
                   trailingItems={<FeatureBadge type="beta" />}
                 >
-                  {t('Conversations')}
+                  {t('Agents')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
+            {organization.openMembership && (
+              <Feature features="organizations:investigations">
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/investigations/`}
+                    activeTo={[
+                      `${baseUrl}/investigations/`,
+                      `/organizations/${organization.slug}/seer/investigation/`,
+                    ]}
+                    analyticsItemName="explore_investigations"
+                    trailingItems={<FeatureBadge type="beta" />}
+                  >
+                    {t('Investigations')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </Feature>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>

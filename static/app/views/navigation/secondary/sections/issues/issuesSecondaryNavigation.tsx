@@ -1,23 +1,28 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {Badge, FeatureBadge} from '@sentry/scraps/badge';
-import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {FeatureBadge} from '@sentry/scraps/badge';
 
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
+import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useInboxIssueCount} from 'sentry/views/issueList/queries/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+
+function InboxCountBadge() {
+  const {data: count} = useInboxIssueCount();
+
+  return count === undefined ? null : <IssueCount count={count} />;
+}
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
+  const hasIssueInbox = organization.features.includes('issue-inbox');
+  const hasInbox = hasIssueInbox && orgHasSeerAccess(organization);
+  const hasSeerNightShift = organization.features.includes('seer-night-shift-ui');
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -33,12 +38,18 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {organization.features.includes('issue-stream-progress-ui') && (
+            {hasInbox && (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/inbox/`}
                   end
                   analyticsItemName="issues_inbox"
+                  trailingItems={
+                    <Fragment>
+                      <InboxCountBadge />
+                      <FeatureBadge type="new" />
+                    </Fragment>
+                  }
                 >
                   {t('Inbox')}
                 </SecondaryNavigation.Link>
@@ -77,20 +88,38 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
-          <SecondaryNavigation.List>
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/autofix/recent/`}
-                analyticsItemName="issues_autofix"
-                end
-              >
-                {t('Recently Run')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          </SecondaryNavigation.List>
-        </SecondaryNavigation.Section>
+        {(hasSeerNightShift || !hasIssueInbox) && (
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
+              <SecondaryNavigation.List>
+                {hasSeerNightShift && (
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/autofix/`}
+                      analyticsItemName="issues_autofix_overview"
+                      end
+                      trailingItems={<FeatureBadge type="new" />}
+                    >
+                      {t('Overview')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                )}
+                {!hasIssueInbox && (
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/autofix/recent/`}
+                      analyticsItemName="issues_autofix"
+                      end
+                    >
+                      {t('Recently Run')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                )}
+              </SecondaryNavigation.List>
+            </SecondaryNavigation.Section>
+          </Fragment>
+        )}
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
           <SecondaryNavigation.List>
@@ -106,81 +135,7 @@ export function IssuesSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <IssueViews />
-        <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNavigation.Body>
     </Fragment>
   );
 }
-
-function ConfigureSection({baseUrl}: {baseUrl: string}) {
-  const organization = useOrganization();
-  const {layout} = usePrimaryNavigation();
-  const isSticky = layout === 'sidebar';
-
-  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
-  const shouldRedirectToWorkflowEngineUI = hasWorkflowEngineUI;
-
-  const alertsLink = shouldRedirectToWorkflowEngineUI
-    ? makeAutomationBasePathname(organization.slug)
-    : `${baseUrl}/alerts/rules/`;
-
-  return (
-    <Fragment>
-      <SecondaryNavigation.Separator />
-      <StickyBottomSection
-        id="issues-configure"
-        title={t('Configure')}
-        collapsible={false}
-        isSticky={isSticky}
-      >
-        <SecondaryNavigation.List>
-          <SecondaryNavigation.ListItem>
-            <SecondaryNavigation.Link
-              to={alertsLink}
-              {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
-              analyticsItemName="issues_alerts"
-              trailingItems={
-                hasWorkflowEngineUI ? (
-                  <Tooltip
-                    isHoverable
-                    title={
-                      <Fragment>
-                        <Text as="p">{t('Alerts now live under Monitors.')}</Text>
-                        <Text as="p">
-                          {tct('See the [link:new Alerts page here.]', {
-                            link: (
-                              <Link
-                                to={`/organizations/${organization.slug}/monitors/alerts/`}
-                              />
-                            ),
-                          })}
-                        </Text>
-                      </Fragment>
-                    }
-                  >
-                    <Badge variant="muted">{t('Moved')}</Badge>
-                  </Tooltip>
-                ) : null
-              }
-            >
-              {t('Alerts')}
-            </SecondaryNavigation.Link>
-          </SecondaryNavigation.ListItem>
-        </SecondaryNavigation.List>
-      </StickyBottomSection>
-    </Fragment>
-  );
-}
-
-const StickyBottomSection = styled(SecondaryNavigation.Section, {
-  shouldForwardProp: prop => prop !== 'isSticky',
-})<{isSticky: boolean}>`
-  ${p =>
-    p.isSticky &&
-    css`
-      position: sticky;
-      bottom: 0;
-      z-index: 1;
-      background: ${p.theme.tokens.background.secondary};
-    `}
-`;

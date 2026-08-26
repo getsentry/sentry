@@ -21,6 +21,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryAppInstallation} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
@@ -74,17 +75,16 @@ export default function SentryAppDetailedView() {
     data: featureData = [],
     isPending: isFeatureDataPending,
     isError: isFeatureDataError,
-  } = useApiQuery<IntegrationFeature[]>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
+  } = useQuery({
+    ...apiOptions.as<IntegrationFeature[]>()(
+      '/sentry-apps/$sentryAppIdOrSlug/features/',
+      {
         path: {sentryAppIdOrSlug: integrationSlug},
-      }),
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
 
   const {
     data: appInstalls = [],
@@ -344,7 +344,16 @@ export default function SentryAppDetailedView() {
         integrationSlug.charAt(0).toUpperCase() + integrationSlug.slice(1);
       if (install?.status === 'pending_deletion') {
         return (
-          <Button size="sm" disabled>
+          <Button
+            size="sm"
+            disabled
+            tooltipProps={{
+              title: t('Deletion is in progress. This may take a few minutes.'),
+              isHoverable: true,
+              position: 'top',
+            }}
+            data-test-id="pending-deletion-button"
+          >
             {t('Pending Deletion')}
           </Button>
         );

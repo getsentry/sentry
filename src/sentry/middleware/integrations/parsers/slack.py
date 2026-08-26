@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Sequence
 from typing import Any, TypeGuard
 from urllib.parse import parse_qs
 
 import orjson
 import sentry_sdk
+from django.core.cache import cache
 from django.http import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
@@ -48,12 +50,19 @@ from sentry.middleware.integrations.tasks import (
     route_slack_seer_event,
 )
 from sentry.types.cell import Cell
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.signing import unsign
 
 logger = logging.getLogger(__name__)
 
 ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTINGS_ACTION_OPTIONS
+
+SLACK_WEBHOOK_METRIC_EVENT_TYPES = frozenset(
+    ["app_mention", "assistant_thread_started", "link_shared", "message", "reaction_added"]
+)
+
+# Slack retries for ~5 minutes after http_timeout; keep keys long enough to cover that window.
+SEER_SLACK_EVENT_DEDUP_TTL = 60 * 60
 
 
 class SlackRequestParser(BaseRequestParser):
@@ -308,7 +317,120 @@ class SlackRequestParser(BaseRequestParser):
             and slack_request.is_seer_agent_request
         )
 
+    @staticmethod
+    def _seer_slack_event_cache_key(event_id: str) -> str:
+        return f"slack.control.seer_event:{event_id}"
+
+    def _claim_seer_slack_event(self, slack_request: SlackEventRequest) -> bool:
+        """Atomically claim a Slack event_id so Seer routing runs at most once.
+
+        Uses ``cache.add`` (Redis ``SET key NX EX`` / test-and-set). Concurrent
+        redeliveries of the same event_id race here: exactly one caller gets
+        True and schedules routing; the rest get False and ACK without work.
+        A get-then-set would race — do not replace this with ``cache.get`` /
+        ``cache.set``.
+
+        Returns True if this delivery should schedule routing. Missing event_ids
+        cannot be deduped, so they always proceed (and are logged — Slack's
+        ``event_callback`` envelope always includes ``event_id``; only
+        ``url_verification`` omits it, and that is handled earlier).
+        """
+        event_id = slack_request.data.get("event_id")
+        log_extra = {
+            "integration_id": slack_request.integration.id,
+            "event_type": slack_request.type,
+            "event_id": event_id,
+        }
+
+        if not event_id:
+            logger.info("slack.control.seer_event.missing_event_id", extra=log_extra)
+            return True
+
+        if not cache.add(
+            self._seer_slack_event_cache_key(event_id),
+            1,
+            timeout=SEER_SLACK_EVENT_DEDUP_TTL,
+        ):
+            logger.info("slack.control.seer_event.duplicate_skipped", extra=log_extra)
+            metrics.incr(
+                "hybrid_cloud.integration_control.slack.seer_event.duplicate_skipped",
+                sample_rate=1.0,
+            )
+            return False
+
+        return True
+
+    def _release_seer_slack_event_claim(self, slack_request: SlackEventRequest) -> None:
+        """Drop the dedupe claim so a Slack retry can re-schedule routing.
+
+        Only deletes when the claim key would have been written (event_id
+        present). Call after ``apply_async`` fails — otherwise the TTL window
+        ACKs retries as duplicates and Seer never runs.
+        """
+        event_id = slack_request.data.get("event_id")
+        if not event_id:
+            return
+
+        cache.delete(self._seer_slack_event_cache_key(event_id))
+
+    def _get_metric_event_type(self) -> str:
+        """Slack event type behind this request, or "none" when it carries no type.
+
+        SlackRequest itself defines no `type`, and options-load requests don't add one.
+        """
+        event_type = getattr(self.slack_request, "type", None)
+        if event_type is None:
+            return "none"
+
+        return event_type if event_type in SLACK_WEBHOOK_METRIC_EVENT_TYPES else "other"
+
+    def _record_response_time(self, status_code: int | str) -> None:
+        """
+        Record how long Slack waited on us, measured from the timestamp Slack stamped
+        on the request to the moment we finish handling it. Unlike an in-app timer this
+        includes transit time, so it's comparable to Slack's 3 second timeout.
+        """
+        raw_timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
+        if raw_timestamp is None:
+            return
+
+        try:
+            # Slack sends whole Unix seconds, so this delta has ~1s of granularity.
+            sent_at = int(raw_timestamp)
+        except ValueError:
+            logger.info(
+                "slack.control.invalid_request_timestamp",
+                extra={"path": self.request.path, "timestamp": raw_timestamp},
+            )
+            return
+
+        elapsed = time.time() - sent_at
+        metrics.timing(
+            "hybrid_cloud.integration_control.slack.response_time",
+            elapsed,
+            tags={
+                # SlackStagingRequestParser inherits this, so keep the two apart.
+                "provider": self.provider,
+                "url_name": self.match.url_name,
+                "status_code": status_code,
+                "event_type": self._get_metric_event_type(),
+            },
+            sample_rate=1.0,
+        )
+
     def get_response(self) -> HttpResponseBase:
+        try:
+            response = self._get_response()
+        except Exception:
+            # The final status code is decided further up the stack.
+            self._record_response_time("error")
+            raise
+
+        self._record_response_time(response.status_code)
+
+        return response
+
+    def _get_response(self) -> HttpResponseBase:
         """
         Slack Webhook Requests all require synchronous responses.
         """
@@ -338,25 +460,42 @@ class SlackRequestParser(BaseRequestParser):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         if self._is_seer_agent_request(self.slack_request):
-            route_slack_seer_event.apply_async(
-                kwargs={
-                    "payload": create_async_request_payload(self.request),
-                    "integration_id": self.slack_request.integration.id,
-                    "slack_user_id": self.slack_request.user_id,
-                    "channel_id": self.slack_request.channel_id,
-                    "thread_ts": self.slack_request.thread_ts,
-                    "message_ts": self.slack_request.dm_data.get("ts", ""),
-                    "event_type": self.slack_request.dm_data.get("type", ""),
-                    "message_text": self.slack_request.text,
-                }
-            )
-            logger.info(
-                "slack.control.seer_event.routing_scheduled",
-                extra={
-                    "integration_id": self.slack_request.integration.id,
-                    "event_type": self.slack_request.type,
-                },
-            )
+            # Claim late — after validation/cell resolution, immediately before the
+            # side-effect of scheduling — so Slack http_timeout redeliveries of the
+            # same event_id don't trigger duplicate Seer replies.
+            if not self._claim_seer_slack_event(self.slack_request):
+                return HttpResponse(status=status.HTTP_200_OK)
+
+            log_extra = {
+                "integration_id": self.slack_request.integration.id,
+                "event_type": self.slack_request.type,
+                "event_id": self.slack_request.data.get("event_id"),
+            }
+            try:
+                route_slack_seer_event.apply_async(
+                    kwargs={
+                        "payload": create_async_request_payload(self.request),
+                        "integration_id": self.slack_request.integration.id,
+                        "slack_user_id": self.slack_request.user_id,
+                        "channel_id": self.slack_request.channel_id,
+                        "thread_ts": self.slack_request.thread_ts,
+                        "message_ts": self.slack_request.dm_data.get("ts", ""),
+                        "event_type": self.slack_request.dm_data.get("type", ""),
+                        "message_text": self.slack_request.text,
+                    }
+                )
+            except Exception:
+                # Claim committed but enqueue didn't — release so Slack's retry can
+                # re-claim rather than ACKing as a duplicate for the TTL window.
+                self._release_seer_slack_event_claim(self.slack_request)
+                metrics.incr(
+                    "hybrid_cloud.integration_control.slack.seer_event.enqueue_failed",
+                    sample_rate=1.0,
+                )
+                logger.exception("slack.control.seer_event.enqueue_failed", extra=log_extra)
+                raise
+
+            logger.info("slack.control.seer_event.routing_scheduled", extra=log_extra)
             return HttpResponse(status=status.HTTP_200_OK)
 
         if self.view_class == SlackActionEndpoint and isinstance(

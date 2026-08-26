@@ -1,6 +1,8 @@
 from datetime import datetime
 from unittest.mock import patch
 
+from django.urls import reverse
+
 from sentry import audit_log
 from sentry.api.endpoints.project_custom_inbound_filters import MAX_CONDITIONS_PER_FILTER
 from sentry.models.auditlogentry import AuditLogEntry
@@ -118,7 +120,7 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert response.data["detail"] == "You do not have that feature enabled"
 
-    def test_rejects_incompatible_primary_conditions(self) -> None:
+    def test_rejects_conditions_from_two_data_types(self) -> None:
         conditions = [
             {"type": "error_message", "value": ["TypeError*"]},
             {"type": "log_message", "value": ["Rate limit*"]},
@@ -135,8 +137,49 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert (
             str(response.data["conditions"][0])
-            == "Only one of error_message, log_message, or metric_name can be used in a filter."
+            == "A filter matches one data type, so error, log, and metric conditions "
+            "cannot be combined."
         )
+
+    def test_rejects_error_type_with_another_data_type(self) -> None:
+        conditions = [
+            {"type": "error_type", "value": ["TypeError"]},
+            {"type": "log_message", "value": ["Rate limit*"]},
+        ]
+
+        with self.feature([*self.features, "organizations:ourlogs-ingestion"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Error type and log",
+                conditions=conditions,
+            )
+
+        assert (
+            str(response.data["conditions"][0])
+            == "A filter matches one data type, so error, log, and metric conditions "
+            "cannot be combined."
+        )
+
+    def test_allows_error_type_with_error_message(self) -> None:
+        conditions = [
+            {"type": "error_type", "value": ["TypeError"]},
+            {"type": "error_message", "value": ["*undefined*"]},
+        ]
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Type and message",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert custom_filter.conditions == conditions
 
     def test_allows_duplicate_condition_types(self) -> None:
         conditions = [
@@ -218,8 +261,8 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_rejects_conditions_without_required_ingestion_feature(self) -> None:
         cases = [
-            ("log_message", ["Rate limit*"], "Log message filters are not enabled"),
-            ("metric_name", ["counter.*"], "Metric name filters are not enabled"),
+            ("log_message", ["Rate limit*"], "Log filters are not enabled"),
+            ("metric_name", ["counter.*"], "Metric filters are not enabled"),
         ]
         for condition_type, value, expected in cases:
             with self.feature(self.features):
@@ -324,6 +367,23 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert audit_entry.data["operation"] == "edit"
         assert audit_entry.data["changes"] == {"active": {"old": True, "new": False}}
 
+    def test_put_name_only_change_skips_project_config_invalidation(self) -> None:
+        with (
+            self.feature(self.features),
+            outbox_runner(),
+            patch(
+                "sentry.api.endpoints.project_custom_inbound_filters.schedule_invalidate_project_config"
+            ) as mock_invalidate,
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                name="Renamed filter",
+            )
+
+        mock_invalidate.assert_not_called()
+
     def test_put_no_changes_skips_audit_log(self) -> None:
         with self.feature(self.features), outbox_runner():
             self.get_success_response(
@@ -339,7 +399,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             ).exists()
 
-    def test_put_rejects_incompatible_primary_conditions(self) -> None:
+    def test_put_rejects_conditions_from_two_data_types(self) -> None:
         conditions = [
             {"type": "error_message", "value": ["TypeError*"]},
             {"type": "log_message", "value": ["Rate limit*"]},
@@ -355,7 +415,8 @@ class CustomInboundFilterDetailsTest(APITestCase):
 
         assert (
             str(response.data["conditions"][0])
-            == "Only one of error_message, log_message, or metric_name can be used in a filter."
+            == "A filter matches one data type, so error, log, and metric conditions "
+            "cannot be combined."
         )
 
     def test_delete(self) -> None:
@@ -422,3 +483,45 @@ class CustomInboundFilterDetailsTest(APITestCase):
             )
 
         assert response.data["detail"] == "You do not have that feature enabled"
+
+
+class CustomInboundFilterProjectConfigInvalidationTest(APITestCase):
+    features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.custom_filter = self.create_project_custom_inbound_filter(project=self.project)
+        self.login_as(user=self.user)
+
+    def test_write_methods_invalidate_project_config(self) -> None:
+        list_url = reverse(
+            "sentry-api-0-project-custom-inbound-filters",
+            args=[self.organization.slug, self.project.slug],
+        )
+        details_url = reverse(
+            "sentry-api-0-project-custom-inbound-filter-details",
+            args=[self.organization.slug, self.project.slug, self.custom_filter.id],
+        )
+        cases = [
+            ("post", list_url, {"conditions": [{"type": "release", "value": ["1.*"]}]}, 201),
+            ("put", details_url, {"active": False}, 200),
+            ("delete", details_url, {}, 204),
+        ]
+
+        for method, url, payload, status_code in cases:
+            with (
+                self.feature(self.features),
+                outbox_runner(),
+                patch(
+                    "sentry.api.endpoints.project_custom_inbound_filters.schedule_invalidate_project_config"
+                ) as mock_invalidate,
+            ):
+                response = getattr(self.client, method)(url, payload, format="json")
+
+            assert response.status_code == status_code, (method, response.data)
+            mock_invalidate.assert_called_once_with(
+                project_id=self.project.id, trigger="custom_inbound_filters"
+            )

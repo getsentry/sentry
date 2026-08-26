@@ -3,12 +3,37 @@
 import {
   asyncSanitizedMarked,
   markdownRendersVisibleContent,
+  markdownToPlainText,
   sanitizedMarked,
   singleLineRenderer,
 } from 'sentry/utils/marked/marked';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 jest.unmock('prismjs');
+
+describe('markdownToPlainText', () => {
+  it('flattens headings without leaving markdown syntax', () => {
+    expect(markdownToPlainText('# Summarize revenue')).toBe('Summarize revenue');
+  });
+
+  it('keeps the visible text of inline markdown', () => {
+    expect(markdownToPlainText('**bold** and [a link](https://example.com)')).toBe(
+      'bold and a link'
+    );
+  });
+
+  it('strips HTML/XML tags but keeps their text', () => {
+    expect(markdownToPlainText('<thinking>plan</thinking> answer')).toBe('plan answer');
+  });
+
+  it('returns the code text for a fenced code block', () => {
+    expect(markdownToPlainText('```\nconst x = 1;\n```')).toBe('const x = 1;');
+  });
+
+  it('returns an empty string for an empty code fence', () => {
+    expect(markdownToPlainText('```\n```')).toBe('');
+  });
+});
 
 describe('markdownRendersVisibleContent', () => {
   it.each([
@@ -207,6 +232,14 @@ describe('marked', () => {
     );
     expect(linkResult).toContain('<a href="https://ok.com">link</a>');
     expect(linkResult).not.toContain('onclick');
+  });
+
+  it('strips the id attribute', () => {
+    // `id` is not in the sanitizer allowlist: it is a DOM clobbering primitive,
+    // and nothing in the markdown pipeline produces one.
+    const result = sanitizedMarked('a <span id="location">x</span> b');
+    expect(result).toContain('<span>x</span>');
+    expect(result).not.toContain('id=');
   });
 
   it('preserves allowed markdown HTML', () => {

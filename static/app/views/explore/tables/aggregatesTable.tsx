@@ -1,23 +1,20 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow} from 'sentry/icons/iconArrow';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
-import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
@@ -27,17 +24,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHead,
-  TableHeadCell,
-  TableHeadCellContent,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
@@ -105,19 +91,12 @@ export function AggregatesTable({
     [aggregateFields]
   );
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleAggregateFields.map(aggregateField => {
-      if (isGroupBy(aggregateField)) {
-        return aggregateField.groupBy;
-      }
-      return aggregateField.yAxis;
-    }),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-    }
+  const visibleFields = useMemo(
+    () =>
+      visibleAggregateFields.map(aggregateField =>
+        isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
+      ),
+    [visibleAggregateFields]
   );
 
   const meta = useMemo(
@@ -152,16 +131,18 @@ export function AggregatesTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles}>
-        <TableHead>
-          <TableRow>
-            <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
-            </TableHeadCell>
+      <DataTable
+        fields={visibleFields}
+        minimumColumnWidth={50}
+        prefixColumnWidth="min-content"
+      >
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeadCell isFirst={false} />
             {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <DataTable.HeadCell key={i} isFirst={i === 0} />;
               }
 
               const field = isGroupBy(aggregateField)
@@ -180,48 +161,29 @@ export function AggregatesTable({
               }
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent onClick={updateSort}>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
-                  {i !== visibleAggregateFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
-                    />
-                  )}
-                </TableHeadCell>
+                <DataTable.HeadCell
+                  align={align}
+                  columnIndex={i}
+                  key={i}
+                  isFirst={i === 0}
+                  onSort={updateSort}
+                  sort={direction}
+                >
+                  {label}
+                </DataTable.HeadCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
           {result.isPending ? (
-            <TableStatus>
+            <DataTable.Status>
               <LoadingIndicator />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isError ? (
-            <TableStatus>
+            <DataTable.Status>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const menuItems: MenuItemProps[] = [
@@ -261,8 +223,8 @@ export function AggregatesTable({
               }
 
               return (
-                <TableRow key={i}>
-                  <TableBodyCell>
+                <DataTable.Row key={i}>
+                  <DataTable.Cell>
                     {topEvents &&
                       i < topEvents &&
                       !parseCursor(aggregateCursor)?.offset && (
@@ -279,14 +241,14 @@ export function AggregatesTable({
                         <IconStack />
                       </IconTriggerContent>
                     </CellAction>
-                  </TableBodyCell>
+                  </DataTable.Cell>
                   {visibleAggregateFields.map((aggregateField, j) => {
                     const field = isGroupBy(aggregateField)
                       ? aggregateField.groupBy
                       : aggregateField.yAxis;
 
                     return (
-                      <TableBodyCell key={j}>
+                      <DataTable.Cell key={j}>
                         <FieldRenderer
                           column={columns[field]}
                           data={row}
@@ -294,21 +256,21 @@ export function AggregatesTable({
                           unit={meta?.units?.[field]}
                           meta={meta}
                         />
-                      </TableBodyCell>
+                      </DataTable.Cell>
                     );
                   })}
-                </TableRow>
+                </DataTable.Row>
               );
             })
           ) : (
-            <TableStatus>
+            <DataTable.Status>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </DataTable.Status>
           )}
-        </TableBody>
-      </Table>
+        </DataTable.Body>
+      </DataTable>
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}

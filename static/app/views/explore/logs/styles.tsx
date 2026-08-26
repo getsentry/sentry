@@ -8,21 +8,15 @@ import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {MultiHighlight} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
-import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
+import {DATA_TABLE_ROW_HEIGHT, DataTable} from 'sentry/components/tables/dataTable';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHeadCell,
-  TableRow,
-} from 'sentry/views/explore/components/table';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
-export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
+export const LOGS_GRID_BODY_ROW_HEIGHT = DATA_TABLE_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
+  error?: boolean;
   highlighted?: boolean;
   isClickable?: boolean;
   pinned?: boolean;
@@ -32,7 +26,7 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-export const LogTableRow = styled(TableRow)<LogTableRowProps>`
+export const LogTableRow = styled(DataTable.Row)<LogTableRowProps>`
   margin-right: -1rem;
   padding-right: 1rem;
 
@@ -48,8 +42,9 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       p.isClickable &&
       css`
         &:active {
-          background-color: ${p.theme.tokens.interactive.transparent.neutral.background
-            .active};
+          background-color: ${
+            p.theme.tokens.interactive.transparent.neutral.background.active
+          };
         }
       `}
 
@@ -77,14 +72,28 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     `}
 
   ${p =>
+    p.error &&
+    css`
+      &:not(thead > &) {
+        background-color: ${p.theme.tokens.background.transparent.danger.muted};
+        color: ${p.theme.tokens.content.danger};
+
+        &:hover {
+          background-color: ${p.theme.tokens.background.transparent.danger.muted};
+        }
+      }
+    `}
+
+  ${p =>
     p.pinned &&
     css`
       &:not(thead > &) {
         background-color: ${p.theme.tokens.background.transparent.accent.muted};
 
         &:hover {
-          background-color: ${p.theme.tokens.interactive.transparent.accent.selected
-            .background.active};
+          background-color: ${
+            p.theme.tokens.interactive.transparent.accent.selected.background.active
+          };
         }
       }
     `}
@@ -142,7 +151,7 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolean}>`
+export const LogTableBodyCell = styled(DataTable.Cell)<{reservePinGutter?: boolean}>`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -162,8 +171,20 @@ export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolea
   }
 `;
 
-function ContentsTable(props: React.ComponentProps<typeof Table>) {
-  return <Table contentsBody {...props} />;
+export const LogErrorLabelCell = styled(LogTableBodyCell)`
+  grid-column: 2 / -1;
+  align-items: flex-start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:last-child {
+    padding: 2px 0 2px ${p => p.theme.space['2xl']};
+  }
+`;
+
+function ContentsTable(props: React.ComponentProps<typeof DataTable>) {
+  return <DataTable contentsBody {...props} />;
 }
 
 export const LogTable = styled(ContentsTable)<{minWidth: string}>`
@@ -178,7 +199,7 @@ export const LogTable = styled(ContentsTable)<{minWidth: string}>`
   min-width: ${p => p.minWidth};
 `;
 
-export const LogTableBody = styled(TableBody)<{
+export const LogTableBody = styled(DataTable.Body)<{
   disableBodyPadding?: boolean;
   showHeader?: boolean;
 }>`
@@ -201,7 +222,7 @@ export const LogTableBody = styled(TableBody)<{
   min-height: 1px;
 `;
 
-export const LogDetailTableBodyCell = styled(TableBodyCell)`
+export const LogDetailTableBodyCell = styled(DataTable.Cell)`
   padding: 0;
   ${LogTableRow} & {
     padding: 0;
@@ -210,7 +231,7 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
     padding: 0;
   }
 `;
-export const LogDetailTableActionsCell = styled(TableBodyCell)`
+export const LogDetailTableActionsCell = styled(DataTable.Cell)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   min-height: 0px;
 
@@ -354,12 +375,12 @@ export const AlignedCellContent = styled('div')<{
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-export const FirstTableHeadCell = styled(TableHeadCell)`
+export const FirstTableHeadCell = styled(DataTable.HeadCell)`
   padding-right: ${p => p.theme.space.md};
   padding-left: ${p => p.theme.space.xl};
 `;
 
-export const LogTableHeadCell = styled(TableHeadCell)<{reservePinGutter?: boolean}>`
+export const LogTableHeadCell = styled(DataTable.HeadCell)<{reservePinGutter?: boolean}>`
   ${p =>
     p.reservePinGutter &&
     css`
@@ -401,12 +422,6 @@ export const AutoRefreshLabel = styled('label')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   margin-bottom: 0;
-`;
-
-export const AutoRefreshText = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
-  }
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {
@@ -482,12 +497,6 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
 }
 
 export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: inline-flex;
-  }
-
   ${p =>
     p.sidebarOpen &&
     css`
@@ -563,15 +572,6 @@ export const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;
 
-export const LogsFilterSection = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(300px, auto) 1fr min-content;
-  }
-`;
-
 export const TraceIconStyleWrapper = styled(Flex)`
   width: 18px;
   height: 18px;
@@ -594,5 +594,24 @@ export const TraceIconStyleWrapper = styled(Flex)`
     width: 12px;
     height: 12px;
     fill: #ffffff;
+  }
+`;
+
+// The flame indicator is wider than the severity dot it replaces on log rows,
+// so pull the group left to line up the error row's project badge with them.
+export const ErrorRowIconGroup = styled(Flex)`
+  margin-left: -7px;
+
+  .TraceIcon.warning {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.meh};
+  }
+
+  .TraceIcon.info,
+  .TraceIcon.sample {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.accent};
+  }
+
+  .TraceIcon.unknown {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.other};
   }
 `;

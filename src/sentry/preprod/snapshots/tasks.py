@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 from difflib import SequenceMatcher
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import orjson
 from django.contrib.postgres.fields import ArrayField
@@ -26,8 +26,15 @@ from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
 )
-from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
+from sentry.preprod.snapshots.image_diff.compare import (
+    DIFF_ALGORITHM_VERSION,
+    MAX_DIFF_PIXELS,
+    compare_images_batch,
+    get_comparison_size,
+    read_image_size,
+)
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
+from sentry.preprod.snapshots.image_diff.types import ImageSize
 from sentry.preprod.snapshots.manifest import (
     ChunkAssignment,
     ChunkCandidate,
@@ -52,7 +59,6 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
-MAX_DIFF_PIXELS = 40_000_000
 MAX_PIXELS_PER_BATCH = 40_000_000
 
 CHUNK_PROCESSING_DEADLINE = 120  # seconds; one ~40M-px batch finishes well under this
@@ -106,8 +112,15 @@ def _retry_objectstore[T](operation: Callable[[], T]) -> T:
     raise AssertionError("unreachable")
 
 
+def _read_objectstore(session: Session, key: str) -> bytes:
+    response = session.get(key)
+    if response is None:
+        raise FileNotFoundError("Object does not exist in objectstore")
+    return response.payload.read()
+
+
 def _get_json[T: BaseModel](session: Session, key: str, model_cls: type[T]) -> T:
-    return model_cls(**orjson.loads(_retry_objectstore(lambda: session.get(key).payload.read())))
+    return model_cls(**orjson.loads(_retry_objectstore(lambda: _read_objectstore(session, key))))
 
 
 def _put_json(session: Session, key: str, model: BaseModel) -> None:
@@ -267,7 +280,7 @@ def _fetch_batch_images(
     def fetch(image_hash: str) -> None:
         try:
             key = f"{key_prefix}/{image_hash}"
-            data = _retry_objectstore(lambda: session.get(key).payload.read())
+            data = _retry_objectstore(lambda: _read_objectstore(session, key))
             with lock:
                 cache[image_hash] = data
         except Exception:
@@ -378,7 +391,7 @@ def _try_auto_approve_snapshot(
 
     try:
         sibling_manifest = ComparisonManifest(
-            **orjson.loads(session.get(sibling_comparison_key).payload.read())
+            **orjson.loads(_read_objectstore(session, sibling_comparison_key))
         )
     except Exception:
         logger.exception(
@@ -475,9 +488,9 @@ def _build_comparison_plan(
 
         head_meta = head_meta_by_hash[head_hash]
         base_meta = base_meta_by_hash[base_hash]
-        head_pixels = head_meta.width * head_meta.height
-        base_pixels = base_meta.width * base_meta.height
-        pixel_count = max(head_pixels, base_pixels)
+        head_size = ImageSize(head_meta.width, head_meta.height)
+        base_size = ImageSize(base_meta.width, base_meta.height)
+        pixel_count = get_comparison_size(head_size, base_size).pixel_count
 
         if pixel_count > MAX_DIFF_PIXELS:
             non_diff_images[name] = ComparisonImageResult(
@@ -582,17 +595,73 @@ def _process_chunk(
 
         fetch_cache, failed_hashes = _fetch_batch_images(session, image_key_prefix, unique_hashes)
 
+        actual_sizes: dict[str, ImageSize | None] = {}
+        for image_hash, image_data in fetch_cache.items():
+            try:
+                actual_sizes[image_hash] = read_image_size(image_data)
+            except Exception as error:
+                actual_sizes[image_hash] = None
+                metrics.incr("preprod.snapshots.image_diff.header_read_failed")
+                logger.warning(
+                    "preprod.snapshots.image_diff.header_read_failed",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "image_hash": image_hash,
+                        "error_type": type(error).__name__,
+                    },
+                )
+
+        current_batch_pixels = 0
         for candidate in assignment.candidates:
             if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
-                images[candidate.name] = ComparisonImageResult(
-                    status="errored",
-                    head_hash=candidate.head_hash,
-                    base_hash=candidate.base_hash,
-                    reason="image_fetch_failed",
-                )
+                images[candidate.name] = _errored_result(candidate, "image_fetch_failed")
                 continue
+
+            head_size = actual_sizes[candidate.head_hash]
+            base_size = actual_sizes[candidate.base_hash]
+            if head_size is None or base_size is None:
+                images[candidate.name] = _errored_result(candidate, "image_processing_failed")
+                continue
+
             head_data = fetch_cache[candidate.head_hash]
             base_data = fetch_cache[candidate.base_hash]
+            comparison_size = get_comparison_size(head_size, base_size)
+            comparison_pixels = comparison_size.pixel_count
+            if comparison_pixels > MAX_DIFF_PIXELS:
+                images[candidate.name] = _errored_result(candidate, "exceeds_pixel_limit")
+                metrics.incr("preprod.snapshots.image_diff.exceeds_pixel_limit")
+                logger.warning(
+                    "preprod.snapshots.image_diff.exceeds_pixel_limit",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "head_hash": candidate.head_hash,
+                        "base_hash": candidate.base_hash,
+                        "width": comparison_size.width,
+                        "height": comparison_size.height,
+                    },
+                )
+                continue
+
+            next_batch_pixels = current_batch_pixels + comparison_pixels
+            if next_batch_pixels > MAX_PIXELS_PER_BATCH:
+                images[candidate.name] = _errored_result(candidate, "exceeds_batch_pixel_limit")
+                metrics.incr("preprod.snapshots.image_diff.exceeds_batch_pixel_limit")
+                logger.warning(
+                    "preprod.snapshots.image_diff.exceeds_batch_pixel_limit",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "head_hash": candidate.head_hash,
+                        "base_hash": candidate.base_hash,
+                        "current_batch_pixels": current_batch_pixels,
+                        "comparison_pixels": comparison_pixels,
+                    },
+                )
+                continue
+
+            current_batch_pixels = next_batch_pixels
             diff_pairs.append((base_data, head_data))
             batch_names.append(candidate.name)
             batch_hashes.append((candidate.head_hash, candidate.base_hash))
@@ -676,6 +745,7 @@ def process_snapshot_comparison_chunk(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     session = get_preprod_session(org_id, project_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
@@ -728,6 +798,7 @@ def compare_snapshots(
     org_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     task_start_time = timezone.now()
     logger.info(
@@ -894,7 +965,13 @@ def compare_snapshots(
         try:
             head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
             base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
-        except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+        except (
+            orjson.JSONDecodeError,
+            FileNotFoundError,
+            RequestError,
+            ValidationError,
+            TypeError,
+        ):
             logger.exception(
                 "compare_snapshots: failed to load or parse manifest",
                 extra={
@@ -1100,6 +1177,7 @@ def finalize_snapshot_comparison(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
     if comparison is None:
@@ -1125,7 +1203,7 @@ def finalize_snapshot_comparison(
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     try:
         plan = _get_json(session, plan_key, ComparisonPlan)
-    except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+    except (orjson.JSONDecodeError, FileNotFoundError, RequestError, ValidationError, TypeError):
         # Without the plan there are no chunks to assemble, so this is unrecoverable.
         # Fail the row cleanly instead of leaving it PROCESSING for the reaper to sweep
         # ~30min later (the chunk-result read below degrades for the same reason).
@@ -1158,7 +1236,13 @@ def finalize_snapshot_comparison(
             )
             try:
                 result = _get_json(session, chunk_result_key, ChunkResult)
-            except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+            except (
+                orjson.JSONDecodeError,
+                FileNotFoundError,
+                RequestError,
+                ValidationError,
+                TypeError,
+            ):
                 # A done chunk whose result blob is missing/evicted/corrupt must not crash
                 # finalize, otherwise the comparison stays PROCESSING forever and every retry
                 # re-raises. Degrade its candidates to errored, mirroring the failed branch.

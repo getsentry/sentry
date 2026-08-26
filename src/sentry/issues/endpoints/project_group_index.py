@@ -77,7 +77,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             GlobalParams.STATS_PERIOD,
             CursorQueryParam,
             VisibilityParams.PER_PAGE,
-            IssueParams.VIEW_SORT,
+            IssueParams.PROJECT_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.DEFAULT_QUERY,
             IssueParams.GROUP_INDEX_COLLAPSE,

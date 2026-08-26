@@ -1,20 +1,22 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {Select, SelectOption} from '@sentry/scraps/select';
+import {Select, SelectOption, type SelectValue} from '@sentry/scraps/select';
 
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  getChannelSelectedBy,
+  providerDetails,
   type IntegrationChannel,
   type IssueAlertNotificationProps,
-  providerDetails,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
+import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
 type Channel = {
   display: string;
@@ -22,6 +24,8 @@ type Channel = {
   name: string;
   type: string;
 };
+
+export type {Channel};
 
 type ChannelListResponse = {
   results: Channel[];
@@ -52,30 +56,45 @@ export function useMessagingIntegrationAlertRule(
   variant?: 'scm' | 'legacy'
 ) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
 
-  const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            integrationId: integration?.id!,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!provider && !!integration?.id,
-    }
+  const {
+    data: channels,
+    isPending,
+    isError: isChannelsError,
+  } = useQuery(
+    apiOptions.as<ChannelListResponse>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
+      {
+        path:
+          provider && integration?.id
+            ? {
+                organizationIdOrSlug: organization.slug,
+                integrationId: integration.id,
+              }
+            : skipToken,
+        staleTime: Infinity,
+      }
+    )
   );
 
-  const validateChannel = useValidateChannel({
+  const validateChannelOptions = validateChannelQueryOptions({
+    organizationSlug: organization.slug,
     channel,
     integrationId: integration?.id,
+  });
+  const validateChannel = useQuery({
+    ...validateChannelOptions,
     enabled: !!integration?.id && !!channel?.new,
   });
+  const channelError =
+    validateChannel.data?.valid === false
+      ? (validateChannel.data.detail ?? t('Channel not found or restricted'))
+      : validateChannel.error
+        ? t('Unexpected integration channel validation error')
+        : undefined;
+  const clearChannelValidation = () =>
+    queryClient.removeQueries({queryKey: validateChannelOptions.queryKey});
 
   const providerOptions = useMemo(
     () =>
@@ -96,15 +115,16 @@ export function useMessagingIntegrationAlertRule(
     [providersToIntegrations, provider]
   );
 
-  const channelOptions = useMemo(
-    () =>
-      channels?.results.map(ch =>
-        provider === 'slack'
-          ? {label: ch.display, value: ch.display}
-          : {label: `${ch.display} (${ch.id})`, value: ch.id}
-      ),
-    [channels, provider]
-  );
+  const channelOptions = useMemo(() => {
+    // Id-keyed providers show the id alongside the name, since the name alone
+    // cannot tell two same-named channels apart.
+    const keyedByName = getChannelSelectedBy(provider) === 'channelName';
+    return channels?.results.map(ch =>
+      keyedByName
+        ? {label: ch.display, value: ch.display}
+        : {label: `${ch.display} (${ch.id})`, value: ch.id}
+    );
+  }, [channels, provider]);
 
   useEffect(() => {
     // A restored channel (e.g. from persisted/default actions) only has a raw
@@ -128,14 +148,20 @@ export function useMessagingIntegrationAlertRule(
     integrationOptions,
     channelOptions,
     isChannelLoading: isPending || validateChannel.isFetching,
-    channelError: validateChannel.error,
+    // The channels endpoint returns HTTP 200 with an empty results list when the
+    // upstream provider API fails, so isChannelsError only catches network or auth
+    // failures. An empty channelOptions list may still indicate an unreachable
+    // provider rather than a genuinely empty workspace.
+    isChannelsError,
+    channelsData: channels,
+    channelError,
     providerDisabled: Object.keys(providersToIntegrations).length === 1,
     integrationDisabled: integrationOptions.length === 1,
-    onProviderChange: (option: any) => {
+    onProviderChange: (option: SelectValue<string>) => {
       setProvider(option.value);
       setIntegration(providersToIntegrations[option.value]![0]);
       setChannel(undefined);
-      validateChannel.clear();
+      clearChannelValidation();
       if (variant) {
         trackAnalytics('project_creation.notify_provider_changed', {
           organization,
@@ -144,10 +170,10 @@ export function useMessagingIntegrationAlertRule(
         });
       }
     },
-    onIntegrationChange: (option: any) => {
+    onIntegrationChange: (option: SelectValue<OrganizationIntegration>) => {
       setIntegration(option.value);
       setChannel(undefined);
-      validateChannel.clear();
+      clearChannelValidation();
       if (variant) {
         trackAnalytics('project_creation.notify_integration_changed', {
           organization,
@@ -159,7 +185,7 @@ export function useMessagingIntegrationAlertRule(
       setChannel(
         option ? {value: option.value, label: option.label, new: false} : undefined
       );
-      validateChannel.clear();
+      clearChannelValidation();
       if (variant) {
         trackAnalytics('project_creation.notify_channel_changed', {
           organization,

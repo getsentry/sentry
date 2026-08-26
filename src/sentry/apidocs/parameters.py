@@ -6,6 +6,7 @@ from drf_spectacular.utils import OpenApiParameter
 
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
@@ -388,11 +389,21 @@ class IssueParams:
         required=False,
     )
 
-    VIEW_SORT = OpenApiParameter(
+    ORGANIZATION_VIEW_SORT = OpenApiParameter(
         name="sort",
         description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), 'Date Added' (`inbox`), and 'Recommended' (`recommended`).",
         default="date",
         enum=["date", "new", "trends", "freq", "user", "inbox", "recommended"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    PROJECT_VIEW_SORT = OpenApiParameter(
+        name="sort",
+        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Recommended' (`recommended`).",
+        default="date",
+        enum=["date", "new", "trends", "freq", "user", "recommended"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -1054,15 +1065,14 @@ class ReplayParams:
     DATA_SOURCE = OpenApiParameter(
         name="data_source",
         location="query",
-        required=False,
+        required=True,
         type=OpenApiTypes.STR,
         enum=[
-            Dataset.Discover.value,
             Dataset.Events.value,
-            Dataset.Transactions.value,
             Dataset.IssuePlatform.value,
+            SupportedTraceItemType.SPANS.value,
         ],
-        description="The data source to query replays from. Defaults to 'discover'.",
+        description="The data source to query replays from.",
     )
 
     RETURN_IDS = OpenApiParameter(

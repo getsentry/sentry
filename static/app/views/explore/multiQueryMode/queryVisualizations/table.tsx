@@ -1,6 +1,5 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -9,8 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
-import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -23,13 +21,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  TableBody,
-  TableHead,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -98,21 +89,21 @@ function AggregatesTable({
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-  });
-
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
-        <TableHead>
-          <TableRow>
+      <Table
+        fields={fields}
+        height={TABLE_HEIGHT}
+        minimumColumnWidth={50}
+        prefixColumnWidth="min-content"
+        scrollable
+      >
+        <DataTable.Head>
+          <DataTable.Row>
             <TableHeadCell isFirst={false}>
               <Flex align="center" gap="xs" />
             </TableHeadCell>
@@ -161,22 +152,22 @@ function AggregatesTable({
                 </TableHeadCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
           {result.isPending ? (
-            <TableStatus>
+            <DataTable.Status>
               <LoadingIndicator />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isError ? (
-            <TableStatus>
+            <DataTable.Status>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const target = getSamplesTargetAtIndex(index, [...queries], row, location);
               return (
-                <TableRow key={i}>
+                <DataTable.Row key={i}>
                   <TableBodyCell key={`samples-${i}`}>
                     {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
@@ -198,17 +189,17 @@ function AggregatesTable({
                       </TableBodyCell>
                     );
                   })}
-                </TableRow>
+                </DataTable.Row>
               );
             })
           ) : (
-            <TableStatus>
+            <DataTable.Status>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </DataTable.Status>
           )}
-        </TableBody>
+        </DataTable.Body>
       </Table>
     </Fragment>
   );
@@ -234,16 +225,16 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
-    minimumColumnWidth: 50,
-  });
-
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
-        <TableHead>
-          <TableRow>
+      <Table
+        fields={visibleFields}
+        height={TABLE_HEIGHT}
+        minimumColumnWidth={50}
+        scrollable
+      >
+        <DataTable.Head>
+          <DataTable.Row>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
@@ -280,20 +271,20 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                 </TableHeadCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
           {result.isPending ? (
-            <TableStatus>
+            <DataTable.Status>
               <LoadingIndicator />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isError ? (
-            <TableStatus>
+            <DataTable.Status>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
-              <TableRow key={i}>
+              <DataTable.Row key={i}>
                 {visibleFields.map((field, j) => {
                   return (
                     <TableBodyCell key={j}>
@@ -307,16 +298,16 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                     </TableBodyCell>
                   );
                 })}
-              </TableRow>
+              </DataTable.Row>
             ))
           ) : (
-            <TableStatus>
+            <DataTable.Status>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </DataTable.Status>
           )}
-        </TableBody>
+        </DataTable.Body>
       </Table>
     </Fragment>
   );
@@ -336,17 +327,12 @@ const StyledLink = styled(Link)`
   display: flex;
 `;
 
-const TableBodyCell = styled(GridBodyCell)`
+const TableBodyCell = styled(DataTable.Cell)`
   font-size: ${p => p.theme.font.size.sm};
   min-height: 12px;
 `;
 
-const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
-  ${p =>
-    p.align &&
-    css`
-      justify-content: ${p.align};
-    `}
+const TableHeadCell = styled(DataTable.HeadCell)`
   font-size: ${p => p.theme.font.size.sm};
   height: 33px;
 `;

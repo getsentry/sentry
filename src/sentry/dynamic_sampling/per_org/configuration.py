@@ -8,13 +8,19 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
+from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.common import compute_sliding_window_sample_rate
+from sentry.dynamic_sampling.tasks.common import (
+    OrganizationDataVolume,
+    compute_sliding_window_sample_rate,
+)
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
@@ -49,6 +55,7 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
+    sample_rate: TargetSampleRate = None
     should_balance_projects: bool = True
     projects: list[Project]
 
@@ -56,6 +63,7 @@ class BaseDynamicSamplingConfiguration(ABC):
         self.organization = organization
         self.sliding_window_sample_rate: TargetSampleRate = None
         self.project_sample_rates: ProjectSampleRates = {}
+        self.results = DynamicSamplingResults()
 
     @property
     @abstractmethod
@@ -66,12 +74,18 @@ class BaseDynamicSamplingConfiguration(ABC):
     def get_sample_rate(self) -> TargetSampleRate:
         raise NotImplementedError
 
+    def get_serving_sample_rate(self) -> TargetSampleRate:
+        # For custom dynamic sampling the target rate is served as-is; only the automatic
+        # configuration applies a serving-time gate on top of it.
+        return self.get_sample_rate()
+
     def get_project_sample_rates(self) -> ProjectSampleRates:
         return self.project_sample_rates
 
     def set_rebalanced_project_sample_rates(
         self, rebalanced_projects: list[RebalancedItem]
     ) -> None:
+        self.results.rebalanced_projects = rebalanced_projects
         self.project_sample_rates = {
             int(item.id): item.new_sample_rate for item in rebalanced_projects
         }
@@ -96,11 +110,28 @@ class BaseDynamicSamplingConfiguration(ABC):
             Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
         )
 
+    def recalibrate(self, org_volume: OrganizationDataVolume | None) -> None:
+        results = self.results
+        results.recalibration_factor = None
+
+        if not self.projects or self.get_sample_rate() is None:
+            return
+
+        results.previous_recalibration_factor = per_org_recalibration_cache.get_adjusted_factor(
+            self.organization.id, source="task"
+        )
+        results.recalibration_factor = calculate_recalibration_factor(
+            org_volume,
+            results.previous_recalibration_factor,
+            self.get_sample_rate(),
+        )
+
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def __init__(self) -> None:
         self.sliding_window_sample_rate: TargetSampleRate = None
         self.project_sample_rates: ProjectSampleRates = {}
+        self.results = DynamicSamplingResults()
 
     @property
     def is_enabled(self) -> bool:

@@ -70,12 +70,6 @@ class MetricsDatasetConfig(DatasetConfig):
         mri_map = constants.SPAN_METRICS_MAP | constants.METRICS_MAP
         metric_id = self.builder.resolve_metric_index(mri_map.get(value, value))
         if metric_id is None:
-            # Maybe this is a custom measurment?
-            for measurement in self.builder.custom_measurement_map:
-                if measurement["name"] == value and measurement["metric_id"] is not None:
-                    metric_id = measurement["metric_id"]
-        # If its still None its not a custom measurement
-        if metric_id is None:
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
         self.builder.metric_ids.add(metric_id)
         return metric_id
@@ -91,8 +85,6 @@ class MetricsDatasetConfig(DatasetConfig):
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
         need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
         like quantiles(0.9)(value) into quantilesMerge(0.9)(percentiles)
-        Make sure to update METRIC_FUNCTION_LIST_BY_TYPE when adding functions here, can't be a dynamic list since the
-        Metric Layer will actually handle which dataset each function goes to
         """
         resolve_metric_id = {
             "name": "metric_id",

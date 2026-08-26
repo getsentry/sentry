@@ -135,6 +135,7 @@ export function SelectField<TValue>({
             multiple={multiple}
             value={value}
             inputRef={applyInputToRef(fieldRef)}
+            {...(autoSaveContext && {blurInputOnSelect: false})}
             components={
               {
                 ...props.components,
@@ -159,9 +160,7 @@ export function SelectField<TValue>({
             ) => {
               if (multiple) {
                 // For multi-select, option is an array
-                (onChange as (value: TValue[]) => void)(
-                  Array.isArray(option) ? option.map(o => o.value) : []
-                );
+                onChange(Array.isArray(option) ? option.map(o => o.value) : []);
                 // For multi-select in auto-save context, trigger save when menu is closed
                 // (e.g., clicking X on a tag or clear all while menu is not open)
                 if (autoSaveContext && !isMenuOpenRef.current) {
@@ -171,12 +170,18 @@ export function SelectField<TValue>({
                 if (!option) {
                   // Clearable single select - type system allows null via discriminated union
                   (onChange as (value: TValue | null) => void)(null);
+                  if (autoSaveContext) {
+                    fieldProps.onBlur();
+                  }
                   return;
                 }
                 // For single-select, option is a single value
                 (onChange as (value: TValue) => void)(
                   (option as SelectValue<TValue>).value
                 );
+                if (autoSaveContext) {
+                  fieldProps.onBlur();
+                }
               }
             }}
           />

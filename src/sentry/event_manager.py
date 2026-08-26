@@ -89,6 +89,7 @@ from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -1025,7 +1026,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
     for job in jobs:
         incrs = []
-        frequencies = []
         records = []
         incrs.append((TSDBModel.project, job["project_id"]))
         event = job["event"]
@@ -1035,20 +1035,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
         for group_info in job["groups"]:
             incrs.append((TSDBModel.group, group_info.group.id))
-            frequencies.append(
-                (
-                    TSDBModel.frequent_environments_by_group,
-                    {group_info.group.id: {environment.id: 1}},
-                )
-            )
-
-            if group_info.group_release:
-                frequencies.append(
-                    (
-                        TSDBModel.frequent_releases_by_group,
-                        {group_info.group.id: {group_info.group_release.id: 1}},
-                    )
-                )
             if user:
                 records.append(
                     (TSDBModel.users_affected_by_group, group_info.group.id, (user.tag_value,))
@@ -1068,9 +1054,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             tsdb.backend.record_multi(
                 records, timestamp=event.datetime, environment_id=environment.id
             )
-
-        if frequencies:
-            tsdb.backend.record_frequency_multi(frequencies, timestamp=event.datetime)
 
 
 def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
@@ -1920,7 +1903,8 @@ def _process_existing_aggregate(
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
-    is_regression = _handle_regression(group, event, release, incoming_group_values)
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        is_regression = _handle_regression(group, event, release, incoming_group_values)
 
     existing_data = group.data
     existing_metadata = group.data.get("metadata", {})
@@ -2005,7 +1989,7 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
-    from sentry.workflow_engine.receivers.project_workflows import PLATFORMS_WITH_PRIORITY_ALERTS
+    PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 
     if killswitch_matches_context(
         "issues.severity.skip-seer-requests", {"project_id": event.project_id}

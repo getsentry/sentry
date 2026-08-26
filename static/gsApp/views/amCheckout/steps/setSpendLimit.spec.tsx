@@ -14,7 +14,7 @@ import AMCheckout from 'getsentry/views/amCheckout';
 describe('SetSpendLimit', () => {
   let api: Client;
   const organization = OrganizationFixture({
-    features: ['ondemand-budgets', 'am3-billing'],
+    features: ['ondemand-budgets'],
   });
   const preAm3Organization = OrganizationFixture({
     features: ['ondemand-budgets'],
@@ -27,10 +27,6 @@ describe('SetSpendLimit', () => {
       url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,

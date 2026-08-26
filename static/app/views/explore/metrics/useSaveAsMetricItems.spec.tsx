@@ -45,10 +45,10 @@ describe('useSaveAsMetricItems', () => {
   const queryClient = makeTestQueryClient();
   ProjectsStore.loadInitialData([project]);
 
-  function createWrapper() {
+  function createWrapper(org = organization) {
     return function ({children}: {children?: React.ReactNode}) {
       return (
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext.Provider value={org}>
           <QueryClientProvider client={queryClient}>
             <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
           </QueryClientProvider>
@@ -79,13 +79,10 @@ describe('useSaveAsMetricItems', () => {
   });
 
   it('should open save query modal when save as new query is clicked', () => {
-    const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
-          interval: '5m',
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
 
     const saveAsItems = result.current;
     const saveAsQuery = saveAsItems.find(item => item.key === 'save-query') as {
@@ -130,13 +127,10 @@ describe('useSaveAsMetricItems', () => {
       })
     );
 
-    const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
-          interval: '5m',
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
 
     await waitFor(() => {
       expect(result.current.some(item => item.key === 'update-query')).toBe(true);
@@ -155,13 +149,10 @@ describe('useSaveAsMetricItems', () => {
       })
     );
 
-    const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
-          interval: '5m',
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
 
     const saveAsItems = result.current;
 
@@ -303,6 +294,44 @@ describe('useSaveAsMetricItems', () => {
         ]),
       })
     );
+  });
+
+  it('enables the alert option when there are aggregates', () => {
+    const encodedMetricQuery = encodeMetricQueryParams({
+      metric: {name: 'metric.a', type: 'counter'},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'release:1.2.3',
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeFunction('sum(value,metric.a,counter,none)')],
+        aggregateSortBys: [{field: 'sum(value,metric.a,counter,none)', kind: 'desc'}],
+        cursor: '',
+        fields: [],
+        sortBys: [],
+      }),
+    });
+
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({
+        query: {
+          interval: '5m',
+          metric: [encodedMetricQuery],
+        },
+      })
+    );
+
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
+
+    const alertItem = result.current.find(item => item.key === 'create-alert') as
+      | {children: unknown[]; disabled: boolean}
+      | undefined;
+
+    expect(alertItem?.disabled).toBe(false);
+    expect(alertItem?.children).toHaveLength(1);
   });
 
   it('formats alerts submenu labels for equations', () => {

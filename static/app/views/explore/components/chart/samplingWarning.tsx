@@ -3,8 +3,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import type {SamplingWarningReason} from 'sentry/views/explore/utils';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface SamplingWarningProps {
   reason: SamplingWarningReason;
@@ -12,7 +12,7 @@ interface SamplingWarningProps {
 }
 
 export function SamplingWarning({yAxis, reason}: SamplingWarningProps) {
-  const name = parseFunction(yAxis)?.name ?? yAxis;
+  const name = parseConditionalAggregate(yAxis)?.name ?? yAxis;
   const nameNode = (
     <Text as="span" monospace>
       {name}
@@ -20,10 +20,7 @@ export function SamplingWarning({yAxis, reason}: SamplingWarningProps) {
   );
   const title =
     reason === 'partialData'
-      ? tct(
-          'Due to the estimation being applied, [name] is likely to return unreliable results. Treat [name] for estimation purposes only.',
-          {name: nameNode}
-        )
+      ? tct('[name] is unreliable due to sampling', {name: nameNode})
       : tct(
           'Due to your configured sample rate, [name] is likely to return unreliable results. Increase your sample rate, or treat [name] for estimation purposes only.',
           {name: nameNode}

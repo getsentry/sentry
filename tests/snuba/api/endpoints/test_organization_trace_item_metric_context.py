@@ -71,14 +71,11 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.data["attributeValue"] == "checkout.requests"
         assert response.data["dataset"] == "tracemetrics"
         assert response.data["attributeType"] == "counter"
-        # Context is always org-level for now, even though a project was passed.
-        assert response.data["project"] is None
         assert response.data["brief"] == "Checkout requests"
         assert response.data["additionalContext"] == "Longer notes about the metric."
 
         context = TraceItemAttributeValueContext.objects.get(
             organization=self.organization,
-            project=None,
             attribute_value="checkout.requests",
         )
         assert context.attribute_name == "metric.name"
@@ -212,8 +209,8 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert "metricType" in response.data
 
     def test_writes_org_level_for_multiple_projects(self) -> None:
-        # Any project selection (including multiple projects) writes org-level
-        # context — the project scope is not used.
+        # Any project selection (including multiple projects) writes a single
+        # org-level row — context is never scoped to a project.
         other_project = self.create_project(organization=self.organization)
         self.store_metric("checkout.requests")
 
@@ -233,9 +230,12 @@ class OrganizationTraceItemMetricContextEndpointTest(
             )
 
         assert response.status_code == 201, response.data
-        assert response.data["project"] is None
-        context = TraceItemAttributeValueContext.objects.get(attribute_value="checkout.requests")
-        assert context.project_id is None
+        assert (
+            TraceItemAttributeValueContext.objects.filter(
+                organization=self.organization, attribute_value="checkout.requests"
+            ).count()
+            == 1
+        )
 
     def test_rejects_nonexistent_metric(self) -> None:
         self.store_metric("checkout.requests")
@@ -274,6 +274,32 @@ class OrganizationTraceItemMetricContextEndpointTest(
 
         assert response.status_code == 400, response.data
         assert "not found" in response.data["detail"]
+
+    def test_ignores_time_range_filter(self) -> None:
+        # The metric was last seen well outside the narrow requested window.
+        # Existence must be checked against all data, so a `statsPeriod` filter
+        # that would exclude it is ignored and the request still succeeds.
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "checkout.requests",
+                    1,
+                    "counter",
+                    timestamp=before_now(days=5),
+                )
+            ]
+        )
+
+        response = self.do_request(
+            "checkout.requests",
+            {
+                "metricType": "counter",
+                "brief": "Checkout requests",
+            },
+            query={"project": self.project.id, "statsPeriod": "1h"},
+        )
+
+        assert response.status_code == 201, response.data
 
     def test_requires_feature_flag(self) -> None:
         self.store_metric("checkout.requests")

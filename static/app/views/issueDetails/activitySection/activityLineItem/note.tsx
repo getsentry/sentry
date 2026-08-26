@@ -5,13 +5,16 @@ import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
+import type {NoteType} from 'sentry/types/alerts';
+import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
+import {ActivityInputFrame} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 
+import {getActivityNoteAuthor} from './activityItem';
 import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
@@ -19,10 +22,9 @@ type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
 
 interface ActivityLineNoteProps {
   activity: GroupActivityNote;
-  group: Group;
   inputVariant: ActivityLineVariant;
   onDelete: () => Promise<void>;
-  onCommentEdited?: (activity: GroupActivity[]) => void;
+  onUpdate: (data: NoteType) => Promise<void>;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -30,20 +32,11 @@ export function isActivityNote(activity: GroupActivity): activity is GroupActivi
   return activity.type === GroupActivityType.NOTE;
 }
 
-function getNoteAuthorName(activity: GroupActivityNote) {
-  if (activity.sentry_app) {
-    return activity.sentry_app.name;
-  }
-
-  return activity.user?.name ?? 'Sentry';
-}
-
 export function ActivityLineNote({
   activity,
-  group,
   inputVariant,
   onDelete,
-  onCommentEdited,
+  onUpdate,
   timestampUnitStyle,
 }: ActivityLineNoteProps) {
   const [editing, setEditing] = useState(false);
@@ -52,12 +45,11 @@ export function ActivityLineNote({
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
-
   return (
     <ActivityLineRow>
       <ActivityLineMarker item={activity} showProgress={showProgress} />
       <ActivityLineNoteHeadline
-        title={t('%s commented', getNoteAuthorName(activity))}
+        title={t('%s commented', getActivityNoteAuthor(activity))}
         timestamp={timestamp}
         variant={inputVariant}
         actions={
@@ -72,20 +64,19 @@ export function ActivityLineNote({
       />
       <ActivityLineContent>
         {editing ? (
-          <ActivityNoteInput
-            itemKey={activity.id}
-            storageKey={`groupinput:${activity.id}`}
-            minHeight={96}
-            variant={inputVariant}
-            text={activity.data.text}
-            noteId={activity.id}
-            group={group}
-            onCommentEdited={updatedActivity => {
-              onCommentEdited?.(updatedActivity);
-              setEditing(false);
-            }}
-            onCancel={() => setEditing(false)}
-          />
+          <ActivityInputFrame>
+            <MentionComposer
+              initialValue={activity.data.text}
+              minHeight={96}
+              mode="edit"
+              onCancel={() => setEditing(false)}
+              onSubmit={async data => {
+                await onUpdate(data);
+                setEditing(false);
+              }}
+              variant={inputVariant}
+            />
+          </ActivityInputFrame>
         ) : (
           <ActivityNoteBubble>
             <NoteBody text={activity.data.text} />

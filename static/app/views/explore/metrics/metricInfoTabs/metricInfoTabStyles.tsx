@@ -21,10 +21,26 @@ export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
 export const StyledSimpleTable = styled(SimpleTable)`
   position: relative;
   height: 100%;
-  grid-template-rows: min-content 1fr;
+  min-height: 0;
+
+  > tbody {
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
+    grid-auto-rows: min-content;
+    scrollbar-gutter: stable;
+  }
 `;
 
-export const TransparentLoadingMask = styled('div')`
+export const LoadingMaskRow = styled(SimpleTable.Row)`
+  position: static;
+
+  &:not(:last-child) {
+    border-bottom: 0;
+  }
+`;
+
+export const TransparentLoadingMask = styled('td')`
   position: absolute;
   top: 0;
   left: 0;
@@ -44,10 +60,6 @@ export const WrappingText = styled('div')`
   text-overflow: ellipsis;
   gap: ${p => p.theme.space.sm};
   align-items: center;
-`;
-
-export const ExpandedRowContainer = styled('div')`
-  grid-column: 1 / -1;
 `;
 
 export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
@@ -81,7 +93,6 @@ export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
   noPadding?: boolean;
 }>`
   font-size: ${p => p.theme.font.size.sm};
-  white-space: nowrap;
   padding: ${p =>
     p.noPadding
       ? 0
@@ -102,19 +113,7 @@ export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
         : p.theme.space.xs};
 `;
 
-export const StyledSimpleTableBody = styled('div')`
-  position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-auto-rows: min-content;
-  grid-column: 1 / -1;
-  scrollbar-gutter: stable;
-`;
-
-export const StyledSimpleTableHeader = styled(SimpleTable.Header)`
+export const StyledSimpleTableHeader = styled(SimpleTable.HeaderRow)`
   height: 33px;
   z-index: unset;
   position: sticky;
@@ -157,18 +156,4 @@ export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
 
 export const StyledTabPanels = styled(TabPanels)`
   overflow: auto;
-`;
-
-export const TableRowContainer = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-auto-rows: min-content;
-  grid-column: 1 / -1;
-
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  margin-right: -15px;
-  padding-right: calc(15px);
 `;

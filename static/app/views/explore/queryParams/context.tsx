@@ -30,6 +30,7 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {isConditionalAggregateYAxisValid} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface QueryParamsContextValue {
   managedFields: Set<string>;
@@ -202,13 +203,23 @@ export function useAddSearchFilter() {
       key,
       value,
       negated,
+      op,
     }: {
       key: string;
       value: string | number | boolean;
       negated?: boolean;
+      /**
+       * Comparison operator for numeric filters. When set, replaces any
+       * existing filter on `key` with `key:>{value}` / `key:<{value}`.
+       */
+      op?: '>' | '<';
     }) => {
       const newSearch = search.copy();
-      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      if (op) {
+        newSearch.setFilterValues(key, [`${op}${value}`]);
+      } else {
+        newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      }
       setSearch(newSearch);
     },
     [setSearch, search]
@@ -259,10 +270,15 @@ export function useQueryParamsAggregateFields(
   return useMemo(() => {
     if (validate) {
       return queryParams.aggregateFields.filter(aggregateField => {
-        if (isVisualize(aggregateField) && isVisualizeEquation(aggregateField)) {
+        if (!isVisualize(aggregateField)) {
+          return true;
+        }
+        if (isVisualizeEquation(aggregateField)) {
           return aggregateField.expression.isValid;
         }
-        return true;
+        // Drop series whose `_if` filter is invalid (e.g. aggregates as keys) so
+        // timeseries / table queries never send them to the backend.
+        return isConditionalAggregateYAxisValid(aggregateField.yAxis);
       });
     }
     return queryParams.aggregateFields;
@@ -295,7 +311,8 @@ export function useQueryParamsVisualizes(
         if (isVisualizeEquation(visualize)) {
           return visualize.expression.isValid;
         }
-        return true;
+        // Same as aggregateFields: skip series with an invalid `_if` filter.
+        return isConditionalAggregateYAxisValid(visualize.yAxis);
       });
     }
     return queryParams.visualizes;

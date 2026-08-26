@@ -53,6 +53,7 @@ from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
+from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -84,7 +85,7 @@ from sentry.seer.agent.tools import (
     get_baseline_tag_distribution,
     get_dsn,
     get_event_details,
-    get_issue_and_event_details_v2,
+    get_group_assignees,
     get_issue_committers,
     get_issue_details,
     get_issue_ownership,
@@ -116,11 +117,16 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.utils import read_preference_from_sentry_db
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerAutofixOperator,
+    process_autofix_updates,
+    record_seer_activity,
+)
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
+from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     AttributeBucket,
@@ -691,18 +697,37 @@ def send_seer_webhook(
             id=organization_id, status=OrganizationStatus.ACTIVE
         )
     except Organization.DoesNotExist:
-        logger.exception(
+        logger.warning(
             "seer.webhook_organization_not_found_or_not_active",
             extra={"organization_id": organization_id},
         )
         return SendSeerWebhookErrorResponse(error="Organization not found or not active")
 
     if SeerAutofixOperator.has_access(organization=organization):
+        activity_already_recorded = False
+        group_id = payload.get("group_id")
+        if group_id:
+            try:
+                group = Group.objects.get(
+                    id=group_id,
+                    project__organization_id=organization_id,
+                )
+            except Group.DoesNotExist:
+                pass
+            else:
+                record_seer_activity(
+                    group=group,
+                    event_type=sentry_app_event_type,
+                    event_payload=payload,
+                )
+                activity_already_recorded = True
+
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": organization_id,
+                "activity_already_recorded": activity_already_recorded,
             }
         )
 
@@ -989,11 +1014,11 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_profiles_for_trace": seer_rpc(rpc_get_profiles_for_trace),
     "get_issues_for_transaction": seer_rpc(rpc_get_issues_for_transaction),
     "get_trace_waterfall": seer_rpc(rpc_get_trace_waterfall),
-    "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
     "get_issue_committers": seer_rpc(get_issue_committers),
     "get_issue_ownership": seer_rpc(get_issue_ownership),
     "get_team_members": seer_rpc(get_team_members),
+    "get_group_assignees": seer_rpc(get_group_assignees),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "execute_table_query": seer_rpc(execute_table_query),
@@ -1019,6 +1044,9 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     #
     # PR metrics (judge path)
     "update_pr_metrics": seer_rpc(update_pr_metrics),
+    #
+    # PR created (attribution + run link)
+    "notify_seer_pr_created": seer_rpc(notify_seer_pr_created),
     #
     # Monitoring provider tokens (MCP)
     "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),

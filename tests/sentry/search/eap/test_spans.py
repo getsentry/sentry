@@ -812,13 +812,6 @@ class SearchResolverQueryTest(TestCase):
                     TraceItemFilter(
                         exists_filter=ExistsFilter(key=trace_key),
                     ),
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=trace_key,
-                            op=ComparisonFilter.OP_NOT_EQUALS,
-                            value=AttributeValue(val_str=""),
-                        )
-                    ),
                 ]
             )
         )
@@ -839,10 +832,26 @@ class SearchResolverQueryTest(TestCase):
                             ]
                         )
                     ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_has_parent_span(self) -> None:
+        where, having, _ = self.resolver.resolve_query("has:parent_span")
+        parent_span_key = AttributeKey(
+            name="sentry.parent_span_id", type=AttributeKey.Type.TYPE_STRING
+        )
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=parent_span_key),
+                    ),
                     TraceItemFilter(
                         comparison_filter=ComparisonFilter(
-                            key=trace_key,
-                            op=ComparisonFilter.OP_EQUALS,
+                            key=parent_span_key,
+                            op=ComparisonFilter.OP_NOT_EQUALS,
                             value=AttributeValue(val_str=""),
                         )
                     ),
@@ -1113,10 +1122,12 @@ def _make_deprecated_metadata(
     attr_type: AttributeType,
     replacement: str,
     status: DeprecationStatus = DeprecationStatus.BACKFILL,
+    keys: tuple[str, ...] = (),
 ) -> AttributeMetadata:
     return AttributeMetadata(
         brief="",
         type=attr_type,
+        keys=keys,
         apply_scrubbing=ApplyScrubbingInfo(key=ApplyScrubbing.NEVER),
         is_in_otel=False,
         visibility=Visibility.PUBLIC,

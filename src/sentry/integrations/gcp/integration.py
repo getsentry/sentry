@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
@@ -19,11 +19,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.errors import OrganizationIntegrationNotFound
-from sentry.integrations.gcp.utils import (
-    GCP_MCP_URLS,
-    generate_sentry_sa,
-    validate_gcp_project_id,
-)
+from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
+from sentry.integrations.gcp.utils import GCP_MCP_URLS, validate_gcp_project_id
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -49,8 +46,8 @@ telemetry via GCP's MCP endpoints — shared across everyone in your organizatio
 
 FEATURES = [
     FeatureDescription(
-        "Give Seer access to your GCP telemetry while investigating issues.",
-        IntegrationFeatures.MONITORING,
+        "Give Seer access to your GCP telemetry (logging, monitoring, tracing) while investigating issues.",
+        IntegrationFeatures.SEER_CONTEXT,
     ),
 ]
 
@@ -86,6 +83,11 @@ class GcpSaGenerationApiStep:
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
         assert pipeline.organization is not None
+
+        existing_email = pipeline.fetch_state("sentry_sa_email")
+        if existing_email:
+            return {"sentrySaEmail": existing_email}
+
         sentry_sa_email = generate_sentry_sa(pipeline.organization.id)
         pipeline.bind_state("sentry_sa_email", sentry_sa_email)
         return {"sentrySaEmail": sentry_sa_email}
@@ -133,8 +135,61 @@ class GcpIntegration(IntegrationInstallation):
             return None
         return cast(GcpConfig, config)
 
-    def get_organization_config(self) -> Sequence[Any]:
-        return []
+    def uninstall(self) -> None:
+        config = self.gcp_config
+        if config is None:
+            return
+        sa_email = config.get("sentry_sa_email")
+        if sa_email:
+            delete_sentry_sa(sa_email, self.organization_id)
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": "sentry_sa_email",
+                "type": "string",
+                "label": _("Sentry Service Account"),
+                "help": _(
+                    "Auto-generated service account in the sentry-connectors project. "
+                    "Your customer SA must grant this account the "
+                    "roles/iam.serviceAccountTokenCreator role."
+                ),
+                "disabled": True,
+                "disabledReason": _("Managed by Sentry"),
+            },
+            {
+                "name": "customer_sa_email",
+                "type": "string",
+                "label": _("Customer Service Account"),
+                "help": _(
+                    "Your GCP service account that the Sentry SA impersonates. "
+                    "It must have viewer roles on the configured projects."
+                ),
+                "disabled": True,
+                "disabledReason": _("To update, uninstall and re-install the integration."),
+            },
+            {
+                "name": "projects",
+                "type": "string",
+                "label": _("GCP Project IDs"),
+                "help": _("Comma-separated list of GCP project IDs."),
+                "disabled": True,
+                "disabledReason": _("To update, uninstall and re-install the integration."),
+            },
+        ]
+
+    def get_config_data(self) -> Mapping[str, Any]:
+        config = self.gcp_config
+        if not config:
+            return {}
+        return {
+            "sentry_sa_email": config.get("sentry_sa_email", ""),
+            "customer_sa_email": config.get("customer_sa_email", ""),
+            "projects": ", ".join(config.get("projects", [])),
+        }
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        pass
 
     def get_client(self) -> Any:
         raise NotImplementedError
@@ -145,7 +200,7 @@ class GcpIntegrationProvider(IntegrationProvider):
     name = "Google Cloud Platform"
     metadata = metadata
     integration_cls = GcpIntegration
-    features = frozenset([IntegrationFeatures.MONITORING])
+    features = frozenset([IntegrationFeatures.SEER_CONTEXT])
     requires_feature_flag = True
     allow_multiple = False
 

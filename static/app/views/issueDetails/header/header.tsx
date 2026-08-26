@@ -45,6 +45,7 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -78,7 +79,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const issueItem = useIssueIdBreadcrumbItem({project, group});
 
   return (
@@ -240,7 +241,7 @@ function HeaderActions({group}: {group: Group}) {
         : 'issue_details_n_plus_one_api_calls';
   const feedbackOptions = {
     messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
-    tags: {['feedback.source']: feedbackSource},
+    tags: {'feedback.source': feedbackSource},
   };
   const feedbackLabel = t('Give feedback on the issue Sentry detected');
 

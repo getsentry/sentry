@@ -17,8 +17,14 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {classifyTagKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {
+  classifyTagKey,
+  FieldKind,
+  FieldValueType,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
   DASHBOARD_ONLY_SPAN_ATTRIBUTES,
@@ -28,6 +34,7 @@ import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {removeHiddenKeys} from 'sentry/views/explore/utils';
 import {
   sortKnownAttributes,
   sortSearchedAttributes,
@@ -39,6 +46,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   numberTags: TagCollection;
   onColumnsChange: (columns: string[]) => void;
   stringTags: TagCollection;
+  arrayTags?: TagCollection;
   handleReset?: () => void;
   hiddenKeys?: string[];
   isDocsButtonHidden?: boolean;
@@ -58,6 +66,7 @@ export function ColumnEditorModal({
   booleanTags,
   numberTags,
   stringTags,
+  arrayTags = {},
   hiddenKeys,
   isDocsButtonHidden = false,
   handleReset,
@@ -71,11 +80,13 @@ export function ColumnEditorModal({
         stringTags,
         numberTags,
         booleanTags,
+        arrayTags,
         hiddenKeys,
         traceItemType,
         validatedFieldTypes,
       }),
     [
+      arrayTags,
       booleanTags,
       columns,
       hiddenKeys,
@@ -206,6 +217,11 @@ function ColumnEditorRow({
   const debouncedSearch = useDebouncedValue(search, 250);
   const hasSearch = debouncedSearch.length > 0;
 
+  // Array attributes are gated behind the array feature flag. When it's off the
+  // array search is disabled, matching the empty base options the modal receives.
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
+
   // The parent's tag collections come pre-filtered: useSpanItemAttributes folds in
   // DASHBOARD_ONLY_SPAN_ATTRIBUTES, and log callers pass HiddenColumnEditorLogFields
   // via hiddenKeys. The bare useTraceItemDatasetAttributes does neither, so merge
@@ -251,8 +267,20 @@ function ColumnEditorRow({
       'boolean',
       searchHiddenKeys
     );
+  const {attributes: searchedArrayTags, isLoading: arrayLoading} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportsArrays,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'array',
+      searchHiddenKeys
+    );
 
-  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+  const isSearchLoading =
+    hasSearch && (stringLoading || numberLoading || booleanLoading || arrayLoading);
 
   // Feed CompactSelect the full base list at all times so its built-in matcher
   // can filter synchronously while typing. Once the debounced server search
@@ -267,6 +295,7 @@ function ColumnEditorRow({
       stringTags: searchedStringTags,
       numberTags: searchedNumberTags,
       booleanTags: searchedBooleanTags,
+      arrayTags: searchedArrayTags,
       hiddenKeys,
       traceItemType,
     });
@@ -285,6 +314,7 @@ function ColumnEditorRow({
     searchedStringTags,
     searchedNumberTags,
     searchedBooleanTags,
+    searchedArrayTags,
     hiddenKeys,
     traceItemType,
   ]);
@@ -386,6 +416,7 @@ interface BuildColumnOptionsParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
+  arrayTags?: TagCollection;
   hiddenKeys?: string[];
   validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }
@@ -395,30 +426,24 @@ function buildColumnOptions({
   stringTags,
   numberTags,
   booleanTags,
+  arrayTags = {},
   hiddenKeys,
   traceItemType,
   validatedFieldTypes,
 }: BuildColumnOptionsParams) {
+  const hidden = new Set(hiddenKeys);
   return buildAttributeOptions({
-    numberTags,
-    stringTags,
-    booleanTags,
+    numberTags: removeHiddenKeys(numberTags, hidden),
+    stringTags: removeHiddenKeys(stringTags, hidden),
+    booleanTags: removeHiddenKeys(booleanTags, hidden),
+    arrayTags: removeHiddenKeys(arrayTags, hidden),
     traceItemType,
-    extraColumns: columns,
+    extraColumns: columns.filter(
+      column => !hidden.has(column) && !hidden.has(prettifyTagKey(column))
+    ),
     extraColumnKind: column =>
       fieldKindFromFieldType(validatedFieldTypes?.[column]) ?? classifyTagKey(column),
-  })
-    .filter(option => {
-      const hidden = hiddenKeys ?? [];
-      if (hidden.includes(option.value)) {
-        return false;
-      }
-      if (typeof option.label === 'string' && hidden.includes(option.label)) {
-        return false;
-      }
-      return true;
-    })
-    .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
+  }).toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
 }
 
 function fieldKindFromFieldType(fieldType?: FieldValueType) {
@@ -430,6 +455,9 @@ function fieldKindFromFieldType(fieldType?: FieldValueType) {
   }
   if (fieldType === FieldValueType.STRING) {
     return FieldKind.TAG;
+  }
+  if (fieldType === FieldValueType.ARRAY) {
+    return FieldKind.ARRAY;
   }
   return null;
 }

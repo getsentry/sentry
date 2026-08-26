@@ -37,7 +37,19 @@ class DataConditionEvaluation(
         of the evaluation.
     - data: Any - The value that was used in the data conditions evaluation
     - error: ConditionError - Set when there's an error while evaluating a condition
+    - triggered: bool - If the evaluation should consider this condition "triggered" or not.
     """
 
     result: DataConditionResult = None
     condition: DataCondition
+
+    @property
+    def artifact_fields(self) -> dict[str, Any]:
+        safe_input = self.data if isinstance(self.data, (bool, int, float, str)) else None
+        return {
+            "condition_id": self.condition.id,
+            "condition_type": self.condition.type,
+            "input_type": type(self.data).__name__,
+            "input": safe_input,
+            "result": getattr(self.result, "value", self.result),
+        }

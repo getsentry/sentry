@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -203,8 +211,6 @@ function countPreviousItemsOfType({
   }
   const currentIndex = itemKeys.indexOf(focusedKey);
 
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
       return count + 1;
@@ -355,6 +361,7 @@ function SearchQueryBuilderInputInternal({
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const restoreFocusAfterBlurRef = useRef(false);
   const trimmedTokenValue = token.text.trim();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
@@ -379,6 +386,7 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
+    replaceRawSearchKeys,
   } = useSearchQueryBuilderConfig();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const {
@@ -395,10 +403,9 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex]);
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
-    useFilterKeyListBox({
-      filterValue,
-    });
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
+    filterValue,
+  });
   const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
     useSortedFilterKeyItems({
       filterValue,
@@ -423,6 +430,15 @@ function SearchQueryBuilderInputInternal({
     const collectionValue = collectionItem.value;
     return collectionValue?.type === Token.FILTER;
   });
+
+  useLayoutEffect(() => {
+    // React Aria only restores focus when the collection's focused key changes. A raw
+    // text blur updates this token in place, so restore the input focus explicitly.
+    if (restoreFocusAfterBlurRef.current && inputRef.current) {
+      restoreFocusAfterBlurRef.current = false;
+      inputRef.current.focus();
+    }
+  }, [trimmedTokenValue]);
 
   useEffect(() => {
     if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
@@ -595,13 +611,6 @@ function SearchQueryBuilderInputInternal({
         isLoading={isLoadingFilterKeys}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
-          if (handleOptionSelected) {
-            handleOptionSelected(option);
-            if (option.type === 'ask-seer' || option.type === 'ask-seer-consent') {
-              return;
-            }
-          }
-
           if (option.type === 'recent-query') {
             dispatch({
               type: 'UPDATE_QUERY',
@@ -702,21 +711,34 @@ function SearchQueryBuilderInputInternal({
             new_experience: true,
           });
         }}
-        onCustomValueBlurred={value => {
+        onCustomValueBlurred={(value, event) => {
+          const focusOverride = calculateNextFocusForCommittedCustomValue({
+            currentFocusedKey: item.key.toString(),
+            value,
+          });
+          if (event) {
+            restoreFocusAfterBlurRef.current = Boolean(
+              replaceRawSearchKeys?.length &&
+              !focusOverride &&
+              !event.relatedTarget &&
+              value.trim() !== trimmedTokenValue
+            );
+          }
           dispatch({
             type: 'UPDATE_FREE_TEXT_ON_BLUR',
             tokens: [token],
             text: value,
-            focusOverride: calculateNextFocusForCommittedCustomValue({
-              currentFocusedKey: item.key.toString(),
-              value,
-            }),
+            focusOverride,
             shouldCommitQuery: false,
           });
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasFilter) {
+          if (
+            defaultToAskSeerOnFreeTextSearch &&
+            value.trim().split(/\s+/).length >= 2 &&
+            !hasFilter
+          ) {
             setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);

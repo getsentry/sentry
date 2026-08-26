@@ -4,9 +4,11 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  type FocusEvent,
   type MouseEventHandler,
   type ReactNode,
 } from 'react';
+import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
@@ -22,14 +24,13 @@ import {
   ListBox,
 } from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
+import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -45,7 +46,6 @@ import {
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
@@ -55,9 +55,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   items: T[];
   /**
    * Called when the input is blurred.
-   * Passes the current input value.
+   * Passes the current input value and blur event.
    */
-  onCustomValueBlurred: (value: string) => void;
+  onCustomValueBlurred: (value: string, event?: FocusEvent<HTMLInputElement>) => void;
   /**
    * Called when the user commits a value with the enter key.
    * Passes the current input value.
@@ -198,11 +198,9 @@ function useHiddenItems({
   filterValue,
   maxOptions,
   shouldFilterResults,
-  showAskSeerOption,
 }: {
   filterValue: string;
   items: Array<SelectOptionOrSectionWithKey<string>>;
-  showAskSeerOption: boolean;
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
@@ -213,21 +211,13 @@ function useHiddenItems({
       maxOptions
     );
 
-    if (showAskSeerOption) {
-      hidden.add(ASK_SEER_ITEM_KEY);
-    }
-
     return hidden;
-  }, [filterValue, items, maxOptions, shouldFilterResults, showAskSeerOption]);
+  }, [filterValue, items, maxOptions, shouldFilterResults]);
 
-  const disabledKeys = useMemo(() => {
-    const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
-    return showAskSeerOption
-      ? baseDisabledKeys.filter(
-          key => key !== ASK_SEER_ITEM_KEY && key !== ASK_SEER_CONSENT_ITEM_KEY
-        )
-      : baseDisabledKeys;
-  }, [hiddenOptions, items, showAskSeerOption]);
+  const disabledKeys = useMemo(
+    () => [...getDisabledOptions(items), ...hiddenOptions],
+    [hiddenOptions, items]
+  );
 
   return {
     hiddenOptions,
@@ -315,10 +305,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
-  const organization = useOrganization();
   const anyItemsShowing = totalOptions > hiddenOptions.size;
-  const showAskSeerFooter =
-    enableAISearch && organization.features.includes('gen-ai-ask-seer-ux-rework');
 
   if (customMenu) {
     return customMenu({
@@ -336,7 +323,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
     });
   }
 
-  return (
+  const listBox = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <ListBoxOverlay ref={popoverRef}>
         {isLoading && !anyItemsShowing ? (
@@ -361,16 +348,16 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : null}
-        {showAskSeerFooter ? (
+        {enableAISearch ? (
           <Flex padding="sm" borderTop="muted">
             <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onTabForward} />
           </Flex>
-        ) : enableAISearch ? (
-          <AskSeer state={state} />
         ) : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
+
+  return portalTarget ? createPortal(listBox, portalTarget) : listBox;
 }
 
 /**
@@ -410,13 +397,12 @@ export function SearchQueryBuilderCombobox<
   isLoading: incomingIsLoading,
   isOpen: incomingIsOpen,
   keepVisibleRef,
-  ['data-test-id']: dataTestId,
+  'data-test-id': dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
-  const {enableAISearch} = useSearchQueryBuilderAI();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -428,10 +414,9 @@ export function SearchQueryBuilderCombobox<
     filterValue,
     maxOptions,
     shouldFilterResults,
-    showAskSeerOption: enableAISearch,
   });
 
-  const onSelectionChange = useCallback(
+  const onValueChange = useCallback(
     (key: Key | null) => {
       if (!key) {
         return;
@@ -449,8 +434,8 @@ export function SearchQueryBuilderCombobox<
     items,
     autoFocus,
     inputValue: filterValue,
-    selectedKey: null,
-    onSelectionChange,
+    value: null,
+    onChange: onValueChange,
     allowsCustomValue: true,
     disabledKeys,
     isDisabled: disabled,
@@ -475,6 +460,8 @@ export function SearchQueryBuilderCombobox<
       inputRef,
       popoverRef,
       tabTargetRef: askSeerButtonRef,
+      // This component supplies a custom ariaHideOutside allowlist below.
+      shouldHideOutside: false,
       shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
@@ -486,10 +473,17 @@ export function SearchQueryBuilderCombobox<
         if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
           return;
         }
-        onCustomValueBlurred(inputValue);
+        onCustomValueBlurred(inputValue, e);
         state.close();
       },
       onKeyDown: e => {
+        // React Aria's selectable collection stops key events from bubbling out of
+        // an open combobox. Let the global command palette shortcut through.
+        if (matchesHotkey(COMMAND_PALETTE_HOTKEYS, e.nativeEvent)) {
+          e.continuePropagation();
+          return;
+        }
+
         onKeyDown?.(e, {state});
 
         if (e.key === 'Escape') {
@@ -569,16 +563,7 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (
-        popoverRef.current?.contains(el) ||
-        wrapperRef.current?.contains(el) ||
-        // We don't want to close the menu when clicking on an anchor element that is
-        // located inside of a tooltip, as the tooltip is technically outside of the
-        // combobox. This is required to enable the Ask Seer tooltip link to work.
-        //
-        // Source: static/app/components/searchQueryBuilder/askSeer/askSeerOption.tsx:71
-        el instanceof HTMLAnchorElement
-      ) {
+      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
         return false;
       }
 

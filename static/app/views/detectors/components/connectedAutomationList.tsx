@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -74,6 +75,7 @@ export function ConnectedAutomationsList({
   openInNewTab,
   ...props
 }: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
   const canEdit = Boolean(
     connectedAutomationIds && typeof toggleConnected === 'function'
@@ -105,18 +107,21 @@ export function ConnectedAutomationsList({
         });
 
   return (
-    <Container {...props}>
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="last-triggered">
-            {t('Last Triggered')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="action-filters">
-            {t('Actions')}
-          </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
-        </SimpleTable.Header>
+    <Container containerType="inline-size" {...props}>
+      <SimpleTableWithColumns
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="last-triggered">
+              {t('Last Triggered')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="action-filters">
+              {t('Actions')}
+            </SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && (
           <Skeletons
             canEdit={canEdit}
@@ -127,7 +132,11 @@ export function ConnectedAutomationsList({
             }
           />
         )}
-        {isError && <LoadingError />}
+        {isError && (
+          <SimpleTable.Empty>
+            <LoadingError />
+          </SimpleTable.Empty>
+        )}
         {((isSuccess && automations?.length === 0) ||
           (automationIds !== null && automationIds.length === 0)) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
@@ -173,10 +182,6 @@ export function ConnectedAutomationsList({
   );
 }
 
-const Container = styled('div')`
-  container-type: inline-size;
-`;
-
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 200px 180px auto;
 
@@ -190,7 +195,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     width: 140px;
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr 180px auto;
 
     [data-column-name='last-triggered'] {
@@ -198,7 +203,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+  @container (max-width: ${p => p.theme.container.sm}) {
     grid-template-columns: 1fr auto;
 
     [data-column-name='action-filters'] {

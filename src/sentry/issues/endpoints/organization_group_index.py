@@ -57,7 +57,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALLOWED_FUTURE_DELTA, DEFAULT_SORT_OPTION
+from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -199,10 +199,6 @@ def search_issues(
             query_kwargs["sort_by"] = "recommended_v2"
         elif query_kwargs["sort_by"] == "recommended_v1":
             query_kwargs["sort_by"] = "recommended"
-        if query_kwargs["sort_by"] == "progress" and not features.has(
-            "organizations:issue-stream-progress-sort", organization, actor=request.user
-        ):
-            query_kwargs["sort_by"] = DEFAULT_SORT_OPTION
         if query_kwargs["sort_by"] == "inbox":
             query_kwargs.pop("sort_by")
             query_kwargs.pop("referrer")
@@ -304,7 +300,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.SHORT_ID_LOOKUP,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.GROUP_INDEX_EXPAND,
             IssueParams.GROUP_INDEX_COLLAPSE,
@@ -497,7 +493,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.MUTATE_ISSUE_ID_LIST,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
         ],
         request=GroupValidator,
@@ -544,7 +540,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.DELETE_ISSUE_ID_LIST,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
         ],
         responses={
