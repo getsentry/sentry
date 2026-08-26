@@ -574,7 +574,10 @@ const InvestigationCanvas = styled(Stack)`
 `;
 
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+  width: calc(100% + ${p => p.theme.space['2xl']});
+  margin-inline: calc(-1 * ${p => p.theme.space.lg});
   margin-bottom: ${p => p.theme.space.xl};
+  padding-inline: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`
