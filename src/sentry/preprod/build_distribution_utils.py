@@ -382,18 +382,15 @@ def find_latest_installable_artifact(
     if not highest_version:
         return None
 
-    # Select the winning ID before loading its related objects, so PostgreSQL
-    # does not carry every related-object column through the candidate sort.
+    # Select the winning ID before loading related objects to keep the candidate sort narrow.
     filter_kwargs["mobile_app_info__build_version"] = highest_version
     candidate_artifacts = (
         PreprodArtifact.objects.filter(**filter_kwargs)
         .annotate(build_number_suffix=_build_number_suffix())
         .order_by(
-            # Preserve ordering by the encoded three-component prefix stored in
-            # build_number. Use later raw components only when prefixes are equal.
+            # build_number encodes the first three components. Break prefix ties
+            # with a valid raw suffix; otherwise fall back to date_added.
             "-mobile_app_info__build_number",
-            # PostgreSQL defaults to NULLS FIRST for descending order, but a
-            # missing or invalid raw suffix should not outrank a valid suffix.
             F("build_number_suffix").desc(nulls_last=True),
             "-date_added",
         )
