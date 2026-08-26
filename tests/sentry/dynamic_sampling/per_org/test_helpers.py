@@ -19,7 +19,7 @@ SLIDING_WINDOW_RATE = f"{CONFIGURATION}.compute_sliding_window_sample_rate"
 CALCULATE_FACTOR = f"{CONFIGURATION}.calculate_recalibration_factor"
 GET_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.get_adjusted_factor"
 # The factor is written by write_caches at the end of the pass, not by the configuration.
-SET_FACTOR = f"{CACHE}.set_guarded_adjusted_factor"
+SET_FACTOR = f"{CACHE}.set_adjusted_factor"
 DELETE_FACTOR = f"{CACHE}.delete_adjusted_factor"
 
 
