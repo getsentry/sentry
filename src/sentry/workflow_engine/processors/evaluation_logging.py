@@ -17,9 +17,7 @@ DETECTOR_EVALUATION_LOG_PREFIX = "workflow_engine.process_detectors.evaluation"
 WORKFLOW_EVALUATION_LOG_PREFIX = "workflow_engine.process_workflows.evaluation"
 
 
-def _should_emit_evaluation_logs(organization: Organization) -> bool:
-    if features.has("organizations:workflow-engine-log-evaluations", organization):
-        return True
+def _is_sampled() -> bool:
     sample_rate = cast(float, options.get("workflow_engine.evaluation_log_sample_rate"))
     return random.random() < sample_rate
 
@@ -33,8 +31,7 @@ def should_log(organization: Organization, result: ProcessWorkflowsResult) -> bo
     )
     if any(workflow_id in result.evaluations for workflow_id in target_workflow_ids):
         return True
-    sample_rate = cast(float, options.get("workflow_engine.evaluation_log_sample_rate"))
-    return random.random() < sample_rate
+    return _is_sampled()
 
 
 def _emit_evaluation_artifacts(
@@ -58,17 +55,17 @@ def _emit_evaluation_artifacts(
 def emit_detector_evaluation_logs(
     logger: Logger,
     *,
-    organization: Organization | None,
+    organization_id: int | None,
     result: ProcessDetectorsResult,
     log_prefix: str = DETECTOR_EVALUATION_LOG_PREFIX,
 ) -> bool:
     """Sample a detector and emit one self-contained artifact per grouped evaluation."""
-    if organization is not None and not _should_emit_evaluation_logs(organization):
+    if not _is_sampled():
         return False
 
     _emit_evaluation_artifacts(
         logger,
-        organization_id=organization.id if organization is not None else None,
+        organization_id=organization_id,
         artifacts=result.evaluation_artifacts(),
         log_prefix=log_prefix,
     )
