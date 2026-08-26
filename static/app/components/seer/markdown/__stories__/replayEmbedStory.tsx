@@ -34,7 +34,6 @@ export function ReplayEmbedStory() {
             id: replay.id,
             eventTimestamp: String(replay.started_at),
           }}
-          demoProps={{maxHeight: '900px'}}
         />
       ) : (
         <Text variant="muted">No replay is available for this organization.</Text>

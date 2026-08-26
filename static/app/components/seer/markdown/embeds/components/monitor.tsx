@@ -24,6 +24,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import type {
   CronDetector,
   Detector,
@@ -39,7 +40,9 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
+import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
 
 const LazyGroupList = lazy(async () => {
   const {GroupList} = await import('sentry/components/issues/groupList');
@@ -64,10 +67,16 @@ const LazyMobileBuildDetectorDetails = lazy(async () => {
   return {default: MobileBuildDetectorDetailsDetect};
 });
 
-const LazyMonitorCheckIns = lazy(async () => {
-  const {MonitorCheckIns} =
-    await import('sentry/views/insights/crons/components/monitorCheckIns');
-  return {default: MonitorCheckIns};
+const LazyMonitorCheckInsGrid = lazy(async () => {
+  const {MonitorCheckInsGrid} =
+    await import('sentry/views/insights/crons/components/monitorCheckInsGrid');
+  return {default: MonitorCheckInsGrid};
+});
+
+const LazyUptimeChecksGrid = lazy(async () => {
+  const {UptimeChecksGrid} =
+    await import('sentry/views/detectors/components/uptime/uptimeChecksGrid');
+  return {default: UptimeChecksGrid};
 });
 
 const LazyDetectorDetailsOpenPeriodIssues = lazy(async () => {
@@ -150,37 +159,135 @@ function MetricMonitorBlock({detector}: {detector: MetricDetector}) {
   );
 }
 
+function MonitorOngoingIssues({detector}: {detector: Detector}) {
+  return (
+    <ErrorBoundary mini>
+      <LazyLoad LazyComponent={LazyDetectorDetailsOpenPeriodIssues} detector={detector} />
+    </ErrorBoundary>
+  );
+}
+
+function RecentUptimeCheckIns({
+  detector,
+  project,
+}: {
+  detector: UptimeDetector;
+  project: Project;
+}) {
+  const organization = useOrganization();
+  const {data, isError, isPending} = useQuery({
+    ...uptimeChecksApiOptions({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      detectorId: detector.id,
+      limit: 3,
+    }),
+    retry: false,
+  });
+
+  if (isError) {
+    return <Text variant="muted">{t('Unable to load recent check-ins.')}</Text>;
+  }
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  return (
+    <LazyLoad
+      LazyComponent={LazyUptimeChecksGrid}
+      uptimeChecks={data}
+      traceSampling={detector.dataSources[0].queryObj.traceSampling}
+    />
+  );
+}
+
 function UptimeMonitorBlock({detector}: {detector: UptimeDetector}) {
   const {queryObj} = detector.dataSources[0];
+  const project = useProjectFromId({project_id: detector.projectId});
 
   return (
     <Stack gap="md">
-      <Text monospace wordBreak="break-all">
-        {queryObj.method} {queryObj.url}
-      </Text>
-      <Grid columns="max-content minmax(0, 1fr)" gap="sm md">
-        <Text variant="muted">{t('Interval')}</Text>
-        <Text>{t('Every %s', getDuration(queryObj.intervalSeconds))}</Text>
-        <Text variant="muted">{t('Timeout')}</Text>
-        <Text>{t('After %s', getDuration(queryObj.timeoutMs / 1000, 2))}</Text>
-        <Text variant="muted">{t('Creates an issue')}</Text>
-        <Text>
-          {tn(
-            'After one failed check',
-            'After %s consecutive failed checks',
-            detector.config.downtimeThreshold
+      {!detector.latestGroup && (
+        <Stack gap="sm">
+          <Heading as="h4" size="xs">
+            {t('Recent check-ins')}
+          </Heading>
+          {project ? (
+            <RecentUptimeCheckIns detector={detector} project={project} />
+          ) : (
+            <Text variant="muted">{t('Unable to load recent check-ins.')}</Text>
           )}
+        </Stack>
+      )}
+      {!detector.latestGroup && <Stack.Separator />}
+      <Stack gap="sm">
+        <Heading as="h4" size="xs">
+          {t('Monitor configuration')}
+        </Heading>
+        <Text monospace wordBreak="break-all">
+          {queryObj.method} {queryObj.url}
         </Text>
-        <Text variant="muted">{t('Resolves')}</Text>
-        <Text>
-          {tn(
-            'After one successful check',
-            'After %s consecutive successful checks',
-            detector.config.recoveryThreshold
-          )}
-        </Text>
-      </Grid>
+        <Grid columns="max-content minmax(0, 1fr)" gap="sm md">
+          <Text variant="muted">{t('Interval')}</Text>
+          <Text>{t('Every %s', getDuration(queryObj.intervalSeconds))}</Text>
+          <Text variant="muted">{t('Timeout')}</Text>
+          <Text>{t('After %s', getDuration(queryObj.timeoutMs / 1000, 2))}</Text>
+          <Text variant="muted">{t('Creates an issue')}</Text>
+          <Text>
+            {tn(
+              'After one failed check',
+              'After %s consecutive failed checks',
+              detector.config.downtimeThreshold
+            )}
+          </Text>
+          <Text variant="muted">{t('Resolves')}</Text>
+          <Text>
+            {tn(
+              'After one successful check',
+              'After %s consecutive successful checks',
+              detector.config.recoveryThreshold
+            )}
+          </Text>
+        </Grid>
+      </Stack>
     </Stack>
+  );
+}
+
+function RecentCronCheckIns({
+  detector,
+  project,
+}: {
+  detector: CronDetector;
+  project: Project;
+}) {
+  const organization = useOrganization();
+  const monitor = detector.dataSources[0].queryObj;
+  const {data, isError, isPending} = useQuery({
+    ...monitorCheckInsApiOptions({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      monitorIdOrSlug: monitor.slug,
+      limit: 3,
+      expand: 'groups',
+      environment: monitor.environments.map(item => item.name),
+    }),
+    retry: false,
+  });
+
+  if (isError) {
+    return <Text variant="muted">{t('Unable to load recent check-ins.')}</Text>;
+  }
+
+  return (
+    <LazyLoad
+      LazyComponent={LazyMonitorCheckInsGrid}
+      checkIns={data ?? []}
+      isLoading={isPending}
+      hasMultiEnv={monitor.environments.length > 1}
+      project={project}
+    />
   );
 }
 
@@ -191,26 +298,21 @@ function CronMonitorBlock({detector}: {detector: CronDetector}) {
 
   return (
     <Stack gap="md">
-      <Stack gap="sm">
-        <Heading as="h4" size="xs">
-          {t('Recent check-ins')}
-        </Heading>
-        {project ? (
-          <Container overflowX="auto">
+      {!detector.latestGroup && (
+        <Stack gap="sm">
+          <Heading as="h4" size="xs">
+            {t('Recent check-ins')}
+          </Heading>
+          {project ? (
             <ErrorBoundary mini>
-              <LazyLoad
-                LazyComponent={LazyMonitorCheckIns}
-                monitorSlug={monitor.slug}
-                monitorEnvs={monitor.environments}
-                project={project}
-              />
+              <RecentCronCheckIns detector={detector} project={project} />
             </ErrorBoundary>
-          </Container>
-        ) : (
-          <Text variant="muted">{t('Unable to load recent check-ins.')}</Text>
-        )}
-      </Stack>
-      <Stack.Separator />
+          ) : (
+            <Text variant="muted">{t('Unable to load recent check-ins.')}</Text>
+          )}
+        </Stack>
+      )}
+      {!detector.latestGroup && <Stack.Separator />}
       <Stack gap="sm">
         <Heading as="h4" size="xs">
           {t('Monitor configuration')}
@@ -246,25 +348,16 @@ function CronMonitorBlock({detector}: {detector: CronDetector}) {
 
 function MobileBuildMonitorBlock({detector}: {detector: PreprodDetector}) {
   return (
-    <Stack gap="md">
-      <ErrorBoundary mini>
-        <LazyLoad
-          LazyComponent={LazyDetectorDetailsOpenPeriodIssues}
-          detector={detector}
-        />
-      </ErrorBoundary>
-      <Stack.Separator />
-      <Stack gap="sm">
-        <Heading as="h4" size="xs">
-          {t('Rules')}
-        </Heading>
-        <LazyLoad LazyComponent={LazyMobileBuildDetectorDetails} detector={detector} />
-      </Stack>
+    <Stack gap="sm">
+      <Heading as="h4" size="xs">
+        {t('Rules')}
+      </Heading>
+      <LazyLoad LazyComponent={LazyMobileBuildDetectorDetails} detector={detector} />
     </Stack>
   );
 }
 
-function MonitorBlockContent({
+function MonitorTypeContent({
   detector,
   statsPeriod,
 }: {
@@ -294,6 +387,30 @@ function MonitorBlockContent({
   }
 }
 
+function MonitorBlockContent({
+  detector,
+  statsPeriod,
+}: {
+  detector: Detector;
+  statsPeriod?: string;
+}) {
+  if (
+    !detector.latestGroup ||
+    detector.type === 'error' ||
+    detector.type === 'issue_stream'
+  ) {
+    return <MonitorTypeContent detector={detector} statsPeriod={statsPeriod} />;
+  }
+
+  return (
+    <Stack gap="md">
+      <MonitorOngoingIssues detector={detector} />
+      <Stack.Separator />
+      <MonitorTypeContent detector={detector} statsPeriod={statsPeriod} />
+    </Stack>
+  );
+}
+
 function MonitorLink({id, name}: EmbedOutput<'monitor'>) {
   const organization = useOrganization();
   const href = makeMonitorDetailsPathname(organization.slug, id);
@@ -317,13 +434,7 @@ function MonitorBlock({id, name, statsPeriod}: EmbedOutput<'monitor'>) {
   const icon = detector ? getMonitorIcon(detector.type) : IconTimer;
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      radius="md"
-      padding="md"
-      overflow="hidden"
-    >
+    <Container background="primary" border="primary" radius="md" padding="md">
       <Stack gap="md">
         <Flex align="center" justify="between" gap="md" wrap="wrap">
           <ResourceLink

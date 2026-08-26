@@ -73,7 +73,12 @@ export function EmbedVariant({data, demoProps, label, name}: EmbedVariantProps) 
       <Text size="sm" bold>
         {label}
       </Text>
-      <Demo {...demoProps}>
+      <Demo
+        minHeight={undefined}
+        maxHeight={undefined}
+        overflow={undefined}
+        {...demoProps}
+      >
         <SeerMarkdown raw={markdown} />
       </Demo>
       <CodeBlock language="markdown" dark>
