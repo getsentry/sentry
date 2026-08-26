@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import Ansi from 'ansi-to-react';
 
-import {decodeTextAttachment} from 'sentry/components/events/attachmentViewers/decodeTextAttachment';
 import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
@@ -47,6 +46,18 @@ export function LogFileViewer(props: ViewerProps) {
       </CodeWrapper>
     </PreviewPanelItem>
   ) : null;
+}
+
+function decodeTextAttachment(buffer: ArrayBuffer): string {
+  const [firstByte, secondByte] = new Uint8Array(buffer);
+  const encoding =
+    firstByte === 0xff && secondByte === 0xfe
+      ? 'utf-16le'
+      : firstByte === 0xfe && secondByte === 0xff
+        ? 'utf-16be'
+        : 'utf-8';
+
+  return new TextDecoder(encoding).decode(buffer);
 }
 
 /**
