@@ -34,7 +34,10 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.users.models.user import User
-from sentry.web.frontend.organization_auth_settings import get_scim_url
+from sentry.web.frontend.organization_auth_settings import (
+    auth_provider_settings_form,
+    get_scim_url,
+)
 
 
 @control_silo_test
@@ -837,26 +840,20 @@ class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
     def test_settings_form_omits_duplicate_x509cert(self) -> None:
         """Regression for ISWF-3364 / getsentry/sentry#122561."""
         self.login_as(self.user, organization_id=self.organization.id)
-        path = reverse("sentry-organization-auth-provider-settings", args=[self.organization.slug])
+        provider = self.auth_provider_inst.get_provider()
+        request = self.make_request(user=self.user, method="GET")
 
+        # General settings must not add a second cert field for GenericSAML2 subclasses.
+        settings_form = auth_provider_settings_form(
+            provider, self.auth_provider_inst, self.organization, request
+        )
+        assert "x509cert" not in settings_form.fields
+
+        path = reverse("sentry-organization-auth-provider-settings", args=[self.organization.slug])
         with self.feature("organizations:sso-saml2"):
             resp = self.client.get(path)
 
         assert resp.status_code == 200
-        # Nested crispy rendering of the configure SAMLForm also puts a `form` key in
-        # ContextList; template inheritance can repeat the same settings form. Pick the
-        # first general-settings form (has require_link) rather than counting entries.
-        settings_form = None
-        for ctx in resp.context:
-            try:
-                form = ctx["form"]
-            except (KeyError, TypeError):
-                continue
-            if hasattr(form, "fields") and "require_link" in form.fields:
-                settings_form = form
-                break
-        assert settings_form is not None
-        assert "x509cert" not in settings_form.fields
         # Certificate should appear once from the provider configure view only.
         assert resp.content.count(b"x509 public certificate") == 1
 
