@@ -292,6 +292,51 @@ def run_night_shift_for_org(
         org_id=organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     ):
+        existing_run = None
+        if schedule_id is not None:
+            existing_run = (
+                SeerNightShiftRun.objects.filter(
+                    organization=organization,
+                    workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+                    schedule_id=schedule_id,
+                )
+                .order_by("id")
+                .first()
+            )
+
+        if existing_run is not None and existing_run.date_completed is not None:
+            logger.info(
+                "night_shift.duplicate_run_skipped",
+                extra={
+                    "organization_id": organization.id,
+                    "schedule_id": schedule_id,
+                    "night_shift_run_id": existing_run.id,
+                },
+            )
+            sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
+            return existing_run.id
+
+        if existing_run is not None and existing_run.shards.exists():
+            logger.info(
+                "night_shift.incomplete_run_resumed",
+                extra={
+                    "organization_id": organization.id,
+                    "schedule_id": schedule_id,
+                    "night_shift_run_id": existing_run.id,
+                },
+            )
+            sentry_sdk.metrics.count("night_shift.incomplete_run_resumed", 1)
+            resume_task_kwargs: dict[str, Any] = {}
+            if project_ids is not None:
+                resume_task_kwargs["project_ids"] = project_ids
+            if execute_in_task:
+                run_night_shift_execution.apply_async(
+                    args=[existing_run.id], kwargs=resume_task_kwargs
+                )
+            else:
+                run_night_shift_execution(existing_run.id, **resume_task_kwargs)
+            return existing_run.id
+
         logger.info(
             "night_shift.no_seer_quota",
             extra={"organization_id": organization.id, "organization_slug": organization.slug},

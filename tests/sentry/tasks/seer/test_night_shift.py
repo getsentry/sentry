@@ -1130,6 +1130,10 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
                 autospec=True,
                 side_effect=fail_second_dispatch,
             ),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                side_effect=[True, False, False],
+            ) as mock_quota,
         ):
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
 
@@ -1152,6 +1156,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
 
         mock_score.assert_called_once()
+        assert mock_quota.call_count == 3
         assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
 
     def test_no_candidates_skips_dispatch(self) -> None:
