@@ -67,21 +67,16 @@ def apply_gpu_crash_symbolication(
     if not isinstance(contexts, dict):
         contexts = {}
     contexts["gpu_crash"] = _build_flat_gpu_context(response)
-    if gpu_state.get("device_name"):
-        # Overlay teapot's crash-dump fields onto any SDK-provided `gpu` context so
-        # SDK-only fields (memory_size, vendor_id, ...) aren't wiped. `api_type` is
-        # the Sentry GPU-context schema field (not `api`).
+    if any(gpu_state.get(k) for k in ("device_name", "driver_version", "api")):
         gpu_ctx = dict(contexts.get("gpu") or {})
-        gpu_ctx["name"] = gpu_state["device_name"]
-        gpu_ctx["vendor_name"] = "NVIDIA"
+        if gpu_state.get("device_name"):
+            gpu_ctx["name"] = gpu_state["device_name"]
         if gpu_state.get("driver_version"):
             gpu_ctx["driver_version"] = gpu_state["driver_version"]
         if gpu_state.get("api"):
             gpu_ctx["api_type"] = gpu_state["api"]
         contexts["gpu"] = gpu_ctx
-    # Only fill os/app if the copied SDK scope didn't (teapot's are thinner).
-    # `os_version` is a combined string ("Windows 10 (19H1)"), so it's the raw
-    # description — not `name` (which drives OS filtering and wants the identity).
+
     if gpu_state.get("os_version") and "os" not in contexts:
         contexts["os"] = {"raw_description": str(gpu_state["os_version"]), "type": "os"}
     if gpu_state.get("application_name") and "app" not in contexts:
@@ -100,8 +95,6 @@ def apply_gpu_crash_symbolication(
 
     marker_breadcrumbs = _markers_to_breadcrumbs(response.get("markers") or [])
     if marker_breadcrumbs:
-        # Append after any SDK/Relay breadcrumbs already on the split event (GPU
-        # markers are the most crash-proximate) rather than replacing them.
         existing = (data.get("breadcrumbs") or {}).get("values") or []
         data["breadcrumbs"] = {"values": [*existing, *marker_breadcrumbs]}
 
@@ -186,6 +179,8 @@ def _markers_to_breadcrumbs(markers: list[Any]) -> list[dict[str, Any]]:
     non-shader crashes)."""
     out: list[dict[str, Any]] = []
     for m in markers:
+        if not isinstance(m, dict):
+            continue
         kind = m.get("kind") or "marker"
         label = m.get("label") or kind
         data = m.get("data")
@@ -211,6 +206,8 @@ def _normalize_gpu_frames(teapot_frames: list[Any]) -> list[dict[str, Any]]:
     debug image), and synthesise ``package`` from the shader hash."""
     normalized: list[dict[str, Any]] = []
     for raw in teapot_frames:
+        if not isinstance(raw, dict):
+            continue
         frame: dict[str, Any] = {}
         for field in (
             "function",

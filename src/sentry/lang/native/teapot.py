@@ -9,6 +9,8 @@ token, and the bytes never pass through the worker.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 import re
 from collections.abc import Sequence
@@ -21,6 +23,7 @@ from django.conf import settings
 
 from sentry import options
 from sentry.objectstore import get_attachments_session, get_internal_download_url
+from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -96,9 +99,29 @@ class _RetryableTeapotError(TeapotUnavailable):
     caller as its ``TeapotUnavailable`` base — an outage that trips the breaker."""
 
 
+# Presigned objectstore URLs carry a short-lived read token in their query string.
+# teapot may echo our request body back in an error response, so strip query strings
+# from any URL before it reaches the logs (log retention can outlive the token TTL).
+_URL_QUERY_RE = re.compile(r"(https?://[^\s\"']+?)\?[^\s\"']*")
+
+
+def _redact_urls(text: str) -> str:
+    return _URL_QUERY_RE.sub(r"\1?<redacted>", text)
+
+
 def _resolve_url() -> str | None:
     base = getattr(settings, "SENTRY_TEAPOT_URL", None)
     return base.rstrip("/") if base else None
+
+
+def _auth_headers(body: bytes) -> dict[str, str]:
+    """HMAC-sign the request body with the shared secret"""
+    secret = getattr(settings, "SENTRY_TEAPOT_SHARED_SECRET", "")
+    if not secret:
+        metrics.incr("tasks.gpu_crash.teapot_unsigned_request")
+        return {}
+    signature = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+    return {"Authorization": f"Rpcsignature rpc0:{signature}"}
 
 
 class TeapotClient:
@@ -119,12 +142,6 @@ class TeapotClient:
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
-        headers = {
-            "X-Teapot-Version": "1",
-            "X-Request-Id": self.event_id,
-            "Content-Type": "application/json",
-            "Idempotency-Key": self.event_id,
-        }
 
         session = get_attachments_session(self.project.organization_id, self.project.id)
         body: dict[str, Any] = {
@@ -140,7 +157,15 @@ class TeapotClient:
                 for att in shader_debug_info
             ],
         }
-        return self._send(url, headers=headers, data=orjson.dumps(body))
+        data = orjson.dumps(body)
+        headers = {
+            "X-Teapot-Version": "1",
+            "X-Request-Id": self.event_id,
+            "Content-Type": "application/json",
+            "Idempotency-Key": self.event_id,
+            **_auth_headers(data),
+        }
+        return self._send(url, headers=headers, data=data)
 
     def _storage_url(self, session: Any, att: TeapotAttachment) -> str:
         """Short-lived self-authenticating (presigned) GET URL for the attachment —
@@ -160,17 +185,18 @@ class TeapotClient:
                 raise _RetryableTeapotError(f"teapot returned {resp.status_code}")
 
             if resp.status_code >= 400:
+                safe_body = _redact_urls(resp.text[:512])
                 logger.warning(
                     "teapot.request_failed",
                     extra={
                         "event_id": self.event_id,
                         "status": resp.status_code,
-                        "body": resp.text[:512],
+                        "body": safe_body,
                     },
                 )
                 # A 4xx means teapot rejected this request but is itself healthy;
                 # only a 5xx (retryable ones are handled above) is an outage.
-                detail = f"teapot returned {resp.status_code}: {resp.text[:256]}"
+                detail = f"teapot returned {resp.status_code}: {safe_body[:256]}"
                 if resp.status_code < 500:
                     raise TeapotRequestError(detail)
                 raise TeapotUnavailable(detail)

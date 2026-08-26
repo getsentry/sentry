@@ -5,6 +5,8 @@ Unit tests for the teapot client + GPU event enrichment.
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import hmac
 from collections.abc import Iterator
 from typing import Any
 from unittest import mock
@@ -155,7 +157,6 @@ def test_apply_gpu_crash_symbolication_shape() -> None:
     # Standard gpu context uses the schema's `api_type` field, not `api`.
     assert data["contexts"]["gpu"] == {
         "name": "RTX 4090",
-        "vendor_name": "NVIDIA",
         "driver_version": "555.1",
         "api_type": "D3D12",
     }
@@ -290,6 +291,37 @@ def test_client_sends_presigned_urls(mock_objectstore: mock.Mock) -> None:
         "dump-obj-id",
         "nvdbg-obj-id",
     }
+
+
+def test_client_signs_request_when_secret_set(mock_objectstore: mock.Mock) -> None:
+    from django.conf import settings
+
+    with (
+        _configured_teapot(),
+        mock.patch.object(settings, "SENTRY_TEAPOT_SHARED_SECRET", "s3cr3t", create=True),
+        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
+    ):
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        TeapotClient(_FakeProject(), "abc").symbolicate(_FakeAttachment())
+
+    kwargs = mock_post.call_args.kwargs
+    # Signature is the HMAC-SHA256 of the exact body bytes sent.
+    expected = hmac.new(b"s3cr3t", kwargs["data"], hashlib.sha256).hexdigest()
+    assert kwargs["headers"]["Authorization"] == f"Rpcsignature rpc0:{expected}"
+
+
+def test_client_unsigned_when_secret_unset(mock_objectstore: mock.Mock) -> None:
+    from django.conf import settings
+
+    with (
+        _configured_teapot(),
+        mock.patch.object(settings, "SENTRY_TEAPOT_SHARED_SECRET", "", create=True),
+        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
+    ):
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        TeapotClient(_FakeProject(), "abc").symbolicate(_FakeAttachment())
+
+    assert "Authorization" not in mock_post.call_args.kwargs["headers"]
 
 
 @pytest.mark.parametrize(
