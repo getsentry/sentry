@@ -149,10 +149,6 @@ function PageContent({
 }
 
 export default function FeedbackListPage() {
-  return <FeedbackListPageContent />;
-}
-
-function FeedbackListPageContent() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const pageFilters = usePageFilters();
