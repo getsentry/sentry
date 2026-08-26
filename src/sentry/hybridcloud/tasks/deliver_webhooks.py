@@ -450,7 +450,6 @@ def drain_mailbox(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None = None,
-    mode: str | None = None,
 ) -> None:
     """
     Deliver webhooks from the mailbox that `payload_id` is the head of.
@@ -465,10 +464,6 @@ def drain_mailbox(
 
     `dispatcher` carries the enqueueing dispatcher's attribution onto every
     delivery outcome this drain records (see `_dispatch_tags`).
-
-    `mode` is accepted but ignored: drains enqueued by the previous deploy still
-    carry it, and rejecting them would strand their claims until the horizon
-    passes. Removable once no such task can be in flight.
     """
     dispatch_tags = _dispatch_tags(dispatcher)
     try:
@@ -866,7 +861,6 @@ def drain_mailbox_parallel(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None = None,
-    mode: str | None = None,
 ) -> None:
     """
     Deliver messages from a mailbox in small parallel batches.
@@ -884,7 +878,7 @@ def drain_mailbox_parallel(
     This drain holds no lock while it runs, so it must not deliver past the
     `claimed_count` records its dispatcher claimed — see `drain_mailbox`.
 
-    `dispatcher` and `mode` behave as they do on `drain_mailbox`.
+    `dispatcher` behaves as it does on `drain_mailbox`.
     """
     dispatch_tags = _dispatch_tags(dispatcher)
     try:
