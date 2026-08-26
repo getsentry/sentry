@@ -8,6 +8,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,7 +34,11 @@ export function SsoForm({authConfig}: Props) {
   const {serverHostname} = authConfig;
   const mutation = useMutation({
     mutationFn: (data: SsoLocateRequest) =>
-      fetchMutation<SsoLocateResponse>({url: '/auth/sso-locate/', method: 'POST', data}),
+      fetchMutation<SsoLocateResponse>({
+        url: getApiUrl('/auth/sso-locate/'),
+        method: 'POST',
+        data,
+      }),
     onSuccess: response => {
       navigate({pathname: response.nextUri});
     },

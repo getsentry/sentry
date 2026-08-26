@@ -5,6 +5,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {getUtcValue, normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -47,7 +48,10 @@ export function useDeleteReplays({projectSlug}: Props) {
       const payload = {data};
       return fetchMutation({
         method: 'POST',
-        url: `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/jobs/delete/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
+        ),
         options,
         data: payload,
       });
