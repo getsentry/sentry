@@ -98,7 +98,7 @@
     "@react-stately/tabs": "3.9.1",
     "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
-    "@remix-run/router": "1.23.2",
+    "@remix-run/router": "1.23.3",
     "@rsdoctor/rspack-plugin": "1.5.18",
     "@rspack/cli": "2.2.0",
     "@rspack/core": "2.2.0",
