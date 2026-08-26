@@ -1,91 +1,221 @@
-import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {Heading} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
-import {FormModel} from 'sentry/components/forms/model';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 import {ClientSecretModal} from './clientSecretModal';
 
-const fieldProps = {
-  stacked: true,
-  inline: false,
-  flexibleControlStateSize: true,
-} as const;
+type ClientFormValues = {
+  allowedOrigins: string;
+  homepageUrl: string;
+  name: string;
+  privacyUrl: string;
+  redirectUris: string;
+  termsUrl: string;
+};
 
-export function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
+type ClientResponse = {
+  clientID: string;
+  clientSecret: string;
+};
+
+const urlValidation = z
+  .string()
+  .min(1, 'Field is required')
+  .pipe(z.string().refine(value => Boolean(safeURL(value)), 'Enter a valid URL'));
+
+const optionalUrlValidation = z
+  .string()
+  .refine(value => value === '' || Boolean(safeURL(value)), 'Enter a valid URL');
+
+function spaceSeparatedUrls(requiredMessage: string, invalidMessage: string) {
+  return z
+    .string()
+    .trim()
+    .min(1, requiredMessage)
+    .refine(
+      value =>
+        value === '' ||
+        value.split(/\s+/).every(url => urlValidation.safeParse(url).success),
+      invalidMessage
+    );
+}
+
+function optionalSpaceSeparatedUrls(invalidMessage: string) {
+  return z
+    .string()
+    .trim()
+    .refine(
+      value =>
+        value === '' ||
+        value.split(/\s+/).every(url => urlValidation.safeParse(url).success),
+      invalidMessage
+    );
+}
+
+const clientSchema = z.object({
+  name: z.string().trim().min(1, 'Client name is required'),
+  redirectUris: spaceSeparatedUrls(
+    'Redirect URIs are required',
+    'Enter valid redirect URLs separated by spaces'
+  ),
+  allowedOrigins: optionalSpaceSeparatedUrls(
+    'Enter valid allowed origins separated by spaces'
+  ),
+  homepageUrl: optionalUrlValidation,
+  privacyUrl: optionalUrlValidation,
+  termsUrl: optionalUrlValidation,
+});
+
+export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderProps) {
   const {openModal} = useModal();
-  const formModel = new FormModel();
+
+  const mutation = useMutation({
+    mutationFn: (data: ClientFormValues) =>
+      fetchMutation<ClientResponse>({
+        url: '/_admin/instance-level-oauth/',
+        method: 'POST',
+        data,
+      }),
+    onSuccess: data => {
+      openModal(deps => (
+        <ClientSecretModal
+          {...deps}
+          clientSecret={data.clientSecret}
+          clientID={data.clientID}
+        />
+      ));
+    },
+    onError: error => {
+      if (error instanceof RequestError && setFieldErrors(form, error)) {
+        return;
+      }
+      addErrorMessage('Unable to create OAuth client.');
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      name: '',
+      redirectUris: '',
+      allowedOrigins: '',
+      homepageUrl: '',
+      privacyUrl: '',
+      termsUrl: '',
+    } satisfies ClientFormValues,
+    validators: {onDynamic: clientSchema},
+    onSubmit: ({value}) =>
+      mutation.mutateAsync(clientSchema.parse(value)).catch(() => {}),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
-        <h4>Create New Instance Level OAuth Client</h4>
+        <Heading as="h4">Create New Instance Level OAuth Client</Heading>
       </Header>
       <Body>
-        <Form
-          apiMethod="POST"
-          apiEndpoint="/_admin/instance-level-oauth/"
-          model={formModel}
-          onSubmitSuccess={(data: any) => {
-            openModal(deps => (
-              <ClientSecretModal
-                {...deps}
-                clientSecret={data.clientSecret}
-                clientID={data.clientID}
-              />
-            ));
-          }}
-          submitLabel="Create Client"
-        >
-          <TextField
-            {...fieldProps}
-            name="name"
-            label="Client Name"
-            placeholder="e.g. Sentry"
-            help="Human readable name for the client."
-            required
-          />
-          <TextField
-            {...fieldProps}
-            name="redirectUris"
-            label="Redirect URIs"
-            placeholder="e.g. https://sentry.io/"
-            help="The URLs that users will redirect to after login/signup. Space separated!"
-            required
-          />
-          <TextField
-            {...fieldProps}
-            name="allowedOrigins"
-            label="Allowed Origins"
-            placeholder="e.g. https://sentry.io/"
-            help="Allowed origins for the client. Space separated!"
-          />
-          <TextField
-            {...fieldProps}
-            name="homepageUrl"
-            label="Homepage URL"
-            placeholder="e.g. https://sentry.io/"
-            help="Client's homepage"
-          />
-          <TextField
-            {...fieldProps}
-            name="privacyUrl"
-            label="Privacy Policy URL"
-            placeholder="e.g. https://sentry.io/privacy/"
-            help="URL to client's privacy policy"
-          />
-          <TextField
-            {...fieldProps}
-            name="termsUrl"
-            label="Terms and Conditions URL"
-            placeholder="e.g. https://sentry.io/terms/"
-            help="URL to client's terms and conditions"
-          />
-        </Form>
+        <Stack gap="lg">
+          <form.AppField name="name">
+            {field => (
+              <field.Layout.Stack
+                label="Client Name"
+                hintText="Human readable name for the client."
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. Sentry"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="redirectUris">
+            {field => (
+              <field.Layout.Stack
+                label="Redirect URIs"
+                hintText="The URLs that users will redirect to after login/signup. Space separated!"
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. https://sentry.io/"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="allowedOrigins">
+            {field => (
+              <field.Layout.Stack
+                label="Allowed Origins"
+                hintText="Allowed origins for the client. Space separated!"
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. https://sentry.io/"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="homepageUrl">
+            {field => (
+              <field.Layout.Stack label="Homepage URL" hintText="Client's homepage">
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. https://sentry.io/"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="privacyUrl">
+            {field => (
+              <field.Layout.Stack
+                label="Privacy Policy URL"
+                hintText="URL to client's privacy policy"
+              >
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. https://sentry.io/privacy/"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="termsUrl">
+            {field => (
+              <field.Layout.Stack
+                label="Terms and Conditions URL"
+                hintText="URL to client's terms and conditions"
+              >
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. https://sentry.io/terms/"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <form.SubmitButton>Create Client</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }

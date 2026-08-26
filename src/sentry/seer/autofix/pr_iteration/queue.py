@@ -64,6 +64,10 @@ def try_enqueue_autofix_feedback(
     return True
 
 
+def clear_queued_autofix_feedback(run_id: int) -> None:
+    redis_clusters.get(_REDIS_CLUSTER).delete(_feedback_queue_key(run_id))
+
+
 def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
     try:
         return QueuedAutofixFeedback.parse_raw(raw_item)

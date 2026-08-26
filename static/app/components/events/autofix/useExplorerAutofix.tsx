@@ -243,13 +243,13 @@ const ACTIVE_POLL_INTERVAL = 1000;
  */
 const PR_POLL_INTERVAL = 10000;
 
-function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
+export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
       query: {mode: 'explorer', llmFormat: 'markdown'},
-      staleTime: 0,
+      staleTime: 30_000,
     }
   );
 }
