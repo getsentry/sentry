@@ -497,6 +497,11 @@ export function Trace({
                         organization,
                       });
                       event.stopPropagation();
+                      onRowClick(
+                        indicator.node,
+                        event,
+                        trace.list.indexOf(indicator.node)
+                      );
                       manager.onZoomIntoSpace(indicator.node.space);
                     }}
                   >

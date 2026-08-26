@@ -1006,7 +1006,7 @@ describe('trace view', () => {
     expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
   });
 
-  it('zooms to a vital pill source node on double click', async () => {
+  it('selects and zooms to a vital pill source node on double click', async () => {
     const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const zoomSpy = jest.spyOn(VirtualizedViewManager.prototype, 'onZoomIntoSpace');
     const {start} = await completeTestSetup({
@@ -1024,9 +1024,13 @@ describe('trace view', () => {
 
     expect(analyticsSpy).not.toHaveBeenCalled();
     expect(zoomSpy).not.toHaveBeenCalled();
+    expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(0);
 
     await userEvent.dblClick(vitalPill!);
 
+    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+      'TransactionID: 0'
+    );
     expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
       organization: expect.objectContaining({slug: 'org-slug'}),
     });
