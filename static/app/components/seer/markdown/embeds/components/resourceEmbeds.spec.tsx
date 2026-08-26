@@ -151,6 +151,23 @@ describe('Seer resource embeds', () => {
     );
   });
 
+  it('renders ongoing issues at block level for a monitor', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    renderEmbed({
+      name: 'monitor',
+      data: {id: '9931', name: 'nightly-sync', statsPeriod: '24h'},
+      level: 'block',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', {name: 'nightly-sync'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/monitors/9931/'
+      );
+    });
+  });
+
   it('links a saved issue view to the view route', () => {
     expect(hrefFor('savedIssueView', 'Unresolved', {id: '77', name: 'Unresolved'})).toBe(
       '/organizations/org-slug/issues/views/77/'

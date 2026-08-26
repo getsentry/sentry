@@ -496,7 +496,7 @@
   },
   {
     "name": "monitor",
-    "description": "The ONLY way to reference a Sentry monitor (cron, uptime, or metric detector). Use the detector ID exactly as the monitors API returns it. Include the API-provided name when available. Never use a markdown link for monitor references.",
+    "description": "The ONLY way to reference a Sentry monitor (cron, uptime, or metric detector). Use the detector ID exactly as the monitors API returns it. Include the API-provided name when available. Inline: renders a compact link. Block: renders the monitor's ongoing issues for the given time range. Never use a markdown link for monitor references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -509,17 +509,31 @@
         "name": {
           "type": "string",
           "minLength": 1
+        },
+        "statsPeriod": {
+          "default": "14d",
+          "description": "Relative time range for ongoing issues, e.g. \"1h\", \"24h\", \"14d\". Defaults to \"14d\".",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
         }
       },
-      "required": ["id"],
+      "required": ["id", "statsPeriod"],
       "additionalProperties": false
     },
     "examples": [
       {
-        "label": "Monitor",
+        "label": "Inline",
         "data": {
           "id": "9931",
           "name": "nightly-billing-sync"
+        }
+      },
+      {
+        "label": "Block",
+        "data": {
+          "id": "9931",
+          "name": "nightly-billing-sync",
+          "statsPeriod": "24h"
         }
       }
     ]
