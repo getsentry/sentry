@@ -317,9 +317,16 @@ export function RelocationOnboarding() {
       <PageContainer>
         {backButtonView}
         {contentView}
-        <AdaptivePageCorners
-          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-        />
+        <Container
+          position="absolute"
+          inset={0}
+          pointerEvents="none"
+          containerType="inline-size"
+        >
+          <AdaptivePageCorners
+            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+          />
+        </Container>
         {errView}
       </PageContainer>
     </Stack>
