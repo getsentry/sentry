@@ -138,7 +138,8 @@ describe('EventAttachments', () => {
       body: [attachment],
     });
 
-    fetchMock.mockResponseOnce('file contents');
+    const previewUrl = `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`;
+    fetchMock.route(previewUrl, 'file contents');
 
     render(<EventAttachments {...props} />, {
       organization,

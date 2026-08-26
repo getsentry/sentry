@@ -43,7 +43,7 @@ describe('LogFileViewer', () => {
       0x2d,
       0x4e, // 中
     ]);
-    fetchMock.mockResponseOnce(fetchMock.Response(bytes));
+    fetchMock.route(attachmentUrl, fetchMock.Response(bytes));
 
     renderViewer();
 
@@ -59,7 +59,7 @@ describe('LogFileViewer', () => {
   });
 
   it('renders an error when the attachment cannot be downloaded', async () => {
-    fetchMock.mockResponseOnce('', {status: 404});
+    fetchMock.route(attachmentUrl, '', {status: 404});
 
     renderViewer();
 
