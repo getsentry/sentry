@@ -46,8 +46,36 @@ def get_redis_cluster_for_artifact_bundles() -> RedisCluster:
     return redis.redis_clusters.get(cluster_key)
 
 
-def get_refresh_key() -> str:
-    return "artifact_bundles_in_use"
+# The bundle ids reported as in use are collected in one Redis set per day, so that a
+# set can never keep growing across days. Each set also gets a TTL, so a shard that the
+# consumer never reaches still goes away by itself.
+REFRESH_KEY_PREFIX = "artifact_bundles_in_use"
+REFRESH_KEY_TTL = int(timedelta(days=1).total_seconds())
+
+# The unsharded key that was used before the daily shards. The consumer still drains it
+# so that the ids written by the previous release are not lost.
+# TODO(INFRENG-460): delete this constant, the drain of it and the key itself one
+# release after the daily shards ship.
+LEGACY_REFRESH_KEY = "artifact_bundles_in_use"
+
+
+def get_refresh_key(date: datetime | None = None) -> str:
+    date = date or timezone.now()
+    return f"{REFRESH_KEY_PREFIX}:{date.strftime('%Y%m%d')}"
+
+
+# How many ids the consumer pops in one Redis round trip.
+IDS_PER_LOOP = 50
+
+# The most ids that one consumer run pops, across all the keys it reads. This is the
+# same ceiling the consumer had before the keys were sharded.
+TOTAL_DRAIN_BUDGET = 5000
+
+# The share of the total budget that one run can spend on the previous day shard, and
+# on the old unsharded key. What is left over goes to the current day, so the current
+# day always keeps at least the difference.
+PREVIOUS_DAY_DRAIN_BUDGET = 1500
+LEGACY_DRAIN_BUDGET = 1000
 
 
 def _generate_artifact_bundle_indexing_state_cache_key(
@@ -201,25 +229,38 @@ def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_
             continue
         artifact_bundle_ids.append(ty_id)
 
-    redis_client = get_redis_cluster_for_artifact_bundles()
-
-    redis_client.sadd(get_refresh_key(), *artifact_bundle_ids)
-
-
-@trace
-def refresh_artifact_bundles_in_use():
-    LOOP_TIMES = 100
-    IDS_PER_LOOP = 50
+    if not artifact_bundle_ids:
+        return
 
     redis_client = get_redis_cluster_for_artifact_bundles()
 
-    now = timezone.now()
-    threshold_date = now - timedelta(
-        days=options.get("system.debug-files-renewal-age-threshold-days")
-    )
+    key = get_refresh_key()
+    redis_client.sadd(key, *artifact_bundle_ids)
+    # `sadd` does not refresh an existing TTL, so the TTL is set again on every write.
+    # That keeps the shard alive for the whole of the next day, while the consumer
+    # drains it. The key is per day, so it stops getting writes when the day ends. The
+    # TTL is therefore a real bound: the shard goes away at the latest one day after
+    # the last write to it, even if the consumer never drains it.
+    redis_client.expire(key, REFRESH_KEY_TTL)
 
-    for _ in range(LOOP_TIMES):
-        artifact_bundle_ids = redis_client.spop(get_refresh_key(), IDS_PER_LOOP)
+
+def _drain_refresh_key(
+    redis_client: RedisCluster, key: str, budget: int, threshold_date: datetime
+) -> int:
+    """
+    Pops at most `budget` bundle ids from `key` and renews the bundles that need it.
+
+    Returns the number of ids that were popped.
+    """
+    popped = 0
+
+    while popped < budget:
+        wanted = min(IDS_PER_LOOP, budget - popped)
+        artifact_bundle_ids = redis_client.spop(key, wanted)
+        if not artifact_bundle_ids:
+            break
+        popped += len(artifact_bundle_ids)
+
         used_artifact_bundles = {
             id: date_added
             for id, date_added in ArtifactBundle.objects.filter(
@@ -229,8 +270,51 @@ def refresh_artifact_bundles_in_use():
 
         maybe_renew_artifact_bundles(used_artifact_bundles)
 
-        if len(artifact_bundle_ids) < IDS_PER_LOOP:
+        if len(artifact_bundle_ids) < wanted:
             break
+
+    return popped
+
+
+@trace
+def refresh_artifact_bundles_in_use():
+    redis_client = get_redis_cluster_for_artifact_bundles()
+
+    now = timezone.now()
+    threshold_date = now - timedelta(
+        days=options.get("system.debug-files-renewal-age-threshold-days")
+    )
+
+    keys = {
+        "previous_day": get_refresh_key(now - timedelta(days=1)),
+        "current_day": get_refresh_key(now),
+        # TODO(INFRENG-460): drop this entry one release after the daily shards ship.
+        "legacy": LEGACY_REFRESH_KEY,
+    }
+
+    # The shards are only bounded across days, not inside one day. Report their size so
+    # that a consumer which falls behind is visible before the shard gets very large.
+    for shard, key in keys.items():
+        metrics.gauge(
+            "artifact_bundle_renewal.in_use_set_size",
+            redis_client.scard(key),
+            tags={"shard": shard},
+        )
+
+    # The previous day shard is drained first, because it is the only key whose TTL is
+    # running out. Each of the older keys has its own share of the budget, so that one
+    # shard which is too large to drain cannot starve the current day.
+    remaining = TOTAL_DRAIN_BUDGET
+    remaining -= _drain_refresh_key(
+        redis_client,
+        keys["previous_day"],
+        min(PREVIOUS_DAY_DRAIN_BUDGET, remaining),
+        threshold_date,
+    )
+    remaining -= _drain_refresh_key(
+        redis_client, keys["legacy"], min(LEGACY_DRAIN_BUDGET, remaining), threshold_date
+    )
+    _drain_refresh_key(redis_client, keys["current_day"], remaining, threshold_date)
 
 
 def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):

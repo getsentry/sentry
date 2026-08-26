@@ -1,15 +1,20 @@
 import uuid
 import zipfile
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
+from unittest import mock
 
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
+from sentry.debug_files import artifact_bundles
 from sentry.debug_files.artifact_bundles import (
     get_artifact_bundles_containing_url,
     get_redis_cluster_for_artifact_bundles,
+    get_refresh_key,
+    maybe_renew_artifact_bundles_from_processing,
+    refresh_artifact_bundles_in_use,
 )
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -20,6 +25,8 @@ from sentry.models.artifactbundle import (
 from sentry.models.files.fileblob import FileBlob
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
@@ -455,3 +462,122 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             ),
             {bundle3.id},
         )
+
+
+class RefreshArtifactBundlesInUseTest(TestCase):
+    """
+    The bundle ids reported as in use are collected in one Redis set per day.
+    These tests cover the day boundary, the split of the drain budget, and the
+    transitional drain of the old unsharded key.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.redis_client = get_redis_cluster_for_artifact_bundles()
+        self.redis_client.flushall()
+
+    def _make_bundle(self, date_added: datetime) -> ArtifactBundle:
+        bundle = self.create_artifact_bundle(org=self.organization)
+        ArtifactBundle.objects.filter(id=bundle.id).update(date_added=date_added)
+        bundle.refresh_from_db()
+        return bundle
+
+    def test_producer_writes_to_the_shard_of_the_day(self) -> None:
+        with freeze_time(datetime(2023, 8, 25, 12, 0, tzinfo=UTC)):
+            assert get_refresh_key() == "artifact_bundles_in_use:20230825"
+
+            with override_options(
+                {"symbolicator.sourcemaps-bundle-index-refresh-sample-rate": 1.0}
+            ):
+                maybe_renew_artifact_bundles_from_processing(
+                    self.project.id, ["artifact_bundle/1234"]
+                )
+
+        assert self.redis_client.smembers("artifact_bundles_in_use:20230825") == {"1234"}
+        # the shard goes away by itself, even if the consumer never reaches it
+        assert 0 < self.redis_client.ttl("artifact_bundles_in_use:20230825") <= 86400
+
+    def test_drain_across_the_day_boundary(self) -> None:
+        before_midnight = datetime(2023, 8, 25, 23, 59, tzinfo=UTC)
+        after_midnight = datetime(2023, 8, 26, 0, 1, tzinfo=UTC)
+
+        bundle = self._make_bundle(before_midnight - timedelta(days=60))
+
+        with freeze_time(before_midnight):
+            with override_options(
+                {"symbolicator.sourcemaps-bundle-index-refresh-sample-rate": 1.0}
+            ):
+                maybe_renew_artifact_bundles_from_processing(
+                    self.project.id, [f"artifact_bundle/{bundle.id}"]
+                )
+
+        assert self.redis_client.smembers("artifact_bundles_in_use:20230825") == {str(bundle.id)}
+
+        with freeze_time(after_midnight):
+            refresh_artifact_bundles_in_use()
+
+        # the id written just before midnight is drained on the next day, from the
+        # shard of the previous day
+        bundle.refresh_from_db()
+        assert bundle.date_added == after_midnight
+        assert self.redis_client.scard("artifact_bundles_in_use:20230825") == 0
+        assert self.redis_client.scard("artifact_bundles_in_use:20230826") == 0
+
+    def test_large_previous_day_shard_does_not_starve_the_current_day(self) -> None:
+        now = datetime(2023, 8, 26, 12, 0, tzinfo=UTC)
+        previous_key = "artifact_bundles_in_use:20230825"
+        current_key = "artifact_bundles_in_use:20230826"
+
+        current_bundle = self._make_bundle(now - timedelta(days=60))
+
+        # a previous day shard which is bigger than the whole drain budget
+        filler = [str(current_bundle.id + 100 + i) for i in range(20)]
+        self.redis_client.sadd(previous_key, *filler)
+        self.redis_client.sadd(current_key, str(current_bundle.id))
+
+        with freeze_time(now):
+            with mock.patch.multiple(
+                artifact_bundles,
+                IDS_PER_LOOP=2,
+                TOTAL_DRAIN_BUDGET=6,
+                PREVIOUS_DAY_DRAIN_BUDGET=4,
+                LEGACY_DRAIN_BUDGET=1,
+            ):
+                refresh_artifact_bundles_in_use()
+
+        # the previous day only got its share of the budget, so it is still not empty
+        assert self.redis_client.scard(previous_key) == len(filler) - 4
+        # ... and the current day was drained all the same
+        assert self.redis_client.scard(current_key) == 0
+        current_bundle.refresh_from_db()
+        assert current_bundle.date_added == now
+
+    def test_drains_the_old_unsharded_key(self) -> None:
+        now = datetime(2023, 8, 26, 12, 0, tzinfo=UTC)
+        bundle = self._make_bundle(now - timedelta(days=60))
+
+        self.redis_client.sadd("artifact_bundles_in_use", str(bundle.id))
+
+        with freeze_time(now):
+            refresh_artifact_bundles_in_use()
+
+        bundle.refresh_from_db()
+        assert bundle.date_added == now
+        assert self.redis_client.scard("artifact_bundles_in_use") == 0
+
+    def test_emits_the_size_of_every_shard_as_a_gauge(self) -> None:
+        now = datetime(2023, 8, 26, 12, 0, tzinfo=UTC)
+
+        self.redis_client.sadd("artifact_bundles_in_use:20230825", "1", "2", "3")
+        self.redis_client.sadd("artifact_bundles_in_use:20230826", "4")
+
+        with freeze_time(now):
+            with mock.patch("sentry.debug_files.artifact_bundles.metrics.gauge") as gauge:
+                refresh_artifact_bundles_in_use()
+
+        sizes = {
+            call.kwargs["tags"]["shard"]: call.args[1]
+            for call in gauge.call_args_list
+            if call.args[0] == "artifact_bundle_renewal.in_use_set_size"
+        }
+        assert sizes == {"previous_day": 3, "current_day": 1, "legacy": 0}
