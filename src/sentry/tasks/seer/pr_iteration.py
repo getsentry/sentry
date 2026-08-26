@@ -107,6 +107,8 @@ STOP_PR_ITERATION_FAILED_COMMENT = (
     "Seer could not stop iteration on this Autofix run. Close this pull request to stop the work."
 )
 
+ALREADY_PAUSED_PR_ITERATION_COMMENT = "Iteration was already paused."
+
 # One explanatory comment per PR; further pings still get a :confused: reaction.
 _INELIGIBLE_COMMENT_CACHE_TTL = int(timedelta(days=7).total_seconds())
 
@@ -544,6 +546,45 @@ def _comment_pr_iteration_ineligible(
         pass
 
 
+def _ack_pr_command(
+    scm: SourceCodeManager,
+    *,
+    organization_id: int,
+    pr_number: int,
+    comment_id: int | None,
+    source_type: GithubPrCommentFeedbackType,
+    reaction: Reaction,
+    body: str,
+    log_prefix: str,
+) -> None:
+    """Answer an ``@sentry`` command with a reaction on it and a reply on the PR.
+
+    The reply is best-effort: a command whose work already landed shouldn't fail
+    on the acknowledgement of it.
+    """
+    if comment_id is not None:
+        _add_comment_reaction(
+            scm,
+            source_type=source_type,
+            pr_number=pr_number,
+            comment_id=comment_id,
+            reaction=reaction,
+        )
+
+    if not isinstance(scm, CreatePullRequestCommentProtocol):
+        return
+
+    try:
+        scm_actions.create_pull_request_comment(scm, str(pr_number), body)
+    except Exception:
+        logger.warning(
+            "%s.comment_failed",
+            log_prefix,
+            extra={"organization_id": organization_id, "pr_number": pr_number},
+            exc_info=True,
+        )
+
+
 def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> int | None:
     """Recover a PR's provider-global id from its repo-scoped number.
 
@@ -608,12 +649,19 @@ def _resolve_run_for_pr_comment(
     comment_id: int | None,
     source_type: GithubPrCommentFeedbackType,
     log_prefix: str,
+    explain_ineligible: bool,
     external_id: str | int | None = None,
 ) -> ResolvedPrCommentRun | PrCommentRunOutcome:
     """Resolve the Autofix run behind a PR comment and gate on repo write access.
 
     The iterate command and the stop command share this gate. Each caller passes
     its own ``log_prefix`` so that the two commands stay separate in the logs.
+
+    ``explain_ineligible`` decides whether an ineligible run is answered on the PR
+    at all. A cell can only see its own Seer, so it cannot tell "no Autofix
+    created this PR" from "none did *here*" — and one GitHub delivery reaches
+    every cell holding an org on the installation. The stop command therefore
+    stays silent and leaves the answer to the cell that owns the run.
     """
     repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
     if repo is None:
@@ -697,7 +745,7 @@ def _resolve_run_for_pr_comment(
 
     if not agent_state.repo_pr_states:
         # Found a Seer run for this PR, but it wasn't created by Autofix
-        # (coding-agent handoff is the main case). Explain ineligibility.
+        # (coding-agent handoff is the main case).
         logger.info(
             "%s.ineligible_run",
             log_prefix,
@@ -707,15 +755,16 @@ def _resolve_run_for_pr_comment(
                 "run_id": agent_state.run_id,
             },
         )
-        _comment_pr_iteration_ineligible(
-            scm,
-            organization_id=organization_id,
-            repo_id=repo.id,
-            pr_number=pr_number,
-            github_username=github_username,
-            source_type=source_type,
-            comment_id=comment_id,
-        )
+        if explain_ineligible:
+            _comment_pr_iteration_ineligible(
+                scm,
+                organization_id=organization_id,
+                repo_id=repo.id,
+                pr_number=pr_number,
+                github_username=github_username,
+                source_type=source_type,
+                comment_id=comment_id,
+            )
         return PrCommentRunOutcome.INELIGIBLE_RUN
 
     if not _github_commenter_has_repo_write_access(scm, github_username):
@@ -789,6 +838,7 @@ def trigger_pr_iteration_from_comment(
         comment_id=comment.id,
         source_type=source.type,
         log_prefix="autofix.pr_iteration.comment_trigger",
+        explain_ineligible=True,
         external_id=comment.user.id if comment.user else None,
     )
     if isinstance(resolved, PrCommentRunOutcome):
@@ -797,6 +847,28 @@ def trigger_pr_iteration_from_comment(
         return None
 
     agent_state = resolved.agent_state
+    if is_pr_iteration_paused(run_id=agent_state.run_id, organization_id=organization_id):
+        # `@sentry stop iterating` already stopped this run, and nothing restarts
+        # it, so consume would drop whatever we queued here. Say that outright
+        # instead of reacting :eyes: — an ack of work that will never run reads
+        # as a promise to do it.
+        record_pause_blocked("comment_trigger")
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.paused",
+            extra={"organization_id": organization_id, "run_id": agent_state.run_id},
+        )
+        _ack_pr_command(
+            resolved.scm,
+            organization_id=organization_id,
+            pr_number=pr_number,
+            comment_id=comment.id,
+            source_type=source.type,
+            reaction="+1",
+            body=ALREADY_PAUSED_PR_ITERATION_COMMENT,
+            log_prefix="autofix.pr_iteration.comment_trigger",
+        )
+        return None
+
     group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
@@ -871,7 +943,11 @@ def pause_pr_iteration_from_comment(
         github_username=github_username,
         comment_id=comment_id,
         source_type="github-pr-comment",
+        # An ineligible run means no cell-local Autofix PR, which is also what a
+        # non-owning cell sees for a perfectly healthy run. Writing nothing keeps
+        # this command's ack coming from one cell.
         log_prefix="autofix.pr_iteration.stop_command",
+        explain_ineligible=False,
     )
     if isinstance(resolved, PrCommentRunOutcome):
         metrics.incr("autofix.pr_iteration.stop_command", tags={"outcome": resolved.value})
@@ -899,24 +975,16 @@ def pause_pr_iteration_from_comment(
         reaction = "confused"
         body = STOP_PR_ITERATION_FAILED_COMMENT
 
-    if comment_id is not None:
-        _add_comment_reaction(
-            resolved.scm,
-            source_type="github-pr-comment",
-            pr_number=pr_number,
-            comment_id=comment_id,
-            reaction=reaction,
-        )
-
-    if isinstance(resolved.scm, CreatePullRequestCommentProtocol):
-        try:
-            scm_actions.create_pull_request_comment(resolved.scm, str(pr_number), body)
-        except Exception:
-            logger.warning(
-                "autofix.pr_iteration.stop_command.comment_failed",
-                extra={"organization_id": organization_id, "pr_number": pr_number},
-                exc_info=True,
-            )
+    _ack_pr_command(
+        resolved.scm,
+        organization_id=organization_id,
+        pr_number=pr_number,
+        comment_id=comment_id,
+        source_type="github-pr-comment",
+        reaction=reaction,
+        body=body,
+        log_prefix="autofix.pr_iteration.stop_command",
+    )
 
     return None
 

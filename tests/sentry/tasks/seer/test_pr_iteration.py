@@ -38,6 +38,7 @@ from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.tasks.seer.pr_iteration import (
+    ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
     STOPPED_PR_ITERATION_COMMENT,
     UnsupportedProviderError,
@@ -431,6 +432,45 @@ class TriggerPrIterationFromCommentTest(TestCase):
             reaction="eyes",
         )
 
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_does_not_queue_or_ack_feedback_on_a_stopped_run(
+        self,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_has_access: MagicMock,
+        mock_reaction: MagicMock,
+    ) -> None:
+        # `@sentry stop iterating` already stopped this run, so consume would
+        # drop anything queued here. The comment is answered with the stop rather
+        # than the :eyes: that promises an iteration.
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(run_id=67890, organization_id=self.organization.id)
+        mock_get_state.return_value = self._agent_state()
+
+        self._call()
+
+        mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
+        mock_reaction.assert_called_once_with(
+            self.mock_make_scm.return_value,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="+1",
+        )
+        self.mock_actions.create_pull_request_comment.assert_called_once_with(
+            self.mock_make_scm.return_value,
+            "7",
+            ALREADY_PAUSED_PR_ITERATION_COMMENT,
+        )
+
     @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm", side_effect=ValueError("boom"))
@@ -640,37 +680,28 @@ class PausePrIterationFromCommentTest(TestCase):
 
     @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    def test_comments_ineligible_when_run_has_no_repo_pr_states(
+    def test_writes_nothing_when_run_has_no_repo_pr_states(
         self,
         mock_get_state: MagicMock,
         mock_has_access: MagicMock,
-        mock_cache: MagicMock,
         mock_reaction: MagicMock,
         mock_metrics: MagicMock,
     ) -> None:
+        # A cell sees only its own Seer, so an ineligible run here is
+        # indistinguishable from a healthy run owned by another cell — and the
+        # webhook reached every cell on the installation. Only the owning cell
+        # answers a stop; this one records the outcome and writes nothing.
         mock_get_state.return_value = self._agent_state(repo_pr_states={})
-        mock_cache.get.return_value = None
 
         self._call()
 
         assert is_pr_iteration_paused(run_id=67890, organization_id=self.organization.id) is False
         mock_has_access.assert_not_called()
-        mock_reaction.assert_called_once_with(
-            self.mock_make_scm.return_value,
-            source_type="github-pr-comment",
-            pr_number=7,
-            comment_id=999,
-            reaction="confused",
-        )
-        self.mock_actions.create_pull_request_comment.assert_called_once_with(
-            self.mock_make_scm.return_value,
-            "7",
-            _ineligible_pr_iteration_comment_body("octocat"),
-        )
-        mock_metrics.incr.assert_any_call(
+        mock_reaction.assert_not_called()
+        self.mock_actions.create_pull_request_comment.assert_not_called()
+        mock_metrics.incr.assert_called_once_with(
             "autofix.pr_iteration.stop_command", tags={"outcome": "ineligible_run"}
         )
 

@@ -212,8 +212,11 @@ class StopCommandEndToEndTest(TestCase):
 
         assert is_pr_iteration_paused(run_id=STOP_RUN_ID, organization_id=self.organization.id)
         mock_consume.assert_not_called()
+        # The stop is enforced at the trigger task, before the feedback is
+        # queued — the later `trigger_consume` and `consume` gates never see it.
+        assert peek_queued_autofix_feedback(STOP_RUN_ID) == []
         mock_metrics.incr.assert_any_call(
-            "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
+            "autofix.pr_iteration.paused.blocked", tags={"gate": "comment_trigger"}
         )
 
 
