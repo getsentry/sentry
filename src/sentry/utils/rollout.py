@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 TData = TypeVar("TData")  # The type of data being compared
 
 SourceOfTruth = Literal["control", "experimental", "neither", "both"]
+RolloutBranch = Literal["control", "experimental"]
 
 
 class SafeRolloutComparator:
@@ -349,6 +350,26 @@ class SafeRolloutComparator:
             tags=tags,
         )
         return use_experimental_data
+
+    @classmethod
+    def record_error(
+        cls,
+        error: Exception,
+        callsite: str,
+        branch: RolloutBranch,
+        metric_sample_rate: float = 1.0,
+    ) -> None:
+        """Record an error from evaluating one rollout branch without changing control flow."""
+        metrics.incr(
+            "SafeRolloutComparator.error",
+            sample_rate=metric_sample_rate,
+            tags={
+                "rollout_name": cls.ROLLOUT_NAME,
+                "callsite": callsite,
+                "branch": branch,
+                "error_type": type(error).__name__,
+            },
+        )
 
     @classmethod
     def compare(

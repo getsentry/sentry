@@ -309,10 +309,17 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/stories/*',
+      path: '/scraps/*',
       withOrgPath: true,
       // eslint-disable-next-line boundaries/dependencies -- storybook entrypoint
       component: make(() => import('sentry/stories/view/index')),
+    },
+    {
+      path: '/stories/*',
+      withOrgPath: true,
+      // A redirectTo cannot preserve the wildcard deep link, query, or hash.
+      // eslint-disable-next-line boundaries/dependencies -- storybook redirect
+      component: make(() => import('sentry/stories/view/legacyStoriesRedirect')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
@@ -1670,7 +1677,7 @@ function buildRoutes(): RouteObject[] {
   const discoverErrorsChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: 'queries/',
+      component: make(() => import('sentry/views/discover/homepage')),
     },
     {
       path: 'homepage/',
@@ -2533,6 +2540,10 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'autofix/',
+      component: make(() => import('sentry/views/seerWorkflows/overview')),
+    },
+    {
+      path: 'autofix/workflows/',
       component: make(() => import('sentry/views/seerWorkflows')),
     },
     {
@@ -2549,7 +2560,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'autofix/overview/',
-      component: make(() => import('sentry/views/seerWorkflows/overview')),
+      redirectTo: '../autofix/',
     },
     {
       path: 'views/:viewId/',

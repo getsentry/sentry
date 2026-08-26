@@ -690,6 +690,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "github-app.pull-request-status.chunk-size",
+    type=Int,
+    default=25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "integrations.backfill_github_external_actor.gh_api_fetch_interval_s",
     type=Float,
     default=0.1,
@@ -2521,15 +2527,6 @@ register(
     "hybridcloud.webhookpayload.push_drain_trigger",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Fraction of integrations (bucketed by the provider:integration_id prefix of
-# mailbox_name, so all of an integration's mailboxes switch together) whose
-# drains are dispatched via batch claims instead of the drain-lock lease.
-register(
-    "hybridcloud.webhookpayload.claim_dispatch_rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Remove the rows a claim-bounded drain finishes with — delivered, attempts
 # exhausted, or stale — in batches instead of one DELETE per row. Such a drain

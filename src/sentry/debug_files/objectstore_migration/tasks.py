@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from time import monotonic
 
 from django.db.models import F, Func, Value
 from django.db.models.fields import IntegerField
@@ -18,7 +19,8 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 _SHARD_TASK_KEY = "debug_files_objectstore_migration_shard"
-_FILES_PER_ACTIVATION = 100
+_FILES_PER_ACTIVATION = 30
+_PROCESSING_DEADLINE_SECONDS = 10 * 60
 
 
 def enqueue_shard(
@@ -40,7 +42,7 @@ def enqueue_shard(
 @instrumented_task(
     name="sentry.debug_files.objectstore_migration.migrate_shard",
     namespace=debug_files_migration_tasks,
-    processing_deadline_duration=30 * 60,
+    processing_deadline_duration=_PROCESSING_DEADLINE_SECONDS,
     silo_mode=SiloMode.CELL,
 )
 def migrate_shard(
@@ -61,11 +63,17 @@ def migrate_shard(
         cursor: Inclusive upper bound on ``ProjectDebugFile.id``.
     """
 
-    def log_extra(**extra: int | None) -> dict[str, int | None]:
+    shard_started_at = monotonic()
+    task = current_task()
+    activation_id = task.id if task else None
+    activation_attempt = task.attempt if task else None
+
+    def log_extra(**extra: float | int | None) -> dict[str, float | int | None]:
         return {
             "shard_id": shard_id,
             "num_shards": num_shards,
             "cursor": cursor,
+            "activation_attempt": activation_attempt,
             **extra,
         }
 
@@ -76,8 +84,6 @@ def migrate_shard(
         )
         return
 
-    task = current_task()
-    activation_id = task.id if task else None
     if activation_id and already_spawned(_SHARD_TASK_KEY, activation_id):
         metrics.incr(
             "taskworker.selfchain.duplicate_skipped",
@@ -112,11 +118,13 @@ def migrate_shard(
             migrate_debug_file(debug_file)
 
         lowest_id = to_migrate[-1].id
+        duration_seconds = monotonic() - shard_started_at
         logger.info(
             "debug_files.objectstore_migration.shard_progress",
             extra=log_extra(
                 processed_this_activation=len(to_migrate),
                 lowest_id=lowest_id,
+                duration_seconds=duration_seconds,
             ),
         )
     except Exception:

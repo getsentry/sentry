@@ -1,8 +1,8 @@
 import moment from 'moment-timezone';
 
-import {useTimezone} from 'sentry/components/timezoneProvider';
+import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+
 import {getFormat} from 'sentry/utils/dates';
-import {useUser} from 'sentry/utils/useUser';
 
 export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   /**
@@ -65,7 +65,7 @@ export function DateTime({
   forcedTimezone,
   ...props
 }: DateTimeProps) {
-  const user = useUser();
+  const clockDisplay = useClockDisplay();
   const currentTimezone = useTimezone();
 
   const tz = forcedTimezone ?? currentTimezone;
@@ -83,7 +83,7 @@ export function DateTime({
       timeZone: timeZone ?? utc,
       seconds,
       milliseconds,
-      clock24Hours: user?.options.clock24Hours,
+      clock24Hours: clockDisplay === '24',
     });
 
   return (

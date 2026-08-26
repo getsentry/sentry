@@ -68,7 +68,16 @@ but not at the timeout threshold
 """
 
 BATCH_SIZE = 1000
-"""The number of mailboxes that will have messages scheduled each cycle"""
+"""The number of mailboxes a scheduler cycle aims to dispatch drains for."""
+
+BATCH_SELECT_LIMIT = BATCH_SIZE * 2
+"""
+How many due mailbox heads a scheduler cycle selects to reach BATCH_SIZE
+dispatches. Push triggers and concurrent cycles claim heads out of the selected
+list before the loop reaches them, so selecting exactly BATCH_SIZE shrinks the
+cycle below its target by whatever the contention share is. Contention beyond
+the surplus leaves the remainder to the next cycle.
+"""
 
 
 MAX_DELIVERY_AGE = datetime.timedelta(days=3)
@@ -408,13 +417,13 @@ def schedule_webhook_delivery() -> None:
         .values("id", "mailbox_name")
     )
 
-    records = list(scheduled_mailboxes[:BATCH_SIZE])
-    # The dispatch batch already answers the metric for every normal cycle. Only
+    records = list(scheduled_mailboxes[:BATCH_SELECT_LIMIT])
+    # The selected batch already answers the metric for every normal cycle. Only
     # when it fills is the real number unknown, and only then is re-running the
     # head-of-line discovery worth it -- those wide cycles are the ones worth seeing.
     # `source` records which branch produced the value, so the share of cycles
     # still paying for the count query is visible rather than inferred.
-    batch_full = len(records) == BATCH_SIZE
+    batch_full = len(records) == BATCH_SELECT_LIMIT
     mailbox_count = scheduled_mailboxes.count() if batch_full else len(records)
     metrics.distribution(
         "hybridcloud.schedule_webhook_delivery.mailbox_count",
@@ -422,11 +431,20 @@ def schedule_webhook_delivery() -> None:
         tags={"source": "count_query" if batch_full else "batch"},
     )
 
+    dispatched = 0
     for record in records:
+        if dispatched >= BATCH_SIZE:
+            # Dispatch target reached; surplus heads stay due for the next cycle.
+            break
         mailbox_name = record["mailbox_name"]
+        skip_tags = {"provider": _provider_from_mailbox(mailbox_name)}
         try:
             if not cache.add(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL):
                 # Another dispatcher is mid-claim for this mailbox; it will dispatch.
+                metrics.incr(
+                    "hybridcloud.deliver_webhooks.scheduler.skipped",
+                    tags={**skip_tags, "reason": "lock_held"},
+                )
                 continue
             lock_acquired = True
         except Exception:
@@ -434,10 +452,21 @@ def schedule_webhook_delivery() -> None:
             # proceed — just without serialization against push triggers.
             lock_acquired = False
         try:
-            _claim_and_dispatch(record["id"], mailbox_name, dispatcher=Dispatcher.SCHEDULER)
+            outcome = _claim_and_dispatch(
+                record["id"], mailbox_name, dispatcher=Dispatcher.SCHEDULER
+            )
         finally:
             if lock_acquired:
                 _release_drain_lock(mailbox_name)
+        if outcome is DispatchOutcome.NOT_DUE:
+            # Claimed out of the list between discovery and here, usually by a
+            # push trigger.
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.scheduler.skipped",
+                tags={**skip_tags, "reason": "claim_lost"},
+            )
+        else:
+            dispatched += 1
 
 
 @instrumented_task(
@@ -450,7 +479,6 @@ def drain_mailbox(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None = None,
-    mode: str | None = None,
 ) -> None:
     """
     Deliver webhooks from the mailbox that `payload_id` is the head of.
@@ -465,10 +493,6 @@ def drain_mailbox(
 
     `dispatcher` carries the enqueueing dispatcher's attribution onto every
     delivery outcome this drain records (see `_dispatch_tags`).
-
-    `mode` is accepted but ignored: drains enqueued by the previous deploy still
-    carry it, and rejecting them would strand their claims until the horizon
-    passes. Removable once no such task can be in flight.
     """
     dispatch_tags = _dispatch_tags(dispatcher)
     try:
@@ -866,7 +890,6 @@ def drain_mailbox_parallel(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None = None,
-    mode: str | None = None,
 ) -> None:
     """
     Deliver messages from a mailbox in small parallel batches.
@@ -884,7 +907,7 @@ def drain_mailbox_parallel(
     This drain holds no lock while it runs, so it must not deliver past the
     `claimed_count` records its dispatcher claimed — see `drain_mailbox`.
 
-    `dispatcher` and `mode` behave as they do on `drain_mailbox`.
+    `dispatcher` behaves as it does on `drain_mailbox`.
     """
     dispatch_tags = _dispatch_tags(dispatcher)
     try:

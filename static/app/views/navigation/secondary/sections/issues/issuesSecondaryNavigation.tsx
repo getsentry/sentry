@@ -96,7 +96,7 @@ export function IssuesSecondaryNavigation() {
                 {hasSeerNightShift && (
                   <SecondaryNavigation.ListItem>
                     <SecondaryNavigation.Link
-                      to={`${baseUrl}/autofix/overview/`}
+                      to={`${baseUrl}/autofix/`}
                       analyticsItemName="issues_autofix_overview"
                       end
                       trailingItems={<FeatureBadge type="new" />}

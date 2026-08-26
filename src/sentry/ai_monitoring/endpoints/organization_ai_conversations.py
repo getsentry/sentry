@@ -10,20 +10,20 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import fetch_conversation_titles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.constants import NON_FAILURE_STATUS
-from sentry.search.events.types import SAMPLING_MODES
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
@@ -36,6 +36,40 @@ from sentry.utils.ai_message_normalizer import (
 from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
+
+
+type QueryRow = Mapping[str, Any]
+
+
+class UserResponse(TypedDict):
+    id: str | None
+    email: str | None
+    username: str | None
+    ip_address: str | None
+
+
+class AIConversationResponse(TypedDict):
+    conversationId: str
+    title: str | None
+    projectId: int | None
+    flow: list[str]
+    errors: int
+    llmCalls: int
+    toolCalls: int
+    totalTokens: int
+    inputTokens: int
+    outputTokens: int
+    totalCost: float
+    generationDuration: float
+    startTimestamp: int
+    endTimestamp: int
+    traceCount: int
+    traceIds: list[str]
+    firstInput: str | None
+    lastOutput: str | None
+    user: UserResponse | None
+    toolNames: list[str]
+    toolErrors: int
 
 
 # Matches a query that is exactly a single gen_ai.conversation.id filter, e.g.
@@ -95,7 +129,7 @@ def _extract_first_user_message(messages: Any) -> str | None:
     return None
 
 
-def _get_first_input_message(row: dict) -> str | None:
+def _get_first_input_message(row: QueryRow) -> str | None:
     """
     Gets first user message from input attributes, checking in priority order.
     Priority: gen_ai.input.messages > gen_ai.request.messages
@@ -115,7 +149,7 @@ def _get_first_input_message(row: dict) -> str | None:
     return None
 
 
-def _get_last_output(row: dict) -> str | None:
+def _get_last_output(row: QueryRow) -> str | None:
     """
     Gets output text from output attributes, checking in priority order.
     Priority: gen_ai.output.messages > gen_ai.response.text
@@ -133,13 +167,6 @@ def _get_last_output(row: dict) -> str | None:
         return response_text
 
     return None
-
-
-class UserResponse(TypedDict):
-    id: str | None
-    email: str | None
-    username: str | None
-    ip_address: str | None
 
 
 def _build_user_response(
@@ -174,13 +201,13 @@ def _build_conversation_response(
     flow: list[str],
     first_input: str | None,
     last_output: str | None,
-    user: dict[str, str | None] | None = None,
+    user: UserResponse | None = None,
     tool_names: list[str] | None = None,
     tool_errors: int = 0,
     title: str | None = None,
     generation_duration: float = 0,
     project_id: int | None = None,
-) -> dict[str, Any]:
+) -> AIConversationResponse:
     return {
         "conversationId": conv_id,
         "title": title,
@@ -228,7 +255,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         validated_data = serializer.validated_data
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
             return self._get_conversations(
                 snuba_params=snuba_params,
                 offset=offset,
@@ -259,12 +286,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     @trace
     def _get_conversations(
         self,
-        snuba_params,
+        snuba_params: SnubaParams,
         offset: int,
         limit: int,
         user_query: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
-    ) -> list[dict]:
+    ) -> list[AIConversationResponse]:
         base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
         query_string = _build_conversation_query(base_filter, user_query)
 
@@ -284,7 +311,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     @trace
     def _fetch_conversation_ids(
         self,
-        snuba_params,
+        snuba_params: SnubaParams,
         query_string: str,
         offset: int,
         limit: int,
@@ -303,7 +330,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         )
 
     @trace
-    def _get_conversations_data(self, snuba_params, conversation_ids: list[str]) -> list[dict]:
+    def _get_conversations_data(
+        self, snuba_params: SnubaParams, conversation_ids: list[str]
+    ) -> list[AIConversationResponse]:
         config = SearchResolverConfig(auto_fields=True)
         resolver = Spans.get_resolver(snuba_params, config)
 
@@ -412,12 +441,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
-    ) -> dict[str, dict[str, Any]]:
+    ) -> dict[str, AIConversationResponse]:
         with start_span(
             op="ai_conversations.build_from_aggregations",
             name="Build conversations from aggregations",
         ):
-            conversations_map: dict[str, dict[str, Any]] = {}
+            conversations_map: dict[str, AIConversationResponse] = {}
 
             for row in aggregations.get("data", []):
                 conv_id = row.get("gen_ai.conversation.id", "")
@@ -467,7 +496,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             return conversations_map
 
     def _apply_enrichment(
-        self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
+        self,
+        conversations_map: dict[str, AIConversationResponse],
+        enrichment_data: EAPResponse,
     ) -> dict[str, set[int]]:
         """Apply enrichment data, returning the project ids each conversation spans."""
         with start_span(
@@ -539,7 +570,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             return project_ids_by_conversation
 
     def _apply_first_last_io(
-        self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
+        self,
+        conversations_map: dict[str, AIConversationResponse],
+        first_last_io_data: EAPResponse,
     ) -> None:
         with start_span(
             op="ai_conversations.apply_first_last_io",
@@ -578,7 +611,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     @trace
     def _apply_titles(
         self,
-        conversations_map: dict[str, dict[str, Any]],
+        conversations_map: dict[str, AIConversationResponse],
         project_ids_by_conversation: Mapping[str, set[int]],
     ) -> None:
         """Set each conversation's `title` from storage when present.

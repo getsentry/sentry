@@ -1,7 +1,17 @@
+from typing import NotRequired, TypedDict
+
 from rest_framework import serializers
 
+from sentry.search.events.types import SAMPLING_MODES
 
-class OrganizationAIConversationsSerializer(serializers.Serializer):
+
+class AIConversationsQuery(TypedDict):
+    sort: str
+    query: NotRequired[str]
+    samplingMode: SAMPLING_MODES
+
+
+class OrganizationAIConversationsSerializer(serializers.Serializer[AIConversationsQuery]):
     sort = serializers.CharField(required=False, default="-timestamp")
     query = serializers.CharField(required=False, allow_blank=True)
     samplingMode = serializers.ChoiceField(
@@ -14,7 +24,7 @@ class OrganizationAIConversationsSerializer(serializers.Serializer):
         default="HIGHEST_ACCURACY",
     )
 
-    def validate_sort(self, value):
+    def validate_sort(self, value: str) -> str:
         allowed_sorts = {
             "timestamp",
             "-timestamp",
