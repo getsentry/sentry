@@ -18,6 +18,7 @@ import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -367,6 +368,23 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               </Flex>
             </Stack>
             <Flex align="center" gap="sm">
+              <FeedbackButton
+                feedbackOptions={{
+                  formTitle: t('Give feedback on this investigation'),
+                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                  tags: {
+                    'feedback.source': 'investigation',
+                    'feedback.owner': 'ml-ai',
+                    'investigation.id': investigation.id,
+                    'investigation.source_type': investigation.sourceType,
+                    ...(investigation.template
+                      ? {'investigation.template': investigation.template.key}
+                      : {}),
+                  },
+                }}
+              >
+                {t('Give feedback')}
+              </FeedbackButton>
               <Badge variant={getStatusVariant(investigation.status)}>
                 {formatStatus(investigation.status)}
               </Badge>
