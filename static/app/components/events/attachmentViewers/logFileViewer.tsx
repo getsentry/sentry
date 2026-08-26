@@ -10,6 +10,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export function LogFileViewer(props: ViewerProps) {
   const attachmentUrl = resolveHostname(`/api/0${getAttachmentUrl(props)}?download`);
@@ -24,7 +25,18 @@ export function LogFileViewer(props: ViewerProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to download attachment: ${response.status}`);
+        throw new RequestError(
+          'GET',
+          attachmentUrl,
+          new Error('Failed to download attachment'),
+          {
+            getResponseHeader: header => response.headers.get(header),
+            responseJSON: undefined,
+            responseText: '',
+            status: response.status,
+            statusText: response.statusText,
+          }
+        );
       }
 
       return decodeTextAttachment(await response.arrayBuffer());

@@ -48,7 +48,7 @@ describe('LogFileViewer', () => {
   });
 
   it('renders an error when the attachment cannot be downloaded', async () => {
-    fetchMock.mockResponseOnce('', {status: 500});
+    fetchMock.mockResponseOnce('', {status: 404});
 
     renderViewer();
 
