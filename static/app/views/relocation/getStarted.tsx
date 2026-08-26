@@ -1,15 +1,17 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
+import {z} from 'zod';
 
-import {Input} from '@sentry/scraps/input';
-import {Select} from '@sentry/scraps/select';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getSignupLocalities} from 'sentry/utils/cells';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 
 import type {StepProps} from './types';
@@ -17,6 +19,12 @@ import type {StepProps} from './types';
 const PROMO_CODE_ERROR_MSG = t(
   'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
 );
+
+const getStartedSchema = z.object({
+  orgSlugs: z.string().min(3, t('Enter at least one organization slug')),
+  localityName: z.string().min(1, t('Select a datacenter location')),
+  promoCode: z.string(),
+});
 
 export function GetStarted({
   relocationState,
@@ -28,22 +36,37 @@ export function GetStarted({
   const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
   const localityOptions = getSignupLocalities();
 
-  const handleContinue = async (event: any) => {
-    event.preventDefault();
-    if (promoCode) {
-      try {
-        await api.requestPromise(`/promocodes-external/${promoCode}`, {
-          method: 'GET',
-        });
-      } catch (error: any) {
-        if (error.status === 403) {
-          addErrorMessage(PROMO_CODE_ERROR_MSG);
-          return;
+  const {mutateAsync: validatePromoCode} = useMutation({
+    mutationFn: (code: string) =>
+      api.requestPromise(`/promocodes-external/${code}`, {
+        method: 'GET',
+      }),
+    onError: error => {
+      if (error instanceof RequestError && error.status === 403) {
+        addErrorMessage(PROMO_CODE_ERROR_MSG);
+      }
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {orgSlugs, localityName, promoCode},
+    validators: {onDynamic: getStartedSchema},
+    onSubmit: async ({value}) => {
+      const parsedValue = getStartedSchema.parse(value);
+      if (parsedValue.promoCode) {
+        try {
+          await validatePromoCode(parsedValue.promoCode);
+        } catch (error) {
+          if (error instanceof RequestError && error.status === 403) {
+            return;
+          }
         }
       }
-    }
-    onComplete();
-  };
+      onComplete();
+    },
+  });
+
   return (
     <Wrapper data-test-id="get-started">
       <StepHeading step={1}>{t('Basic information needed to get started')}</StepHeading>
@@ -54,38 +77,55 @@ export function GetStarted({
           exit: {opacity: 0},
         }}
       >
-        <Form onSubmit={handleContinue}>
+        <form.AppForm form={form}>
           <p>
             {t(
               'In order to best facilitate the process some basic information will be required to ensure success with the relocation process of you self-hosted instance'
             )}
           </p>
-          <RequiredLabel>{t('Organization slugs being relocated')}</RequiredLabel>
-          <Input
-            type="text"
-            name="orgs"
-            aria-label={t('org-slugs')}
-            onChange={evt => {
-              onUpdateRelocationState({orgSlugs: evt.target.value});
-            }}
-            minLength={3}
-            placeholder="org-slug-1, org-slug-2, ..."
-            value={orgSlugs}
-          />
-          <Label>{t('Choose a datacenter location')}</Label>
-          <RegionSelect
-            value={localityName}
-            name="region"
-            aria-label={t('region')}
-            placeholder="Select Location"
-            options={localityOptions}
-            onChange={(opt: any) => {
-              onUpdateRelocationState({localityName: opt.value});
-            }}
-          />
-          {localityName && (
-            <p>{t('This is an important decision and cannot be changed.')}</p>
-          )}
+          <Stack gap="xl">
+            <form.AppField name="orgSlugs">
+              {field => (
+                <field.Layout.Stack
+                  label={t('Organization slugs being relocated')}
+                  required
+                >
+                  <field.Input
+                    aria-label={t('org-slugs')}
+                    value={field.state.value}
+                    onChange={value => {
+                      field.handleChange(value);
+                      onUpdateRelocationState({orgSlugs: value});
+                    }}
+                    placeholder="org-slug-1, org-slug-2, ..."
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            <form.AppField name="localityName">
+              {field => (
+                <field.Layout.Stack label={t('Choose a datacenter location')} required>
+                  <field.Select
+                    aria-label={t('region')}
+                    value={field.state.value}
+                    options={localityOptions}
+                    placeholder={t('Select Location')}
+                    onChange={value => {
+                      field.handleChange(value);
+                      onUpdateRelocationState({localityName: value});
+                    }}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          </Stack>
+          <form.Subscribe selector={state => state.values.localityName}>
+            {selectedLocalityName =>
+              selectedLocalityName ? (
+                <p>{t('This is an important decision and cannot be changed.')}</p>
+              ) : null
+            }
+          </form.Subscribe>
           <DatacenterTextBlock>
             {t(
               "Choose where to store your organization's data. Please note, you won't be able to change locations once your relocation has been initiated. "
@@ -100,36 +140,36 @@ export function GetStarted({
             .
           </DatacenterTextBlock>
           {showPromoCode ? (
-            <div>
-              <Label>{t('Promo Code')}</Label>
-              <PromoCodeInput
-                type="text"
-                name="promocode"
-                aria-label={t('promocode')}
-                onChange={evt => {
-                  onUpdateRelocationState({promoCode: evt.target.value});
-                }}
-                placeholder=""
-                value={promoCode}
-              />
-            </div>
+            <form.AppField name="promoCode">
+              {field => (
+                <field.Layout.Stack label={t('Promo Code')}>
+                  <field.Input
+                    aria-label={t('promocode')}
+                    value={field.state.value}
+                    onChange={value => {
+                      field.handleChange(value);
+                      onUpdateRelocationState({promoCode: value});
+                    }}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
           ) : (
             <TogglePromoCode onClick={() => setShowPromoCode(true)}>
               Got a promo code? <u>Click here to redeem it!</u>
             </TogglePromoCode>
           )}
-          <ContinueButton
-            disabled={!orgSlugs || !localityName}
-            variant="primary"
-            type="submit"
-          />
-        </Form>
+          <Flex justify="end">
+            <form.SubmitButton>{t('Continue')}</form.SubmitButton>
+          </Flex>
+        </form.AppForm>
       </motion.div>
     </Wrapper>
   );
 }
 
 const Wrapper = styled('div')`
+  box-sizing: border-box;
   margin-left: auto;
   margin-right: auto;
   padding: ${p => p.theme.space['3xl']};
@@ -137,45 +177,12 @@ const Wrapper = styled('div')`
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
+  width: 100%;
   max-width: 769px;
-  max-height: 525px;
   color: ${p => p.theme.tokens.content.secondary};
   h2 {
     color: ${p => p.theme.colors.gray800};
   }
-`;
-
-const Form = styled('form')`
-  position: relative;
-`;
-
-const Label = styled('label')`
-  display: block;
-  text-transform: uppercase;
-  color: ${p => p.theme.colors.gray800};
-  margin-top: ${p => p.theme.space.xl};
-`;
-
-const RequiredLabel = styled('label')`
-  display: block;
-  text-transform: uppercase;
-  color: ${p => p.theme.colors.gray800};
-  margin-top: ${p => p.theme.space.xl};
-  &:after {
-    content: '•';
-    width: 6px;
-    color: ${p => p.theme.colors.red400};
-  }
-`;
-
-const RegionSelect = styled(Select)`
-  button {
-    width: 709px;
-  }
-`;
-
-const PromoCodeInput = styled(Input)`
-  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const TogglePromoCode = styled('a')`

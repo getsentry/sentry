@@ -209,7 +209,7 @@ export function RelocationOnboarding() {
       <Header>
         <LogoSvg />
         {stepIndex !== -1 && (
-          <LayoutContainer display={{zero: 'none', '3xl': 'block'}} justifySelf="center">
+          <LayoutContainer display={{zero: 'none', md: 'block'}} justifySelf="center">
             <Stepper
               numSteps={onboardingSteps.length}
               currentStepIndex={stepIndex}
@@ -311,7 +311,13 @@ export function RelocationOnboarding() {
   ) : null;
 
   return (
-    <Stack as="main" flexGrow={1} data-test-id="relocation-onboarding">
+    <Stack
+      as="main"
+      flexGrow={1}
+      minWidth="0"
+      width="100%"
+      data-test-id="relocation-onboarding"
+    >
       <SentryDocumentTitle title={stepObj.title} />
       {headerView}
       <Container>
@@ -327,12 +333,17 @@ export function RelocationOnboarding() {
 }
 
 const Container = styled('div')`
+  box-sizing: border-box;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   position: relative;
   background: #faf9fb;
-  padding: 120px ${p => p.theme.space['2xl']};
+  padding: calc(
+      ${p => p.theme.space['3xl']} + ${p => p.theme.space['2xl']} +
+        ${p => p.theme.space.xs}
+    )
+    ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
 
@@ -343,6 +354,7 @@ const Container = styled('div')`
 `;
 
 const Header = styled('header')`
+  container-type: inline-size;
   background: ${p => p.theme.tokens.background.primary};
   padding-left: ${p => p.theme.space['3xl']};
   padding-right: ${p => p.theme.space['3xl']};
