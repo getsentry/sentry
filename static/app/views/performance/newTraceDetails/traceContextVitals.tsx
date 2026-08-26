@@ -124,6 +124,7 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
                           tab: TraceLayoutTabKeys.WATERFALL,
                           zoomToNode: vital.node.pathToNode()[0],
                           zoomToTimestamp: vital.timestamp,
+                          zoomToVital: vital.key,
                         },
                       },
                       {replace: true}

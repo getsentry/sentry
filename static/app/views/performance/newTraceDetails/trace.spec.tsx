@@ -1030,7 +1030,9 @@ describe('trace view', () => {
     expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
       organization: expect.objectContaining({slug: 'org-slug'}),
     });
-    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3 + 250, 500]);
+    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3 + 250, 1000], {
+      padding: false,
+    });
   });
 
   it('selects and zooms to a summary vital pill source node on click', async () => {
@@ -1058,9 +1060,12 @@ describe('trace view', () => {
     expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
       organization: expect.objectContaining({slug: 'org-slug'}),
     });
-    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3 + 250, 500]);
+    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3 + 250, 1000], {
+      padding: false,
+    });
     expect(window.location.search).not.toContain('zoomToNode');
     expect(window.location.search).not.toContain('zoomToTimestamp');
+    expect(window.location.search).not.toContain('zoomToVital');
   });
 
   it('reveals a hidden vital pill source node on click', async () => {

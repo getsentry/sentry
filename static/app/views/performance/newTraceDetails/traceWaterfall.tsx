@@ -607,6 +607,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     const {
       zoomToNode: _zoomToNode,
       zoomToTimestamp: _zoomToTimestamp,
+      zoomToVital: _zoomToVital,
       ...nextQuery
     } = query;
     navigate(
@@ -627,7 +628,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         ? Number.parseFloat(query.zoomToTimestamp)
         : Number.NaN;
     if (Number.isFinite(timestamp)) {
-      viewManager.onZoomAroundTimestamp(timestamp);
+      viewManager.onZoomAroundTimestamp(
+        timestamp,
+        typeof query.zoomToVital === 'string' ? query.zoomToVital : `${timestamp}`
+      );
     } else {
       viewManager.onZoomIntoSpace(node.space);
     }

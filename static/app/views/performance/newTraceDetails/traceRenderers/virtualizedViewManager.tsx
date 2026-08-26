@@ -39,7 +39,7 @@ import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
-const TIMESTAMP_ZOOM_RATIO = 0.25;
+const TIMESTAMP_ZOOM_RATIO = 0.5;
 
 export type TraceTimeCompressionManagerOptions = {
   enabled: boolean;
@@ -152,6 +152,9 @@ export class VirtualizedViewManager {
   private readonly span_matrix: SpanMatrix = [1, 0, 0, 1, 0, 0];
   private _compressedViewCache: CompressedView | null = null;
   private readonly compressedViewCalculations = new CompressedTraceViewCalculations();
+  private lastZoomedVital: string | null = null;
+  private lastZoomedVitalAnchor: number | null = null;
+  private lastZoomedVitalTargetWidth: number | null = null;
   private readonly normalViewCalculations = new NormalTraceViewCalculations();
 
   timers: {
@@ -661,23 +664,70 @@ export class VirtualizedViewManager {
     });
   }
 
-  onZoomAroundTimestamp(timestamp: number) {
+  onZoomAroundTimestamp(timestamp: number, vital: string) {
+    if (this.timers.onZoomIntoSpace !== null) {
+      window.cancelAnimationFrame(this.timers.onZoomIntoSpace);
+      this.timers.onZoomIntoSpace = null;
+    }
+
     const compressedView = this.getCompressedView();
     const compressedTimestamp = this.time_compression.toCompressedOffset(timestamp);
+    const compressedTraceStart = this.time_compression.toCompressedOffset(
+      this.view.to_origin
+    );
+    const compressedTraceWidth =
+      this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_space.width
+      ) - compressedTraceStart;
+    const compressedTimestampInTrace = compressedTimestamp - compressedTraceStart;
+    const previousZoomedVital = this.lastZoomedVital;
+    const isRepeatedZoom = previousZoomedVital === vital;
+    this.lastZoomedVital = vital;
+    const zoomAnchor = isRepeatedZoom
+      ? (this.lastZoomedVitalAnchor ?? 0.5)
+      : compressedTraceWidth > 0
+        ? clamp(compressedTimestampInTrace / compressedTraceWidth, 0, 1)
+        : 0.5;
+    this.lastZoomedVitalAnchor = zoomAnchor;
+    const zoomBaseWidth = isRepeatedZoom
+      ? Math.min(
+          compressedView.width,
+          this.lastZoomedVitalTargetWidth ?? compressedView.width
+        )
+      : compressedTraceWidth;
     const targetCompressedWidth = Math.max(
-      compressedView.width * TIMESTAMP_ZOOM_RATIO,
+      zoomBaseWidth * TIMESTAMP_ZOOM_RATIO,
       this.view.MAX_ZOOM_PRECISION_MS
     );
-    const targetCompressedStart = compressedTimestamp - targetCompressedWidth / 2;
+    this.lastZoomedVitalTargetWidth = targetCompressedWidth;
+    const targetCompressedStartInTrace = clamp(
+      compressedTimestampInTrace - targetCompressedWidth * zoomAnchor,
+      0,
+      Math.max(compressedTraceWidth - targetCompressedWidth, 0)
+    );
+    const targetCompressedStart = compressedTraceStart + targetCompressedStartInTrace;
     const targetStart = this.time_compression.toRealTimestamp(targetCompressedStart);
     const targetEnd = this.time_compression.toRealTimestamp(
       targetCompressedStart + targetCompressedWidth
     );
+    const zoomToTimestamp = () =>
+      this.onZoomIntoSpace([targetStart, targetEnd - targetStart], {padding: false});
 
-    this.onZoomIntoSpace([targetStart, targetEnd - targetStart]);
+    if (previousZoomedVital !== null && !isRepeatedZoom) {
+      this.onZoomIntoSpace([this.view.to_origin, this.view.trace_space.width], {
+        onComplete: zoomToTimestamp,
+        padding: false,
+      });
+      return;
+    }
+
+    zoomToTimestamp();
   }
 
-  onZoomIntoSpace(space: [number, number]) {
+  onZoomIntoSpace(
+    space: [number, number],
+    options: {onComplete?: () => void; padding?: boolean} = {}
+  ) {
     let final_x = space[0] - this.view.to_origin;
     let final_width = space[1];
 
@@ -690,7 +740,7 @@ export class VirtualizedViewManager {
     // an offset on each side. This ensures we dont need
     // to move the duration label insdie the bar and can preserve
     // some context around the star/end time of a span
-    if (this.view.trace_physical_space.width > 300) {
+    if (options.padding !== false && this.view.trace_physical_space.width > 300) {
       const paddedSpace = this.getViewCalculations().padZoomIntoSpace(
         this.getViewCalculationContext(),
         final_x,
@@ -731,6 +781,7 @@ export class VirtualizedViewManager {
           x: final_x,
           width: final_width,
         });
+        options.onComplete?.();
       }
     };
 
