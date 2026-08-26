@@ -10,7 +10,7 @@ import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function UsageOverviewActions({organization}: {organization: Organization}) {
-  const shouldCollapseActions = useResponsivePropValue({zero: true, md: false});
+  const shouldCollapseActions = useResponsivePropValue({zero: true, xl: false});
 
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
   const hasBillingPerms = organization.access.includes('org:billing');

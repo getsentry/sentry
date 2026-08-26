@@ -119,7 +119,6 @@ export function UsageOverview({
           padding="lg xl"
           gap="xl"
           height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}
-          containerType="inline-size"
         >
           <Stack gap="sm">
             <Heading as="h3" size="lg">
