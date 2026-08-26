@@ -55,7 +55,7 @@ function ProjectCardList({projects}: {projects: Project[]}) {
     <Grid
       gap="2xl"
       columns={{
-        zero: 'repeat(auto-fill, minmax(1fr, 400px))',
+        zero: 'repeat(auto-fill, minmax(min(400px, 100%), 1fr))',
         lg: 'repeat(auto-fill, minmax(350px, 1fr))',
       }}
     >
