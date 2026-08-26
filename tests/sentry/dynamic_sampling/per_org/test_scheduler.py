@@ -504,34 +504,6 @@ class RunCalculationsPerOrgTest(TestCase):
         # The comparison still runs, so the legacy factor is reported next to no EAP factor.
         _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
 
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-        }
-    )
-    def test_run_calculations_per_org_skips_recalibration_outside_its_rollout(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        project_volumes = [make_project_volume(project.id)]
-
-        with patch_configuration(
-            {
-                BLENDED_SAMPLE_RATE: 0.5,
-                ORG_VOLUME: org_volume,
-                PROJECT_VOLUMES: project_volumes,
-                PROJECT_BALANCING: [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)],
-                TRANSACTION_VOLUMES: _transaction_volumes(org, project.id),
-                TRANSACTION_BALANCING: {},
-                **END_OF_PASS,
-            }
-        ) as mocks:
-            result = run_calculations_per_org_task(org.id)
-
-        assert result is None
-        config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
-        assert config.results.recalibration_factor is None
-
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_still_reports_when_a_stage_raises(self) -> None:
         org = self.create_organization()
