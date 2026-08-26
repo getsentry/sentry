@@ -134,9 +134,7 @@ function OverviewAction({
   run,
   reviewPullRequest,
   issueUrl,
-  enrichmentPending,
 }: {
-  enrichmentPending: boolean;
   issueUrl: string;
   reviewPullRequest: OverviewPullRequest | undefined;
   run: OverviewRun;
@@ -252,55 +250,44 @@ function OverviewAction({
           </Tooltip>
           <OpenSeerButton run={run} section={sectionKey} size="sm" variant="primary" />
         </ButtonBar>
-        {enrichmentPending ? (
-          // Two slots mirror the review + checks tags the enriched response
-          // typically fills in, so the row height doesn't jump on resolve.
-          <Fragment>
-            <Placeholder height="1.25rem" width="5.5rem" />
-            <Placeholder height="1.25rem" width="7rem" />
-          </Fragment>
-        ) : (
-          <Fragment>
-            {reviewStatusTag && (
-              <Tag variant={reviewStatusTag.variant} icon={reviewStatusTag.icon}>
-                {reviewStatusTag.label}
-              </Tag>
-            )}
-            {checksStatusTag && (
-              <Tooltip
-                disabled={failedChecks.length === 0}
-                title={
-                  <Stack gap="xs" align="start">
-                    <Text size="sm" bold align="left">
-                      {t('Failing checks:')}
-                    </Text>
-                    <Stack gap="2xs" align="start">
-                      {failedChecks.map((check, index) => (
-                        <Flex key={`${check.name}-${index}`} gap="xs" align="start">
-                          <Text size="sm" variant="muted">
-                            •
-                          </Text>
-                          <Text size="sm" align="left">
-                            {check.url ? (
-                              <ExternalLink href={check.url}>{check.name}</ExternalLink>
-                            ) : (
-                              check.name
-                            )}
-                          </Text>
-                        </Flex>
-                      ))}
-                    </Stack>
-                  </Stack>
-                }
-              >
-                <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
-                  {failedChecks.length > 0
-                    ? tn('%s Check Failing', '%s Checks Failing', failedChecks.length)
-                    : checksStatusTag.label}
-                </Tag>
-              </Tooltip>
-            )}
-          </Fragment>
+        {reviewStatusTag && (
+          <Tag variant={reviewStatusTag.variant} icon={reviewStatusTag.icon}>
+            {reviewStatusTag.label}
+          </Tag>
+        )}
+        {checksStatusTag && (
+          <Tooltip
+            disabled={failedChecks.length === 0}
+            title={
+              <Stack gap="xs" align="start">
+                <Text size="sm" bold align="left">
+                  {t('Failing checks:')}
+                </Text>
+                <Stack gap="2xs" align="start">
+                  {failedChecks.map((check, index) => (
+                    <Flex key={`${check.name}-${index}`} gap="xs" align="start">
+                      <Text size="sm" variant="muted">
+                        •
+                      </Text>
+                      <Text size="sm" align="left">
+                        {check.url ? (
+                          <ExternalLink href={check.url}>{check.name}</ExternalLink>
+                        ) : (
+                          check.name
+                        )}
+                      </Text>
+                    </Flex>
+                  ))}
+                </Stack>
+              </Stack>
+            }
+          >
+            <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
+              {failedChecks.length > 0
+                ? tn('%s Check Failing', '%s Checks Failing', failedChecks.length)
+                : checksStatusTag.label}
+            </Tag>
+          </Tooltip>
         )}
       </Stack>
     );
@@ -553,7 +540,6 @@ export function OverviewCard({
             run={run}
             reviewPullRequest={reviewPullRequest}
             issueUrl={issueUrl}
-            enrichmentPending={enrichmentPending}
           />
           <PriorityAndAssignee
             run={run}
