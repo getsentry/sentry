@@ -688,6 +688,11 @@ export function OverviewCard({
   );
 }
 
+const CardContainer = styled(Container)`
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+`;
+
 function CardFrame({
   aside,
   children,
@@ -698,7 +703,7 @@ function CardFrame({
   containerRef?: React.Ref<HTMLDivElement>;
 }) {
   return (
-    <Container
+    <CardContainer
       ref={containerRef}
       background="primary"
       border="primary"
@@ -723,7 +728,7 @@ function CardFrame({
           </Stack>
         </Flex>
       </Stack>
-    </Container>
+    </CardContainer>
   );
 }
 
