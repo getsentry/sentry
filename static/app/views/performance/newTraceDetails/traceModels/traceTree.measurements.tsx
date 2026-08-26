@@ -157,6 +157,7 @@ export function collectTraceMeasurements(
       start: timestamp,
       duration: 0,
       measurement,
+      node,
       poor: MEASUREMENT_THRESHOLDS[collectableMeasurement]
         ? measurement.value > MEASUREMENT_THRESHOLDS[collectableMeasurement]
         : false,

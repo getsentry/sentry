@@ -313,6 +313,7 @@ export declare namespace TraceTree {
     duration: number;
     label: string;
     measurement: Measurement;
+    node: BaseNode;
     poor: boolean;
     start: number;
     type: keyof typeof RENDERABLE_MEASUREMENTS;
