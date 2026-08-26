@@ -121,7 +121,9 @@ describe('Onboarding', () => {
       );
 
       await waitFor(() => {
-        expect(sessionStorage.getItem('onboarding')).toBeNull();
+        expect(
+          JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')
+        ).not.toHaveProperty('selectedPlatform');
       });
 
       expect(
@@ -570,6 +572,8 @@ describe('Onboarding', () => {
       channelName: '#alerts',
     } as const satisfies ScmMessagingSetup;
 
+    let agenticRunRequestMock: ReturnType<typeof MockApiClient.addMockResponse>;
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
@@ -587,6 +591,11 @@ describe('Onboarding', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/projects/`,
         body: [],
+      });
+      agenticRunRequestMock = MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/onboarding/agent/runs/`,
+        method: 'POST',
+        body: {},
       });
     });
 
@@ -697,6 +706,12 @@ describe('Onboarding', () => {
       );
     });
 
+    it('preloads agent setup while the welcome screen is visible', async () => {
+      renderOnboarding('welcome');
+
+      await waitFor(() => expect(agenticRunRequestMock).toHaveBeenCalledTimes(1));
+    });
+
     it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
       renderOnboarding('welcome');
 
@@ -710,7 +725,7 @@ describe('Onboarding', () => {
       );
     });
 
-    it('clears the whole session when returning to the welcome step', async () => {
+    it('clears prior setup state when returning to the welcome step', async () => {
       // Returning to welcome restarts the flow, so nothing is carried over —
       // including messagingSetup, which only has to survive local repository
       // and platform changes.
@@ -734,7 +749,10 @@ describe('Onboarding', () => {
       renderOnboarding('welcome');
 
       await waitFor(() => {
-        expect(sessionStorage.getItem('onboarding')).toBeNull();
+        expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual({
+          agenticProgressClientRunId: expect.any(String),
+          agenticProgressOnboardingCode: expect.any(String),
+        });
       });
     });
 
