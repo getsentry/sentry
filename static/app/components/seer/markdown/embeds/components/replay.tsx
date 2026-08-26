@@ -83,7 +83,7 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
 const ReplayBlockContainer = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.tokens.background.secondary};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md};
   overflow: hidden;
 `;
