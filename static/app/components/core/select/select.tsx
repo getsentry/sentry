@@ -10,6 +10,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectValue} from '@sentry/scraps/select';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import type {
   GroupedOptionsType,
@@ -26,7 +27,6 @@ import {
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import type {Choices} from 'sentry/types/core';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {defined} from 'sentry/utils/defined';
@@ -278,6 +278,8 @@ const getStylesConfig = ({
 function ClearIndicator(
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
 ) {
+  const {t} = useTranslation();
+
   // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
   // now we manually add aria labels to these interactive elements to help with
   // testing
@@ -358,6 +360,8 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
 function MultiValueRemove(
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
 ) {
+  const {t} = useTranslation();
+
   // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
   // now we manually add aria labels to these interactive elements to help with
   // testing

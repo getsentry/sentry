@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -31,6 +31,8 @@ import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
@@ -56,6 +58,8 @@ function getFinalExplanation(section: AutofixSection): string | null {
 
 export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
   // Reporting on an iteration applies to both flows; only the form is manual.
   const hasPrIterationFeature =
     organization.features.includes('autofix-pr-iteration') ||
@@ -114,9 +118,25 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     useResetAutofixStep({
       autofix,
       canReset: isResetEligible,
+      initialShouldShowReset:
+        isResetEligible && location.query.seerDrawerAction === 'retry_code_changes',
       section,
       step: 'code_changes',
     });
+
+  useEffect(() => {
+    if (!shouldShowReset || location.query.seerDrawerAction !== 'retry_code_changes') {
+      return;
+    }
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {...location.query, seerDrawerAction: undefined},
+      },
+      {replace: true, preventScrollReset: true}
+    );
+  }, [location, navigate, shouldShowReset]);
+
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
@@ -259,17 +279,31 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     );
   } else {
     content = (
-      <ArtifactDetails>
+      <ArtifactDetails gap="lg">
         <Text>
           {t(
             'Seer failed to generate a code change. This one is on us. Try running it again.'
           )}
         </Text>
-        <Flex>
-          <Button variant="primary" icon={<IconRefresh />} onClick={() => handleReset()}>
-            {t('Re-run')}
-          </Button>
-        </Flex>
+        {shouldShowReset ? (
+          resetPrompt(
+            t('What additional context should Seer use?'),
+            t(
+              'Add context that could unblock the change, e.g. the repo or files to edit.'
+            )
+          )
+        ) : (
+          <Flex>
+            <Button
+              variant="primary"
+              icon={<IconRefresh />}
+              disabled={!canReset}
+              onClick={() => handleReset()}
+            >
+              {t('Re-run')}
+            </Button>
+          </Flex>
+        )}
       </ArtifactDetails>
     );
   }

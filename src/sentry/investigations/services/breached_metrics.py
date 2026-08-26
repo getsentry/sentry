@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -12,7 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
@@ -25,13 +24,9 @@ MAX_BREACH_WINDOW = timedelta(days=45)
 
 @dataclass(frozen=True)
 class BreachedMetricSource:
-    group: Group
-    open_period: GroupOpenPeriod
     project_id: int
-    project_slug: str
-    source_key: str
     dataset: str
-    snapshot: dict[str, Any]
+    source: dict[str, Any]
 
 
 def _code_mode_dataset(
@@ -53,11 +48,6 @@ def _code_mode_dataset(
     }.get(event_types[0])
 
 
-def _source_key(group_id: int, open_period_id: int) -> str:
-    value = f"breached_metric:{group_id}:{open_period_id}"
-    return hashlib.sha256(value.encode()).hexdigest()
-
-
 def _direction(conditions: list[dict[str, Any]]) -> str:
     condition_types = {condition["type"] for condition in conditions}
     if condition_types & {Condition.GREATER, Condition.GREATER_OR_EQUAL}:
@@ -68,45 +58,48 @@ def _direction(conditions: list[dict[str, Any]]) -> str:
 
 
 def _analysis_window(open_period: GroupOpenPeriod, now: datetime) -> dict[str, str]:
-    breach_start = max(open_period.date_started, now - MAX_BREACH_WINDOW)
-    baseline_start = breach_start - (now - breach_start)
+    end = open_period.date_ended or now
+    breach_start = max(open_period.date_started, end - MAX_BREACH_WINDOW)
+    baseline_start = breach_start - (end - breach_start)
     return {
         "baselineStart": baseline_start.isoformat(),
         "breachStart": breach_start.isoformat(),
-        "end": now.isoformat(),
+        "end": end.isoformat(),
     }
 
 
 def resolve_breached_metric_sources(
     *,
     organization: Organization,
-    group_ids: Iterable[int],
+    source_refs: Iterable[tuple[int, int]],
     accessible_project_ids: AbstractSet[int],
     now: datetime | None = None,
-) -> dict[int, BreachedMetricSource]:
-    """Resolve supported current metric breaches in bulk.
+) -> dict[tuple[int, int], BreachedMetricSource]:
+    """Resolve exact metric open periods in bulk.
 
     Missing entries are deliberately unavailable. The caller should not reveal
     whether an inaccessible or invalid issue exists.
     """
-    unique_group_ids = set(group_ids)
-    if not unique_group_ids:
+    unique_source_refs = set(source_refs)
+    if not unique_source_refs:
         return {}
+    group_ids = {group_id for group_id, _ in unique_source_refs}
+    open_period_ids = {open_period_id for _, open_period_id in unique_source_refs}
 
     groups = {
         group.id: group
         for group in Group.objects.filter(
-            id__in=unique_group_ids,
+            id__in=group_ids,
             project__organization=organization,
             project_id__in=accessible_project_ids,
             type=MetricIssue.type_id,
-            status=GroupStatus.UNRESOLVED,
         ).select_related("project")
     }
     open_periods = {
-        period.group_id: period
+        (period.group_id, period.id): period
         for period in GroupOpenPeriod.objects.filter(
-            group_id__in=groups, date_ended__isnull=True
+            id__in=open_period_ids,
+            group_id__in=groups,
         ).select_related("group")
     }
     detector_groups = {
@@ -139,12 +132,19 @@ def resolve_breached_metric_sources(
         .prefetch_related("snuba_query__snubaqueryeventtype_set")
     }
 
-    resolved: dict[int, BreachedMetricSource] = {}
+    resolved: dict[tuple[int, int], BreachedMetricSource] = {}
     current_time = now or timezone.now()
-    for group_id, group in groups.items():
-        open_period = open_periods.get(group_id)
+    for source_ref in unique_source_refs:
+        group_id, _ = source_ref
+        group = groups.get(group_id)
+        open_period = open_periods.get(source_ref)
         detector_group = detector_groups.get(group_id)
-        if open_period is None or detector_group is None or detector_group.detector is None:
+        if (
+            group is None
+            or open_period is None
+            or detector_group is None
+            or detector_group.detector is None
+        ):
             continue
         detector = detector_group.detector
         if (
@@ -206,13 +206,17 @@ def resolve_breached_metric_sources(
             "project": {"id": str(group.project_id), "slug": group.project.slug},
             "analysisWindow": _analysis_window(open_period, current_time),
         }
-        resolved[group_id] = BreachedMetricSource(
-            group=group,
-            open_period=open_period,
+        source = {
+            "type": "metric_open_period",
+            "ref": {
+                "groupId": str(group.id),
+                "openPeriodId": str(open_period.id),
+            },
+            "snapshot": snapshot,
+        }
+        resolved[source_ref] = BreachedMetricSource(
             project_id=group.project_id,
-            project_slug=group.project.slug,
-            source_key=_source_key(group.id, open_period.id),
             dataset=code_mode_dataset,
-            snapshot=snapshot,
+            source=source,
         )
     return resolved

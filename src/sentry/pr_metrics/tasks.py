@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import TypeVar
 
 from django.conf import settings
 from django.db import Error as DjangoDBError
-from django.db.models import Exists, OuterRef
+from django.db import OperationalError, router
+from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone as dj_timezone
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
@@ -36,6 +38,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
 from sentry.utils import metrics
+from sentry.utils.db import statement_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -46,19 +49,21 @@ DELAY_BETWEEN_RETRIES = 60  # seconds
 # hang off a PR and carry a date to age them by.
 _ActivityStore = TypeVar("_ActivityStore", PullRequestActivity, PullRequestActivityLog)
 
-# Per-run bounds on sweep_unattributed_pr_activity_task. Their product is the
-# drain rate: 50k rows per store per hourly run, comfortably ahead of inbound PR
-# volume while leaving headroom to work down the backlog the sweep meets on its
-# first deploy. Watch pr_metrics.activity_sweep.capped — sustained firing means
-# the sweep is falling behind and these want raising.
+# Per-run bounds on one store's sweep. The batch bounds cap the delete pressure a
+# run applies (50k rows); the budget caps how long it may spend applying it. Size
+# them off backlog_lag_seconds — a run pinned at the batch cap says more work
+# exists, not how much.
 _SWEEP_BATCH_SIZE = 1000
 _SWEEP_MAX_BATCHES = 50
+SWEEP_STORE_BUDGET = timedelta(seconds=240)
 
-# sweep_unattributed_pr_activity_task loops over batches of deletes, so it needs
-# far more than the taskbroker client's 10s default. Sized well above the budget
-# the bounds above can spend, so the task ends by running out of work rather than
-# by being declared dead mid-delete.
-SWEEP_PROCESSING_DEADLINE = 600
+# Both stores' budgets plus room to report on them. An overrun is a broker kill,
+# which raises BaseException and takes the run's counters and log line with it.
+SWEEP_PROCESSING_DEADLINE = int(2 * SWEEP_STORE_BUDGET.total_seconds()) + 60
+
+# Ceiling on each backlog lookup. A pathological table should cost the gauges, not
+# the deleting.
+SWEEP_BACKLOG_QUERY_TIMEOUT = timedelta(seconds=5)
 
 # forward_pr_to_seer_task's Seer call blocks for up to settings.SEER_DEFAULT_TIMEOUT.
 # Give the task headroom past that instead of the taskbroker client's 10s default —
@@ -194,65 +199,204 @@ def cleanup_pr_activity_task(*, pull_request_id: int) -> None:
     metrics.incr("pr_metrics.cleanup_activity.doc_deleted", amount=doc_deleted)
 
 
-def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: datetime) -> None:
-    """Delete one store's rows for unattributed PRs, oldest first, within the run budget.
+def _unswept(
+    model: type[_ActivityStore], date_field: str, cutoff: datetime, frontier: datetime | None
+) -> QuerySet[_ActivityStore]:
+    """The rows this sweep may still delete, oldest first.
 
-    Attributed PRs are excluded in the query rather than filtered out afterwards so
-    they can't occupy batch slots. They cluster at the head of the date ordering:
-    the emit path sweeps them promptly once they emit, so the ones still sitting
-    there are those whose verdict never settled.
+    Attributed PRs are excluded in the query rather than after it so they can't
+    occupy batch slots. They cluster at the head, since the emit path sweeps them
+    once they emit.
 
-    Running out of budget with work still queued is the signal that the sweep is
-    not keeping pace with inbound webhooks, so it gets its own counter.
-
-    ``cleanup.abort_execution`` stops the sweep — the same switch the cleanup
-    command honours, so one lever covers everything deleting trailing data on a
-    region. These are bulk deletes with nothing throttling them, so it has to be
-    able to halt a run already going, not just prevent the next one.
+    ``frontier`` is how far this run has advanced. Everything before it is deleted
+    or attributed, so resuming there stops a run costing the square of its batch
+    count. Inclusive, so rows sharing the boundary timestamp are re-read, not
+    skipped.
     """
     attributed = PullRequestAttribution.objects.filter(
         pull_request_id=OuterRef("pull_request_id"), is_valid=True
     )
+    queryset = model.objects.filter(**{f"{date_field}__lt": cutoff})
+    if frontier is not None:
+        queryset = queryset.filter(**{f"{date_field}__gte": frontier})
+    return queryset.exclude(Exists(attributed)).order_by(date_field)
 
+
+def _oldest_date(
+    queryset: QuerySet[_ActivityStore], date_field: str, alias: str
+) -> datetime | None:
+    """One date off the head of the index, bounded. Raises ``OperationalError`` on expiry."""
+    with statement_timeout(alias, SWEEP_BACKLOG_QUERY_TIMEOUT):
+        return queryset.using(alias).values_list(date_field, flat=True).first()
+
+
+def _report_backlog_query_failure(store: str, lookup: str) -> None:
+    # `lookup` stays out of the tags: it would be a new tag key, which Datadog drops
+    # until its tag config allows it. The log line carries it instead.
+    metrics.incr(
+        "pr_metrics.activity_sweep.backlog_query_failed",
+        tags={"store": store},
+        sample_rate=1.0,
+    )
+    logger.exception(
+        "pr_metrics.activity_sweep.backlog_query_failed",
+        extra={"store": store, "lookup": lookup},
+    )
+
+
+def _report_backlog_depth(
+    model: type[_ActivityStore],
+    date_field: str,
+    cutoff: datetime,
+    frontier: datetime | None,
+    store: str,
+) -> dict[str, float | None]:
+    """Emit how much is left, and return it for the log line.
+
+    ``deleted`` and ``capped`` describe flow only: a run that fills its budget
+    reports the same whether fifty thousand rows remain or fifty million.
+
+    - ``backlog_lag_seconds`` — how far the deletion frontier trails the cutoff.
+      Zero is drained, and since the cutoff advances an hour per hour, the slope is
+      the drain ETA. The existing ``postgresql.live_rows`` gauge cannot stand in: it
+      counts the whole table, so it floors at the attributed and under-cutoff rows
+      the sweep may never delete, and never reads drained.
+    - ``oldest_row_age_seconds`` — age of the oldest row of any kind. The sweep can
+      never delete an attributed row, so a large age against a zero lag names the
+      prefix every batch query walks past.
+
+    Each lookup is bounded and degrades on its own: measuring the backlog must not
+    cost us the draining of it. The age lookup earns its own bound by starting at the
+    head of the index, dead entries and all, rather than at the frontier.
+    """
+    alias = router.db_for_read(model)
+
+    lag: float | None = None
+    try:
+        oldest_unswept = _oldest_date(
+            _unswept(model, date_field, cutoff, frontier), date_field, alias
+        )
+    except OperationalError:
+        _report_backlog_query_failure(store, "lag")
+    else:
+        # A drained store has no unswept row: that is a lag of zero, not an absent
+        # reading — the gauge is meant to bottom out.
+        lag = (cutoff - oldest_unswept).total_seconds() if oldest_unswept is not None else 0.0
+        metrics.gauge(
+            "pr_metrics.activity_sweep.backlog_lag_seconds",
+            lag,
+            tags={"store": store},
+            sample_rate=1.0,
+            unit="second",
+        )
+
+    age: float | None = None
+    try:
+        oldest_row = _oldest_date(model.objects.order_by(date_field), date_field, alias)
+    except OperationalError:
+        _report_backlog_query_failure(store, "age")
+    else:
+        # An empty store has no oldest row; zero would read as "a row arrived just now".
+        if oldest_row is not None:
+            age = (dj_timezone.now() - oldest_row).total_seconds()
+            metrics.gauge(
+                "pr_metrics.activity_sweep.oldest_row_age_seconds",
+                age,
+                tags={"store": store},
+                sample_rate=1.0,
+                unit="second",
+            )
+
+    return {"backlog_lag_seconds": lag, "oldest_row_age_seconds": age}
+
+
+def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: datetime) -> None:
+    """Delete one store's rows for unattributed PRs, oldest first, within budget.
+
+    The four ways a run can end report distinctly, because they call for different
+    responses: drained is healthy, ``capped`` wants a bigger batch cap, ``timed_out``
+    says the database slowed rather than that the backlog grew, and ``aborted`` says
+    someone switched the sweep off. Only ``_report_backlog_depth`` says how far
+    behind any of them leaves us.
+
+    The batch cap alone cannot hold the run inside its processing deadline — a batch
+    costs whatever the database charges for it that minute — so the run also carries
+    a wall-clock budget, checked between batches.
+
+    ``cleanup.abort_execution`` stops the sweep — the switch the cleanup command
+    honours, re-read per batch so it halts a run already in flight.
+
+    Counters are unsampled: ``deleted`` passes an ``amount``, which the default 10%
+    rate restates as ten times one surviving packet.
+    """
     store = model.__name__
+    started = time.monotonic()
+    deadline = started + SWEEP_STORE_BUDGET.total_seconds()
     deleted_total = 0
+    batches = 0
+    frontier: datetime | None = None
     capped = True
     aborted = False
+    timed_out = False
     for _ in range(_SWEEP_MAX_BATCHES):
         if options.get("cleanup.abort_execution"):
-            # Re-read every batch, not just on entry, so the switch can stop a run
-            # already in flight rather than only the next one.
             aborted = True
             capped = False
             break
-        ids = list(
-            model.objects.filter(**{f"{date_field}__lt": cutoff})
-            .exclude(Exists(attributed))
-            .order_by(date_field)
-            .values_list("id", flat=True)[:_SWEEP_BATCH_SIZE]
-        )
-        if not ids:
+        if time.monotonic() >= deadline:
+            timed_out = True
             capped = False
             break
-        deleted, _ = model.objects.filter(id__in=ids).delete()
+        rows = list(
+            _unswept(model, date_field, cutoff, frontier).values_list("id", date_field)[
+                :_SWEEP_BATCH_SIZE
+            ]
+        )
+        if not rows:
+            capped = False
+            break
+        deleted, _ = model.objects.filter(id__in=[row[0] for row in rows]).delete()
         deleted_total += deleted
-        if len(ids) < _SWEEP_BATCH_SIZE:
-            # A short batch means the queue is drained; stop rather than spend the
-            # remaining budget re-querying, and don't report a cap that isn't real
-            # when the work happens to end on the last iteration.
+        batches += 1
+        frontier = rows[-1][1]
+        if len(rows) < _SWEEP_BATCH_SIZE:
+            # A short batch drains the queue; stop rather than re-query, and don't
+            # report a cap that isn't real when work ends on the last iteration.
             capped = False
             break
 
-    metrics.incr("pr_metrics.activity_sweep.deleted", amount=deleted_total, tags={"store": store})
+    backlog = _report_backlog_depth(model, date_field, cutoff, frontier, store)
+
+    metrics.incr(
+        "pr_metrics.activity_sweep.deleted",
+        amount=deleted_total,
+        tags={"store": store},
+        sample_rate=1.0,
+    )
+    # `capped` is binary; the batch count is what separates a backlog draining from a
+    # store idling well under its cap.
+    metrics.gauge(
+        "pr_metrics.activity_sweep.batches_used", batches, tags={"store": store}, sample_rate=1.0
+    )
     if aborted:
-        # Kept distinct from capped: one says the sweep was switched off, the other
-        # says it is falling behind, and they call for opposite responses.
-        metrics.incr("pr_metrics.activity_sweep.aborted", tags={"store": store})
+        metrics.incr("pr_metrics.activity_sweep.aborted", tags={"store": store}, sample_rate=1.0)
+    elif timed_out:
+        metrics.incr("pr_metrics.activity_sweep.timed_out", tags={"store": store}, sample_rate=1.0)
     elif capped:
-        metrics.incr("pr_metrics.activity_sweep.capped", tags={"store": store})
+        metrics.incr("pr_metrics.activity_sweep.capped", tags={"store": store}, sample_rate=1.0)
     logger.info(
         "pr_metrics.activity_sweep",
-        extra={"store": store, "deleted": deleted_total, "capped": capped, "aborted": aborted},
+        extra={
+            "store": store,
+            "deleted": deleted_total,
+            "batches": batches,
+            "capped": capped,
+            "timed_out": timed_out,
+            "aborted": aborted,
+            "duration_ms": int((time.monotonic() - started) * 1000),
+            "cutoff": cutoff.isoformat(),
+            **backlog,
+        },
     )
 
 
@@ -382,9 +526,7 @@ def detect_stale_pull_requests_task() -> None:
     ``REVIEWER_ENGAGEMENT_ACTIVITY_TYPES`` against legacy rows otherwise —
     fetched per batch since pulling every document at once isn't bounded.
 
-    Feature-gated per org by ``pr-metrics-emit`` and ``pr-metrics-activity``
-    (both required — without activity tracking we can't tell an engaged PR
-    from an untouched one).
+    Feature-gated per org by ``pr-metrics``.
     """
     # Imported here to avoid a circular import: webhooks imports this module.
     from sentry.pr_metrics.webhooks import _claim_terminal_event
@@ -411,10 +553,7 @@ def detect_stale_pull_requests_task() -> None:
                 )
                 continue
 
-            if not features.has("organizations:pr-metrics-emit", org):
-                continue
-
-            if not features.has("organizations:pr-metrics-activity", org):
+            if not features.has("organizations:pr-metrics", org):
                 continue
 
             candidate_prs.append(pr)
