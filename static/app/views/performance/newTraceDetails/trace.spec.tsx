@@ -1132,8 +1132,14 @@ describe('trace view', () => {
 
     render(<TraceView />, {initialRouterConfig, organization});
 
-    expect(await screen.findByText('root transaction')).toBeInTheDocument();
+    const rootTransaction = await screen.findByText('root transaction');
     expect(screen.queryByText(vitalSpanDescription)).not.toBeInTheDocument();
+
+    await userEvent.click(rootTransaction);
+    await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
+    await waitFor(() => {
+      expect(screen.queryByTestId('trace-drawer-title')).not.toBeInTheDocument();
+    });
 
     const vitalPill = (await screen.findAllByText('LCP')).find(element =>
       element.classList.contains('TraceIndicatorLabel')

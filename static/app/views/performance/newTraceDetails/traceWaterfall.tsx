@@ -368,6 +368,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     (node: BaseNode): Promise<BaseNode | null> => {
       return onScrollToNode(node).then(maybeNode => {
         if (maybeNode) {
+          if (traceStateRef.current.preferences.drawer.minimized) {
+            traceDispatch({type: 'minimize drawer', payload: false});
+          }
           setRowAsFocused(
             maybeNode,
             null,
@@ -380,7 +383,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         return maybeNode;
       });
     },
-    [onScrollToNode, setRowAsFocused]
+    [onScrollToNode, setRowAsFocused, traceDispatch]
   );
 
   useEffect(() => {
