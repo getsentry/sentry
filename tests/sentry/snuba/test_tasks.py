@@ -165,7 +165,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             create_subscription_in_snuba(sub.id)
             request_body = json.loads(urlopen.call_args[1]["body"])
-            assert request_body["organization"] == self.organization.id
+            assert request_body["organization_id"] == self.organization.id
 
     def test_group_id(self) -> None:
         group_id = 1234
