@@ -19,6 +19,7 @@ import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnOrder,
+  type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
@@ -210,7 +211,7 @@ function DashboardTable({
     );
   };
 
-  function getColumnSort(column: GridColumnOrder<string>) {
+  function getColumnSort(column: GridColumnOrder<string>): GridColumnSort | undefined {
     if (!(column.key in SortKeys)) {
       return;
     }
@@ -221,15 +222,11 @@ function DashboardTable({
       hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
     );
     const currentDirection =
-      urlSort === sortKey.asc
-        ? ('asc' as const)
-        : urlSort === sortKey.desc
-          ? ('desc' as const)
-          : undefined;
+      urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
     const isCurrentSort = currentDirection !== undefined;
 
     return {
-      align: 'left' as const,
+      align: 'left',
       direction:
         !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection,
       to: {

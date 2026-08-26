@@ -6,7 +6,7 @@ import type {
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
 
-interface TableHeadProps<K> {
+interface ColumnSortProps<K> {
   currentSort?: GridColumnSortBy<K> | null;
   generateSortLink?: (column: K) => () => LocationDescriptor | undefined;
   rightAlignedColumns?: Set<K>;
@@ -18,16 +18,19 @@ export function getTableColumnSort<K>({
   generateSortLink,
   rightAlignedColumns,
   sortableColumns,
-}: TableHeadProps<K>) {
+}: ColumnSortProps<K>) {
   return function (column: GridColumnOrder<K>): GridColumnSort {
-    const canSort = sortableColumns?.has(column.key) ?? false;
+    const align = rightAlignedColumns?.has(column.key) ? 'right' : 'left';
+
+    if (!sortableColumns?.has(column.key)) {
+      return {align};
+    }
 
     return {
-      align: rightAlignedColumns?.has(column.key) ? 'right' : 'left',
-      direction:
-        canSort && currentSort?.key === column.key ? currentSort?.order : undefined,
+      align,
+      direction: currentSort?.key === column.key ? currentSort.order : undefined,
       replace: true,
-      to: canSort ? generateSortLink?.(column.key)() : undefined,
+      to: generateSortLink?.(column.key)(),
     };
   };
 }

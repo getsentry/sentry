@@ -53,9 +53,10 @@ export function getEventViewColumnSort({
     onSort,
     to: {
       ...location,
-      query: makeQuery
-        ? makeQuery(queryStringObject)
-        : {...location.query, sort: queryStringObject.sort},
+      query: makeQuery?.(queryStringObject) ?? {
+        ...location.query,
+        sort: queryStringObject.sort,
+      },
     },
   };
 }

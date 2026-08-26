@@ -107,6 +107,13 @@ type Props = {
   }) => ReactNode;
 };
 
+const UNSORTABLE_FIELDS = new Set([
+  'id',
+  'trace',
+  'replayId',
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+]);
+
 export function EventsTable({
   eventView,
   location,
@@ -393,11 +400,7 @@ export function EventsTable({
 
       return getEventViewColumnSort({
         align: fieldAlignment(column.name, column.type, tableMeta),
-        canSort:
-          field.field !== 'id' &&
-          field.field !== 'trace' &&
-          field.field !== 'replayId' &&
-          field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+        canSort: !UNSORTABLE_FIELDS.has(column.name),
         eventView,
         field,
         location,

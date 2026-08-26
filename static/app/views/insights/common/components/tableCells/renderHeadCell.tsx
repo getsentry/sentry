@@ -131,22 +131,14 @@ export const getColumnSort = ({
   };
 };
 
-export const renderHeadCell = ({column}: Pick<Options, 'column'>) => {
-  if (!column.tooltip) {
-    return column.name;
-  }
-
-  const AlignmentContainer =
-    getAlignment(column.key) === 'right' ? AlignRight : AlignLeft;
-
-  return (
-    <AlignmentContainer>
-      <StyledTooltip isHoverable showUnderline title={column.tooltip}>
-        {column.name}
-      </StyledTooltip>
-    </AlignmentContainer>
+export const renderHeadCell = ({column}: Pick<Options, 'column'>) =>
+  column.tooltip ? (
+    <StyledTooltip isHoverable showUnderline title={column.tooltip}>
+      {column.name}
+    </StyledTooltip>
+  ) : (
+    column.name
   );
-};
 
 const getAlignment = (key: string): ColumnAlign => {
   const result = parseFunction(key);
@@ -163,20 +155,6 @@ const getAlignment = (key: string): ColumnAlign => {
   }
   return 'left';
 };
-
-const AlignLeft = styled('span')`
-  display: block;
-  margin: auto;
-  text-align: left;
-  width: 100%;
-`;
-
-const AlignRight = styled('span')`
-  display: block;
-  margin: auto;
-  text-align: right;
-  width: 100%;
-`;
 
 const StyledTooltip = styled(Tooltip)`
   top: 1px;

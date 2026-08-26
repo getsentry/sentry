@@ -19,7 +19,7 @@ export function getNextDirection(
 export function getNextSort(
   field: string,
   currentSort: Sort | undefined,
-  defaultDirection: Sort['kind'] = 'desc'
+  defaultDirection: SortDirection = 'desc'
 ): Sort {
   return {
     field,

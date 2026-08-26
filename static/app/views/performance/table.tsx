@@ -471,33 +471,21 @@ export function Table({
     column: TableColumn<keyof TableDataRow>,
     title: ColumnTitle
   ): React.ReactNode {
-    const field = {field: column.name, width: column.width};
-    const sortLink = title.title || field.field;
-
-    if (field.field.startsWith('user_misery')) {
-      if (title.tooltip) {
-        return (
-          <GuideAnchor target="project_transaction_threshold" position="top">
-            <Tooltip isHoverable title={title.tooltip} showUnderline>
-              {sortLink}
-            </Tooltip>
-          </GuideAnchor>
-        );
-      }
-      return (
-        <GuideAnchor target="project_transaction_threshold" position="top">
-          {sortLink}
-        </GuideAnchor>
-      );
-    }
-
-    if (!title.tooltip) {
-      return sortLink;
-    }
-    return (
+    const label = title.title || column.name;
+    const content = title.tooltip ? (
       <Tooltip isHoverable title={title.tooltip} showUnderline>
-        {sortLink}
+        {label}
       </Tooltip>
+    ) : (
+      label
+    );
+
+    return column.name.startsWith('user_misery') ? (
+      <GuideAnchor target="project_transaction_threshold" position="top">
+        {content}
+      </GuideAnchor>
+    ) : (
+      content
     );
   }
 
