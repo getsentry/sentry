@@ -33,6 +33,7 @@ from sentry.investigations.services import (
     create_template_investigation,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
+from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
 
 
@@ -125,6 +126,8 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             if response is not None:
                 return response
             raise
+        if created:
+            record_investigation_started(investigation)
         return Response(
             serialize(
                 investigation,

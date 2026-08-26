@@ -336,6 +336,15 @@ export function CustomerDetails() {
       level: 'warning',
       visible: subscription.onDemandDisabled,
     },
+    {
+      name: subscription.hasMigratedToBillingPlatform
+        ? 'Billing Platform'
+        : 'Legacy Billing',
+      level: subscription.hasMigratedToBillingPlatform ? 'success' : 'muted',
+      help: subscription.hasMigratedToBillingPlatform
+        ? 'This org is served by the billing platform.'
+        : 'This org is still served by the legacy billing system.',
+    },
   ];
 
   const billingSections = [

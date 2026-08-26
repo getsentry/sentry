@@ -98,7 +98,7 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     accesses = serializers.ListField(required=True)
     date = serializers.IntegerField(required=True)
     member = serializers.DictField(required=False, allow_null=True)
-    name = serializers.CharField(max_length=100, required=True)
+    name = serializers.CharField(max_length=256, required=True)
     description = serializers.CharField(allow_blank=True, required=True)
 
 
@@ -201,7 +201,7 @@ class GenericItemSerializer(serializers.Serializer):
     change_id = serializers.IntegerField(required=True)
     created_at = serializers.DateTimeField(required=True)
     created_by = GenericItemCreatedBySerializer(required=True)
-    flag = serializers.CharField(required=True, max_length=100)
+    flag = serializers.CharField(required=True, max_length=256)
 
 
 class GenericMetaSerializer(serializers.Serializer):
@@ -277,7 +277,7 @@ SUPPORTED_UNLEASH_ACTIONS = {
 
 class UnleashItemSerializer(serializers.Serializer):
     # Technically featureName is not required by Unleash, but for all the actions we care about, it should exist.
-    featureName = serializers.CharField(max_length=100, required=True)
+    featureName = serializers.CharField(max_length=256, required=True)
     createdAt = serializers.DateTimeField(
         required=True,
         input_formats=["iso-8601"],
