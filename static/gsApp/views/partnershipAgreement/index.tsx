@@ -24,7 +24,7 @@ export default function PartnershipAgreement({
     mutationFn: () =>
       fetchMutation({
         url: getApiUrl('/organizations/$organizationIdOrSlug/partnership-agreements/', {
-          path: {organizationIdOrSlug: organizationSlug!},
+          path: {organizationIdOrSlug: String(organizationSlug)},
         }),
         method: 'POST',
       }),
