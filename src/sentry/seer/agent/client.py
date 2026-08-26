@@ -552,8 +552,9 @@ class SeerAgentClient:
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
         referrer: str | None = None,
-        force_ce: bool | None = None,
-        force_frontend_code_search: bool | None = None,
+        force_ce: bool | None = None,  # Deprecated, use agent_run_options instead
+        force_frontend_code_search: bool | None = None,  # Deprecated, use agent_run_options instead
+        agent_run_options: dict[str, Any] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
