@@ -158,12 +158,6 @@ export function MobileOverviewTable({response, sort}: Props) {
         error={response.error}
         data={data}
         columnOrder={columns}
-        columnSortBy={[
-          {
-            key: sort.field,
-            order: sort.kind,
-          },
-        ]}
         grid={{
           prependColumnWidths: ['max-content'],
           renderPrependColumns,

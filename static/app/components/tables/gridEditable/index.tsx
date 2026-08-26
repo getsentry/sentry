@@ -23,7 +23,7 @@ import {
   HeaderButtonContainer,
   HeaderTitle,
 } from './styles';
-import type {GridColumnOrder, GridColumnSortBy, GridData} from './types';
+import type {GridColumnOrder, GridData} from './types';
 
 export type * from './types';
 
@@ -32,7 +32,6 @@ export {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED};
 type GridEditableProps<
   DataRow,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
-  SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
 > = {
   columnOrder: Order[];
   data: DataRow[];
@@ -44,11 +43,6 @@ type GridEditableProps<
   grid: GridData<DataRow, Order>;
   'aria-label'?: string;
   bodyStyle?: React.CSSProperties;
-  /**
-   * @deprecated Report the direction from `grid.getColumnSort` instead, so the
-   * arrow a column renders and the direction it announces cannot disagree.
-   */
-  columnSortBy?: SortBy[];
   emptyMessage?: React.ReactNode;
   error?: unknown | null;
 
@@ -94,8 +88,7 @@ type GridEditableProps<
 export function GridEditable<
   DataRow extends Record<string, any>,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
-  SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
->(props: GridEditableProps<DataRow, Order, SortBy>) {
+>(props: GridEditableProps<DataRow, Order>) {
   const {
     'aria-label': ariaLabel,
     bodyStyle,
@@ -150,9 +143,6 @@ export function GridEditable<
           ))}
         {props.columnOrder.map((column, i) => {
           const columnSort = grid.getColumnSort?.(column, i);
-          const direction =
-            columnSort?.direction ??
-            props.columnSortBy?.find(sort => sort.key === column.key)?.order;
 
           return (
             <DataTable.HeadCell
@@ -163,7 +153,7 @@ export function GridEditable<
               isFirst={i === 0}
               onSort={columnSort?.onSort}
               replace={columnSort?.replace}
-              sort={direction}
+              sort={columnSort?.direction}
               to={columnSort?.to}
             >
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}

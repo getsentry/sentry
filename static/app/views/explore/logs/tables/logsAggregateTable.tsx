@@ -122,12 +122,6 @@ export function LogsAggregateTable({
           name: field,
           width: COL_WIDTH_UNDEFINED,
         }))}
-        columnSortBy={[
-          {
-            key: allFields[0]!,
-            order: 'desc',
-          },
-        ]}
         grid={{
           getColumnSort: column => {
             const func = parseFunction(column.name);
