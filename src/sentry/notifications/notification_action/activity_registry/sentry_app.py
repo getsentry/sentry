@@ -36,6 +36,7 @@ class ActivityAlertType(StrEnum):
     SEER_CODING_STARTED = "seer_coding_started"
     SEER_CODING_COMPLETED = "seer_coding_completed"
     SEER_PR_CREATED = "seer_pr_created"
+    SEER_PR_READY_FOR_REVIEW = "seer_pr_ready_for_review"
     SEER_ITERATION_STARTED = "seer_pr_iteration_started"
     SEER_ITERATION_COMPLETED = "seer_pr_iteration_completed"
     SET_RESOLVED = "status_resolved"
