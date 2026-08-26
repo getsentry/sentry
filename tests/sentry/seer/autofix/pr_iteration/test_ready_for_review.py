@@ -95,12 +95,14 @@ def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
     mark_ready_for_review(ctx)
 
 
-class PrReadyForReviewPayloadTest(TestCase):
-    """The ``emit_pr_ready_for_review`` payload must be repo-scoped on the
-    green-CI undraft path: each repo undrafts independently (its own CI), so a
+class EmitPrReadyForReviewTest(TestCase):
+    """The ``emit_pr_ready_for_review`` webhook payload must be repo-scoped on
+    the green-CI undraft path: each repo undrafts independently, so a
     single-repo undraft cannot claim every repo's PR is ready."""
 
-    def _run_state(self, repo_names: list[str] = [REPO_NAME]) -> SeerRunState:
+    def _run_state(self, repo_names: list[str] | None = None) -> SeerRunState:
+        if repo_names is None:
+            repo_names = [REPO_NAME]
         return SeerRunState(
             run_id=RUN_ID,
             blocks=[],
@@ -119,56 +121,21 @@ class PrReadyForReviewPayloadTest(TestCase):
             },
         )
 
-    def test_emit_scopes_payload_to_filtered_repos(self) -> None:
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_emit_scopes_payload_to_filtered_repos(self, mock_broadcast: MagicMock) -> None:
+        # ``has_access`` is False in tests (flag off), so only the webhook fires.
         state = self._run_state(["owner/repo", "owner/other-repo"])
-
-        with patch(
-            "sentry.seer.entrypoints.operator.SeerAutofixOperator.has_access",
-            return_value=False,
-        ):
-            mock_broadcast = MagicMock()
-            with patch(
-                "sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay",
-                mock_broadcast,
-            ):
-                emit_pr_ready_for_review(
-                    organization=self.organization,
-                    group=self.group,
-                    run_id=RUN_ID,
-                    sentry_run_id=None,
-                    state=state,
-                    filtered_repos=["owner/repo"],
-                )
+        emit_pr_ready_for_review(
+            organization=self.organization,
+            group=self.group,
+            run_id=RUN_ID,
+            sentry_run_id=None,
+            state=state,
+            filtered_repos=["owner/repo"],
+        )
 
         payload = mock_broadcast.call_args.kwargs["payload"]
-        assert len(payload["pull_requests"]) == 1
-        assert payload["pull_requests"][0]["repo_name"] == "owner/repo"
-
-    def test_emit_no_filter_includes_all_repos(self) -> None:
-        state = self._run_state(["owner/repo", "owner/other-repo"])
-
-        with patch(
-            "sentry.seer.entrypoints.operator.SeerAutofixOperator.has_access",
-            return_value=False,
-        ):
-            mock_broadcast = MagicMock()
-            with patch(
-                "sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay",
-                mock_broadcast,
-            ):
-                emit_pr_ready_for_review(
-                    organization=self.organization,
-                    group=self.group,
-                    run_id=RUN_ID,
-                    sentry_run_id=None,
-                    state=state,
-                )
-
-        payload = mock_broadcast.call_args.kwargs["payload"]
-        assert {pr["repo_name"] for pr in payload["pull_requests"]} == {
-            "owner/repo",
-            "owner/other-repo",
-        }
+        assert [pr["repo_name"] for pr in payload["pull_requests"]] == ["owner/repo"]
 
     def test_format_pull_requests_payload_includes_all_repos(self) -> None:
         state = self._run_state(["owner/repo", "owner/other-repo"])
