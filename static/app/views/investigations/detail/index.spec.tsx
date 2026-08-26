@@ -163,6 +163,16 @@ function renderView(
   return {...result, queryClient};
 }
 
+async function chooseCellAction(
+  cellTitle: string,
+  action: 'Delete' | 'Refine' | 'Rerun'
+) {
+  await userEvent.click(
+    await screen.findByRole('button', {name: `Cell actions for ${cellTitle}`})
+  );
+  await userEvent.click(await screen.findByRole('menuitemradio', {name: action}));
+}
+
 describe('Investigation detail', () => {
   beforeEach(() => {
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
@@ -180,16 +190,27 @@ describe('Investigation detail', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cell actions for Summary')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Ask Seer about Summary'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Ask Seer about Latency query'})
-    ).toBeInTheDocument();
+      screen.queryByRole('button', {name: /Ask Seer about/})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Rerun/})).not.toBeInTheDocument();
     expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
     expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Cell actions for Summary'));
+    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Rerun'})).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(screen.getByLabelText('Cell actions for Latency query'));
+    expect(screen.getByRole('menuitemradio', {name: 'Rerun'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
   });
 
   it('opens feedback scoped to the investigation', async () => {
@@ -662,11 +683,7 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Ask Seer about Latency query',
-      })
-    );
+    await chooseCellAction('Latency query', 'Refine');
 
     const prompt = screen.getByLabelText('Instructions for Seer');
     expect(screen.getByText('Ask Seer to refine')).toBeInTheDocument();
@@ -742,7 +759,7 @@ describe('Investigation detail', () => {
       'bordered'
     );
     expect(screen.getByTestId('query-cell-header')).toContainElement(
-      screen.getByRole('button', {name: 'Ask Seer about Database latency'})
+      screen.getByRole('button', {name: 'Cell actions for Database latency'})
     );
     expect(screen.getByTestId('investigation-cell-block-1')).toHaveAttribute(
       'data-has-divider',
@@ -944,12 +961,15 @@ describe('Investigation detail', () => {
     expect(
       within(chartHeader).getByText(/3:57pm–4:12pm PST\s+\|\s+363 Total Events/)
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Ask Seer about Latency query'})
-    ).toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Ask Seer about Latency query'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Rerun Latency query'})
+    ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Rerun Latency query'}));
+    await chooseCellAction('Latency query', 'Rerun');
     await waitFor(() =>
       expect(rerunRequest).toHaveBeenCalledWith(
         runUrl,
@@ -972,8 +992,7 @@ describe('Investigation detail', () => {
     });
 
     renderView(organization, queryClient);
-    await userEvent.click(await screen.findByLabelText('Cell actions for Latency query'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    await chooseCellAction('Latency query', 'Delete');
     expect(deleteRequest).not.toHaveBeenCalled();
     renderGlobalModal();
     act(() => {
@@ -997,6 +1016,34 @@ describe('Investigation detail', () => {
       )
     );
     expect(screen.queryByDisplayValue('Latency query')).not.toBeInTheDocument();
+  });
+
+  it('deletes a text cell from its actions menu', async () => {
+    const investigation = InvestigationDetailFixture();
+    const block = investigation.blocks[0]!;
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/${block.id}/`,
+      method: 'DELETE',
+    });
+
+    renderView();
+    await chooseCellAction('Summary', 'Delete');
+    expect(deleteRequest).not.toHaveBeenCalled();
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(deleteRequest).toHaveBeenCalledWith(
+        `${detailUrl}blocks/${block.id}/`,
+        expect.objectContaining({
+          data: {investigationVersion: 1, version: 1},
+        })
+      )
+    );
+    expect(
+      screen.queryByTestId(`investigation-cell-${block.id}`)
+    ).not.toBeInTheDocument();
   });
 
   it('adds text and query cells and starts a never-run cell from its stored prompt', async () => {
@@ -1047,7 +1094,7 @@ describe('Investigation detail', () => {
     );
     expect(
       await screen.findByRole('button', {
-        name: 'Ask Seer about Working theory',
+        name: 'Cell actions for Working theory',
       })
     ).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Working theory')).not.toBeInTheDocument();
@@ -1114,9 +1161,7 @@ describe('Investigation detail', () => {
         error: null,
       },
     });
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Ask Seer about Error volume'})
-    );
+    await chooseCellAction('Error volume', 'Refine');
     expect(screen.getByLabelText('Instructions for Seer')).toHaveValue(
       'Show errors over the last 24 hours'
     );
@@ -1264,7 +1309,7 @@ describe('Investigation detail', () => {
 
     renderView();
     expect(await screen.findByText('Previous successful result')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Ask Seer about Summary'}));
+    await chooseCellAction('Summary', 'Refine');
     expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
     const promptInput = screen.getByLabelText('Instructions for Seer');
     await userEvent.type(promptInput, 'Compare against deploys');
@@ -1342,9 +1387,7 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
-    );
+    await chooseCellAction('Summary', 'Refine');
     await userEvent.type(
       screen.getByLabelText('Instructions for Seer'),
       'Try another angle'

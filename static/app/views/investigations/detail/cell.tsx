@@ -11,7 +11,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
@@ -21,7 +21,6 @@ import {
   IconChevron,
   IconClose,
   IconEllipsis,
-  IconRefresh,
   IconReturn,
   IconSeer,
 } from 'sentry/icons';
@@ -150,33 +149,50 @@ export function InvestigationCell({
     }
   }
 
-  const refinementButton = (
-    <Button
-      size="xs"
-      variant="transparent"
-      icon={<IconSeer size="xs" />}
-      aria-label={t('Ask Seer about %s', displayTitle)}
-      disabled={waitingForDependencies}
-      onClick={panelOpen ? () => setPanelOpen(false) : openPanel}
-    />
+  const actionItems: MenuItemProps[] = [];
+  if (block.kind === 'query') {
+    actionItems.push({
+      key: 'rerun',
+      label: t('Rerun'),
+      disabled:
+        !canRun ||
+        rerunMutation.isPending ||
+        isExecutionActive(block.currentExecution?.status) ||
+        !(block.generationPrompt || block.content).trim(),
+      onAction: () => void rerun(),
+    });
+  }
+  actionItems.push(
+    {
+      key: 'refine',
+      label: t('Refine'),
+      disabled: waitingForDependencies,
+      onAction: openPanel,
+    },
+    {
+      key: 'delete',
+      label: t('Delete'),
+      priority: 'danger',
+      disabled:
+        !canRun ||
+        deleteMutation.isPending ||
+        isExecutionActive(block.currentExecution?.status),
+      onAction: () =>
+        openConfirmModal({
+          message: t('Are you sure you want to delete this cell?'),
+          priority: 'danger',
+          confirmText: t('Delete'),
+          onConfirm: () =>
+            deleteMutation.mutate({
+              block,
+              investigationVersion: investigation.version,
+            }),
+        }),
+    }
   );
 
-  const queryHeaderActions = (
-    <Flex align="center" gap="xs" flexShrink={0}>
-      {refinementButton}
-      <Button
-        size="xs"
-        variant="transparent"
-        icon={<IconRefresh size="xs" />}
-        aria-label={t('Rerun %s', displayTitle)}
-        busy={rerunMutation.isPending}
-        disabled={
-          !canRun ||
-          isExecutionActive(block.currentExecution?.status) ||
-          !(block.generationPrompt || block.content).trim()
-        }
-        onClick={() => void rerun()}
-      />
+  const cellActions = (
+    <CellActions data-cell-actions flexShrink={0}>
       <DropdownMenu
         position="bottom-end"
         usePortal
@@ -187,30 +203,9 @@ export function InvestigationCell({
           icon: <IconEllipsis size="xs" />,
           'aria-label': t('Cell actions for %s', displayTitle),
         }}
-        items={[
-          {
-            key: 'delete',
-            label: t('Delete'),
-            priority: 'danger',
-            disabled:
-              !canRun ||
-              deleteMutation.isPending ||
-              isExecutionActive(block.currentExecution?.status),
-            onAction: () =>
-              openConfirmModal({
-                message: t('Are you sure you want to delete this cell?'),
-                priority: 'danger',
-                confirmText: t('Delete'),
-                onConfirm: () =>
-                  deleteMutation.mutate({
-                    block,
-                    investigationVersion: investigation.version,
-                  }),
-              }),
-          },
-        ]}
+        items={actionItems}
       />
-    </Flex>
+    </CellActions>
   );
 
   const panel = panelOpen ? (
@@ -240,7 +235,7 @@ export function InvestigationCell({
       {block.kind === 'query' ? (
         <Fragment>
           <QueryResult
-            actions={queryHeaderActions}
+            actions={cellActions}
             block={block}
             progressState={progressState}
           />
@@ -250,8 +245,8 @@ export function InvestigationCell({
         <Fragment>
           <CellResult
             block={block}
+            actions={cellActions}
             progressState={progressState}
-            refinementButton={refinementButton}
             streamedMarkdown={
               isExecutionActive(block.currentExecution?.status)
                 ? streamedTextQuery.data?.partialMarkdown
@@ -266,20 +261,20 @@ export function InvestigationCell({
 }
 
 function CellResult({
+  actions,
   block,
   progressState,
-  refinementButton,
   streamedMarkdown,
 }: {
+  actions: React.ReactNode;
   block: InvestigationBlock;
   progressState: CellProgressState;
-  refinementButton: React.ReactNode;
   streamedMarkdown?: string | null;
 }) {
   const markdown =
     streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
   return (
-    <Stack
+    <CellHoverSurface
       position="relative"
       flex={1}
       minWidth={0}
@@ -288,7 +283,7 @@ function CellResult({
       data-cell-variant="unbordered"
     >
       <Container position="absolute" top={0} right={0}>
-        {refinementButton}
+        {actions}
       </Container>
       <CellExecutionAlert block={block} />
       {markdown ? (
@@ -296,7 +291,7 @@ function CellResult({
       ) : (
         <CellProgress state={progressState} />
       )}
-    </Stack>
+    </CellHoverSurface>
   );
 }
 
@@ -321,7 +316,7 @@ function QueryResult({
     getChartMetadata(chart);
 
   return (
-    <Stack width="100%" gap="sm">
+    <CellHoverSurface width="100%" gap="sm">
       <QueryDisclosureButton
         size="sm"
         variant="transparent"
@@ -381,7 +376,7 @@ function QueryResult({
           </Container>
         </Stack>
       ) : null}
-    </Stack>
+    </CellHoverSurface>
   );
 }
 
@@ -1129,6 +1124,23 @@ const QueryDisclosureButton = styled(Button)`
   width: 100%;
   justify-content: flex-start;
   text-align: left;
+`;
+
+const CellActions = styled(Flex)`
+  opacity: 0;
+`;
+
+const CellHoverSurface = styled(Stack)`
+  &:hover ${CellActions},
+  &:focus-within ${CellActions} {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    ${CellActions} {
+      opacity: 1;
+    }
+  }
 `;
 
 const QueryTable = styled('table')`
