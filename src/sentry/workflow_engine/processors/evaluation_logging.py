@@ -59,7 +59,6 @@ def emit_detector_evaluation_logs(
     result: ProcessDetectorsResult,
     log_prefix: str = DETECTOR_EVALUATION_LOG_PREFIX,
 ) -> bool:
-    """Sample a detector and emit one self-contained artifact per grouped evaluation."""
     if not _is_sampled():
         return False
 
@@ -79,7 +78,11 @@ def emit_workflow_evaluation_logs(
     result: ProcessWorkflowsResult,
     log_prefix: str = WORKFLOW_EVALUATION_LOG_PREFIX,
 ) -> bool:
-    """Sample a batch and emit one self-contained artifact per workflow evaluation."""
+    """
+    This method is used to log the workflows batched evaluations
+    to individual logs, allowing us to easily filter and search for
+    a specific workflow's evaluation.
+    """
     if not should_log(organization, result):
         return False
 

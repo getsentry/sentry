@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, Protocol, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict
 
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import (
@@ -17,10 +17,6 @@ from .condition_group import DataConditionGroupEvaluation
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Action
-
-
-class _ProjectScopedEvent(Protocol):
-    project_id: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -124,15 +120,15 @@ class WorkflowEvaluation(
             "workflow_id": self.workflow_id,
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
-            "project_id": cast(_ProjectScopedEvent, event_data.event).project_id,
+            "project_id": event_data.event.project_id,
             "event_id": str(event_id) if event_id else None,
             "group_id": event_data.group.id,
             "outcome": self.outcome,
             "triggered_action_ids": triggered_action_ids,
             **({"deferred": deferred} if deferred else {}),
-            "trigger_group_evaluation": self.data["trigger_group_eval"].to_artifact(),
+            "trigger_group_evaluation": self.data.get("trigger_group_eval").to_artifact(),
             "filter_group_evaluations": [
-                evaluation.to_artifact() for evaluation in self.data["filter_group_evals"]
+                evaluation.to_artifact() for evaluation in self.data.get("filter_group_evals")
             ],
         }
 

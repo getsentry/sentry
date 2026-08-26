@@ -11,7 +11,7 @@ from sentry.workflow_engine.types import (
     DetectorResult,
 )
 
-from .base import BaseWorkflowEngineEvaluation, EvaluationPhase, EvaluationType
+from .base import BaseWorkflowEngineEvaluation, EvaluationType
 from .condition_group import DataConditionGroupEvaluation
 
 
@@ -108,7 +108,6 @@ class ProcessDetectorsResult:
     def artifact_data(self) -> dict[str, object]:
         return {
             "evaluation_type": EvaluationType.DETECTOR,
-            "evaluation_phase": EvaluationPhase.INITIAL,
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
             "project_id": self.project_id,
