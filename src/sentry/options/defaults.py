@@ -369,7 +369,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# Idempotency guard for self-chaining tasks (e.g. merge_groups, unmerge): dedupe the chain-step
 # spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
 register(
     "taskworker.selfchain_idempotency.enabled",
