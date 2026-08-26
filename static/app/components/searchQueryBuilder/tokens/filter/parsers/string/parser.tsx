@@ -16,7 +16,7 @@ export function parseMultiSelectFilterValue(
   value: string
 ): TokenResult<Token.VALUE_TEXT_LIST> | null {
   try {
-    return parse(value, {TokenConverter, config: undefined, startRule: 'text_in_list'});
+    return parse(value, {TokenConverter, startRule: 'text_in_list'});
   } catch (e) {
     return null;
   }

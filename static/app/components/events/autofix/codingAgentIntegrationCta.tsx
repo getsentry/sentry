@@ -42,13 +42,10 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const user = useUser();
     const queryClient = useQueryClient();
 
-    const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject(
-      {
-        orgSlug: organization.slug,
-        projectSlug: project.slug,
-      },
-      {enabled: true}
-    );
+    const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+    });
     const {data: knownAgents, isLoading: isLoadingIntegrations} = useQuery(
       knownAgentIntegrationsQueryOptions({organization})
     );

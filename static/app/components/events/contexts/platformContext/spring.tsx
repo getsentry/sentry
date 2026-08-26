@@ -26,7 +26,6 @@ export function getSpringContextData({data}: {data: SpringContext}): KeyValueLis
           key: ctxKey,
           subject: ctxKey,
           value: data[ctxKey],
-          meta: undefined,
         };
     }
   });

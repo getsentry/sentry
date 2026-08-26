@@ -126,7 +126,6 @@ export function useAutofixIssues({
       query: {
         query: withRequiredFilter(query ?? ''),
         cursor,
-        group: undefined,
         project: -1,
         statsPeriod: '90d',
         // Explicit endpoint default: last-seen desc selects the issues still
@@ -137,7 +136,6 @@ export function useAutofixIssues({
       },
       staleTime: QUERY_STALE_TIME,
     }),
-    enabled: true,
     select: selectJsonWithHeaders,
   });
 
