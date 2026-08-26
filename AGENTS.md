@@ -116,7 +116,7 @@ Skills under `.agents/skills/` should follow the same current-practice conventio
 
 ## Feature Flags (FlagPole)
 
-New features should be gated behind a flag: register in `src/sentry/features/temporary.py`, check with `features.has(...)` (Python) or `organization.features.includes(...)` (frontend). For the full workflow (registration, `api_expose`, tests, rollout) → use the **`feature-flags`** skill, or see https://develop.sentry.dev/feature-flags/.
+New features should be gated behind a flag: register in `src/sentry/features/temporary.py`, check with `features.has(...)` (Python) or `organization.features.includes(...)` (frontend). For the full workflow (registration, `api_expose`, tests, rollout) → use the **`feature-flags`** skill, or see https://develop.sentry.dev/feature-flags/. Deleting a finished flag or option requires a fixed PR order across sentry and sentry-options-automator → use the **`remove-option-or-flag`** skill.
 
 ## Customer Information
 

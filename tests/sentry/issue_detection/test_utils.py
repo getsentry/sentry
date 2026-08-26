@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Any
+from typing import Any, NamedTuple
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -23,101 +23,136 @@ def mock_log_invalid_data() -> Generator[MagicMock]:
         yield mock_log_invalid_data
 
 
+class URLTestCase(NamedTuple):
+    url: str
+    # Whether the URL's hostname has been scrubbed and/or parameterized
+    is_obfuscated: bool
+    # The netloc `safer_urlparse` should return
+    netloc: str
+    # The (url, path_params, query_params) `parameterize_url_with_result` should return
+    parameterization: tuple[str, list[str], dict[str, list[str]]]
+
+
 class TestDetectorUtils:
-    @pytest.mark.parametrize(
-        ("url", "expected_result"),
-        [
-            ("https://[Filtered]/dogs/1121", True),
-            ("https://[Redacted IP]/dogs/1231", True),
-            ("https://[dogs].are.great/dogs/908", True),
-            ("https://[Filtered]:8080/dogs/415", True),
-            ("https://user:[Filtered]@dogs.are.great/x", True),
-            ("//[Filtered]/dogs/2012", True),  # protocol-relative
-            ("https://[4.15.9.8]/dogs/2013", False),  # a real IP address
-            ("https://dogs.are.great/dogs/[number]", False),
-            ("https://dogs.are.great/dogs/[filtered id]", False),
-            ("https://dogs.are.great/dogs/1121", False),
-            ("https://dogs.are.great/dogs/1231?year=2012", False),
-        ],
-    )
-    def test_span_has_obfuscated_hostname(self, url: str, expected_result: bool) -> None:
-        span = create_span("http.client", 320415204, f"GET {url}")
-        assert span_has_obfuscated_hostname(span) == expected_result
+    test_cases = [
+        URLTestCase(
+            "https://[Filtered]/dogs/1121",
+            True,
+            "[Filtered]",
+            ("https://[Filtered]/dogs/*", ["1121"], {}),
+        ),
+        URLTestCase(
+            "https://[Filtered]/dogs/[Filtered]/1121",
+            True,
+            "[Filtered]",
+            ("https://[Filtered]/dogs/*/*", ["[Filtered]", "1121"], {}),
+        ),
+        URLTestCase(
+            "https://[Redacted IP]/dogs/1231",
+            True,
+            "[Redacted IP]",
+            ("https://[Redacted IP]/dogs/*", ["1231"], {}),
+        ),
+        URLTestCase(
+            "https://[dogs].are.great/dogs/908",
+            True,
+            "[dogs].are.great",
+            ("https://[dogs].are.great/dogs/*", ["908"], {}),
+        ),
+        URLTestCase(
+            "https://[Filtered]:8080/dogs/415",
+            True,
+            "[Filtered]:8080",
+            ("https://[Filtered]:8080/dogs/*", ["415"], {}),
+        ),
+        URLTestCase(
+            "https://user:[Filtered]@dogs.are.great/x",
+            True,
+            "user:[Filtered]@dogs.are.great",
+            ("https://user:[Filtered]@dogs.are.great/x", [], {}),
+        ),
+        URLTestCase(
+            "https://user:[Filtered]@[4:15::9:8]/x",
+            True,
+            "user:[Filtered]@[4:15::9:8]",
+            ("https://user:[Filtered]@[4:15::9:8]/x", [], {}),
+        ),
+        URLTestCase(
+            "https://[int]:[int]@dogs.are.great/x",
+            True,
+            "[int]:[int]@dogs.are.great",
+            ("https://[int]:[int]@dogs.are.great/x", [], {}),
+        ),
+        URLTestCase(
+            "https://[user]:[password]@dogs.are.great/x",
+            True,
+            "[user]:[password]@dogs.are.great",
+            ("https://[user]:[password]@dogs.are.great/x", [], {}),
+        ),
+        URLTestCase(
+            "https://[user]:[password]@[4:15::9:8]/x",
+            True,
+            "[user]:[password]@[4:15::9:8]",
+            ("https://[user]:[password]@[4:15::9:8]/x", [], {}),
+        ),
+        URLTestCase(  # protocol-relative
+            "//[Filtered]/dogs/2012",
+            True,
+            "[Filtered]",
+            ("[Filtered]/dogs/*", ["2012"], {}),
+        ),
+        URLTestCase(  # a real IP address
+            "https://[4:15::9:8]/dogs/2013",
+            False,
+            "[4:15::9:8]",
+            ("https://[4:15::9:8]/dogs/*", ["2013"], {}),
+        ),
+        URLTestCase(  # a real IP address with a port
+            "https://[4:15::9:8]:2013/dogs/2013",
+            False,
+            "[4:15::9:8]:2013",
+            ("https://[4:15::9:8]:2013/dogs/*", ["2013"], {}),
+        ),
+        URLTestCase(
+            "https://dogs.are.great/dogs/[number]",
+            False,
+            "dogs.are.great",
+            ("https://dogs.are.great/dogs/*", ["[number]"], {}),
+        ),
+        URLTestCase(
+            "https://dogs.are.great/dogs/[filtered id]",
+            False,
+            "dogs.are.great",
+            ("https://dogs.are.great/dogs/*", ["[filtered id]"], {}),
+        ),
+        URLTestCase(
+            "https://dogs.are.great/dogs/1121",
+            False,
+            "dogs.are.great",
+            ("https://dogs.are.great/dogs/*", ["1121"], {}),
+        ),
+        URLTestCase(
+            "https://dogs.are.great/dogs/1231?year=2012",
+            False,
+            "dogs.are.great",
+            ("https://dogs.are.great/dogs/*?year=*", ["1231"], {"year": ["2012"]}),
+        ),
+    ]
 
-    @pytest.mark.parametrize(
-        ("url", "expected_netloc"),
-        [
-            ("https://[Filtered]/dogs/1121", "[Filtered]"),
-            ("https://[Redacted IP]/dogs/1231", "[Redacted IP]"),
-            ("https://[dogs].are.great/dogs/908", "[dogs].are.great"),
-            ("https://[Filtered]:8080/dogs/415", "[Filtered]:8080"),
-            ("https://user:[Filtered]@dogs.are.great/x", "user:[Filtered]@dogs.are.great"),
-            ("//[Filtered]/dogs/2012", "[Filtered]"),  # protocol-relative
-            ("https://[4.15.9.8]/dogs/2013", "[4.15.9.8]"),  # a real IP address
-            ("https://dogs.are.great/dogs/[number]", "dogs.are.great"),
-            ("https://dogs.are.great/dogs/[filtered id]", "dogs.are.great"),
-            ("https://dogs.are.great/dogs/1121", "dogs.are.great"),
-            ("https://dogs.are.great/dogs/1231?year=2012", "dogs.are.great"),
-        ],
-    )
-    def test_safe_urlparse(self, url: str, expected_netloc: str) -> None:
-        assert safer_urlparse(url).netloc == expected_netloc
+    @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
+    def test_span_has_obfuscated_hostname(self, test_case: URLTestCase) -> None:
+        span = create_span("http.client", 320415204, f"GET {test_case.url}")
+        assert span_has_obfuscated_hostname(span) == test_case.is_obfuscated
 
-    @pytest.mark.parametrize(
-        ("url", "expected_result_data"),  # Expected result is (url, path_params, query_params)
-        [
-            (
-                "https://[Filtered]/dogs/1121",
-                ("https://[Filtered]/dogs/*", ["1121"], {}),
-            ),
-            (
-                "https://[Redacted IP]/dogs/1231",
-                ("https://[Redacted IP]/dogs/*", ["1231"], {}),
-            ),
-            (
-                "https://[dogs].are.great/dogs/908",
-                ("https://[dogs].are.great/dogs/*", ["908"], {}),
-            ),
-            (
-                "https://[Filtered]:8080/dogs/415",
-                ("https://[Filtered]:8080/dogs/*", ["415"], {}),
-            ),
-            (
-                "https://user:[Filtered]@dogs.are.great/x",
-                ("https://user:[Filtered]@dogs.are.great/x", [], {}),
-            ),
-            (
-                "//[Filtered]/dogs/2012",  # protocol-relative
-                ("[Filtered]/dogs/*", ["2012"], {}),
-            ),
-            (
-                "https://[4.15.9.8]/dogs/2013",  # a real IP address
-                ("https://[4.15.9.8]/dogs/*", ["2013"], {}),
-            ),
-            (
-                "https://dogs.are.great/dogs/[number]",
-                ("https://dogs.are.great/dogs/*", ["[number]"], {}),
-            ),
-            (
-                "https://dogs.are.great/dogs/[filtered id]",
-                ("https://dogs.are.great/dogs/*", ["[filtered id]"], {}),
-            ),
-            (
-                "https://dogs.are.great/dogs/1121",
-                ("https://dogs.are.great/dogs/*", ["1121"], {}),
-            ),
-            (
-                "https://dogs.are.great/dogs/1231?year=2012",
-                ("https://dogs.are.great/dogs/*?year=*", ["1231"], {"year": ["2012"]}),
-            ),
-        ],
-    )
-    def test_parameterize_url_with_result(
-        self, url: str, expected_result_data: tuple[str, list[str], dict[str, list[str]]]
-    ) -> None:
-        parameterized_url, path_params, query_params = expected_result_data
+    @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
+    def test_safer_urlparse(self, test_case: URLTestCase) -> None:
+        assert safer_urlparse(test_case.url).netloc == test_case.netloc
 
-        assert parameterize_url_with_result(url) == {
+    @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
+    def test_parameterize_url_with_result(self, test_case: URLTestCase) -> None:
+        parameterized_url, path_params, query_params = test_case.parameterization
+
+        assert parameterize_url_with_result(test_case.url) == {
             "url": parameterized_url,
             "path_params": path_params,
             "query_params": query_params,
@@ -126,7 +161,7 @@ class TestDetectorUtils:
 
 class TestGetNumericValueFromSpan:
     @pytest.mark.parametrize(
-        ("value", "number_type", "expected_result"),
+        "test_case",
         [
             # Values which are already the type we want
             (1121, int, 1121),
@@ -162,14 +197,20 @@ class TestGetNumericValueFromSpan:
             ([1231], int, Exception),
             ([1231], float, Exception),
         ],
+        # Use `repr` here vs `str` because it will include string quotes in what it prints
+        ids=lambda test_case: f"{repr(test_case[0])}-{test_case[1].__name__}",
     )
     def test_value_found(
         self,
-        value: Any,
-        number_type: type[int] | type[float],
-        expected_result: int | float | type[Exception],
+        test_case: tuple[
+            Any,  # value
+            type[int] | type[float],  # number_type
+            int | float | type[Exception],  # expected result
+        ],
         mock_log_invalid_data: MagicMock,
     ) -> None:
+        value, number_type, expected_result = test_case
+
         span = create_span("do.dog.stuff", data={"dogs_are_great": value})
         keys = ["dogs_are_great"]
         default = 0 if number_type is int else 0.0
@@ -201,6 +242,7 @@ class TestGetNumericValueFromSpan:
             {"adopt_dont_shop": 1121},  # Span data exists but desired key doesn't
             {"dogs_are_great": None},  # Desired key exists but has no value
         ],
+        ids=str,  # Force pytest to stringify the dict test cases
     )
     def test_value_not_found(
         self, data: dict[str, Any] | None, mock_log_invalid_data: MagicMock

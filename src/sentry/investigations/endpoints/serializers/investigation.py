@@ -10,6 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.investigations.endpoints.base import investigation_ids_with_project_access
 from sentry.investigations.endpoints.serializers.block import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
@@ -53,6 +54,8 @@ class InvestigationTitleGenerationSerializerResponse(TypedDict):
 class InvestigationSerializerResponse(TypedDict):
     id: str
     title: str
+    summary: str | None
+    summaryDescription: str | None
     status: str
     sourceType: str
     createdBy: str | None
@@ -61,6 +64,7 @@ class InvestigationSerializerResponse(TypedDict):
     version: int
     blockCount: int
     isFavorited: bool
+    titleGeneration: InvestigationTitleGenerationSerializerResponse
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -70,11 +74,13 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     projectIds: list[int]
     parameters: list[InvestigationParameterSerializerResponse]
     blocks: list[InvestigationBlockSerializerResponse]
-    titleGeneration: InvestigationTitleGenerationSerializerResponse
 
 
 @register(Investigation)
 class InvestigationSerializer(Serializer):
+    def __init__(self, accessible_project_ids: AbstractSet[int] | None = None) -> None:
+        self.summary_accessible_project_ids = accessible_project_ids
+
     @override
     def get_attrs(
         self,
@@ -97,10 +103,17 @@ class InvestigationSerializer(Serializer):
                 ).values_list("investigation_id", flat=True)
             )
 
+        summary_visible_ids = (
+            investigation_ids_with_project_access(item_list, self.summary_accessible_project_ids)
+            if self.summary_accessible_project_ids is not None
+            else set()
+        )
+
         return {
             investigation: {
                 "block_count": block_counts.get(investigation.id, 0),
                 "is_favorited": investigation.id in favorited_ids,
+                "summary_visible": investigation.id in summary_visible_ids,
             }
             for investigation in item_list
         }
@@ -114,9 +127,12 @@ class InvestigationSerializer(Serializer):
         **kwargs: Any,
     ) -> InvestigationSerializerResponse:
         source = investigation_source(obj)
+        summary_visible = attrs["summary_visible"]
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "summary": obj.summary if summary_visible else None,
+            "summaryDescription": obj.summary_description if summary_visible else None,
             "status": obj.status,
             "sourceType": source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
@@ -125,6 +141,7 @@ class InvestigationSerializer(Serializer):
             "version": obj.version,
             "blockCount": attrs["block_count"],
             "isFavorited": attrs["is_favorited"],
+            "titleGeneration": {"status": obj.title_generation_status},
         }
 
 
@@ -136,6 +153,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     """
 
     def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
+        super().__init__(accessible_project_ids)
         self.accessible_project_ids = accessible_project_ids
 
     def _blocks_by_investigation(

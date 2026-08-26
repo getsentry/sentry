@@ -5,21 +5,21 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-ai_monitoring: 0001_create_ai_conversation_metadata
+ai_monitoring: 0002_add_date_updated_index
 
 discover: 0001_squashed_0003_discover_json_field
 
-explore: 0011_delete_last_received_from_attribute_context
+explore: 0013_delete_project_column_from_metric_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
-flags: 0001_squashed_0004_add_flag_audit_log_provider_column
+flags: 0005_increase_flag_max_length
 
 hybridcloud: 0034_drop_webhookpayload_priority_index
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0004_generalize_investigation_sources
+investigations: 0005_add_investigation_summary_fields
 
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0032_add_extras_to_seer_run_milestone
 
-sentry: 1153_create_group_action_log_outbox
+sentry: 1155_backfill_organizationmemberteam_new_id
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
@@ -143,11 +143,53 @@ class GcpIntegration(IntegrationInstallation):
         if sa_email:
             delete_sentry_sa(sa_email, self.organization_id)
 
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": "sentry_sa_email",
+                "type": "string",
+                "label": _("Sentry Service Account"),
+                "help": _(
+                    "Auto-generated service account in the sentry-connectors project. "
+                    "Your customer SA must grant this account the "
+                    "roles/iam.serviceAccountTokenCreator role."
+                ),
+                "disabled": True,
+                "disabledReason": _("Managed by Sentry"),
+            },
+            {
+                "name": "customer_sa_email",
+                "type": "string",
+                "label": _("Customer Service Account"),
+                "help": _(
+                    "Your GCP service account that the Sentry SA impersonates. "
+                    "It must have viewer roles on the configured projects."
+                ),
+                "disabled": True,
+                "disabledReason": _("To update, uninstall and re-install the integration."),
+            },
+            {
+                "name": "projects",
+                "type": "string",
+                "label": _("GCP Project IDs"),
+                "help": _("Comma-separated list of GCP project IDs."),
+                "disabled": True,
+                "disabledReason": _("To update, uninstall and re-install the integration."),
+            },
+        ]
+
+    def get_config_data(self) -> Mapping[str, Any]:
+        config = self.gcp_config
+        if not config:
+            return {}
+        return {
+            "sentry_sa_email": config.get("sentry_sa_email", ""),
+            "customer_sa_email": config.get("customer_sa_email", ""),
+            "projects": ", ".join(config.get("projects", [])),
+        }
+
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         pass
-
-    def get_organization_config(self) -> Sequence[Any]:
-        return []
 
     def get_client(self) -> Any:
         raise NotImplementedError

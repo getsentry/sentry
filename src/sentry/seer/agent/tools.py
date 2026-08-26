@@ -38,6 +38,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
@@ -87,6 +88,7 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
+    GroupAssigneesResponse,
     IssueCommittersResponse,
     IssueDetailsResponse,
     IssueOwner,
@@ -98,6 +100,7 @@ from sentry.seer.sentry_data_models import (
     RepositoryDefinitionResponse,
     TeamMembersResponse,
     TraceItemEventsResponse,
+    UserIdentity,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -1981,6 +1984,49 @@ def get_team_members(
         team_slug=team.slug,
         team_name=team.name,
         members=members,
+    )
+
+
+def get_group_assignees(
+    *,
+    organization_id: int,
+    group_ids: list[int],
+) -> GroupAssigneesResponse:
+    if len(group_ids) > 100:
+        raise BadRequest("At most 100 group IDs may be requested")
+
+    user_ids_by_group = cast(
+        dict[int, int],
+        dict(
+            GroupAssignee.objects.filter(
+                group_id__in=group_ids,
+                project__organization_id=organization_id,
+                user_id__isnull=False,
+            ).values_list("group_id", "user_id")
+        ),
+    )
+    if not user_ids_by_group:
+        return GroupAssigneesResponse(assignees={})
+
+    users_by_id = {
+        user.id: user
+        for user in user_service.get_many(
+            filter={
+                "user_ids": list(user_ids_by_group.values()),
+                "is_active": True,
+                "organization_id": organization_id,
+            }
+        )
+    }
+    return GroupAssigneesResponse(
+        assignees={
+            str(group_id): UserIdentity(
+                id=user.id,
+                username=user.username,
+            )
+            for group_id, user_id in user_ids_by_group.items()
+            if (user := users_by_id.get(user_id)) is not None
+        }
     )
 
 
