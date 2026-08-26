@@ -39,9 +39,16 @@ import {
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {ProgressState, type Group, type GroupStatusResolution} from 'sentry/types/group';
+import {
+  GroupStatus,
+  GroupSubstatus,
+  ProgressState,
+  type Group,
+  type GroupStatusResolution,
+} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -52,7 +59,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
@@ -60,6 +66,13 @@ type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 function hasCodeChanges(section: AutofixSection): boolean {
   const artifact = getAutofixArtifactFromSection(section);
   return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
+}
+
+export function shouldShowFixAppliedActions(group: Group, project: Project) {
+  return (
+    group.derivedData?.progress === ProgressState.FIX_APPLIED &&
+    getConfigForIssueType(group, project).actions.resolve.enabled
+  );
 }
 
 interface IssuePreviewActionsProps {
@@ -138,7 +151,7 @@ function FixAppliedActions({
     enabled: true,
   });
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
-  const {resolve: resolveCap, resolveInRelease: resolveInReleaseCap} = config.actions;
+  const {resolveInRelease: resolveInReleaseCap} = config.actions;
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
@@ -153,14 +166,26 @@ function FixAppliedActions({
         data,
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
-          addSuccessMessage(t('Issue resolved'));
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-            }),
+          addSuccessMessage(
+            data.status === GroupStatus.UNRESOLVED
+              ? t('Issue marked unresolved')
+              : t('Issue resolved')
+          );
+          IssueListCacheStore.reset();
+          void queryClient.invalidateQueries({
+            predicate: query => {
+              const url = safeParseQueryKey(query.queryKey)?.url;
+              const issueListUrl = `/organizations/${organization.slug}/issues/`;
+
+              return (
+                url === issueListUrl ||
+                url === `/organizations/${organization.slug}/issues-count/` ||
+                url === `${issueListUrl}${group.id}/` ||
+                url === `${issueListUrl}${group.id}/activities/`
+              );
+            },
           });
         },
       }
@@ -180,27 +205,52 @@ function FixAppliedActions({
       ...getAnalyicsDataForProject(project),
       org_streamline_only: organization.streamlineOnly ?? undefined,
     });
-    IssueListCacheStore.reset();
   }
 
   return (
     <Flex gap="sm">
-      {resolveCap.enabled &&
-        group.status !== 'resolved' &&
-        group.status !== 'ignored' && (
-          <ResolveActions
-            disableResolveInRelease={!resolveInReleaseCap.enabled}
-            disabled={disabled}
-            disableDropdown={disabled}
-            hasRelease={hasRelease}
-            latestRelease={project.latestRelease}
-            hasSemverReleaseFeature={hasSemverReleaseFeature}
-            onUpdate={handleUpdate}
-            project={project}
-            size="sm"
-            priority="primary"
-          />
-        )}
+      {group.status === GroupStatus.RESOLVED ? (
+        <Button
+          disabled={disabled}
+          onClick={() =>
+            handleUpdate({
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
+          }
+          size="sm"
+        >
+          {t('Unresolve')}
+        </Button>
+      ) : group.status === GroupStatus.IGNORED ? (
+        <Button
+          disabled={disabled}
+          onClick={() =>
+            handleUpdate({
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
+          }
+          size="sm"
+        >
+          {t('Unarchive')}
+        </Button>
+      ) : (
+        <ResolveActions
+          disableResolveInRelease={!resolveInReleaseCap.enabled}
+          disabled={disabled}
+          disableDropdown={disabled}
+          hasRelease={hasRelease}
+          latestRelease={project.latestRelease}
+          hasSemverReleaseFeature={hasSemverReleaseFeature}
+          onUpdate={handleUpdate}
+          project={project}
+          size="sm"
+          priority="primary"
+        />
+      )}
       <OpenIssueButton group={group} to={issueDetailsUrl} size="sm" />
     </Flex>
   );
@@ -736,7 +786,7 @@ export function IssuePreviewActions({
   project,
   shouldShowSeerActions,
 }: IssuePreviewActionsProps) {
-  if (group.derivedData?.progress === ProgressState.FIX_APPLIED) {
+  if (shouldShowFixAppliedActions(group, project)) {
     return <FixAppliedActions disabled={disabled} group={group} project={project} />;
   }
 
