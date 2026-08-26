@@ -1,5 +1,6 @@
 from taskbroker_client.retry import Retry
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -31,7 +32,10 @@ from sentry.taskworker.namespaces import integrations_control_tasks
     ),
 )
 def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
+    )
     if integration is None:
         raise Integration.DoesNotExist
     installation = integration.get_installation(organization_id=organization_id)

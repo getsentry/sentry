@@ -16,7 +16,7 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.webhook import WebhookClient
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -554,9 +554,10 @@ class SlackActionEndpoint(Endpoint):
         return self.respond(response)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
-        # TODO(mark) Add using_replica here
         organization_integrations = integration_service.get_organization_integrations(
-            integration_id=slack_request.integration.id, limit=1
+            integration_id=slack_request.integration.id,
+            limit=1,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
         if len(organization_integrations) > 0:
             analytics.record(
