@@ -502,7 +502,7 @@ export function Trace({
                             });
                             event.stopPropagation();
                             void onScrollToNode(indicator.node);
-                            manager.onZoomIntoSpace(indicator.node.space);
+                            manager.onZoomAroundTimestamp(indicator.start);
                           }
                         : undefined
                     }

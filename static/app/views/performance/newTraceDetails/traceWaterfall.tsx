@@ -604,7 +604,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       candidate.matchByPath(query.zoomToNode as TraceTree.NodePath)
     );
 
-    const {zoomToNode: _zoomToNode, ...nextQuery} = query;
+    const {
+      zoomToNode: _zoomToNode,
+      zoomToTimestamp: _zoomToTimestamp,
+      ...nextQuery
+    } = query;
     navigate(
       {
         pathname: routerLocation.pathname,
@@ -618,7 +622,15 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
 
     void onTabScrollToNode(node);
-    viewManager.onZoomIntoSpace(node.space);
+    const timestamp =
+      typeof query.zoomToTimestamp === 'string'
+        ? Number.parseFloat(query.zoomToTimestamp)
+        : Number.NaN;
+    if (Number.isFinite(timestamp)) {
+      viewManager.onZoomAroundTimestamp(timestamp);
+    } else {
+      viewManager.onZoomIntoSpace(node.space);
+    }
   }, [
     navigate,
     onLoadScrollStatus,

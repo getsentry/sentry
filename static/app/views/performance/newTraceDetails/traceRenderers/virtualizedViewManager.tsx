@@ -39,6 +39,7 @@ import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
+const TIMESTAMP_ZOOM_RATIO = 0.25;
 
 export type TraceTimeCompressionManagerOptions = {
   enabled: boolean;
@@ -658,6 +659,22 @@ export class VirtualizedViewManager {
       x: start - margin - this.view.to_origin,
       width: width + margin * 2,
     });
+  }
+
+  onZoomAroundTimestamp(timestamp: number) {
+    const compressedView = this.getCompressedView();
+    const compressedTimestamp = this.time_compression.toCompressedOffset(timestamp);
+    const targetCompressedWidth = Math.max(
+      compressedView.width * TIMESTAMP_ZOOM_RATIO,
+      this.view.MAX_ZOOM_PRECISION_MS
+    );
+    const targetCompressedStart = compressedTimestamp - targetCompressedWidth / 2;
+    const targetStart = this.time_compression.toRealTimestamp(targetCompressedStart);
+    const targetEnd = this.time_compression.toRealTimestamp(
+      targetCompressedStart + targetCompressedWidth
+    );
+
+    this.onZoomIntoSpace([targetStart, targetEnd - targetStart]);
   }
 
   onZoomIntoSpace(space: [number, number]) {

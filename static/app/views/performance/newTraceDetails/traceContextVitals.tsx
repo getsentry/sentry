@@ -76,7 +76,11 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
   const tooltipTitle = (
     <SecondaryVitalsCountContainer>
       {secondaryVitals.map(vitalKey => {
-        const {vitalDetails, vital} = getVitalInfo(vitalKey, collectedVitals);
+        const {vitalDetails, vital} = getVitalInfo(
+          vitalKey,
+          collectedVitals,
+          tree.indicators
+        );
         const formattedValue = getFormattedValue(vital, vitalDetails);
 
         return (
@@ -96,7 +100,11 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
   return (
     <Flex align="center" gap="md">
       {primaryVitals.map(vitalKey => {
-        const {vitalDetails, vital} = getVitalInfo(vitalKey, collectedVitals);
+        const {vitalDetails, vital} = getVitalInfo(
+          vitalKey,
+          collectedVitals,
+          tree.indicators
+        );
         return (
           <VitalPill
             key={vitalKey}
@@ -115,6 +123,7 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
                           ...qs.parse(location.search),
                           tab: TraceLayoutTabKeys.WATERFALL,
                           zoomToNode: vital.node.pathToNode()[0],
+                          zoomToTimestamp: vital.timestamp,
                         },
                       },
                       {replace: true}
@@ -245,11 +254,15 @@ const SecondaryVitalsCountContainer = styled('div')`
 
 const getVitalInfo = (
   vitalKey: WebVital | MobileVital,
-  collectedVitals: TraceTree.CollectedVital[]
+  collectedVitals: TraceTree.CollectedVital[],
+  indicators: TraceTree['indicators'] = []
 ) => {
   const vitalDetails = getVitalDetails(vitalKey);
+  const key = vitalKey.replace('measurements.', '');
+  const indicator = indicators.find(candidate => candidate.type === key);
   const vital = collectedVitals.find(
-    v => v.key === vitalKey.replace('measurements.', '')
+    candidate =>
+      candidate.key === key && (!indicator || candidate.node === indicator.node)
   );
   return {vitalDetails, vital};
 };
