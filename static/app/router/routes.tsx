@@ -309,10 +309,17 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/stories/*',
+      path: '/scraps/*',
       withOrgPath: true,
       // eslint-disable-next-line boundaries/dependencies -- storybook entrypoint
       component: make(() => import('sentry/stories/view/index')),
+    },
+    {
+      path: '/stories/*',
+      withOrgPath: true,
+      // A redirectTo cannot preserve the wildcard deep link, query, or hash.
+      // eslint-disable-next-line boundaries/dependencies -- storybook redirect
+      component: make(() => import('sentry/stories/view/legacyStoriesRedirect')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
