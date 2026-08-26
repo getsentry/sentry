@@ -10,7 +10,6 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {IdBadge} from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
@@ -77,15 +76,6 @@ function getInitialOrgId(organizations: OrganizationSummary[]) {
   return null;
 }
 
-function errorIsHasNoDsnError(e: unknown): boolean | undefined {
-  try {
-    const response = (e as {responseJSON?: {error?: string}}).responseJSON;
-    return response?.error === 'No DSN found for this project';
-  } catch {
-    return false;
-  }
-}
-
 export function WizardProjectSelection({
   hash,
   organizations,
@@ -102,9 +92,6 @@ export function WizardProjectSelection({
   );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const isCreateProjectSelected = selectedProjectId === CREATE_PROJECT_VALUE;
-
-  const [newProjectTeam, setNewProjectTeam] = useState<string | null>(null);
-  const [newProjectPlatform, setNewProjectPlatform] = useState(platformParam || null);
 
   const selectedOrg = useMemo(
     () => organizations.find(org => org.id === selectedOrgId),
@@ -169,36 +156,29 @@ export function WizardProjectSelection({
       }
 
       let projectId = parsedValue.projectId;
-      try {
-        if (projectId === CREATE_PROJECT_VALUE) {
-          const project = await createProjectMutation.mutateAsync({
+      if (projectId === CREATE_PROJECT_VALUE) {
+        const project = await createProjectMutation
+          .mutateAsync({
             organization,
             team: parsedValue.newProjectTeam,
             name: parsedValue.newProjectName,
             platform: parsedValue.newProjectPlatform || platformParam || 'other',
-          });
+          })
+          .catch(() => null);
 
-          projectId = project.id;
+        if (!project) {
+          return;
         }
-      } catch {
-        addErrorMessage('Failed to create project! Please try again');
-        return;
+
+        projectId = project.id;
       }
 
-      try {
-        await updateWizardCacheMutation.mutateAsync({
+      await updateWizardCacheMutation
+        .mutateAsync({
           organizationId: organization.id,
           projectId,
-        });
-      } catch (error) {
-        const errorMessage = errorIsHasNoDsnError(error)
-          ? t(
-              'The selected project has no active DSN. Please add an active DSN to the project.'
-            )
-          : t('Something went wrong! Please try again.');
-
-        addErrorMessage(errorMessage);
-      }
+        })
+        .catch(() => {});
     },
   });
 
@@ -256,7 +236,6 @@ export function WizardProjectSelection({
   useEffect(() => {
     if (selectableTeams?.length === 1) {
       const teamSlug = selectableTeams[0]!.slug;
-      setNewProjectTeam(teamSlug);
       form.setFieldValue('newProjectTeam', teamSlug);
     }
   }, [form, selectableTeams]);
@@ -276,11 +255,6 @@ export function WizardProjectSelection({
     () =>
       sortedProjectOptions?.find(option => option.value === selectedProjectId)?.project,
     [selectedProjectId, sortedProjectOptions]
-  );
-
-  const selectedTeam = useMemo(
-    () => selectableTeams?.find(team => team.slug === newProjectTeam),
-    [newProjectTeam, selectableTeams]
   );
 
   if (isSuccess) {
@@ -308,33 +282,34 @@ export function WizardProjectSelection({
       {field => (
         <field.Layout.Stack label={t('Platform')} required>
           <field.Base<HTMLButtonElement>>
-            {baseProps => (
-              <StyledCompactSelect
-                value={field.state.value!}
-                search
-                options={platformOptions}
-                trigger={triggerProps => (
-                  <OverlayTrigger.Button
-                    {...triggerProps}
-                    {...baseProps}
-                    icon={
-                      newProjectPlatform ? (
-                        <PlatformIcon platform={newProjectPlatform} size={16} alt="" />
-                      ) : null
-                    }
-                  >
-                    {newProjectPlatform
-                      ? platforms.find(p => p.id === newProjectPlatform)!.name
-                      : t('Select a platform')}
-                  </OverlayTrigger.Button>
-                )}
-                onChange={({value}) => {
-                  const platform = value as string;
-                  field.handleChange(platform);
-                  setNewProjectPlatform(platform);
-                }}
-              />
-            )}
+            {baseProps => {
+              const selectedPlatform = field.state.value;
+              return (
+                <StyledCompactSelect
+                  value={field.state.value!}
+                  search
+                  options={platformOptions}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      {...baseProps}
+                      icon={
+                        selectedPlatform ? (
+                          <PlatformIcon platform={selectedPlatform} size={16} alt="" />
+                        ) : null
+                      }
+                    >
+                      {selectedPlatform
+                        ? platforms.find(p => p.id === selectedPlatform)!.name
+                        : t('Select a platform')}
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={({value}) => {
+                    field.handleChange(value as string);
+                  }}
+                />
+              );
+            }}
           </field.Base>
         </field.Layout.Stack>
       )}
@@ -505,43 +480,46 @@ export function WizardProjectSelection({
                   {field => (
                     <field.Layout.Stack label={t('Team')} required>
                       <field.Base<HTMLButtonElement>>
-                        {baseProps => (
-                          <StyledCompactSelect
-                            value={field.state.value!}
-                            options={
-                              selectableTeams?.map(team => ({
-                                value: team.slug,
-                                label: `#${team.slug}`,
-                                leadingItems: <IdBadge team={team} hideName />,
-                                searchKey: team.slug,
-                              })) || []
-                            }
-                            trigger={triggerProps => (
-                              <OverlayTrigger.Button
-                                {...triggerProps}
-                                {...baseProps}
-                                icon={
-                                  selectedTeam ? (
-                                    <IdBadge
-                                      avatarSize={16}
-                                      team={selectedTeam}
-                                      hideName
-                                    />
-                                  ) : null
-                                }
-                              >
-                                {selectedTeam
-                                  ? `#${selectedTeam.slug}`
-                                  : t('Select a team')}
-                              </OverlayTrigger.Button>
-                            )}
-                            onChange={({value}) => {
-                              const team = value as string;
-                              field.handleChange(team);
-                              setNewProjectTeam(team);
-                            }}
-                          />
-                        )}
+                        {baseProps => {
+                          const selectedTeam = selectableTeams?.find(
+                            team => team.slug === field.state.value
+                          );
+                          return (
+                            <StyledCompactSelect
+                              value={field.state.value!}
+                              options={
+                                selectableTeams?.map(team => ({
+                                  value: team.slug,
+                                  label: `#${team.slug}`,
+                                  leadingItems: <IdBadge team={team} hideName />,
+                                  searchKey: team.slug,
+                                })) || []
+                              }
+                              trigger={triggerProps => (
+                                <OverlayTrigger.Button
+                                  {...triggerProps}
+                                  {...baseProps}
+                                  icon={
+                                    selectedTeam ? (
+                                      <IdBadge
+                                        avatarSize={16}
+                                        team={selectedTeam}
+                                        hideName
+                                      />
+                                    ) : null
+                                  }
+                                >
+                                  {selectedTeam
+                                    ? `#${selectedTeam.slug}`
+                                    : t('Select a team')}
+                                </OverlayTrigger.Button>
+                              )}
+                              onChange={({value}) => {
+                                field.handleChange(value as string);
+                              }}
+                            />
+                          );
+                        }}
                       </field.Base>
                     </field.Layout.Stack>
                   )}
@@ -549,7 +527,7 @@ export function WizardProjectSelection({
               </Grid>
             </Fragment>
           ))}
-        <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
+        <Flex justify="end" borderTop="secondary" paddingTop="xl">
           <form.SubmitButton>{t('Continue')}</form.SubmitButton>
         </Flex>
       </Stack>
@@ -558,8 +536,6 @@ export function WizardProjectSelection({
 }
 
 const StyledCompactSelect = styled(CompactSelect)`
-  flex: 1;
-  min-width: 0;
   width: 100%;
 
   & > button {

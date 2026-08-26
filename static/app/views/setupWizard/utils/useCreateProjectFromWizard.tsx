@@ -1,5 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
@@ -31,6 +33,9 @@ export function useCreateProjectFromWizard() {
     },
     onSuccess: (response, params) => {
       ProjectsStore.onCreateSuccess(response, params.organization.slug);
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to create project! Please try again'));
     },
   });
 }
