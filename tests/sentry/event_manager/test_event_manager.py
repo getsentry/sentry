@@ -30,6 +30,7 @@ from sentry.dynamic_sampling import (
     ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules.helpers.latest_releases import LatestReleaseBias
 from sentry.event_manager import (
     EventManager,
     _get_event_instance,
@@ -4279,6 +4280,30 @@ class DSLatestReleaseBoostTest(TestCase):
                 platform=Platform(project.platform),
             ),
         ]
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_boost_release_sets_expiry_on_latest_release_date(self) -> None:
+        """The project latest release date expires, so a dead project does not keep a key forever."""
+        project = self.create_project(platform="python")
+        release = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
+
+        self.make_release_transaction(
+            release_version=release.version,
+            environment_name=self.environment1.name,
+            project_id=project.id,
+            checksum="a" * 32,
+            timestamp=self.timestamp,
+        )
+
+        cache_key = f"ds::p:{project.id}:latest_release"
+        assert self.redis_client.get(cache_key) is not None
+
+        lifetime_secs = LatestReleaseBias.LATEST_RELEASE_TIMEOUT_MS // 1000
+        ttl = self.redis_client.ttl(cache_key)
+        assert ttl > 0
+        assert ttl <= lifetime_secs
+        # A fresh write gets the full lifetime, so the key must not be near the end of it.
+        assert ttl > lifetime_secs - 60
 
 
 class TestSaveGroupHashAndGroup(TestCase):
