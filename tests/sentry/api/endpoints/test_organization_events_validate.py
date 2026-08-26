@@ -197,22 +197,19 @@ class OrganizationEventsValidateEndpointTest(
         """
         attribute_name = "data_export.csv_headers"
         column = f"tags[{attribute_name},array]"
-        Attribute = TraceItemAttributeNamesResponse.Attribute
 
-        def fake_attribute_names_rpc(
-            rpc_request: Any, debug: bool = False
-        ) -> TraceItemAttributeNamesResponse:
-            if rpc_request.type == AttributeKey.Type.TYPE_ARRAY:
-                return TraceItemAttributeNamesResponse(
-                    attributes=[
-                        Attribute(name=attribute_name, type=AttributeKey.Type.TYPE_ARRAY_STRING)
-                    ]
+        # The only column is an array, so the endpoint only looks up array attributes.
+        array_attributes = TraceItemAttributeNamesResponse(
+            attributes=[
+                TraceItemAttributeNamesResponse.Attribute(
+                    name=attribute_name, type=AttributeKey.Type.TYPE_ARRAY_STRING
                 )
-            return TraceItemAttributeNamesResponse()
+            ]
+        )
 
         with mock.patch(
             "sentry.utils.snuba_rpc.attribute_names_rpc",
-            side_effect=fake_attribute_names_rpc,
+            return_value=array_attributes,
         ):
             response = self.do_request(
                 {
