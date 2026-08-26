@@ -57,7 +57,6 @@ function ProjectCardList({projects}: {projects: Project[]}) {
       columns={{
         zero: 'repeat(auto-fill, minmax(1fr, 400px))',
         lg: 'repeat(auto-fill, minmax(350px, 1fr))',
-        '3xl': 'repeat(auto-fill, minmax(450px, 1fr))',
       }}
     >
       {sortProjects(projects).map(project => (

@@ -111,7 +111,7 @@ export function TeamFilter({
         return handleChangeFilter(opts.map(opt => opt.value));
       }}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} icon={triggerIcon}>
+        <TeamFilterTrigger {...triggerProps} icon={triggerIcon}>
           {
             <Fragment>
               {triggerLabel}
@@ -120,7 +120,7 @@ export function TeamFilter({
               )}
             </Fragment>
           }
-        </OverlayTrigger.Button>
+        </TeamFilterTrigger>
       )}
     />
   );
@@ -128,4 +128,12 @@ export function TeamFilter({
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
+`;
+
+const TeamFilterTrigger = styled(OverlayTrigger.Button)`
+  width: 100%;
+
+  @container (min-width: ${p => p.theme.container.md}) {
+    width: auto;
+  }
 `;
