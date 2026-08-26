@@ -18,6 +18,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.workflow_engine.models import DataCondition, DataSourceDetector, DetectorGroup
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 MAX_BREACH_WINDOW = timedelta(days=45)
 
@@ -62,7 +63,11 @@ def _direction(conditions: list[dict[str, Any]]) -> str:
             AlertRuleThresholdType.BELOW.value: "below",
             AlertRuleThresholdType.ABOVE_AND_BELOW.value: "both",
         }.get(threshold_type, "comparison")
-    condition_types = {condition["type"] for condition in conditions}
+    condition_types = {
+        condition["type"]
+        for condition in conditions
+        if condition["result"] != DetectorPriorityLevel.OK
+    }
     if condition_types & {Condition.GREATER, Condition.GREATER_OR_EQUAL}:
         return "above"
     if condition_types & {Condition.LESS, Condition.LESS_OR_EQUAL}:
@@ -82,10 +87,13 @@ def _condition_snapshot(
         condition.comparison, (int, float)
     ):
         return snapshot
-    if condition.type in {Condition.GREATER, Condition.GREATER_OR_EQUAL}:
-        snapshot["thresholdChangePercent"] = float(condition.comparison) - 100
-    elif condition.type in {Condition.LESS, Condition.LESS_OR_EQUAL}:
-        snapshot["thresholdChangePercent"] = 100 - float(condition.comparison)
+    if condition.type in {
+        Condition.GREATER,
+        Condition.GREATER_OR_EQUAL,
+        Condition.LESS,
+        Condition.LESS_OR_EQUAL,
+    }:
+        snapshot["thresholdChangePercent"] = abs(float(condition.comparison) - 100)
     return snapshot
 
 
@@ -185,6 +193,11 @@ def resolve_breached_metric_sources(
             detection_type = AlertRuleDetectionType(detector.config.get("detection_type"))
         except (TypeError, ValueError):
             continue
+        if (
+            detection_type == AlertRuleDetectionType.STATIC
+            and detector.config.get("comparison_delta") is not None
+        ):
+            detection_type = AlertRuleDetectionType.PERCENT
         data_source_link = data_source_links.get(detector.id)
         if data_source_link is None:
             continue
