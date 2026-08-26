@@ -8,6 +8,7 @@ from django.db.models import Q, TextChoices
 from django.http import HttpRequest
 from django.utils import timezone
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.utils import json, metrics
@@ -113,8 +114,19 @@ class WebhookPayload(Model):
         integration_id: int | None = None,
     ) -> Self:
         metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": provider})
+        if cell and options.get("hybridcloud.webhookpayload.cell_scoped_mailboxes"):
+            # Scope the mailbox to its destination cell so an integration whose
+            # organizations span cells gets one mailbox per cell. The copies then
+            # drain independently instead of interleaving in one mailbox, where a
+            # single drain serializes deliveries to every cell and one cell's
+            # failure backoffs delay the others' copies. The cell rides in the
+            # middle so the first segment stays the provider and the last stays
+            # the event type for the providers that suffix one.
+            mailbox_name = f"{provider}:{cell}:{identifier}"
+        else:
+            mailbox_name = f"{provider}:{identifier}"
         return cls.objects.create(
-            mailbox_name=f"{provider}:{identifier}",
+            mailbox_name=mailbox_name,
             provider=provider,
             destination_type=destination_type,
             cell_name=cell,

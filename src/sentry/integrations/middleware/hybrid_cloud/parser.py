@@ -174,8 +174,9 @@ class BaseRequestParser(ABC):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
-        # mailbox_name is provider:identifier, which is constant for all cells in
-        # this loop. Create all payloads first, then trigger a single drain.
+        # Create all payloads first, then trigger one drain per mailbox. With
+        # cell-scoped mailboxes each cell queues under its own name; otherwise
+        # every payload shares one name and the set keeps it to a single drain.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_CELL,
@@ -187,8 +188,8 @@ class BaseRequestParser(ABC):
             )
             for cell in cells
         ]
-        if payloads:
-            maybe_trigger_drain(payloads[0].mailbox_name)
+        for mailbox_name in {payload.mailbox_name for payload in payloads}:
+            maybe_trigger_drain(mailbox_name)
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 

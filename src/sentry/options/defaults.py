@@ -2550,6 +2550,17 @@ register(
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Scope webhook mailboxes to their destination cell. An integration whose
+# organizations span cells stores one payload per cell; without the cell in the
+# mailbox name those copies interleave in one mailbox, so a single drain
+# serializes deliveries to every cell and one cell's failure backoffs delay the
+# others' copies. Flipping this only changes the names newly stored payloads
+# queue under — rows already stored keep draining from their old mailbox.
+register(
+    "hybridcloud.webhookpayload.cell_scoped_mailboxes",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Drops GitHub check webhooks that reference no pull request based in their own
 # repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape
 # rather than a header, so it keeps a switch: setting this false stops the drop

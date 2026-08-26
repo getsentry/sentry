@@ -17,6 +17,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.types.cell import Cell
 
 
@@ -128,6 +129,49 @@ class BaseRequestParserTest(TestCase):
             assert payload.request_path
             assert payload.request_method
             assert payload.destination_type == DestinationType.SENTRY_CELL
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_options({"hybridcloud.webhookpayload.cell_scoped_mailboxes": True})
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
+    def test_get_response_from_webhookpayload_cell_scoped_mailboxes(
+        self, mock_trigger: MagicMock
+    ) -> None:
+        class MockParser(BaseRequestParser):
+            webhook_identifier = WebhookProviderIdentifier.SLACK
+            provider = "slack"
+
+        parser = MockParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(cells=self.region_config)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        # Each cell's copy queues under its own mailbox and gets its own drain
+        # trigger, so the copies deliver independently.
+        payloads = WebhookPayload.objects.all()
+        assert {(payload.cell_name, payload.mailbox_name) for payload in payloads} == {
+            ("us", "slack:us:0"),
+            ("eu", "slack:eu:0"),
+        }
+        assert {call[0][0] for call in mock_trigger.call_args_list} == {
+            "slack:us:0",
+            "slack:eu:0",
+        }
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
+    def test_get_response_from_webhookpayload_shared_mailbox_single_trigger(
+        self, mock_trigger: MagicMock
+    ) -> None:
+        class MockParser(BaseRequestParser):
+            webhook_identifier = WebhookProviderIdentifier.SLACK
+            provider = "slack"
+
+        parser = MockParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(cells=self.region_config)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        # Without cell scoping every copy shares one mailbox, so only one drain
+        # is triggered for the batch.
+        mock_trigger.assert_called_once_with("slack:0")
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_organizations_from_integration_success(self) -> None:

@@ -10,7 +10,9 @@ from sentry.hybridcloud.models.webhookpayload import (
     MAX_ATTEMPTS,
     DestinationType,
 )
+from sentry.hybridcloud.webhook_event_types import event_type_from_mailbox
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -40,6 +42,28 @@ class WebhookPayloadTest(TestCase):
             == '{"Cookie":"","Content-Length":"36","Content-Type":"application/json"}'
         )
         assert hook.request_body == '{"installation": {"id": "github:1"}}'
+
+    @override_options({"hybridcloud.webhookpayload.cell_scoped_mailboxes": True})
+    def test_create_from_request_cell_scoped(self) -> None:
+        factory = RequestFactory()
+        request = factory.post(
+            "/extensions/github/webhook/",
+            data={"installation": {"id": "github:1"}},
+            content_type="application/json",
+        )
+        hook = WebhookPayload.create_from_request(
+            destination_type=DestinationType.SENTRY_CELL,
+            cell="us",
+            provider="github",
+            identifier="123:45:check_run",
+            request=request,
+            integration_id=123,
+        )
+        # The cell rides in the middle: the first segment stays the provider and
+        # the last stays the event type for providers that suffix one.
+        assert hook.mailbox_name == "github:us:123:45:check_run"
+        assert hook.cell_name == "us"
+        assert event_type_from_mailbox("github", hook.mailbox_name) == "check_run"
 
     def test_schedule_next_attempt_moves_forward(self) -> None:
         hook = self.create_webhook_payload("jira:123", "us")
