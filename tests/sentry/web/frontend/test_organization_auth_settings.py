@@ -843,8 +843,19 @@ class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
             resp = self.client.get(path)
 
         assert resp.status_code == 200
-        # Certificate belongs only in the provider configure view, not General Settings.
-        assert "x509cert" not in resp.context["form"].fields
+        # Nested crispy rendering of the configure SAMLForm also puts a `form` key in
+        # ContextList, so look up the general settings form by its fields instead.
+        settings_forms = []
+        for ctx in resp.context:
+            try:
+                form = ctx["form"]
+            except (KeyError, TypeError):
+                continue
+            if hasattr(form, "fields") and "require_link" in form.fields:
+                settings_forms.append(form)
+        assert len(settings_forms) == 1
+        assert "x509cert" not in settings_forms[0].fields
+        # Certificate should appear once from the provider configure view only.
         assert resp.content.count(b"x509 public certificate") == 1
 
 
