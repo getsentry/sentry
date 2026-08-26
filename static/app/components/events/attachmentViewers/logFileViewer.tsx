@@ -41,6 +41,7 @@ export function LogFileViewer(props: ViewerProps) {
 
       return decodeTextAttachment(await response.arrayBuffer());
     },
+    retry: false,
     staleTime: Infinity,
   });
 
