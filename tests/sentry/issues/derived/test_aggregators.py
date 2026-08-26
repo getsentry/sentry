@@ -787,6 +787,29 @@ def test_merged_fix_persists_across_unrelated_actions() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.UNRESOLVE,
+        GroupActionType.SET_REGRESSED,
+    ],
+)
+def test_merged_fix_resets_when_issue_reopens(action_type: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.PULL_REQUEST_MERGED,
+                    data={"pull_request": 101, "has_other_open_prs": False},
+                ),
+                FakeEntry(type=action_type),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
 def test_merged_fix_resets_after_closed_issue_regresses() -> None:
     p = _pipeline(targets=(PROGRESS,))
     state = p.initial_state()
