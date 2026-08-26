@@ -63,7 +63,7 @@ export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
   project: Pick<Group['project'], 'id' | 'slug'>;
 };
 
-export interface AssigneeSelectorTriggerContext {
+interface AssigneeSelectorTriggerContext {
   loading: boolean;
   renderAvatar: () => React.ReactNode;
 }

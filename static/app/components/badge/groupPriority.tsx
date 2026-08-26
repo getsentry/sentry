@@ -37,7 +37,7 @@ type GroupPriorityDropdownProps = {
 
 type DropdownMenuTriggerProps = Parameters<NonNullable<DropdownMenuProps['trigger']>>[0];
 
-export interface GroupPriorityTriggerContext {
+interface GroupPriorityTriggerContext {
   ariaLabel: string;
   bars: 1 | 2 | 3;
   disabled: boolean;
