@@ -148,9 +148,9 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             f"The <{team_url}|{self.team.slug}> team will now receive issue alert notifications in the <#{self.channel_id}> channel."
             in text
         )
-        assert (
-            f"The {self.team.slug} team will now receive issue alert notifications in the {external_actors[0].external_name} channel."
-            in response.content.decode()
+        self.assertContains(
+            response,
+            f"The {self.team.slug} team will now receive issue alert notifications in the {external_actors[0].external_name} channel.",
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
