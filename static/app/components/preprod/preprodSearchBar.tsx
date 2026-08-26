@@ -113,7 +113,7 @@ export function PreprodSearchBar({
   const {attributes: rawBooleanAttributes, secondaryAliases: rawBooleanSecondaryAliases} =
     usePreprodItemAttributes({}, 'boolean', hiddenKeys);
   const {attributes: rawArrayAttributes, secondaryAliases: rawArraySecondaryAliases} =
-    usePreprodItemAttributes({}, 'array', hiddenKeys);
+    usePreprodItemAttributes({enabled: supportsArrays}, 'array', hiddenKeys);
 
   const stringAttributes = useMemo(
     () =>
