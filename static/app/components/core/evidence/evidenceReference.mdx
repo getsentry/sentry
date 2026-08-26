@@ -1,6 +1,6 @@
 ---
 title: EvidenceReference
-description: A reference to something Seer looked at, iconed and labeled the same way everywhere it shows up.
+description: The standard way to reference one of Sentry's core data types — an issue, a trace, a replay — with a consistent icon and label everywhere it shows up.
 category: display
 source: '@sentry/scraps/evidence'
 resources:
@@ -9,19 +9,21 @@ resources:
 
 import {EvidenceReference} from '@sentry/scraps/evidence';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Text, Heading} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
 export const documentation =
   import('!!type-loader!@sentry/scraps/evidence/evidenceReference');
 
-The `EvidenceReference` renders a reference to something Seer looked at — a
-trace, an issue, a search, a doc — iconed and labeled the same way everywhere
-it shows up. The `type` → icon (and, for the `button` variant, label prefix)
-mapping is the Telemetry Icons board, kept in one place so a trace looks like
-a trace whether it is a Code Mode call's destination chip, a markdown embed,
-or an autofix evidence link.
+The `EvidenceReference` is the standardized way to reference one of Sentry's
+core data types — an issue, a trace, a replay, a search, a dashboard — with a
+consistent icon and label everywhere it shows up across the product, rather
+than each surface picking its own icon and wording. The `type` → icon (and,
+for the `button` variant, label prefix) mapping is the Telemetry Icons board,
+kept in one place so a trace looks like a trace whether it's a Seer Code Mode
+call's destination chip, a markdown embed, an autofix evidence link, or
+anywhere else in the app that points at one of these entities.
 
 ## Variants
 
@@ -29,27 +31,33 @@ or an autofix evidence link.
 call-to-action like a `ToolCall` reference (see
 [ToolCall's Resource icons](/stories/core/toolcall/#resource-icons)).
 `variant: 'link'` renders a plain inline anchor — `Icon value`, no type prefix
-— for prose contexts like a seer markdown embed.
+— for prose contexts like a markdown embed.
 
 <Storybook.Demo align="stretch">
-  <Stack gap="md" align="start">
-    <EvidenceReference
-      variant="button"
-      type="trace"
-      value="a3805648"
-      to="/traces/a3805648/"
-    />
-    <Text>
-      Investigated{' '}
+  <Flex gap="md" align="start" flexGrow={1}>
+    <Stack gap="sm">
+      <Heading as="h4">Button</Heading>
       <EvidenceReference
-        variant="link"
+        variant="button"
         type="trace"
         value="a3805648"
-        href="/traces/a3805648/"
-      />{' '}
-      for the slow endpoint.
-    </Text>
-  </Stack>
+        to="/traces/a3805648/"
+      />
+    </Stack>
+    <Stack>
+      <Heading as="h4">Link</Heading>
+      <Text display="inline-block">
+        <span>Investigated </span>
+        <EvidenceReference
+          variant="link"
+          type="trace"
+          value="a3805648"
+          href="/traces/a3805648/"
+        />
+        <span> for the slow endpoint.</span>
+      </Text>
+    </Stack>
+  </Flex>
 </Storybook.Demo>
 
 ```jsx
@@ -86,6 +94,22 @@ chip (see `ToolCall`'s `reference` prop) rather than rendering
     <EvidenceReference variant="button" type="dashboard" value="Frontend Issues" />
   </Flex>
 </Storybook.Demo>
+
+```tsx
+<EvidenceReference variant="button" type="log" value="integration.http_response" />
+<EvidenceReference variant="button" type="trace" value="a3805648" />
+<EvidenceReference variant="button" type="span" value="a469c305" />
+<EvidenceReference variant="button" type="profiling" value="e53b897" />
+<EvidenceReference variant="button" type="error" value="5254308c" />
+<EvidenceReference variant="button" type="issue" value="SEER-123" />
+<EvidenceReference variant="button" type="query" value="spans" />
+<EvidenceReference variant="button" type="metrics" value="query_time" />
+<EvidenceReference variant="button" type="monitor" value="Send to Slack" />
+<EvidenceReference variant="button" type="replay" value="67ad746a" />
+<EvidenceReference variant="button" type="docs" value="Metric Issues" />
+<EvidenceReference variant="button" type="code" value="src/github_sdk.py:136" />
+<EvidenceReference variant="button" type="dashboard" value="Frontend Issues" />
+```
 
 Note `code` has no label prefix — its value is already a path, not a bare id,
 so a prefix would only repeat what the icon already says.
