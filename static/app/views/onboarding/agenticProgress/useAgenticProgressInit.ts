@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {uuid4} from '@sentry/core';
-import {useMutation} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -28,7 +28,7 @@ export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions)
   const [initialOnboardingCode] = useState(createOnboardingCode);
   const clientRunId = agenticProgressClientRunId ?? initialClientRunId;
   const onboardingCode = agenticProgressOnboardingCode ?? initialOnboardingCode;
-  const startedForClientRunId = useRef<string | null>(null);
+  const onboardingCodeRef = useRef(onboardingCode);
 
   const initializeRun = (nextClientRunId: string, nextOnboardingCode: string) =>
     fetchMutation<InitializedAgenticProgressRun>({
@@ -42,23 +42,29 @@ export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions)
       },
     });
 
-  const mutation = useMutation({
-    mutationFn: async () => {
+  // A conflicting onboarding code is replaced without changing the run's cache identity.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const query = useQuery({
+    queryKey: ['agentic-progress-init', organization.slug, clientRunId],
+    queryFn: async () => {
       try {
-        return await initializeRun(clientRunId, onboardingCode);
+        return await initializeRun(clientRunId, onboardingCodeRef.current);
       } catch (error) {
         if (!(error instanceof RequestError) || error.status !== 409) {
           throw error;
         }
 
         const replacementOnboardingCode = createOnboardingCode();
+        onboardingCodeRef.current = replacementOnboardingCode;
         setAgenticProgressOnboardingCode(replacementOnboardingCode);
 
         return initializeRun(clientRunId, replacementOnboardingCode);
       }
     },
+    enabled,
+    retry: false,
+    staleTime: Infinity,
   });
-  const {mutate} = mutation;
 
   useEffect(() => {
     if (!agenticProgressClientRunId) {
@@ -77,19 +83,5 @@ export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions)
     setAgenticProgressOnboardingCode,
   ]);
 
-  useEffect(() => {
-    if (!enabled) {
-      startedForClientRunId.current = null;
-      return;
-    }
-
-    if (startedForClientRunId.current === clientRunId) {
-      return;
-    }
-
-    startedForClientRunId.current = clientRunId;
-    mutate();
-  }, [clientRunId, enabled, mutate]);
-
-  return mutation;
+  return query;
 }
