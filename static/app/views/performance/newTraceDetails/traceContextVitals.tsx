@@ -1,14 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {Flex, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
@@ -28,6 +32,7 @@ import {
   TRACE_VIEW_WEB_VITALS,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 type Props = {
   rootEventResults: TraceRootEventQueryResults;
@@ -35,6 +40,8 @@ type Props = {
 };
 
 export function TraceContextVitals({rootEventResults, tree}: Props) {
+  const navigate = useNavigate();
+  const organization = useOrganization();
   const {hasVitals} = useTraceContextSections({
     tree,
     logs: undefined,
@@ -90,7 +97,33 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
     <Flex align="center" gap="md">
       {primaryVitals.map(vitalKey => {
         const {vitalDetails, vital} = getVitalInfo(vitalKey, collectedVitals);
-        return <VitalPill key={vitalKey} vitalDetails={vitalDetails} vital={vital} />;
+        return (
+          <VitalPill
+            key={vitalKey}
+            vitalDetails={vitalDetails}
+            vital={vital}
+            onClick={
+              vital
+                ? () => {
+                    trackAnalytics('trace.trace_layout.zoom_to_fill', {
+                      organization,
+                    });
+                    navigate(
+                      {
+                        pathname: location.pathname,
+                        query: {
+                          ...qs.parse(location.search),
+                          tab: TraceLayoutTabKeys.WATERFALL,
+                          zoomToNode: vital.node.pathToNode()[0],
+                        },
+                      },
+                      {replace: true}
+                    );
+                  }
+                : undefined
+            }
+          />
+        );
       })}
       {secondaryVitals.length > 0 && (
         <Tooltip showUnderline title={tooltipTitle}>
@@ -104,11 +137,12 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
 }
 
 type VitalPillProps = {
+  onClick: (() => void) | undefined;
   vital: TraceTree.CollectedVital | undefined;
   vitalDetails: VitalDetails;
 };
 
-function VitalPill({vital, vitalDetails}: VitalPillProps) {
+function VitalPill({onClick, vital, vitalDetails}: VitalPillProps) {
   const status = vital?.score === undefined ? 'none' : scoreToStatus(vital.score);
 
   const formattedMeterValueText = getFormattedValue(vital, vitalDetails);
@@ -135,15 +169,32 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
   );
 
   const acronym = vitalDetails.acronym ?? vitalDetails.name;
-  return (
-    <Flex>
+  const contents = (
+    <Fragment>
       <VitalPillName status={status}>
         <Tooltip title={toolTipTitle}>{acronym}</Tooltip>
       </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
-    </Flex>
+    </Fragment>
+  );
+
+  return onClick ? (
+    <VitalPillButton type="button" onClick={onClick}>
+      {contents}
+    </VitalPillButton>
+  ) : (
+    <Flex>{contents}</Flex>
   );
 }
+
+const VitalPillButton = styled('button')`
+  display: flex;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+`;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;

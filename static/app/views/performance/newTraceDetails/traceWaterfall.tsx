@@ -29,6 +29,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useApi} from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -95,6 +96,7 @@ export interface TraceWaterfallProps {
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
   const api = useApi();
+  const routerLocation = useLocation();
   const navigate = useNavigate();
   const filters = usePageFilters();
   const {projects} = useProjects();
@@ -581,6 +583,51 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
   });
+
+  const handledZoomQueryRef = useRef<string | null>(null);
+  useEffect(() => {
+    const query = qs.parse(routerLocation.search);
+    if (typeof query.zoomToNode !== 'string') {
+      handledZoomQueryRef.current = null;
+      return;
+    }
+
+    if (
+      onLoadScrollStatus !== 'success' ||
+      handledZoomQueryRef.current === routerLocation.search
+    ) {
+      return;
+    }
+    handledZoomQueryRef.current = routerLocation.search;
+
+    const node = props.tree.root.findChild(candidate =>
+      candidate.matchByPath(query.zoomToNode as TraceTree.NodePath)
+    );
+
+    const {zoomToNode: _zoomToNode, ...nextQuery} = query;
+    navigate(
+      {
+        pathname: routerLocation.pathname,
+        query: nextQuery,
+      },
+      {replace: true}
+    );
+
+    if (!node) {
+      return;
+    }
+
+    void onTabScrollToNode(node);
+    viewManager.onZoomIntoSpace(node.space);
+  }, [
+    navigate,
+    onLoadScrollStatus,
+    onTabScrollToNode,
+    props.tree,
+    routerLocation.pathname,
+    routerLocation.search,
+    viewManager,
+  ]);
 
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {

@@ -320,7 +320,12 @@ export declare namespace TraceTree {
     score?: number;
   };
 
-  type CollectedVital = {key: string; measurement: Measurement; score?: number};
+  type CollectedVital = {
+    key: string;
+    measurement: Measurement;
+    node: BaseNode;
+    score?: number;
+  };
 }
 
 export enum TraceShape {

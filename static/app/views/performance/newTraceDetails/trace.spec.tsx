@@ -1033,6 +1033,35 @@ describe('trace view', () => {
     expect(zoomSpy).toHaveBeenCalledWith([start * 1e3, 2000]);
   });
 
+  it('selects and zooms to a summary vital pill source node on click', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const zoomSpy = jest.spyOn(VirtualizedViewManager.prototype, 'onZoomIntoSpace');
+    const {start} = await completeTestSetup({
+      rootMeasurements: {lcp: {value: 500, unit: 'millisecond'}},
+    });
+    mockTransactionDetailsResponse('2');
+    await userEvent.click(await screen.findByText('transaction-name-2'));
+    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+      'TransactionID: 2'
+    );
+
+    const vitalPill = await screen.findByRole('button', {name: /LCP/});
+
+    analyticsSpy.mockClear();
+    zoomSpy.mockClear();
+
+    await userEvent.click(vitalPill);
+
+    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+      'TransactionID: 0'
+    );
+    expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
+      organization: expect.objectContaining({slug: 'org-slug'}),
+    });
+    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3, 2000]);
+    expect(window.location.search).not.toContain('zoomToNode');
+  });
+
   it('reveals a hidden vital pill source node on click', async () => {
     const start = Date.now() / 1e3;
     const organization = OrganizationFixture({features: ['trace-spans-format']});

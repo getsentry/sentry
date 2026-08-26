@@ -129,6 +129,7 @@ export function collectTraceMeasurements(
     vitals.get(node)!.push({
       key: collectableMeasurement,
       measurement,
+      node,
       score,
     });
 
