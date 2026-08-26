@@ -14,6 +14,7 @@ import {
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {HeaderCellContent} from 'sentry/components/tables/sortableHeaderCell';
 import {defined} from 'sentry/utils/defined';
 
 export const DATA_TABLE_ROW_HEIGHT = 42;
@@ -143,6 +144,12 @@ const HeadCell = styled(Table.HeadCell, {
 
   svg {
     min-width: 12px;
+  }
+
+  /* These heads are uppercase on a tight line height, so the glyphs sit high in
+     the line box and a centered sort arrow reads as too low. */
+  ${HeaderCellContent} > svg {
+    align-self: flex-start;
   }
 
   ${p =>
