@@ -110,6 +110,11 @@ ingest_errors_postprocess_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+internal_tasks = app.taskregistry.create_namespace(
+    "internal",
+    app_feature="shared",
+)
+
 issues_tasks = app.taskregistry.create_namespace(
     "issues",
     app_feature="issueplatform",
