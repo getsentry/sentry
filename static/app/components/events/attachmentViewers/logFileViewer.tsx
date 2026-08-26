@@ -1,25 +1,36 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import Ansi from 'ansi-to-react';
 
+import {decodeTextAttachment} from 'sentry/components/events/attachmentViewers/decodeTextAttachment';
 import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
 export function LogFileViewer(props: ViewerProps) {
-  const {data, isPending, isError} = useApiQuery<string>(
-    [
-      getAttachmentUrl(props),
-      {headers: {Accept: '*/*; charset=utf-8'}, query: {download: true}},
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const attachmentUrl = resolveHostname(`/api/0${getAttachmentUrl(props)}?download`);
+  const {data, isPending, isError} = useQuery({
+    queryKey: ['attachment-text-preview', attachmentUrl],
+    queryFn: async ({signal}) => {
+      const response = await fetch(attachmentUrl, {
+        credentials: 'include',
+        headers: {Accept: '*/*'},
+        signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download attachment: ${response.status}`);
+      }
+
+      return decodeTextAttachment(await response.arrayBuffer());
+    },
+    staleTime: Infinity,
+  });
 
   if (isError) {
     return <LoadingError message={t('Failed to download attachment.')} />;
