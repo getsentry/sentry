@@ -9,7 +9,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -30,10 +29,7 @@ import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
-import {
-  IssueIdBreadcrumb,
-  useIssueIdBreadcrumbItem,
-} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {useIssueIdBreadcrumbItem} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -78,7 +74,6 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const hasNewBreadcrumbs = true;
   const issueItem = useIssueIdBreadcrumbItem({project, group});
 
   return (
@@ -86,44 +81,23 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            {hasNewBreadcrumbs ? (
-              <Fragment>
-                <TopBar.Slot name="breadcrumbs">
-                  <BreadcrumbList
-                    items={[
-                      {
-                        type: 'link',
-                        label: t('Issues'),
-                        to: {
-                          pathname: `/organizations/${organization.slug}/issues/`,
-                          query,
-                        },
-                      },
-                    ]}
-                  />
-                </TopBar.Slot>
-                <TopBar.Slot name="title">
-                  <BreadcrumbList.Title item={issueItem} />
-                </TopBar.Slot>
-              </Fragment>
-            ) : (
-              <TopBar.Slot name="title">
-                <StyledBreadcrumbs
-                  crumbs={[
-                    {
-                      label: 'Issues',
-                      to: {
-                        pathname: `/organizations/${organization.slug}/issues/`,
-                        query,
-                      },
+            <TopBar.Slot name="breadcrumbs">
+              <BreadcrumbList
+                items={[
+                  {
+                    type: 'link',
+                    label: t('Issues'),
+                    to: {
+                      pathname: `/organizations/${organization.slug}/issues/`,
+                      query,
                     },
-                    {
-                      label: <IssueIdBreadcrumb project={project} group={group} />,
-                    },
-                  ]}
-                />
-              </TopBar.Slot>
-            )}
+                  },
+                ]}
+              />
+            </TopBar.Slot>
+            <TopBar.Slot name="title">
+              <BreadcrumbList.Title item={issueItem} />
+            </TopBar.Slot>
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
@@ -362,10 +336,6 @@ const Title = styled('div')`
   grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
-`;
-
-const StyledBreadcrumbs = styled(Breadcrumbs)`
-  padding: 0;
 `;
 
 const StyledTag = styled(Tag)`

@@ -24,7 +24,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
@@ -83,7 +82,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {AdjustedFiltersAlert} from './adjustedFiltersAlert';
-import {Controls, DashboardActionBar} from './controls';
+import {DashboardActionBar} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
 import {DashboardBreadcrumbTitle} from './dashboardBreadcrumbTitle';
@@ -132,7 +131,6 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
-  hasNewBreadcrumbs: boolean;
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -1072,7 +1070,7 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {pageAlerts, organization, dashboard, location} = this.props;
-    const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
+    const {modifiedDashboard, widgetLimitReached} = this.state;
     return (
       <DashboardPageFilters>
         <Stack flex={1} padding="2xl 3xl">
@@ -1093,18 +1091,6 @@ class DashboardDetail extends Component<Props, State> {
                       isEditingDashboard={this.isEditingDashboard}
                     />
                   </Layout.Title>
-                  <Controls
-                    organization={organization}
-                    dashboard={dashboard}
-                    onEdit={this.onEdit}
-                    onCancel={this.onCancel}
-                    onCommit={this.onCommit}
-                    onAddWidget={this.onAddWidget}
-                    onChangeEditAccess={this.onChangeEditAccess}
-                    onDelete={this.onDelete(dashboard)}
-                    dashboardState={dashboardState}
-                    widgetLimitReached={widgetLimitReached}
-                  />
                 </Grid>
                 <OverrideHeader organization={organization} />
                 <Stack gap="xl">
@@ -1164,7 +1150,6 @@ class DashboardDetail extends Component<Props, State> {
       navigate,
       organization,
       dashboard,
-      hasNewBreadcrumbs,
       location,
       onDashboardUpdate,
       pageAlerts,
@@ -1190,72 +1175,31 @@ class DashboardDetail extends Component<Props, State> {
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
                 <Fragment>
-                  {hasNewBreadcrumbs ? (
-                    <Fragment>
-                      <TopBar.Slot name="breadcrumbs">
-                        <BreadcrumbList
-                          items={[
-                            {
-                              type: 'link',
-                              label: t('Dashboards'),
-                              to: `/organizations/${organization.slug}/dashboards/`,
-                            },
-                          ]}
-                        />
-                      </TopBar.Slot>
-                      <TopBar.Slot name="title">
-                        <DashboardBreadcrumbTitle
-                          dashboard={modifiedDashboard ?? dashboard}
-                          hasUnsavedFilters={hasUnsavedFilters}
-                          isEditing={this.isEditingDashboard}
-                          isPreview={this.isPreview}
-                          isSaving={isCommittingChanges}
-                          onChange={newTitle =>
-                            this.setModifiedDashboard({
-                              ...(modifiedDashboard ?? dashboard),
-                              title: newTitle,
-                            })
-                          }
-                          onEdit={this.onEdit}
-                        />
-                      </TopBar.Slot>
-                    </Fragment>
-                  ) : (
-                    <TopBar.Slot name="title">
-                      <Breadcrumbs
-                        crumbs={[
-                          {
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                          {
-                            label: (
-                              <DashboardTitle
-                                dashboard={modifiedDashboard ?? dashboard}
-                                onUpdate={this.setModifiedDashboard}
-                                isEditingDashboard={this.isEditingDashboard}
-                              />
-                            ),
-                          },
-                        ]}
-                      />
-                    </TopBar.Slot>
-                  )}
-                  <TopBar.Slot name="actions">
-                    <Controls
-                      organization={organization}
-                      dashboard={dashboard}
-                      hideAddWidget
+                  <TopBar.Slot name="breadcrumbs">
+                    <BreadcrumbList
+                      items={[
+                        {
+                          type: 'link',
+                          label: t('Dashboards'),
+                          to: `/organizations/${organization.slug}/dashboards/`,
+                        },
+                      ]}
+                    />
+                  </TopBar.Slot>
+                  <TopBar.Slot name="title">
+                    <DashboardBreadcrumbTitle
+                      dashboard={modifiedDashboard ?? dashboard}
                       hasUnsavedFilters={hasUnsavedFilters}
-                      onEdit={this.onEdit}
-                      onCancel={this.onCancel}
-                      onCommit={this.onCommit}
-                      onAddWidget={this.onAddWidget}
-                      onDelete={this.onDelete(dashboard)}
-                      onChangeEditAccess={this.onChangeEditAccess}
-                      dashboardState={dashboardState}
-                      widgetLimitReached={widgetLimitReached}
+                      isEditing={this.isEditingDashboard}
+                      isPreview={this.isPreview}
                       isSaving={isCommittingChanges}
+                      onChange={newTitle =>
+                        this.setModifiedDashboard({
+                          ...(modifiedDashboard ?? dashboard),
+                          title: newTitle,
+                        })
+                      }
+                      onEdit={this.onEdit}
                     />
                   </TopBar.Slot>
                 </Fragment>
@@ -1533,7 +1477,6 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'location'
   | 'params'
   | 'queryClient'
-  | 'hasNewBreadcrumbs'
   | 'updateDashboard'
 > {}
 
@@ -1568,7 +1511,6 @@ export function DashboardDetailWithInjectedProps(
       widgetInterval={widgetInterval}
       queryClient={queryClient}
       updateDashboard={updateDashboard.mutateAsync}
-      hasNewBreadcrumbs
     />
   );
 }

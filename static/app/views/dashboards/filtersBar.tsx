@@ -7,10 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -21,7 +18,7 @@ import {
   RELEASES_SORT_OPTIONS,
   ReleasesSortOption,
 } from 'sentry/constants/releases';
-import {IconAdd, IconClock} from 'sentry/icons';
+import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -85,14 +82,12 @@ export function FiltersBar({
   isEditingDashboard,
   isPreview,
   location,
-  onAddWidget,
   onCancel,
   onDashboardFilterChange,
   onSave,
   shouldBusySaveButton,
   prebuiltDashboardId,
   storageNamespace,
-  widgetLimitReached = false,
 }: FiltersBarProps) {
   const organization = useOrganization();
   const currentUser = useUser();
@@ -199,25 +194,6 @@ export function FiltersBar({
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
-  const addWidgetDropdownItems: MenuItemProps[] = [
-    {
-      key: 'create-custom-widget',
-      label: t('Create Custom Widget'),
-      onAction: () => onAddWidget?.(DataSet.ERRORS, false),
-    },
-    {
-      key: 'from-widget-library',
-      label: t('From Widget Library'),
-      onAction: () => onAddWidget?.(DataSet.ERRORS, true),
-    },
-  ];
-  const addWidgetTooltipMessage = hasEditAccess
-    ? widgetLimitReached
-      ? t('Max widgets reached.')
-      : null
-    : t('You do not have permission to edit this dashboard');
-  const showAddWidgetButton = false;
-
   return (
     <Flex
       align={{zero: 'stretch', xl: 'start'}}
@@ -365,32 +341,6 @@ export function FiltersBar({
           menuTitle={t('Interval')}
           options={intervalOptions}
         />
-        {showAddWidgetButton && (
-          <Feature features="organizations:dashboards-edit">
-            {({hasFeature}) =>
-              hasFeature ? (
-                <Tooltip
-                  title={addWidgetTooltipMessage}
-                  disabled={!widgetLimitReached && hasEditAccess}
-                >
-                  <DropdownMenu
-                    items={addWidgetDropdownItems}
-                    isDisabled={widgetLimitReached || !hasEditAccess}
-                    triggerLabel={t('Add Widget')}
-                    triggerProps={{
-                      'aria-label': t('Add Widget'),
-                      size: 'sm',
-                      showChevron: true,
-                      icon: <IconAdd size="sm" />,
-                      variant: 'primary',
-                    }}
-                    position="bottom-end"
-                  />
-                </Tooltip>
-              ) : null
-            }
-          </Feature>
-        )}
       </Grid>
     </Flex>
   );
