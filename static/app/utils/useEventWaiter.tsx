@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -48,10 +49,66 @@ function getFirstEvent(eventType: EventType, resp: Project) {
 }
 
 /**
+ * Project fields that store-backed onboarding gates read. Keep these in sync so
+ * first-event detection can leave those gates without a full page refresh.
+ */
+function getProjectFirstEventUpdate(
+  eventType: EventType,
+  projectData: Project
+): Partial<Project> | null {
+  switch (eventType) {
+    case 'error': {
+      const firstEvent = projectData.firstEvent;
+      return firstEvent ? {id: projectData.id, firstEvent} : null;
+    }
+    case 'transaction':
+      return projectData.firstTransactionEvent
+        ? {id: projectData.id, firstTransactionEvent: true}
+        : null;
+    case 'replay':
+      return projectData.hasReplays ? {id: projectData.id, hasReplays: true} : null;
+    case 'profile':
+      return projectData.hasProfiles ? {id: projectData.id, hasProfiles: true} : null;
+    case 'log':
+      return projectData.hasLogs ? {id: projectData.id, hasLogs: true} : null;
+    default:
+      return null;
+  }
+}
+
+function shouldWriteFirstEventToStore(
+  eventType: EventType,
+  projectData: Project
+): boolean {
+  const storedProject = ProjectsStore.getById(projectData.id);
+  if (!storedProject) {
+    return false;
+  }
+
+  switch (eventType) {
+    case 'error':
+      return !storedProject.firstEvent && !!projectData.firstEvent;
+    case 'transaction':
+      return !storedProject.firstTransactionEvent && !!projectData.firstTransactionEvent;
+    case 'replay':
+      return !storedProject.hasReplays && !!projectData.hasReplays;
+    case 'profile':
+      return !storedProject.hasProfiles && !!projectData.hasProfiles;
+    case 'log':
+      return !storedProject.hasLogs && !!projectData.hasLogs;
+    default:
+      return false;
+  }
+}
+
+/**
  * Hook that polls for the first event of a project.
  * Returns null until the first event is detected, then returns the
  * resolved FirstEvent (a Group for errors, or true for other event types).
  * Once resolved, polling stops automatically.
+ *
+ * Also writes the matching first-event flag back to ProjectsStore so store-backed
+ * onboarding gates (traces/logs/profiles) can leave onboarding without a refresh.
  */
 export function useEventWaiter({
   eventType,
@@ -111,6 +168,26 @@ export function useEventWaiter({
     enabled: eventType === 'error' && !!firstEvent,
     staleTime: 0,
   });
+
+  // Keep ProjectsStore in sync when polling first observes the event so store-backed
+  // onboarding gates can flip without a full page reload.
+  useEffect(() => {
+    const projectData = projectQuery.data;
+    if (!projectData || !getFirstEvent(eventType, projectData)) {
+      return;
+    }
+
+    if (!shouldWriteFirstEventToStore(eventType, projectData)) {
+      return;
+    }
+
+    const update = getProjectFirstEventUpdate(eventType, projectData);
+    if (!update) {
+      return;
+    }
+
+    ProjectsStore.onUpdateSuccess(update);
+  }, [eventType, projectQuery.data]);
 
   // Report errors to Sentry (matching original behavior)
   useEffect(() => {
