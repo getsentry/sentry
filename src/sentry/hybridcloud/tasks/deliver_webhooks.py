@@ -206,60 +206,38 @@ def _dispatches_from_due_head(mailbox_name: str) -> bool:
 def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> int:
     """
     Claim up to MAX_MAILBOX_DRAIN records at the head of the mailbox by scheduling
-    them past the drain deadline, so no other dispatcher selects the mailbox for
-    delivery until the drain that claimed them has had its full run.
+    them past the drain deadline, keeping other dispatchers off the mailbox while
+    the drain runs. The claim is gated on the head still being due via the
+    UPDATE's WHERE clause, so a lost race claims 0 rows.
 
-    The whole claim is gated on the head still being due: the check rides in the
-    UPDATE's WHERE clause, so a head that another dispatcher already claimed (or a
-    drain already delivered) claims 0 rows in the same round trip instead of
-    needing a separate primary read.
+    In due-head mode the claim stops at the first not-due record. That stop keeps
+    concurrent drains apart: an in-flight drain's records carry a future
+    schedule_for, so a claim starting behind it ends before its range, and a
+    backoff record keeps its backoff. As a prefix, the drain's (head, count) walk
+    covers exactly the claimed records.
 
     Returns the number of records claimed — also the depth signal that picks the
     drain mode.
     """
+    window = WebhookPayload.objects.filter(id__gte=head_id, mailbox_name=mailbox_name).order_by(
+        "id"
+    )
+    claimed_ids: list[int] | Subquery
     if _dispatches_from_due_head(mailbox_name):
-        return _claim_due_prefix(head_id, mailbox_name)
-    mailbox_batch = (
-        WebhookPayload.objects.filter(id__gte=head_id, mailbox_name=mailbox_name)
-        .order_by("id")
-        .values("id")[:MAX_MAILBOX_DRAIN]
-    )
+        now = timezone.now()
+        prefix_ids: list[int] = []
+        for record_id, schedule_for in window.values_list("id", "schedule_for")[:MAX_MAILBOX_DRAIN]:
+            if schedule_for > now:
+                break
+            prefix_ids.append(record_id)
+        if not prefix_ids:
+            return 0
+        claimed_ids = prefix_ids
+    else:
+        claimed_ids = Subquery(window.values("id")[:MAX_MAILBOX_DRAIN])
     head_due = WebhookPayload.objects.filter(id=head_id, schedule_for__lte=timezone.now())
     return (
-        WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch))
-        .filter(Exists(head_due))
-        .update(schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET)
-    )
-
-
-def _claim_due_prefix(head_id: int, mailbox_name: str) -> int:
-    """
-    Claim the contiguous run of due records starting at `head_id`, stopping at
-    the first record that is not due.
-
-    The stop is what keeps concurrent drains apart without the head gate: an
-    in-flight drain's records carry a future schedule_for, so a claim starting
-    behind it (after a lower-id backoff expires) ends before its range, and a
-    record in retry backoff keeps its backoff instead of being claimed early.
-    Being a prefix, the drain's (head, count) walk covers exactly the claimed
-    records.
-    """
-    now = timezone.now()
-    window = (
-        WebhookPayload.objects.filter(id__gte=head_id, mailbox_name=mailbox_name)
-        .order_by("id")
-        .values_list("id", "schedule_for")[:MAX_MAILBOX_DRAIN]
-    )
-    prefix_ids = []
-    for record_id, schedule_for in window:
-        if schedule_for > now:
-            break
-        prefix_ids.append(record_id)
-    if not prefix_ids:
-        return 0
-    head_due = WebhookPayload.objects.filter(id=head_id, schedule_for__lte=timezone.now())
-    return (
-        WebhookPayload.objects.filter(id__in=prefix_ids)
+        WebhookPayload.objects.filter(id__in=claimed_ids)
         .filter(Exists(head_due))
         .update(schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET)
     )
