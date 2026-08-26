@@ -77,7 +77,9 @@ const renderAssigneeTrigger: AssigneeSelectorTrigger = (props, _isOpen, context)
     size="zero"
     variant="transparent"
   >
-    <IssuePreviewAssigneeAvatar context={context} />
+    <AssigneeContent>
+      <IssuePreviewAssigneeAvatar context={context} />
+    </AssigneeContent>
   </AssigneeTrigger>
 );
 
@@ -125,6 +127,13 @@ const AssigneeTrigger = styled(OverlayTrigger.Button)`
   &:hover {
     background: transparent;
   }
+`;
+
+const AssigneeContent = styled('span')`
+  align-items: center;
+  display: inline-flex;
+  height: 24px;
+  transform: translateY(2px);
 `;
 
 const SuggestedAssignees = styled('div')`
