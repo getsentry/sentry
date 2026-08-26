@@ -33,7 +33,8 @@ class OrganizationInvestigationIndexTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_create_manual_and_list(self) -> None:
+    @mock.patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    def test_create_manual_and_list(self, metrics_count: mock.MagicMock) -> None:
         response = self.client.post(
             self.collection_url,
             data={
@@ -47,12 +48,36 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.data["title"] == "Checkout follow-up"
         assert response.data["projectIds"] == [self.project.id]
         assert response.data["blocks"] == []
+        metrics_count.assert_any_call(
+            "investigations.started",
+            1,
+            attributes={"source_type": "manual", "template": "manual"},
+        )
 
         response = self.client.get(self.collection_url)
         assert response.status_code == 200
         assert [item["title"] for item in response.data] == ["Checkout follow-up"]
         assert response.data[0]["blockCount"] == 0
         assert response.data[0]["isFavorited"] is False
+
+    def test_list_includes_summary_when_projects_are_accessible(self) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            title="Checkout errors",
+            summary="Errors crossed alert threshold",
+            summary_description="Checkout errors increased.\nReview the latest release.",
+        )
+        self.create_investigation_project(investigation=investigation, project=self.project)
+
+        response = self.client.get(self.collection_url)
+
+        assert response.status_code == 200
+        listed = next(item for item in response.data if item["id"] == str(investigation.id))
+        assert listed["summary"] == "Errors crossed alert threshold"
+        assert listed["summaryDescription"] == (
+            "Checkout errors increased.\nReview the latest release."
+        )
 
     def test_regular_member_can_create_an_investigation(self) -> None:
         member_user = self.create_user()

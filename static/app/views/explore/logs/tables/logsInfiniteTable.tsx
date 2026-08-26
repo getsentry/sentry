@@ -19,7 +19,7 @@ import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
-import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -35,7 +35,6 @@ import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
-import {TableBodyCell, TableHead, TableRow} from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -628,11 +627,11 @@ export function LogsInfiniteTable({
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
         >
           {paddingTop > 0 && (
-            <TableRow>
+            <DataTable.Row>
               {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingTop}} />
+                <DataTable.Cell key={field} style={{height: paddingTop}} />
               ))}
-            </TableRow>
+            </DataTable.Row>
           )}
           {/* Only render these in table for non-replay contexts */}
           {!hasReplay && isPending && (
@@ -700,11 +699,11 @@ export function LogsInfiniteTable({
             );
           })}
           {paddingBottom > 0 && (
-            <TableRow>
+            <DataTable.Row>
               {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingBottom}} />
+                <DataTable.Cell key={field} style={{height: paddingBottom}} />
               ))}
-            </TableRow>
+            </DataTable.Row>
           )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
             <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
@@ -762,7 +761,7 @@ function LogsTableHeader({
   );
   const pinningEnabled = !!useLogsPinning();
   return (
-    <TableHead>
+    <DataTable.Head>
       <LogTableRow>
         <FirstTableHeadCell isFirst align="left" />
         {fields.map((field, index) => {
@@ -816,19 +815,19 @@ function LogsTableHeader({
           );
         })}
       </LogTableRow>
-    </TableHead>
+    </DataTable.Head>
   );
 }
 
 function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
   return (
-    <GridStatus>
+    <DataTable.Status>
       {isRateLimitError(error) ? (
         <LogsRateLimitError onRetry={onRetry} />
       ) : (
         <IconWarning variant="muted" size="lg" />
       )}
-    </GridStatus>
+    </DataTable.Status>
   );
 }
 
@@ -845,7 +844,7 @@ export function LoadingRenderer({
   );
 
   return (
-    <GridStatus>
+    <DataTable.Status>
       <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
@@ -867,7 +866,7 @@ export function LoadingRenderer({
           )}
         </EmptyStateText>
       </Stack>
-    </GridStatus>
+    </DataTable.Status>
   );
 }
 

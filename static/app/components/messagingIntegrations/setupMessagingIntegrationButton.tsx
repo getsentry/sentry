@@ -5,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {MessagingIntegrationModal} from 'sentry/components/messagingIntegrations/messagingIntegrationModal';
+import {SCM_MESSAGING_PROVIDER_KEYS} from 'sentry/components/onboarding/scm/messagingProviders';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
@@ -36,7 +37,6 @@ export function SetupMessagingIntegrationButton({
 }: Props) {
   const {openModal} = useModal();
 
-  const providerKeys = ['slack', 'discord', 'msteams'];
   const organization = useOrganization();
 
   const onAddIntegration = () => {
@@ -58,7 +58,7 @@ export function SetupMessagingIntegrationButton({
   );
 
   const integrationProvidersQuery = useQueries({
-    queries: providerKeys.map((providerKey: string) =>
+    queries: SCM_MESSAGING_PROVIDER_KEYS.map(providerKey =>
       apiOptions.as<{providers: IntegrationProvider[]}>()(
         '/organizations/$organizationIdOrSlug/config/integrations/',
         {
@@ -108,9 +108,9 @@ export function SetupMessagingIntegrationButton({
             size="sm"
             icon={
               <Flex gap="md">
-                {providerKeys.map((value: string) => {
-                  return <PluginIcon key={value} pluginId={value} size={16} />;
-                })}
+                {SCM_MESSAGING_PROVIDER_KEYS.map(value => (
+                  <PluginIcon key={value} pluginId={value} size={16} />
+                ))}
               </Flex>
             }
             disabled={disabled}

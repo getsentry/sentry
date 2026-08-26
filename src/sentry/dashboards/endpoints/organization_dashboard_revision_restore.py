@@ -76,13 +76,17 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
 
         restore_data = _prepare_restore_data(revision.snapshot)
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardDetailsSerializer(
             data=restore_data,
             instance=dashboard,
             context={
                 "organization": organization,
                 "request": request,
-                "projects": self.get_projects(request, organization),
+                "projects": projects,
+                # allow_joinleave grants project access without team membership.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
             },
         )

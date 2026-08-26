@@ -161,7 +161,7 @@ def get_cached_rebalanced_transaction_sample_rates(
 
 
 def get_cached_recalibration_factor(org_id: int) -> float:
-    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="task")
+    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_comparison")
 
 
 def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[RebalancedItem]) -> None:

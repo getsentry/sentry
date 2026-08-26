@@ -255,11 +255,7 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if (
-            not dry_run
-            and not email_override
-            and features.has("organizations:weekly-report-week-over-week-metric", ctx.organization)
-        ):
+        if not dry_run and not email_override:
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
                 for project_id, project_ctx in ctx.projects_context_map.items():
@@ -1021,9 +1017,6 @@ def render_template_context(
         "errors_discover_query": errors_discover_query,
         "view_all_issues_url": view_all_issues_url,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
-        "show_week_over_week_metric": features.has(
-            "organizations:weekly-report-week-over-week-metric", ctx.organization
-        ),
         "notification_settings_link": "/settings/account/notifications/reports/",
         **top_spans(),
     }

@@ -1,0 +1,151 @@
+---
+title: ToolCall
+description: A single agent tool call — a quiet read or an expanded query.
+category: chat
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/toolCall.tsx
+---
+
+import {ToolCall} from '@sentry/scraps/chat';
+import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chat/toolCall');
+
+The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`.
+Like `ThinkingBlock`, it is built on an outline `Disclosure`: a leading glyph
+communicates lifecycle `status` (a spinner while running, a semantic icon once
+settled — see `ToolCallIndicator`), and the `title` is the toggle. A call only
+renders as an actual (toggleable) `Disclosure` when it has `children` to reveal
+— see [Detail](#detail); otherwise it's a plain row with no toggle affordance.
+
+## Anatomy
+
+A tool call collapses to a single title line, with an optional trailing
+`reference` chip pointing at the entity the call acted on.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Read trace waterfall"
+      status="success"
+      reference={{label: 'Trace', value: 'a3805648'}}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Read trace waterfall"
+  status="success"
+  reference={{label: 'Trace', value: 'a3805648'}}
+/>
+```
+
+## Output
+
+When a call produces a primary result, pass `output` to surface it as a chip
+under an `Output:` label.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Query spans"
+      status="success"
+      output={{label: 'Trace', value: 'a3805648'}}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Query spans"
+  status="success"
+  output={{label: 'Trace', value: 'a3805648'}}
+/>
+```
+
+## Status
+
+The leading glyph reflects the call's lifecycle.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall title="Running query" status="loading" />
+    <ToolCall title="Awaiting approval" status="pending" />
+    <ToolCall title="Query succeeded" status="success" />
+    <ToolCall title="Query failed" status="failure" />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall title="Running query" status="loading" />
+<ToolCall title="Awaiting approval" status="pending" />
+<ToolCall title="Query succeeded" status="success" />
+<ToolCall title="Query failed" status="failure" />
+```
+
+## Notifications
+
+Pass `notifications` to surface short status lines beneath a call.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Query spans"
+      status="success"
+      notifications={['Truncated to 100 rows']}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Query spans"
+  status="success"
+  notifications={['Truncated to 100 rows']}
+/>
+```
+
+## Links
+
+Give a `reference` or `output` chip a `to` to render it as a real link (an
+anchor supporting middle/cmd-click and keyboard access) rather than an
+`onClick` button.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Read trace waterfall"
+      status="success"
+      reference={{label: 'Trace', value: 'a3805648', to: '/traces/a3805648/'}}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Read trace waterfall"
+  status="success"
+  reference={{label: 'Trace', value: 'a3805648', to: '/traces/a3805648/'}}
+/>
+```
+
+## Detail
+
+Pass `children` to tuck supplementary detail beneath the call — for example an
+expandable request/response. It lives in the collapsible panel, revealed by
+toggling the title.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall title="Query spans" status="success">
+      <Text size="xs" variant="muted" monospace>
+        GET /api/0/organizations/sentry/traces/
+      </Text>
+    </ToolCall>
+  </Container>
+</Storybook.Demo>

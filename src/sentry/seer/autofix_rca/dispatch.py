@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from sentry import quotas
 from sentry.constants import DataCategory
+from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
-from sentry.seer.autofix.utils import is_free_cohort_org
+from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.autofix_rca.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
+from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
-
-if TYPE_CHECKING:
-    from sentry.models.group import Group
-    from sentry.seer.autofix.constants import AutofixReferrer
-    from sentry.seer.autofix.utils import AutofixStoppingPoint
-    from sentry.seer.models.run import SeerRun
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +46,7 @@ def trigger_autofix_rca_feature(
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
+        on_completion_hook=extract_hook_definition(AutofixOnCompletionHook),
         tweaks=AutofixRCATweaks(
             intelligence_level=intelligence_level,
             reasoning_effort=reasoning_effort,
@@ -54,7 +54,6 @@ def trigger_autofix_rca_feature(
         ),
     )
 
-    # category_key is set by Seer; unused client-side for feature runs.
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
@@ -62,7 +61,9 @@ def trigger_autofix_rca_feature(
     )
 
     # Store the stopping point here for delivery to use when advancing steps.
-    extras: dict[str, Any] = {"referrer": referrer.value}
+    extras: dict[str, Any] = {
+        "referrer": referrer.value,
+    }
     if stopping_point is not None:
         extras["stopping_point"] = stopping_point.value
 

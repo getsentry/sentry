@@ -8,6 +8,7 @@ import {
   type MouseEventHandler,
   type ReactNode,
 } from 'react';
+import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
@@ -322,7 +323,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
     });
   }
 
-  return (
+  const listBox = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <ListBoxOverlay ref={popoverRef}>
         {isLoading && !anyItemsShowing ? (
@@ -355,6 +356,8 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
+
+  return portalTarget ? createPortal(listBox, portalTarget) : listBox;
 }
 
 /**
