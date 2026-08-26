@@ -562,6 +562,95 @@ describe('VirtualizedViewManger', () => {
   });
 
   describe('horizontal scrolling', () => {
+    it('keeps timestamps at a stable horizontal position near trace edges', () => {
+      const traceStart = 10_000;
+      for (const timestamp of [traceStart + 100, traceStart + 900]) {
+        const manager = new VirtualizedViewManager(
+          {
+            list: {width: 0.5},
+            span_list: {width: 0.5},
+          },
+          new TraceScheduler(),
+          new TraceView(),
+          ThemeFixture()
+        );
+
+        manager.view.setTraceSpace([traceStart, 0, 1000, 1]);
+        const zoomSpy = jest
+          .spyOn(manager, 'onZoomIntoSpace')
+          .mockImplementation(() => {});
+
+        manager.onZoomAroundTimestamp(timestamp, 'lcp');
+        manager.onZoomAroundTimestamp(timestamp, 'lcp');
+
+        expect(zoomSpy).toHaveBeenCalledTimes(2);
+        for (const [space] of zoomSpy.mock.calls) {
+          expect((timestamp - space[0]) / space[1]).toBeCloseTo(
+            (timestamp - traceStart) / 1000
+          );
+        }
+      }
+    });
+
+    it('zooms from the previous target when repeated before the animation completes', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      const zoomSpy = jest.spyOn(manager, 'onZoomIntoSpace').mockImplementation(() => {});
+
+      manager.onZoomAroundTimestamp(425, 'lcp');
+      manager.onZoomAroundTimestamp(425, 'lcp');
+
+      expect(zoomSpy).toHaveBeenNthCalledWith(1, [212.5, 500], {padding: false});
+      expect(zoomSpy).toHaveBeenNthCalledWith(2, [318.75, 250], {padding: false});
+    });
+
+    it('zooms in repeatedly and resets before zooming to a different vital', () => {
+      const scheduler = new TraceScheduler();
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        scheduler,
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      const dispatchedWidths: number[] = [];
+      scheduler.on('set trace view', view => {
+        manager.view.setTraceView(view);
+        if (view.width !== undefined) {
+          dispatchedWidths.push(view.width);
+        }
+      });
+      const animationFrameSpy = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          callback(performance.now() + 1000);
+          return 0;
+        });
+
+      manager.onZoomAroundTimestamp(425, 'lcp');
+      manager.onZoomAroundTimestamp(425, 'lcp');
+      manager.onZoomAroundTimestamp(750, 'fcp');
+      animationFrameSpy.mockRestore();
+
+      expect(dispatchedWidths).toEqual([500, 250, 1000, 500]);
+      expect(manager.view.trace_view.x).toBe(375);
+      expect(manager.view.trace_view.width).toBe(500);
+    });
+
     it('uses compressed viewport width when the real viewport is at max zoom', () => {
       const manager = new VirtualizedViewManager(
         {
