@@ -12,7 +12,6 @@ from sentry.hybridcloud.models.webhookpayload import (
 )
 from sentry.hybridcloud.webhook_event_types import event_type_from_mailbox
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -33,7 +32,7 @@ class WebhookPayloadTest(TestCase):
             request=request,
             integration_id=123,
         )
-        assert hook.mailbox_name == "github:123"
+        assert hook.mailbox_name == "github:us:123"
         assert hook.provider == "github"
         assert hook.request_method == request.method
         assert hook.request_path == request.get_full_path()
@@ -43,7 +42,6 @@ class WebhookPayloadTest(TestCase):
         )
         assert hook.request_body == '{"installation": {"id": "github:1"}}'
 
-    @override_options({"hybridcloud.webhookpayload.cell_scoped_mailboxes": True})
     def test_create_from_request_cell_scoped(self) -> None:
         factory = RequestFactory()
         request = factory.post(

@@ -78,13 +78,17 @@ def assert_webhook_payloads_for_mailbox(
      the given request
 
     :param request:
-    :param mailbox_name: The mailbox name that messages should be found in.
+    :param mailbox_name: The cell-less `<provider>:<identifier>` mailbox name.
+        Payloads queue under the cell-scoped `<provider>:<cell>:<identifier>`
+        variant, which this helper derives per cell.
     :param cell_names: List of cells each messages should be queued for
     :param destination_types: Optional Mapping of destination types to the number of messages that should be found for that destination type
     """
     expected_payload = WebhookPayload.get_attributes_from_request(request=request)
     cell_names_set = set(cell_names)
-    messages = WebhookPayload.objects.filter(mailbox_name=mailbox_name)
+    provider, _, identifier = mailbox_name.partition(":")
+    expected_mailboxes = {f"{provider}:{cell}:{identifier}" for cell in cell_names_set}
+    messages = WebhookPayload.objects.filter(mailbox_name__in=expected_mailboxes)
     messages_with_cell_count = messages.filter(cell_name__isnull=False).count()
     if messages_with_cell_count != len(cell_names_set):
         raise Exception(
