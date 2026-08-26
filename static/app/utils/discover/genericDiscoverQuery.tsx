@@ -278,10 +278,6 @@ export type DiscoverQueryRequestParams = Partial<
   EventQuery & LocationQuery & _DiscoverQueryExtras
 >;
 
-const BASE_TIMEOUT = 500;
-const TIMEOUT_MULTIPLIER = 1.75;
-const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
-
 export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
@@ -292,35 +288,15 @@ export async function doDiscoverQuery<T>(
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
   const {skipAbort} = options;
 
-  const baseTimeout = BASE_TIMEOUT;
-  const timeoutMultiplier = TIMEOUT_MULTIPLIER;
-  const statusCodes: number[] = [];
-  const maxTries = 1;
-  let tries = 0;
-  let timeout = 0;
-  let error: any;
-
-  while (tries < maxTries && (!error || statusCodes.includes(error.status))) {
-    if (timeout > 0) {
-      await wait(timeout);
-    }
-    try {
-      tries++;
-      return await api.requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          // marking params as any so as to not cause typescript errors
-          ...(params as any),
-        },
-        skipAbort,
-      });
-    } catch (err) {
-      error = err;
-      timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
-    }
-  }
-  throw error;
+  return api.requestPromise(url, {
+    method: 'GET',
+    includeAllArgs: true,
+    query: {
+      // marking params as any so as to not cause typescript errors
+      ...(params as any),
+    },
+    skipAbort,
+  });
 }
 
 function getPayload<T, P>(props: Props<T, P>) {

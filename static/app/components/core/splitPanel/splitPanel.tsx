@@ -74,7 +74,6 @@ export function SplitPanel({
   const {t} = useTranslation();
   const orientation =
     useResponsivePropValue(orientationProp) === 'vertical' ? 'vertical' : 'horizontal';
-  const isSizedFirst = true;
   const hasFill = fill !== undefined && fill !== null;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,18 +110,10 @@ export function SplitPanel({
   const dragStateRef = useRef<{size: number; startSize: number} | null>(null);
 
   const {setSize, size: containerSize} = useResizableDrawer({
-    direction:
-      orientation === 'horizontal'
-        ? isSizedFirst
-          ? 'left'
-          : 'right'
-        : isSizedFirst
-          ? 'down'
-          : 'up',
+    direction: orientation === 'horizontal' ? 'left' : 'down',
     initialSize,
     min,
     max,
-    onResize: () => {},
   });
 
   useImperativeHandle(ref, () => ({setSize}), [setSize]);
@@ -151,8 +142,7 @@ export function SplitPanel({
       return;
     }
 
-    const sizeDelta = isSizedFirst ? delta : -delta;
-    state.size = Math.max(min, Math.min(max, state.size + sizeDelta));
+    state.size = Math.max(min, Math.min(max, state.size + delta));
 
     setSize(Math.round(state.size), true);
   };
@@ -170,9 +160,9 @@ export function SplitPanel({
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     let newSize: number | null = null;
     if (event.key === 'Home') {
-      newSize = isSizedFirst ? min : max;
+      newSize = min;
     } else if (event.key === 'End') {
-      newSize = isSizedFirst ? max : min;
+      newSize = max;
     }
 
     // Skip when the target is an unbounded max (not yet measured).
@@ -194,7 +184,7 @@ export function SplitPanel({
       <DragHandle
         key="divider"
         aria-label={t('Resize panels')}
-        isSizedFirst={isSizedFirst}
+        isSizedFirst
         max={max}
         min={min}
         orientation={orientation}
@@ -230,7 +220,7 @@ export function SplitPanel({
           // pane gets its basis.
           style={hasFill && availableSize === 0 ? {visibility: 'hidden'} : undefined}
         >
-          {isSizedFirst ? panes : panes.toReversed()}
+          {panes}
         </RootElement>
       )}
     </Flex>

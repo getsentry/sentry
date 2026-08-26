@@ -36,6 +36,15 @@ type SliderProps = {
    */
   id?: string;
 
+  /**
+   * max allowed value, not needed if using `allowedValues`
+   */
+  max?: number;
+  /**
+   * min allowed value, not needed if using `allowedValues`
+   */
+  min?: number;
+
   onChange?: (
     value: SliderProps['value'],
     event: React.ChangeEvent<HTMLInputElement>
@@ -103,9 +112,10 @@ export function RangeSlider({
 
   function getSliderData() {
     if (!allowedValues) {
+      const {min, max} = props;
       return {
-        min: undefined,
-        max: undefined,
+        min,
+        max,
         actualValue: sliderValue,
         displayValue: sliderValue,
       };

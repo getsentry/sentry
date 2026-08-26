@@ -18,7 +18,7 @@ export interface UseResizableDrawerOptions {
   /**
    * Triggered while dragging
    */
-  onResize: (
+  onResize?: (
     newSize: number,
     maybeOldSize: number | undefined,
     userEvent: boolean
@@ -99,7 +99,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const updateSize = useCallback((newSize: number, userEvent = false) => {
     sizeRef.current = newSize;
     setSize(newSize);
-    optionsRef.current.onResize(newSize, undefined, userEvent);
+    optionsRef.current.onResize?.(newSize, undefined, userEvent);
     if (optionsRef.current.sizeStorageKey) {
       localStorage.setItem(optionsRef.current.sizeStorageKey, newSize.toString());
     }
@@ -110,7 +110,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
     const clamped = clampSize(options.initialSize ?? 0, options.min, options.max);
-    options.onResize(clamped, size, false);
+    options.onResize?.(clamped, size, false);
     setSize(clamped);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
