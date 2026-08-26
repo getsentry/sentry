@@ -73,7 +73,19 @@ async function openRevisionHistory() {
 
 async function selectFirstRevision() {
   const radios = await screen.findAllByRole('radio');
-  await userEvent.click(radios[1]!);
+  const firstRevision = radios[1];
+  if (!firstRevision) {
+    throw new Error('Expected a historical revision');
+  }
+  await userEvent.click(firstRevision);
+}
+
+function getItemContaining(text: string) {
+  const item = screen.getByText(text).closest('div');
+  if (!item) {
+    throw new Error(`Expected an item containing "${text}"`);
+  }
+  return item;
 }
 
 describe('DashboardBreadcrumbTitle revision history', () => {
@@ -126,11 +138,13 @@ describe('DashboardBreadcrumbTitle revision history', () => {
     await openRevisionHistory();
     await screen.findAllByRole('radio');
 
-    const currentVersion = screen.getByText('Current Version').closest('div');
-    expect(within(currentVersion!).getByText('Recent Editor')).toBeInTheDocument();
+    expect(
+      within(getItemContaining('Current Version')).getByText('Recent Editor')
+    ).toBeInTheDocument();
 
-    const revertedRevision = screen.getByText('Revert Dashboard').closest('div');
-    expect(within(revertedRevision!).getByText('Alice')).toBeInTheDocument();
+    expect(
+      within(getItemContaining('Revert Dashboard')).getByText('Alice')
+    ).toBeInTheDocument();
   });
 
   it('selects Current Version by default and enables restore for a revision', async () => {
@@ -145,7 +159,7 @@ describe('DashboardBreadcrumbTitle revision history', () => {
     expect(radios[0]).toBeChecked();
     expect(screen.getByRole('button', {name: 'Revert to Selection'})).toBeDisabled();
 
-    await userEvent.click(radios[1]!);
+    await selectFirstRevision();
     expect(screen.getByRole('button', {name: 'Revert to Selection'})).toBeEnabled();
   });
 
