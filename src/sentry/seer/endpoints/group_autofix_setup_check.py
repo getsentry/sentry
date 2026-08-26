@@ -100,7 +100,8 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         # True only when a run exists (so they see results), False otherwise (shows paywall).
         is_free_cohort = is_free_cohort_org(org)
         if is_free_cohort:
-            # Existing runs can use either the legacy autofix source or the RCA feature source.
+            # Keep historical autofix_rca runs visible through their 90-day retention window.
+            # This fallback can be removed after November 11, 2026.
             has_autofix_quota = (
                 runs_for_group(group.id, "autofix").exists()
                 or runs_for_group(group.id, "autofix_rca").exists()

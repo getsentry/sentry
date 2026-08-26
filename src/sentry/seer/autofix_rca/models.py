@@ -9,8 +9,6 @@ from sentry.seer.agent.on_completion_hook import OnCompletionHookDefinition
 # Keep models in sync with src/seer/automation/features/autofix/models.py in Seer
 
 FEATURE_ID = "autofix"
-# In-flight runs started before the rename still deliver and persist this id.
-LEGACY_FEATURE_ID = "autofix_rca"
 
 
 class AutofixRCATweaks(BaseModel):

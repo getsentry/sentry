@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import sentry_sdk
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
-from scm.types import GetBranchProtocol, GetRepositoryProtocol
+from scm.types import GetRepositoryProtocol
 
 from sentry import analytics, features, quotas
 from sentry.analytics.events.autofix_events import (
@@ -30,10 +30,7 @@ from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.artifact_schemas import (
-    RootCauseArtifact,
-    SolutionArtifact,
-)
+from sentry.seer.autofix.artifact_schemas import SolutionArtifact
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
@@ -42,7 +39,6 @@ from sentry.seer.autofix.prompts import (
     PromptBuilder,
     code_changes_prompt,
     pr_iteration_prompt,
-    root_cause_prompt,
     solution_prompt,
 )
 from sentry.seer.autofix.types import AutofixHandoffResponse
@@ -126,47 +122,42 @@ class StepConfig:
         artifact_schema: type[BaseModel] | None,
         prompt_fn: PromptBuilder,
         enable_coding: bool = False,
-        reasoning_effort: Literal["low", "medium", "high"] | None = None,
-        started_event: type[AiAutofixPhaseEvent] | None = None,
-        completed_event: type[AiAutofixPhaseEvent] | None = None,
     ):
         self.artifact_schema = artifact_schema
         self.prompt_fn = prompt_fn
         self.enable_coding = enable_coding
-        self.reasoning_effort = reasoning_effort
-        self.started_event = started_event
-        self.completed_event = completed_event
 
 
-# Step configurations mapping step to its artifact schema and prompt
+# Explorer step configurations. Root cause runs through the dedicated Seer feature.
 STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
-    AutofixStep.ROOT_CAUSE: StepConfig(
-        artifact_schema=RootCauseArtifact,
-        prompt_fn=root_cause_prompt,
-        reasoning_effort="medium",
-        started_event=AiAutofixRootCauseStartedEvent,
-        completed_event=AiAutofixRootCauseCompletedEvent,
-    ),
     AutofixStep.SOLUTION: StepConfig(
         artifact_schema=SolutionArtifact,
         prompt_fn=solution_prompt,
-        started_event=AiAutofixSolutionStartedEvent,
-        completed_event=AiAutofixSolutionCompletedEvent,
     ),
     AutofixStep.CODE_CHANGES: StepConfig(
         artifact_schema=None,  # Code changes read from file_patches
         prompt_fn=code_changes_prompt,
         enable_coding=True,
-        started_event=AiAutofixCodeChangesStartedEvent,
-        completed_event=AiAutofixCodeChangesCompletedEvent,
     ),
     AutofixStep.PR_ITERATION: StepConfig(
         artifact_schema=None,  # Iteration changes read from file_patches
         prompt_fn=pr_iteration_prompt,
         enable_coding=True,
-        started_event=AiAutofixIterationStartedEvent,
-        completed_event=AiAutofixIterationCompletedEvent,
     ),
+}
+
+STEP_STARTED_EVENTS: dict[AutofixStep, type[AiAutofixPhaseEvent]] = {
+    AutofixStep.ROOT_CAUSE: AiAutofixRootCauseStartedEvent,
+    AutofixStep.SOLUTION: AiAutofixSolutionStartedEvent,
+    AutofixStep.CODE_CHANGES: AiAutofixCodeChangesStartedEvent,
+    AutofixStep.PR_ITERATION: AiAutofixIterationStartedEvent,
+}
+
+STEP_COMPLETED_EVENTS: dict[AutofixStep, type[AiAutofixPhaseEvent]] = {
+    AutofixStep.ROOT_CAUSE: AiAutofixRootCauseCompletedEvent,
+    AutofixStep.SOLUTION: AiAutofixSolutionCompletedEvent,
+    AutofixStep.CODE_CHANGES: AiAutofixCodeChangesCompletedEvent,
+    AutofixStep.PR_ITERATION: AiAutofixIterationCompletedEvent,
 }
 
 
@@ -242,18 +233,16 @@ def _handle_step_started_events(
     iteration_index: int | None = None,
     actor_user_id: int | None = None,
 ) -> None:
-    config = STEP_CONFIGS[step]
-    if config.started_event is not None:
-        analytics.record(
-            config.started_event(
-                organization_id=group.organization.id,
-                project_id=group.project_id,
-                group_id=group.id,
-                referrer=referrer.value,
-                run_id=run_id,
-                iteration_index=iteration_index,
-            )
+    analytics.record(
+        STEP_STARTED_EVENTS[step](
+            organization_id=group.organization.id,
+            project_id=group.project_id,
+            group_id=group.id,
+            referrer=referrer.value,
+            run_id=run_id,
+            iteration_index=iteration_index,
         )
+    )
 
     payload: dict[str, Any] = {
         "run_id": run_id,
@@ -452,47 +441,6 @@ def _resolve_default_branch(
     return None
 
 
-def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | None:
-    preference = read_preference_from_sentry_db(group.project)
-    # Imported lazily to avoid a circular import: sentry.scm pulls in the
-    # github/slack integrations, which import notifications templates that
-    # import back into sentry.seer.autofix.
-    from sentry.scm import factory as scm_factory
-
-    base_shas: dict[str, dict[str, str]] = {}
-    for repo in preference.repositories:
-        if repo.repository_id is None:
-            continue
-
-        full_name = f"{repo.owner}/{repo.name}"
-        try:
-            scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
-            if repo.branch_name:
-                base_branch: str | None = repo.branch_name
-            elif isinstance(scm, GetRepositoryProtocol):
-                base_branch = scm.get_repository()["data"]["default_branch"]
-            else:
-                continue
-            if not base_branch:
-                continue
-            if not isinstance(scm, GetBranchProtocol):
-                continue
-            base_sha = scm.get_branch(base_branch)["data"]["sha"]
-        except Exception:
-            logger.exception(
-                "autofix.base_shas.resolve_failed",
-                extra={"repo": full_name, "group_id": group.id},
-            )
-            continue
-
-        if base_sha:
-            base_shas[full_name] = {"base_sha": base_sha, "base_branch": base_branch}
-
-    if not base_shas:
-        return None
-    return json.dumps(base_shas)
-
-
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -540,7 +488,7 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    if step == AutofixStep.ROOT_CAUSE and run_id is None:
+    if step == AutofixStep.ROOT_CAUSE:
         # Local import avoids a circular import (dispatch imports this module).
         from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
 
@@ -633,11 +581,6 @@ def trigger_autofix_agent(
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
-
-    if step == AutofixStep.ROOT_CAUSE:
-        base_shas = _build_base_shas_metadata(group, referrer)
-        if base_shas:
-            prompt_metadata["base_shas"] = base_shas
 
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema

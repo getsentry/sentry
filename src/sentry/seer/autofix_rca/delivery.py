@@ -8,7 +8,7 @@ import sentry_sdk
 from django.db import router, transaction
 
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix_rca.models import FEATURE_ID, LEGACY_FEATURE_ID
+from sentry.seer.autofix_rca.models import FEATURE_ID
 from sentry.seer.models.run import SeerAgentRun
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def deliver_autofix_rca_result(
             .filter(
                 run__uuid=run_uuid,
                 run__organization_id=organization_id,
-                source__in=(FEATURE_ID, LEGACY_FEATURE_ID),
+                source=FEATURE_ID,
             )
             .select_related("run", "run__organization")
             .first()

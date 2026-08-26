@@ -33,7 +33,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         )
         self.agent_run = self.create_seer_agent_run(
             run=seer_run,
-            source="autofix_rca",
+            source="autofix",
             group=self.group,
             project=self.project,
             extras={"referrer": AutofixReferrer.WEB.value},
@@ -72,21 +72,6 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert self.agent_run.extras["result"] == VALID_RESULT
         assert self.agent_run.extras["referrer"] == AutofixReferrer.WEB.value
         assert self.agent_run.extras["stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
-
-    def test_completed_result_matches_run_with_autofix_source(self) -> None:
-        self.agent_run.source = "autofix"
-        self.agent_run.save(update_fields=["source"])
-
-        deliver_autofix_rca_result(
-            organization_id=self.organization.id,
-            run_uuid=self.agent_run.run.uuid,
-            status="completed",
-            result=VALID_RESULT,
-            error=None,
-        )
-
-        self.agent_run.refresh_from_db()
-        assert self.agent_run.extras["status"] == "completed"
 
     def test_error_status_recorded(self) -> None:
         with patch("sentry.seer.autofix_rca.delivery.logger") as mock_logger:

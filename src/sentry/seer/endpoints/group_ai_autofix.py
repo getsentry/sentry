@@ -290,7 +290,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             resolved_run_id = resolved.seer_run_state_id
             resolved_sentry_run_id = resolved.uuid
 
-        is_autofix_kickoff = resolved_run_id is None
+        # Root cause always starts a new Seer feature run, including a user-requested retry.
+        is_autofix_kickoff = resolved_run_id is None or step == "root_cause"
         user_context = data.get("user_context")
 
         referrer = _parse_autofix_referrer(data.get("referrer"), request)
@@ -423,7 +424,11 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             case _:
                 # A truncating re-run would strand a PR/coding agent (they live
                 # outside the blocks). Refuse it, mirroring the frontend gate.
-                if data.get("insert_index") is not None and resolved_run_id is not None:
+                if (
+                    step != "root_cause"
+                    and data.get("insert_index") is not None
+                    and resolved_run_id is not None
+                ):
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)
                     except SeerPermissionError as e:
@@ -463,9 +468,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         stopping_point=(
                             AutofixStoppingPoint(stopping_point) if stopping_point else None
                         ),
-                        run_id=resolved_run_id,
+                        run_id=None if step == "root_cause" else resolved_run_id,
                         user_context=user_context,
-                        insert_index=data.get("insert_index"),
+                        insert_index=(None if step == "root_cause" else data.get("insert_index")),
                         user=request.user,
                         enable_bash_tools=data.get("enable_bash_tools", False),
                     )
