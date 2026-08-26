@@ -277,7 +277,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             "GET": {
                 RateLimitCategory.IP: RateLimit(limit=10, window=1),
                 RateLimitCategory.USER: RateLimit(limit=10, window=1),
-                RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
             }
         }
     )
