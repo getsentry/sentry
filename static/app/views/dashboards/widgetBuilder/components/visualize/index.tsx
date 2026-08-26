@@ -252,6 +252,17 @@ function canDeleteField(
       ).length > 1 || field.kind === FieldValueKind.FIELD
     );
   }
+  if (dataset === WidgetType.TRACEMETRICS) {
+    // Trace metric tables only support aggregates. Keep the last aggregate so
+    // a table cannot become a samples-only query.
+    return (
+      selectedFields.filter(
+        selectedField =>
+          selectedField.kind === FieldValueKind.FUNCTION ||
+          selectedField.kind === FieldValueKind.EQUATION
+      ).length > 1 || field.kind === FieldValueKind.FIELD
+    );
+  }
   return true;
 }
 
@@ -869,7 +880,8 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                 )
                               ) : (
                                 <Fragment>
-                                  {state.dataset === WidgetType.TRACEMETRICS ? (
+                                  {state.dataset === WidgetType.TRACEMETRICS &&
+                                  field.kind === FieldValueKind.FUNCTION ? (
                                     <MetricSelectRow
                                       // Heat maps always count() the metric, so
                                       // the aggregate function is locked (only the

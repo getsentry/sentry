@@ -2164,6 +2164,46 @@ describe('Visualize', () => {
     expect(aggregateSelectors[1]).toHaveTextContent('sum');
   });
 
+  it('uses the attribute selector for group-by columns in trace metrics tables', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              field: ['span.op', 'sum(value,alpha_metric,counter,none)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.TABLE,
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(await screen.findByRole('button', {name: 'alpha_metric'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.op'
+    );
+  });
+
   it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {
     const organizationWithoutDeprecation = OrganizationFixture({
       features: [], // No discover-saved-queries-deprecation feature
