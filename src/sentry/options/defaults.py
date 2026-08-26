@@ -1337,6 +1337,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "issues.derived_data.read_path_checks.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
     default=False,
