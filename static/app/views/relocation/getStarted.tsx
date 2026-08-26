@@ -19,9 +19,12 @@ import type {StepProps} from './types';
 const PROMO_CODE_ERROR_MSG = t(
   'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
 );
+const PROMO_CODE_FALLBACK_ERROR_MSG = t(
+  'Could not validate the promotional code. Try again.'
+);
 
 const getStartedSchema = z.object({
-  orgSlugs: z.string().min(3, t('Enter at least one organization slug')),
+  orgSlugs: z.string().trim().min(3, t('Enter at least one organization slug')),
   localityName: z.string().min(1, t('Select a datacenter location')),
   promoCode: z.string(),
 });
@@ -42,9 +45,11 @@ export function GetStarted({
         method: 'GET',
       }),
     onError: error => {
-      if (error instanceof RequestError && error.status === 403) {
-        addErrorMessage(PROMO_CODE_ERROR_MSG);
-      }
+      addErrorMessage(
+        error instanceof RequestError && error.status === 403
+          ? PROMO_CODE_ERROR_MSG
+          : PROMO_CODE_FALLBACK_ERROR_MSG
+      );
     },
   });
 
@@ -52,18 +57,20 @@ export function GetStarted({
     ...defaultFormOptions,
     defaultValues: {orgSlugs, localityName, promoCode},
     validators: {onDynamic: getStartedSchema},
-    onSubmit: async ({value}) => {
+    onSubmit: ({value}) => {
       const parsedValue = getStartedSchema.parse(value);
-      if (parsedValue.promoCode) {
-        try {
-          await validatePromoCode(parsedValue.promoCode);
-        } catch (error) {
-          if (error instanceof RequestError && error.status === 403) {
-            return;
-          }
+      const completeStep = () => {
+        if (parsedValue.orgSlugs !== value.orgSlugs) {
+          onUpdateRelocationState({orgSlugs: parsedValue.orgSlugs});
         }
-      }
-      onComplete();
+        onComplete();
+      };
+
+      return parsedValue.promoCode
+        ? validatePromoCode(parsedValue.promoCode)
+            .then(completeStep)
+            .catch(() => {})
+        : completeStep();
     },
   });
 
