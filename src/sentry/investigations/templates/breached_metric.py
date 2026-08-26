@@ -1,6 +1,17 @@
 from sentry.investigations.models import InvestigationBlockKind, InvestigationSourceType
 from sentry.investigations.templates.types import InvestigationTemplateSpec, TemplateBlockSpec
 
+SHORT_LINKED_SUMMARY_INSTRUCTIONS = (
+    "Use at most three short sentences or three compact bullets total. Preserve useful Markdown "
+    "links from the evidence. Link concrete Sentry issues, releases, transactions, or other pages "
+    "when the evidence contains a valid URL or identifier; never invent a URL or identifier."
+)
+LINKED_EVIDENCE_INSTRUCTIONS = (
+    "Include concise Markdown links to relevant Sentry issues, releases, transactions, or other "
+    "pages when telemetry returns a concrete URL or identifier. Use organizationSlug from the "
+    "investigation context for relative Sentry paths when needed; never guess a URL or identifier."
+)
+
 BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
     key="breached_metric",
     version=1,
@@ -8,59 +19,159 @@ BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
     parameters=(),
     blocks=(
         TemplateBlockSpec(
-            key="metric_chart",
-            kind=InvestigationBlockKind.QUERY,
-            title="Breached metric",
-            generation_prompt=(
-                "Query the exact supplied monitor definition over the supplied analysis window. "
-                "Make the breach immediately visible in a time-series chart spanning the equal "
-                "pre-breach baseline and open-period portions. Plot the observed metric and the "
-                "supplied threshold or comparison as separate series so the crossing is clear. "
-                "Use the monitor time window for the chart interval when supported."
-            ),
-            config={"autoRun": True, "preferChart": True},
-            display={"version": 1, "type": "table", "defaultView": "chart"},
-        ),
-        TemplateBlockSpec(
-            key="overview",
+            key="monitor_summary",
             kind=InvestigationBlockKind.TEXT,
-            title="Overview",
+            title="Monitor context",
             generation_prompt=(
-                "Give the reader a useful overview of this breached metric using the supplied "
-                "monitor, open-period, project, threshold, direction, and analysis-window facts. "
-                "Accurately describe whether this is an upward or downward breach. Do not claim a "
-                "cause before examining the telemetry. Keep the overview to two short paragraphs."
+                "Summarize only the Monitor details evidence for a human responder. State the "
+                "monitor name and query, affected project and environment when known, threshold "
+                "and breach direction, and supplied open-period time range. Do not speculate about "
+                "the cause. " + SHORT_LINKED_SUMMARY_INSTRUCTIONS
             ),
             config={"autoRun": True},
             display={"type": "markdown"},
+            dependencies=("monitor_evidence",),
         ),
         TemplateBlockSpec(
-            key="synthesis",
-            kind=InvestigationBlockKind.TEXT,
-            title="What explains the change",
+            key="monitor_evidence",
+            kind=InvestigationBlockKind.QUERY,
+            title="Monitor details",
             generation_prompt=(
-                "Explain what the breached-metric result above and contributor result below show "
-                "together. Focus on evidence, distinguish correlation from causation, and state "
-                "uncertainty when the telemetry does not establish a convincing explanation. Keep "
-                "the answer to two or three short paragraphs unless a tiny table is essential."
+                "Use the supplied metric issue, monitor definition, project, open-period window, "
+                "threshold, and direction. Query the exact supplied monitor definition over the "
+                "open period and an equal pre-breach baseline. Return a compact table of the "
+                "monitor facts and the most useful baseline and open-period values. Preserve the "
+                "exact query and time range; do not infer missing monitor configuration. "
+                + LINKED_EVIDENCE_INSTRUCTIONS
+            ),
+            config={"autoRun": True},
+            display={"version": 1, "type": "table", "defaultView": "table"},
+        ),
+        TemplateBlockSpec(
+            key="spike_summary",
+            kind=InvestigationBlockKind.TEXT,
+            title="What happened",
+            generation_prompt=(
+                "Summarize only the Metric spike evidence. Describe when the ramp-up began, the "
+                "peak value and time, how long the breach lasted, and whether the signal recovered "
+                "or remained elevated. State uncertainty when sparse telemetry does not establish "
+                "one of those facts. " + SHORT_LINKED_SUMMARY_INSTRUCTIONS
             ),
             config={"autoRun": True},
             display={"type": "markdown"},
-            dependencies=("metric_chart", "contributors"),
+            dependencies=("spike_evidence",),
         ),
         TemplateBlockSpec(
-            key="contributors",
+            key="spike_evidence",
             kind=InvestigationBlockKind.QUERY,
-            title="Likely contributors",
+            title="Metric spike",
             generation_prompt=(
-                "Compare telemetry during the supplied open-period window with its equal baseline. "
-                "Use as many supported telemetry calls and local transformations as useful. Let "
-                "the evidence determine whether issue groups, tags, or other metadata best explain "
-                "the change, then chart the strongest available evidence. If no convincing "
-                "contributor exists, show the most useful evidence and say so in the result."
+                "Query the exact supplied monitor definition over the supplied open period and an "
+                "equal pre-breach baseline. Make the ramp-up, peak, and ramp-down or recovery "
+                "visible in a time-series chart. Plot the observed metric and supplied threshold "
+                "or comparison as separate series so the crossing is clear. Use the monitor time "
+                "window for the chart interval when supported, and do not invent missing points. "
+                + LINKED_EVIDENCE_INSTRUCTIONS
             ),
             config={"autoRun": True, "preferChart": True},
             display={"version": 1, "type": "table", "defaultView": "chart"},
+            dependencies=("monitor_evidence",),
+        ),
+        TemplateBlockSpec(
+            key="issues_summary",
+            kind=InvestigationBlockKind.TEXT,
+            title="What caused the spike",
+            generation_prompt=(
+                "Summarize only the Contributing issues evidence. Identify the issue groups that "
+                "best account for the spike, including their counts, change from baseline, and "
+                "relative contribution when available. If no issue groups convincingly explain "
+                "the metric change, say that clearly. " + SHORT_LINKED_SUMMARY_INSTRUCTIONS
+            ),
+            config={"autoRun": True},
+            display={"type": "markdown"},
+            dependencies=("issues_evidence",),
+        ),
+        TemplateBlockSpec(
+            key="issues_evidence",
+            kind=InvestigationBlockKind.QUERY,
+            title="Contributing issues",
+            generation_prompt=(
+                "Using the Metric spike evidence to preserve the spike window, compare issue-group "
+                "telemetry during the open period with the equal pre-breach baseline. Rank issue "
+                "groups by the strongest supported contribution using absolute counts, change "
+                "from baseline, and share of the spike. Prefer a bar chart with a compact table "
+                "when useful, and include issue links only when the telemetry provides valid ones. "
+                "Treat no supporting issue groups as a valid result; never fabricate attribution. "
+                + LINKED_EVIDENCE_INSTRUCTIONS
+            ),
+            config={"autoRun": True, "preferChart": True},
+            display={"version": 1, "type": "table", "defaultView": "chart"},
+            dependencies=("spike_evidence",),
+        ),
+        TemplateBlockSpec(
+            key="tags_summary",
+            kind=InvestigationBlockKind.TEXT,
+            title="Why those issues spiked",
+            generation_prompt=(
+                "Summarize only the Issue tag changes evidence. Explain which dimensions changed "
+                "most during the spike and what explanation, if any, those distribution changes "
+                "support. Distinguish evidence from hypotheses and say when the slices do not "
+                "establish a convincing explanation. " + SHORT_LINKED_SUMMARY_INSTRUCTIONS
+            ),
+            config={"autoRun": True},
+            display={"type": "markdown"},
+            dependencies=("tags_evidence",),
+        ),
+        TemplateBlockSpec(
+            key="tags_evidence",
+            kind=InvestigationBlockKind.QUERY,
+            title="Issue tag changes",
+            generation_prompt=(
+                "Slice the contributing issue groups by supported dimensions that can explain the "
+                "change, such as release, transaction, environment, region, browser, device, or "
+                "other useful tags. Compare each distribution during the open period with the "
+                "equal pre-breach baseline; do not rank raw spike volume without that comparison. "
+                "Chart the strongest supported distribution changes and retain a compact table "
+                "when useful. Do not invent unavailable tags or claim causation from correlation. "
+                + LINKED_EVIDENCE_INSTRUCTIONS
+            ),
+            config={"autoRun": True, "preferChart": True},
+            display={"version": 1, "type": "table", "defaultView": "chart"},
+            dependencies=("issues_evidence",),
+        ),
+        TemplateBlockSpec(
+            key="trigger_summary",
+            kind=InvestigationBlockKind.TEXT,
+            title="Likely trigger and next steps",
+            generation_prompt=(
+                "Summarize only the Release and infrastructure signals evidence. Classify the "
+                "result as code-related, infrastructure-related, mixed, or insufficient evidence. "
+                "Distinguish correlation from causation, name the strongest supported finding, and "
+                "give concrete next steps a human can take. Present external observability checks "
+                "as suggestions rather than findings. " + SHORT_LINKED_SUMMARY_INSTRUCTIONS
+            ),
+            config={"autoRun": True},
+            display={"type": "markdown"},
+            dependencies=("trigger_evidence",),
+        ),
+        TemplateBlockSpec(
+            key="trigger_evidence",
+            kind=InvestigationBlockKind.QUERY,
+            title="Release and infrastructure signals",
+            generation_prompt=(
+                "Use the supplied spike window together with the contributing issue and tag "
+                "evidence. Check supported Sentry telemetry for releases, deployments, affected "
+                "services or transactions, and infrastructure-like patterns correlated with the "
+                "change. Return a compact evidence table containing only observed signals and "
+                "their timing. If Sentry cannot inspect relevant infrastructure directly, include "
+                "specific suggested external checks such as affected pods or services in Datadog, "
+                "clearly labeled as follow-up checks rather than findings. Never fabricate release, "
+                "deployment, infrastructure, or external-observability data. "
+                + LINKED_EVIDENCE_INSTRUCTIONS
+            ),
+            config={"autoRun": True},
+            display={"version": 1, "type": "table", "defaultView": "table"},
+            dependencies=("spike_evidence", "issues_evidence", "tags_evidence"),
         ),
     ),
 )

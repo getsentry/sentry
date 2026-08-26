@@ -140,12 +140,10 @@ class TraceItemAttributeValueContextTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org)
 
-    def test_create_project_scoped(self) -> None:
+    def test_create(self) -> None:
         context = TraceItemAttributeValueContext.objects.create(
             organization=self.org,
-            project=self.project,
             attribute_name="metric.name",
             attribute_value="my.custom.counter",
             attribute_type=TraceMetricTypes.COUNTER,
@@ -156,21 +154,9 @@ class TraceItemAttributeValueContextTest(TestCase):
         assert context.id is not None
         assert context.additional_context is None
 
-    def test_create_org_wide(self) -> None:
-        context = TraceItemAttributeValueContext.objects.create(
-            organization=self.org,
-            project=None,
-            attribute_name="metric.name",
-            attribute_value="my.custom.gauge",
-            attribute_type=TraceMetricTypes.GAUGE,
-            item_type=TraceItemTypes.TRACEMETRICS,
-        )
-        assert context.project_id is None
-
-    def test_unique_project_scoped(self) -> None:
+    def test_unique_per_org(self) -> None:
         TraceItemAttributeValueContext.objects.create(
             organization=self.org,
-            project=self.project,
             attribute_name="metric.name",
             attribute_value="my.custom.counter",
             attribute_type=TraceMetricTypes.COUNTER,
@@ -182,29 +168,6 @@ class TraceItemAttributeValueContextTest(TestCase):
         ):
             TraceItemAttributeValueContext.objects.create(
                 organization=self.org,
-                project=self.project,
-                attribute_name="metric.name",
-                attribute_value="my.custom.counter",
-                attribute_type=TraceMetricTypes.COUNTER,
-                item_type=TraceItemTypes.TRACEMETRICS,
-            )
-
-    def test_unique_org_wide(self) -> None:
-        TraceItemAttributeValueContext.objects.create(
-            organization=self.org,
-            project=None,
-            attribute_name="metric.name",
-            attribute_value="my.custom.counter",
-            attribute_type=TraceMetricTypes.COUNTER,
-            item_type=TraceItemTypes.TRACEMETRICS,
-        )
-        with (
-            pytest.raises(IntegrityError),
-            transaction.atomic(router.db_for_write(TraceItemAttributeValueContext)),
-        ):
-            TraceItemAttributeValueContext.objects.create(
-                organization=self.org,
-                project=None,
                 attribute_name="metric.name",
                 attribute_value="my.custom.counter",
                 attribute_type=TraceMetricTypes.COUNTER,
@@ -214,7 +177,6 @@ class TraceItemAttributeValueContextTest(TestCase):
     def test_differing_value_is_allowed(self) -> None:
         TraceItemAttributeValueContext.objects.create(
             organization=self.org,
-            project=self.project,
             attribute_name="metric.name",
             attribute_value="my.custom.counter",
             attribute_type=TraceMetricTypes.COUNTER,
@@ -223,7 +185,6 @@ class TraceItemAttributeValueContextTest(TestCase):
         # A different value for the same attribute name is a distinct row.
         TraceItemAttributeValueContext.objects.create(
             organization=self.org,
-            project=self.project,
             attribute_name="metric.name",
             attribute_value="my.other.counter",
             attribute_type=TraceMetricTypes.COUNTER,
@@ -231,23 +192,20 @@ class TraceItemAttributeValueContextTest(TestCase):
         )
         assert TraceItemAttributeValueContext.objects.count() == 2
 
-    def test_project_and_org_wide_coexist(self) -> None:
-        # An org-wide context and a project-scoped context for the same value are
-        # not in conflict.
+    def test_differing_type_is_allowed(self) -> None:
         TraceItemAttributeValueContext.objects.create(
             organization=self.org,
-            project=None,
             attribute_name="metric.name",
-            attribute_value="my.custom.counter",
+            attribute_value="my.custom.metric",
             attribute_type=TraceMetricTypes.COUNTER,
             item_type=TraceItemTypes.TRACEMETRICS,
         )
+        # The same metric name stored under a different type is a distinct row.
         TraceItemAttributeValueContext.objects.create(
             organization=self.org,
-            project=self.project,
             attribute_name="metric.name",
-            attribute_value="my.custom.counter",
-            attribute_type=TraceMetricTypes.COUNTER,
+            attribute_value="my.custom.metric",
+            attribute_type=TraceMetricTypes.GAUGE,
             item_type=TraceItemTypes.TRACEMETRICS,
         )
         assert TraceItemAttributeValueContext.objects.count() == 2

@@ -189,7 +189,7 @@ describe('OverviewCardAction', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/overview/',
+          pathname: '/organizations/org-slug/issues/autofix/',
           query: {statsPeriod: '24h'},
         },
       },
@@ -199,7 +199,7 @@ describe('OverviewCardAction', () => {
 
     const openSeer = await screen.findByRole('menuitemradio', {name: 'Open Seer'});
     const href = openSeer.getAttribute('href') ?? '';
-    expect(href).toContain('/organizations/org-slug/issues/autofix/overview/');
+    expect(href).toContain('/organizations/org-slug/issues/autofix/');
     expect(href).toContain('seerDrawer=2');
     expect(href).toContain('statsPeriod=24h');
     expect(href).not.toContain('/issues/2/');

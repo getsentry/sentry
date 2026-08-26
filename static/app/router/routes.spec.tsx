@@ -180,6 +180,7 @@ describe('buildRoutes()', () => {
       '(layout)',
       '/',
       '(layout)',
+      '(layout)',
       '/:orgId/:projectId/',
       'events/:eventId/',
     ]);

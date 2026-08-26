@@ -6,6 +6,7 @@ import memoize from 'lodash/memoize';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Switch} from '@sentry/scraps/switch';
@@ -21,6 +22,7 @@ import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppSchemaIssueLink} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {granularWebhookEvents} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {useRequestLogDetailsDrawer} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLogDetails';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
@@ -77,7 +79,7 @@ const getEventTypes = memoize((app: SentryApp) => {
   return events;
 });
 
-function ResponseCode({code}: {code: number}) {
+export function ResponseCode({code}: {code: number}) {
   let variant: TagProps['variant'] = 'danger';
   if (code <= 399 && code >= 300) {
     variant = 'warning';
@@ -99,6 +101,7 @@ export function RequestLog({app}: RequestLogProps) {
 
   const {slug, status} = app;
   const isInternal = status === 'internal';
+  const openDetails = useRequestLogDetailsDrawer();
 
   const {
     data: requests = [],
@@ -194,12 +197,18 @@ export function RequestLog({app}: RequestLogProps) {
             currentRequests.map((request, idx) => (
               <SimpleTable.Row key={idx} data-test-id="request-item">
                 <SimpleTable.RowCell>
-                  <Text>
-                    <DateTime
-                      date={request.date}
-                      format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'}
-                    />
-                  </Text>
+                  <RowButton
+                    aria-label={t('View request details')}
+                    onClick={() => openDetails(request)}
+                  >
+                    <InteractionStateLayer />
+                    <Text>
+                      <DateTime
+                        date={request.date}
+                        format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'}
+                      />
+                    </Text>
+                  </RowButton>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
                   <ResponseCode code={request.responseCode} />
@@ -239,6 +248,17 @@ export function RequestLog({app}: RequestLogProps) {
     </Stack>
   );
 }
+
+const RowButton = styled('button')`
+  ${SimpleTable.rowLinkStyle}
+
+  background: none;
+  border: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  flex-grow: 1;
+`;
 
 const RequestLogTable = styled(SimpleTable, {
   shouldForwardProp: prop => prop !== 'isInternal',
