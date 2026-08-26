@@ -440,11 +440,11 @@ def _gated_mailbox_heads() -> list[dict[str, Any]]:
 
 def _due_mailbox_heads() -> list[dict[str, Any]]:
     """
-    Discovery for due-head mode: one aggregate pass finds each mailbox's oldest
-    and oldest due record. Skip-on-failure providers dispatch from the oldest
-    due record; strict providers still require the true head to be due (see
-    `_gated_mailbox_heads`). Provider comes from the mailbox name — the
-    aggregate never fetches rows.
+    Discovery for due-head mode: one aggregate pass finds two mailbox records:
+    unconditionally oldest and the oldest due record. Skip-on-failure providers 
+    dispatch from the oldest due record; strict providers still require the true 
+    head to be due (see `_gated_mailbox_heads`). Provider comes from the mailbox
+    name — the aggregate never fetches rows.
     """
     now = timezone.now()
     mailbox_heads = WebhookPayload.objects.values("mailbox_name").annotate(
