@@ -349,6 +349,13 @@ register(
 )
 
 register(
+    "deletions.nodestore.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "unmerge.killswitch-projects",
     default=[],
     type=Any,
