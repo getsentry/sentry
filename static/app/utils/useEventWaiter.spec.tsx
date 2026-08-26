@@ -191,48 +191,12 @@ describe('useEventWaiter', () => {
     jest.useRealTimers();
   });
 
-  it('writes firstTransactionEvent back to ProjectsStore when polling detects it', async () => {
-    const org = OrganizationFixture();
-    const project = ProjectFixture({firstTransactionEvent: false});
-    act(() => ProjectsStore.loadInitialData([project]));
-
-    expect(ProjectsStore.getById(project.id)?.firstTransactionEvent).toBe(false);
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: ProjectFixture({
-        id: project.id,
-        slug: project.slug,
-        firstTransactionEvent: true,
-      }),
-    });
-
-    const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-          pollInterval: 100,
-        }),
-      {organization: org}
-    );
-
-    await waitFor(() => {
-      expect(result.current).toBe(true);
-    });
-
-    await waitFor(() => {
-      expect(ProjectsStore.getById(project.id)?.firstTransactionEvent).toBe(true);
-    });
-  });
-
   it.each([
-    ['log', 'hasLogs'] as const,
-    ['profile', 'hasProfiles'] as const,
-    ['replay', 'hasReplays'] as const,
-  ])(
+    ['transaction', 'firstTransactionEvent'],
+    ['log', 'hasLogs'],
+    ['profile', 'hasProfiles'],
+    ['replay', 'hasReplays'],
+  ] as const)(
     'writes %s first-event flag back to ProjectsStore when polling detects it',
     async (eventType, field) => {
       const org = OrganizationFixture();

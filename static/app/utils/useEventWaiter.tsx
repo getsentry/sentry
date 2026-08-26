@@ -19,9 +19,19 @@ const DEFAULT_POLL_INTERVAL = 5000;
  * Or in the case of transactions & replay the value will be set to true.
  * The `group.id` value is used to generate links directly into the event.
  */
-type FirstEvent = null | boolean | Group;
+type EventWaiterResult = null | boolean | Group;
+
+type ProjectEventValue = string | boolean | null;
 
 type EventType = 'error' | 'transaction' | 'replay' | 'profile' | 'log';
+
+const EVENT_FIELDS = {
+  error: 'firstEvent',
+  transaction: 'firstTransactionEvent',
+  replay: 'hasReplays',
+  profile: 'hasProfiles',
+  log: 'hasLogs',
+} as const satisfies Record<EventType, keyof Project>;
 
 interface UseEventWaiterOptions {
   eventType: EventType;
@@ -31,84 +41,31 @@ interface UseEventWaiterOptions {
   pollInterval?: number;
 }
 
-function getFirstEvent(eventType: EventType, resp: Project) {
-  switch (eventType) {
-    case 'error':
-      return resp.firstEvent;
-    case 'transaction':
-      return resp.firstTransactionEvent;
-    case 'replay':
-      return resp.hasReplays;
-    case 'profile':
-      return resp.hasProfiles;
-    case 'log':
-      return resp.hasLogs;
-    default:
-      return null;
-  }
+function getProjectEventValue(eventType: EventType, project: Project): ProjectEventValue {
+  return project[EVENT_FIELDS[eventType]];
 }
 
 /**
- * Project fields that store-backed onboarding gates read. Keep these in sync so
- * first-event detection can leave those gates without a full page refresh.
+ * If we observed an update, write it to ProjectsStore to notify downstream
+ * listeners.
  */
-function getProjectFirstEventUpdate(
-  eventType: EventType,
-  projectData: Project
-): Partial<Project> | null {
-  switch (eventType) {
-    case 'error': {
-      const firstEvent = projectData.firstEvent;
-      return firstEvent ? {id: projectData.id, firstEvent} : null;
-    }
-    case 'transaction':
-      return projectData.firstTransactionEvent
-        ? {id: projectData.id, firstTransactionEvent: true}
-        : null;
-    case 'replay':
-      return projectData.hasReplays ? {id: projectData.id, hasReplays: true} : null;
-    case 'profile':
-      return projectData.hasProfiles ? {id: projectData.id, hasProfiles: true} : null;
-    case 'log':
-      return projectData.hasLogs ? {id: projectData.id, hasLogs: true} : null;
-    default:
-      return null;
-  }
-}
-
-function shouldWriteFirstEventToStore(
-  eventType: EventType,
-  projectData: Project
-): boolean {
+function maybeUpdateProjectsStore(eventType: EventType, projectData: Project): void {
   const storedProject = ProjectsStore.getById(projectData.id);
-  if (!storedProject) {
-    return false;
+  const field = EVENT_FIELDS[eventType];
+  const value = projectData[field];
+
+  if (!storedProject || storedProject[field] || !value) {
+    return;
   }
 
-  switch (eventType) {
-    case 'error':
-      return !storedProject.firstEvent && !!projectData.firstEvent;
-    case 'transaction':
-      return !storedProject.firstTransactionEvent && !!projectData.firstTransactionEvent;
-    case 'replay':
-      return !storedProject.hasReplays && !!projectData.hasReplays;
-    case 'profile':
-      return !storedProject.hasProfiles && !!projectData.hasProfiles;
-    case 'log':
-      return !storedProject.hasLogs && !!projectData.hasLogs;
-    default:
-      return false;
-  }
+  ProjectsStore.onUpdateSuccess({id: projectData.id, [field]: value});
 }
 
 /**
  * Hook that polls for the first event of a project.
  * Returns null until the first event is detected, then returns the
- * resolved FirstEvent (a Group for errors, or true for other event types).
+ * resolved event (a Group for errors, or true for other event types).
  * Once resolved, polling stops automatically.
- *
- * Also writes the matching first-event flag back to ProjectsStore so store-backed
- * onboarding gates (traces/logs/profiles) can leave onboarding without a refresh.
  */
 export function useEventWaiter({
   eventType,
@@ -116,7 +73,7 @@ export function useEventWaiter({
   project,
   disabled,
   pollInterval = DEFAULT_POLL_INTERVAL,
-}: UseEventWaiterOptions): FirstEvent {
+}: UseEventWaiterOptions): EventWaiterResult {
   const shouldPoll = !disabled && !!organization && !!project;
 
   const issuesUrl = getApiUrl(
@@ -141,7 +98,7 @@ export function useEventWaiter({
       }
       // Stop polling once the first event has been detected
       const projectData = query.state.data?.json;
-      if (projectData && getFirstEvent(eventType, projectData)) {
+      if (projectData && getProjectEventValue(eventType, projectData)) {
         return false;
       }
       return pollInterval;
@@ -159,35 +116,24 @@ export function useEventWaiter({
     },
   });
 
-  const firstEvent = projectQuery.data
-    ? getFirstEvent(eventType, projectQuery.data)
+  const projectData = projectQuery.data;
+  const projectEventValue = projectData
+    ? getProjectEventValue(eventType, projectData)
     : null;
 
-  // For errors, fetch the first issue group once we know the firstEvent exists
+  // For errors, fetch the first issue group once we know the first event exists
   const issuesQuery = useApiQuery<Group[]>([issuesUrl], {
-    enabled: eventType === 'error' && !!firstEvent,
+    enabled: eventType === 'error' && !!projectEventValue,
     staleTime: 0,
   });
 
-  // Keep ProjectsStore in sync when polling first observes the event so store-backed
-  // onboarding gates can flip without a full page reload.
   useEffect(() => {
-    const projectData = projectQuery.data;
-    if (!projectData || !getFirstEvent(eventType, projectData)) {
+    if (!projectData) {
       return;
     }
 
-    if (!shouldWriteFirstEventToStore(eventType, projectData)) {
-      return;
-    }
-
-    const update = getProjectFirstEventUpdate(eventType, projectData);
-    if (!update) {
-      return;
-    }
-
-    ProjectsStore.onUpdateSuccess(update);
-  }, [eventType, projectQuery.data]);
+    maybeUpdateProjectsStore(eventType, projectData);
+  }, [eventType, projectData]);
 
   // Report errors to Sentry (matching original behavior)
   useEffect(() => {
@@ -212,7 +158,7 @@ export function useEventWaiter({
     );
   }, [projectQuery.error, eventType]);
 
-  if (firstEvent === null || firstEvent === false) {
+  if (projectEventValue === null || projectEventValue === false) {
     return null;
   }
 
@@ -221,11 +167,13 @@ export function useEventWaiter({
       return null;
     }
     // The event may have expired, default to true
-    return (
-      issuesQuery.data.find((issue: Group) => issue.firstSeen === firstEvent) || true
-    );
+    const group =
+      typeof projectEventValue === 'string'
+        ? issuesQuery.data.find((issue: Group) => issue.firstSeen === projectEventValue)
+        : undefined;
+    return group || true;
   }
 
   // transaction, replay, profile, log
-  return Boolean(firstEvent);
+  return Boolean(projectEventValue);
 }
