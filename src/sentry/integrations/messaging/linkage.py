@@ -517,7 +517,6 @@ class LinkTeamView(TeamLinkageView, ABC):
             team=team,
             channel_id=channel_id,
             channel_name=channel_name,
-            workflow_addon="",
             for_slack=True,
         )
         self.notify_on_success(channel_id, integration, slack_message)
@@ -533,7 +532,6 @@ class LinkTeamView(TeamLinkageView, ABC):
                     team=team,
                     channel_id=channel_id,
                     channel_name=channel_name,
-                    workflow_addon="",
                 ),
                 "channel_id": channel_id,
                 "team_id": integration.external_id,
