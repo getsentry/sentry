@@ -55,7 +55,7 @@ const STREAMING_CHUNKS = [
   '    return token.expires_at > now\n```\n',
 ];
 
-export function StreamingEmbedDemo() {
+export function StreamingEmbedExamples() {
   const [text, setText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const cancelRef = useRef(false);
@@ -157,7 +157,7 @@ function LevelDemo({
   );
 }
 
-export function EmbedDemo({name}: {name: string}) {
+export function EmbedExamples({name}: {name: string}) {
   const schema = SEER_EMBED_SCHEMAS[name as keyof typeof SEER_EMBED_SCHEMAS];
   const replayData = useReplayExampleData();
 

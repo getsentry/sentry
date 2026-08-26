@@ -10,9 +10,9 @@ import * as Storybook from 'sentry/stories';
 
 import {
   BasicDemo,
-  EmbedDemo,
+  EmbedExamples,
   LinkifyDemo,
-  StreamingEmbedDemo,
+  StreamingEmbedExamples,
 } from './__stories__/components';
 
 `<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
@@ -39,103 +39,95 @@ Renders standard markdown with Seer's component overrides and opinionated embeds
 
 Embeds are rich widgets rendered inline from [Markdoc-style tag syntax](https://markdoc.dev/). The Seer agent produces these tags; the frontend resolves them through a **registry + schema** system.
 
-### Syntax
+Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
 
-```
-{% timestamp %}{"value":"2025-07-15T14:30:00Z","format":"relative"}{% /timestamp %}
-```
+### timestamp
 
-The JSON body between the opening and closing tags is the embed's data payload. It is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
+<EmbedExamples name="timestamp" />
 
-### Registry
+### docs
 
-#### timestamp
+<EmbedExamples name="docs" />
 
-<EmbedDemo name="timestamp" />
+### dashboard
 
-#### docs
+<EmbedExamples name="dashboard" />
 
-<EmbedDemo name="docs" />
+### dsn
 
-#### dashboard
+<EmbedExamples name="dsn" />
 
-<EmbedDemo name="dashboard" />
+### user
 
-#### dsn
+<EmbedExamples name="user" />
 
-<EmbedDemo name="dsn" />
+### issue
 
-#### user
+<EmbedExamples name="issue" />
 
-<EmbedDemo name="user" />
+### issues
 
-#### issue
+<EmbedExamples name="issues" />
 
-<EmbedDemo name="issue" />
+### replay
 
-#### issues
+<EmbedExamples name="replay" />
 
-<EmbedDemo name="issues" />
+### chart
 
-#### replay
+<EmbedExamples name="chart" />
 
-<EmbedDemo name="replay" />
+### autofix
 
-#### chart
+<EmbedExamples name="autofix" />
 
-<EmbedDemo name="chart" />
+### alert
 
-#### autofix
+<EmbedExamples name="alert" />
 
-<EmbedDemo name="autofix" />
+### monitor
 
-#### alert
+<EmbedExamples name="monitor" />
 
-<EmbedDemo name="alert" />
+### savedIssueView
 
-#### monitor
+<EmbedExamples name="savedIssueView" />
 
-<EmbedDemo name="monitor" />
+### savedQuery
 
-#### savedIssueView
+<EmbedExamples name="savedQuery" />
 
-<EmbedDemo name="savedIssueView" />
+### trace
 
-#### savedQuery
+<EmbedExamples name="trace" />
 
-<EmbedDemo name="savedQuery" />
+### profile
 
-#### trace
+<EmbedExamples name="profile" />
 
-<EmbedDemo name="trace" />
+### issuesQuery
 
-#### profile
+<EmbedExamples name="issuesQuery" />
 
-<EmbedDemo name="profile" />
+### errorsQuery
 
-#### issuesQuery
+<EmbedExamples name="errorsQuery" />
 
-<EmbedDemo name="issuesQuery" />
+### spansQuery
 
-#### errorsQuery
+<EmbedExamples name="spansQuery" />
 
-<EmbedDemo name="errorsQuery" />
+### logsQuery
 
-#### spansQuery
+<EmbedExamples name="logsQuery" />
 
-<EmbedDemo name="spansQuery" />
+### replaysQuery
 
-#### logsQuery
+<EmbedExamples name="replaysQuery" />
 
-<EmbedDemo name="logsQuery" />
+### metricsQuery
 
-#### replaysQuery
-
-<EmbedDemo name="replaysQuery" />
-
-#### metricsQuery
-
-<EmbedDemo name="metricsQuery" />
+<EmbedExamples name="metricsQuery" />
 
 ## Embed Architecture
 
