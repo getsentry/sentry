@@ -2550,6 +2550,17 @@ register(
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Dispatch skip-on-failure providers' mailboxes from their oldest due record
+# instead of gating on the absolute head. Their drains already deliver past a
+# failed record, but head discovery did not: one record in retry backoff at the
+# front of a mailbox hid every due record queued behind it until the backoff
+# expired. Strict-ordering providers keep the head gate — for them it is the
+# ordering guarantee.
+register(
+    "hybridcloud.webhookpayload.dispatch_from_due_head",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Drops GitHub check webhooks that reference no pull request based in their own
 # repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape
 # rather than a header, so it keeps a switch: setting this false stops the drop
