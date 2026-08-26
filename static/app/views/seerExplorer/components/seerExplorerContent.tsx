@@ -589,6 +589,7 @@ export function SeerExplorerContent({
                   pendingInput={pendingInput}
                   readOnly={readOnly}
                   respondToUserInput={respondToUserInput}
+                  sendMessage={readOnly ? undefined : sendMessage}
                   showThinking={showThinking}
                 />
               );

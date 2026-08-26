@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import {AssistantActions, AssistantMessage, MessageRow} from '@sentry/scraps/chat';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {AutofixChatProvider} from 'sentry/components/seer/markdown/embeds/components/autofix';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -20,6 +21,7 @@ export function AssistantBlock({
   runId,
   interactionPending,
   readOnly,
+  sendMessage,
 }: AssistantBlockProps) {
   const organization = useOrganization();
   const content = block.message.content ?? '';
@@ -39,22 +41,24 @@ export function AssistantBlock({
   }
 
   return (
-    <Fragment>
-      {hasValidContent(content) && (
-        <MessageRow from="assistant">
-          <AssistantMessage>
-            <SeerMarkdown raw={content} />
-          </AssistantMessage>
-        </MessageRow>
-      )}
-      <BlockActionBar
-        block={block}
-        blockIndex={blockIndex}
-        runId={runId}
-        interactionPending={interactionPending}
-        readOnly={readOnly}
-      />
-    </Fragment>
+    <AutofixChatProvider sendMessage={sendMessage}>
+      <Fragment>
+        {hasValidContent(content) && (
+          <MessageRow from="assistant">
+            <AssistantMessage>
+              <SeerMarkdown raw={content} />
+            </AssistantMessage>
+          </MessageRow>
+        )}
+        <BlockActionBar
+          block={block}
+          blockIndex={blockIndex}
+          runId={runId}
+          interactionPending={interactionPending}
+          readOnly={readOnly}
+        />
+      </Fragment>
+    </AutofixChatProvider>
   );
 }
 
