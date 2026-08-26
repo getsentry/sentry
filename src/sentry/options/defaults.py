@@ -2551,11 +2551,8 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Dispatch skip-on-failure providers' mailboxes from their oldest due record
-# instead of gating on the absolute head. Their drains already deliver past a
-# failed record, but head discovery did not: one record in retry backoff at the
-# front of a mailbox hid every due record queued behind it until the backoff
-# expired. Strict-ordering providers keep the head gate — for them it is the
-# ordering guarantee.
+# instead of gating on the absolute head, so one record in retry backoff cannot
+# hide every due record behind it. Strict-ordering providers keep the gate.
 register(
     "hybridcloud.webhookpayload.dispatch_from_due_head",
     default=False,

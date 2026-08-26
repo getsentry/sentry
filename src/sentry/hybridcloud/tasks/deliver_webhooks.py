@@ -192,13 +192,10 @@ def _is_due(schedule_for: datetime.datetime) -> bool:
 
 def _dispatches_from_due_head(mailbox_name: str) -> bool:
     """
-    Whether this mailbox dispatches from its oldest due record rather than gating
-    on the absolute head.
-
-    Only skip-on-failure providers qualify: their drains already deliver past a
-    failed record, so gating dispatch on that record's retry backoff protects an
-    ordering guarantee the provider has already given up — while parking every
-    due record in the mailbox behind one failure for up to the full backoff.
+    Whether this mailbox dispatches from its oldest due record instead of gating
+    on the absolute head. Only skip-on-failure providers qualify: their drains
+    already deliver past failed records, so the head gate only parks every due
+    record behind one failure's backoff.
     """
     if not options.get("hybridcloud.webhookpayload.dispatch_from_due_head"):
         return False
@@ -240,17 +237,11 @@ def _claim_due_prefix(head_id: int, mailbox_name: str) -> int:
     Claim the contiguous run of due records starting at `head_id`, stopping at
     the first record that is not due.
 
-    Stopping at a not-due record is what keeps concurrent drains apart in
-    due-head mode. In due-head mode `head_id` can sit behind records another
-    dispatcher has claimed (a retry backoff at a lower id expires while that
-    drain is still running); claimed records carry a future schedule_for, so
-    this claim ends at that drain's first record instead of re-claiming and
-    re-delivering its batch. A record in its own retry backoff bounds the claim
-    the same way, keeping its backoff instead of being claimed and retried
-    early.
-
-    The prefix is the first `len(prefix)` records of the mailbox at or after
-    `head_id`, so the drain's (head, count) walk covers exactly the claimed
+    The stop is what keeps concurrent drains apart without the head gate: an
+    in-flight drain's records carry a future schedule_for, so a claim starting
+    behind it (after a lower-id backoff expires) ends before its range, and a
+    record in retry backoff keeps its backoff instead of being claimed early.
+    Being a prefix, the drain's (head, count) walk covers exactly the claimed
     records.
     """
     now = timezone.now()
@@ -415,12 +406,9 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
 
 def _gated_mailbox_heads() -> list[dict[str, Any]]:
     """
-    Head-of-line discovery gated on the absolute mailbox head being due.
-
-    A head that is claimed or in a retry backoff hides its whole mailbox from
-    dispatch until it comes due again — the gate that preserves head-of-line
-    ordering for strict providers, and (with claims always starting at the true
-    head) keeps a mailbox to one drain at a time.
+    Head-of-line discovery gated on the absolute mailbox head being due — the
+    ordering guarantee for strict providers, and what keeps a mailbox to one
+    drain at a time since claims always start at the true head.
     """
     # The double call to .values() ensures that the group by includes mailbox_name
     # but only id_min is selected
@@ -474,17 +462,11 @@ def _gated_mailbox_heads() -> list[dict[str, Any]]:
 
 def _due_mailbox_heads() -> list[dict[str, Any]]:
     """
-    Head-of-line discovery for due-head mode: one aggregate pass finds every
-    mailbox's oldest record and oldest due record together.
-
-    Skip-on-failure providers dispatch from the oldest due record, so a failed
-    record in retry backoff at the front of the mailbox delays only its own
-    retry instead of gating everything queued behind it. Strict-ordering
-    providers still require the true head to be due — for them the gate is the
-    ordering guarantee (see `_gated_mailbox_heads`).
-
-    Provider comes from the mailbox name rather than the row: the aggregate
-    never fetches rows, and every mailbox is named `<provider>:<identifier>`.
+    Discovery for due-head mode: one aggregate pass finds each mailbox's oldest
+    and oldest due record. Skip-on-failure providers dispatch from the oldest
+    due record; strict providers still require the true head to be due (see
+    `_gated_mailbox_heads`). Provider comes from the mailbox name — the
+    aggregate never fetches rows.
     """
     now = timezone.now()
     mailbox_heads = WebhookPayload.objects.values("mailbox_name").annotate(
@@ -497,7 +479,7 @@ def _due_mailbox_heads() -> list[dict[str, Any]]:
     heads = []
     for mailbox_head in mailbox_heads:
         if mailbox_head["id_min_due"] is None:
-            # Every record is claimed or in a backoff window; nothing to dispatch.
+            # Everything is claimed or backing off.
             continue
         provider = _provider_from_mailbox(mailbox_head["mailbox_name"])
         if (
@@ -513,10 +495,9 @@ def _due_mailbox_heads() -> list[dict[str, Any]]:
                 mailbox_head["mailbox_name"],
             )
         )
-    # Order by priority first (lowest number = highest priority), then head ID.
+    # Priority first (lowest number wins), then head ID.
     heads.sort()
-    # The aggregate already saw every mailbox, so the count is exact even on
-    # cycles where the dispatch batch fills.
+    # Exact even when the dispatch batch fills: the aggregate saw every mailbox.
     metrics.distribution(
         "hybridcloud.schedule_webhook_delivery.mailbox_count",
         len(heads),

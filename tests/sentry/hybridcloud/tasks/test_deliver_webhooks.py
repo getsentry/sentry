@@ -130,9 +130,8 @@ class ScheduleWebhooksTest(TestCase):
     @override_options(DUE_HEAD_OPTIONS)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_due_head_dispatches_past_backoff_head(self, mock_deliver: MagicMock) -> None:
-        # Same shape as test_schedule_head_in_backoff_blocks_mailbox, but github
-        # drains already skip failed messages, so in due-head mode the backoff at
-        # the front delays only its own retry.
+        # Head in backoff, later message due: due-head mode dispatches the due
+        # message instead of gating the mailbox.
         backoff = self.create_webhook_payload(
             mailbox_name="github:123",
             cell_name="us",
@@ -148,8 +147,7 @@ class ScheduleWebhooksTest(TestCase):
         mock_deliver.delay.assert_called_once_with(
             due.id, claimed_count=1, dispatcher=Dispatcher.SCHEDULER
         )
-        # The backing-off record keeps its retry schedule rather than being
-        # claimed and retried early.
+        # The backing-off record keeps its retry schedule.
         backoff_schedule = backoff.schedule_for
         backoff.refresh_from_db()
         assert backoff.schedule_for == backoff_schedule
@@ -157,8 +155,7 @@ class ScheduleWebhooksTest(TestCase):
     @override_options(DUE_HEAD_OPTIONS)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_due_head_strict_provider_still_gated(self, mock_deliver: MagicMock) -> None:
-        # Jira is not a skip-on-failure provider: delivering past its backing-off
-        # head would break the ordering the gate exists to protect.
+        # Jira is not skip-on-failure, so the head gate still applies.
         self.create_webhook_payload(
             mailbox_name="jira:123",
             cell_name="us",
@@ -176,8 +173,7 @@ class ScheduleWebhooksTest(TestCase):
     @override_options(DUE_HEAD_OPTIONS)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_due_head_claim_stops_at_backoff_record(self, mock_deliver: MagicMock) -> None:
-        # A backing-off record inside the window bounds the claim: records behind
-        # it wait for a later dispatch instead of being claimed around it.
+        # A backing-off record bounds the claim; records behind it wait.
         due_one = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
         backoff = self.create_webhook_payload(
             mailbox_name="github:123",
@@ -201,9 +197,8 @@ class ScheduleWebhooksTest(TestCase):
     @override_options(DUE_HEAD_OPTIONS)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_due_head_does_not_reclaim_active_drain(self, mock_deliver: MagicMock) -> None:
-        # A retry backoff expiring behind an in-flight drain's claim must not
-        # sweep that claim into a second drain: the claimed records' future
-        # schedule_for bounds the new claim to the expired record alone.
+        # A backoff expiring behind an in-flight drain's claim must not sweep
+        # that claim into a second drain.
         expired_backoff = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
         claimed = create_payloads(3, "github:123")
         WebhookPayload.objects.filter(id__in=[record.id for record in claimed]).update(
