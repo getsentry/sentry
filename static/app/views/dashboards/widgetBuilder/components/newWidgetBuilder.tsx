@@ -51,7 +51,7 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
@@ -280,7 +280,7 @@ export function WidgetPreviewContainer({
     widget.widgetType === WidgetType.TRACEMETRICS &&
     widget.queries.every(query => query.aggregates.length === 0) &&
     Boolean(
-      getTraceMetricAggregateSource(state.displayType, state.yAxis, state.fields)?.some(
+      getTraceMetricAggregates(state.displayType, state.yAxis, state.fields)?.some(
         aggregate =>
           aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
       )

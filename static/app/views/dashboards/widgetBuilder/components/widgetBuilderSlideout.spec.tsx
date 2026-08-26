@@ -835,6 +835,42 @@ describe('WidgetBuilderSlideout', () => {
     });
   });
 
+  it('shows the optional group by selector for Trace Metrics equations', async () => {
+    render(
+      <WidgetBuilderSlideout
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{release: undefined}}
+        onClose={jest.fn()}
+        onQueryConditionChange={jest.fn()}
+        onSave={jest.fn()}
+        setIsPreviewDraggable={jest.fn()}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.TABLE,
+              field: [
+                'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+              ],
+            },
+          },
+        },
+        additionalWrapper: WidgetBuilderProvider,
+      }
+    );
+
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Group'})).toBeInTheDocument();
+  });
+
   it('should not show the group by selector if the widget is an issue and a chart display type', async () => {
     render(
       <WidgetBuilderProvider>

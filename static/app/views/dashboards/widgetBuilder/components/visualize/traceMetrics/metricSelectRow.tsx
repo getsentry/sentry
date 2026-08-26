@@ -107,7 +107,6 @@ export function MetricSelectRow({
     state.yAxis,
     state.fields
   );
-
   const traceMetric = (aggregateSource?.[index]
     ? extractTraceMetricFromColumn(aggregateSource[index])
     : undefined) ?? {name: '', type: ''};

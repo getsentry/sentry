@@ -141,6 +141,28 @@ describe('useTraceMetricsVisualizeModeState', () => {
     expect(result.current.isEquationMode).toBe(true);
   });
 
+  it('starts in equation mode when table grouping fields precede the equation', () => {
+    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+            field: [
+              'span.op',
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    expect(result.current.isEquationMode).toBe(true);
+  });
+
   it('toggles to equation mode', () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
@@ -162,6 +184,44 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
 
     expect(result.current.isEquationMode).toBe(true);
+  });
+
+  it('preserves table grouping fields when switching between series and equation mode', () => {
+    function useCombinedStateHooks() {
+      const visualizeModeState = useTraceMetricsVisualizeModeState();
+      const {state} = useWidgetBuilderContext();
+      return {visualizeModeState, widgetBuilderState: state};
+    }
+
+    const {result} = renderHookWithProviders(useCombinedStateHooks, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+            field: [
+              'span.op',
+              'span.description',
+              'sum(value,alpha_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(true);
+      result.current.visualizeModeState.handleModeToggle(false);
+    });
+
+    expect(serializeFields(result.current.widgetBuilderState.fields ?? [])).toEqual([
+      'span.op',
+      'span.description',
+      'sum(value,alpha_metric,counter,none)',
+    ]);
   });
 
   it('toggles to series mode', () => {
