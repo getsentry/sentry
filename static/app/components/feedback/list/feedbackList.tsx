@@ -103,7 +103,7 @@ const NoFeedbackWrapper = styled('div')`
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     font-size: ${p => p.theme.font.size.md};
   }
 `;
@@ -112,7 +112,7 @@ const NoFeedbackMessage = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.gray500};
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     font-size: ${p => p.theme.font.size.xl};
   }
 `;
