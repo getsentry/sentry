@@ -408,7 +408,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 summaryDescription={investigation.summaryDescription}
               />
 
-              <NotebookContent>
+              <Stack width="min(100%, 884px)" margin="0 auto">
                 {visibleSummaryBlock ? (
                   <InvestigationCell
                     block={visibleSummaryBlock}
@@ -433,7 +433,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     onAdd={handleAddBlock}
                   />
                 ) : null}
-              </NotebookContent>
+              </Stack>
             </InvestigationCanvas>
           </Layout.Main>
         </Layout.Body>
@@ -577,11 +577,6 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
 
 const InvestigationCanvas = styled(Stack)`
   width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
-  margin: 0 auto;
-`;
-
-const NotebookContent = styled(Stack)`
-  width: min(100%, 884px);
   margin: 0 auto;
 `;
 
