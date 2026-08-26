@@ -708,7 +708,7 @@ function RefinementPanel({
 
   return (
     <RefinementDisclosure defaultExpanded size="sm">
-      <Disclosure.Title
+      <AgentActivityDisclosureTitle
         leadingItems={<IconSeer size="xs" animation={active ? 'waiting' : undefined} />}
         trailingItems={
           <Flex align="center" gap="sm">
@@ -723,8 +723,8 @@ function RefinementPanel({
           </Flex>
         }
       >
-        <Text monospace>{getExecutionTitle(status)}</Text>
-      </Disclosure.Title>
+        <AgentActivityTitle monospace>{getExecutionTitle(status)}</AgentActivityTitle>
+      </AgentActivityDisclosureTitle>
       <RefinementDisclosureContent>
         <Stack gap="md">
           <Transcript
@@ -1123,6 +1123,7 @@ function getSeriesName(series: {label: string} | {name: string}) {
 const QueryDisclosureButton = styled(Button)`
   width: 100%;
   justify-content: flex-start;
+  padding-inline: ${p => p.theme.space.xs};
   text-align: left;
 `;
 
@@ -1151,6 +1152,25 @@ const QueryTable = styled('table')`
 const RefinementDisclosure = styled(Disclosure)`
   width: 100%;
   margin-top: ${p => p.theme.space.lg};
+
+  & > div:first-child {
+    padding-inline: ${p => p.theme.space['2xs']};
+  }
+`;
+
+const AgentActivityDisclosureTitle = styled(Disclosure.Title)`
+  padding-inline: 0;
+`;
+
+const AgentActivityTitle = styled(Text)`
+  font-size: ${p => p.theme.font.size.sm};
+  font-style: normal;
+  font-weight: 700;
+  line-height: ${p => p.theme.font.lineHeight.fixed};
+  letter-spacing: 0;
+  vertical-align: middle;
+  font-variant-numeric: lining-nums tabular-nums;
+  text-box-trim: none;
 `;
 
 const RefinementPrompt = styled('div')`
