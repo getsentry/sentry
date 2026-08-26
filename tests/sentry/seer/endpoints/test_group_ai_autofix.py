@@ -458,6 +458,71 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_insert_index_allowed_when_pr_creation_failed(
+        self, mock_run_state, mock_trigger_explorer
+    ):
+        """A push that failed stranded no PR, so the re-run is allowed."""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=42
+        )
+        mock_run_state.return_value = SeerRunState(
+            run_id=42,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_creation_status="error",
+                )
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "code_changes", "run_id": 42, "insert_index": 3},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_insert_index_rejected_when_push_failed_onto_open_pr(
+        self, mock_run_state, mock_trigger_explorer
+    ):
+        """A push onto an already-open PR can fail, and that PR is still stranded."""
+        group = self.create_group()
+        mock_run_state.return_value = SeerRunState(
+            run_id=42,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_number=7,
+                    pr_url="https://github.com/owner/repo/pull/7",
+                    pr_creation_status="error",
+                )
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": 42, "insert_index": 3},
+            format="json",
+        )
+
+        assert response.status_code == 409, response.data
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     def test_insert_index_unknown_run_returns_404(self, mock_run_state, mock_trigger_explorer):
         """The re-run guard surfaces an unknown run as 404, not 403."""
         group = self.create_group()
@@ -707,6 +772,41 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.data
         assert response.data["detail"] == "Cannot iterate on a PR before one has been created"
         mock_try_enqueue.assert_not_called()
+
+    @with_feature("organizations:autofix-pr-iteration-manual")
+    @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_pr_iteration_allowed_when_push_failed_onto_open_pr(
+        self, mock_run_state, mock_try_enqueue, mock_consume
+    ):
+        """The failed push is the thing to iterate out of, so the PR still counts."""
+        group = self.create_group()
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_number=7,
+                    pr_url="https://github.com/owner/repo/pull/7",
+                    pr_creation_status="error",
+                )
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "pr_iteration", "run_id": 123, "user_context": "please fix this"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_try_enqueue.assert_called_once()
+        mock_consume.apply_async.assert_called_once()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):

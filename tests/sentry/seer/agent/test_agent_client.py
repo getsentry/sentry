@@ -104,6 +104,33 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @override_options({"seer.explorer.context-engine-rollout": 1.0})
+    def test_start_run_context_engine_follows_rollout(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["is_context_engine_enabled"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @override_options({"seer.explorer.context-engine-rollout": 1.0})
+    def test_start_run_force_ce_overrides_rollout(self, mock_post, mock_access):
+        """force_ce=False keeps the context engine off even at full rollout."""
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query", force_ce=False)
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["is_context_engine_enabled"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_request(self, mock_collect_context, mock_post, mock_access):
         """Test starting a new run passes request object to collect_user_org_context"""
@@ -1599,6 +1626,99 @@ class TestStartFeatureRun(TestCase):
         assert outbox is not None and outbox.payload is not None
         body = outbox.payload["body"]
         assert body["agent_run_options"] == {}
+
+
+class TestSeerAgentClientLatestRun(TestCase):
+    CATEGORY_VALUE = "group-1"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def _client(self) -> SeerAgentClient:
+        return SeerAgentClient(
+            self.organization,
+            self.user,
+            category_key="autofix",
+            category_value=self.CATEGORY_VALUE,
+        )
+
+    def _agent_run(self, state_id: int | None, *, source: str = "autofix", **kwargs):
+        kwargs.setdefault("user_id", self.user.id)
+        run = self.create_seer_run(seer_run_state_id=state_id, **kwargs)
+        return self.create_seer_agent_run(
+            run,
+            source=source,
+            extras={"category_value": self.CATEGORY_VALUE},
+        )
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_latest_run_selects_matching_most_recently_triggered(self, _mock_access) -> None:
+        stale = self._agent_run(
+            1,
+            last_triggered_at=timezone.now() - timedelta(days=10),
+        )
+        recent = self._agent_run(2)
+        self._agent_run(3, source="chat")
+        other_category = self.create_seer_run(seer_run_state_id=4, user_id=self.user.id)
+        self.create_seer_agent_run(
+            other_category,
+            source="autofix",
+            extras={"category_value": "group-2"},
+        )
+
+        result = self._client().latest_run()
+
+        assert result == recent
+        assert result != stale
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_latest_run_can_ignore_current_user(self, _mock_access) -> None:
+        other_user = self.create_user()
+        run = self._agent_run(5, user_id=other_user.id)
+        client = self._client()
+
+        assert client.latest_run() is None
+        assert client.latest_run(only_current_user=False) == run
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_latest_run_filters_by_group_id(self, _mock_access) -> None:
+        group = self.create_group()
+        run = self.create_seer_run(seer_run_state_id=1, user_id=self.user.id)
+        self.create_seer_agent_run(run, source="autofix", group=group)
+
+        client = self._client()
+        assert client.latest_run(group_id=group.id) is not None
+        assert client.latest_run(group_id=group.id + 999) is None
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_latest_run_skips_null_state_id(self, _mock_access) -> None:
+        self._agent_run(None)
+        assert self._client().latest_run() is None
+
+    @patch("sentry.seer.agent.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_fetch_latest_run_state_fetches_remote(self, _mock_access, mock_fetch) -> None:
+        self._agent_run(4242)
+        mock_fetch.return_value = MagicMock(run_id=4242, status="completed")
+        client = self._client()
+
+        state = client.fetch_latest_run_state()
+
+        mock_fetch.assert_called_once_with(
+            4242,
+            self.organization,
+            viewer_context=client.viewer_context,
+        )
+        assert state is not None
+        assert state.run_id == 4242
+
+    @patch("sentry.seer.agent.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_fetch_latest_run_state_none_when_no_run(self, _mock_access, mock_fetch) -> None:
+        assert self._client().fetch_latest_run_state() is None
+        mock_fetch.assert_not_called()
 
 
 @with_feature("organizations:seer-infra-telemetry")

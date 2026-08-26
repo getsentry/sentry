@@ -269,6 +269,7 @@ class EventAttachment(Model):
             session = get_attachments_session(organization_id, project_id)
             key = session.put(
                 data,
+                content_type=content_type,
                 filename=attachment.name,
                 expiration_policy=TimeToLive(timedelta(days=attachment.retention_days)),
             )

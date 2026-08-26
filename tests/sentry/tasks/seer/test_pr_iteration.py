@@ -3,8 +3,10 @@ from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from scm.errors import ResourceNotFound
 from scm.types import ReviewComment
 
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
@@ -40,7 +42,23 @@ TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 
 
+class _CommentScmStub:
+    """Spec for the SCM mock so the ``runtime_checkable`` protocol ``isinstance``
+    guards in the task pass (a bare ``MagicMock`` fails them)."""
+
+    def get_pull_request(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def create_pull_request_comment(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get_repository_user_permission(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def create_pull_request_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
 class TriggerPrIterationFromCommentTest(TestCase):
+    mock_make_scm: MagicMock
+    mock_actions: MagicMock
+
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -52,6 +70,17 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
         self.comment = {"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}}
         self.feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=self.comment))
+
+        for attr, target in (
+            ("mock_make_scm", "make_scm"),
+            ("mock_actions", "scm_actions"),
+        ):
+            patcher = patch(f"{TASK_PATH}.{target}")
+            setattr(self, attr, patcher.start())
+            self.addCleanup(patcher.stop)
+
+        self.mock_make_scm.return_value = MagicMock(spec=_CommentScmStub)
+        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "555"}}
 
     def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         return SeerRunState(
@@ -77,12 +106,15 @@ class TriggerPrIterationFromCommentTest(TestCase):
             timestamp="2024-01-01T00:00:00Z",
         )
 
-    def _mock_integration(self, pr_id: int | None = 555) -> MagicMock:
-        mock_client = MagicMock()
-        mock_client.get_pull_request.return_value = {"id": pr_id}
-        mock_integration = MagicMock()
-        mock_integration.get_installation.return_value.get_client.return_value = mock_client
-        return mock_integration
+    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+        pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="7",
+        )
+        if external_id is not None:
+            pr.update(external_id=external_id)
+        return pr
 
     def _call(self) -> None:
         trigger_pr_iteration_from_comment(
@@ -94,31 +126,25 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_agent_when_authorized(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         agent_state = self._agent_state()
         mock_get_state.return_value = agent_state
 
         self._call()
 
         mock_has_access.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             "octocat",
         )
         mock_enqueue.assert_called_once()
@@ -142,61 +168,128 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert consume_kwargs["run_state"] is agent_state
 
         mock_reaction.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
             reaction="eyes",
         )
 
-    @patch(f"{TASK_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_resolves_pr_id_from_row_without_calling_github(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # The issue_comment payload carries only the PR number; a stored
+        # ``external_id`` is what keeps that from costing a round-trip.
+        mock_get_state.return_value = None
+        self._stored_pr(external_id=555)
+
+        self._call()
+
+        self.mock_actions.get_pull_request.assert_not_called()
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 555)
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_writes_external_id_back_on_a_miss(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        mock_get_state.return_value = None
+        pr = self._stored_pr()
+
+        self._call()
+
+        self.mock_actions.get_pull_request.assert_called_once_with(
+            self.mock_make_scm.return_value, "7"
+        )
+        pr.refresh_from_db()
+        assert pr.external_id == 555
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_returns_when_the_provider_id_is_not_an_integer(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "not-a-number"}}
+        pr = self._stored_pr()
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        pr.refresh_from_db()
+        assert pr.external_id is None
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_returns_when_get_pull_request_fails(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        self.mock_actions.get_pull_request.side_effect = ResourceNotFound()
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_stops_on_a_repo_whose_provider_is_not_pinned(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
+        # instead of the repo, so a GHE repo reaching this task would key its
+        # per-instance repo id into a cache that only github.com ids are unique
+        # in — and ask Seer for a run under the wrong provider. The entry point
+        # rejects GHE before dispatch; this pins that the task does not depend on
+        # it having done so.
+        self.repo.provider = "integrations:github_enterprise"
+        self.repo.save()
+
+        self._call()
+
+        self.mock_make_scm.assert_not_called()
+        mock_get_state.assert_not_called()
+        self.mock_actions.get_pull_request.assert_not_called()
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
+
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_write_access(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
-        mock_make_scm: MagicMock,
     ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
         mock_get_state.return_value = self._agent_state()
 
         self._call()
 
-        mock_has_access.assert_called_once_with(mock_make_scm.return_value, "octocat")
+        mock_has_access.assert_called_once_with(self.mock_make_scm.return_value, "octocat")
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_agent_state(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
         mock_cache: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
         # Missing runs must no-op: webhooks fan out to every region, so the
         # region that doesn't own the Autofix session must not react/comment
         # as if the PR were ineligible.
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
 
         self._call()
@@ -205,34 +298,27 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
         mock_reaction.assert_not_called()
-        mock_make_scm.assert_not_called()
-        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_not_called()
+        self.mock_actions.create_pull_request_comment.assert_not_called()
         mock_cache.get.assert_not_called()
         mock_cache.set.assert_not_called()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_comments_ineligible_when_run_has_no_repo_pr_states(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
         mock_cache: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
         # Found a Seer run (e.g. coding-agent handoff) but no Autofix PRs —
         # this is the case where we still explain ineligibility.
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = SeerRunState(
             run_id=67890,
             blocks=[],
@@ -249,40 +335,34 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
         mock_reaction.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
             reaction="confused",
         )
-        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_called_once_with(
-            self.repo.name,
+        self.mock_actions.create_pull_request_comment.assert_called_once_with(
+            self.mock_make_scm.return_value,
             "7",
-            {"body": _ineligible_pr_iteration_comment_body("octocat")},
+            _ineligible_pr_iteration_comment_body("octocat"),
         )
         mock_cache.set.assert_called_once()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_ineligible_comment_when_already_posted(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
         mock_cache: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = SeerRunState(
             run_id=67890,
             blocks=[],
@@ -296,43 +376,37 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self._call()
 
         mock_reaction.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
             reaction="confused",
         )
-        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_not_called()
+        self.mock_actions.create_pull_request_comment.assert_not_called()
         mock_cache.set.assert_not_called()
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_comment_reaction(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = self._agent_state()
 
         self._call()
 
         mock_enqueue.assert_called_once()
         mock_reaction.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
@@ -340,25 +414,20 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_iterates_past_max_iterations(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
         # The max-iterations cap only bounds automatic (bot/check-suite) loops; a
         # manual @sentry comment still drives an iteration past the cap.
-        mock_get_integration.return_value = self._mock_integration()
         mock_get_state.return_value = self._agent_state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
         )
