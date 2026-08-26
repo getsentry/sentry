@@ -609,8 +609,14 @@ describe('VirtualizedViewManger', () => {
       manager.onZoomAroundTimestamp(425, 'lcp');
       manager.onZoomAroundTimestamp(425, 'lcp');
 
-      expect(zoomSpy).toHaveBeenNthCalledWith(1, [212.5, 500], {padding: false});
-      expect(zoomSpy).toHaveBeenNthCalledWith(2, [318.75, 250], {padding: false});
+      expect(zoomSpy).toHaveBeenNthCalledWith(1, [212.5, 500], {
+        padding: false,
+        preserveVitalZoom: true,
+      });
+      expect(zoomSpy).toHaveBeenNthCalledWith(2, [318.75, 250], {
+        padding: false,
+        preserveVitalZoom: true,
+      });
     });
 
     it('zooms in repeatedly and resets before zooming to a different vital', () => {
@@ -649,6 +655,47 @@ describe('VirtualizedViewManger', () => {
       expect(dispatchedWidths).toEqual([500, 250, 1000, 500]);
       expect(manager.view.trace_view.x).toBe(375);
       expect(manager.view.trace_view.width).toBe(500);
+    });
+
+    it('starts a fresh vital zoom sequence after unrelated zooms', () => {
+      const scheduler = new TraceScheduler();
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        scheduler,
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      const dispatchedWidths: number[] = [];
+      scheduler.on('set trace view', view => {
+        manager.view.setTraceView(view);
+        if (view.width !== undefined) {
+          dispatchedWidths.push(view.width);
+        }
+      });
+      const animationFrameSpy = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          callback(performance.now() + 1000);
+          return 0;
+        });
+
+      manager.onZoomAroundTimestamp(425, 'lcp');
+      manager.resetZoom();
+      manager.onZoomAroundTimestamp(425, 'lcp');
+      manager.onZoomIntoSpace([400, 100]);
+      manager.onZoomAroundTimestamp(425, 'lcp');
+      animationFrameSpy.mockRestore();
+
+      expect(dispatchedWidths).toHaveLength(5);
+      expect([dispatchedWidths[0], dispatchedWidths[2], dispatchedWidths[4]]).toEqual([
+        500, 500, 500,
+      ]);
     });
 
     it('uses compressed viewport width when the real viewport is at max zoom', () => {

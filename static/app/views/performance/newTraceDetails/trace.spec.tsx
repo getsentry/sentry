@@ -1032,6 +1032,7 @@ describe('trace view', () => {
     });
     expect(zoomSpy).toHaveBeenCalledWith([start * 1e3 + 250, 1000], {
       padding: false,
+      preserveVitalZoom: true,
     });
   });
 
@@ -1062,6 +1063,7 @@ describe('trace view', () => {
     });
     expect(zoomSpy).toHaveBeenCalledWith([start * 1e3 + 250, 1000], {
       padding: false,
+      preserveVitalZoom: true,
     });
     expect(window.location.search).not.toContain('zoomToNode');
     expect(window.location.search).not.toContain('zoomToTimestamp');

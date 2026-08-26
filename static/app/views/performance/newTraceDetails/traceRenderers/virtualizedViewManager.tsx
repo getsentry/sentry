@@ -711,12 +711,16 @@ export class VirtualizedViewManager {
       targetCompressedStart + targetCompressedWidth
     );
     const zoomToTimestamp = () =>
-      this.onZoomIntoSpace([targetStart, targetEnd - targetStart], {padding: false});
+      this.onZoomIntoSpace([targetStart, targetEnd - targetStart], {
+        padding: false,
+        preserveVitalZoom: true,
+      });
 
     if (previousZoomedVital !== null && !isRepeatedZoom) {
       this.onZoomIntoSpace([this.view.to_origin, this.view.trace_space.width], {
         onComplete: zoomToTimestamp,
         padding: false,
+        preserveVitalZoom: true,
       });
       return;
     }
@@ -726,8 +730,18 @@ export class VirtualizedViewManager {
 
   onZoomIntoSpace(
     space: [number, number],
-    options: {onComplete?: () => void; padding?: boolean} = {}
+    options: {
+      onComplete?: () => void;
+      padding?: boolean;
+      preserveVitalZoom?: boolean;
+    } = {}
   ) {
+    if (!options.preserveVitalZoom) {
+      this.lastZoomedVital = null;
+      this.lastZoomedVitalAnchor = null;
+      this.lastZoomedVitalTargetWidth = null;
+    }
+
     let final_x = space[0] - this.view.to_origin;
     let final_width = space[1];
 
