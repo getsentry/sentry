@@ -18,6 +18,7 @@ import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -31,6 +32,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
+  investigationListQueryOptions,
+  investigationTitleGenerationQueryOptions,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -41,11 +44,14 @@ import {
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
   InvestigationBlockKind,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
+
+const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
 function FeatureDisabledPage() {
   return (
@@ -114,12 +120,54 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
-  const [draftTitle, setDraftTitle] = useState(investigation.title);
+  const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
+  const titleGenerationSettledFor = useRef<string | null>(null);
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );
+  const titleGenerationQuery = useQuery({
+    ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
+    enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
+    refetchInterval: query =>
+      isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
+  });
+  const generatedTitlePreview =
+    draftTitle === null &&
+    investigation.title === DEFAULT_INVESTIGATION_TITLE &&
+    isTitleGenerationActive(titleGenerationQuery.data?.status)
+      ? titleGenerationQuery.data?.preview
+      : null;
+  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+
+  useEffect(() => {
+    const status = titleGenerationQuery.data?.status;
+    if (isTitleGenerationActive(status)) {
+      if (titleGenerationSettledFor.current === investigation.id) {
+        titleGenerationSettledFor.current = null;
+      }
+      return;
+    }
+    if (
+      (status === 'completed' || status === 'failed') &&
+      titleGenerationSettledFor.current !== investigation.id
+    ) {
+      titleGenerationSettledFor.current = investigation.id;
+      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      void queryClient.invalidateQueries({
+        queryKey: investigationListQueryOptions({
+          organizationSlug: organization.slug,
+        }).queryKey,
+      });
+    }
+  }, [
+    detailOptions.queryKey,
+    investigation.id,
+    organization.slug,
+    queryClient,
+    titleGenerationQuery.data?.status,
+  ]);
 
   const renameMutation = useRenameInvestigationMutation(
     organization.slug,
@@ -142,14 +190,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 
   useEffect(() => {
-    if (
-      draftTitle === persistedTitle.current &&
-      investigation.title !== persistedTitle.current
-    ) {
+    if (draftTitle === null) {
       persistedTitle.current = investigation.title;
-      // Keep an in-progress user edit, but adopt a generated title while the draft is clean.
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setDraftTitle(investigation.title);
     }
   }, [draftTitle, investigation.title]);
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
@@ -190,6 +232,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 
   function handleTitleBlur() {
     renameDebouncer.cancel();
+    if (draftTitle === null) {
+      return;
+    }
     const title = draftTitle.trim();
     if (title) {
       if (title !== draftTitle) {
@@ -206,7 +251,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       }
       return;
     }
-    handleTitleChange(persistedTitle.current);
+    setDraftTitle(null);
+    updateInvestigationCache(
+      queryClient,
+      organization.slug,
+      investigation.id,
+      current => ({...current, title: persistedTitle.current})
+    );
   }
 
   const blocks = investigation.blocks ?? [];
@@ -226,7 +277,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   return (
-    <SentryDocumentTitle title={draftTitle} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
         <Layout.Title>
           <HeaderBreadcrumbs
@@ -243,7 +294,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               {t('Investigations')}
             </HeaderBreadcrumbLink>
             <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{draftTitle}</HeaderInvestigationTitle>
+            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
             <DropdownMenu
               items={[
                 {
@@ -300,7 +351,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             <Stack gap="xs" minWidth={0}>
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
-                value={draftTitle}
+                value={displayedTitle}
                 onChange={event => handleTitleChange(event.target.value)}
                 onBlur={handleTitleBlur}
                 maxLength={200}
@@ -317,6 +368,23 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               </Flex>
             </Stack>
             <Flex align="center" gap="sm">
+              <FeedbackButton
+                feedbackOptions={{
+                  formTitle: t('Give feedback on this investigation'),
+                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                  tags: {
+                    'feedback.source': 'investigation',
+                    'feedback.owner': 'ml-ai',
+                    'investigation.id': investigation.id,
+                    'investigation.source_type': investigation.sourceType,
+                    ...(investigation.template
+                      ? {'investigation.template': investigation.template.key}
+                      : {}),
+                  },
+                }}
+              >
+                {t('Give feedback')}
+              </FeedbackButton>
               <Badge variant={getStatusVariant(investigation.status)}>
                 {formatStatus(investigation.status)}
               </Badge>
@@ -327,6 +395,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
+              <NotebookSummaryCard
+                summary={investigation.summary}
+                summaryDescription={investigation.summaryDescription}
+              />
+
               {summaryBlock ? (
                 <InvestigationCell
                   block={summaryBlock}
@@ -490,6 +563,10 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
 const InvestigationCanvas = styled(Stack)`
   width: min(100%, 884px);
   margin: 0 auto;
+`;
+
+const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`

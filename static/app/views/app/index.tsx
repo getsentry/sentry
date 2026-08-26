@@ -10,7 +10,6 @@ import {
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Indicators from 'sentry/components/indicators';
 import {Override} from 'sentry/components/override';
@@ -142,7 +141,6 @@ export function App() {
       getOverride('analytics:init-user')?.(user);
     }
 
-    initApiClientErrorHandling();
     fetchGuides();
 
     // When the app is unloaded clear the organizationst list

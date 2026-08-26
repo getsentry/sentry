@@ -1,7 +1,11 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookRequest';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import type {Organization} from 'sentry/types/organization';
 
 import SentryApplicationDashboard from './index';
 
@@ -17,9 +21,12 @@ describe('Sentry Application Dashboard', () => {
   let webhookRequest: ReturnType<typeof SentryAppWebhookRequestFixture>;
   let statsMock: ReturnType<typeof MockApiClient.addMockResponse>;
   let interactionMock: ReturnType<typeof MockApiClient.addMockResponse>;
+  let webhookRequestMock: ReturnType<typeof MockApiClient.addMockResponse>;
 
-  function renderDashboard() {
+  function renderDashboard(organization: Organization = OrganizationFixture()) {
+    OrganizationStore.onUpdate(organization, {replace: true});
     render(<SentryApplicationDashboard />, {
+      organization,
       initialRouterConfig: {
         location: {
           pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
@@ -61,7 +68,7 @@ describe('Sentry Application Dashboard', () => {
         },
       });
 
-      MockApiClient.addMockResponse({
+      webhookRequestMock = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
       });
@@ -89,8 +96,8 @@ describe('Sentry Application Dashboard', () => {
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
-    it('shows the request log', async () => {
-      renderDashboard();
+    it('shows the request log for org admins', async () => {
+      renderDashboard(OrganizationFixture({access: ['org:admin']}));
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
@@ -99,6 +106,35 @@ describe('Sentry Application Dashboard', () => {
       expect(requestLog.getByText('400')).toBeInTheDocument();
       expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
       expect(requestLog.getByText('Test Org')).toBeInTheDocument();
+      expect(webhookRequestMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the request log for users with org integrations access', async () => {
+      renderDashboard(OrganizationFixture({access: ['org:read', 'org:integrations']}));
+
+      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+      expect(webhookRequestMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not request or render the request log for users with only org read access', async () => {
+      renderDashboard(OrganizationFixture({access: ['org:read']}));
+
+      expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
+      expect(await screen.findByText('Integration Views')).toBeInTheDocument();
+      expect(await screen.findByText('Component Interactions')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3));
+      expect(statsMock).toHaveBeenCalledTimes(1);
+      expect(interactionMock).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Request Log')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
+      expect(webhookRequestMock).not.toHaveBeenCalled();
+    });
+
+    it('shows the request log for active superusers without org admin access', async () => {
+      renderDashboard(OrganizationFixture({access: ['org:read', 'org:superuser']}));
+
+      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+      expect(webhookRequestMock).toHaveBeenCalledTimes(1);
     });
 
     it('shows an empty message if there are no requests', async () => {

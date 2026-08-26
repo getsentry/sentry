@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import ast
 import html
+import logging
+import re
 from datetime import datetime
 from enum import StrEnum
 from functools import partial
@@ -10,6 +12,7 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models import F
 from django.utils import timezone
+from urllib3.exceptions import HTTPError
 
 from sentry.investigations.contracts import validate_query_result, validate_text_result
 from sentry.investigations.models import (
@@ -29,6 +32,14 @@ from sentry.investigations.services.investigations import (
     investigation_source,
     mark_downstream_blocks_stale,
 )
+from sentry.investigations.telemetry import (
+    record_execution_completed,
+    record_execution_failed,
+    record_execution_started,
+    record_investigation_completed,
+    record_title_generation_completed,
+    record_title_generation_failed,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
@@ -37,6 +48,8 @@ from sentry.seer.agent.client_utils import AgentUpdateRequest, make_agent_update
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 MAX_TRANSCRIPT_BYTES = 1024 * 1024
 MAX_TOOL_CONTENT_CHARS = 100_000
@@ -63,6 +76,25 @@ class TitleGenerationStatus(StrEnum):
 
 
 IN_FLIGHT_TITLE_STATUSES = (TitleGenerationStatus.PENDING, TitleGenerationStatus.RUNNING)
+NON_RETRYABLE_TITLE_STATUSES = (
+    *IN_FLIGHT_TITLE_STATUSES,
+    TitleGenerationStatus.COMPLETED,
+    TitleGenerationStatus.FAILED,
+)
+
+TITLE_WORD_LIMIT = 5
+SUMMARY_MIN_WORDS = 1
+SUMMARY_WORD_LIMIT = 10
+SUMMARY_DESCRIPTION_MAX_CHARS = 2000
+TITLE_PREVIEW_PATTERN = re.compile(r'"title"\s*:\s*"((?:\\.|[^"\\])*)')
+
+ACTIVE_BLOCK_EXECUTION_STATUSES = (
+    InvestigationBlockExecutionStatus.PENDING,
+    InvestigationBlockExecutionStatus.RUNNING,
+    InvestigationBlockExecutionStatus.AWAITING_INPUT,
+    InvestigationBlockExecutionStatus.STOPPING,
+)
+
 
 QUERY_INSTRUCTIONS = """You are answering a query block inside a Sentry investigation.
 Use Code Mode only for telemetry analysis. You may call sentry.telemetry_live_search and
@@ -82,6 +114,9 @@ time window, scope, and total count. Pass chart points and series as inline plai
 import type helpers. Time-axis
 x values must be offset-bearing ISO 8601 timestamps. If the question cannot be answered with telemetry, ask the user an
 inline clarification. Finish by returning exactly one raw JSON object in your final response.
+The source object in investigation_context is authoritative resolved source context, not a
+template parameter. Use source.snapshot for supplied monitor, project, threshold, condition,
+dataset, and analysis-window facts; do not report them missing merely because parameters is empty.
 When notebookContext contains an item with currentBlock=true, it is the last successful result for
 the block being refined. Reuse its table and chart data for presentation-only requests such as
 changing line, area, or bar visualization; do not claim the data is unavailable or query it again.
@@ -115,8 +150,9 @@ def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
     )
     context = {
         "request": snapshot.get("prompt"),
-        "projectSlugs": snapshot.get("projectSlugs", []),
+        "organizationSlug": snapshot.get("organizationSlug"),
         "source": snapshot.get("source", {}),
+        "projectSlugs": snapshot.get("projectSlugs", []),
         "filters": snapshot.get("filters", {}),
         "parameters": snapshot.get("parameters", {}),
         "notebookContext": snapshot.get("context", []),
@@ -145,7 +181,15 @@ def start_execution_run(
     client.enable_embeds = is_query
     client.enable_streaming = True
     client.max_iterations = 20 if is_query else 5
-    client.start_run(
+    dispatch_won: bool | None = None
+
+    def mark_dispatched(run: Any) -> None:
+        nonlocal dispatch_won
+        dispatch_won = mark_block_execution_dispatched(
+            execution, seer_run_id=run.id, dispatch_claimed_at=dispatch_claimed_at
+        )
+
+    run = client.start_run(
         build_agent_prompt(execution),
         metadata={
             "referrer": "investigation-block",
@@ -154,23 +198,12 @@ def start_execution_run(
             "execution_id": str(execution.id),
         },
         record_in_history=False,
-        on_run_created=lambda run: _mark_dispatched(
-            execution, run.id, dispatch_claimed_at=dispatch_claimed_at
-        ),
+        on_run_created=mark_dispatched,
     )
-
-
-def _mark_dispatched(
-    execution: InvestigationBlockExecution,
-    seer_run_id: int,
-    *,
-    dispatch_claimed_at: datetime | None = None,
-) -> None:
-    mark_block_execution_dispatched(
-        execution,
-        seer_run_id=seer_run_id,
-        dispatch_claimed_at=dispatch_claimed_at,
-    )
+    if dispatch_won is True:
+        record_execution_started(execution)
+    if dispatch_won is False and run.seer_run_state_id is not None:
+        _interrupt_execution_best_effort(organization, run.seer_run_state_id)
 
 
 def _block_policy_error(
@@ -586,6 +619,83 @@ def _result_from_final_message(state: SeerRunState, *, block_kind: str) -> dict[
     return None
 
 
+def _interrupt_execution_best_effort(organization: Organization, run_id: int) -> None:
+    try:
+        interrupt_run(organization, run_id)
+    except (HTTPError, RuntimeError):
+        logger.exception(
+            "investigations.execution.cancel_after_failure_interrupt_failed",
+            extra={"seer_run_state_id": run_id},
+        )
+
+
+def cancel_investigation_executions_after_failure(
+    failed_execution: InvestigationBlockExecution,
+) -> None:
+    database = router.db_for_write(InvestigationBlockExecution)
+    with transaction.atomic(using=database):
+        investigation = (
+            Investigation.objects.select_for_update()
+            .select_related("organization")
+            .get(id=failed_execution.block.investigation_id)
+        )
+        failed_execution = (
+            InvestigationBlockExecution.objects.select_for_update(of=("self",))
+            .select_related("block")
+            .get(id=failed_execution.id)
+        )
+        if (
+            failed_execution.status != InvestigationBlockExecutionStatus.FAILED
+            or failed_execution.block.current_execution_id != failed_execution.id
+            or failed_execution.block.version != failed_execution.block_version
+        ):
+            return
+
+        active_executions = list(
+            InvestigationBlockExecution.objects.select_for_update(of=("self",))
+            .filter(
+                block__investigation_id=investigation.id,
+                status__in=ACTIVE_BLOCK_EXECUTION_STATUSES,
+            )
+            .exclude(id=failed_execution.id)
+            .select_related("seer_run")
+            .order_by("id")
+        )
+        completed_at = timezone.now()
+        error = {
+            "code": "investigation_execution_failed",
+            "message": "Cancelled because another cell in this investigation failed.",
+        }
+        for execution in active_executions:
+            execution.status = InvestigationBlockExecutionStatus.CANCELLED
+            execution.error = error
+            execution.completed_at = completed_at
+        InvestigationBlockExecution.objects.bulk_update(
+            active_executions, ["status", "error", "completed_at"]
+        )
+
+        for execution in active_executions:
+            if execution.seer_run is None or execution.seer_run.seer_run_state_id is None:
+                continue
+            transaction.on_commit(
+                partial(
+                    _interrupt_execution_best_effort,
+                    investigation.organization,
+                    execution.seer_run.seer_run_state_id,
+                ),
+                using=database,
+            )
+
+
+def _cancel_investigation_executions_after_commit(
+    failed_execution: InvestigationBlockExecution,
+) -> None:
+    transaction.on_commit(
+        partial(cancel_investigation_executions_after_failure, failed_execution),
+        using=router.db_for_write(InvestigationBlockExecution),
+    )
+
+
 def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRunState) -> None:
     # The branches below each guard their own writes against a terminal status, except the
     # off-policy one, which acts on the Seer state alone. Without this a late off-policy run
@@ -616,20 +726,45 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             (str(block["policyError"]) for block in blocks if block.get("policyError")),
             "The agent attempted an unsupported operation.",
         )
-        if execution.seer_run and execution.seer_run.seer_run_state_id:
-            interrupt_run(
-                execution.block.investigation.organization, execution.seer_run.seer_run_state_id
+        database = router.db_for_write(InvestigationBlockExecution)
+        with transaction.atomic(using=database):
+            completed_at = timezone.now()
+            updated = (
+                InvestigationBlockExecution.objects.filter(id=execution.id)
+                .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
+                .update(
+                    status=InvestigationBlockExecutionStatus.FAILED,
+                    transcript=blocks,
+                    transcript_truncated=transcript_truncated,
+                    error={
+                        "code": "unsupported_tool_use",
+                        "message": policy_error,
+                    },
+                    completed_at=completed_at,
+                )
             )
-        execution.update(
-            status=InvestigationBlockExecutionStatus.FAILED,
-            transcript=blocks,
-            transcript_truncated=transcript_truncated,
-            error={
-                "code": "unsupported_tool_use",
-                "message": policy_error,
-            },
-            completed_at=timezone.now(),
-        )
+            if not updated:
+                return
+            execution.completed_at = completed_at
+            transaction.on_commit(
+                partial(
+                    record_execution_failed,
+                    execution,
+                    reason="unsupported_tool_use",
+                    seer_run_id=state.run_id,
+                ),
+                using=database,
+            )
+            _cancel_investigation_executions_after_commit(execution)
+            if execution.seer_run and execution.seer_run.seer_run_state_id:
+                transaction.on_commit(
+                    partial(
+                        _interrupt_execution_best_effort,
+                        execution.block.investigation.organization,
+                        execution.seer_run.seer_run_state_id,
+                    ),
+                    using=database,
+                )
         return
     status = {
         "processing": InvestigationBlockExecutionStatus.RUNNING,
@@ -670,6 +805,16 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 "message": policy_error if off_policy else "The agent run failed.",
             }
             execution.save()
+            transaction.on_commit(
+                partial(
+                    record_execution_failed,
+                    execution,
+                    reason=execution.error["code"],
+                    seer_run_id=state.run_id,
+                ),
+                using=database,
+            )
+            _cancel_investigation_executions_after_commit(execution)
             return
 
         raw_result = _result_from_final_message(state, block_kind=execution.block.kind)
@@ -694,6 +839,16 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                     "message": "The agent returned malformed or unsupported result JSON.",
                 }
             execution.save()
+            transaction.on_commit(
+                partial(
+                    record_execution_failed,
+                    execution,
+                    reason=execution.error["code"],
+                    seer_run_id=state.run_id,
+                ),
+                using=database,
+            )
+            _cancel_investigation_executions_after_commit(execution)
             return
         try:
             if execution.block.kind == InvestigationBlockKind.QUERY:
@@ -730,12 +885,23 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             execution.status = InvestigationBlockExecutionStatus.FAILED
             execution.error = {"code": "invalid_result", "message": str(error)[:1000]}
             execution.save()
+            transaction.on_commit(
+                partial(
+                    record_execution_failed,
+                    execution,
+                    reason="invalid_result",
+                    seer_run_id=state.run_id,
+                ),
+                using=database,
+            )
+            _cancel_investigation_executions_after_commit(execution)
             return
 
         execution.result = result
         execution.status = InvestigationBlockExecutionStatus.COMPLETED
         execution.error = None
         execution.save()
+        transaction.on_commit(partial(record_execution_completed, execution), using=database)
         InvestigationBlockExecutionProject.objects.bulk_create(
             [InvestigationBlockExecutionProject(execution=execution, project=p) for p in projects],
             ignore_conflicts=True,
@@ -780,7 +946,19 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
 
 
 def _maybe_start_title_generation(investigation: Investigation, user_id: int | None) -> None:
-    if investigation.title != DEFAULT_INVESTIGATION_TITLE:
+    if investigation.title_generation_status in NON_RETRYABLE_TITLE_STATUSES:
+        return
+    blocks = list(
+        investigation.blocks.filter(deleted_at__isnull=True)
+        .select_related("content_execution", "result_execution")
+        .order_by("position")
+    )
+    auto_run_blocks = [block for block in blocks if block.config.get("autoRun")]
+    if not auto_run_blocks and investigation.title != DEFAULT_INVESTIGATION_TITLE:
+        return
+    if auto_run_blocks and not all(_block_has_current_result(block) for block in auto_run_blocks):
+        return
+    if investigation.summary is not None and investigation.summary_description is not None:
         return
     user = user_service.get_user(user_id=user_id) if user_id else None
     client = SeerAgentClient(
@@ -794,17 +972,16 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         enable_streaming=True,
         max_iterations=3,
     )
-    block_context = "\n".join(
-        f"- {block.title}: {(block.prompt or block.content)[:1000]}"
-        for block in investigation.blocks.filter(deleted_at__isnull=True).order_by("position")
-    )
+    block_context = "\n".join(_completion_block_context(block) for block in blocks)
     prompt = (
-        "Write a concise, single-line title that identifies the specific incident being "
-        "investigated. Prefer concrete incident details such as the monitor or issue name, "
-        "affected project, breached threshold or direction, and relevant time window. Avoid "
-        "generic titles such as 'Metric Monitor Breach Investigation' or 'Incident Analysis'. "
-        "Do not use tools. Return only the title text. Do not call any function to write or save "
-        "it.\n<source_context>\n"
+        "Describe a completed Sentry investigation. Do not use tools. Return exactly one raw JSON "
+        "object with the keys title, summary, and summary_description and no other text. title "
+        "must identify the incident in at most 5 words. summary must state what happened in at "
+        "most 10 words. summary_description must be 2 or 3 newline-separated, concise lines covering "
+        "the investigation's key evidence and the most useful next steps for a human fixing the "
+        "issue. Distinguish established facts from hypotheses and do not invent a cause. Put title "
+        "first in the JSON object. Do not call any function to write or save the result.\n"
+        "<source_context>\n"
         f"{json.dumps(investigation_source(investigation))}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
@@ -812,14 +989,18 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     database = router.db_for_write(Investigation)
     with transaction.atomic(using=database):
         locked = Investigation.objects.select_for_update().get(id=investigation.id)
-        if (
-            locked.title != DEFAULT_INVESTIGATION_TITLE
-            or locked.title_generation_status in IN_FLIGHT_TITLE_STATUSES
+        if locked.title_generation_status in NON_RETRYABLE_TITLE_STATUSES or (
+            locked.summary is not None and locked.summary_description is not None
         ):
             return
         locked.update(title_generation_status=TitleGenerationStatus.PENDING)
+    record_investigation_completed(locked)
+
+    title_seer_run_state_id: int | None = None
 
     def link_title_run(run: Any) -> None:
+        nonlocal title_seer_run_state_id
+        title_seer_run_state_id = run.seer_run_state_id
         Investigation.objects.filter(id=investigation.id).update(
             title_seer_run_id=run.id, title_generation_status=TitleGenerationStatus.RUNNING
         )
@@ -838,36 +1019,145 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         Investigation.objects.filter(
             id=investigation.id, title_generation_status__in=IN_FLIGHT_TITLE_STATUSES
         ).update(title_generation_status=TitleGenerationStatus.FAILED)
+        record_title_generation_failed(
+            investigation,
+            reason="dispatch_failed",
+            seer_run_id=title_seer_run_state_id,
+        )
         raise
 
 
 def synchronize_title(investigation: Investigation, state: SeerRunState) -> None:
+    if investigation.title_generation_status not in IN_FLIGHT_TITLE_STATUSES:
+        return
     if any(
         _block_policy_error(block, allow_query_tools=False) is not None for block in state.blocks
     ):
         if state.status in {"processing", "awaiting_user_input"}:
             interrupt_run(investigation.organization, state.run_id)
         investigation.update(title_generation_status=TitleGenerationStatus.FAILED)
+        record_title_generation_failed(
+            investigation, reason="unsupported_tool_use", seer_run_id=state.run_id
+        )
         return
     if state.status in {"processing", "awaiting_user_input"}:
         return
-    title = next(
+    content = next(
         (
-            " ".join(block.message.content.split())[:255]
+            block.message.content
             for block in reversed(state.blocks)
             if block.message.role == "assistant" and block.message.content
         ),
         "",
     )
+    metadata = _parse_completion_metadata(content)
     updates: dict[str, Any] = {
         "title_generation_status": (
-            TitleGenerationStatus.COMPLETED if title else TitleGenerationStatus.FAILED
+            TitleGenerationStatus.COMPLETED if metadata else TitleGenerationStatus.FAILED
         )
     }
-    if title and investigation.title == DEFAULT_INVESTIGATION_TITLE:
-        updates["title"] = title
+    if metadata:
+        if investigation.title == DEFAULT_INVESTIGATION_TITLE:
+            updates["title"] = metadata["title"]
+        updates["summary"] = metadata["summary"]
+        updates["summary_description"] = metadata["summary_description"]
         updates["version"] = F("version") + 1
     investigation.update(**updates)
+    if metadata is not None:
+        record_title_generation_completed(investigation)
+    else:
+        record_title_generation_failed(
+            investigation,
+            reason="seer_execution_failed"
+            if state.status == "error"
+            else ("missing_result" if not content else "invalid_result"),
+            seer_run_id=state.run_id,
+        )
+
+
+def _block_has_current_result(block: InvestigationBlock) -> bool:
+    execution = (
+        block.result_execution
+        if block.kind == InvestigationBlockKind.QUERY
+        else block.content_execution
+    )
+    return (
+        execution is not None
+        and execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        and block.stale_at is None
+    )
+
+
+def _completion_block_context(block: InvestigationBlock) -> str:
+    if block.kind == InvestigationBlockKind.QUERY and block.result_execution is not None:
+        output = json.dumps(block.result_execution.result)
+    else:
+        output = block.content
+    return f"- {block.title}\n  Request: {block.prompt[:1000]}\n  Result: {output[:4000]}"
+
+
+def _parse_completion_metadata(content: str) -> dict[str, str] | None:
+    content = _strip_json_code_fence(content)
+    try:
+        payload = json.loads(content)
+    except ValueError:
+        return None
+    required_keys = {
+        "title",
+        "summary",
+        "summary_description",
+    }
+    if not isinstance(payload, dict) or not required_keys.issubset(payload):
+        return None
+    if not all(isinstance(payload[key], str) for key in required_keys):
+        return None
+    title = " ".join(payload["title"].split())
+    summary = " ".join(payload["summary"].split())
+    description_lines = [
+        " ".join(line.split())
+        for line in payload["summary_description"].splitlines()
+        if line.strip()
+    ]
+    if not (
+        1 <= len(title.split()) <= TITLE_WORD_LIMIT
+        and SUMMARY_MIN_WORDS <= len(summary.split()) <= SUMMARY_WORD_LIMIT
+        and 2 <= len(description_lines) <= 3
+    ):
+        return None
+    summary_description = "\n".join(description_lines)
+    if len(summary_description) > SUMMARY_DESCRIPTION_MAX_CHARS:
+        return None
+    return {
+        "title": title[:255],
+        "summary": summary[:255],
+        "summary_description": summary_description,
+    }
+
+
+def _strip_json_code_fence(content: str) -> str:
+    stripped = content.strip()
+    lines = stripped.splitlines()
+    if (
+        len(lines) >= 3
+        and lines[0].strip().lower() in {"```", "```json"}
+        and lines[-1].strip() == "```"
+    ):
+        return "\n".join(lines[1:-1]).strip()
+    return stripped
+
+
+def title_generation_preview(content: str | None) -> str | None:
+    if not content:
+        return None
+    metadata = _parse_completion_metadata(content)
+    if metadata is not None:
+        return metadata["title"]
+    match = TITLE_PREVIEW_PATTERN.search(content)
+    if match is None:
+        return None
+    partial_title = match.group(1).replace(r"\"", '"').replace(r"\\", "\\")
+    words = partial_title.split()
+    return " ".join(words[:TITLE_WORD_LIMIT]) or None
 
 
 def interrupt_run(organization: Organization, run_id: int) -> None:

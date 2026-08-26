@@ -693,10 +693,6 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
     """
     Get the current state of an agent-based autofix run for a group.
 
-    Args:
-        organization: The organization
-        group_id: The group ID to get state for
-
     Returns:
         SeerRunState if a run exists, None otherwise
     """
@@ -706,13 +702,7 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_key="autofix",
         category_value=str(group_id),
     )
-
-    runs = client.get_runs(category_key="autofix", category_value=str(group_id))
-    if not runs:
-        return None
-
-    # Return the most recent run's state
-    return client.get_run(runs[0].run_id)
+    return client.fetch_latest_run_state(group_id=group_id)
 
 
 def generate_autofix_handoff_prompt(

@@ -35,6 +35,7 @@ import type {
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -385,7 +386,7 @@ function IssueVitals({
   statsPeriod: string | null;
 }) {
   const eventCount = run.issue.count ? Number(run.issue.count) : null;
-  const userCount = run.issue.userCount ?? 0;
+  const userCount = run.issue.userCount ?? null;
   const windowLabel = periodWindowLabel(statsPeriod);
   return (
     <Fragment>
@@ -393,6 +394,10 @@ function IssueVitals({
         <Fragment>
           <Flex gap="xs" align="center">
             <IconGraph size="xs" variant="muted" aria-hidden />
+            <Placeholder height="1rem" width="4rem" />
+          </Flex>
+          <Flex gap="xs" align="center">
+            <IconUser size="xs" variant="muted" aria-hidden />
             <Placeholder height="1rem" width="4rem" />
           </Flex>
           <Flex gap="xs" align="center">
@@ -420,7 +425,7 @@ function IssueVitals({
               </InfoText>
             </Flex>
           )}
-          {userCount > 0 && (
+          {userCount !== null && (
             <Flex gap="xs" align="center">
               <IconUser size="xs" variant="muted" aria-hidden />
               <InfoText
@@ -464,7 +469,15 @@ function IssueVitals({
   );
 }
 
-function PriorityAndAssignee({run}: {run: OverviewRun}) {
+function PriorityAndAssignee({
+  run,
+  memberList,
+  assigneeReady,
+}: {
+  assigneeReady: boolean;
+  run: OverviewRun;
+  memberList?: User[];
+}) {
   const {issue} = run;
   const priorityGroup: OverviewIssuePriorityGroup = {
     id: run.groupId,
@@ -483,13 +496,18 @@ function PriorityAndAssignee({run}: {run: OverviewRun}) {
   return (
     <Flex gap="xs" align="center">
       <OverviewIssuePriority group={priorityGroup} />
-      <OverviewIssueAssignee
-        groupId={run.groupId}
-        projectId={issue.project.id}
-        projectSlug={issue.project.slug}
-        assignedTo={issue.assignedTo ?? undefined}
-        owners={issue.owners}
-      />
+      {assigneeReady ? (
+        <OverviewIssueAssignee
+          groupId={run.groupId}
+          projectId={issue.project.id}
+          projectSlug={issue.project.slug}
+          assignedTo={issue.assignedTo ?? undefined}
+          owners={issue.owners}
+          memberList={memberList}
+        />
+      ) : (
+        <Placeholder shape="circle" width="24px" height="24px" />
+      )}
     </Flex>
   );
 }
@@ -500,12 +518,16 @@ export function OverviewCard({
   sectionKey,
   statsPeriod,
   enrichmentPending,
+  memberList,
+  assigneeReady,
 }: {
+  assigneeReady: boolean;
   enrichmentPending: boolean;
   orgSlug: string;
   run: OverviewRun;
   sectionKey: AutofixStateKey;
   statsPeriod: string | null;
+  memberList?: User[];
 }) {
   const organization = useOrganization();
   const rootCause = run.rootCause?.oneLineDescription;
@@ -533,7 +555,11 @@ export function OverviewCard({
             issueUrl={issueUrl}
             enrichmentPending={enrichmentPending}
           />
-          <PriorityAndAssignee run={run} />
+          <PriorityAndAssignee
+            run={run}
+            memberList={memberList}
+            assigneeReady={assigneeReady}
+          />
         </Fragment>
       }
     >
@@ -676,7 +702,7 @@ export function OverviewCardSkeleton() {
         <Stack minWidth="0" gap="xs">
           <TextLineSkeleton size="lg" width="70%" />
           <Flex wrap="wrap" gap="md" align="center">
-            {['4.5rem', '4rem', '5rem', '5rem'].map((width, index) => (
+            {['4.5rem', '4rem', '4rem', '5rem', '5rem'].map((width, index) => (
               <TextLineSkeleton key={index} size="sm" width={width} />
             ))}
           </Flex>

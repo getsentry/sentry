@@ -139,27 +139,32 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
     sortBys: aggregateSortBys,
   });
 
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useLogItemAttributes({}, 'string', HiddenLogSearchFields);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useLogItemAttributes({}, 'number', HiddenLogSearchFields);
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes({enabled: supportsArrays}, 'array', HiddenLogSearchFields);
 
   const {data: validatedSearchQueryData} = useValidateLogsTab();
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
+      arrayAttributes,
       booleanAttributes,
       numberAttributes,
       stringAttributes,
+      arraySecondaryAliases,
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       validatedSearchQueryData,
     });
 
-  const organization = useOrganization();
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
