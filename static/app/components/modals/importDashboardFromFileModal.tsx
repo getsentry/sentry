@@ -18,6 +18,7 @@ import {
   assignDefaultLayout,
   getInitialColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
+import {enforceLayoutMinHeight} from 'sentry/views/dashboards/utils/enforceLayoutMinHeight';
 import {Wrapper} from 'sentry/views/discover/table/quickContext/styles';
 
 export interface ImportDashboardFromFileModalProps {
@@ -73,7 +74,9 @@ function ImportDashboardFromFileModal({
     try {
       const newDashboard = await createDashboard(api, organization.slug, {
         ...dashboard,
-        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+        widgets: enforceLayoutMinHeight(
+          assignDefaultLayout(dashboard.widgets, getInitialColumnDepths())
+        ),
       });
 
       addSuccessMessage(`${dashboard.title} dashboard template successfully added`);
