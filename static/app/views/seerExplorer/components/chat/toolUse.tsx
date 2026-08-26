@@ -11,7 +11,6 @@ import {
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {EVIDENCE_ICON, type EvidenceType} from '@sentry/scraps/evidence';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -19,6 +18,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
+import {
+  RESOURCE_KIND_ICON,
+  type ResourceKind,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -61,10 +64,10 @@ const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
 // is never rendered, and a call that produced nothing to show renders no row at all.
 const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
 
-// Which `EvidenceType` glyph a call row's reference chip shows, keyed by the `links.tsx` rule id
+// Which `ResourceKind` glyph a call row's reference chip shows, keyed by the `links.tsx` rule id
 // that resolved it (`linkKind`) — not every rule has a Telemetry Icons entry (`get_project_details`
 // falls back to the generic link icon below).
-const LINK_KIND_EVIDENCE_TYPE: Partial<Record<string, EvidenceType>> = {
+const LINK_KIND_RESOURCE_KIND: Partial<Record<string, ResourceKind>> = {
   get_issue_details: 'issue',
   get_event_details: 'issue',
   get_trace_waterfall: 'trace',
@@ -504,7 +507,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
                 label={label}
                 url={url}
                 linkLabel={linkLabel}
-                evidenceType={LINK_KIND_EVIDENCE_TYPE[linkKind]}
+                resourceKind={LINK_KIND_RESOURCE_KIND[linkKind]}
                 settled={callsAreSettled}
                 onLinkClick={trackLinkClick(linkKind)}
               />
@@ -656,14 +659,14 @@ function CodeModeCallRow({
   label,
   url,
   linkLabel,
-  evidenceType,
+  resourceKind,
   settled,
   onLinkClick,
 }: {
-  evidenceType: EvidenceType | undefined;
   label: string;
   linkLabel: string | null;
   record: CallRecord;
+  resourceKind: ResourceKind | undefined;
   settled: boolean;
   url: LocationDescriptor | null;
   onLinkClick?: (e: React.MouseEvent) => void;
@@ -672,7 +675,7 @@ function CodeModeCallRow({
   const failure = callRecordFailure(record);
   // Falls back to the generic link glyph for a destination the Telemetry Icons board does not
   // cover yet (e.g. `get_project_details`) rather than rendering no icon at all.
-  const Icon = evidenceType ? EVIDENCE_ICON[evidenceType] : IconLink;
+  const Icon = resourceKind ? RESOURCE_KIND_ICON[resourceKind] : IconLink;
 
   return (
     <ToolCall

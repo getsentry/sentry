@@ -8,10 +8,10 @@ resources:
 ---
 
 import {ToolCall} from '@sentry/scraps/chat';
-import {EVIDENCE_ICON} from '@sentry/scraps/evidence';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {IconIssues} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/chat/toolCall');
@@ -161,14 +161,8 @@ toggling the title.
 
 ## Resource icons
 
-`reference`/`output` take any `icon`, but a chip pointing at a Sentry resource
-— an issue, a trace, a replay, a search — should source it from
-[`EvidenceReference`](/stories/core/evidencereference/)'s `EVIDENCE_ICON` map
-rather than picking one ad hoc. It keys off the same kinds the Telemetry Icons
-board defines, so a trace looks like a trace wherever it is referenced, not
-just inside a `ToolCall`. Seer Explorer's Code Mode call rows source their
-reference chip's icon this way today, keyed off which `links.tsx` rule
-resolved the destination.
+`reference`/`output` take any `icon`, so a chip pointing at a Sentry resource
+— an issue, a trace, a replay — can use whichever glyph best identifies it.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -177,7 +171,7 @@ resolved the destination.
       status="success"
       reference={{
         value: 'Issue: SEER-123',
-        icon: <EVIDENCE_ICON.issue />,
+        icon: <IconIssues />,
         to: '/issues/123/',
       }}
     />
@@ -185,13 +179,11 @@ resolved the destination.
 </Storybook.Demo>
 
 ```jsx
-import {EVIDENCE_ICON} from '@sentry/scraps/evidence';
-
-const IssueIcon = EVIDENCE_ICON.issue;
+import {IconIssues} from 'sentry/icons';
 
 <ToolCall
   title="Retrieve an issue"
   status="success"
-  reference={{value: 'Issue: SEER-123', icon: <IssueIcon />, to: '/issues/123/'}}
+  reference={{value: 'Issue: SEER-123', icon: <IconIssues />, to: '/issues/123/'}}
 />;
 ```
