@@ -89,12 +89,7 @@ describe('TraceMetaDataHeader', () => {
     function renderHeader(props: TraceMetadataHeaderProps) {
       return render(
         <TopBar.Slot.Provider>
-          <TopBar.Slot.Outlet name="breadcrumbs">
-            {slotProps => <div {...slotProps} />}
-          </TopBar.Slot.Outlet>
-          <TopBar.Slot.Outlet name="title">
-            {slotProps => <div {...slotProps} />}
-          </TopBar.Slot.Outlet>
+          <TopBar />
           <TraceMetaDataHeader {...props} organization={organization} />
         </TopBar.Slot.Provider>
       );
@@ -112,11 +107,14 @@ describe('TraceMetaDataHeader', () => {
       const props = {...baseProps} as TraceMetadataHeaderProps;
       renderHeader(props);
 
-      const breadcrumbsLinks = screen.getAllByRole('link');
+      const topBar = screen.getByRole('banner');
+      const breadcrumbsLinks = within(topBar).getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(2);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Backend');
       expect(breadcrumbsLinks[1]).toHaveTextContent('Domain Summary');
-      expect(screen.getByText(/trace-slug/)).toBeInTheDocument();
+      expect(
+        within(topBar).getByRole('heading', {name: /trace-slug/})
+      ).toBeInTheDocument();
     });
 
     it('should show insights from transaction summary with perf removal feature', () => {
@@ -132,14 +130,17 @@ describe('TraceMetaDataHeader', () => {
       const props = {...baseProps} as TraceMetadataHeaderProps;
       renderHeader(props);
 
-      const breadcrumbsLinks = screen.getAllByRole('link');
+      const topBar = screen.getByRole('banner');
+      const breadcrumbsLinks = within(topBar).getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(1);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsLinks[0]).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary?source=performance_transaction_summary&transaction=transaction-name'
       );
-      expect(screen.getByText(/trace-slug/)).toBeInTheDocument();
+      expect(
+        within(topBar).getByRole('heading', {name: /trace-slug/})
+      ).toBeInTheDocument();
     });
 
     it('should show insights from transaction summary', () => {
@@ -155,14 +156,17 @@ describe('TraceMetaDataHeader', () => {
       const props = {...baseProps} as TraceMetadataHeaderProps;
       renderHeader(props);
 
-      const breadcrumbsLinks = screen.getAllByRole('link');
+      const topBar = screen.getByRole('banner');
+      const breadcrumbsLinks = within(topBar).getAllByRole('link');
       expect(breadcrumbsLinks).toHaveLength(1);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsLinks[0]).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary?source=performance_transaction_summary&transaction=transaction-name'
       );
-      expect(screen.getByText(/trace-slug/)).toBeInTheDocument();
+      expect(
+        within(topBar).getByRole('heading', {name: /trace-slug/})
+      ).toBeInTheDocument();
     });
 
     it('should render domain overview breadcrumbs', () => {
