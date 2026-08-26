@@ -131,7 +131,7 @@ describe('TraceViewMetricsSection', () => {
       method: 'GET',
       body: [],
     });
-    render(
+    const {router} = render(
       <TraceViewMetricsProviderWrapper traceSlug={traceId}>
         <TraceViewMetricsSection />
         <CurrentMetricsQuery />
@@ -158,8 +158,43 @@ describe('TraceViewMetricsSection', () => {
     ).textContent;
     expect(currentMetricsQuery).toContain('duration');
     expect(currentMetricsQuery).toContain('distribution');
-    expect(currentMetricsQuery).toMatch(
-      /^\( !has:sentry\.metric\.source OR !sentry\.metric\.source:span \) AND \( .* OR .* \)$/
+    expect(currentMetricsQuery).not.toContain('sentry.metric.source');
+    expect(router.location.query.query).toBe(currentMetricsQuery);
+  });
+
+  it('preserves the initial metrics query from the URL', async () => {
+    mockTraceMetricAttributes();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/metric.name/values/`,
+      method: 'GET',
+      body: [],
+    });
+    render(
+      <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+        <TraceViewMetricsSection />
+        <CurrentMetricsQuery />
+      </TraceViewMetricsProviderWrapper>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
+            query: {query: 'metric.name:duration'},
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('row', {name: /metric\.name:.*duration/})
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Current metrics query')).toHaveTextContent(
+        'metric.name:duration'
+      );
+    });
+    expect(eventsRequest.mock.calls.at(-1)?.[1]?.query?.query).toBe(
+      `( !has:sentry.metric.source OR !sentry.metric.source:span ) AND ( metric.name:duration ) trace:[${traceId}]`
     );
   });
 
