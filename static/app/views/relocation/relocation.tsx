@@ -311,13 +311,7 @@ export function RelocationOnboarding() {
   ) : null;
 
   return (
-    <Stack
-      as="main"
-      flexGrow={1}
-      minWidth="0"
-      width="100%"
-      data-test-id="relocation-onboarding"
-    >
+    <Stack as="main" flexGrow={1} minWidth="0" width="100%">
       <SentryDocumentTitle title={stepObj.title} />
       {headerView}
       <Container>

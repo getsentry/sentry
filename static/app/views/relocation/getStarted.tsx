@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 import {z} from 'zod';
 
@@ -9,9 +9,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getSignupLocalities} from 'sentry/utils/cells';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 
 import type {StepProps} from './types';
@@ -34,16 +34,19 @@ export function GetStarted({
   onUpdateRelocationState,
   onComplete,
 }: StepProps) {
-  const api = useApi();
+  const queryClient = useQueryClient();
   const {orgSlugs, localityName, promoCode} = relocationState;
   const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
   const localityOptions = getSignupLocalities();
 
   const {mutateAsync: validatePromoCode} = useMutation({
     mutationFn: (code: string) =>
-      api.requestPromise(`/promocodes-external/${code}`, {
-        method: 'GET',
-      }),
+      queryClient.fetchQuery(
+        apiOptions.as<unknown>()('/promocodes-external/$code', {
+          path: {code},
+          staleTime: 0,
+        })
+      ),
     onError: error => {
       addErrorMessage(
         error instanceof RequestError && error.status === 403
