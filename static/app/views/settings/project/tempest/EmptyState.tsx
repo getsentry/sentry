@@ -62,7 +62,7 @@ export function EmptyState({
         <Description>
           {t('Your code sleuth eagerly awaits its first mission.')}
         </Description>
-        <Container display={{zero: 'none', xl: 'contents'}}>
+        <Container display={{zero: 'none', '2xl': 'contents'}}>
           <Image src={waitingForEventImg} />
         </Container>
       </HeaderWrapper>

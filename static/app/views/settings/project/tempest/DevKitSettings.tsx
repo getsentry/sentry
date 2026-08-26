@@ -55,7 +55,7 @@ export function DevKitSettings({organization, project}: Props) {
     <Fragment>
       <Panel>
         <PanelBody>
-          <Container containerType="inline-size">
+          <Container>
             <HeaderWrapper>
               <Title>{t('Get Started with DevKit Crash Monitoring')}</Title>
               <Description>
@@ -63,7 +63,7 @@ export function DevKitSettings({organization, project}: Props) {
                   'Set up your PlayStation development kit to send crash reports to Sentry.'
                 )}
               </Description>
-              <Container display={{zero: 'none', xl: 'contents'}}>
+              <Container display={{zero: 'none', '2xl': 'contents'}}>
                 <Image src={waitingForEventImg} />
               </Container>
             </HeaderWrapper>
