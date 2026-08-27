@@ -3363,13 +3363,6 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.process-segments-task-rollout-rate",
-    type=Float,
-    default=1.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -3400,8 +3393,8 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TTL in seconds for span deduplication tracking. When > 0, the consumer
-# will use Redis SETNX to detect duplicate spans and emit metrics.
+# TTL in seconds for span deduplication tracking. When > 0, the process_segment
+# task will use Redis SETNX to detect duplicate spans and emit metrics.
 # Set to 0 to disable.
 register(
     "spans.process-segments.dedupe-ttl",
