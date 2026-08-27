@@ -194,8 +194,13 @@ def _store_sample_rate(error: ProcessingErrorsException) -> float:
     Anything bundled with a type we always store is always stored.
     """
     return max(
-        THROTTLED_SAMPLE_RATES.get(process_error["type"], 1.0)
-        for process_error in error.processing_errors
+        (
+            THROTTLED_SAMPLE_RATES.get(process_error["type"], 1.0)
+            for process_error in error.processing_errors
+        ),
+        # Nothing to store. Not reachable from the consumer, which always raises with at least
+        # one error, but `max()` has no answer for an empty sequence.
+        default=0.0,
     )
 
 

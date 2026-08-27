@@ -322,3 +322,15 @@ class HandleProcessingErrorsTest(TestCase):
         )
 
         assert len(get_errors_for_monitor(monitor)) == 1
+
+    def test_no_errors_is_not_stored(self) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException([], monitor=monitor),
+        )
+
+        assert get_errors_for_monitor(monitor) == []
