@@ -835,9 +835,7 @@ export function subjectFromCallRecord(record: CallRecord): LinkSubject {
   // composite rule can read `dataset` / `query` / `project` the same way a lib search does — seer
   // only carries the query on `resolved_path`, never beside `path_params`.
   const params =
-    record.kind === 'lib'
-      ? (record.params ?? {})
-      : {...(record.path_params ?? {}), ...(query ?? {})};
+    record.kind === 'lib' ? (record.params ?? {}) : {...record.path_params, ...query};
 
   return {
     kind: record.kind === 'lib' ? 'lib' : 'api',
