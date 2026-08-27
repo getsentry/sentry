@@ -6,6 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {
   DataConditionType,
@@ -58,6 +59,7 @@ describe('MetricDetectorTriggeredSection', () => {
   };
 
   beforeEach(() => {
+    ConfigStore.set('customerDomain', null);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -91,6 +93,11 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   it('links to an existing investigation for the selected open period', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
@@ -122,7 +129,7 @@ describe('MetricDetectorTriggeredSection', () => {
     ).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/investigation/4567/');
+    ).toHaveAttribute('href', '/explore/investigations/4567/');
   });
 
   it('hides an existing investigation summary until all summary fields are ready', async () => {
@@ -247,6 +254,11 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   it('launches an investigation for the selected open period', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
@@ -262,7 +274,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {id: '4567'},
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+    const {router} = render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
       organization,
     });
 
@@ -292,6 +304,7 @@ describe('MetricDetectorTriggeredSection', () => {
         })
       );
     });
+    expect(router.location.pathname).toBe('/explore/investigations/4567/');
   });
 
   it('uses the latest open period when the displayed event is not linked to one', async () => {

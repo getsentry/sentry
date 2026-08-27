@@ -155,6 +155,38 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
         assert "title" in response.data
         assert "widgets" in response.data
 
+    def test_restores_legacy_widget_height_below_minimum(self) -> None:
+        layout = {"x": 0, "y": 0, "w": 3, "h": 1, "minH": 2}
+        revision = self._create_revision(
+            snapshot={
+                "title": "Dashboard 1",
+                "widgets": [
+                    {
+                        "title": "Legacy widget",
+                        "displayType": "line",
+                        "interval": "5m",
+                        "queries": [
+                            {
+                                "name": "",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "",
+                            }
+                        ],
+                        "widgetType": "error-events",
+                        "layout": layout,
+                    }
+                ],
+            }
+        )
+
+        response = self.client.post(self._url(revision.id))
+
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["layout"] == layout
+
     def test_returns_400_for_unsupported_schema_version(self) -> None:
         revision = DashboardRevision.objects.create(
             dashboard=self.dashboard,

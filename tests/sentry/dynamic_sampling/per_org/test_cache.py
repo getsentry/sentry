@@ -31,7 +31,9 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    CACHE,
     DELETE_FACTOR,
     SET_FACTOR,
     mock_configuration,
@@ -71,6 +73,72 @@ class PerOrgRecalibrationCacheTest(TestCase):
 
         per_org_recalibration_cache.set_adjusted_factor(org.id, 1.0)
         assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
+
+
+class InvalidateProjectConfigsTest(TestCase):
+    """A pass that changed an organization's rates republishes its rules."""
+
+    SERVING_ON = {"dynamic-sampling.per_org.serving-rollout-rate": 1.0}
+    SERVING_OFF = {"dynamic-sampling.per_org.serving-rollout-rate": 0.0}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+        self.addCleanup(
+            get_redis_client_for_ds().delete,
+            generate_project_sample_rates_cache_key(self.organization.id),
+        )
+
+    def _write(self, results: DynamicSamplingResults) -> MagicMock:
+        config = mock_configuration(self.organization, results=results)
+        with patch(f"{CACHE}.schedule_invalidate_project_config") as invalidate:
+            write_caches(config)
+        return invalidate
+
+    def _rebalanced(self, sample_rate: float) -> DynamicSamplingResults:
+        return DynamicSamplingResults(
+            rebalanced_projects=[
+                RebalancedItem(id=self.project.id, count=10, new_sample_rate=sample_rate)
+            ]
+        )
+
+    def test_a_served_org_is_invalidated_once_for_all_of_its_projects(self) -> None:
+        with override_options(self.SERVING_ON):
+            invalidate = self._write(self._rebalanced(0.25))
+
+        invalidate.assert_called_once_with(
+            organization_id=self.organization.id, trigger="dynamic_sampling_per_org"
+        )
+
+    def test_an_org_served_from_the_legacy_caches_is_left_alone(self) -> None:
+        with override_options(self.SERVING_OFF):
+            invalidate = self._write(self._rebalanced(0.25))
+
+        invalidate.assert_not_called()
+
+    def test_a_listed_org_is_invalidated_at_a_serving_rate_of_zero(self) -> None:
+        with override_options(
+            {
+                "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
+                "dynamic-sampling.per_org.serving-org-ids": [self.organization.id],
+            }
+        ):
+            invalidate = self._write(self._rebalanced(0.25))
+
+        invalidate.assert_called_once()
+
+    def test_a_pass_that_changed_no_rate_does_not_republish(self) -> None:
+        with override_options(self.SERVING_ON):
+            self._write(self._rebalanced(0.25))
+            invalidate = self._write(self._rebalanced(0.25))
+
+        invalidate.assert_not_called()
+
+    def test_a_pass_that_wrote_nothing_does_not_republish(self) -> None:
+        with override_options(self.SERVING_ON):
+            invalidate = self._write(DynamicSamplingResults())
+
+        invalidate.assert_not_called()
 
 
 class WriteCachesTest(TestCase):
