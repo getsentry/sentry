@@ -23,11 +23,13 @@ jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
   return {
     ...actual,
     TraceItemSearchQueryBuilder: (props: {
+      arrayAttributes?: Record<string, unknown>;
       disabled?: boolean;
       invalidFilterKeys?: string[];
       numberAttributes?: Record<string, unknown>;
     }) => (
       <div
+        data-array-attributes={Object.keys(props.arrayAttributes ?? {}).join(',')}
         data-disabled={String(props.disabled ?? false)}
         data-invalid-filter-keys={props.invalidFilterKeys?.join(',') ?? ''}
         data-number-attributes={Object.keys(props.numberAttributes ?? {}).join(',')}
@@ -672,6 +674,68 @@ describe('Filter', () => {
     expect(screen.getByTestId('metrics-filter-search')).toHaveAttribute(
       'data-invalid-filter-keys',
       'missing.key'
+    );
+  });
+
+  it('surfaces array attributes when the array flag is enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          key: 'tags[error.messages,array]',
+          name: 'error.messages',
+          attributeType: 'array',
+        },
+      ],
+    });
+
+    render(<Filter traceMetric={{name: 'test_metric', type: 'distribution'}} />, {
+      organization: OrganizationFixture({
+        features: ['tracemetrics-enabled', 'trace-item-array-query-support'],
+      }),
+      additionalWrapper: ({children}: {children: ReactNode}) => (
+        <Wrapper queryParams={queryParams}>{children}</Wrapper>
+      ),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('metrics-filter-search')).toHaveAttribute(
+        'data-array-attributes',
+        expect.stringContaining('tags[error.messages,array]')
+      );
+    });
+  });
+
+  it('omits array attributes when the array flag is disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          key: 'tags[error.messages,array]',
+          name: 'error.messages',
+          attributeType: 'array',
+        },
+      ],
+    });
+
+    render(<Filter traceMetric={{name: 'test_metric', type: 'distribution'}} />, {
+      organization: OrganizationFixture({
+        features: ['tracemetrics-enabled'],
+      }),
+      additionalWrapper: ({children}: {children: ReactNode}) => (
+        <Wrapper queryParams={queryParams}>{children}</Wrapper>
+      ),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('metrics-filter-search')).toHaveAttribute(
+        'data-disabled',
+        'false'
+      );
+    });
+    expect(screen.getByTestId('metrics-filter-search')).toHaveAttribute(
+      'data-array-attributes',
+      ''
     );
   });
 });

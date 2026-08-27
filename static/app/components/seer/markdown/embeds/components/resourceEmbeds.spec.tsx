@@ -1,16 +1,21 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 
-function renderEmbed(name: string, data: Record<string, unknown>) {
-  const raw = `{% ${name} %}${JSON.stringify(data)}{% /${name} %}`;
+function renderEmbed(
+  name: string,
+  data: Record<string, unknown>,
+  level: 'block' | 'inline' = 'block'
+) {
+  const tag = `{% ${name} %}${JSON.stringify(data)}{% /${name} %}`;
+  const raw = level === 'inline' ? `text ${tag} text` : tag;
   return render(<SeerMarkdown raw={raw} />);
 }
 
 function hrefFor(name: string, label: string, data: Record<string, unknown>) {
-  renderEmbed(name, data);
+  renderEmbed(name, data, 'inline');
   return screen.getByRole('link', {name: label}).getAttribute('href') ?? '';
 }
 
@@ -51,11 +56,15 @@ describe('Seer resource embeds', () => {
     );
   });
 
-  it('links a replay to the relevant event timestamp', async () => {
-    const {router} = renderEmbed('replay', {
-      id: '4c1f2e3d1234567890',
-      eventTimestamp: '2026-08-25T16:37:12Z',
-    });
+  it('links a replay to the relevant event timestamp (inline)', async () => {
+    const {router} = renderEmbed(
+      'replay',
+      {
+        id: '4c1f2e3d1234567890',
+        eventTimestamp: '2026-08-25T16:37:12Z',
+      },
+      'inline'
+    );
 
     await userEvent.click(screen.getByRole('link', {name: 'Replay 4c1f2e3d'}));
 
@@ -65,8 +74,34 @@ describe('Seer resource embeds', () => {
     expect(router.location.query.event_t).toBe('2026-08-25T16:37:12Z');
   });
 
-  it('links a replay without a timestamp to the beginning', () => {
-    renderEmbed('replay', {id: 'abcdef1234567890'});
+  it('links a replay without a timestamp to the beginning (inline)', () => {
+    renderEmbed('replay', {id: 'abcdef1234567890'}, 'inline');
+
+    expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/replays/abcdef1234567890/'
+    );
+  });
+
+  it('renders a replay player preview at block level with a timestamp', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    renderEmbed(
+      'replay',
+      {
+        id: '4c1f2e3d1234567890',
+        eventTimestamp: '2026-08-25T16:37:12Z',
+      },
+      'block'
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
+    });
+  });
+
+  it('falls back to a link at block level without a timestamp', () => {
+    renderEmbed('replay', {id: 'abcdef1234567890'}, 'block');
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
       'href',

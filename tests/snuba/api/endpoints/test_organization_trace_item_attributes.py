@@ -1982,6 +1982,10 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
 ):
     item_type = SupportedTraceItemType.LOGS
     feature_flags = {"organizations:ourlogs-enabled": True}
+    array_feature_flags = {
+        "organizations:ourlogs-enabled": True,
+        "organizations:trace-item-array-query-support": True,
+    }
 
     def test_no_feature(self) -> None:
         response = self.do_request(features={}, key="test.attribute")
@@ -2032,6 +2036,90 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         assert "value1" in values
         assert "value2" in values
         assert all(item["key"] == "test1" for item in response.data)
+
+    @pytest.mark.xfail(
+        strict=False,
+        reason=(
+            "Blocked on EAP, the attribute-values RPC "
+            "(snuba/web/rpc/v1/trace_item_attribute_values.py) rejects array types. Remove this marker then."
+        ),
+    )
+    def test_array_attribute_values(self) -> None:
+        """Values endpoint against a string-array attribute.
+
+        The log carries a string-array attribute. The array-tag key form
+        resolves to the array branch (coerced to TYPE_ARRAY_STRING for Snuba),
+        and the endpoint should list the individual element values.
+        """
+        key = "tags[data_export.csv_headers,array]"
+
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "data_export.csv_headers": {
+                        "array_value": ArrayValue(
+                            values=[
+                                AnyValue(string_value="title"),
+                                AnyValue(string_value="project"),
+                            ]
+                        )
+                    }
+                },
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        string_response = self.do_request(
+            key=key,
+            query={"attributeType": "array"},
+            features=self.array_feature_flags,
+        )
+        assert string_response.status_code == 200, string_response.content
+        string_values = {item["value"] for item in string_response.data}
+        assert {"title", "project"} <= string_values
+        assert all(item["key"] == key for item in string_response.data)
+
+    @pytest.mark.xfail(
+        strict=False,
+        reason=(
+            "Blocked on EAP, the attribute-values RPC "
+            "(snuba/web/rpc/v1/trace_item_attribute_values.py) rejects array types. Remove this marker then."
+        ),
+    )
+    def test_array_attribute_values_numeric_returns_nothing(self) -> None:
+        """Numeric arrays yield no value suggestions.
+
+        Only string-array elements are autocompleted. A numeric array resolves to
+        the same array branch (coerced to TYPE_ARRAY_STRING for Snuba), so the
+        string-array lookup finds nothing and the endpoint returns no values,
+        matching scalar number attributes.
+        """
+        key = "tags[data_export.blob_offsets,array]"
+
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "data_export.blob_offsets": {
+                        "array_value": ArrayValue(
+                            values=[AnyValue(int_value=0), AnyValue(int_value=1048576)]
+                        )
+                    }
+                },
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        response = self.do_request(
+            key=key,
+            query={"attributeType": "array"},
+            features=self.array_feature_flags,
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
 
 class OrganizationTraceItemAttributeValuesEndpointSpansTest(

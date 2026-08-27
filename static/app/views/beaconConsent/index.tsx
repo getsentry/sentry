@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const consentChoiceSchema = z.enum(['true', 'false']);
@@ -27,7 +28,7 @@ function BeaconConsent({onSubmitSuccess}: Props) {
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation({
-        url: '/internal/options/',
+        url: getApiUrl('/internal/options/'),
         method: 'PUT',
         data: {'beacon.record_cpu_ram_usage': data.beacon.record_cpu_ram_usage},
       }),

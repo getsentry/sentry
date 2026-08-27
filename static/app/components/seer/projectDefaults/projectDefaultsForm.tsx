@@ -9,6 +9,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -25,7 +26,9 @@ interface Props {
 export function ProjectDefaultsForm({organization}: Props) {
   const canWrite = useCanWriteSettings();
 
-  const orgEndpoint = `/organizations/${organization.slug}/`;
+  const orgEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const orgMutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
       fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),

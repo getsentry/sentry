@@ -12,6 +12,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -32,7 +33,7 @@ export function PasswordForm() {
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation({
-        url: '/users/me/password/',
+        url: getApiUrl('/users/$userId/password/', {path: {userId: 'me'}}),
         method: 'PUT',
         data,
       }),

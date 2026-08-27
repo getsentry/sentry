@@ -15,6 +15,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -48,7 +49,7 @@ function CreateReleaseIntegrationModal({
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
       fetchMutation({
-        url: '/sentry-apps/',
+        url: getApiUrl('/sentry-apps/'),
         method: 'POST',
         data: {
           ...data,

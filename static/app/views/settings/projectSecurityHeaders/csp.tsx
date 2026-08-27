@@ -15,6 +15,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
@@ -100,7 +101,12 @@ export default function ProjectCspReports() {
     );
   }
 
-  const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
+  const projectEndpoint = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+    path: {
+      organizationIdOrSlug: organization.slug,
+      projectIdOrSlug: projectId,
+    },
+  });
   const projectQueryKey = makeDetailedProjectQueryKey({
     orgSlug: organization.slug,
     projectSlug: projectId,

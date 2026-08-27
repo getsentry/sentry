@@ -59,6 +59,7 @@ import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -89,6 +90,10 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {
+  toggleXRayMode,
+  useXRayModeEnabled,
+} from 'sentry/views/seerExplorer/xray/xrayModeStore';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -271,7 +276,7 @@ export function GlobalCommandPaletteActions() {
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: '/auth/superuser/',
+        url: getApiUrl('/auth/superuser/'),
         method: 'DELETE',
       }),
     onSuccess: () => window.location.reload(),
@@ -330,6 +335,7 @@ export function GlobalCommandPaletteActions() {
 
   const {supportsNotifications, permission, askNotificationPermission} =
     useNotificationPermission();
+  const xrayModeEnabled = useXRayModeEnabled();
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -1070,6 +1076,27 @@ export function GlobalCommandPaletteActions() {
             }}
           />
         </CMDKAction>
+
+        {organization.features.includes('seer-xray') && (
+          <CMDKAction
+            display={{
+              label: xrayModeEnabled
+                ? t('Disable Seer XRay Mode')
+                : t('Enable Seer XRay Mode'),
+              icon: <IconSeer />,
+            }}
+            keywords={[
+              'xray',
+              'x-ray',
+              'seer',
+              'llm context',
+              'debug',
+              'inspect',
+              'overlay',
+            ]}
+            onAction={() => toggleXRayMode()}
+          />
+        )}
       </CMDKAction>
 
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (

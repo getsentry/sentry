@@ -9,6 +9,7 @@ import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -34,7 +35,9 @@ export function SeerAutomationDefault() {
   const orgMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
       fetchMutation<Organization>({
-        url: `/organizations/${organization.slug}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'PUT',
         data,
       }),

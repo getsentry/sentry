@@ -206,6 +206,8 @@ function InlineMappingForm({
               onChange={field.handleChange}
               isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry Team')}
+              // Portal out of SimpleTable cells so later rows don't cover the menu.
+              menuPortalTarget={document.body}
               queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
             />
           ) : (
@@ -214,6 +216,7 @@ function InlineMappingForm({
               onChange={field.handleChange}
               isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry User')}
+              menuPortalTarget={document.body}
               queryOptions={makeMemberSelectQueryOptions(
                 orgSlug,
                 defaultOptions,
