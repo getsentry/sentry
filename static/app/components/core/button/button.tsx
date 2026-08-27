@@ -26,7 +26,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const contextSize = useSizeContext();
-  const size = useResponsivePropValue<ButtonSize>(explicitSize ?? contextSize ?? 'md');
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
   const buttonProps = {
     ...props,
     type,

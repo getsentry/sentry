@@ -27,7 +27,7 @@ export function LinkButton({
   ...props
 }: LinkButtonProps) {
   const contextSize = useSizeContext();
-  const size = useResponsivePropValue<ButtonSize>(explicitSize ?? contextSize ?? 'md');
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
   const {hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,
