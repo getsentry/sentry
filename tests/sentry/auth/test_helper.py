@@ -1392,7 +1392,7 @@ class HandleNewUserTransactionRollbackTest(AuthIdentityHandlerTest):
 class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_flag_off_creates_user_immediately(self) -> None:
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": False}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": False}):
             self.handler.handle_unknown_identity(self.state)
 
         assert AuthIdentity.objects.filter(
@@ -1415,7 +1415,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
 
         handler = self._handler_with(identity)
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch.object(handler, "provider") as mock_provider:
                 mock_provider.key = "google"
                 handler.handle_unknown_identity(self.state)
@@ -1477,7 +1477,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self, mock_send: mock.MagicMock
     ) -> None:
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             response = self.handler.handle_unknown_identity(self.state)
 
         assert isinstance(response, HttpResponseRedirect)
@@ -1491,14 +1491,18 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         assert self.request.session[PENDING_VERIFICATION_SESSION_KEY] == self.email
         assert self.request.session[PENDING_EXPIRY_TEXT_SESSION_KEY] == PIPELINE_STATE_TTL // 60
 
-    @override_options({"auth.email-verification-at-signup.force-in-experiment": ["*@example.com"]})
+    @override_options(
+        {
+            "auth.email-verification-at-signup.force-in-experiment": ["*@example.com"],
+            "auth.email-verification-at-signup.sso-enabled": False,
+        }
+    )
     @mock.patch("sentry.auth.helper.send_signup_verification_email")
-    def test_allowlist_forces_verification_even_without_flag(
+    def test_allowlist_forces_verification_even_without_sso_enabled(
         self, mock_send: mock.MagicMock
     ) -> None:
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": False}):
-            response = self.handler.handle_unknown_identity(self.state)
+        response = self.handler.handle_unknown_identity(self.state)
 
         assert isinstance(response, HttpResponseRedirect)
         assert response.url == reverse("sentry-signup-verify-email-pending")
@@ -1516,7 +1520,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.save_session()
 
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 self.handler.handle_unknown_identity(self.state)
 
@@ -1534,7 +1538,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.save_session()
 
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 response = self.handler.handle_unknown_identity(self.state)
 
@@ -1548,7 +1552,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
             OrganizationMember.objects.create(organization=self.organization, email=self.email)
 
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 response = self.handler.handle_unknown_identity(self.state)
 
@@ -1569,7 +1573,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.set_up_user()
 
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 self.handler.handle_unknown_identity(self.state)
 
@@ -1604,7 +1608,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.save_session()
 
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 response = self.handler.handle_unknown_identity(self.state)
 
@@ -1617,7 +1621,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self, mock_send: mock.MagicMock
     ) -> None:
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch(
                 "sentry.auth.helper.ApiInviteHelper.from_session_or_email",
                 side_effect=Exception("boom"),
@@ -1648,7 +1652,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         assert not User.objects.filter(email=self.email).exists()
 
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 handler.handle_unknown_identity(self.state)
         mock_send.assert_called_once()
@@ -1700,7 +1704,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         assert client.ttl(self.state.redis_key) <= 5
 
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             self.handler.handle_unknown_identity(self.state)
 
         assert client.ttl(self.state.redis_key) > 5
@@ -1712,7 +1716,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.state.regenerate({"flow": FLOW_LOGIN})
         self.request.POST = {"op": "newuser"}
 
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             for _ in range(3):
                 response = self.handler.handle_unknown_identity(self.state)
                 assert isinstance(response, HttpResponseRedirect)
@@ -1728,7 +1732,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         mock_ratelimiter.backend.is_limited.return_value = True
 
         self.request.POST = {"op": "newuser"}
-        with self.feature({"auth:email-verification-at-sso-signup": True}):
+        with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             response = self.handler.handle_unknown_identity(self.state)
 
         assert not isinstance(response, HttpResponseRedirect)

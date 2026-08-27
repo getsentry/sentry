@@ -126,7 +126,7 @@ def _sso_verification_required(email: str) -> bool:
     force_emails = options.get("auth.email-verification-at-signup.force-in-experiment") or []
     in_allowlist = any(glob_star_match(p, email) for p in force_emails)
 
-    return features.has("auth:email-verification-at-sso-signup") or in_allowlist
+    return options.get("auth.email-verification-at-signup.sso-enabled") or in_allowlist
 
 
 def _sso_verification_send_rate_limited(email: str) -> bool:
