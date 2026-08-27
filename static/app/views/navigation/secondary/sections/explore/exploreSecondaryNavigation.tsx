@@ -67,7 +67,6 @@ function ExploreSecondaryNavigationImpl() {
   if (organization.features.includes('gen-ai-conversations')) {
     navItems.push({
       label: 'Agents',
-      badge: 'beta',
       to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
     });
   }
