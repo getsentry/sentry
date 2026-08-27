@@ -90,7 +90,7 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
