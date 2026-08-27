@@ -63,6 +63,26 @@ function getUpdatedAggregatesMultiMetric(
   return updatedAggregates;
 }
 
+function replaceFieldWithDefaultAggregate(
+  aggregateSource: Column[],
+  index: number,
+  traceMetric: TraceMetric
+): Column[] | undefined {
+  const aggregate =
+    DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ??
+    OPTIONS_BY_TYPE[traceMetric.type]?.[0]?.value;
+  if (!aggregate) {
+    return undefined;
+  }
+
+  const updatedAggregates = [...aggregateSource];
+  updatedAggregates[index] = buildTraceMetricAggregate(
+    aggregate as AggregationKeyWithAlias,
+    traceMetric
+  );
+  return updatedAggregates;
+}
+
 export function MetricSelectRow({
   disabled,
   field,
@@ -117,20 +137,11 @@ export function MetricSelectRow({
                 index,
                 newTraceMetric
               )
-            : (() => {
-                const aggregate =
-                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
-                  OPTIONS_BY_TYPE[newTraceMetric.type]?.[0]?.value;
-                if (!aggregate) {
-                  return;
-                }
-                const nextAggregates = [...(aggregateSource ?? [])];
-                nextAggregates[index] = buildTraceMetricAggregate(
-                  aggregate as AggregationKeyWithAlias,
-                  newTraceMetric
-                );
-                return nextAggregates;
-              })();
+            : replaceFieldWithDefaultAggregate(
+                aggregateSource ?? [],
+                index,
+                newTraceMetric
+              );
       } else {
         const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
         updatedAggregates = (aggregateSource ?? []).map((f, aggregateIndex) => {
@@ -205,12 +216,7 @@ export function MetricSelectRow({
 
   return (
     <Flex gap="0" width="100%" minWidth="0">
-      <MetricSelectorWrapper
-        isFieldSelected={field.kind === FieldValueKind.FIELD}
-        hasTrailingSelector={
-          field.kind === FieldValueKind.FUNCTION || Boolean(renderedFieldSelector)
-        }
-      >
+      <MetricSelectorWrapper isFieldSelected={field.kind === FieldValueKind.FIELD}>
         <MetricSelector
           traceMetric={traceMetric}
           usePortal
@@ -253,7 +259,6 @@ export function MetricSelectRow({
 }
 
 const MetricSelectorWrapper = styled('div')<{
-  hasTrailingSelector: boolean;
   isFieldSelected: boolean;
 }>`
   flex: ${p => (p.isFieldSelected ? '0 0 80px' : '1 1 auto')};
@@ -261,8 +266,8 @@ const MetricSelectorWrapper = styled('div')<{
   min-width: 0;
 
   button {
-    border-top-right-radius: ${p => (p.hasTrailingSelector ? 0 : undefined)};
-    border-bottom-right-radius: ${p => (p.hasTrailingSelector ? 0 : undefined)};
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
     width: 100%;
   }
 

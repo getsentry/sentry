@@ -93,15 +93,16 @@ export function MetricSelector({
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   environments?: string[];
-  // Returns a tooltip explaining why a metric option should be disabled, or
-  // undefined to leave it enabled. Lets callers constrain the selectable
-  // metrics to those their context supports (e.g. only distributions for heat
-  // maps). Omitting it leaves every option enabled.
+  // A field option is a special option that is injected and used to select a field from the dataset.
   fieldOption?: {
     isSelected: boolean;
     onSelect: () => void;
     disabledReason?: string;
   };
+  // Returns a tooltip explaining why a metric option should be disabled, or
+  // undefined to leave it enabled. Lets callers constrain the selectable
+  // metrics to those their context supports (e.g. only distributions for heat
+  // maps). Omitting it leaves every option enabled.
   getDisabledOptionReason?: (option: MetricSelectorOption) => string | undefined;
   projectIds?: number[];
   usePortal?: boolean;
