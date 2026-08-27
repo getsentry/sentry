@@ -364,7 +364,7 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
 
 @cell_silo_model
 class DiscoverSavedQueryStarred(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
@@ -390,7 +390,7 @@ class DiscoverSavedQueryStarred(DefaultFieldsModel):
 
 @cell_silo_model
 class DiscoverSavedQueryLastVisited(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
