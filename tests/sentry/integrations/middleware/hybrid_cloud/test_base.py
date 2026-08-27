@@ -124,10 +124,34 @@ class BaseRequestParserTest(TestCase):
         assert len(payloads) == 2
         for payload in payloads:
             assert payload.cell_name in ["us", "eu"]
-            assert payload.mailbox_name == "slack:0"
+            assert payload.mailbox_name == f"slack:{payload.cell_name}:0"
             assert payload.request_path
             assert payload.request_method
             assert payload.destination_type == DestinationType.SENTRY_CELL
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
+    def test_get_response_from_webhookpayload_triggers_drain_per_mailbox(
+        self, mock_trigger: MagicMock
+    ) -> None:
+        class MockParser(BaseRequestParser):
+            webhook_identifier = WebhookProviderIdentifier.SLACK
+            provider = "slack"
+
+        parser = MockParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(cells=self.region_config)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        # One mailbox and one drain trigger per cell.
+        payloads = WebhookPayload.objects.all()
+        assert {(payload.cell_name, payload.mailbox_name) for payload in payloads} == {
+            ("us", "slack:us:0"),
+            ("eu", "slack:eu:0"),
+        }
+        assert {call[0][0] for call in mock_trigger.call_args_list} == {
+            "slack:us:0",
+            "slack:eu:0",
+        }
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_organizations_from_integration_success(self) -> None:

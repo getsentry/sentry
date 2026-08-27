@@ -41,6 +41,7 @@ import {
 } from 'sentry/views/investigations/api';
 import {
   InvestigationCell,
+  shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
@@ -263,6 +264,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const blocks = investigation.blocks ?? [];
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
+  const visibleSummaryBlock =
+    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
+      ? summaryBlock
+      : undefined;
+  const visibleNotebookCells = notebookCells.filter(block =>
+    shouldDisplayInvestigationBlock(block, blocks)
+  );
 
   async function handleAddBlock({
     kind,
@@ -339,7 +347,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <Container as="header" width="100%" padding="xl" borderBottom="primary">
+        <InvestigationHeader as="header" width="100%" padding="xl">
           <Grid
             columns="minmax(0, 1fr) auto"
             align="start"
@@ -391,7 +399,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               <IconSeer size="sm" />
             </Flex>
           </Grid>
-        </Container>
+        </InvestigationHeader>
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
@@ -400,30 +408,32 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 summaryDescription={investigation.summaryDescription}
               />
 
-              {summaryBlock ? (
-                <InvestigationCell
-                  block={summaryBlock}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                />
-              ) : null}
-
-              <Stack gap="xl">
-                {notebookCells.map(block => (
+              <Stack width="min(100%, 884px)" margin="0 auto">
+                {visibleSummaryBlock ? (
                   <InvestigationCell
-                    key={block.id}
-                    block={block}
+                    block={visibleSummaryBlock}
                     canRun={investigation.status === 'active'}
                     investigation={investigation}
                   />
-                ))}
+                ) : null}
+
+                <Stack gap="xl">
+                  {visibleNotebookCells.map(block => (
+                    <InvestigationCell
+                      key={block.id}
+                      block={block}
+                      canRun={investigation.status === 'active'}
+                      investigation={investigation}
+                    />
+                  ))}
+                </Stack>
+                {investigation.status === 'active' ? (
+                  <AddCellComposer
+                    isAdding={addBlockMutation.isPending}
+                    onAdd={handleAddBlock}
+                  />
+                ) : null}
               </Stack>
-              {investigation.status === 'active' ? (
-                <AddCellComposer
-                  isAdding={addBlockMutation.isPending}
-                  onAdd={handleAddBlock}
-                />
-              ) : null}
             </InvestigationCanvas>
           </Layout.Main>
         </Layout.Body>
@@ -469,10 +479,10 @@ function AddCellComposer({
     return (
       <AddCellActions align="center" justify="center" gap="sm">
         <Button size="sm" icon={<IconAdd />} onClick={() => setKind('text')}>
-          {t('Text cell')}
+          {t('Add text cell (debug only)')}
         </Button>
         <Button size="sm" icon={<IconAdd />} onClick={() => setKind('query')}>
-          {t('Query cell')}
+          {t('Add query cell (debug only)')}
         </Button>
       </AddCellActions>
     );
@@ -482,7 +492,9 @@ function AddCellComposer({
     <CellComposer>
       <Stack gap="md">
         <Heading as="h2" size="md">
-          {kind === 'text' ? t('Add text cell') : t('Add query cell')}
+          {kind === 'text'
+            ? t('Add text cell (debug only)')
+            : t('Add query cell (debug only)')}
         </Heading>
         <Input
           aria-label={t('Cell title')}
@@ -528,7 +540,7 @@ function isTitleGenerationActive(status: string | null | undefined) {
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
   return normalizeUrl(
-    `/organizations/${organizationSlug}/seer/investigation/${investigationId}/`
+    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
 }
 
@@ -543,6 +555,9 @@ function formatSourceType(sourceType: string) {
 }
 
 function formatStatus(status: string) {
+  if (status === 'active') {
+    return t('Active');
+  }
   return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
 }
 
@@ -561,12 +576,27 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
 }
 
 const InvestigationCanvas = styled(Stack)`
-  width: min(100%, 884px);
+  width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
   margin: 0 auto;
 `;
 
+const InvestigationHeader = styled(Container)`
+  position: relative;
+
+  &::after {
+    /* The specified divider is intentionally as subtle as the secondary surface. */
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+`;
+
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+  width: 100%;
   margin-bottom: ${p => p.theme.space.xl};
+  padding-inline: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`

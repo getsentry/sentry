@@ -462,37 +462,6 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         }
         assert set(keys) == expected_keys
 
-    def test_get_tag_keys_removed_from_denylist(self) -> None:
-        denylist_keys = frozenset(["browser", "sentry:release"])
-        expected_keys = {
-            "baz",
-            "environment",
-            "foo",
-            "sentry:user",
-            "level",
-            "interface_type",
-        }
-        keys = {
-            k.key: k
-            for k in self.ts.get_tag_keys(
-                project_id=self.proj1.id,
-                environment_id=self.proj1env1.id,
-                denylist=denylist_keys,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-        }
-        assert set(keys) == expected_keys
-        keys = {
-            k.key: k
-            for k in self.ts.get_tag_keys(
-                project_id=self.proj1.id,
-                environment_id=self.proj1env1.id,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-        }
-        expected_keys |= {"browser", "sentry:release"}
-        assert set(keys) == expected_keys
-
     def test_get_group_tag_key(self) -> None:
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(

@@ -19,6 +19,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
@@ -87,12 +88,24 @@ function SentryAppExternalInstallationContent() {
       try {
         const [org, installations]: [Organization, SentryAppInstallation[]] =
           await Promise.all([
-            api.requestPromise(`/organizations/${orgSlug}/`, {
-              query: {
-                include_feature_flags: 1,
-              },
-            }),
-            api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
+            api.requestPromise(
+              getApiUrl('/organizations/$organizationIdOrSlug/', {
+                path: {organizationIdOrSlug: orgSlug},
+              }),
+              {
+                query: {
+                  include_feature_flags: 1,
+                },
+              }
+            ),
+            api.requestPromise(
+              getApiUrl(
+                '/organizations/$organizationIdOrSlug/sentry-app-installations/',
+                {
+                  path: {organizationIdOrSlug: orgSlug},
+                }
+              )
+            ),
           ]);
         const installed = installations
           .map(install => install.app.slug)

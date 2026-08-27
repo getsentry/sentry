@@ -629,6 +629,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
             "id": str(self.project.id),
             "slug": self.project.slug,
             "hasReposConnected": False,
+            "hasNonGithubRepo": False,
         }
 
     def test_project_config_includes_project_without_runs(self):

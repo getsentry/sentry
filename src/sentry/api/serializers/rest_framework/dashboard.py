@@ -29,6 +29,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
     get_max_widget_limit,
+    get_min_widget_height,
 )
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -182,11 +183,11 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
 }
 
 
-class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
+class BaseWidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
     """Widget grid layout position and dimensions.
 
-    The dashboard uses a 6-column grid. Required keys: x, y, w, h, minH.
-    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), minH (>= 1), and x + w <= 6.
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), and x + w <= 6.
     """
 
     x = serializers.IntegerField(
@@ -197,12 +198,29 @@ class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
         min_value=1, max_value=MAX_WIDGET_COLS, help_text="Width in grid columns (1-6)."
     )
     h = serializers.IntegerField(min_value=1, help_text="Height in grid rows.")
-    min_h = serializers.IntegerField(min_value=1, help_text="Minimum height in grid rows.")
 
     def validate(self, data):
         if data["x"] + data["w"] > MAX_WIDGET_COLS:
             raise serializers.ValidationError(f"x + w must not exceed {MAX_WIDGET_COLS}")
         return convert_dict_key_case(data, snake_to_camel_case)
+
+
+class WidgetLayoutSerializer(BaseWidgetLayoutSerializer):
+    """Widget grid layout position and dimensions.
+
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h, minH.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), minH (>= 1), and x + w <= 6.
+    """
+
+    min_h = serializers.IntegerField(min_value=1, help_text="Minimum height in grid rows.")
+
+
+class DashboardCreateWidgetLayoutSerializer(BaseWidgetLayoutSerializer):
+    """Widget grid layout position and dimensions for dashboard creation.
+
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), and x + w <= 6.
+    """
 
 
 class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
@@ -398,7 +416,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         choices=DashboardWidgetTypes.as_text_choices(), required=False, allow_null=True
     )
     limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    layout = WidgetLayoutSerializer(required=False, allow_null=True)
+    layout: BaseWidgetLayoutSerializer = WidgetLayoutSerializer(required=False, allow_null=True)
     axis_range = serializers.ChoiceField(
         choices=[("auto", "auto"), ("dataMin", "dataMin")],
         required=False,
@@ -1451,7 +1469,37 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
 
 
+class DashboardCreateWidgetSerializer(DashboardWidgetSerializer):
+    layout: BaseWidgetLayoutSerializer = DashboardCreateWidgetLayoutSerializer(
+        required=False, allow_null=True
+    )
+
+    def validate(self, data):
+        data = super().validate(data)
+        layout = data.get("layout")
+        display_type = data.get("display_type")
+        if layout is None or display_type is None:
+            return data
+
+        min_height = get_min_widget_height(display_type)
+        if layout["h"] < min_height:
+            display_type_name = DashboardWidgetDisplayTypes.get_type_name(display_type)
+            raise serializers.ValidationError(
+                {
+                    "layout": {
+                        "h": f"Height must be at least {min_height} for {display_type_name} widgets."
+                    }
+                }
+            )
+
+        layout["minH"] = min_height
+        return data
+
+
 class DashboardSerializer(DashboardDetailsSerializer):
+    widgets = DashboardCreateWidgetSerializer(
+        many=True, required=False, help_text="A json list of widgets saved in this dashboard."
+    )
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
     )

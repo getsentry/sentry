@@ -44,6 +44,44 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
   });
 
+  it('renders Billing Platform as no for legacy subscriptions', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      hasMigratedToBillingPlatform: false,
+    });
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Billing Platform:')).toBeInTheDocument();
+    const billingPlatformLabel = screen.getByText('Billing Platform:').closest('dt');
+    expect(billingPlatformLabel?.nextElementSibling).toHaveTextContent('no');
+  });
+
+  it('renders Billing Platform as yes for migrated subscriptions', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      hasMigratedToBillingPlatform: true,
+    });
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Billing Platform:')).toBeInTheDocument();
+    const billingPlatformLabel = screen.getByText('Billing Platform:').closest('dt');
+    expect(billingPlatformLabel?.nextElementSibling).toHaveTextContent('yes');
+  });
+
   it('renders soft cap type details', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({

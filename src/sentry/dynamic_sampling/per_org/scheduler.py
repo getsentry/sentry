@@ -20,7 +20,6 @@ from sentry.dynamic_sampling.per_org.feature_cache import (
     get_orgs_with_dynamic_sampling,
 )
 from sentry.dynamic_sampling.per_org.gate import (
-    is_org_in_recalibration_rollout,
     is_org_in_rollout,
 )
 from sentry.dynamic_sampling.per_org.queries import (
@@ -103,8 +102,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             config, results.project_volumes, results.transaction_volumes
         )
 
-        if is_org_in_recalibration_rollout(config.organization.id):
-            config.recalibrate(results.organization_volume)
+        config.recalibrate(results.organization_volume)
 
         return None
     finally:

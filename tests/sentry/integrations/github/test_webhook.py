@@ -44,6 +44,7 @@ from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequest,
@@ -2326,6 +2327,38 @@ class IssuesEventWebhookTest(APITestCase):
         assert repos[0].name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
+    def _get_signature_sha1(self, body: str) -> str:
+        sig = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", body.encode("utf-8"), self.secret
+        )
+        return f"sha1={sig}"
+
+    def _get_signature_sha256(self, body: str) -> str:
+        sig = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", body.encode("utf-8"), self.secret
+        )
+        return f"sha256={sig}"
+
+    def _post_issues_event(self, event: dict) -> None:
+        body = json.dumps(event)
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="issues",
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+    def _enable_inbound_status_sync(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            org_integration.update(config={"sync_status_reverse": True})
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_closed_issue(self, mock_record: MagicMock) -> None:
         self.create_integration_external_issue(
@@ -2348,7 +2381,30 @@ class IssuesEventWebhookTest(APITestCase):
             )
 
             assert response.status_code == 204
-            mock_sync.assert_called_once()
+            mock_sync.assert_called_once_with(
+                "baxterthehacker/public-repo#2",
+                {"action": "closed", "provider_event_time": "2015-05-05T23:40:28Z"},
+            )
+
+    def test_close_delivered_after_reopen_does_not_resolve(self) -> None:
+        # A close arriving after the reopen it precedes must not resolve the group.
+        self._enable_inbound_status_sync()
+        self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="baxterthehacker/public-repo#2",
+        )
+
+        closed = json.loads(ISSUES_CLOSED_EVENT_EXAMPLE)
+        closed["issue"]["updated_at"] = "2015-05-05T23:40:28Z"
+        reopened = json.loads(ISSUES_REOPENED_EVENT_EXAMPLE)
+        reopened["issue"]["updated_at"] = "2015-05-05T23:40:31Z"
+
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
+            self._post_issues_event(reopened)
+            self._post_issues_event(closed)
+
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_reopened_issue(self, mock_record: MagicMock) -> None:
@@ -2372,7 +2428,10 @@ class IssuesEventWebhookTest(APITestCase):
             )
 
             assert response.status_code == 204
-            mock_sync.assert_called_once()
+            mock_sync.assert_called_once_with(
+                "baxterthehacker/public-repo#2",
+                {"action": "reopened", "provider_event_time": "2015-05-05T23:40:28Z"},
+            )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_closed_issue_multiple_orgs(self, mock_record: MagicMock) -> None:
