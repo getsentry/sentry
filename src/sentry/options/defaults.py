@@ -971,10 +971,7 @@ register(
 )
 
 
-# Gated the processing-side artifact bundle renewal, which was removed because
-# symbolicator stopped reporting used bundles in getsentry/symbolicator#1397.
-# Nothing reads this option now.
-# TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone.
+# TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
