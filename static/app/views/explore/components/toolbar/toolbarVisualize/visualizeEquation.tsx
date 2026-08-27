@@ -116,7 +116,7 @@ export function VisualizeEquation({
       {onDelete && (
         <Button
           variant="transparent"
-          icon={<IconDelete />}
+          icon={<IconDelete size="sm" />}
           size="zero"
           onClick={onDelete}
           aria-label={deleteLabel ?? t('Remove Overlay')}

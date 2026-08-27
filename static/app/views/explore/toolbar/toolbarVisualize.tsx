@@ -111,14 +111,6 @@ export function ToolbarVisualize({
           <ToolbarVisualizeHeader />
           {editableColumns.map((column, i) => {
             const visualize = column.column;
-            const dragColumnId = editableColumns.length > 1 ? column.id : undefined;
-            const label = (
-              <VisualizeLabel
-                index={i}
-                visualize={visualize}
-                onClick={() => toggleVisibility(i)}
-              />
-            );
             const isOnlyVisualize = editableColumns.length === 1;
             const canReset = isOnlyVisualize && !isDefaultVisualize(visualize);
             const onDelete = isOnlyVisualize
@@ -126,32 +118,26 @@ export function ToolbarVisualize({
                 ? () => replaceOverlay(i, new VisualizeFunction(DEFAULT_VISUALIZATION))
                 : undefined
               : () => deleteColumnAtIndex(i);
-            const deleteLabel = canReset ? t('Clear Visualize') : undefined;
 
-            if (isVisualizeEquation(visualize)) {
-              return (
-                <VisualizeEquationInput
-                  key={column.uniqueId}
-                  dragColumnId={dragColumnId}
-                  onDelete={onDelete}
-                  deleteLabel={deleteLabel}
-                  onReplace={newVisualize => replaceOverlay(i, newVisualize)}
+            const rowProps = {
+              dragColumnId: isOnlyVisualize ? undefined : column.id,
+              onDelete,
+              deleteLabel: canReset ? t('Clear Visualize') : undefined,
+              onReplace: (newVisualize: Visualize) => replaceOverlay(i, newVisualize),
+              visualize,
+              label: (
+                <VisualizeLabel
+                  index={i}
                   visualize={visualize}
-                  label={label}
+                  onClick={() => toggleVisibility(i)}
                 />
-              );
-            }
+              ),
+            };
 
-            return (
-              <ToolbarVisualizeItem
-                key={column.uniqueId}
-                dragColumnId={dragColumnId}
-                onDelete={onDelete}
-                deleteLabel={deleteLabel}
-                onReplace={newVisualize => replaceOverlay(i, newVisualize)}
-                visualize={visualize}
-                label={label}
-              />
+            return isVisualizeEquation(visualize) ? (
+              <VisualizeEquationInput key={column.uniqueId} {...rowProps} />
+            ) : (
+              <ToolbarVisualizeItem key={column.uniqueId} {...rowProps} />
             );
           })}
           <ToolbarFooter>

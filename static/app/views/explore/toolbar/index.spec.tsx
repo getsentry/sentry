@@ -306,8 +306,7 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([new VisualizeFunction('avg(span.self_time)')]);
 
-    // only one left, so the delete button becomes a clear button since the
-    // remaining chart differs from the default
+    // only one left, so the delete button becomes a clear button
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
     await userEvent.click(within(section).getByLabelText('Clear Visualize'));
     expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
