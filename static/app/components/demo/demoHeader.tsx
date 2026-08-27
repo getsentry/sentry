@@ -44,7 +44,7 @@ export function DemoHeader() {
       borderBottom="primary"
     >
       <StyledLogoSentry />
-      <Container display={{zero: 'none', xl: 'block'}}>
+      <Container display={{zero: 'none', '2xl': 'block'}}>
         {containerProps => (
           <LinkButton
             {...containerProps}
@@ -56,7 +56,7 @@ export function DemoHeader() {
           </LinkButton>
         )}
       </Container>
-      <Container display={{zero: 'none', sm: 'none'}}>
+      <Container display={{zero: 'none', xl: 'block'}}>
         {containerProps => (
           <LinkButton
             {...containerProps}
