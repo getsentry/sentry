@@ -44,7 +44,7 @@ describe('getWidgetConfigError', () => {
     });
 
     expect(getWidgetConfigError(widget)).toBe(
-      'This widget is missing a metric to visualize.'
+      'This widget is missing a metric aggregation to visualize.'
     );
   });
 
@@ -99,7 +99,7 @@ describe('getWidgetConfigError', () => {
     });
 
     expect(getWidgetConfigError(widget)).toBe(
-      'This widget is missing a metric to visualize.'
+      'This widget is missing a metric aggregation to visualize.'
     );
   });
 
@@ -138,7 +138,7 @@ describe('getWidgetConfigError', () => {
     });
 
     expect(getWidgetConfigError(widget)).toBe(
-      'This widget is missing a metric to visualize.'
+      'This widget is missing a metric aggregation to visualize.'
     );
   });
 
