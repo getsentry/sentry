@@ -171,7 +171,6 @@ type ContainerProps = {
   // chart footer props
   total: number | null;
   yAxis: string[];
-  hideFooter?: boolean;
 };
 
 type ContainerState = {
@@ -219,7 +218,6 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       organization,
       confirmedQuery,
       yAxis,
-      hideFooter,
     } = this.props;
 
     const {yAxisOptions} = this.state;
@@ -273,21 +271,19 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
             )}
           </CustomMeasurementsContext.Consumer>
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
-        {hideFooter ? null : (
-          <ChartFooter
-            total={total}
-            yAxisValue={yAxis}
-            yAxisOptions={yAxisOptions}
-            eventView={eventView}
-            onAxisChange={onAxisChange}
-            displayOptions={displayOptions}
-            displayMode={eventView.getDisplayMode()}
-            onDisplayChange={onDisplayChange}
-            onTopEventsChange={onTopEventsChange}
-            onIntervalChange={onIntervalChange}
-            topEvents={eventView.topEvents ?? TOP_N.toString()}
-          />
-        )}
+        <ChartFooter
+          total={total}
+          yAxisValue={yAxis}
+          yAxisOptions={yAxisOptions}
+          eventView={eventView}
+          onAxisChange={onAxisChange}
+          displayOptions={displayOptions}
+          displayMode={eventView.getDisplayMode()}
+          onDisplayChange={onDisplayChange}
+          onTopEventsChange={onTopEventsChange}
+          onIntervalChange={onIntervalChange}
+          topEvents={eventView.topEvents ?? TOP_N.toString()}
+        />
       </StyledPanel>
     );
   }

@@ -508,7 +508,7 @@ def get_generic_filters(
     }
 
 
-CUSTOM_INBOUND_FILTER_ID_PREFIX = "cif-"
+CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
 
 
 def _custom_error_message_condition(values: list[str]) -> RuleCondition:

@@ -13,7 +13,10 @@ import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
+import {
+  canManageIntegrations,
+  integrationRequiresUpgrade,
+} from 'sentry/utils/integrationUtil';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -27,6 +30,10 @@ import {
 } from 'sentry/views/navigation/constants';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {
+  groupTranscript,
+  ResponseGroup,
+} from 'sentry/views/seerExplorer/components/chat/responseGroup';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
@@ -37,7 +44,7 @@ import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplo
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
@@ -236,7 +243,12 @@ export function SeerExplorerContent({
       integration.organizationIntegrationStatus === 'active'
   );
   const hasSlackIntegration = activeSlackIntegrations.length > 0;
+  // Only surface the reinstall CTA to users who can actually reinstall. Settings
+  // already gates the upgrade button on `canManageIntegrations`; without the same
+  // check here, members without `org:integrations` get a dead-end nudge.
   const needsSlackUpgrade = activeSlackIntegrations.some(integrationRequiresUpgrade);
+  const showSlackUpgradeAlert =
+    needsSlackUpgrade && !!organization && canManageIntegrations(organization);
 
   // Auto-submit the initial query forwarded from the command palette, but only
   // if the session is still empty (don't clobber an active run). The ref dedupes
@@ -550,7 +562,7 @@ export function SeerExplorerContent({
         <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
       )}
       {menu}
-      {needsSlackUpgrade && (
+      {showSlackUpgradeAlert && (
         <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
       )}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
@@ -565,27 +577,45 @@ export function SeerExplorerContent({
           />
         ) : (
           <Fragment>
-            {blocks.map((block: Block, index: number) => {
-              // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
-              const key = block.message.role === 'user' ? `user-${index}` : block.id;
+            {groupTranscript(blocks).map(segment => {
+              const interactionPending =
+                isFileApprovalPending ||
+                isAgentWriteApprovalPending ||
+                isQuestionPending ||
+                showReauth;
+
+              if (segment.kind === 'user') {
+                // For slide-in animation that runs on mount. Avoid running this twice on user
+                // blocks when blocks are hydrated.
+                return (
+                  <BlockComponent
+                    key={`user-${segment.index}`}
+                    ref={el => {
+                      blockRefs.current[segment.index] = el;
+                    }}
+                    block={segment.block}
+                    blockIndex={segment.index}
+                    blocks={blocks}
+                    runId={runId ?? undefined}
+                    getPageReferrer={getPageReferrer}
+                    interactionPending={interactionPending}
+                    pendingInput={pendingInput}
+                    readOnly={readOnly}
+                    respondToUserInput={respondToUserInput}
+                    showThinking={showThinking}
+                  />
+                );
+              }
 
               return (
-                <BlockComponent
-                  key={key}
-                  ref={el => {
-                    blockRefs.current[index] = el;
-                  }}
-                  block={block}
-                  blockIndex={index}
+                <ResponseGroup
+                  key={`response-${segment.indices[0]}`}
+                  group={segment.blocks}
+                  blockIndex={segment.indices[0]!}
                   blocks={blocks}
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
-                  interactionPending={
-                    isFileApprovalPending ||
-                    isAgentWriteApprovalPending ||
-                    isQuestionPending ||
-                    showReauth
-                  }
+                  interactionPending={interactionPending}
                   pendingInput={pendingInput}
                   readOnly={readOnly}
                   respondToUserInput={respondToUserInput}

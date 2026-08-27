@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -34,7 +34,7 @@ from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import (
     PreprodArtifactApiDeleteEvent,
     PreprodArtifactApiGetSnapshotDetailsEvent,
@@ -64,7 +64,6 @@ from sentry.preprod.snapshots.comparison_categorizer import (
 )
 from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
-    SNAPSHOT_ARCHIVE_MANIFEST_FEATURE,
     SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
 )
 from sentry.preprod.snapshots.manifest import (
@@ -379,7 +378,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Manifest key not found"}, status=404)
 
         try:
-            session = get_preprod_session(organization.id, artifact.project_id)
+            session = get_session(UsecaseId.PREPROD, artifact.project)
             get_response = session.get(manifest_key)
             if get_response is None:
                 raise FileNotFoundError("Manifest does not exist in objectstore")
@@ -735,9 +734,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         images = data.get("images", {})
         diff_threshold = data.get("diff_threshold")
 
-        if features.has(SNAPSHOT_ARCHIVE_MANIFEST_FEATURE, project.organization) and (
-            SNAPSHOT_ARCHIVE_MANIFEST_FILENAME in images
-        ):
+        if SNAPSHOT_ARCHIVE_MANIFEST_FILENAME in images:
             return Response(
                 {"detail": f"The filename {SNAPSHOT_ARCHIVE_MANIFEST_FILENAME} is reserved."},
                 status=400,
@@ -844,7 +841,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
-            session = get_preprod_session(project.organization_id, project.id)
+            session = get_session(UsecaseId.PREPROD, project)
             manifest_bytes = manifest.json(exclude_none=True).encode()
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)

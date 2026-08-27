@@ -31,6 +31,7 @@ import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -244,7 +245,16 @@ export default function TeamMembers() {
   const {mutate: updateTeamMemberRole} = useMutation({
     mutationFn: ({memberId, newRole}: {memberId: string; newRole: string}) => {
       return api.requestPromise(
-        `/organizations/${organization.slug}/members/${memberId}/teams/${team.slug}/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/members/$memberId/teams/$teamIdOrSlug/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              memberId,
+              teamIdOrSlug: team.slug,
+            },
+          }
+        ),
         {
           method: 'PUT',
           data: {teamRole: newRole},

@@ -66,16 +66,18 @@ export type IntervalPeriod = string;
  */
 export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
 
+export type PageFilterDatetime = {
+  end: DateString | null;
+  period: string | null;
+  start: DateString | null;
+  utc: boolean | null;
+};
+
 export type PageFilters = {
   /**
    * Currently selected time filter
    */
-  datetime: {
-    end: DateString | null;
-    period: string | null;
-    start: DateString | null;
-    utc: boolean | null;
-  };
+  datetime: PageFilterDatetime;
   /**
    * Currently selected environment names
    */

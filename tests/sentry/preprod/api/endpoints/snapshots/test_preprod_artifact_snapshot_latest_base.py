@@ -9,7 +9,9 @@ from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
-MOCK_TARGET = "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+MOCK_TARGET = (
+    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_session"
+)
 
 
 class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):

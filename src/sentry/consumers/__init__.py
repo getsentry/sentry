@@ -328,10 +328,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": uptime_options(),
         "pass_consumer_group": True,
     },
-    "billing-metrics-consumer": {
-        "topic": Topic.SNUBA_GENERIC_METRICS,
-        "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
-    },
     # Known differences to 'sentry run occurrences-ingest-consumer':
     # - ingest_consumer_types metric tag is missing. Use the kafka_topic and
     #   group_id tags provided by run_basic_consumer instead
@@ -453,19 +449,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             ),
         ],
         "pass_kafka_slice_id": True,
-    },
-    "process-segments": {
-        "topic": Topic.BUFFERED_SEGMENTS,
-        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
-        "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": [
-            click.Option(
-                ["--skip-produce", "skip_produce"],
-                is_flag=True,
-                default=False,
-            ),
-            *multiprocessing_options(default_max_batch_size=100),
-        ],
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

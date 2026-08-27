@@ -11,6 +11,7 @@ function makeAutofix(
 ): ReturnType<typeof useExplorerAutofix> {
   const base: ReturnType<typeof useExplorerAutofix> = {
     runState: null,
+    autofixFormatted: null,
     startStep: jest.fn(),
     createPR: jest.fn(),
     reset: jest.fn(),
@@ -19,7 +20,9 @@ function makeAutofix(
     dismissCodingAgentError: jest.fn(),
     warnings: [],
     isLoading: false,
+    isWaitingForRun: false,
     isPolling: false,
+    isProcessing: false,
   };
   return {...base, ...overrides};
 }
@@ -99,6 +102,37 @@ describe('useResetAutofixStep', () => {
 
       const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
+      );
+
+      expect(result.current.canReset).toBe(false);
+    });
+
+    it('returns false when a PR create failed without opening a PR', () => {
+      const autofix = makeAutofix({
+        runState: {
+          run_id: 1,
+          status: 'completed',
+          blocks: [],
+          updated_at: '2024-01-01T00:00:00Z',
+          repo_pr_states: {
+            'repo-1': {
+              repo_name: 'repo-1',
+              branch_name: null,
+              commit_sha: null,
+              pr_creation_error: 'Failed to create pull request',
+              pr_creation_status: 'error',
+              pr_id: null,
+              pr_number: null,
+              pr_url: null,
+              title: null,
+            },
+          },
+          coding_agents: {},
+        },
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useResetAutofixStep({autofix, section: makeSection(), step: 'code_changes'})
       );
 
       expect(result.current.canReset).toBe(false);

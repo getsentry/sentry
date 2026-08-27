@@ -40,7 +40,6 @@ interface Props {
   organization: Organization;
   value: SelectMemberValue;
   'aria-label'?: string;
-  disabled?: boolean;
   projectIds?: readonly string[];
   styles?: StylesConfig;
 }
@@ -64,7 +63,6 @@ function filterMemberOption(option: FilterOption, filterText: string) {
  */
 function SelectMembers({
   'aria-label': ariaLabel,
-  disabled,
   onChange,
   organization,
   projectIds,
@@ -187,7 +185,6 @@ function SelectMembers({
       aria-label={ariaLabel}
       options={currentOptions}
       filterOption={filterMemberOption}
-      isDisabled={disabled}
       isLoading={searchLoading}
       onInputChange={handleInputChange}
       onChange={handleChange}

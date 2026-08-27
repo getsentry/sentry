@@ -103,6 +103,7 @@ def merge_groups(
     from sentry.models.groupassignee import GroupAssignee
     from sentry.models.groupenvironment import GroupEnvironment
     from sentry.models.grouphash import GroupHash
+    from sentry.models.grouplink import GroupLink
     from sentry.models.groupmeta import GroupMeta
     from sentry.models.groupredirect import GroupRedirect
     from sentry.models.grouprulestatus import GroupRuleStatus
@@ -178,6 +179,7 @@ def merge_groups(
             GroupAssignee,
             GroupEnvironment,
             GroupHash,
+            GroupLink,
             GroupRuleStatus,
             GroupSubscription,
             EventAttachment,
@@ -219,21 +221,6 @@ def merge_groups(
 
             for model in [TSDBModel.users_affected_by_group]:
                 tsdb.backend.merge_distinct_counts(
-                    model,
-                    new_group.id,
-                    [group.id],
-                    environment_ids=(
-                        environment_ids
-                        if model in tsdb.backend.models_with_environment_support
-                        else None
-                    ),
-                )
-
-            for model in [
-                TSDBModel.frequent_releases_by_group,
-                TSDBModel.frequent_environments_by_group,
-            ]:
-                tsdb.backend.merge_frequencies(
                     model,
                     new_group.id,
                     [group.id],

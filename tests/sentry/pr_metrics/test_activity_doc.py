@@ -11,6 +11,8 @@ import itertools
 from typing import Any, cast
 from unittest.mock import patch
 
+import pytest
+
 from sentry.models.pullrequest import PullRequestActivityType
 from sentry.pr_metrics.activity_doc import (
     DOC_VERSION,
@@ -23,6 +25,9 @@ from sentry.pr_metrics.activity_doc import (
     ActivityDoc,
     _fold_sync_chain,
     apply_activity,
+    ci_head_outcomes_from_doc,
+    ci_head_results_from_doc,
+    classify_ci_head_actor,
     commit_shas_from_doc,
     derived_metrics_from_doc,
     extract_event_at,
@@ -30,10 +35,12 @@ from sentry.pr_metrics.activity_doc import (
     human_participant_count,
     is_failing_conclusion,
     new_document,
+    opening_head_from_doc,
     review_activity_from_doc,
     reviews_requested_count_from_doc,
     timeline_events_from_doc,
 )
+from sentry.utils import json
 
 MODULE = "sentry.pr_metrics.activity_doc"
 
@@ -326,24 +333,24 @@ def test_synchronize_entry_populates_sync_chain() -> None:
         after_sha="head1",
         before_sha="base1",
     )
-    assert doc["sync_chain"] == [["head1", "base1"]]
+    assert doc["sync_chain"] == [["head1", "base1", None, None, "d1"]]
 
 
-def test_non_synchronize_entry_does_not_touch_sync_chain() -> None:
-    # before/after shas on a non-synchronize payload are ignored: only the
-    # synchronize family folds the commit link.
+def test_open_entry_is_the_opening_head_and_folds_no_sync_link() -> None:
     doc = new_document()
     _entry(
         doc,
         event_type=PullRequestActivityType.OPENED,
         webhook_id="d1",
-        after_sha="head1",
-        before_sha="base1",
+        head_sha="head1",
+        sender_login="octocat",
+        sender_type="User",
     )
+    assert opening_head_from_doc(doc) == ("head1", "octocat", "User")
     assert doc["sync_chain"] == []
 
 
-def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
+def test_sync_chain_dedupes_redelivery_but_retains_repeated_sha() -> None:
     doc = new_document()
     _entry(
         doc,
@@ -360,7 +367,7 @@ def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
         after_sha="head1",
         before_sha="base1",
     )
-    # A distinct delivery re-reporting the same after_sha is deduped in the chain.
+    # A distinct delivery re-reporting the same after_sha remains an observation.
     _entry(
         doc,
         event_type=PullRequestActivityType.SYNCHRONIZED,
@@ -368,7 +375,30 @@ def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
         after_sha="head1",
         before_sha="base1",
     )
-    assert doc["sync_chain"] == [["head1", "base1"]]
+    assert doc["sync_chain"] == [
+        ["head1", "base1", None, None, "d1"],
+        ["head1", "base1", None, None, "d2"],
+    ]
+
+
+def test_sync_chain_dedupes_redelivery_past_the_events_cap() -> None:
+    # Past the events cap no entry — and so no webhook_id — is retained, leaving the
+    # entry-level dedup blind. The chain outlives the cap, so it must not: a
+    # redelivered synchronize is one push, not two head observations.
+    doc = new_document()
+    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
+        for i in range(MAX_EVENTS):
+            _entry(doc, event_type=PullRequestActivityType.LABELED, webhook_id=f"d{i}")
+        for _ in range(2):
+            _entry(
+                doc,
+                event_type=PullRequestActivityType.SYNCHRONIZED,
+                webhook_id="sync-redelivered",
+                after_sha="head-final",
+                before_sha="base-final",
+            )
+
+    assert doc["sync_chain"] == [["head-final", "base-final", None, None, "sync-redelivered"]]
 
 
 def test_synchronize_past_events_cap_still_folds_sync_chain() -> None:
@@ -391,7 +421,7 @@ def test_synchronize_past_events_cap_still_folds_sync_chain() -> None:
     assert doc["events_dropped"] == 1
     assert len(doc["events"]) == MAX_EVENTS
     # ...but its before/after link survived for the chain walk.
-    assert doc["sync_chain"] == [["head-final", "base-final"]]
+    assert doc["sync_chain"] == [["head-final", "base-final", None, None, "sync-final"]]
 
 
 def test_sync_chain_evicts_oldest_past_cap() -> None:
@@ -402,11 +432,14 @@ def test_sync_chain_evicts_oldest_past_cap() -> None:
         [f"sha{i:04d}", f"sha{i - 1:04d}" if i else None] for i in range(MAX_SYNC_CHAIN)
     ]
     with patch(f"{MODULE}.metrics") as mock_metrics, patch(f"{MODULE}.logger") as mock_logger:
-        _fold_sync_chain(doc, {"after_sha": "sha-new", "before_sha": "sha-prev"})
+        _fold_sync_chain(
+            doc, {"after_sha": "sha-new", "before_sha": "sha-prev"}, webhook_id="d-new"
+        )
     chain = doc["sync_chain"]
     assert len(chain) == MAX_SYNC_CHAIN  # stays at the cap
-    assert ["sha0000", None] not in chain  # oldest link evicted
-    assert chain[-1] == ["sha-new", "sha-prev"]  # newest link retained
+    assert ["sha0000", None] not in chain  # oldest synchronize link evicted
+    # newest link retained
+    assert chain[-1] == ["sha-new", "sha-prev", None, None, "d-new"]
     mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.sync_chain_capped")
     assert mock_logger.warning.call_count == 1
 
@@ -442,7 +475,7 @@ def test_synchronize_folds_into_pre_sync_chain_document() -> None:
         after_sha="head1",
         before_sha="base1",
     )
-    assert doc["sync_chain"] == [["head1", "base1"]]
+    assert doc["sync_chain"] == [["head1", "base1", None, None, "d1"]]
 
 
 # --- comments: participants only ------------------------------------------
@@ -1151,6 +1184,19 @@ def test_commit_shas_from_doc_force_push_excludes_abandoned() -> None:
     assert commit_shas_from_doc(doc, "F") == {"F", "A1"}
 
 
+def test_commit_shas_from_doc_force_push_back_onto_prior_head() -> None:
+    # ``sync_chain`` keeps repeat head observations for the CI-heads reader, so A1 is
+    # recorded twice as an ``after_sha``: once built on A0, once as the target of a
+    # force push that abandons A2. Taking the later link would walk A1 -> A2 -> A1 and
+    # both pull the abandoned A2 in and lose A0; the first link wins instead.
+    doc = new_document()
+    _sync(doc, before="B0", after="A0", webhook_id="s1")
+    _sync(doc, before="A0", after="A1", webhook_id="s2")
+    _sync(doc, before="A1", after="A2", webhook_id="s3")
+    _sync(doc, before="A2", after="A1", webhook_id="s4")  # force-push back onto A1
+    assert commit_shas_from_doc(doc, "A1") == {"A1", "A0"}
+
+
 def test_commit_shas_from_doc_order_independent_no_false_force_push() -> None:
     # The bug fix: two synchronize deliveries stored out of order must NOT read as a
     # force push. The legacy reverse-arrival walker would drop A2 here; the
@@ -1396,3 +1442,369 @@ def test_timeline_check_runs_is_empty_when_nothing_ever_failed() -> None:
     _suite(doc, conclusion="success", updated_at="2026-07-10T12:06:00Z")
 
     assert timeline_events_from_doc(doc)[0]["payload"]["check_runs"] == {}
+
+
+def test_ci_head_outcomes_empty_doc() -> None:
+    assert ci_head_outcomes_from_doc(new_document()) == {}
+
+
+def test_ci_head_outcomes_pass_through_github_conclusions() -> None:
+    # Whatever the suite concluded is what the head reports — including the
+    # conclusions that are neither a pass nor a failure, which a synthesized
+    # verdict would have flattened into one indistinguishable value.
+    doc = new_document()
+    _suite(doc, head_sha="sha_fail", conclusion="failure")
+    _suite(doc, head_sha="sha_pass", conclusion="success", app_slug="pass-app")
+    _suite(doc, head_sha="sha_abort", conclusion="cancelled", app_slug="abort-app")
+    _suite(doc, head_sha="sha_timeout", conclusion="timed_out", app_slug="timeout-app")
+    _suite(doc, head_sha="sha_blocked", conclusion="action_required", app_slug="blocked-app")
+
+    assert ci_head_outcomes_from_doc(doc) == {
+        "sha_fail": "failure",
+        "sha_pass": "success",
+        "sha_abort": "cancelled",
+        "sha_timeout": "timed_out",
+        "sha_blocked": "action_required",
+    }
+
+
+def test_ci_head_outcomes_any_failing_suite_from_same_app_wins() -> None:
+    doc = new_document()
+    _suite(doc, check_suite_id=101, conclusion="failure")
+    _suite(doc, check_suite_id=202, conclusion="success", updated_at="2026-07-10T12:01:00Z")
+
+    assert set(doc["checks"]) == {
+        "sha1|github-actions|101",
+        "sha1|github-actions|202",
+    }
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
+
+
+def test_ci_suite_rerun_updates_same_suite() -> None:
+    doc = new_document()
+    _suite(doc, check_suite_id=101, conclusion="failure")
+    _suite(
+        doc,
+        check_suite_id=101,
+        conclusion="success",
+        updated_at="2026-07-10T12:01:00Z",
+    )
+
+    assert len(doc["checks"]) == 1
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "success"}
+
+
+def test_check_run_joins_suite_before_out_of_order_suite_event() -> None:
+    doc = new_document()
+    _run(doc, check_suite_id=101, check_name="tests", conclusion="failure")
+    _suite(
+        doc,
+        check_suite_id=101,
+        conclusion="failure",
+        updated_at="2026-07-10T12:01:00Z",
+    )
+
+    assert len(doc["checks"]) == 1
+    assert doc["checks"]["sha1|github-actions|101"]["runs"]["tests"]["conclusion"] == "failure"
+
+
+def test_suite_id_does_not_reattribute_legacy_group() -> None:
+    doc = new_document()
+    _suite(doc, check_suite_id=None, conclusion="failure")
+    _suite(
+        doc,
+        check_suite_id=101,
+        conclusion="success",
+        updated_at="2026-07-10T12:01:00Z",
+    )
+
+    assert set(doc["checks"]) == {
+        "sha1|github-actions",
+        "sha1|github-actions|101",
+    }
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
+
+
+def test_legacy_suite_without_id_keeps_legacy_key() -> None:
+    doc = new_document()
+    _suite(doc, check_suite_id=None, conclusion="failure")
+
+    assert set(doc["checks"]) == {"sha1|github-actions"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
+
+
+def test_ci_head_outcomes_any_failing_app_wins() -> None:
+    # Two apps on the same SHA: one green, one red → the head is failed.
+    doc = new_document()
+    _suite(doc, head_sha="sha1", app_slug="github-actions", conclusion="success")
+    _suite(doc, head_sha="sha1", app_slug="codecov", conclusion="failure")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
+
+
+def test_ci_head_outcomes_derives_failure_from_runs_without_suite() -> None:
+    doc = new_document()
+    _run(doc, check_name="tests", conclusion="failure", head_sha="sha1")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
+
+
+def test_opening_head_is_read_from_the_open_entry_not_the_sync_chain() -> None:
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        webhook_id="o1",
+        head_sha="open1",
+        sender_login="alice",
+        sender_type="User",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s1",
+        after_sha="sync1",
+        before_sha="open1",
+        sender_login="sentry[bot]",
+        sender_type="Bot",
+    )
+
+    assert opening_head_from_doc(doc) == ("open1", "alice", "User")
+    assert doc["sync_chain"] == [["sync1", "open1", "sentry[bot]", "Bot", "s1"]]
+
+
+def test_opening_head_is_not_inferred_from_the_first_sync_link() -> None:
+    # No OPENED entry — activity tracking started after the PR opened, or the
+    # entry was evicted. The first link's ``before_sha`` names the head that push
+    # replaced, which is the opening head only if it was the first push after
+    # open — precisely what a document missing its OPENED entry can't promise. So
+    # the PR has no opening head, and the results list starts at the first push.
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s1",
+        after_sha="sync1",
+        before_sha="open1",
+        sender_login="dependabot[bot]",
+        sender_type="Bot",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s2",
+        after_sha="sync2",
+        before_sha="sync1",
+        sender_login="alice",
+        sender_type="User",
+    )
+
+    assert opening_head_from_doc(doc) is None
+    assert [(result["head_sha"], result["actor"]) for result in ci_head_results_from_doc(doc)] == [
+        ("sync1", "bot"),
+        ("sync2", "human"),
+    ]
+
+
+def test_opening_head_is_none_when_nothing_records_it() -> None:
+    doc = new_document()
+    _entry(doc, event_type=PullRequestActivityType.REVIEW_SUBMITTED, webhook_id="r1")
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s1",
+        after_sha="sync1",
+    )
+
+    assert opening_head_from_doc(doc) is None
+    assert [result["head_sha"] for result in ci_head_results_from_doc(doc)] == ["sync1"]
+
+
+def test_ci_head_results_preserve_chain_order_repeats_and_missing_ci() -> None:
+    doc = new_document()
+    for event_type, webhook_id, payload in (
+        (
+            PullRequestActivityType.OPENED,
+            "o1",
+            {"head_sha": "a", "sender_login": "alice", "sender_type": "User"},
+        ),
+        (
+            PullRequestActivityType.SYNCHRONIZED,
+            "s1",
+            {
+                "after_sha": "b",
+                "before_sha": "a",
+                "sender_login": "sentry[bot]",
+                "sender_type": "Bot",
+            },
+        ),
+        (
+            PullRequestActivityType.SYNCHRONIZED,
+            "s2",
+            {"after_sha": "a", "before_sha": "b", "sender_login": "bob", "sender_type": "User"},
+        ),
+    ):
+        apply_activity(
+            doc,
+            event_type=event_type,
+            payload=payload,
+            ts="2026-07-10T12:00:00Z",
+            webhook_id=webhook_id,
+        )
+    _suite(doc, head_sha="a", conclusion="failure")
+    _suite(doc, head_sha="orphan", conclusion="success", app_slug="other")
+
+    results = ci_head_results_from_doc(doc)
+    assert [item["head_sha"] for item in results] == ["a", "b", "a", "orphan"]
+    assert [item["sequence"] for item in results] == [0, 1, 2, None]
+    assert results[0]["actor"] == "human"
+    assert results[1]["has_ci"] is False
+    assert results[1]["outcome"] == "unknown"
+    assert results[1]["actor"] == "seer"
+    assert results[2]["actor"] == "human"
+    assert results[3]["actor"] == "unknown"
+
+
+def test_ci_head_results_never_carry_the_pusher_identity() -> None:
+    # These rows are JSON-encoded onto the analytics event and land in BigQuery, so
+    # the raw GitHub login stays in the document and only ``actor`` is forwarded.
+    doc = new_document()
+    apply_activity(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        payload={"head_sha": "a", "sender_login": "alice", "sender_type": "User"},
+        ts="2026-07-10T12:00:00Z",
+        webhook_id="o1",
+    )
+    apply_activity(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        payload={
+            "after_sha": "b",
+            "before_sha": "a",
+            "sender_login": "dependabot[bot]",
+            "sender_type": "Bot",
+        },
+        ts="2026-07-10T12:05:00Z",
+        webhook_id="s1",
+    )
+
+    results = ci_head_results_from_doc(doc)
+
+    assert [item["actor"] for item in results] == ["human", "bot"]
+    assert not any(key.startswith("sender_") for item in results for key in item)
+    assert "alice" not in json.dumps(results)
+    assert "dependabot[bot]" not in json.dumps(results)
+    # ...but the document still holds it, since that is what classifies the head.
+    assert opening_head_from_doc(doc) == ("a", "alice", "User")
+
+
+def test_classify_ci_head_actor_copilot_is_bot_despite_user_sender_type() -> None:
+    assert classify_ci_head_actor("Copilot", "User") == "bot"
+
+
+def test_classify_ci_head_actor_rejects_a_typed_sender_with_no_login() -> None:
+    # Both fields come off the same webhook ``sender``, so a head carries both or
+    # neither: no login and no type is the ``unknown`` case, while a type with no
+    # login is malformed input that would otherwise be bucketed as ``human``.
+    assert classify_ci_head_actor("", "") == "unknown"
+    with pytest.raises(AssertionError):
+        classify_ci_head_actor("", "User")
+
+
+def test_ci_head_outcomes_aborted_runs_without_suite_are_unknown() -> None:
+    doc = new_document()
+    _run(doc, check_name="tests", conclusion="cancelled", head_sha="sha1")
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "unknown"}
+
+
+def test_outcome_and_timeline_agree_on_the_same_group() -> None:
+    # The two readers used to run different vocabularies over one group, so
+    # action_required collapsed to a synthesized "inconclusive" in the outcome while
+    # the timeline read it as a failure. Both now forward GitHub's own string, so a
+    # group GitHub concluded reads identically either way.
+    doc = new_document()
+    _suite(doc, conclusion="action_required")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "action_required"}
+    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "action_required"
+
+
+def test_ci_head_outcomes_suite_conclusion_wins_over_runs() -> None:
+    # The suite is GitHub's own aggregate over these runs, so it is reported as
+    # given rather than second-guessed from the runs underneath it — in either
+    # direction. The failing run is still carried to the judge in the timeline
+    # payload's `failing_check_names`/`check_runs`.
+    doc = new_document()
+    _run(doc, check_name="tests", conclusion="failure")
+    _suite(doc, conclusion="cancelled", updated_at="2026-07-10T12:01:00Z")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "cancelled"}
+    assert timeline_events_from_doc(doc)[0]["payload"]["failing_check_names"] == ["tests"]
+
+
+def test_recovered_runs_without_suite_are_unknown_to_both_readers() -> None:
+    # Deriving from runs can only ever prove a failure: `runs` tracks nothing but
+    # the checks that once failed, so a recovered one says nothing about the checks
+    # in the suite that were never tracked at all. That is an absent conclusion,
+    # not a pass — and the judge timeline says so too, since it describes the very
+    # same group as the per-head outcome and must not report it green.
+    doc = new_document()
+    _run(doc, check_name="flaky", conclusion="failure")
+    _run(doc, check_name="flaky", conclusion="success", completed_at="2026-07-10T12:01:00Z")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "unknown"}
+    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "unknown"
+
+
+def test_ci_head_outcomes_verdict_suite_outranks_aborted_suite() -> None:
+    # Two apps on one head: one was called off, the other actually decided. The
+    # decision is the head's conclusion — an abort reports nothing to collapse to.
+    doc = new_document()
+    _suite(doc, app_slug="abort-app", conclusion="cancelled")
+    _suite(doc, app_slug="pass-app", conclusion="success")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "success"}
+
+
+def test_ci_head_outcomes_failing_suite_outranks_both() -> None:
+    # ...and a failure outranks the pass, keeping any-failure-wins at the head.
+    doc = new_document()
+    _suite(doc, app_slug="abort-app", conclusion="cancelled")
+    _suite(doc, app_slug="pass-app", conclusion="success")
+    _suite(doc, app_slug="fail-app", conclusion="timed_out")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "timed_out"}
+
+
+def test_ci_head_outcomes_latest_failure_wins_within_its_class() -> None:
+    # Two apps failed differently. Both are failures, so neither outranks the other
+    # by class and the later completion speaks — the same tie-break Seer's
+    # `_combine_suite_conclusions` applies, so the head reads identically on both
+    # sides. Document order is the reverse of completion order here, so a
+    # first-seen-wins collapse would answer "failure".
+    doc = new_document()
+    _suite(doc, app_slug="slow-app", conclusion="timed_out", updated_at="2026-07-10T12:05:00Z")
+    _suite(doc, app_slug="fail-app", conclusion="failure", updated_at="2026-07-10T12:01:00Z")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "timed_out"}
+
+
+def test_ci_head_outcomes_order_reads_last_activity_not_the_suite_stamp() -> None:
+    # "Latest" is the group's newest event of any kind, which is what Seer sorts its
+    # suites by (`suite["ts"]`, a max over suite and run events): the slow app
+    # concluded its suite first but kept reporting runs afterwards, so it is the
+    # later of the two failures. Sorting on the suite stamp alone would answer
+    # "failure" here.
+    doc = new_document()
+    _suite(doc, app_slug="fast-app", conclusion="failure", updated_at="2026-07-10T12:05:00Z")
+    _suite(doc, app_slug="slow-app", conclusion="timed_out", updated_at="2026-07-10T12:01:00Z")
+    _run(
+        doc,
+        app_slug="slow-app",
+        check_name="tests",
+        conclusion="failure",
+        completed_at="2026-07-10T12:10:00Z",
+    )
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "timed_out"}

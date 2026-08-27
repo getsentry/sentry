@@ -86,11 +86,6 @@ from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
-    InvestigationCell,
-    InvestigationCellDependency,
-    InvestigationCellExecution,
-    InvestigationCellExecutionProject,
-    InvestigationCellParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
@@ -251,7 +246,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ALL_PROJECTS_DETECTOR_NAME,
+    ActionInvocation,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
@@ -448,22 +447,10 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell(investigation, position=0, kind="text", **kwargs):
-        return InvestigationCell.objects.create(
-            investigation=investigation, position=position, kind=kind, **kwargs
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block(investigation, position=0, kind="text", **kwargs):
         return InvestigationBlock.objects.create(
             investigation=investigation, position=position, kind=kind, **kwargs
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_dependency(cell, depends_on):
-        return InvestigationCellDependency.objects.create(cell=cell, depends_on=depends_on)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -477,11 +464,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_parameter(cell, parameter, **kwargs):
-        return InvestigationCellParameter.objects.create(cell=cell, parameter=parameter, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block_parameter(block, parameter, **kwargs):
         return InvestigationBlockParameter.objects.create(
             block=block, parameter=parameter, **kwargs
@@ -489,20 +471,8 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_execution(cell, **kwargs):
-        return InvestigationCellExecution.objects.create(cell=cell, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block_execution(block, **kwargs):
         return InvestigationBlockExecution.objects.create(block=block, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_execution_project(execution, project):
-        return InvestigationCellExecutionProject.objects.create(
-            execution=execution, project=project
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -2684,6 +2654,17 @@ class Factories:
         return Detector.objects.create(
             name=name,
             config=config,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_all_projects_detector(organization_id: int, **kwargs) -> Detector:
+        return Detector.objects.create(
+            name=ALL_PROJECTS_DETECTOR_NAME,
+            config={"organization_id": organization_id},
+            type=IssueStreamGroupType.slug,
+            project=None,
             **kwargs,
         )
 

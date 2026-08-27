@@ -213,7 +213,7 @@ export function CommandPalette({
               children: [] as CMDKFlatItem[],
               listItemType: 'action' as const,
               display: {label: t('Tell us what to improve'), icon: <IconMegaphone />},
-              onAction: () => openForm({tags: {['feedback.source']: 'command_palette'}}),
+              onAction: () => openForm({tags: {'feedback.source': 'command_palette'}}),
             },
           ]
         : []),
@@ -1252,7 +1252,7 @@ function CommandPaletteNoResults() {
             variant="primary"
             feedbackOptions={{
               tags: {
-                ['feedback.source']: 'command_palette',
+                'feedback.source': 'command_palette',
               },
             }}
           />

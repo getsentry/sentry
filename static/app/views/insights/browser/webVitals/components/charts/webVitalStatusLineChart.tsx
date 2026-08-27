@@ -114,6 +114,5 @@ export function WebVitalStatusLineChart({
 
 const ChartContainer = styled('div')`
   position: relative;
-  flex: 1;
   padding-bottom: ${p => p.theme.space.xl};
 `;

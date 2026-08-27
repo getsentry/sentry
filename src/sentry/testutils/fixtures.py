@@ -194,14 +194,8 @@ class Fixtures:
     def create_investigation_favorite(self, *args, **kwargs):
         return Factories.create_investigation_favorite(*args, **kwargs)
 
-    def create_investigation_cell(self, *args, **kwargs):
-        return Factories.create_investigation_cell(*args, **kwargs)
-
     def create_investigation_block(self, *args, **kwargs):
         return Factories.create_investigation_block(*args, **kwargs)
-
-    def create_investigation_cell_dependency(self, *args, **kwargs):
-        return Factories.create_investigation_cell_dependency(*args, **kwargs)
 
     def create_investigation_block_dependency(self, *args, **kwargs):
         return Factories.create_investigation_block_dependency(*args, **kwargs)
@@ -209,20 +203,11 @@ class Fixtures:
     def create_investigation_parameter(self, *args, **kwargs):
         return Factories.create_investigation_parameter(*args, **kwargs)
 
-    def create_investigation_cell_parameter(self, *args, **kwargs):
-        return Factories.create_investigation_cell_parameter(*args, **kwargs)
-
     def create_investigation_block_parameter(self, *args, **kwargs):
         return Factories.create_investigation_block_parameter(*args, **kwargs)
 
-    def create_investigation_cell_execution(self, *args, **kwargs):
-        return Factories.create_investigation_cell_execution(*args, **kwargs)
-
     def create_investigation_block_execution(self, *args, **kwargs):
         return Factories.create_investigation_block_execution(*args, **kwargs)
-
-    def create_investigation_cell_execution_project(self, *args, **kwargs):
-        return Factories.create_investigation_cell_execution_project(*args, **kwargs)
 
     def create_investigation_block_execution_project(self, *args, **kwargs):
         return Factories.create_investigation_block_execution_project(*args, **kwargs)
@@ -847,6 +832,9 @@ class Fixtures:
             project = self.create_project(organization=self.organization)
 
         return Factories.create_detector(project=project, type=type, *args, **kwargs)
+
+    def create_all_projects_detector(self, organization: Organization, **kwargs):
+        return Factories.create_all_projects_detector(organization_id=organization.id, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)

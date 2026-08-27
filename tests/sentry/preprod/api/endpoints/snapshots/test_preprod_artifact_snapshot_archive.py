@@ -21,7 +21,7 @@ ENQUEUE_TARGET = (
     "preprod_artifact_snapshot_archive.build_snapshot_images_zip"
 )
 SESSION_TARGET = (
-    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_archive.get_preprod_session"
+    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_archive.get_session"
 )
 
 
@@ -61,16 +61,9 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
                 "project_id": self.project.id,
                 "artifact_id": artifact.id,
                 "user_id": self.user.id,
+                "include_manifest": True,
             }
         )
-
-    @patch(ENQUEUE_TARGET)
-    def test_post_enqueues_manifest_archive_when_feature_enabled(self, mock_task):
-        artifact = self._artifact()
-        with self.feature("organizations:preprod-snapshot-archive-manifest"):
-            response = self.client.post(self._url(artifact.id))
-        assert response.status_code == 202
-        assert mock_task.apply_async.call_args.kwargs["kwargs"]["include_manifest"] is True
 
     @patch(ENQUEUE_TARGET)
     def test_post_returns_503_when_enqueue_fails(self, mock_task):

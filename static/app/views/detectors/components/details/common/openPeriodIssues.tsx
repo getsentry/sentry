@@ -2,6 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -31,6 +32,13 @@ import {
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+const OPEN_PERIOD_COLUMNS: TableColumnConfig[] = [
+  {key: 'issue', width: '1fr'},
+  {key: 'status', width: 'min-content'},
+  {key: 'lastSeen', width: 'auto'},
+  {key: 'assignee', width: 'min-content'},
+];
 
 interface OpenPeriodsSubTableProps {
   groupId: string;
@@ -187,14 +195,17 @@ function LatestGroupWithOpenPeriods({
   }
 
   return (
-    <StyledTable>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
-
+    <SimpleTable
+      columns={OPEN_PERIOD_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       <SimpleTable.Row>
         <EventOrGroupCell>
           <GroupHeaderRow data={group} />
@@ -211,11 +222,16 @@ function LatestGroupWithOpenPeriods({
       </SimpleTable.Row>
 
       <SimpleTable.Row>
-        <div style={{gridColumn: '1 / -1', paddingTop: 0}}>
+        <SimpleTable.RowCell
+          align="stretch"
+          column="1 / -1"
+          direction="column"
+          padding="0"
+        >
           <OpenPeriodsSubTable groupId={group.id} onZoom={zoomToRange} />
-        </div>
+        </SimpleTable.RowCell>
       </SimpleTable.Row>
-    </StyledTable>
+    </SimpleTable>
   );
 }
 
@@ -305,10 +321,6 @@ const EventOrGroupCell = styled(SimpleTable.RowCell)`
   & > div {
     overflow: hidden;
   }
-`;
-
-const StyledTable = styled(SimpleTable)`
-  grid-template-columns: 1fr min-content auto min-content;
 `;
 
 const SubTable = styled(SimpleTable)`
