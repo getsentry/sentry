@@ -67,6 +67,10 @@ export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
   const project = projects.find(candidate => candidate.slug === projectSlug);
   const timestamp = getTimeStampFromTableDateField(dataRow.timestamp);
   const canLoadDetails = Boolean(spanId && traceId && project);
+  const dateSelection = useMemo(
+    () => normalizeDateTimeParams(selection.datetime),
+    [selection.datetime]
+  );
 
   const {data, isError, isFetching, refetch} = useTraceItemDetails({
     traceItemId: spanId,
@@ -84,7 +88,7 @@ export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
     projectSlug,
     spanId,
     timestamp,
-    dateSelection: normalizeDateTimeParams(selection.datetime),
+    dateSelection,
   });
 
   const visibleAttributes = useMemo(
