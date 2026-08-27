@@ -68,7 +68,7 @@ function hasCodeChanges(section: AutofixSection): boolean {
   return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
 }
 
-export function shouldShowFixAppliedActions(group: Group, project: Project) {
+function shouldShowFixAppliedActions(group: Group, project: Project) {
   return (
     group.derivedData?.progress === ProgressState.FIX_APPLIED &&
     getConfigForIssueType(group, project).actions.resolve.enabled

@@ -36,16 +36,16 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
-import {
-  IssuePreviewActions,
-  OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {
+  IssuePreviewActions,
+  OpenIssueButton,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
