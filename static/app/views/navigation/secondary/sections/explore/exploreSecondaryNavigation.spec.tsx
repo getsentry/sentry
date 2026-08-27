@@ -110,7 +110,7 @@ describe('ExploreSecondaryNavigation', () => {
         organization: investigationsOrganization,
         initialRouterConfig: {
           location: {
-            pathname: '/organizations/org-slug/seer/investigation/investigation-1/',
+            pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
           },
         },
       }

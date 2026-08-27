@@ -540,7 +540,7 @@ function isTitleGenerationActive(status: string | null | undefined) {
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
   return normalizeUrl(
-    `/organizations/${organizationSlug}/seer/investigation/${investigationId}/`
+    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
 }
 

@@ -192,7 +192,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
                 makeNavigationItemProps(
                   'explore',
                   `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
-                  [`/${prefix}/explore`, `/${prefix}/seer/investigation/`]
+                  [`/${prefix}/explore`]
                 ),
                 tourProps
               )}
