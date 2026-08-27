@@ -23,6 +23,10 @@ import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
@@ -285,14 +289,18 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_profile_flamegraph',
+    // Lib helper emits by name; the profiles API ends at `{profile_id}` and carries the project
+    // as a path param instead of `project_id`.
+    match: ({path}) => /\{profile_id\}\/?$/.test(path ?? ''),
     resolve: ({params, title}, {projects}) => {
-      const {project_id, is_continuous, start_ts, end_ts, thread_id} = params;
+      const {is_continuous, start_ts, end_ts, thread_id} = params;
       const profileId = asUrlSegment(params.profile_id);
-      if (!profileId || !project_id) {
+      if (!profileId) {
         return null;
       }
 
-      const project = projects?.find(p => p.id === String(project_id));
+      const project =
+        resolveProject(params.project_id ?? params.project_id_or_slug, projects) ?? null;
       if (!project) {
         return null;
       }
@@ -324,6 +332,198 @@ export const LINK_RULES: LinkRule[] = [
           pathname: `/explore/profiles/profile/${project.slug}/${profileId}/flamegraph/`,
           ...(thread_id && {query: {tid: thread_id}}),
         },
+      };
+    },
+  },
+  {
+    id: 'get_dashboard_details',
+    match: ({path}) => /\/dashboards\/\{dashboard_id\}\/?$/.test(path ?? ''),
+    resolve: ({params, title}) => {
+      const dashboardId = asUrlSegment(params.dashboard_id);
+      if (!dashboardId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View dashboard'),
+        // Singular `/dashboard/` is the live route; `/dashboards/:id` redirects into it.
+        url: {pathname: `/dashboard/${dashboardId}/`},
+      };
+    },
+  },
+  {
+    id: 'get_release_details',
+    match: ({path}) => /\/releases\/\{version\}\/?$/.test(path ?? ''),
+    resolve: ({params, title}, {organization, projects}) => {
+      const version = asUrlSegment(params.version);
+      if (!version) {
+        return null;
+      }
+
+      const project = resolveProject(params.project_id_or_slug, projects);
+      return {
+        label: title ?? t('View release'),
+        url: {
+          pathname: makeReleasesPathname({
+            organization,
+            path: `/${encodeURIComponent(version)}/`,
+          }),
+          // Only pin a project filter when we know its numeric id — a slug-only fallback has no id
+          // to put on the query string.
+          ...(project?.id ? {query: {project: project.id}} : {}),
+        },
+      };
+    },
+  },
+  {
+    id: 'get_detector_details',
+    match: ({path}) => /\/detectors\/\{detector_id\}\/?$/.test(path ?? ''),
+    resolve: ({params, title}, {organization}) => {
+      const detectorId = asUrlSegment(params.detector_id);
+      if (!detectorId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View monitor'),
+        url: {pathname: makeMonitorDetailsPathname(organization.slug, detectorId)},
+      };
+    },
+  },
+  {
+    id: 'get_workflow_details',
+    match: ({path}) => /\/workflows\/\{workflow_id\}\/?$/.test(path ?? ''),
+    resolve: ({params, title}, {organization}) => {
+      const workflowId = asUrlSegment(params.workflow_id);
+      if (!workflowId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View alert'),
+        url: {pathname: makeAutomationDetailsPathname(organization.slug, workflowId)},
+      };
+    },
+  },
+  {
+    id: 'get_cron_monitor_details',
+    // Classic cron monitors. The workflow-engine `detectors` route is a different surface and is
+    // claimed above; these still need project + slug for the alerts UI.
+    match: ({path}) => /\/monitors\/\{monitor_id_or_slug\}\/?$/.test(path ?? ''),
+    resolve: ({params, title}, {organization, projects}) => {
+      const monitor = asUrlSegment(params.monitor_id_or_slug);
+      if (!monitor) {
+        return null;
+      }
+
+      const project = resolveProject(params.project_id_or_slug, projects);
+      if (!project) {
+        // Org-level monitor fetch has no project in path params. The cron detail page needs one,
+        // and guessing wrong lands on a 404 — leave the row unlinked.
+        return null;
+      }
+
+      return {
+        label: title ?? t('View monitor'),
+        url: {
+          pathname: makeAlertsPathname({
+            organization,
+            path: `/rules/crons/${project.slug}/${encodeURIComponent(monitor)}/details/`,
+          }),
+        },
+      };
+    },
+  },
+  {
+    id: 'get_issue_alert_rule',
+    match: ({path}) => /\/rules\/\{rule_id\}\/?$/.test(path ?? ''),
+    resolve: ({params, title}, {organization, projects}) => {
+      const ruleId = asUrlSegment(params.rule_id);
+      if (!ruleId) {
+        return null;
+      }
+
+      const project = resolveProject(params.project_id_or_slug, projects);
+      if (!project) {
+        return null;
+      }
+
+      // Legacy issue-alert detail; workflow-engine orgs redirect this onto the automation page.
+      return {
+        label: title ?? t('View alert rule'),
+        url: {
+          pathname: makeAlertsPathname({
+            organization,
+            path: `/rules/${project.slug}/${ruleId}/`,
+          }),
+        },
+      };
+    },
+  },
+  {
+    id: 'get_member_details',
+    match: ({path}) =>
+      /\/members\/\{member_id\}\/?$/.test(path ?? '') ||
+      /\/scim\/v2\/Users\/\{member_id\}$/.test(path ?? ''),
+    resolve: ({params, title}, {organization}) => {
+      const memberId = asUrlSegment(params.member_id);
+      if (!memberId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View member'),
+        // Settings routes are already org-scoped; `scopeToOrganization` leaves `/settings/` alone.
+        url: {pathname: `/settings/${organization.slug}/members/${memberId}/`},
+      };
+    },
+  },
+  {
+    id: 'get_team_details',
+    match: ({path}) =>
+      /\/teams\/\{organization_id_or_slug\}\/\{team_id_or_slug\}\/?$/.test(path ?? '') ||
+      /\/scim\/v2\/Groups\/\{team_id_or_slug\}$/.test(path ?? ''),
+    resolve: ({params, title}, {organization}) => {
+      const team = asUrlSegment(params.team_id_or_slug);
+      if (!team) {
+        return null;
+      }
+
+      // Team settings route on slug. A bare numeric id is not something we can resolve without a
+      // team directory in context, so decline rather than build a dead settings URL.
+      if (/^\d+$/.test(team)) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View team'),
+        url: {pathname: `/settings/${organization.slug}/teams/${team}/`},
+      };
+    },
+  },
+  {
+    id: 'get_project_event',
+    // Project event fetch has no issue id. `/projects/:project/events/:event/` resolves the group
+    // client-side (ProjectEventRedirect) — better than leaving the row dead when the issue route
+    // cannot be built.
+    match: ({path}) =>
+      /\/projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\}\/events\/\{event_id\}\/?$/.test(
+        path ?? ''
+      ),
+    resolve: ({params, title}, {projects}) => {
+      const eventId = asUrlSegment(params.event_id);
+      if (!eventId) {
+        return null;
+      }
+
+      const project = resolveProject(params.project_id_or_slug, projects);
+      if (!project) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View event'),
+        url: {pathname: `/projects/${project.slug}/events/${eventId}/`},
       };
     },
   },
@@ -471,12 +671,42 @@ function scopeToOrganization(
   const prefix = `/organizations/${organization.slug}`;
 
   if (typeof url === 'string') {
-    return normalizeUrl(url.startsWith('/organizations/') ? url : `${prefix}${url}`);
+    return normalizeUrl(
+      url.startsWith('/organizations/') || url.startsWith('/settings/')
+        ? url
+        : `${prefix}${url}`
+    );
   }
-  if (!url.pathname || url.pathname.startsWith('/organizations/')) {
+  if (
+    !url.pathname ||
+    url.pathname.startsWith('/organizations/') ||
+    url.pathname.startsWith('/settings/')
+  ) {
     return normalizeUrl(url);
   }
   return normalizeUrl({...url, pathname: `${prefix}${url.pathname}`});
+}
+
+/**
+ * Resolve a project id-or-slug against the viewer's project list.
+ *
+ * Returns undefined when the value is missing, or when a numeric id is not among the projects the
+ * viewer can see. A slug is returned as `{id, slug}` with an empty id when the list has not loaded
+ * that project — pages that only need the slug still work.
+ */
+function resolveProject(
+  value: unknown,
+  projects?: Array<{id: string; slug: string}>
+): {id: string; slug: string} | undefined {
+  const segment = asUrlSegment(value);
+  if (!segment) {
+    return undefined;
+  }
+  if (/^\d+$/.test(segment)) {
+    return projects?.find(p => p.id === segment);
+  }
+  const known = projects?.find(p => p.slug === segment);
+  return known ?? {id: '', slug: segment};
 }
 
 /** Validate an ISO string and return it with the 'Z' suffix stripped, or undefined if invalid. */

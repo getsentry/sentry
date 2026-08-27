@@ -69,6 +69,60 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     name: 'get_profile_flamegraph',
     params: {profile_id: 'profile1', project_id: '2'},
   },
+  get_dashboard_details: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/dashboards/{dashboard_id}/',
+    params: {dashboard_id: '123'},
+  },
+  get_release_details: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/releases/{version}/',
+    params: {version: '1.2.3'},
+  },
+  get_detector_details: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/detectors/{detector_id}/',
+    params: {detector_id: '4521'},
+  },
+  get_workflow_details: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/workflows/{workflow_id}/',
+    params: {workflow_id: '881'},
+  },
+  get_cron_monitor_details: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/monitors/{monitor_id_or_slug}/',
+    params: {project_id_or_slug: 'javascript', monitor_id_or_slug: 'nightly-sync'},
+  },
+  get_issue_alert_rule: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/rules/{rule_id}/',
+    params: {project_id_or_slug: 'javascript', rule_id: '99'},
+  },
+  get_member_details: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/members/{member_id}/',
+    params: {member_id: '7'},
+  },
+  get_team_details: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/',
+    params: {team_id_or_slug: 'frontend'},
+  },
+  get_project_event: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/',
+    params: {project_id_or_slug: 'javascript', event_id: 'deadbeef'},
+  },
   get_log_attributes: {
     kind: 'link',
     name: 'get_log_attributes',
@@ -249,6 +303,134 @@ describe('resolveLink', () => {
         ctx
       )
     ).toBeNull();
+  });
+});
+
+describe('entity links added for Code Mode API coverage', () => {
+  it('links a dashboard to the singular dashboard route', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/dashboards/{dashboard_id}/',
+          params: {dashboard_id: '123'},
+          title: 'Retrieve a Dashboard',
+        },
+        ctx
+      )
+    ).toEqual({
+      id: 'get_dashboard_details',
+      label: 'Retrieve a Dashboard',
+      url: {pathname: '/organizations/org-slug/dashboard/123/'},
+    });
+  });
+
+  it('links a release, pinning project when the call carried one', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/',
+          params: {project_id_or_slug: '2', version: '1.2.3'},
+        },
+        ctx
+      )
+    ).toEqual({
+      id: 'get_release_details',
+      label: 'View release',
+      url: {
+        pathname: '/organizations/org-slug/explore/releases/1.2.3/',
+        query: {project: '2'},
+      },
+    });
+  });
+
+  it('links a detector and a workflow onto the monitors surfaces', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/detectors/{detector_id}/',
+          params: {detector_id: '4521'},
+        },
+        ctx
+      )?.url
+    ).toEqual({pathname: '/organizations/org-slug/monitors/4521/'});
+
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/workflows/{workflow_id}/',
+          params: {workflow_id: '881'},
+        },
+        ctx
+      )?.url
+    ).toEqual({pathname: '/organizations/org-slug/monitors/alerts/881/'});
+  });
+
+  it('leaves an org-level cron monitor unlinked without a project to pin', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/monitors/{monitor_id_or_slug}/',
+          params: {monitor_id_or_slug: 'nightly-sync'},
+        },
+        ctx
+      )
+    ).toBeNull();
+  });
+
+  it('does not treat a nested team membership call as a team page', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'PUT',
+          path: '/api/0/organizations/{organization_id_or_slug}/members/{member_id}/teams/{team_id_or_slug}/',
+          params: {member_id: '7', team_id_or_slug: 'frontend'},
+        },
+        ctx
+      )
+    ).toBeNull();
+  });
+
+  it('routes a project event through ProjectEventRedirect when no issue id is present', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/',
+          params: {project_id_or_slug: 'javascript', event_id: 'deadbeef'},
+        },
+        ctx
+      )
+    ).toEqual({
+      id: 'get_project_event',
+      label: 'View event',
+      url: {pathname: '/organizations/org-slug/projects/javascript/events/deadbeef/'},
+    });
+  });
+
+  it('keeps settings destinations off the /organizations prefix', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/members/{member_id}/',
+          params: {member_id: '7'},
+        },
+        ctx
+      )?.url
+    ).toEqual({pathname: '/settings/org-slug/members/7/'});
   });
 });
 
