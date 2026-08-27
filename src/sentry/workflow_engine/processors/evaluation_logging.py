@@ -6,8 +6,11 @@ from typing import TYPE_CHECKING, cast
 
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
-from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.workflow import ProcessWorkflowsResult
+from sentry.workflow_engine.processors.evaluations import (
+    DelayedWorkflowEvaluation,
+    ProcessDetectorsResult,
+    ProcessWorkflowsResult,
+)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -15,6 +18,7 @@ if TYPE_CHECKING:
 
 DETECTOR_EVALUATION_LOG_PREFIX = "workflow_engine.process_detectors.evaluation"
 WORKFLOW_EVALUATION_LOG_PREFIX = "workflow_engine.process_workflows.evaluation"
+DELAYED_WORKFLOW_EVALUATION_LOG_PREFIX = "workflow_engine.process_delayed_workflows.evaluation"
 
 
 def _is_sampled() -> bool:
@@ -22,16 +26,20 @@ def _is_sampled() -> bool:
     return random.random() < sample_rate
 
 
-def should_log(organization: Organization, result: ProcessWorkflowsResult) -> bool:
+def should_log_workflow_ids(organization: Organization, workflow_ids: set[int]) -> bool:
     if features.has("organizations:workflow-engine-log-evaluations", organization):
         return True
 
     target_workflow_ids = cast(
         list[int], options.get("workflow_engine.evaluation_log_target_workflow_ids")
     )
-    if any(workflow_id in result.evaluations for workflow_id in target_workflow_ids):
+    if workflow_ids.intersection(target_workflow_ids):
         return True
     return _is_sampled()
+
+
+def should_log(organization: Organization, result: ProcessWorkflowsResult) -> bool:
+    return should_log_workflow_ids(organization, set(result.evaluations))
 
 
 def _emit_evaluation_artifacts(
@@ -66,6 +74,28 @@ def emit_detector_evaluation_logs(
         logger,
         organization_id=organization_id,
         artifacts=result.evaluation_artifacts(),
+        log_prefix=log_prefix,
+    )
+    return True
+
+
+def emit_delayed_workflow_evaluation_logs(
+    logger: Logger,
+    *,
+    organization: Organization,
+    evaluations: list[DelayedWorkflowEvaluation],
+    log_prefix: str = DELAYED_WORKFLOW_EVALUATION_LOG_PREFIX,
+) -> bool:
+    """Sample a delayed batch and emit one self-contained artifact per event evaluation."""
+    if not evaluations or not should_log_workflow_ids(
+        organization, {evaluation.workflow_id for evaluation in evaluations}
+    ):
+        return False
+
+    _emit_evaluation_artifacts(
+        logger,
+        organization_id=organization.id,
+        artifacts=[evaluation.to_artifact() for evaluation in evaluations],
         log_prefix=log_prefix,
     )
     return True

@@ -666,6 +666,10 @@ def process_workflows(
     )
     (trigger_stats + action_stats).report_metrics("process_workflows.workflows_evaluated")
 
+    for delayed_item in delayed_items_by_workflow.values():
+        delayed_item.detector_id = associated_detector.id
+        delayed_item.detector_type = associated_detector.type
+
     enqueue_workflows(batch_client, delayed_items_by_workflow)
 
     actions, action_to_workflow_id = filter_recently_fired_workflow_actions(

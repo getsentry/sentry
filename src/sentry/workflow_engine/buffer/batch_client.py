@@ -36,6 +36,9 @@ class DelayedWorkflowItem:
     # Should be close to when fast conditions were evaluated to try to be consistent.
     timestamp: datetime
 
+    detector_id: int | None = None
+    detector_type: str | None = None
+
     def buffer_key(self) -> str:
         when_condition_group_str = (
             str(self.delayed_when_group_id) if self.delayed_when_group_id else ""
@@ -50,6 +53,8 @@ class DelayedWorkflowItem:
                 "event_id": self.event.event_id,
                 "occurrence_id": self.event.occurrence_id,
                 "timestamp": self.timestamp,
+                **({"detector_id": self.detector_id} if self.detector_id is not None else {}),
+                **({"detector_type": self.detector_type} if self.detector_type else {}),
             }
         )
 

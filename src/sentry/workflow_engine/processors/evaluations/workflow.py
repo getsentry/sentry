@@ -47,6 +47,75 @@ class WorkflowEvaluationOutcome(StrEnum):
     NOT_TRIGGERED = "not_triggered"
 
 
+@dataclass(frozen=True, kw_only=True)
+class DelayedWorkflowEvaluation:
+    """The second half of a deferred workflow evaluation for one event and group."""
+
+    workflow_id: WorkflowId
+    detector_id: DetectorId | None
+    detector_type: str | None
+    project_id: int | None
+    group_id: GroupId
+    event_id: str
+    trigger_group_id: DataConditionGroupId | None
+    trigger_group_evaluation: DataConditionGroupEvaluation
+    filter_group_evaluations: Mapping[DataConditionGroupId, DataConditionGroupEvaluation]
+    passing_filter_group_ids: frozenset[DataConditionGroupId]
+    missing_condition_group_ids: frozenset[DataConditionGroupId]
+    triggered_action_ids: tuple[ActionId, ...] = ()
+
+    def _condition_group_evaluations(self) -> tuple[DataConditionGroupEvaluation, ...]:
+        return (
+            self.trigger_group_evaluation,
+            *self.filter_group_evaluations.values(),
+        )
+
+    @property
+    def outcome(self) -> WorkflowEvaluationOutcome:
+        if self.missing_condition_group_ids or any(
+            evaluation.is_tainted() for evaluation in self._condition_group_evaluations()
+        ):
+            return WorkflowEvaluationOutcome.ERROR
+        if not self.trigger_group_evaluation.triggered:
+            return WorkflowEvaluationOutcome.NOT_TRIGGERED
+        if self.triggered_action_ids:
+            return WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
+        return WorkflowEvaluationOutcome.NO_ACTIONS
+
+    def to_artifact(self) -> dict[str, object]:
+        error = next(
+            (
+                evaluation.error.msg
+                for evaluation in self._condition_group_evaluations()
+                if evaluation.error is not None
+            ),
+            None,
+        )
+        if error is None and self.missing_condition_group_ids:
+            error = "DataConditionGroup does not exist"
+
+        return {
+            **build_workflow_evaluation_artifact_fields(
+                phase=EvaluationPhase.DELAYED,
+                workflow_id=self.workflow_id,
+                detector_id=self.detector_id,
+                detector_type=self.detector_type,
+                project_id=self.project_id,
+                event_id=self.event_id,
+                group_id=self.group_id,
+                outcome=self.outcome,
+                triggered_action_ids=self.triggered_action_ids,
+                trigger_group_id=self.trigger_group_id,
+                trigger_group_evaluation=self.trigger_group_evaluation,
+                filter_group_evaluations=self.filter_group_evaluations,
+            ),
+            "passing_filter_group_ids": sorted(self.passing_filter_group_ids),
+            "missing_condition_group_ids": sorted(self.missing_condition_group_ids),
+            "triggered": self.trigger_group_evaluation.triggered,
+            "error": error,
+        }
+
+
 class WorkflowEvaluationData(TypedDict):
     """
     Track all of the data that went into evaluating a single workflow.
@@ -156,7 +225,7 @@ class WorkflowEvaluation(
             workflow_id=self.workflow_id,
             detector_id=self.detector_id,
             detector_type=self.detector_type,
-            project_id=event_data.event.project_id,
+            project_id=event_data.event.project_id,  # pyright: ignore[reportAttributeAccessIssue]
             event_id=str(event_id) if event_id else None,
             group_id=event_data.group.id,
             outcome=self.outcome,

@@ -45,6 +45,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     EventRedisData,
     GroupQueryParams,
     UniqueConditionQuery,
+    _process_workflows_for_project,
     bulk_fetch_events,
     cleanup_redis_buffer,
     fetch_project,
@@ -56,6 +57,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_group_to_groupevent,
     get_groups_to_fire,
 )
+from sentry.workflow_engine.processors.evaluations import DelayedWorkflowEvaluation
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -708,7 +710,9 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             events={
                 EventKey.from_redis_key(
                     f"{self.workflow1.id}:{self.group1.id}:{self.workflow1.when_condition_group_id}:{self.workflow1_if_dcgs[0].id}:{self.workflow1_if_dcgs[1].id}"
-                ): EventInstance(event_id="test-event-1"),
+                ): EventInstance(
+                    event_id="test-event-1", detector_id=123, detector_type="test-detector"
+                ),
                 EventKey.from_redis_key(
                     f"{self.workflow2.id}:{self.group2.id}:{self.workflow2.when_condition_group_id}:{self.workflow2_if_dcgs[0].id}:{self.workflow2_if_dcgs[1].id}"
                 ): EventInstance(event_id="test-event-2"),
@@ -725,6 +729,25 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.condition_group_results,
             self.dcg_to_slow_conditions,
         )
+
+        assert len(eval_result.evaluations) == 2
+        first_evaluation = eval_result.evaluations[0]
+        assert isinstance(first_evaluation, DelayedWorkflowEvaluation)
+        assert first_evaluation.workflow_id == self.workflow1.id
+        assert first_evaluation.detector_id == 123
+        assert first_evaluation.detector_type == "test-detector"
+        assert first_evaluation.project_id is None
+        assert first_evaluation.group_id == self.group1.id
+        assert first_evaluation.event_id == "test-event-1"
+        assert (
+            first_evaluation.trigger_group_id == self.workflow1.when_condition_group_id  # pyright: ignore[reportAttributeAccessIssue]
+        )
+        assert first_evaluation.trigger_group_evaluation.triggered
+        assert set(first_evaluation.filter_group_evaluations) == {self.workflow1_if_dcgs[0].id}
+        assert first_evaluation.passing_filter_group_ids == frozenset(
+            {self.workflow1_if_dcgs[1].id}
+        )
+        assert first_evaluation.missing_condition_group_ids == frozenset()
 
         # NOTE: no WHEN DCGs. We only collect IF DCGs here to fire their actions in the fire_actions_for_groups function
         assert (
@@ -918,21 +941,55 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         assert eval_result.stats.untainted == 3
 
 
+class TestProcessWorkflowsForProject(TestDelayedWorkflowBase):
+    def test_no_condition_queries_skips_evaluation_and_actions(self) -> None:
+        event_data = EventRedisData(
+            events={
+                EventKey.from_redis_key(
+                    f"{self.workflow1.id}:{self.group1.id}:"
+                    f"{self.workflow1.when_condition_group_id}:"  # pyright: ignore[reportAttributeAccessIssue]
+                    f":{self.workflow1_if_dcgs[1].id}"
+                ): EventInstance(event_id=self.event1.event_id)
+            }
+        )
+
+        with (
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.get_condition_query_groups",
+                return_value={},
+            ),
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.get_groups_to_fire"
+            ) as mock_get_groups_to_fire,
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"
+            ) as mock_fire_actions_for_groups,
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.emit_delayed_workflow_evaluation_logs"
+            ) as mock_emit_evaluation_logs,
+        ):
+            _process_workflows_for_project(self.project, event_data)
+
+        mock_get_groups_to_fire.assert_not_called()
+        mock_fire_actions_for_groups.assert_not_called()
+        mock_emit_evaluation_logs.assert_not_called()
+
+
 class TestFireActionsForGroups(TestDelayedWorkflowBase):
     def setUp(self) -> None:
         super().setUp()
 
-        action1 = self.create_action(
+        self.action1 = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
             config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.create_data_condition_group_action(
-            condition_group=self.workflow1_if_dcgs[0], action=action1
+            condition_group=self.workflow1_if_dcgs[0], action=self.action1
         )
 
-        action2 = self.create_action(
+        self.action2 = self.create_action(
             type=Action.Type.SLACK,
             integration_id="1234567890",
             data={"tags": "environment,user", "notes": "Important alert"},
@@ -943,7 +1000,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             },
         )
         self.create_data_condition_group_action(
-            condition_group=self.workflow2_if_dcgs[0], action=action2
+            condition_group=self.workflow2_if_dcgs[0], action=self.action2
         )
 
         self.groups_to_dcgs = {
@@ -983,12 +1040,16 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger: MagicMock) -> None:
-        fire_actions_for_groups(
+        action_ids_by_workflow_and_group = fire_actions_for_groups(
             self.project.organization,
             self.groups_to_dcgs,
             self.group_to_groupevent,
         )
 
+        assert action_ids_by_workflow_and_group == {
+            (self.workflow1.id, self.group1.id): {self.action1.id},
+            (self.workflow2.id, self.group2.id): {self.action2.id},
+        }
         assert mock_trigger.call_count == 2
 
         # First call should be for workflow1/group1
@@ -1146,6 +1207,12 @@ class TestEventKeyAndInstance:
         instance = EventInstance(event_id="test-event")
         assert instance.event_id == "test-event"
         assert instance.occurrence_id is None
+        assert instance.detector_id is None
+        assert instance.detector_type is None
+
+        instance = EventInstance(event_id="test-event", detector_id=123, detector_type="test")
+        assert instance.detector_id == 123
+        assert instance.detector_type == "test"
 
         # Test with occurrence ID
         instance = EventInstance(event_id="test-event", occurrence_id="test-occurrence")
