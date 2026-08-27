@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorResult
 
@@ -9,7 +9,9 @@ from .condition_group import DataConditionGroupEvaluation
 
 class DetectorEvaluationData(TypedDict):
     group_key: DetectorGroupKey
-    trigger_group_evaluation: DataConditionGroupEvaluation
+    # Absent for detectors that have no DataConditionGroup -- they decide from their own
+    # configuration, so there is no condition evaluation to report.
+    trigger_group_evaluation: NotRequired[DataConditionGroupEvaluation]
     event_data: dict[str, Any] | None  # TODO - improve this typing, for now migrating
 
 
@@ -44,8 +46,12 @@ class DetectorEvaluation(
     def artifact_fields(self) -> dict[str, Any]:
         # Each trigger group evaluation will log the value used in evaluation
         # We only need to extract the top level detector items for tracking here.
+        trigger_group_evaluation = self.data.get("trigger_group_evaluation")
+
         return {
             "group_key": self.data["group_key"],
             "priority": self.priority.value,
-            "trigger_group_evaluation": self.data["trigger_group_evaluation"].to_artifact(),
+            "trigger_group_evaluation": (
+                trigger_group_evaluation.to_artifact() if trigger_group_evaluation else None
+            ),
         }
