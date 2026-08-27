@@ -66,7 +66,7 @@
   },
   {
     "name": "dashboard",
-    "description": "The ONLY way to reference a saved Sentry dashboard. Use the dashboard ID exactly as returned by the dashboard API. Include the API-provided title when available. Inline: renders a compact link. Block: renders a standalone dashboard reference. Never use a markdown link for dashboard references.",
+    "description": "The ONLY way to reference a saved Sentry dashboard. Use the dashboard ID exactly as returned by the dashboard API. Include the API-provided title when available. Inline: renders a compact link. Block: renders a live preview of the dashboard widgets. Do not duplicate the widget titles, queries, visualizations, or values as text. Never use a markdown link for dashboard references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
