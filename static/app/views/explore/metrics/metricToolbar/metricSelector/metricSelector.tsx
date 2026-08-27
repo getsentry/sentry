@@ -33,7 +33,11 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
 import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
-import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import {
+  isMetricSelectorOption,
+  type MetricSelectorItem,
+  type MetricSelectorOption,
+} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
@@ -147,6 +151,7 @@ export function MetricSelector({
     }
 
     return {
+      kind: 'metric',
       label: traceMetric.name,
       value: traceMetricSelectValue,
       metricType: traceMetricType,
@@ -172,9 +177,9 @@ export function MetricSelector({
   // Always show the selected metric at the top of the list so it's easy to
   // find when the dropdown is reopened. Filter it out of the API results to
   // avoid duplication.
-  const metricOptions = useMemo((): MetricSelectorOption[] => {
+  const metricOptions = useMemo((): MetricSelectorItem[] => {
     const seenValues = new Set<string>();
-    const apiOptions =
+    const apiOptions: MetricSelectorOption[] =
       metricOptionsData?.data?.flatMap(option => {
         const metricName = option[TraceMetricKnownFieldKey.METRIC_NAME];
 
@@ -213,6 +218,7 @@ export function MetricSelector({
 
         return [
           {
+            kind: 'metric',
             label: metricName,
             value,
             metricType,
@@ -270,11 +276,10 @@ export function MetricSelector({
 
     return [
       {
+        kind: 'field',
         label: tct('[emphasis:field]', {emphasis: <em />}),
         textValue: t('field'),
         value: FIELD_OPTION_VALUE,
-        metricName: t('field'),
-        metricType: 'counter',
         tooltip: fieldOption.disabledReason,
         trailingItems: () => null,
       },
@@ -307,7 +312,10 @@ export function MetricSelector({
       return;
     }
     const firstSelectable = metricOptions.find(
-      option => option.value !== FIELD_OPTION_VALUE && !getDisabledOptionReason?.(option)
+      (option): option is MetricSelectorOption =>
+        isMetricSelectorOption(option) &&
+        option.value !== FIELD_OPTION_VALUE &&
+        !getDisabledOptionReason?.(option)
     );
     if (firstSelectable) {
       onChange({
@@ -336,7 +344,7 @@ export function MetricSelector({
   // This reserves enough width for the overlay so it doesn't resize as
   // the user scrolls through the virtualized list.
   const longestOption = useMemo(() => {
-    return displayedOptions.reduce<MetricSelectorOption | null>((longest, option) => {
+    return displayedOptions.reduce<MetricSelectorItem | null>((longest, option) => {
       if (typeof option.label !== 'string' || option.label.length === 0) {
         return longest;
       }
@@ -353,7 +361,7 @@ export function MetricSelector({
   // the combobox renders them disabled. Both no-op without getDisabledOptionReason.
   const displayedOptionsWithDisabledState = useMemo(() => {
     return displayedOptions.map(option => {
-      if (option.value === FIELD_OPTION_VALUE) {
+      if (!isMetricSelectorOption(option)) {
         return option;
       }
       if (!getDisabledOptionReason) {
@@ -368,7 +376,7 @@ export function MetricSelector({
     return new Set(
       displayedOptions
         .filter(option => {
-          if (option.value === FIELD_OPTION_VALUE) {
+          if (!isMetricSelectorOption(option)) {
             return Boolean(fieldOption?.disabledReason);
           }
           return Boolean(getDisabledOptionReason?.(option));
@@ -411,8 +419,8 @@ export function MetricSelector({
     });
   }
 
-  const comboBoxState = useComboBoxState<MetricSelectorOption>({
-    children: (item: MetricSelectorOption) => (
+  const comboBoxState = useComboBoxState<MetricSelectorItem>({
+    children: (item: MetricSelectorItem) => (
       <Item key={item.value} textValue={item.textValue}>
         {item.label}
       </Item>
@@ -443,7 +451,7 @@ export function MetricSelector({
         return;
       }
       const selectedOption = displayedOptionsMap.get(String(key));
-      if (selectedOption) {
+      if (selectedOption && isMetricSelectorOption(selectedOption)) {
         onChange({
           name: selectedOption.metricName,
           type: selectedOption.metricType,
@@ -489,17 +497,16 @@ export function MetricSelector({
     },
   });
 
-  const {inputProps: comboBoxInputProps, listBoxProps} =
-    useComboBox<MetricSelectorOption>(
-      {
-        'aria-labelledby': triggerId,
-        listBoxRef: listElementRef,
-        inputRef: searchRef,
-        popoverRef,
-        shouldFocusWrap: true,
-      },
-      comboBoxState
-    );
+  const {inputProps: comboBoxInputProps, listBoxProps} = useComboBox<MetricSelectorItem>(
+    {
+      'aria-labelledby': triggerId,
+      listBoxRef: listElementRef,
+      inputRef: searchRef,
+      popoverRef,
+      shouldFocusWrap: true,
+    },
+    comboBoxState
+  );
 
   const collectionItems = useMemo(
     () => [...comboBoxState.collection],
@@ -514,9 +521,9 @@ export function MetricSelector({
     overscan: 20,
   });
 
-  const highlightedOption = focusedKey
-    ? (displayedOptionsMap.get(String(focusedKey)) ?? null)
-    : null;
+  const focusedOption = focusedKey ? displayedOptionsMap.get(String(focusedKey)) : null;
+  const highlightedOption =
+    focusedOption && isMetricSelectorOption(focusedOption) ? focusedOption : null;
 
   const {keyboardProps: triggerKeyboardProps} = useKeyboard({
     onKeyDown: e => {
@@ -600,7 +607,9 @@ export function MetricSelector({
 
   const sidePanelAnchorPosition =
     sidePanelAnchorOffset === null ? '0px' : `${sidePanelAnchorOffset}px`;
-  const hasSelectedMetric = Boolean(traceMetric.name) && !fieldOption?.isSelected;
+  const hasSelectedMetric =
+    Boolean(highlightedOption) ||
+    (!focusedOption && Boolean(traceMetric.name) && !fieldOption?.isSelected);
 
   return (
     <Container width="100%" position="relative">
