@@ -5,9 +5,13 @@ import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationBlockExecutionFixture,
   InvestigationBlockFixture,
+  InvestigationBreachedMetricDetailFixture,
   InvestigationDetailFixture,
+  InvestigationFailedDetailFixture,
+  InvestigationAwaitingInputExecutionFixture,
   InvestigationExecutionDetailFixture,
   InvestigationQueryOutputFixture,
+  InvestigationRunningDetailFixture,
   InvestigationTitleGenerationFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
@@ -16,7 +20,7 @@ import {
   investigationExecutionFixtureKey,
 } from 'sentry/views/investigations/stories/investigationFixtureApi';
 
-const completedInvestigation = InvestigationDetailFixture({
+const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   id: 'completed-checkout-regression',
   title: 'Checkout latency after payments-api 2026.08.18 deploy',
   status: 'archived',
@@ -175,7 +179,7 @@ const manualInvestigation = InvestigationDetailFixture({
 
 const runningSummaryExecutionId = 'running-summary-execution';
 const runningQueryExecutionId = 'running-query-execution';
-const runningInvestigation = InvestigationDetailFixture({
+const runningInvestigation = InvestigationRunningDetailFixture({
   id: 'running-checkout-investigation',
   title: 'Untitled investigation',
   status: 'active',
@@ -278,7 +282,7 @@ const cancelledBlock = InvestigationBlockFixture({
     error: {message: 'Stopped after the release query failed.'},
   }),
 });
-const failureInvestigation = InvestigationDetailFixture({
+const failureInvestigation = InvestigationFailedDetailFixture({
   id: 'failed-investigation',
   title: 'Release health regression after 8.42.0',
   status: 'active',
@@ -400,7 +404,7 @@ export default Storybook.story('Investigations — Detail', story => {
         [investigationExecutionFixtureKey(
           'awaiting-input-cell',
           awaitingInputExecutionId
-        )]: InvestigationExecutionDetailFixture({
+        )]: InvestigationAwaitingInputExecutionFixture({
           id: awaitingInputExecutionId,
           status: 'awaiting_input',
           partialMarkdown:
