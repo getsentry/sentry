@@ -12,6 +12,7 @@ from sentry.issues.action_log.backfill import (
     bulk_insert_action_log_entries,
 )
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -33,8 +34,6 @@ _TASK_KEY = "backfill_group_action_log_for_project"
 _COORDINATOR_TASK_KEY = "backfill_group_action_log_coordinator"
 _ENROLLMENT_TASK_KEY = "enroll_projects_for_group_action_log_backfill"
 _ORGANIZATION_ENROLLMENT_TASK_KEY = "enroll_organization_projects_for_group_action_log_backfill"
-GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION = "sentry:group_action_log_backfill_completed"
-
 _GROUP_ACTION_LOG_WRITE_FEATURE = "projects:issue-action-log-write-to-db"
 
 
@@ -429,10 +428,12 @@ def enroll_organization_projects_for_group_action_log_backfill(
 
     projects = list(
         Project.objects.filter(
-            organization_id=organization_id,
+            organization=organization,
             status=ObjectStatus.ACTIVE,
             id__gt=last_project_id,
-        ).order_by("id")[:batch_size]
+        )
+        .select_related("organization")
+        .order_by("id")[:batch_size]
     )
     if not projects:
         logger.info(
@@ -441,20 +442,8 @@ def enroll_organization_projects_for_group_action_log_backfill(
         )
         return
 
-    feature_results = features.batch_has(
-        [_GROUP_ACTION_LOG_WRITE_FEATURE],
-        projects=projects,
-        organization=organization,
-    )
-    if feature_results is None:
-        raise RuntimeError("Unable to evaluate group action log write feature")
-
     eligible_project_ids = [
-        project.id
-        for project in projects
-        if feature_results.get(f"project:{project.id}", {}).get(
-            _GROUP_ACTION_LOG_WRITE_FEATURE, False
-        )
+        project.id for project in projects if features.has(_GROUP_ACTION_LOG_WRITE_FEATURE, project)
     ]
 
     # Track missing rows so we only invalidate caches for newly enrolled projects.
@@ -646,17 +635,17 @@ def backfill_group_action_log_for_all_projects(
     project_options = list(
         ProjectOption.objects.filter(
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+            value=False,
             id__gt=last_project_option_id,
         )
         .order_by("id")
-        .values_list("id", "project_id", "value")[:batch_size]
+        .values_list("id", "project_id")[:batch_size]
     )
-    incomplete_option_count = sum(value is False for _, _, value in project_options)
     logger.info(
         "backfill_group_action_log.coordinator.query_completed",
         extra={
             "duration_ms": (time.monotonic() - query_started_at) * 1000,
-            "incomplete_option_count": incomplete_option_count,
+            "incomplete_option_count": len(project_options),
             "option_count": len(project_options),
         },
     )
@@ -670,12 +659,9 @@ def backfill_group_action_log_for_all_projects(
 
     logger.info(
         "backfill_group_action_log.coordinator.dispatch_started",
-        extra={"project_count": incomplete_option_count},
+        extra={"project_count": len(project_options)},
     )
-    dispatched_project_count = 0
-    for _, project_id, value in project_options:
-        if value is not False:
-            continue
+    for _, project_id in project_options:
         backfill_group_action_log_for_project.apply_async(
             kwargs={
                 "project_id": project_id,
@@ -684,7 +670,6 @@ def backfill_group_action_log_for_all_projects(
             },
             headers={"sentry-propagate-traces": False},
         )
-        dispatched_project_count += 1
 
     logger.info(
         "backfill_group_action_log.coordinator.batch_dispatched",
@@ -693,7 +678,7 @@ def backfill_group_action_log_for_all_projects(
             "first_project_option_id": project_options[0][0],
             "last_project_option_id": project_options[-1][0],
             "project_reset": project_reset,
-            "project_count": dispatched_project_count,
+            "project_count": len(project_options),
         },
     )
 

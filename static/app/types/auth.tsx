@@ -136,6 +136,7 @@ export type UserEnrolledAuthenticator = {
 /**
  * XXX(ts): This actually all comes from getsentry. We should definitely
  * refactor this into a more proper 'hook' mechanism in the future
+ * @public
  */
 export type AuthConfig = {
   canRegister: boolean;

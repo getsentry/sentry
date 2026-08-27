@@ -11,6 +11,7 @@ from sentry.investigations.services import (
     mark_block_execution_dispatch_failed,
     mark_block_execution_dispatch_started,
 )
+from sentry.investigations.telemetry import record_execution_failed
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.service import user_service
@@ -48,4 +49,6 @@ def dispatch_investigation_execution(execution_id: int) -> None:
     except Exception:
         logger.exception("investigations.execution.dispatch_failed")
         if mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=dispatch_claimed_at):
+            execution.refresh_from_db(fields=["completed_at"])
+            record_execution_failed(execution, reason="dispatch_failed", seer_run_id=None)
             cancel_investigation_executions_after_failure(execution)

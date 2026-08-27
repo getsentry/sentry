@@ -11,7 +11,6 @@ import logging
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
 import orjson
@@ -97,19 +96,6 @@ class AgentChatRequest(TypedDict):
     available_monitoring_providers: NotRequired[list[dict[str, Any]]]
 
 
-class AgentRunsRequest(TypedDict):
-    organization_id: int
-    user_id: NotRequired[int]
-    category_key: NotRequired[str]
-    category_value: NotRequired[str]
-    offset: NotRequired[int]
-    project_ids: NotRequired[list[int]]
-    limit: NotRequired[int]
-    start: NotRequired[datetime]
-    end: NotRequired[datetime]
-    query: NotRequired[str]
-
-
 class AgentUpdateRequest(TypedDict):
     run_id: int
     organization_id: int
@@ -122,12 +108,21 @@ class AgentPrStateRequest(TypedDict):
     pr_id: int
 
 
-class SeerFeatureRunRequest(TypedDict):
-    """The feature-run body as enqueued onto the SEER_RUN_CREATE outbox."""
+class AgentRunOptions(TypedDict):
+    enable_frontend_code_search: NotRequired[bool | None]
+    is_context_engine_enabled: NotRequired[bool]
+    enable_bash_mode: NotRequired[bool]
+    enable_coding: NotRequired[bool]
+    enable_tool_summary: NotRequired[bool]
+    embed_widgets: NotRequired[list[dict[str, Any]] | None]
+    enable_streaming: NotRequired[bool]
+    is_agentic_triage_sort: NotRequired[bool]
 
+
+class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
-    agent_run_options: NotRequired[dict[str, Any]]
+    agent_run_options: NotRequired[AgentRunOptions]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
@@ -189,19 +184,6 @@ def make_agent_chat_request(
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/chat",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        viewer_context=viewer_context,
-    )
-
-
-def make_agent_runs_request(
-    body: AgentRunsRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or agent_connection_pool,
-        "/v1/automation/explorer/runs",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
