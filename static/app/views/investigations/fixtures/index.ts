@@ -252,7 +252,6 @@ export function InvestigationBreachedMetricDetailFixture(
         dependencies: ['chart-block'],
       }),
     ],
-    blockCount: 3,
     ...overrides,
   });
 }
@@ -319,7 +318,6 @@ export function InvestigationRunningDetailFixture(
         dependencies: ['block-1', 'block-2'],
       }),
     ],
-    blockCount: 3,
     ...overrides,
   });
 }
@@ -359,7 +357,6 @@ export function InvestigationFailedDetailFixture(
         dependencies: ['block-1'],
       }),
     ],
-    blockCount: 2,
     ...overrides,
   });
 }
