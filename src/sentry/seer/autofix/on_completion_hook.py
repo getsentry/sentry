@@ -25,7 +25,7 @@ from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
-    STEP_CONFIGS,
+    STEP_COMPLETED_EVENTS,
     AutofixStep,
     get_iterations,
     get_latest_iteration_index,
@@ -53,7 +53,6 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
 )
 from sentry.seer.autofix_rca.models import FEATURE_ID as AUTOFIX_FEATURE_ID
-from sentry.seer.autofix_rca.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.entrypoints.operator import (
     SeerAutofixOperator,
     process_autofix_updates,
@@ -112,7 +111,7 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
         SeerAgentRun.objects.filter(
             run__organization_id=organization.id,
             run__seer_run_state_id=run_id,
-            source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
+            source=AUTOFIX_FEATURE_ID,
         )
         .values_list("extras__stopping_point", flat=True)
         .first()
@@ -126,7 +125,7 @@ def _group_and_referrer_from_run(
         SeerAgentRun.objects.filter(
             run__organization_id=organization.id,
             run__seer_run_state_id=run_id,
-            source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
+            source=AUTOFIX_FEATURE_ID,
         )
         .values("group_id", "extras")
         .first()
@@ -647,18 +646,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "iteration_index": iteration_index,
                 },
             )
-            completed_event_cls = STEP_CONFIGS[current_step].completed_event
-            if completed_event_cls is not None:
-                analytics.record(
-                    completed_event_cls(
-                        organization_id=organization.id,
-                        project_id=group.project_id,
-                        group_id=group.id,
-                        referrer=referrer,
-                        run_id=run_id,
-                        iteration_index=iteration_index,
-                    )
+            analytics.record(
+                STEP_COMPLETED_EVENTS[current_step](
+                    organization_id=organization.id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    referrer=referrer,
+                    run_id=run_id,
+                    iteration_index=iteration_index,
                 )
+            )
 
     @classmethod
     def _format_code_changes_payload(cls, state: SeerRunState) -> dict:

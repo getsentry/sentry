@@ -274,6 +274,30 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"run_id": 777, "sentry_run_id": str(run.uuid)}
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_root_cause_retry_starts_new_feature_run(self, mock_trigger_explorer):
+        group = self.create_group()
+        existing_run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        new_run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
+        mock_trigger_explorer.return_value = new_run
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "root_cause",
+                "sentry_run_id": str(existing_run.uuid),
+                "insert_index": 3,
+                "user_context": "Try another hypothesis",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert response.data == {"run_id": 777, "sentry_run_id": str(new_run.uuid)}
+        assert mock_trigger_explorer.call_args.kwargs["run_id"] is None
+        assert mock_trigger_explorer.call_args.kwargs["insert_index"] is None
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_with_sentry_run_id_resolves_to_numeric_id(self, mock_trigger_explorer):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)

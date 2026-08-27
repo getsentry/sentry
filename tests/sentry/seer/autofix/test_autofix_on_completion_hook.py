@@ -259,7 +259,7 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 
 class TestStoppingPointFromRun(TestCase):
     """The stopping point falls back to the Sentry-side run mirror for runs Seer
-    started without pipeline metadata (the autofix_rca feature)."""
+    started without pipeline metadata."""
 
     def setUp(self) -> None:
         super().setUp()
@@ -269,7 +269,7 @@ class TestStoppingPointFromRun(TestCase):
         self,
         seer_run_state_id: int,
         extras: dict | None = None,
-        source: str = "autofix_rca",
+        source: str = "autofix",
     ):
         run = self.create_seer_run(
             organization=self.organization,
@@ -293,17 +293,6 @@ class TestStoppingPointFromRun(TestCase):
             == AutofixStoppingPoint.CODE_CHANGES.value
         )
 
-    def test_matches_runs_created_with_the_autofix_source(self) -> None:
-        self._create_run(
-            123,
-            extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value},
-            source="autofix",
-        )
-        assert (
-            _stopping_point_from_run(self.organization, 123)
-            == AutofixStoppingPoint.CODE_CHANGES.value
-        )
-
     def test_is_scoped_to_the_organization(self) -> None:
         self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
         assert _stopping_point_from_run(self.create_organization(), 123) is None
@@ -316,15 +305,8 @@ class TestStoppingPointFromRun(TestCase):
         )
         assert _stopping_point_from_run(self.organization, 123) is None
 
-    def test_group_and_referrer_returns_autofix_rca_context(self) -> None:
+    def test_group_and_referrer_returns_autofix_context(self) -> None:
         self._create_run(123, extras={"referrer": AutofixReferrer.WEB.value})
-        assert _group_and_referrer_from_run(self.organization, 123) == (
-            self.group.id,
-            AutofixReferrer.WEB,
-        )
-
-    def test_group_and_referrer_matches_the_autofix_source(self) -> None:
-        self._create_run(123, extras={"referrer": AutofixReferrer.WEB.value}, source="autofix")
         assert _group_and_referrer_from_run(self.organization, 123) == (
             self.group.id,
             AutofixReferrer.WEB,
@@ -340,8 +322,7 @@ class TestStoppingPointFromRun(TestCase):
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_state_metadata_takes_precedence_over_the_run_mirror(self, mock_trigger) -> None:
-        """A legacy run carries its own stopping point; the mirror must not override
-        it. Here state says stop at root cause while the mirror says continue."""
+        """State metadata takes precedence over the mirror's stopping point."""
         self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
         state = run_state(
             blocks=[root_cause_memory_block()],
