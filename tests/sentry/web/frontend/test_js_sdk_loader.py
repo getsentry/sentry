@@ -457,7 +457,20 @@ class JavaScriptSdkLoaderTest(TestCase):
     @mock.patch(
         "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
     )
-    def test_does_not_queue_configure_scope_from_v8_on(
+    def test_does_not_queue_configure_scope_from_v8_0_0_on(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for path in (self.path, self.min_path):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert b"configureScope" not in resp.content
+            assert b'"captureException"' in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.11.1"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
+    )
+    def test_does_not_queue_configure_scope_from_in_v8(
         self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
     ) -> None:
         for path in (self.path, self.min_path):
