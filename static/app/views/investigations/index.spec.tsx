@@ -94,7 +94,10 @@ describe('Explore Investigations', () => {
   });
 
   it('shows the feature-disabled state for a closed-membership organization', () => {
-    const listRequest = MockApiClient.addMockResponse({url: listUrl, body: []});
+    const listRequest = MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [],
+    });
 
     renderView({
       renderOrganization: OrganizationFixture({
@@ -128,11 +131,56 @@ describe('Explore Investigations', () => {
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
     ).toHaveAttribute('href', '/explore/investigations/1/');
-    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.queryByText('Blocks')).not.toBeInTheDocument();
+    expect(screen.queryByText('4')).not.toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.queryByText('All Projects')).not.toBeInTheDocument();
     expect(screen.queryByText('All Environments')).not.toBeInTheDocument();
+  });
+
+  it('shows compact agentic workflow progress in the status column', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          mode: 'agentic',
+          orchestration: {
+            phase: 'reporting',
+            status: 'processing',
+            heartbeatAt: '2026-08-13T21:00:00Z',
+            notebookRevision: 4,
+          },
+        }),
+      ],
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Building report')).toBeInTheDocument();
+    expect(screen.queryByText('Active')).not.toBeInTheDocument();
+  });
+
+  it('uses a human label when an investigation needs input', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          mode: 'agentic',
+          orchestration: {
+            phase: 'intake',
+            status: 'awaiting_input',
+            heartbeatAt: '2026-08-13T21:00:00Z',
+            notebookRevision: 0,
+          },
+        }),
+      ],
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Needs a prompt')).toBeInTheDocument();
+    expect(screen.queryByText('Intake · Awaiting input')).not.toBeInTheDocument();
   });
 
   it('renders the dashboard-style empty state', async () => {
@@ -167,7 +215,10 @@ describe('Explore Investigations', () => {
   });
 
   it('fetches the active list using URL search and cursor values', async () => {
-    const listRequest = MockApiClient.addMockResponse({url: listUrl, body: []});
+    const listRequest = MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [],
+    });
 
     renderView({query: {query: 'latency', cursor: '123:0:0'}});
     await screen.findByText('Sorry, no investigations match your filters.');
@@ -216,7 +267,9 @@ describe('Explore Investigations', () => {
 
     renderView();
     await userEvent.click(
-      await screen.findByRole('link', {name: 'Database latency investigation'})
+      await screen.findByRole('link', {
+        name: 'Database latency investigation',
+      })
     );
 
     await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(1));
@@ -254,7 +307,13 @@ describe('Explore Investigations', () => {
     await waitFor(() =>
       expect(createRequest).toHaveBeenCalledWith(
         listUrl,
-        expect.objectContaining({data: {title: 'Untitled investigation'}})
+        expect.objectContaining({
+          data: {
+            title: 'Untitled investigation',
+            mode: 'agentic',
+            source: {type: 'manual'},
+          },
+        })
       )
     );
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
@@ -405,7 +464,10 @@ describe('Explore Investigations', () => {
       url: listUrl,
       body: [
         InvestigationFixture(),
-        InvestigationFixture({id: '2', title: 'Database latency investigation copy'}),
+        InvestigationFixture({
+          id: '2',
+          title: 'Database latency investigation copy',
+        }),
       ],
     });
     await userEvent.click(

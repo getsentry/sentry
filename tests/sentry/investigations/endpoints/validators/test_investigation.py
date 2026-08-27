@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import uuid4
 
 from rest_framework import serializers
 
 from sentry.investigations.endpoints.validators import (
     InvestigationCreateValidator,
+    InvestigationOrchestrationCommandValidator,
     InvestigationUpdateValidator,
 )
 
@@ -99,6 +101,37 @@ class TestInvestigationCreateValidator:
 
         assert data["source"]["ref"] == {"openPeriodId": "1", "detectorId": "2"}
 
+    def test_accepts_an_extensible_agentic_source(self) -> None:
+        data = assert_valid(
+            InvestigationCreateValidator(
+                data={
+                    "mode": "agentic",
+                    "source": {
+                        "type": "breached_metric",
+                        "projectIds": [1],
+                        "seed": {"detector": {"id": "42"}},
+                        "futureContext": {"provider": "example"},
+                    },
+                }
+            )
+        )
+
+        assert data["mode"] == "agentic"
+        assert data["source"]["futureContext"] == {"provider": "example"}
+
+    def test_agentic_creation_rejects_template_fields(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={
+                "mode": "agentic",
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "source": {"type": "manual"},
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "templateKey" in validator.errors
+
 
 class TestInvestigationUpdateValidator:
     def test_accepts_a_status_change(self) -> None:
@@ -153,3 +186,55 @@ class TestFiltersMustBeAnObject:
         )
 
         assert validator.is_valid(), validator.errors
+
+
+class TestInvestigationOrchestrationCommandValidator:
+    def test_normalizes_a_discriminated_command(self) -> None:
+        request_id = uuid4()
+        data = assert_valid(
+            InvestigationOrchestrationCommandValidator(
+                data={
+                    "requestId": str(request_id),
+                    "expectedWorkflowVersion": 3,
+                    "command": {
+                        "type": "set_hypothesis_disposition",
+                        "hypothesisId": "hypothesis-1",
+                        "disposition": None,
+                    },
+                }
+            )
+        )
+
+        assert data == {
+            "request_id": request_id,
+            "expected_workflow_version": 3,
+            "command": {
+                "type": "set_hypothesis_disposition",
+                "hypothesis_id": "hypothesis-1",
+                "disposition": None,
+            },
+        }
+
+    def test_rejects_unknown_nested_fields(self) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel", "unexpected": True},
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "command" in validator.errors
+
+    def test_provide_input_requires_at_least_one_value(self) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "provide_input"},
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "command" in validator.errors

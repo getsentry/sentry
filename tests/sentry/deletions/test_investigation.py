@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.investigations.models import (
     Investigation,
@@ -7,6 +9,9 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationEvent,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
 )
@@ -27,6 +32,24 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
         )
         self.favorite = self.create_investigation_favorite(
             investigation=self.investigation, user=self.user
+        )
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            source={"type": "manual"},
+        )
+        self.orchestration_event = self.create_investigation_orchestration_event(
+            orchestration_run=self.orchestration_run,
+            event_id=uuid4(),
+            sequence=1,
+            type="broad_scan_started",
+        )
+        self.orchestration_command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="cancel",
         )
 
         self.parameter = self.create_investigation_parameter(
@@ -67,6 +90,15 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not Investigation.objects.filter(id=self.investigation.id).exists()
         assert not InvestigationProject.objects.filter(id=self.investigation_project.id).exists()
         assert not InvestigationFavoriteUser.objects.filter(id=self.favorite.id).exists()
+        assert not InvestigationOrchestrationRun.objects.filter(
+            id=self.orchestration_run.id
+        ).exists()
+        assert not InvestigationOrchestrationEvent.objects.filter(
+            id=self.orchestration_event.id
+        ).exists()
+        assert not InvestigationOrchestrationCommand.objects.filter(
+            id=self.orchestration_command.id
+        ).exists()
         assert not InvestigationParameter.objects.filter(id=self.parameter.id).exists()
         assert not InvestigationBlock.objects.filter(
             id__in=[self.block.id, self.upstream_block.id]

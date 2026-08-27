@@ -45,12 +45,15 @@ import {
   useSetInvestigationFavoriteMutation,
 } from 'sentry/views/investigations/api';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {
+  CompactInvestigationOrchestrationStatus,
+  isInvestigationOrchestrationSummaryActive,
+} from 'sentry/views/investigations/orchestrationStatus';
 import type {InvestigationListItem} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
 enum ColumnKey {
   NAME = 'title',
-  BLOCKS = 'blockCount',
   CREATED = 'dateCreated',
   STATUS = 'status',
   ACTIONS = 'actions',
@@ -58,7 +61,6 @@ enum ColumnKey {
 
 const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: ColumnKey.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-  {key: ColumnKey.BLOCKS, name: t('Blocks'), width: 116},
   {key: ColumnKey.CREATED, name: t('Created'), width: 160},
   {key: ColumnKey.STATUS, name: t('Status'), width: 160},
   {key: ColumnKey.ACTIONS, name: '', width: 40},
@@ -66,7 +68,7 @@ const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
 
 const TableWrapper = styled('div')`
   table {
-    grid-template-columns: max-content minmax(240px, 1fr) 116px 160px 160px max-content !important;
+    grid-template-columns: max-content minmax(240px, 1fr) 160px 160px max-content !important;
   }
 `;
 
@@ -118,8 +120,10 @@ function InvestigationsPage() {
     ...listOptions,
     select: selectJsonWithHeaders,
     refetchInterval: queryState =>
-      queryState.state.data?.json.some(item =>
-        ['pending', 'running'].includes(item.titleGeneration?.status ?? '')
+      queryState.state.data?.json.some(
+        item =>
+          ['pending', 'running'].includes(item.titleGeneration?.status ?? '') ||
+          isInvestigationOrchestrationSummaryActive(item.orchestration)
       )
         ? 2000
         : false,
@@ -237,12 +241,16 @@ function InvestigationsPage() {
             </Link>
           </Text>
         );
-      case ColumnKey.BLOCKS:
-        return investigation.blockCount;
       case ColumnKey.CREATED:
         return <TimeSince date={investigation.dateCreated} />;
       case ColumnKey.STATUS:
-        return investigation.status === 'active' ? t('Active') : null;
+        return investigation.orchestration ? (
+          <CompactInvestigationOrchestrationStatus
+            orchestration={investigation.orchestration}
+          />
+        ) : investigation.status === 'active' ? (
+          t('Active')
+        ) : null;
       case ColumnKey.ACTIONS:
         return renderActions(investigation);
       default:

@@ -114,6 +114,12 @@ describe('MetricDetectorTriggeredSection', () => {
         summary: 'Errors rose across releases',
         summaryDescription: 'All active releases increased together.',
         titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'completed',
+          status: 'completed',
+          heartbeatAt: '2024-01-01T00:05:00Z',
+          notebookRevision: 5,
+        },
       },
     });
     render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
@@ -127,6 +133,7 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(
       screen.getByText('All active releases increased together.')
     ).toBeInTheDocument();
+    expect(screen.getByText('Completed · Completed')).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
     ).toHaveAttribute('href', '/explore/investigations/4567/');
@@ -294,8 +301,7 @@ describe('MetricDetectorTriggeredSection', () => {
         expect.anything(),
         expect.objectContaining({
           data: {
-            templateKey: 'breached_metric',
-            templateVersion: 1,
+            mode: 'agentic',
             source: {
               type: 'metric_open_period',
               ref: {groupId: defaultGroup.id, openPeriodId: '101'},
@@ -312,7 +318,11 @@ describe('MetricDetectorTriggeredSection', () => {
       slug: 'org-slug',
       features: ['investigations'],
     });
-    const event = {...defaultEvent, id: 'unlinked-event', eventID: 'unlinked-event'};
+    const event = {
+      ...defaultEvent,
+      id: 'unlinked-event',
+      eventID: 'unlinked-event',
+    };
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
       body: [],

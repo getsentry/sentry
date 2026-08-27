@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.urls import reverse
 
 from sentry.investigations.models import (
+    InvestigationBlock,
     InvestigationBlockExecutionStatus,
     InvestigationBlockExecutor,
 )
@@ -58,6 +59,15 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
         )
         second.current_execution = execution
         second.save(update_fields=["current_execution"])
+        orchestration_run = self.create_investigation_orchestration_run(
+            investigation=source, source={"type": "manual"}
+        )
+        first.update(
+            orchestration_run=orchestration_run,
+            report_revision=1,
+            stable_agent_key="summary",
+            producing_seer_run_id=123,
+        )
         duplicate_url = reverse(
             "sentry-api-0-organization-investigation-duplicate",
             kwargs={
@@ -78,3 +88,8 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
         assert response.data["blocks"][1]["dependencies"] == [response.data["blocks"][0]["id"]]
         assert response.data["blocks"][1]["parameterKeys"] == ["environment"]
         assert all(block["outputStatus"] == "notRun" for block in response.data["blocks"])
+        copied_first = InvestigationBlock.objects.get(id=response.data["blocks"][0]["id"])
+        assert copied_first.orchestration_run_id is None
+        assert copied_first.report_revision is None
+        assert copied_first.stable_agent_key is None
+        assert copied_first.producing_seer_run_id is None

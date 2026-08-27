@@ -65,6 +65,30 @@ class InvestigationBlockSerializerTest(TestCase):
         assert result["outputStatus"] == "notRun"
         assert result["output"] is None
         assert result["currentExecution"] is None
+        assert result["stableAgentKey"] is None
+        assert result["reportProvenance"] is None
+
+    def test_exposes_agentic_stable_key_and_report_provenance(self) -> None:
+        run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            seer_run_id=123,
+            source={"type": "manual"},
+        )
+        self.block.update(
+            orchestration_run=run,
+            report_revision=4,
+            stable_agent_key="release-evidence",
+            producing_seer_run_id=456,
+        )
+
+        result = self.serialize_block()
+
+        assert result["stableAgentKey"] == "release-evidence"
+        assert result["reportProvenance"] == {
+            "orchestrationRunId": str(run.id),
+            "reportRevision": 4,
+            "producingSeerRunId": "456",
+        }
 
     def test_exposes_output_when_every_data_project_is_accessible(self) -> None:
         execution = self.completed_execution()

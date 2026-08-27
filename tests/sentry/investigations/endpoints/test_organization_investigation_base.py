@@ -88,7 +88,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
 
         assert response.status_code == 200
 
-    def test_detail_requires_result_project_access_but_list_remains_visible(self) -> None:
+    def test_detail_and_list_require_result_project_access(self) -> None:
         create_response = self.client.post(
             self.collection_url, data={"title": "Output"}, format="json"
         )

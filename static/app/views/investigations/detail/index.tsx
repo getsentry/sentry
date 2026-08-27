@@ -22,7 +22,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSeer, IconStack} from 'sentry/icons';
+import {IconAdd, IconClose, IconRefresh, IconStack} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -32,8 +32,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
+  getInvestigationOrchestrationPollInterval,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
+  isInvestigationOrchestrationNotFoundError,
+  shouldRetryInvestigationOrchestration,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -44,11 +48,18 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {
+  InvestigationOrchestrationWorkflow,
+  isInvestigationOrchestrationStale,
+  isOrchestrationTerminal,
+} from 'sentry/views/investigations/detail/orchestrationWorkflow';
+import {useOrchestrationCommands} from 'sentry/views/investigations/detail/useOrchestrationCommands';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
   InvestigationBlockKind,
   InvestigationDetail,
+  InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -92,6 +103,9 @@ function InvestigationBootstrapPage({investigationId}: {investigationId: string}
     ...detailOptions,
     refetchInterval: query => {
       const data = query.state.data?.json;
+      if (data?.mode === 'agentic') {
+        return false;
+      }
       return shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
@@ -124,10 +138,40 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
   const titleGenerationSettledFor = useRef<string | null>(null);
+  const polledNotebookRevision = useRef<{
+    investigationId: string;
+    revision: number;
+  } | null>(null);
+  const [notebookClearFence, setNotebookClearFence] = useState<{
+    investigationId: string;
+    revision: number;
+  } | null>(null);
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );
+  const orchestrationQuery = useQuery({
+    ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
+    enabled: investigation.mode === 'agentic',
+    retry: shouldRetryInvestigationOrchestration,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 10_000),
+    refetchInterval: query =>
+      getInvestigationOrchestrationPollInterval({
+        error: query.state.error,
+        failureCount: query.state.fetchFailureCount,
+        orchestration: query.state.data?.json,
+      }),
+  });
+  const {commandState, displayedOrchestration, hideNotebookBlocks, submitCommand} =
+    useOrchestrationCommands({
+      investigationId: investigation.id,
+      orchestration: orchestrationQuery.data,
+      organizationSlug: organization.slug,
+    });
+  const streamedAgenticTitle =
+    investigation.mode === 'agentic'
+      ? orchestrationQuery.data?.report.metadata.title
+      : null;
   const titleGenerationQuery = useQuery({
     ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
     enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
@@ -140,7 +184,115 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     isTitleGenerationActive(titleGenerationQuery.data?.status)
       ? titleGenerationQuery.data?.preview
       : null;
-  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const displayedTitle =
+    draftTitle ?? streamedAgenticTitle ?? generatedTitlePreview ?? investigation.title;
+
+  useEffect(() => {
+    if (
+      investigation.mode === 'agentic' &&
+      orchestrationQuery.data?.report.metadata.status === 'completed' &&
+      streamedAgenticTitle &&
+      draftTitle === null
+    ) {
+      persistedTitle.current = streamedAgenticTitle;
+    }
+  }, [
+    investigation.mode,
+    draftTitle,
+    orchestrationQuery.data?.report.metadata.status,
+    streamedAgenticTitle,
+  ]);
+
+  useEffect(() => {
+    const nextRevision = orchestrationQuery.data?.notebookRevision;
+    if (nextRevision === undefined) {
+      return;
+    }
+    const detailRevision = investigation.orchestration?.notebookRevision;
+    const previousRevision = polledNotebookRevision.current;
+    polledNotebookRevision.current = {
+      investigationId: investigation.id,
+      revision: nextRevision,
+    };
+    if (
+      (detailRevision !== undefined && detailRevision !== nextRevision) ||
+      (detailRevision === undefined &&
+        previousRevision?.investigationId === investigation.id &&
+        previousRevision.revision !== nextRevision)
+    ) {
+      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+    }
+  }, [
+    detailOptions.queryKey,
+    investigation.id,
+    investigation.orchestration?.notebookRevision,
+    orchestrationQuery.data?.notebookRevision,
+    queryClient,
+  ]);
+
+  useEffect(() => {
+    if (!hideNotebookBlocks) {
+      return;
+    }
+    setNotebookClearFence(current =>
+      current?.investigationId === investigation.id
+        ? current
+        : {
+            investigationId: investigation.id,
+            revision:
+              investigation.orchestration?.notebookRevision ??
+              orchestrationQuery.data?.notebookRevision ??
+              0,
+          }
+    );
+  }, [
+    hideNotebookBlocks,
+    investigation.id,
+    investigation.orchestration?.notebookRevision,
+    orchestrationQuery.data?.notebookRevision,
+  ]);
+
+  const detailNotebookRevision = investigation.orchestration?.notebookRevision;
+  const orchestrationNotebookRevision = orchestrationQuery.data?.notebookRevision;
+  const notebookRevisionMismatch =
+    investigation.mode === 'agentic' &&
+    detailNotebookRevision !== undefined &&
+    orchestrationNotebookRevision !== undefined &&
+    detailNotebookRevision !== orchestrationNotebookRevision;
+  const notebookClearObserved =
+    notebookClearFence?.investigationId === investigation.id &&
+    ((detailNotebookRevision !== undefined &&
+      detailNotebookRevision > notebookClearFence.revision) ||
+      (detailNotebookRevision === undefined &&
+        orchestrationNotebookRevision !== undefined &&
+        orchestrationNotebookRevision > notebookClearFence.revision &&
+        (investigation.blocks ?? []).every(
+          block =>
+            !block.reportProvenance ||
+            block.reportProvenance.reportRevision ===
+              displayedOrchestration?.report.revision
+        )));
+
+  useEffect(() => {
+    if (notebookClearFence?.investigationId !== investigation.id) {
+      return;
+    }
+    const invalidationFailedBeforeClear =
+      Boolean(commandState.error) &&
+      !hideNotebookBlocks &&
+      (orchestrationNotebookRevision ?? notebookClearFence.revision) <=
+        notebookClearFence.revision;
+    if (notebookClearObserved || invalidationFailedBeforeClear) {
+      setNotebookClearFence(null);
+    }
+  }, [
+    commandState.error,
+    hideNotebookBlocks,
+    investigation.id,
+    notebookClearFence,
+    notebookClearObserved,
+    orchestrationNotebookRevision,
+  ]);
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -177,7 +329,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       onSuccess: updated => {
         persistedTitle.current = updated.title;
       },
-      onError: () => addErrorMessage(t('Unable to rename investigation.')),
+      onError: (_error, attemptedTitle) => {
+        addErrorMessage(t('Unable to rename investigation.'));
+        setDraftTitle(current =>
+          current?.trim() === attemptedTitle ? persistedTitle.current : current
+        );
+        updateInvestigationCache(
+          queryClient,
+          organization.slug,
+          investigation.id,
+          current =>
+            current.title === attemptedTitle
+              ? {...current, title: persistedTitle.current}
+              : current
+        );
+      },
     }
   );
   const renameDebouncer = useDebouncer(
@@ -262,7 +428,16 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   const blocks = investigation.blocks ?? [];
-  const summaryBlock = investigation.template ? blocks[0] : undefined;
+  const failedBlock = blocks.find(block => block.currentExecution?.status === 'failed');
+  const hasFailureCancellation = blocks.some(
+    block =>
+      block.currentExecution?.status === 'cancelled' &&
+      block.currentExecution.error?.code === 'investigation_execution_failed'
+  );
+  const investigationExecutionFailed =
+    investigation.mode === 'agentic' && Boolean(failedBlock || hasFailureCancellation);
+  const summaryBlock =
+    investigation.mode !== 'agentic' && investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
   const visibleSummaryBlock =
     summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
@@ -271,6 +446,58 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleNotebookCells = notebookCells.filter(block =>
     shouldDisplayInvestigationBlock(block, blocks)
   );
+  const shouldHideNotebookBlocks =
+    (investigation.mode === 'agentic' && orchestrationQuery.isPending) ||
+    notebookRevisionMismatch ||
+    hideNotebookBlocks ||
+    Boolean(
+      notebookClearFence?.investigationId === investigation.id && !notebookClearObserved
+    );
+  const agenticReport =
+    investigation.mode === 'agentic' && displayedOrchestration
+      ? {
+          commandState,
+          currentBlockKey: displayedOrchestration.report.currentBlockKey,
+          currentBlockStatus: displayedOrchestration.report.currentBlockStatus,
+          onCommand: submitCommand,
+          reportStatus: displayedOrchestration.report.status,
+        }
+      : undefined;
+  const orchestrationStale = displayedOrchestration
+    ? isInvestigationOrchestrationStale(displayedOrchestration)
+    : false;
+  const orchestrationProgress = displayedOrchestration
+    ? getOrchestrationProgressLabel(displayedOrchestration)
+    : formatStatus(investigation.status);
+  const retryOrchestrationTarget = displayedOrchestration
+    ? ['failed', 'partial_failed'].includes(displayedOrchestration.report.status) ||
+      ['failed', 'stalled', 'reauth_required'].includes(
+        displayedOrchestration.report.currentBlockStatus ?? ''
+      )
+      ? 'report'
+      : 'run'
+    : 'run';
+  const canRetryOrchestration = Boolean(
+    displayedOrchestration &&
+    (orchestrationStale ||
+      displayedOrchestration.status === 'failed' ||
+      retryOrchestrationTarget === 'report' ||
+      ['failed', 'stalled', 'cancelled', 'reauth_required'].includes(
+        displayedOrchestration.broadScan.status
+      ))
+  );
+  const orchestrationMetadata = displayedOrchestration
+    ? orchestrationStale
+      ? t(
+          '%s. Investigation progress has not updated for two minutes. Retry the investigation to reconnect and continue.',
+          orchestrationProgress
+        )
+      : t('%s.', orchestrationProgress)
+    : t(
+        '%s. Last updated %s.',
+        formatStatus(investigation.status),
+        formatNotebookDate(investigation.dateUpdated)
+      );
 
   async function handleAddBlock({
     kind,
@@ -365,15 +592,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 maxLength={200}
                 aria-busy={renameMutation.isPending}
               />
-              <Flex align="center" gap="sm" wrap="wrap">
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
-                <MetaDivider />
-                <Text variant="muted">{t('%s blocks', investigation.blockCount)}</Text>
-                <MetaDivider />
-                <Text variant="muted">
-                  {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
-                </Text>
-              </Flex>
+              <Text variant={orchestrationStale ? 'warning' : 'muted'}>
+                {orchestrationMetadata}
+              </Text>
             </Stack>
             <Flex align="center" gap="sm">
               <FeedbackButton
@@ -393,41 +614,120 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               >
                 {t('Give feedback')}
               </FeedbackButton>
-              <Badge variant={getStatusVariant(investigation.status)}>
-                {formatStatus(investigation.status)}
+              <Badge
+                variant={
+                  orchestrationStale
+                    ? 'warning'
+                    : getStatusVariant(
+                        displayedOrchestration?.status ?? investigation.status
+                      )
+                }
+              >
+                {orchestrationProgress}
               </Badge>
-              <IconSeer size="sm" />
+              {canRetryOrchestration ? (
+                <Button
+                  size="xs"
+                  variant="transparent"
+                  aria-label={t('Retry investigation')}
+                  busy={
+                    commandState.pendingTarget ===
+                    (retryOrchestrationTarget === 'report' ? 'report-action' : 'run')
+                  }
+                  disabled={commandState.isPending}
+                  icon={<IconRefresh />}
+                  onClick={() =>
+                    submitCommand(
+                      {type: 'retry', target: retryOrchestrationTarget},
+                      retryOrchestrationTarget === 'report' ? 'report-action' : 'run'
+                    )
+                  }
+                />
+              ) : null}
+              {displayedOrchestration &&
+              !isOrchestrationTerminal(displayedOrchestration.status) ? (
+                <Button
+                  size="xs"
+                  variant="transparent"
+                  aria-label={t('Cancel investigation')}
+                  busy={commandState.pendingTarget === 'cancel'}
+                  disabled={commandState.isPending}
+                  icon={<IconClose />}
+                  onClick={() =>
+                    submitCommand(
+                      {type: 'cancel', reason: t('Cancelled by the user')},
+                      'cancel'
+                    )
+                  }
+                />
+              ) : null}
             </Flex>
           </Grid>
         </InvestigationHeader>
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
-              <NotebookSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
+              {investigationExecutionFailed ? (
+                <InvestigationFailureAlert data-test-id="investigation-execution-failed">
+                  <Alert variant="danger">
+                    <strong>
+                      {failedBlock
+                        ? t('%s failed.', failedBlock.title || t('A cell'))
+                        : t('The investigation failed.')}
+                    </strong>{' '}
+                    {failedBlock?.currentExecution?.error?.message ||
+                      t('The agent run failed.')}{' '}
+                    {t(
+                      'The investigation was stopped and remaining cells were cancelled.'
+                    )}
+                  </Alert>
+                </InvestigationFailureAlert>
+              ) : null}
+              {displayedOrchestration ? (
+                <Container paddingBottom="xl">
+                  <InvestigationOrchestrationWorkflow
+                    commandState={commandState}
+                    onCommand={submitCommand}
+                    orchestration={displayedOrchestration}
+                  />
+                </Container>
+              ) : orchestrationQuery.isError &&
+                !isInvestigationOrchestrationNotFoundError(orchestrationQuery.error) ? (
+                <InvestigationFailureAlert>
+                  <Alert variant="danger">
+                    {t('Unable to load investigation progress.')}
+                  </Alert>
+                </InvestigationFailureAlert>
+              ) : null}
+              {shouldHideNotebookBlocks ? null : (
+                <NotebookSummaryCard
+                  summary={investigation.summary}
+                  summaryDescription={investigation.summaryDescription}
+                />
+              )}
 
-              <Stack width="min(100%, 884px)" margin="0 auto">
-                {visibleSummaryBlock ? (
+              <Stack width="min(100%, 884px)" margin="0 auto" gap="0">
+                {!shouldHideNotebookBlocks && visibleSummaryBlock ? (
                   <InvestigationCell
                     block={visibleSummaryBlock}
                     canRun={investigation.status === 'active'}
                     investigation={investigation}
+                    agenticReport={agenticReport}
                   />
                 ) : null}
 
                 <Stack gap="xl">
-                  {visibleNotebookCells.map(block => (
+                  {(shouldHideNotebookBlocks ? [] : visibleNotebookCells).map(block => (
                     <InvestigationCell
                       key={block.id}
                       block={block}
                       canRun={investigation.status === 'active'}
                       investigation={investigation}
+                      agenticReport={agenticReport}
                     />
                   ))}
                 </Stack>
-                {investigation.status === 'active' ? (
+                {investigation.status === 'active' && investigation.mode !== 'agentic' ? (
                   <AddCellComposer
                     isAdding={addBlockMutation.isPending}
                     onAdd={handleAddBlock}
@@ -544,16 +844,6 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   );
 }
 
-function formatSourceType(sourceType: string) {
-  if (sourceType === 'metric_open_period') {
-    return t('Breached metric');
-  }
-  if (sourceType === 'manual') {
-    return t('Manual investigation');
-  }
-  return sourceType.replaceAll('_', ' ');
-}
-
 function formatStatus(status: string) {
   if (status === 'active') {
     return t('Active');
@@ -565,14 +855,61 @@ function formatNotebookDate(date: string) {
   return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
 
-function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
+function getStatusVariant(
+  status: string
+): 'danger' | 'info' | 'success' | 'warning' | 'muted' {
   if (status === 'completed' || status === 'active') {
     return 'success';
   }
-  if (status === 'pending') {
+  if (['failed', 'cancelled'].includes(status)) {
+    return 'danger';
+  }
+  if (['pending', 'awaiting_input', 'stalled', 'reauth_required'].includes(status)) {
     return 'warning';
   }
+  if (['processing', 'running'].includes(status)) {
+    return 'info';
+  }
   return 'muted';
+}
+
+function getOrchestrationProgressLabel(orchestration: InvestigationOrchestration) {
+  if (orchestration.status === 'awaiting_input' || orchestration.pendingInput) {
+    return t('Waiting for your prompt');
+  }
+  if (orchestration.status === 'failed') {
+    return t('Investigation failed');
+  }
+  if (orchestration.status === 'cancelled') {
+    return t('Investigation cancelled');
+  }
+  if (orchestration.status === 'completed') {
+    return t('Investigation complete');
+  }
+
+  const hypotheses = orchestration.hypotheses;
+  const settledHypotheses = hypotheses.filter(hypothesis =>
+    ['supported', 'refuted', 'inconclusive', 'accepted', 'rejected'].includes(
+      hypothesis.effectiveStatus
+    )
+  ).length;
+
+  if (['intake', 'broad_scan', 'planning'].includes(orchestration.phase)) {
+    return t('Creating hypotheses');
+  }
+  if (orchestration.phase === 'investigating') {
+    return t('Verifying %s/%s hypotheses', settledHypotheses, hypotheses.length);
+  }
+  if (orchestration.phase === 'judging') {
+    return t('Evaluating %s/%s hypotheses', settledHypotheses, hypotheses.length);
+  }
+  if (orchestration.phase === 'reporting') {
+    return t('Building report');
+  }
+  if (orchestration.phase === 'metadata') {
+    return t('Finalizing investigation');
+  }
+  return formatStatus(orchestration.phase);
 }
 
 const InvestigationCanvas = styled(Stack)`
@@ -597,6 +934,10 @@ const NotebookSummaryCard = styled(InvestigationSummaryCard)`
   width: 100%;
   margin-bottom: ${p => p.theme.space.xl};
   padding-inline: ${p => p.theme.space.xl};
+`;
+
+const InvestigationFailureAlert = styled(Alert.Container)`
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`
@@ -652,11 +993,6 @@ const NotebookTitleInput = styled(Input)`
     background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.tokens.border.primary};
   }
-`;
-
-const MetaDivider = styled('span')`
-  height: 16px;
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AddCellActions = styled(Flex)`

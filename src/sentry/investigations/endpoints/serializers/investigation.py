@@ -23,6 +23,7 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
     InvestigationSourceType,
@@ -51,6 +52,13 @@ class InvestigationTitleGenerationSerializerResponse(TypedDict):
     status: str | None
 
 
+class InvestigationOrchestrationSerializerResponse(TypedDict):
+    phase: str
+    status: str
+    heartbeatAt: datetime | None
+    notebookRevision: int
+
+
 class InvestigationSerializerResponse(TypedDict):
     id: str
     title: str
@@ -58,6 +66,7 @@ class InvestigationSerializerResponse(TypedDict):
     summaryDescription: str | None
     status: str
     sourceType: str
+    mode: str
     createdBy: str | None
     dateCreated: datetime
     dateUpdated: datetime
@@ -65,6 +74,7 @@ class InvestigationSerializerResponse(TypedDict):
     blockCount: int
     isFavorited: bool
     titleGeneration: InvestigationTitleGenerationSerializerResponse
+    orchestration: InvestigationOrchestrationSerializerResponse | None
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -109,11 +119,39 @@ class InvestigationSerializer(Serializer):
             else set()
         )
 
+        orchestration_by_investigation = {
+            investigation_id: {
+                "phase": phase,
+                "status": status,
+                "heartbeatAt": heartbeat_at,
+                "notebookRevision": notebook_revision,
+            }
+            for investigation_id, phase, status, heartbeat_at, notebook_revision in (
+                InvestigationOrchestrationRun.objects.filter(
+                    investigation__in=item_list
+                ).values_list(
+                    "investigation_id",
+                    "phase",
+                    "status",
+                    "heartbeat_at",
+                    "notebook_revision",
+                )
+            )
+        }
+
         return {
             investigation: {
                 "block_count": block_counts.get(investigation.id, 0),
                 "is_favorited": investigation.id in favorited_ids,
                 "summary_visible": investigation.id in summary_visible_ids,
+                "mode": (
+                    "agentic"
+                    if investigation.id in orchestration_by_investigation
+                    else "template"
+                    if investigation.template_key is not None
+                    else "manual"
+                ),
+                "orchestration": orchestration_by_investigation.get(investigation.id),
             }
             for investigation in item_list
         }
@@ -135,6 +173,7 @@ class InvestigationSerializer(Serializer):
             "summaryDescription": obj.summary_description if summary_visible else None,
             "status": obj.status,
             "sourceType": source.get("type", InvestigationSourceType.MANUAL),
+            "mode": attrs["mode"],
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -142,6 +181,7 @@ class InvestigationSerializer(Serializer):
             "blockCount": attrs["block_count"],
             "isFavorited": attrs["is_favorited"],
             "titleGeneration": {"status": obj.title_generation_status},
+            "orchestration": attrs["orchestration"],
         }
 
 

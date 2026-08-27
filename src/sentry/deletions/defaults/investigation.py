@@ -14,9 +14,30 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationEvent,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
 )
+
+
+class InvestigationOrchestrationRunDeletionTask(ModelDeletionTask[InvestigationOrchestrationRun]):
+    mark_in_progress_default = False
+
+    def get_child_relations(self, instance: InvestigationOrchestrationRun) -> list[BaseRelation]:
+        return [
+            ModelRelation(
+                InvestigationOrchestrationEvent,
+                {"orchestration_run_id": instance.id},
+                BulkModelDeletionTask,
+            ),
+            ModelRelation(
+                InvestigationOrchestrationCommand,
+                {"orchestration_run_id": instance.id},
+                BulkModelDeletionTask,
+            ),
+        ]
 
 
 class InvestigationBlockExecutionDeletionTask(ModelDeletionTask[InvestigationBlockExecution]):
@@ -62,5 +83,10 @@ class InvestigationDeletionTask(ModelDeletionTask[Investigation]):
             ModelRelation(InvestigationBlock, {"investigation_id": instance.id}),
             ModelRelation(
                 InvestigationParameter, {"investigation_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(
+                InvestigationOrchestrationRun,
+                {"investigation_id": instance.id},
+                InvestigationOrchestrationRunDeletionTask,
             ),
         ]

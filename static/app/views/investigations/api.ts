@@ -7,6 +7,7 @@ import {
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {
   InvestigationCandidate,
   InvestigationBlock,
@@ -15,6 +16,9 @@ import type {
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationListItem,
+  InvestigationOrchestration,
+  InvestigationOrchestrationCommandResponse,
+  InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
@@ -95,6 +99,107 @@ export function investigationTitleGenerationQueryOptions(
       staleTime: 0,
     }
   );
+}
+
+export function investigationOrchestrationQueryOptions(
+  organizationSlug: string,
+  investigationId: string
+) {
+  return apiOptions.as<InvestigationOrchestration>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
+      },
+      staleTime: 0,
+    }
+  );
+}
+
+export function useInvestigationOrchestrationCommandMutation(
+  organizationSlug: string,
+  investigationId: string
+) {
+  const queryClient = useQueryClient();
+  const orchestrationOptions = investigationOrchestrationQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    scope: {id: `investigation-orchestration-command-${investigationId}`},
+    mutationFn: (variables: InvestigationOrchestrationCommandVariables) =>
+      fetchMutation<InvestigationOrchestrationCommandResponse>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/orchestration/commands/`,
+        method: 'POST',
+        data: variables,
+      }),
+    retry: (failureCount, error) =>
+      isTransientInvestigationOrchestrationError(error) && failureCount < 1,
+    onSuccess: response => {
+      queryClient.setQueryData(orchestrationOptions.queryKey, current => ({
+        headers: current?.headers ?? {},
+        json: response.projection,
+      }));
+    },
+    onError: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: orchestrationOptions.queryKey,
+      });
+    },
+  });
+}
+
+export function getInvestigationOrchestrationPollInterval({
+  error,
+  failureCount,
+  orchestration,
+}: {
+  error: unknown;
+  failureCount: number;
+  orchestration: InvestigationOrchestration | undefined;
+}) {
+  if (isInvestigationOrchestrationNotFoundError(error)) {
+    return false;
+  }
+  if (error && isTransientInvestigationOrchestrationError(error)) {
+    return Math.min(2000 * 2 ** Math.max(failureCount, 1), 30_000);
+  }
+  return orchestration && !isInvestigationOrchestrationTerminal(orchestration.status)
+    ? 2000
+    : false;
+}
+
+export function shouldRetryInvestigationOrchestration(
+  failureCount: number,
+  error: unknown
+) {
+  return (
+    !isInvestigationOrchestrationNotFoundError(error) &&
+    isTransientInvestigationOrchestrationError(error) &&
+    failureCount < 2
+  );
+}
+
+export function isInvestigationOrchestrationNotFoundError(error: unknown) {
+  return error instanceof RequestError && error.status === 404;
+}
+
+export function isInvestigationOrchestrationConflictError(error: unknown) {
+  return error instanceof RequestError && error.status === 409;
+}
+
+function isTransientInvestigationOrchestrationError(error: unknown) {
+  return (
+    !(error instanceof RequestError) || error.status === undefined || error.status >= 500
+  );
+}
+
+function isInvestigationOrchestrationTerminal(
+  status: InvestigationOrchestration['status']
+) {
+  return ['completed', 'failed', 'cancelled'].includes(status);
 }
 
 export function investigationCandidatesQueryOptions({
@@ -209,7 +314,11 @@ export function useCreateInvestigationMutation(
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
-        data: {title: 'Untitled investigation'},
+        data: {
+          title: 'Untitled investigation',
+          mode: 'agentic',
+          source: {type: 'manual'},
+        },
       }),
     options
   );
@@ -228,8 +337,7 @@ export function useLaunchInvestigationMutation(
         }),
         method: 'POST',
         data: {
-          templateKey: 'breached_metric',
-          templateVersion: 1,
+          mode: 'agentic',
           source,
         },
       }),

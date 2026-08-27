@@ -160,6 +160,49 @@
     ]
   },
   {
+    "name": "actor",
+    "description": "Backward-compatible alias for the `user` embed. Mention a Sentry user or team inline using the actor type, ID, and display name.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": ["user", "team"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["id", "type", "name"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "User",
+        "data": {
+          "id": "1",
+          "type": "user",
+          "name": "Jane Doe"
+        }
+      },
+      {
+        "label": "Team",
+        "data": {
+          "id": "2",
+          "type": "team",
+          "name": "platform"
+        }
+      }
+    ]
+  },
+  {
     "name": "issue",
     "description": "The ONLY way to reference a Sentry issue. Requires the issue short ID (e.g. \"PROJECT-123\"). Inline: renders a compact link with the short id. Block: renders a full interactive issue row with title, events, users, assignee, and trend graph — do NOT duplicate any of that data as text. MUST NOT appear inside a markdown table or list. When referencing 2+ issues, use the `issues` embed instead. Never use `docs` or markdown links for issue references.",
     "level": ["inline", "block"],
@@ -217,26 +260,75 @@
     ]
   },
   {
+    "name": "event",
+    "description": "Display one immutable Sentry event as evidence. Prefer event_id. If only issue_id is available, the UI explicitly resolves and labels the latest event for that issue.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issue_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Event",
+        "data": {
+          "event_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      {
+        "label": "Latest issue event",
+        "data": {
+          "issue_id": "123456789"
+        }
+      }
+    ]
+  },
+  {
     "name": "replay",
     "description": "The ONLY way to reference a Sentry Session Replay. Use the replay ID, not the legacy project-slug:replay-id form. Provide eventTimestamp as an ISO 8601 timestamp with a timezone offset (for example, Z or +00:00) when the replay should open around a relevant event. Inline: renders a compact link. Block: renders a standalone replay reference. Never use a markdown link for replay references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "eventTimestamp": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+              "description": "ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
         },
-        "eventTimestamp": {
-          "type": "string",
-          "format": "date-time",
-          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-          "description": "ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)"
+        {
+          "type": "object",
+          "properties": {
+            "replay_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["replay_id"],
+          "additionalProperties": false
         }
-      },
-      "required": ["id"],
-      "additionalProperties": false
+      ]
     },
     "examples": [
       {
@@ -595,24 +687,43 @@
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "type": "object",
-      "properties": {
-        "traceId": {
-          "type": "string",
-          "minLength": 1
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "traceId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "spanId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["traceId"],
+          "additionalProperties": false
         },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-        },
-        "spanId": {
-          "type": "string",
-          "minLength": 1
+        {
+          "type": "object",
+          "properties": {
+            "trace_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "span_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["trace_id"],
+          "additionalProperties": false
         }
-      },
-      "required": ["traceId"],
-      "additionalProperties": false
+      ]
     },
     "examples": [
       {
@@ -630,19 +741,38 @@
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "type": "object",
-      "properties": {
-        "projectSlug": {
-          "type": "string",
-          "minLength": 1
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "projectSlug": {
+              "type": "string",
+              "minLength": 1
+            },
+            "profileId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["projectSlug", "profileId"],
+          "additionalProperties": false
         },
-        "profileId": {
-          "type": "string",
-          "minLength": 1
+        {
+          "type": "object",
+          "properties": {
+            "profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "project_slug": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["profile_id"],
+          "additionalProperties": false
         }
-      },
-      "required": ["projectSlug", "profileId"],
-      "additionalProperties": false
+      ]
     },
     "examples": [
       {
