@@ -9,11 +9,11 @@ const FILE_PATH_PROPERTIES = new Set(['fileName', 'filePath']);
 
 type Contextify = LoaderContext['utils']['contextify'];
 
-export function isDocumentedProp(prop: {name: string}): boolean {
+function isDocumentedProp(prop: {name: string}): boolean {
   return !TYPESCRIPT_SYNTHETIC_PROPERTY.test(prop.name);
 }
 
-export function serializeTypeLoaderResult(
+function serializeTypeLoaderResult(
   result: TypeLoader.TypeLoaderResult,
   rootContext: string,
   contextify: Contextify
@@ -129,7 +129,7 @@ export default function typeLoader(this: LoaderContext): string {
 }
 
 // Convert the resource path to the canonical import shown in API docs.
-export function extractRequest(
+function extractRequest(
   resourcePath: string,
   rootContext: string,
   contextify: Contextify
