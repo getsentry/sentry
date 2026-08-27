@@ -198,17 +198,20 @@ def _process_batch(
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         return len(entries) == batch_size
 
+    # QuerySet.update bypasses auto_now, so stamp date_updated explicitly.
+    now = timezone.now()
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
         & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
         & (Q(pipeline_hash=derived.pipeline_hash) | Q(pipeline_hash__isnull=True))
-    ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
+    ).update(cursor_date=last_date, cursor_id=last_id, date_updated=now, **state_update)
 
     if updated:
         if derived_metrics is not None:
             derived_metrics.report_batch_processed(entries, result)
         derived.cursor_date = last_date
         derived.cursor_id = last_id
+        derived.date_updated = now
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         logger.info(
             "issues.derived.processed",
@@ -413,7 +416,10 @@ def invalidate_group_derived_data(
         # Bumping ``generated_at`` reuses ``promote_to_live``'s SUPERSEDED
         # CAS path — pre-invalidation snapshots can't win over the null-hash
         # row.
-        affected = qs.update(pipeline_hash=None, generated_at=timezone.now())
+        # QuerySet.update bypasses auto_now, so stamp date_updated explicitly.
+        affected = qs.update(
+            pipeline_hash=None, generated_at=timezone.now(), date_updated=timezone.now()
+        )
     else:
         affected, _ = qs.delete()
 
