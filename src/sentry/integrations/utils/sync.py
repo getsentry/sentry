@@ -82,22 +82,6 @@ def _get_affected_groups(
 
 
 @contextmanager
-def _ordered_against_concurrent_deliveries(event_updated_at: datetime | None) -> Iterator[None]:
-    """
-    Open the transaction the issue row locks are held for.
-
-    Only when there is a provider timestamp to order by: without one the guard is inert, so
-    there is nothing to serialize and no reason to take locks a payload cannot benefit from.
-    """
-    if event_updated_at is None:
-        yield
-        return
-
-    with transaction.atomic(router.db_for_write(ExternalIssue)):
-        yield
-
-
-@contextmanager
 def _ordered_assignment(
     integration: RpcIntegration | Integration,
     external_issue_key: str | None,
@@ -107,21 +91,24 @@ def _ordered_assignment(
     """
     Yield the groups this event still wins, with their issue rows locked, then watermark it.
 
-    The body must be cell-local. Everything that needs a cross-silo lookup — the affected
-    groups, the users to assign — has to be resolved before entering, because a hybrid
-    cloud RPC issued inside a transaction is a banned pattern (and holding row locks across
-    a network round trip is what makes it one).
+    The body must be cell-local: a hybrid cloud RPC inside a transaction is a banned
+    pattern, so cross-silo lookups have to be resolved before entering. The watermark is
+    advanced only after the body returns, so a body that raises leaves both the assignment
+    and the watermark untouched and the delivery retryable.
 
-    The watermark is advanced only after the body returns, so a body that raises leaves
-    both the assignment and the watermark untouched and the delivery retryable.
+    Without a provider timestamp the guard is inert and no transaction is opened.
     """
-    with _ordered_against_concurrent_deliveries(event_updated_at):
+    if event_updated_at is None:
+        yield groups
+        return
+
+    with transaction.atomic(router.db_for_write(ExternalIssue)):
         fresh_groups = _drop_stale_groups(integration, external_issue_key, groups, event_updated_at)
 
         yield fresh_groups
 
-        # Every group here belongs to an issue this event has now been processed for, even
-        # if no assignee could be resolved for it — an older event must not undo that.
+        # Watermark every fresh group, even ones with no resolvable assignee — the event
+        # has been processed for them and an older event must not undo that.
         record_provider_assignee_updated_at(
             integration,
             external_issue_key,
@@ -139,13 +126,8 @@ def _drop_stale_groups(
     """
     Lock this issue's rows and drop the groups a newer assignment change already covers.
 
-    Webhook delivery is not ordered, so a retried or reordered delivery can arrive after
-    the change that superseded it. Every provider sends the issue's full assignee snapshot,
-    so applying a late one would quietly restore a stale assignee.
-
-    The locks taken here are held for the rest of the enclosing transaction, which is what
-    stops a concurrent delivery for the same issue from interleaving between this check and
-    the assignment it guards.
+    Webhook delivery is not ordered, and payloads carry the full assignee snapshot, so
+    applying a late delivery would quietly restore a stale assignee.
     """
     stale_organization_ids = lock_and_get_stale_organization_ids(
         integration,

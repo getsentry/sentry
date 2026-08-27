@@ -33,13 +33,8 @@ def _get_client(integration: RpcIntegration) -> JiraCloudClient:
 
 
 def changelog_items(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    """
-    The changelog entries in a `jira:issue_updated` payload, or none if it carries no usable
-    ones.
-
-    The endpoint admits any truthy `changelog`, which does not guarantee an `items` key —
-    an assumption the endpoint's own diagnostic logging already declines to make.
-    """
+    """The changelog entries in a `jira:issue_updated` payload; a changelog without an
+    `items` key is valid and yields an empty list."""
     changelog = data.get("changelog") or {}
     items = changelog.get("items")
     return items if isinstance(items, list) else []
@@ -82,9 +77,7 @@ def handle_assignee_change(
     # If there is no assignee, assume it was unassigned.
     fields = data["issue"]["fields"]
     assignee = fields.get("assignee")
-    # `assignee` is a snapshot of the issue's current assignee, only the newest state if it
-    # is applied last. For an assignee change this is when the change happened; it orders
-    # deliveries.
+    # Jira's own timestamp for the change, used to drop out-of-order deliveries.
     updated = fields.get("updated")
 
     if assignee is None:
@@ -130,7 +123,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
             logger.info("jira.missing-changelog-status", extra=log_context)
             return
 
-        # For a status transition this is when the transition happened; orders deliveries.
+        # Jira's own timestamp for the transition, used to drop out-of-order deliveries.
         updated = (data["issue"].get("fields") or {}).get("updated")
 
         result = integration_service.organization_contexts(integration_id=integration.id)

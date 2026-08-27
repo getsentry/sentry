@@ -243,10 +243,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 )
 
             # Deferred for the same reasons `assign` defers `issue_assigned`: the receiver
-            # produces a group-attributes snapshot, which must not be published for a
-            # transaction that goes on to roll back, and must not run its reads and its
-            # Kafka (or, off Kafka, synchronous Snuba) write while a caller holds a row
-            # lock. Its snapshot is built from committed state either way.
+            # publishes a snapshot, which must not happen for a transaction that may still
+            # roll back, nor while a caller holds row locks.
             transaction.on_commit(
                 lambda: issue_unassigned.send_robust(
                     project=group.project, group=group, user=acting_user, sender=self.__class__

@@ -958,9 +958,8 @@ class IssuesEventWebhook(GitHubWebhook):
 
         When switching assignees, GitHub sends two webhooks (assigned and unassigned) in
         non-deterministic order. To avoid race conditions, we sync based on the current
-        state in issue.assignees rather than the delta in the assignee field. That snapshot
-        is only the newest state if it is applied last, so `issue.updated_at` — GitHub's
-        own timestamp for the change — is passed along to order deliveries.
+        state in issue.assignees rather than the delta in the assignee field, and pass
+        `issue.updated_at` along so stale deliveries can be dropped.
 
         Args:
             integration: The GitHub integration

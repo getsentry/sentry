@@ -270,9 +270,8 @@ class IssuesEventWebhook(GitlabWebhook):
         Handle issue assignment and unassignment events.
 
         GitLab sends webhooks with the current assignees array, so we sync based on
-        the current state to avoid race conditions. That snapshot is only the newest state
-        if it is applied last, so `object_attributes.updated_at` — GitLab's own timestamp
-        for the change — is passed along to order deliveries.
+        the current state to avoid race conditions, and pass `object_attributes.updated_at`
+        along so stale deliveries can be dropped.
         """
         assignees = event.get("assignees", [])
         updated_at = event.get("object_attributes", {}).get("updated_at")

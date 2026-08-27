@@ -18,13 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_provider_event_time(raw: str | None) -> datetime | None:
-    """
-    Read the provider's own timestamp for an assignment change, or None if it gave us none.
-
-    Each webhook handler passes its provider's field for this (`issue.updated_at`,
-    `object_attributes.updated_at`, `issue.fields.updated`) so the sync stays free of
-    per-provider payload shapes.
-    """
+    """Parse the provider's own timestamp for an assignment change, or None if it gave us none."""
     if not isinstance(raw, str) or not raw.strip():
         return None
 
@@ -46,27 +40,14 @@ def lock_and_get_stale_organization_ids(
     """
     Lock this issue's rows and return the organizations already past ``event_updated_at``.
 
-    Must be called inside a transaction, and the caller must finish its assignment work and
-    its watermark write before that transaction commits. The lock is what makes
-    check-then-assign atomic against a concurrent delivery for the same issue: without it
-    both deliveries read the pre-write watermark and both pass the check, so the older
-    one's assignment can land last while its own watermark write is correctly rejected,
-    leaving the stored assignee and the watermark permanently disagreeing. Contention is
-    per issue, between deliveries that have to serialize anyway.
+    Must be called inside a transaction; the lock is held until commit so a concurrent
+    delivery for the same issue cannot interleave between this check and the caller's
+    assignment write. All candidate rows are locked (in ``id`` order, to avoid deadlocks),
+    since the rows that pass the check are the ones about to be written.
 
-    Every candidate row is locked, not only the stale ones — the rows that pass the check
-    are precisely the ones the caller is about to write against, so those are the rows a
-    competing delivery has to be kept out of. Rows are locked in a fixed order so two
-    deliveries covering the same set cannot deadlock against each other.
-
-    Both sides come from the provider's clock, so delivery latency doesn't enter into it.
-    Equal timestamps are not stale: every provider hands us the issue's full assignee
-    snapshot rather than a delta, so re-applying a same-instant event is idempotent when it
-    is a redelivery and correct-by-recency when it is a distinct change the provider's
-    timestamp resolution can't separate. Only a strictly older event is dropped.
-
-    A missing key or timestamp yields an empty set, so the guard never suppresses a sync it
-    has no evidence about.
+    Only strictly older events are stale: payloads carry the full assignee snapshot, so
+    re-applying an equal-timestamp event is safe. Missing key or timestamp yields an empty
+    set — the guard never suppresses a sync it has no evidence about.
     """
     if external_issue_key is None or event_updated_at is None or not organization_ids:
         return set()
@@ -99,9 +80,8 @@ def record_provider_assignee_updated_at(
     """
     Advance the watermark for the issues this event was applied to.
 
-    Conditional rather than a plain write so the column can only move forwards. A caller
-    holding the row lock cannot observe the conditional failing; it is what keeps the
-    watermark monotonic for any caller that does not.
+    Conditional so the column can only move forwards, even for callers not holding the
+    row lock.
     """
     if external_issue_key is None or event_updated_at is None or not organization_ids:
         return
