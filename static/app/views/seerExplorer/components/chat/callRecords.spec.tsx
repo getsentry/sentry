@@ -110,6 +110,36 @@ describe('call record rendering', () => {
     expect(screen.getByText('Sentry API request')).toBeInTheDocument();
   });
 
+  it('keeps the request details on a described api row', () => {
+    // The description leads the row, but an api call's own request is what makes that claim
+    // checkable — swapping it for the generated title would lose the literal URL and the body.
+    const record = apiRecord({
+      llm_description: 'Working out which org owns the failing project',
+      resolved_path: '/api/0/organizations/acme/',
+    });
+
+    expect(callRecordDetail(record)).toEqual({
+      request: 'GET /api/0/organizations/acme/',
+      body: null,
+    });
+  });
+
+  it('falls back to the title for a described row that ran no request', () => {
+    const record: CallRecord = {
+      id: 1,
+      parent: null,
+      kind: 'lib',
+      name: 'bash',
+      title: 'Running command grep -rn retry in getsentry/sentry',
+      llm_description: 'Checking whether the retry ceiling changed',
+    };
+
+    expect(callRecordDetail(record)).toEqual({
+      request: 'Running command grep -rn retry in getsentry/sentry',
+      body: null,
+    });
+  });
+
   it('leads with what the agent said the call was for', () => {
     const block = codeModeBlock([
       apiRecord({

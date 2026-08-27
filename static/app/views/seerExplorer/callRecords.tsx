@@ -86,32 +86,32 @@ export function callRecordDetail(record: CallRecord): {
   body: string | null;
   request: string;
 } | null {
-  // A described row reads as the agent's own words, so what actually ran has to stay reachable —
-  // otherwise a description is an unfalsifiable claim. The title is that: "Running command
-  // grep -rn retry in getsentry/sentry" beneath "Checking whether retries are the cause".
+  // An api record's own request is the best account of what ran, and it is what a described row
+  // needs to stay checkable — so it is built first, before any fallback. Returning the title here
+  // instead would trade the literal URL and the request body for a generated sentence.
+  if (record.kind === 'api' && record.method) {
+    const path = record.resolved_path ?? record.path;
+    if (path) {
+      // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
+      // a list of params underneath would restate what the URL already says.
+      return {
+        request: `${record.method} ${path}`,
+        body: withEllipsis(record.body, record.body_truncated),
+      };
+    }
+    return null;
+  }
+
+  // Everything else has no request of its own: a lib call is a heading for the api rows nested
+  // under it, and a note ran nothing at all. A described one still needs what happened to be
+  // reachable, or the description is an unfalsifiable claim — the generated title is that:
+  // "Running command grep -rn retry in getsentry/sentry" beneath "Checking the retry ceiling".
   const described = record.llm_description?.trim();
   const title = record.title?.trim();
   if (described && title && described !== title) {
     return {request: title, body: null};
   }
-
-  // A lib call is a heading for the api calls nested under it, and those carry the detail. Giving
-  // it its own expander would add a control that reveals less than the rows already below it.
-  if (record.kind !== 'api' || !record.method) {
-    return null;
-  }
-
-  const path = record.resolved_path ?? record.path;
-  if (!path) {
-    return null;
-  }
-
-  // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
-  // a list of params underneath would restate what the URL already says.
-  return {
-    request: `${record.method} ${path}`,
-    body: withEllipsis(record.body, record.body_truncated),
-  };
+  return null;
 }
 
 // Query params that scope or format a request rather than describe what it looked for. Decomposing
