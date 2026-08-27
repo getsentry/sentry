@@ -10,6 +10,11 @@ export {
 } from './scrapsForm';
 export {AutoSaveForm} from './autoSaveForm';
 export {AutoSaveContextProvider} from './autoSaveContext';
+export {
+  FormErrorContextProvider,
+  type FormErrorMapper,
+  type MappedFormError,
+} from './formErrorContext';
 export {FieldGroup} from './layout/fieldGroup';
 export {FormSearch} from './FormSearch';
 // eslint-disable-next-line no-restricted-imports

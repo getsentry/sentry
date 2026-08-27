@@ -664,6 +664,24 @@ The form system automatically shows:
 
 > **Important**: Do NOT use toasts to communicate auto-save status. The built-in inline indicators (spinner, checkmark, warning icon) are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently on every change.
 
+### Auto-Save Request Errors
+
+`AutoSaveForm` receives app-specific error mapping from the form error context.
+Sentry installs this mapping once through `ScrapsProviders`. Do not catch
+`RequestError` or call `requestErrorToFieldErrors` at each `AutoSaveForm` call
+site.
+
+The Sentry provider:
+
+- narrows failed mutations to `RequestError`;
+- uses `requestErrorToFieldErrors` for matching backend field errors;
+- uses `getRequestErrorUserMessage` for request detail and status messages;
+- keeps `Failed to save` as the fallback for other errors.
+
+Scraps remains independent of Sentry's API error type. Outside the Sentry app,
+the form error context uses the generic fallback unless the host app supplies
+its own mapper.
+
 ### Confirmation Dialogs
 
 For dangerous operations (security settings, permissions), use the `confirm` prop to show a confirmation modal before saving. The `confirm` prop accepts either a string or a function.
@@ -1025,15 +1043,18 @@ When creating auto-save fields:
 - [ ] Pass `initialValue` from current data
 - [ ] Configure `mutationOptions` with `mutationFn`
 - [ ] Update cache in `onSuccess` callback
+- [ ] Let the Sentry form error provider handle standard request errors
 
 ---
 
 ## File References
 
-| File                                               | Purpose                     |
-| -------------------------------------------------- | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`   | Main form hook              |
-| `static/app/components/core/form/autoSaveForm.tsx` | Auto-save wrapper           |
-| `static/app/components/core/form/field/*.tsx`      | Individual field components |
-| `static/app/components/core/form/layout/index.tsx` | Layout components           |
-| `static/app/components/core/form/form.stories.tsx` | Usage examples              |
+| File                                                   | Purpose                     |
+| ------------------------------------------------------ | --------------------------- |
+| `static/app/components/core/form/scrapsForm.tsx`       | Main form hook              |
+| `static/app/components/core/form/autoSaveForm.tsx`     | Auto-save wrapper           |
+| `static/app/components/core/form/formErrorContext.tsx` | Host error-mapper contract  |
+| `static/app/scrapsProviders/formError.tsx`             | Sentry request-error mapper |
+| `static/app/components/core/form/field/*.tsx`          | Individual field components |
+| `static/app/components/core/form/layout/index.tsx`     | Layout components           |
+| `static/app/components/core/form/form.stories.tsx`     | Usage examples              |
