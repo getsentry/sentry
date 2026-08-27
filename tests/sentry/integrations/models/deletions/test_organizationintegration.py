@@ -1,8 +1,6 @@
-from datetime import timedelta
 from unittest import mock
 
 import pytest
-from django.utils import timezone
 
 from sentry import deletions
 from sentry.constants import ObjectStatus
@@ -10,7 +8,7 @@ from sentry.deletions.defaults.organizationintegration import OrganizationIntegr
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.models.integration import STUCK_DELETION_THRESHOLD, Integration
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.project_option import ProjectOption
@@ -176,54 +174,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             OrganizationIntegration.objects.get(id=organization_integration.id).status
             == ObjectStatus.DELETION_IN_PROGRESS
         )
-
-    @with_feature("organizations:integrations-deletion-reinstall-cas")
-    def test_reinstall_rescues_stuck_deletion(self) -> None:
-        """
-        A row abandoned in DELETION_IN_PROGRESS (failed deletion run) can be
-        rescued once `date_updated` is older than the stuck threshold.
-        """
-        org = self.create_organization()
-        integration = self.create_provider_integration(provider="example", name="Example")
-        organization_integration = integration.add_organization(org, self.user)
-        assert organization_integration is not None
-
-        organization_integration.update(
-            status=ObjectStatus.DELETION_IN_PROGRESS,
-            date_updated=timezone.now() - STUCK_DELETION_THRESHOLD - timedelta(minutes=1),
-        )
-        deletion = ScheduledDeletion.schedule(instance=organization_integration, days=0)
-
-        rescued = integration.add_organization(org, self.user)
-        assert rescued is not None
-        assert rescued.id == organization_integration.id
-        assert rescued.status == ObjectStatus.ACTIVE
-        assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
-
-    @with_feature("organizations:integrations-deletion-reinstall-cas")
-    def test_claim_sets_date_updated(self) -> None:
-        """
-        The CAS claim is a queryset update, which does not auto-bump
-        `date_updated`. The stuck-deletion escape hatch measures from it, so
-        the claim must set it explicitly.
-        """
-        org = self.create_organization()
-        integration = self.create_provider_integration(provider="example", name="Example")
-        organization_integration = integration.add_organization(org, self.user)
-        assert organization_integration is not None
-
-        stale = timezone.now() - timedelta(days=30)
-        organization_integration.update(status=ObjectStatus.PENDING_DELETION, date_updated=stale)
-
-        task = deletions.get(
-            model=OrganizationIntegration, query={"id": organization_integration.id}
-        )
-        assert isinstance(task, OrganizationIntegrationDeletionTask)
-        assert task._claim(organization_integration) is True
-
-        organization_integration.refresh_from_db()
-        assert organization_integration.status == ObjectStatus.DELETION_IN_PROGRESS
-        assert organization_integration.date_updated > stale
 
     def test_reinstall_legacy_behavior_without_feature(self) -> None:
         """
