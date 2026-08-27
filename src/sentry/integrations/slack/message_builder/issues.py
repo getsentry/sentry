@@ -51,7 +51,7 @@ from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.platform.slack.renderers.seer import SeerAutofixTriggerSlackRenderer
+from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -709,9 +709,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if actions:
             if self._has_autofix and not self.is_unfurl:
-                autofix_button = SeerAutofixTriggerSlackRenderer.render_autofix_button(
-                    group=self.group
-                )
+                autofix_button = SeerSlackRenderer.render_autofix_button(group=self.group)
                 # We have to coerce this since we're not using the proper SlackSDK client to emit this
                 # notification yet, it just takes JSON.
                 actions.append(autofix_button.to_dict())

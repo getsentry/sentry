@@ -21,8 +21,11 @@ from sentry.notifications.platform.service import (
     serialize_notification_data,
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.slack.renderers.seer import SeerAutofixUpdateSlackRenderer
-from sentry.notifications.platform.templates.seer import SeerAgentResponse, SeerAutofixUpdate
+from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+from sentry.notifications.platform.templates.seer import (
+    SeerAgentWriteApproval,
+    SeerAutofixUpdate,
+)
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.metrics import (
@@ -77,12 +80,13 @@ def send_thread_update(
         )
         try:
             if ephemeral_user_id:
-                install.send_threaded_ephemeral_message(
+                response = install.send_threaded_ephemeral_message(
                     channel_id=thread["channel_id"],
                     thread_ts=thread["thread_ts"],
                     renderable=renderable,
                     slack_user_id=ephemeral_user_id,
                 )
+                message_ts = response.get("message_ts") if response else None
             else:
                 response = install.send_threaded_message(
                     channel_id=thread["channel_id"],
@@ -90,20 +94,24 @@ def send_thread_update(
                     renderable=renderable,
                 )
                 message_ts = response.get("ts") if response else None
-                run_id = getattr(data, "run_id", None)
-                if message_ts and run_id is not None:
-                    cache_payload = SlackSeerAgentMessageCachePayload(
-                        thread_ts=thread["thread_ts"],
-                        run_id=run_id,
-                    )
-                    if isinstance(data, SeerAgentResponse) and data.write_approval_input_id:
-                        cache_payload["input_id"] = data.write_approval_input_id
-                    SlackSeerAgentMessageCache.set(
-                        integration_id=install.model.id,
-                        channel_id=thread["channel_id"],
-                        message_ts=message_ts,
-                        payload=cache_payload,
-                    )
+            run_id = getattr(data, "run_id", None)
+            if (
+                message_ts
+                and run_id is not None
+                and (not ephemeral_user_id or isinstance(data, SeerAgentWriteApproval))
+            ):
+                cache_payload = SlackSeerAgentMessageCachePayload(
+                    thread_ts=thread["thread_ts"],
+                    run_id=run_id,
+                )
+                if isinstance(data, SeerAgentWriteApproval):
+                    cache_payload["input_id"] = data.input_id
+                SlackSeerAgentMessageCache.set(
+                    integration_id=install.model.id,
+                    channel_id=thread["channel_id"],
+                    message_ts=message_ts,
+                    payload=cache_payload,
+                )
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
         except TimeoutError as e:
@@ -276,7 +284,7 @@ def update_existing_message(
 
         parsed_blocks = [Block.parse(block) for block in blocks]
         footer_extra_text = f"(ty <@{slack_user_id}>)" if slack_user_id else None
-        footer_blocks = SeerAutofixUpdateSlackRenderer.render_footer_blocks(
+        footer_blocks = SeerSlackRenderer.render_footer_blocks(
             data=data, extra_text=footer_extra_text, has_complete_stage=has_complete_stage
         )
         parsed_blocks.extend(footer_blocks)

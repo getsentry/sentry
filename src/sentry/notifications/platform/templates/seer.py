@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import TypedDict
 
 from pydantic import Field
 
@@ -195,9 +195,6 @@ class SeerAgentResponse(NotificationData):
     organization_id: int
     summary: str
     missing_scope_settings_url: str | None = None
-    write_approval_input_id: str | None = None
-    write_approval_scopes: list[str] | None = None
-    write_approval_status: Literal["approved", "rejected"] | None = None
     source: NotificationSource = NotificationSource.SEER_AGENT_RESPONSE
 
 
@@ -213,3 +210,26 @@ class SeerAgentResponseTemplate(NotificationTemplate[SeerAgentResponse]):
 
     def render(self, data: SeerAgentResponse) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(subject="Seer Agent Response", body=[])
+
+
+class SeerAgentWriteApproval(NotificationData):
+    run_id: int
+    organization_id: int
+    input_id: str
+    scopes: list[str]
+    source: NotificationSource = NotificationSource.SEER_AGENT_WRITE_APPROVAL
+
+
+@template_registry.register(NotificationSource.SEER_AGENT_WRITE_APPROVAL)
+class SeerAgentWriteApprovalTemplate(NotificationTemplate[SeerAgentWriteApproval]):
+    category = NotificationCategory.SEER
+    example_data = SeerAgentWriteApproval(
+        run_id=12345,
+        organization_id=1,
+        input_id="approval-1",
+        scopes=["org:write"],
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAgentWriteApproval) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(subject="Seer Agent Write Approval", body=[])

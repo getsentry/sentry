@@ -15,17 +15,8 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.requests.action import SlackActionRequest
-from sentry.integrations.slack.webhooks.actions.common import (
-    DEFAULT_ERROR_MESSAGE,
-    LINK_IDENTITY_MESSAGE,
-    NO_IDENTITY_MESSAGE,
-)
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.notifications.platform.registry import provider_registry, template_registry
-from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.templates.seer import SeerAgentWriteApproval
-from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.seer import agent_token
 from sentry.seer.agent.client_utils import (
     AgentUpdateRequest,
@@ -55,6 +46,7 @@ SEER_AGENT_WRITE_APPROVAL_ACTIONS = frozenset(
 )
 
 AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE = "This approval request is no longer available."
+AGENT_WRITE_APPROVAL_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 AGENT_WRITE_APPROVAL_INSUFFICIENT_MESSAGE = (
     "You do not have all the Sentry permissions requested by Seer."
 )
@@ -69,37 +61,15 @@ def _update_agent_write_approval_message(
     slack_request: SlackActionRequest,
     organization_id: int,
     run_id: int,
-    input_id: str,
-    scopes: list[str],
     approved: bool,
 ) -> bool:
-    data = SeerAgentWriteApproval(
-        run_id=run_id,
-        organization_id=organization_id,
-        input_id=input_id,
-        scopes=scopes,
-        status="approved" if approved else "rejected",
-    )
-    provider = provider_registry.get(NotificationProviderKey.SLACK)
-    template_cls = template_registry.get(data.source)
-    renderable = NotificationService.render_template(
-        data=data,
-        template=template_cls(),
-        provider=provider,
-    )
+    text = ":white_check_mark: Access granted." if approved else ":x: Access not granted."
     try:
         webhook_client = WebhookClient(slack_request.response_url)
         response = webhook_client.send(
-            blocks=renderable["blocks"],
-            text=renderable["text"],
+            text=text,
             replace_original=True,
         )
-        if response.status_code >= 500:
-            response = webhook_client.send(
-                blocks=renderable["blocks"],
-                text=renderable["text"],
-                replace_original=True,
-            )
     except (SlackRequestError, URLError, TimeoutError, ConnectionResetError):
         _logger.exception(
             "seer.slack.agent_write_approval.message_update_failed",
@@ -155,19 +125,7 @@ def handle_seer_agent_write_approval(
         return _respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
 
     identity_user = slack_request.get_identity_user()
-    if not identity_user:
-        from sentry.integrations.slack.views.link_identity import build_linking_url
-
-        if not slack_request.user_id:
-            return _respond_ephemeral(NO_IDENTITY_MESSAGE)
-        associate_url = build_linking_url(
-            integration=slack_request.integration,
-            slack_id=slack_request.user_id,
-            channel_id=channel_id,
-            response_url=slack_request.response_url,
-        )
-        return _respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
-    if not identity_user.is_active or identity_user.is_suspended:
+    if not identity_user or not identity_user.is_active or identity_user.is_suspended:
         return _respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
     slack_user_id = slack_request.user_id
     if slack_user_id is None:
@@ -220,7 +178,7 @@ def handle_seer_agent_write_approval(
             "seer.slack.agent_write_approval.state_fetch_failed",
             extra={"organization_id": organization.id, "run_id": run_id},
         )
-        return _respond_ephemeral(DEFAULT_ERROR_MESSAGE)
+        return _respond_ephemeral(AGENT_WRITE_APPROVAL_ERROR_MESSAGE)
 
     pending_input = state.pending_user_input
     if (
@@ -250,20 +208,16 @@ def handle_seer_agent_write_approval(
     approved = False
     if action == SlackAction.SEER_AGENT_WRITE_APPROVE:
         access = from_member(member)
-        grantable_scopes = sorted(set(requested_scopes) & set(access.scopes))
-        if not grantable_scopes:
+        if not set(requested_scopes).issubset(access.scopes):
             return _respond_ephemeral(AGENT_WRITE_APPROVAL_INSUFFICIENT_MESSAGE)
         agent_token.create_write_grant(
             organization_id=organization.id,
             user_id=identity_user.id,
             session_id=session_id,
-            scopes=grantable_scopes,
+            scopes=requested_scopes,
         )
-        approved = set(requested_scopes).issubset(grantable_scopes)
-        if approved:
-            response_data = {"decision": "approve"}
-        else:
-            response_data["reason"] = "insufficient_scope"
+        approved = True
+        response_data = {"decision": "approve"}
 
     update_body = AgentUpdateRequest(
         run_id=resolved.seer_run_state_id,
@@ -284,7 +238,7 @@ def handle_seer_agent_write_approval(
                 "status": response.status,
             },
         )
-        return _respond_ephemeral(DEFAULT_ERROR_MESSAGE)
+        return _respond_ephemeral(AGENT_WRITE_APPROVAL_ERROR_MESSAGE)
 
     # The approval card can outlive the original context; refresh it for final delivery.
     SeerOperatorAgentCache[SlackAgentCachePayload].set(
@@ -302,11 +256,9 @@ def handle_seer_agent_write_approval(
         slack_request=slack_request,
         organization_id=organization.id,
         run_id=run_id,
-        input_id=input_id,
-        scopes=requested_scopes,
         approved=approved,
     ):
-        return _respond_ephemeral(DEFAULT_ERROR_MESSAGE)
+        return _respond_ephemeral(AGENT_WRITE_APPROVAL_ERROR_MESSAGE)
     _logger.info(
         "seer.slack.agent_write_approval.responded",
         extra={

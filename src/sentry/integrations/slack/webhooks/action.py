@@ -46,12 +46,6 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
-from sentry.integrations.slack.webhooks.actions.common import (
-    DEFAULT_ERROR_MESSAGE,
-    LINK_IDENTITY_MESSAGE,
-    NO_IDENTITY_MESSAGE,
-    UNLINK_IDENTITY_MESSAGE,
-)
 from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
     handle_seer_agent_write_approval,
@@ -80,10 +74,22 @@ _logger = logging.getLogger(__name__)
 UNFURL_ACTION_OPTIONS = ["link", "ignore"]
 NOTIFICATION_SETTINGS_ACTION_OPTIONS = ["all_slack"]
 
+LINK_IDENTITY_MESSAGE = (
+    "Looks like you haven't linked your Sentry account with your Slack identity yet! "
+    "<{associate_url}|Link your identity now> to perform actions in Sentry through Slack. "
+)
+UNLINK_IDENTITY_MESSAGE = (
+    "Looks like this Slack identity is linked to the Sentry user *{user_email}* "
+    "who is not a member of organization *{org_name}* used with this Slack integration. "
+    "<{associate_url}|Unlink your identity now>. "
+)
+
 NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
 NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
+NO_IDENTITY_MESSAGE = "Identity not linked for user."
 ENABLE_SLACK_SUCCESS_MESSAGE = "Slack notifications have been enabled."
 
+DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 SUCCESS_MESSAGE = (
     "{invite_type} request for {email} has been {verb}. <{url}|See Members and Requests>."
 )

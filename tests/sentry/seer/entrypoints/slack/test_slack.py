@@ -741,7 +741,6 @@ class SlackAgentEntrypointTest(TestCase):
         assert isinstance(call_data, SeerAgentWriteApproval)
         assert call_data.input_id == "approval-1"
         assert call_data.scopes == ["org:write"]
-        assert call_data.status is None
         assert mock_send_write_approval.call_args.kwargs["slack_user_id"] == self.slack_user_id
         response_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
         assert isinstance(response_data, SeerAgentResponse)

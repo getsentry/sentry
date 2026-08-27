@@ -8,8 +8,8 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.integrations.slack.webhooks.action import ARCHIVE_OPTIONS
-from sentry.integrations.slack.webhooks.actions.common import (
+from sentry.integrations.slack.webhooks.action import (
+    ARCHIVE_OPTIONS,
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
 )

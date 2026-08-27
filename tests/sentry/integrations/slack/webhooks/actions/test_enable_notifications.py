@@ -1,7 +1,9 @@
 import orjson
 
-from sentry.integrations.slack.webhooks.action import ENABLE_SLACK_SUCCESS_MESSAGE
-from sentry.integrations.slack.webhooks.actions.common import NO_IDENTITY_MESSAGE
+from sentry.integrations.slack.webhooks.action import (
+    ENABLE_SLACK_SUCCESS_MESSAGE,
+    NO_IDENTITY_MESSAGE,
+)
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode

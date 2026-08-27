@@ -16,22 +16,16 @@ from slack_sdk.models.blocks import (
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
-from sentry.notifications.platform.slack.renderers.seer import (
-    AUTOFIX_CONFIG,
-    SeerAgentErrorSlackRenderer,
-    SeerAgentResponseSlackRenderer,
+from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
+from sentry.notifications.platform.slack.renderers.seer_agent_write_approval import (
     SeerAgentWriteApprovalSlackRenderer,
-    SeerAutofixErrorSlackRenderer,
-    SeerAutofixTriggerSlackRenderer,
-    SeerAutofixUpdateSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
+    SeerAgentWriteApproval,
     SeerAutofixCodeChange,
-    SeerAutofixError,
     SeerAutofixPullRequest,
-    SeerAutofixTrigger,
     SeerAutofixUpdate,
 )
 from sentry.notifications.platform.types import NotificationCategory, NotificationRenderedTemplate
@@ -71,9 +65,7 @@ class SeerSlackRendererTest(TestCase):
 
     def test_render_footer_blocks_with_has_complete_stage(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        blocks = SeerAutofixUpdateSlackRenderer.render_footer_blocks(
-            data=data, has_complete_stage=True
-        )
+        blocks = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=True)
         assert len(blocks) == 1
         config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
         completed_text = config["completed_text"]
@@ -88,9 +80,7 @@ class SeerSlackRendererTest(TestCase):
 
     def test_render_footer_blocks_with_stage_not_completed(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        blocks = SeerAutofixUpdateSlackRenderer.render_footer_blocks(
-            data=data, has_complete_stage=False
-        )
+        blocks = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=False)
         assert len(blocks) == 1
         config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
         working_text = config["working_text"]
@@ -107,9 +97,7 @@ class SeerSlackRendererTest(TestCase):
         )
         config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
 
-        working = SeerAutofixUpdateSlackRenderer.render_footer_blocks(
-            data=data, has_complete_stage=False
-        )
+        working = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=False)
         assert len(working) == 1
         working_section = working[0]
         assert isinstance(working_section, SectionBlock)
@@ -118,9 +106,7 @@ class SeerSlackRendererTest(TestCase):
         # Generic stopping-point text is suppressed when a handoff target is set.
         assert config["working_text"] not in working_section.text.text
 
-        completed = SeerAutofixUpdateSlackRenderer.render_footer_blocks(
-            data=data, has_complete_stage=True
-        )
+        completed = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=True)
         completed_section = completed[0]
         assert isinstance(completed_section, SectionBlock)
         assert completed_section.text is not None
@@ -130,9 +116,7 @@ class SeerSlackRendererTest(TestCase):
     def test_render_footer_blocks_with_extra_text(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         extra_text = "(ty <@U12345>)"
-        blocks = SeerAutofixUpdateSlackRenderer.render_footer_blocks(
-            data=data, extra_text=extra_text
-        )
+        blocks = SeerSlackRenderer.render_footer_blocks(data=data, extra_text=extra_text)
         assert len(blocks) == 1
         section_block = blocks[0]
         assert isinstance(section_block, SectionBlock)
@@ -142,7 +126,7 @@ class SeerSlackRendererTest(TestCase):
     @override_settings(DEBUG=True)
     def test_render_footer_debug_block(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        blocks = SeerAutofixUpdateSlackRenderer.render_footer_blocks(data=data)
+        blocks = SeerSlackRenderer.render_footer_blocks(data=data)
         assert len(blocks) == 2
         assert isinstance(blocks[1], ContextBlock)
         context_element = blocks[1].elements[0]
@@ -150,7 +134,7 @@ class SeerSlackRendererTest(TestCase):
         assert f"Run ID: {MOCK_RUN_ID}" in context_element.text
 
     def test_render_autofix_button(self) -> None:
-        element = SeerAutofixTriggerSlackRenderer.render_autofix_button(group=self.group)
+        element = SeerSlackRenderer.render_autofix_button(group=self.group)
         assert isinstance(element, ButtonElement)
         assert element.text is not None
         assert element.text.text == "Fix with Seer"
@@ -167,7 +151,7 @@ class SeerSlackRendererTest(TestCase):
             current_point=AutofixStoppingPoint.ROOT_CAUSE,
             summary="Test summary",
         )
-        renderable = SeerAutofixUpdateSlackRenderer._render_autofix_update(data)
+        renderable = SeerSlackRenderer._render_autofix_update(data)
         # Should have link button and next stage trigger button
         actions_block = None
         for block in renderable["blocks"]:
@@ -191,7 +175,7 @@ class SeerSlackRendererTest(TestCase):
             current_point=AutofixStoppingPoint.OPEN_PR,
             pull_requests=[{"pr_number": 123, "pr_url": "https://github.com/org/repo/pull/123"}],
         )
-        renderable = SeerAutofixUpdateSlackRenderer._render_autofix_update(data)
+        renderable = SeerSlackRenderer._render_autofix_update(data)
         # Open PR with progress should NOT have footer (it's the final stage)
         has_context_block = any(isinstance(b, ContextBlock) for b in renderable["blocks"])
         assert not has_context_block
@@ -208,7 +192,7 @@ class SeerSlackRendererTest(TestCase):
                 {"pr_number": 456, "pr_url": "https://github.com/org/repo/pull/456"},
             ],
         )
-        renderable = SeerAutofixUpdateSlackRenderer._render_autofix_update(data)
+        renderable = SeerSlackRenderer._render_autofix_update(data)
         actions_block = None
         for block in renderable["blocks"]:
             if isinstance(block, ActionsBlock):
@@ -229,7 +213,7 @@ class SeerSlackRendererTest(TestCase):
             summary="Test summary",
             handoff_target="cursor_background_agent",
         )
-        renderable = SeerAutofixUpdateSlackRenderer._render_autofix_update(data)
+        renderable = SeerSlackRenderer._render_autofix_update(data)
 
         actions_block = next((b for b in renderable["blocks"] if isinstance(b, ActionsBlock)), None)
         assert actions_block is not None
@@ -249,7 +233,7 @@ class SeerSlackRendererTest(TestCase):
             summary="Test summary",
             reasoning=["First reason", "Second reason", "Third reason"],
         )
-        renderable = SeerAutofixUpdateSlackRenderer._render_autofix_update(data)
+        renderable = SeerSlackRenderer._render_autofix_update(data)
         rich_text_blocks = [b for b in renderable["blocks"] if isinstance(b, RichTextBlock)]
         assert len(rich_text_blocks) == 1
         list_element = rich_text_blocks[0].elements[0]
@@ -265,7 +249,7 @@ class SeerSlackRendererTest(TestCase):
         self, _mock_get_option: Mock
     ) -> None:
         data = self._create_update(current_point=AutofixStoppingPoint.SOLUTION)
-        renderable = SeerAutofixUpdateSlackRenderer._render_autofix_update(data)
+        renderable = SeerSlackRenderer._render_autofix_update(data)
         actions_block = None
         for block in renderable["blocks"]:
             if isinstance(block, ActionsBlock):
@@ -280,7 +264,7 @@ class SeerSlackRendererTest(TestCase):
 class SeerSlackRendererAgentErrorTest(TestCase):
     def test_render_agent_error(self) -> None:
         data = SeerAgentError(error_message="Seer could not explore your organization.")
-        renderable = SeerAgentErrorSlackRenderer._render_agent_error(data)
+        renderable = SeerSlackRenderer._render_agent_error(data)
 
         assert renderable["text"] == "Seer stumbled: Seer had some trouble..."
         blocks = renderable["blocks"]
@@ -297,7 +281,7 @@ class SeerSlackRendererAgentErrorTest(TestCase):
             error_message="Timeout.",
             error_title="Agent failed",
         )
-        renderable = SeerAgentErrorSlackRenderer._render_agent_error(data)
+        renderable = SeerSlackRenderer._render_agent_error(data)
 
         assert renderable["text"] == "Seer stumbled: Agent failed"
         title_block = renderable["blocks"][0]
@@ -311,7 +295,7 @@ class SeerSlackRendererAgentErrorTest(TestCase):
 
     def test_render_dispatches_to_agent_error(self) -> None:
         data = SeerAgentError(error_message="Something went wrong.")
-        renderable = SeerAgentErrorSlackRenderer.render(
+        renderable = SeerSlackRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="", body=[]),
         )
@@ -334,10 +318,7 @@ class SeerSlackRendererAgentTest(TestCase):
             summary="Found a spike in 500 errors from the auth service."
         )
         with self.feature("organizations:seer-run-id-in-slack"):
-            renderable = SeerAgentResponseSlackRenderer.render(
-                data=data,
-                rendered_template=NotificationRenderedTemplate(subject="", body=[]),
-            )
+            renderable = SeerSlackRenderer._render_agent_response(data)
 
         assert renderable["text"] == "Seer Agent has finished"
         blocks = renderable["blocks"]
@@ -371,10 +352,7 @@ class SeerSlackRendererAgentTest(TestCase):
         data = self._create_agent_response(
             summary="Found a spike in 500 errors from the auth service."
         )
-        renderable = SeerAgentResponseSlackRenderer.render(
-            data=data,
-            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
-        )
+        renderable = SeerSlackRenderer._render_agent_response(data)
 
         assert renderable["text"] == "Seer Agent has finished"
         blocks = renderable["blocks"]
@@ -390,10 +368,7 @@ class SeerSlackRendererAgentTest(TestCase):
             summary="Some analysis",
             missing_scope_settings_url="https://sentry.io/settings/test/integrations/slack/",
         )
-        renderable = SeerAgentResponseSlackRenderer.render(
-            data=data,
-            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
-        )
+        renderable = SeerSlackRenderer._render_agent_response(data)
 
         blocks = renderable["blocks"]
         assert len(blocks) == 2
@@ -409,179 +384,46 @@ class SeerSlackRendererAgentTest(TestCase):
     def test_render_agent_response_no_footer_when_url_not_set(self) -> None:
         data = self._create_agent_response(summary="Some analysis")
         assert data.missing_scope_settings_url is None
-        renderable = SeerAgentResponseSlackRenderer.render(
-            data=data,
-            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
-        )
+        renderable = SeerSlackRenderer._render_agent_response(data)
 
         for block in renderable["blocks"]:
             assert block.type != "context"
 
-    def test_render_agent_write_approval(self) -> None:
-        data = SeerAgentResponse(
-            run_id=MOCK_RUN_ID,
-            organization_id=self.organization.id,
-            summary="Seer needs your approval before it can make this change.",
-            write_approval_input_id="approval-1",
-            write_approval_scopes=["org:write", "future:write"],
-        )
-
-        renderable = SeerAgentWriteApprovalSlackRenderer.render(
-            data=data,
-            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
-        )
-
-        assert renderable["text"] == "Seer needs approval to make a change"
-        blocks = renderable["blocks"]
-        assert isinstance(blocks[0], MarkdownBlock)
-        assert blocks[0].text == "**Allow Seer to make changes?**"
-        assert blocks[0].block_id is None
-        assert isinstance(blocks[1], MarkdownBlock)
-        assert "**Requested scopes:**" in blocks[1].text
-        assert "Read and write access to organization details." in blocks[1].text
-        assert "`org:write`" in blocks[1].text
-        assert "`future:write` — Sentry permission." in blocks[1].text
-        assert isinstance(blocks[2], ActionsBlock)
-        reject_button, approve_button = blocks[2].elements
-        assert isinstance(reject_button, ButtonElement)
-        assert reject_button.text is not None
-        assert reject_button.text.text == "Reject"
-        assert reject_button.value == "link_clicked"
-        assert reject_button.action_id == f"seer_agent_write_reject::{self.organization.id}"
-        assert isinstance(approve_button, ButtonElement)
-        assert approve_button.text is not None
-        assert approve_button.text.text == "Approve"
-        assert approve_button.style == "primary"
-        assert approve_button.value == "link_clicked"
-        assert approve_button.action_id == f"seer_agent_write_approve::{self.organization.id}"
-
-    def test_render_agent_write_approval_result(self) -> None:
-        data = SeerAgentResponse(
-            run_id=MOCK_RUN_ID,
-            organization_id=self.organization.id,
-            summary="",
-            write_approval_scopes=["org:write"],
-            write_approval_status="approved",
-        )
-
-        renderable = SeerAgentWriteApprovalSlackRenderer.render(
-            data=data,
-            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
-        )
-
-        assert renderable["text"] == "Seer write access approved"
-        blocks = renderable["blocks"]
-        assert len(blocks) == 1
-        assert isinstance(blocks[0], MarkdownBlock)
-        assert blocks[0].text == (
-            ":white_check_mark: Access granted for reading and writing via `org:write`"
-        )
-
-    def test_render_agent_write_approval_rejected(self) -> None:
-        data = SeerAgentResponse(
-            run_id=MOCK_RUN_ID,
-            organization_id=self.organization.id,
-            summary="",
-            write_approval_scopes=["org:write"],
-            write_approval_status="rejected",
-        )
-
-        renderable = SeerAgentWriteApprovalSlackRenderer.render(
-            data=data,
-            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
-        )
-
-        assert renderable["text"] == "Seer write access not approved"
-        blocks = renderable["blocks"]
-        assert len(blocks) == 1
-        assert isinstance(blocks[0], MarkdownBlock)
-        assert blocks[0].text == (":x: Access not granted for reading and writing via `org:write`")
-
-    def test_render_agent_write_approval_result_with_unknown_scope(self) -> None:
-        data = SeerAgentResponse(
-            run_id=MOCK_RUN_ID,
-            organization_id=self.organization.id,
-            summary="",
-            write_approval_scopes=["future:write"],
-            write_approval_status="approved",
-        )
-
-        renderable = SeerAgentWriteApprovalSlackRenderer.render(
-            data=data,
-            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
-        )
-
-        blocks = renderable["blocks"]
-        assert len(blocks) == 1
-        assert isinstance(blocks[0], MarkdownBlock)
-        assert blocks[0].text == (":white_check_mark: Access granted for the `future:write` scope")
-
     def test_render_dispatches_to_agent_response(self) -> None:
         data = self._create_agent_response(summary="Test")
-
-        renderable = SeerAgentResponseSlackRenderer.render(
+        renderable = SeerSlackRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="", body=[]),
         )
         assert renderable["text"] == "Seer Agent has finished"
 
 
-class SeerSlackRendererDispatchTest(TestCase):
-    def test_provider_selects_renderer_for_each_seer_notification(self) -> None:
-        assert (
-            SlackNotificationProvider.get_renderer(
-                data=SeerAutofixError(error_message="Error"),
-                category=NotificationCategory.SEER,
-            )
-            is SeerAutofixErrorSlackRenderer
-        )
-        assert (
-            SlackNotificationProvider.get_renderer(
-                data=SeerAutofixTrigger(organization_id=1, project_id=2, group_id=3),
-                category=NotificationCategory.SEER,
-            )
-            is SeerAutofixTriggerSlackRenderer
-        )
-        assert (
-            SlackNotificationProvider.get_renderer(
-                data=SeerAutofixUpdate(
-                    run_id=1,
-                    organization_id=1,
-                    project_id=2,
-                    group_id=3,
-                    current_point=AutofixStoppingPoint.ROOT_CAUSE,
-                    group_link="https://sentry.io/issues/3/",
-                ),
-                category=NotificationCategory.SEER,
-            )
-            is SeerAutofixUpdateSlackRenderer
-        )
-        assert (
-            SlackNotificationProvider.get_renderer(
-                data=SeerAgentError(error_message="Error"),
-                category=NotificationCategory.SEER,
-            )
-            is SeerAgentErrorSlackRenderer
+class SeerAgentWriteApprovalSlackRendererTest(TestCase):
+    rendered_template = NotificationRenderedTemplate(subject="", body=[])
+
+    def test_render_request_and_provider_dispatch(self) -> None:
+        data = SeerAgentWriteApproval(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            input_id="approval-1",
+            scopes=["org:write"],
         )
 
-        response = SeerAgentResponse(run_id=1, organization_id=1, summary="Done")
-        assert (
-            SlackNotificationProvider.get_renderer(
-                data=response, category=NotificationCategory.SEER
-            )
-            is SeerAgentResponseSlackRenderer
+        renderer = SlackNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.SEER
         )
+        assert renderer is SeerAgentWriteApprovalSlackRenderer
+        renderable = renderer.render(data=data, rendered_template=self.rendered_template)
 
-        approval = SeerAgentResponse(
-            run_id=1,
-            organization_id=1,
-            summary="Approval needed",
-            write_approval_input_id="approval-1",
-            write_approval_scopes=["org:write"],
-        )
-        assert (
-            SlackNotificationProvider.get_renderer(
-                data=approval, category=NotificationCategory.SEER
-            )
-            is SeerAgentWriteApprovalSlackRenderer
-        )
+        assert renderable["text"] == "Seer needs approval to make a change"
+        assert len(renderable["blocks"]) == 3
+        actions = renderable["blocks"][2]
+        assert isinstance(actions, ActionsBlock)
+        reject_button, approve_button = actions.elements
+        assert isinstance(reject_button, ButtonElement)
+        assert isinstance(approve_button, ButtonElement)
+        assert reject_button.text is not None
+        assert approve_button.text is not None
+        assert [reject_button.text.text, approve_button.text.text] == ["Reject", "Approve"]
+        assert reject_button.value == "link_clicked"
+        assert approve_button.value == "link_clicked"
