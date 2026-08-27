@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Iterable, Mapping
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
@@ -12,8 +12,13 @@ from sentry import analytics
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.helpers.group_index.update import get_current_release_version_of_group
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.status_sync import (
+    is_stale_status_event,
+    parse_provider_event_time,
+)
 from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -26,6 +31,7 @@ from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +182,23 @@ def get_resolutions_and_activity_data_for_groups(
     return resolutions_by_group_id, activity_type, activity_data
 
 
+def _record_provider_event_time(
+    external_issue: ExternalIssue | None, event_time: datetime | None
+) -> None:
+    """
+    Advance the issue's watermark, so anything the provider generated earlier is stale.
+
+    Conditional rather than a plain write: concurrent deliveries both read the pre-existing
+    watermark, and letting the older one land last would move it backwards.
+    """
+    if external_issue is None or event_time is None:
+        return
+
+    ExternalIssue.objects.filter(id=external_issue.id).filter(
+        Q(provider_status_updated_at__isnull=True) | Q(provider_status_updated_at__lt=event_time)
+    ).update(provider_status_updated_at=event_time)
+
+
 def group_was_recently_resolved(group: Group) -> bool:
     """
     Check if the group was resolved in the last 3 minutes
@@ -223,6 +246,32 @@ def sync_status_inbound(
     if not affected_groups:
         return
 
+    # Webhook delivery is not ordered, and every provider hands us a delta ("closed",
+    # "reopened", a from/to state pair) rather than a snapshot, so a delivery that lands
+    # late writes an old status over a newer one.
+    external_issue = ExternalIssue.objects.filter(
+        organization_id=organization_id, integration_id=integration_id, key=issue_key
+    ).first()
+    event_time = parse_provider_event_time(data)
+    if external_issue is not None and is_stale_status_event(
+        external_issue.provider_status_updated_at, event_time
+    ):
+        metrics.incr(
+            "integrations.sync_status_inbound.stale_event",
+            tags={"provider": integration.provider},
+        )
+        logger.info(
+            "sync_status_inbound.stale_event",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "issue_key": issue_key,
+                "event_time": event_time,
+                "last_event_time": external_issue.provider_status_updated_at,
+            },
+        )
+        return
+
     installation = integration.get_installation(organization_id=organization_id)
     if not (hasattr(installation, "get_resolve_sync_action") and installation.org_integration):
         return
@@ -250,84 +299,104 @@ def sync_status_inbound(
             if not group_was_recently_resolved(group) and group.status == GroupStatus.UNRESOLVED:
                 resolvable_groups.append(group)
 
-        if not resolvable_groups:
-            return
-
-        (
-            resolutions_by_group_id,
-            activity_type,
-            activity_data,
-        ) = get_resolutions_and_activity_data_for_groups(
-            affected_groups, config.get("resolution_strategy"), activity_data, organization_id
-        )
-        with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
-            Group.objects.update_group_status(
-                groups=resolvable_groups,
-                status=GroupStatus.RESOLVED,
-                substatus=None,
-                activity_type=activity_type,
-                activity_data=activity_data,
+        if resolvable_groups:
+            (
+                resolutions_by_group_id,
+                activity_type,
+                activity_data,
+            ) = get_resolutions_and_activity_data_for_groups(
+                affected_groups, config.get("resolution_strategy"), activity_data, organization_id
             )
-        # after we update the group, update the resolutions
-        for group in resolvable_groups:
-            resolution_params = resolutions_by_group_id.get(group.id)
-            if resolution_params:
-                resolution, created = GroupResolution.objects.get_or_create(
-                    group=group, defaults=resolution_params
+            with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
+                Group.objects.update_group_status(
+                    groups=resolvable_groups,
+                    status=GroupStatus.RESOLVED,
+                    substatus=None,
+                    activity_type=activity_type,
+                    activity_data=activity_data,
                 )
-                if not created:
-                    resolution.update(datetime=django_timezone.now(), **resolution_params)
-
-                # Link the activity to the resolution so regressions can find it.
-                if created:
-                    latest_resolution_activity = (
-                        Activity.objects.filter(group=group, type=activity_type.value)
-                        .order_by("-datetime")
-                        .first()
+            # after we update the group, update the resolutions
+            for group in resolvable_groups:
+                resolution_params = resolutions_by_group_id.get(group.id)
+                if resolution_params:
+                    resolution, created = GroupResolution.objects.get_or_create(
+                        group=group, defaults=resolution_params
                     )
-                    if latest_resolution_activity and not latest_resolution_activity.ident:
-                        latest_resolution_activity.update(ident=resolution.id)
+                    if not created:
+                        resolution.update(datetime=django_timezone.now(), **resolution_params)
 
-            issue_resolved.send_robust(
-                organization_id=organization_id,
-                user=None,
-                group=group,
-                project=group.project,
-                resolution_type=provider.key,
-                commit_id=None,
-                sender=f"resolved_with_{provider.key}",
-            )
-            try:
-                analytics.record(
-                    IssueResolvedEvent(
-                        project_id=group.project.id,
-                        default_user_id="Sentry Jira",
-                        organization_id=organization_id,
-                        group_id=group.id,
-                        resolution_type="with_third_party_app",
-                        provider=provider.key,
-                        issue_type=group.issue_type.slug,
-                        issue_category=group.issue_category.name.lower(),
-                    )
+                    # Link the activity to the resolution so regressions can find it.
+                    if created:
+                        latest_resolution_activity = (
+                            Activity.objects.filter(group=group, type=activity_type.value)
+                            .order_by("-datetime")
+                            .first()
+                        )
+                        if latest_resolution_activity and not latest_resolution_activity.ident:
+                            latest_resolution_activity.update(ident=resolution.id)
+
+                issue_resolved.send_robust(
+                    organization_id=organization_id,
+                    user=None,
+                    group=group,
+                    project=group.project,
+                    resolution_type=provider.key,
+                    commit_id=None,
+                    sender=f"resolved_with_{provider.key}",
                 )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+                try:
+                    analytics.record(
+                        IssueResolvedEvent(
+                            project_id=group.project.id,
+                            default_user_id="Sentry Jira",
+                            organization_id=organization_id,
+                            group_id=group.id,
+                            resolution_type="with_third_party_app",
+                            provider=provider.key,
+                            issue_type=group.issue_type.slug,
+                            issue_category=group.issue_category.name.lower(),
+                        )
+                    )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
 
     elif action == ResolveSyncAction.UNRESOLVE:
-        with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
-            Group.objects.update_group_status(
-                groups=affected_groups,
-                status=GroupStatus.UNRESOLVED,
-                substatus=GroupSubStatus.ONGOING,
-                activity_type=ActivityType.SET_UNRESOLVED,
-                activity_data=activity_data,
+        # Narrow to the groups this event actually changes, so the signal below does not
+        # announce an unresolve that never happened.
+        unresolvable_groups = [
+            group
+            for group in affected_groups
+            if not (
+                group.status == GroupStatus.UNRESOLVED and group.substatus == GroupSubStatus.ONGOING
             )
+        ]
 
-        for group in affected_groups:
-            issue_unresolved.send_robust(
-                project=group.project,
-                user=None,
-                group=group,
-                transition_type=provider.key,
-                sender=f"unresolved_with_{provider.key}",
-            )
+        if unresolvable_groups:
+            with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
+                Group.objects.update_group_status(
+                    groups=unresolvable_groups,
+                    status=GroupStatus.UNRESOLVED,
+                    substatus=GroupSubStatus.ONGOING,
+                    activity_type=ActivityType.SET_UNRESOLVED,
+                    activity_data=activity_data,
+                )
+
+            for group in unresolvable_groups:
+                issue_unresolved.send_robust(
+                    project=group.project,
+                    user=None,
+                    group=group,
+                    transition_type=provider.key,
+                    sender=f"unresolved_with_{provider.key}",
+                )
+
+    # Reached only once the event has processed to completion, so a retry after a transient
+    # failure isn't blocked by a watermark its own failed attempt wrote.
+    #
+    # A NOOP counts as processed. It changed no status, but it still proves what the
+    # provider's state was at `event_time`, and an older delta cannot describe a newer
+    # world. The cost is a resolve stranded behind a NOOP whose from-state already
+    # reflected it, which stays unapplied; the alternative is letting that stale delta
+    # reopen an issue a human resolved in Sentry, and destroying an intent is worse than
+    # missing a sync.
+    _record_provider_event_time(external_issue, event_time)
