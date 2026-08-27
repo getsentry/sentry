@@ -29,7 +29,12 @@ export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLi
             Here the label just fills that floored space and ellipsizes within it. */}
       <Container minWidth={0}>
         {styleProps => (
-          <Link to={to} onClick={handleClick} {...styleProps}>
+          <Link
+            to={to}
+            onClick={handleClick}
+            data-test-id="breadcrumb-link"
+            {...styleProps}
+          >
             <Text ellipsis variant="muted">
               {label}
             </Text>
