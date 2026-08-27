@@ -1965,7 +1965,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         assert response.status_code == 200, response.data
 
-    def test_widget_type_tracemetrics_allows_existing_table(self) -> None:
+    def test_widget_type_tracemetrics_allows_existing_table_without_feature_flag(self) -> None:
         # Tracemetrics tables can't be created in the UI, but some existing
         # widgets predate display-type validation and must still be saveable.
         # Existing widgets are identified by the presence of an ``id``.
