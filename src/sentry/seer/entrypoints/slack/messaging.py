@@ -354,6 +354,9 @@ def send_halt_message(
             # This assumes the slack event is malformed, or unexpected.
             # Avoid sending irrelevant messages for what could be inconsequential.
             return
+        case SeerSlackHaltReason.EMPTY_PROMPT:
+            # Answered at the webhook by send_empty_prompt_message.
+            return
         case _:
             assert_never(halt_reason)
 
@@ -376,6 +379,34 @@ def send_halt_message(
         logger.exception("send_halt_message.error", extra=logging_ctx)
     else:
         logger.info("send_halt_message.success", extra=logging_ctx)
+
+
+@all_silo_function
+def send_empty_prompt_message(
+    *,
+    integration_id: int,
+    slack_user_id: str,
+    channel_id: str,
+    thread_ts: str | None,
+) -> None:
+    """Send an ephemeral nudge when someone mentions us without asking anything."""
+    from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
+
+    message = "Looks like your message came through empty — mention me again with a question and I'll take it from there."
+    renderable = SlackRenderable(
+        blocks=[MarkdownBlock(text=message)],
+        text=message,
+    )
+    try:
+        send_threaded_ephemeral_message(
+            integration_id=integration_id,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            renderable=renderable,
+            slack_user_id=slack_user_id,
+        )
+    except Exception as e:
+        logger.warning("seer.slack.send_empty_prompt_message_failed", exc_info=e)
 
 
 @all_silo_function
