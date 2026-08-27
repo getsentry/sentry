@@ -38,7 +38,7 @@ _pool_cache: dict[str, ConnectionPool] = {}
 _pool_lock = Lock()
 
 
-def add_transaction_checks(
+def _add_transaction_checks(
     client: RedisCluster[T] | StrictRedis[T],
 ) -> RedisCluster[T] | StrictRedis[T]:
     if not in_test_environment():
@@ -208,7 +208,7 @@ class RedisClusterManager:
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
             if is_redis_cluster:
-                return add_transaction_checks(
+                return _add_transaction_checks(
                     RetryingRedisCluster(
                         # Intentionally copy hosts here because redis-cluster-py
                         # mutates the inner dicts and this closure can be run
@@ -230,7 +230,7 @@ class RedisClusterManager:
             assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
             host = dict(hosts_list[0])
             host["decode_responses"] = decode_responses
-            return add_transaction_checks(FailoverRedis(**host, **client_args))
+            return _add_transaction_checks(FailoverRedis(**host, **client_args))
 
         # losing some type safety: SimpleLazyObject acts like the underlying type
         return SimpleLazyObject(cluster_factory)
