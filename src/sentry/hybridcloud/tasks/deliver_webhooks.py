@@ -181,6 +181,20 @@ def _drain_lock_key(mailbox_name: str) -> str:
     return f"wh:drain_active:{mailbox_name}"
 
 
+def _acquire_drain_guard(mailbox_name: str) -> bool | None:
+    """
+    Take the mailbox's claim guard.
+
+    True when this caller holds it, False when another dispatcher does, None when
+    the cache is unreachable — its own answer because the dispatchers diverge
+    there: the scheduler claims unserialized, the push trigger stands down.
+    """
+    try:
+        return bool(cache.add(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL))
+    except Exception:
+        return None
+
+
 def _release_drain_lock(mailbox_name: str) -> None:
     """Release the drain lock so push triggers and the scheduler can re-acquire it."""
     try:
@@ -191,10 +205,11 @@ def _release_drain_lock(mailbox_name: str) -> None:
 
 def _is_due(schedule_for: datetime.datetime) -> bool:
     """
-    Whether a payload is ready to deliver — the in-Python form of the
-    `schedule_for__lte=timezone.now()` bound that the claim's due-gate and the
-    scheduler select on. Dispatchers call this rather than restating the bound,
-    so the push path cannot drift from the rows the scheduler picks up.
+    Whether a payload is ready to deliver.
+
+    The in-Python mirror of the `schedule_for__lte=timezone.now()` bound that
+    `_claim_mailbox_batch`'s due-gate applies in SQL. The push trigger is the
+    only caller and short-circuits on it ahead of a claim, so move one, move both.
     """
     return schedule_for <= timezone.now()
 
@@ -346,17 +361,24 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
     keeps other dispatchers off the mailbox. The lock only serializes the claim
     and is always released before returning, never held for the drain's run.
 
-    Falls back gracefully if the cache backend is unavailable — the scheduler handles delivery.
+    Runs inline in the inbound webhook request, so nothing may escape it: the whole
+    body sits under the try, and every failure degrades to the scheduler delivering
+    on its next cycle.
     """
-    if not options.get("hybridcloud.webhookpayload.push_drain_trigger"):
-        return
     trigger_tags = {"provider": _provider_from_mailbox(mailbox_name)}
-    lock_acquired = False
+    guard = _acquire_drain_guard(mailbox_name)
     try:
-        if not cache.add(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL):
+        if guard is None:
+            # Every inbound webhook reaches here, so an outage would otherwise
+            # bury real faults under its own volume.
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.push_trigger.error",
+                tags={**trigger_tags, "reason": "cache_unavailable"},
+            )
+            return
+        if not guard:
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger.skipped", tags=trigger_tags)
             return
-        lock_acquired = True
         # Only drain if the mailbox head is ready to deliver. In due-head mode the
         # head is the oldest due payload, so a failed payload in retry backoff at
         # the front delays only itself. Otherwise the head is the true head
@@ -383,11 +405,14 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
             tags={**trigger_tags, "drain": outcome},
         )
     except Exception:
-        metrics.incr("hybridcloud.deliver_webhooks.push_trigger.error", tags=trigger_tags)
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.push_trigger.error",
+            tags={**trigger_tags, "reason": "dispatch_failed"},
+        )
     finally:
-        # Only release the lock this caller acquired. Releasing unconditionally
-        # would delete another dispatcher's claim guard.
-        if lock_acquired:
+        # Only the guard this caller took; releasing unconditionally would
+        # delete another dispatcher's.
+        if guard:
             _release_drain_lock(mailbox_name)
 
 
@@ -527,25 +552,22 @@ def schedule_webhook_delivery() -> None:
             break
         mailbox_name = record["mailbox_name"]
         skip_tags = {"provider": _provider_from_mailbox(mailbox_name)}
-        try:
-            if not cache.add(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL):
-                # Another dispatcher is mid-claim for this mailbox; it will dispatch.
-                metrics.incr(
-                    "hybridcloud.deliver_webhooks.scheduler.skipped",
-                    tags={**skip_tags, "reason": "lock_held"},
-                )
-                continue
-            lock_acquired = True
-        except Exception:
-            # Cache down: claims still keep dispatchers apart across cycles, so
-            # proceed — just without serialization against push triggers.
-            lock_acquired = False
+        guard = _acquire_drain_guard(mailbox_name)
+        if guard is False:
+            # Another dispatcher is mid-claim for this mailbox; it will dispatch.
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.scheduler.skipped",
+                tags={**skip_tags, "reason": "lock_held"},
+            )
+            continue
+        # A None guard is a cache outage. Claims still keep dispatchers apart across
+        # cycles, so proceed — just unserialized against push triggers.
         try:
             outcome = _claim_and_dispatch(
                 record["id"], mailbox_name, dispatcher=Dispatcher.SCHEDULER
             )
         finally:
-            if lock_acquired:
+            if guard:
                 _release_drain_lock(mailbox_name)
         if outcome is DispatchOutcome.NOT_DUE:
             # Claimed out of the list between discovery and here, usually by a

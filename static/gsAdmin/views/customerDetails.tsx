@@ -174,7 +174,10 @@ export function CustomerDetails() {
   const onGenerateSpikeProjectionsMutation = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/_admin/customers/${orgId}/queue-spike-projection/`,
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/queue-spike-projection/',
+          {path: {organizationIdOrSlug: orgId}}
+        ),
         method: 'POST',
       }),
     onSuccess: () => {
