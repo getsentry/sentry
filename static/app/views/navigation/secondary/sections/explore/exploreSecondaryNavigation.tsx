@@ -223,10 +223,7 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link
                     to={`${baseUrl}/investigations/`}
-                    activeTo={[
-                      `${baseUrl}/investigations/`,
-                      `/organizations/${organization.slug}/seer/investigation/`,
-                    ]}
+                    activeTo={`${baseUrl}/investigations/`}
                     analyticsItemName="explore_investigations"
                     trailingItems={<FeatureBadge type="beta" />}
                   >

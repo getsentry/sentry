@@ -663,6 +663,10 @@ export function useExplorerAutofix(
       step: AutofixExplorerStep,
       startStepOptions?: {
         /**
+         * Whether to enable bash mode for the autofix run. Defaults to false.
+         */
+        enableBashTools?: boolean;
+        /**
          * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
          */
         insertIndex?: number;
@@ -691,6 +695,10 @@ export function useExplorerAutofix(
 
         if (startStepOptions?.userContext) {
           data.user_context = startStepOptions.userContext;
+        }
+
+        if (defined(startStepOptions?.enableBashTools)) {
+          data.enable_bash_tools = startStepOptions.enableBashTools;
         }
 
         const response = await api.requestPromise(

@@ -995,6 +995,16 @@ describe('InboxPage', () => {
     expect(within(preview).getByLabelText('2,600 events')).toHaveTextContent(
       '2.6KEvents'
     );
+    expect(within(preview).getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${fixProposedGroup.id}/?referrer=inbox`
+    );
+    expect(
+      within(preview).getByRole('link', {name: /Fix proposed issue/})
+    ).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${fixProposedGroup.id}/?referrer=inbox`
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Back to inbox'}));
     expect(router.location.query.preview).toBeUndefined();

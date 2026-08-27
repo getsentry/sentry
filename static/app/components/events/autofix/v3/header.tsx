@@ -4,7 +4,9 @@ import {Button} from '@sentry/scraps/button';
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getReferrerConfig} from 'sentry/components/events/autofix/autofixReferrer';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -15,14 +17,18 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerHeaderProps {
+  enableBashTools?: boolean;
   onCopyMarkdown?: () => void;
+  onEnableBashToolsChange?: (enabled: boolean) => void;
   onOpenSeerAgent?: () => void;
   onReset?: () => void;
   referrer?: string;
 }
 
 export function SeerDrawerHeader({
+  enableBashTools,
   onCopyMarkdown,
+  onEnableBashToolsChange,
   onOpenSeerAgent,
   onReset,
   referrer,
@@ -61,6 +67,19 @@ export function SeerDrawerHeader({
             aria-label={t('Copy analysis as Markdown')}
             variant="transparent"
           />
+          {isSentryEmployee && onEnableBashToolsChange && (
+            <Tooltip title={t('Enable bash mode for the autofix analysis')} skipWrapper>
+              <Flex align="center" gap="xs">
+                <Text size="xs">{t('Bash')}</Text>
+                <Switch
+                  size="sm"
+                  checked={enableBashTools ?? false}
+                  onChange={() => onEnableBashToolsChange(!enableBashTools)}
+                  aria-label={t('Enable bash tools')}
+                />
+              </Flex>
+            </Tooltip>
+          )}
           {isSentryEmployee && hasDebugFlag && onOpenSeerAgent && (
             <Button
               size="xs"

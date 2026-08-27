@@ -91,6 +91,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
       size="sm"
       variant="outline"
       flex={1}
+      minWidth={0}
     >
       <Global styles={streamingAnimationStyles} />
       <Disclosure.Title

@@ -24,9 +24,10 @@ from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
 from sentry.objectstore import (
+    UsecaseId,
     default_attachment_retention,
-    get_attachments_session,
     get_download_redirect_url,
+    get_session,
 )
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
@@ -155,7 +156,7 @@ class EventAttachment(Model):
                 # explicit delete to avoid unnecessary load on the objectstore service.
                 if not os.environ.get("_SENTRY_CLEANUP"):
                     organization_id = _get_organization(self.project_id)
-                    get_attachments_session(organization_id, self.project_id).delete(
+                    get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
                         self.blob_path.removeprefix(V2_PREFIX)
                     )
 
@@ -181,7 +182,7 @@ class EventAttachment(Model):
         assert self.blob_path is not None
 
         organization_id = _get_organization(self.project_id)
-        session = get_attachments_session(organization_id, self.project_id)
+        session = get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id)
         return get_download_redirect_url(
             request, session, organization_id, self.blob_path.removeprefix(V2_PREFIX)
         )
@@ -208,7 +209,9 @@ class EventAttachment(Model):
         elif self.blob_path.startswith(V2_PREFIX):
             key = self.blob_path.removeprefix(V2_PREFIX)
             organization_id = _get_organization(self.project_id)
-            response = get_attachments_session(organization_id, self.project_id).get(key)
+            response = get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).get(
+                key
+            )
             if response is None:
                 raise FileNotFoundError("Attachment does not exist in objectstore")
             return response.payload
@@ -225,7 +228,9 @@ class EventAttachment(Model):
         if self.uses_objectstore():
             assert self.blob_path is not None
             key = self.blob_path.removeprefix(V2_PREFIX)
-            session = get_attachments_session(_get_organization(self.project_id), self.project_id)
+            session = get_session(
+                UsecaseId.ATTACHMENTS, self.project_id, org=_get_organization(self.project_id)
+            )
             response = session.get(key, accept_encoding=accept_encoding or None)
             if response is None:
                 raise FileNotFoundError("Attachment does not exist in objectstore")
@@ -266,7 +271,7 @@ class EventAttachment(Model):
 
         else:
             organization_id = _get_organization(project_id)
-            session = get_attachments_session(organization_id, project_id)
+            session = get_session(UsecaseId.ATTACHMENTS, project_id, org=organization_id)
             key = session.put(
                 data,
                 content_type=content_type,

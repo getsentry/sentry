@@ -7,6 +7,7 @@ import orjson
 import sentry_sdk
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org.gate import is_org_in_serving_rollout
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import are_equal_with_epsilon, sample_rate_to_float
 from sentry.dynamic_sampling.tasks.constants import (
@@ -25,6 +26,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -48,8 +50,17 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
     """
     org_id = config.organization.id
     write_recalibration_factor(org_id, config.results.recalibration_factor)
-    set_project_sample_rates(org_id, config.results.rebalanced_projects)
-    set_transaction_sample_rates(org_id, config.results.rebalanced_transactions)
+    wrote_project_rates = set_project_sample_rates(org_id, config.results.rebalanced_projects)
+    wrote_transaction_rates = set_transaction_sample_rates(
+        org_id, config.results.rebalanced_transactions
+    )
+    if wrote_project_rates or wrote_transaction_rates:
+        if not is_org_in_serving_rollout(org_id):
+            return
+
+        schedule_invalidate_project_config(
+            organization_id=org_id, trigger="dynamic_sampling_per_org"
+        )
 
 
 def write_recalibration_factor(org_id: int, factor: float | None) -> None:
@@ -164,7 +175,7 @@ def get_cached_recalibration_factor(org_id: int) -> float:
     return legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_comparison")
 
 
-def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[RebalancedItem]) -> None:
+def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[RebalancedItem]) -> bool:
     """Store the balanced per-project sample rates this pipeline computed.
 
     Mirrors the layout of the legacy ``prioritise_projects`` hash, so that both pipelines
@@ -174,10 +185,13 @@ def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[Rebalanc
     the next, and a project with no volume keeps it forever. The expiry is always renewed,
     so that a project whose rate never moves does not fall out of the cache and back to the
     fallback sample rate.
+
+    Returns whether any rate was written, which is what makes the organization's rules
+    worth republishing.
     """
     items = list(rebalanced_projects)
     if not items:
-        return
+        return False
 
     redis_client = get_redis_client_for_ds()
     cache_key = generate_project_sample_rates_cache_key(org_id)
@@ -197,6 +211,13 @@ def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[Rebalanc
         pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
         pipeline.execute()
 
+    return bool(changed)
+
+
+def has_project_rates(org_id: int) -> bool:
+    redis_client = get_redis_client_for_ds()
+    return bool(redis_client.exists(generate_project_sample_rates_cache_key(org_id)))
+
 
 def get_project_sample_rate(org_id: int, project_id: int) -> float | None:
     """The balanced sample rate of a project, or None when this pipeline has not stored one."""
@@ -214,14 +235,17 @@ def get_project_sample_rate(org_id: int, project_id: int) -> float | None:
 
 def set_transaction_sample_rates(
     org_id: int, sample_rates_by_project: Mapping[int, tuple[Sequence[RebalancedItem], float]]
-) -> None:
+) -> bool:
     """Store the balanced per-transaction sample rates of an organization's projects.
 
     Each stored value has the same shape as the legacy ``pri_tran`` entry: the named rates
     followed by the rate that applies to every transaction without one.
+
+    Returns whether anything was written, which is what makes the organization's rules
+    worth republishing.
     """
     if not sample_rates_by_project:
-        return
+        return False
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
@@ -235,6 +259,8 @@ def set_transaction_sample_rates(
             )
             pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
         pipeline.execute()
+
+    return True
 
 
 def get_transaction_sample_rates(
