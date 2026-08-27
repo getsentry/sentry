@@ -19,14 +19,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSeerLink} from './openSeerButton';
 import {type ActionableSectionKey, useNextAction} from './overviewActions';
-import type {OverviewRun} from './types';
+import type {OverviewRun, ProjectConfig} from './types';
 
 export function OverviewCardAction({
   run,
   sectionKey,
+  projectConfig,
 }: {
   run: OverviewRun;
   sectionKey: ActionableSectionKey;
+  projectConfig?: ProjectConfig;
 }) {
   const organization = useOrganization();
   // Defer agent-option fetches until the dropdown opens to avoid per-card repo pagination.
@@ -35,11 +37,12 @@ export function OverviewCardAction({
   const {autofix, config, isDispatched, trigger} = useNextAction({run, sectionKey});
   const {to: openSeerTo, trackOpen} = useOpenSeerLink(run, sectionKey);
 
-  const {hasReposConnected, hasNonGithubRepo} = run.issue.project;
-  const repoEligibility =
-    hasReposConnected === undefined
-      ? undefined
-      : {hasReposConnected, hasNonGithubRepo: hasNonGithubRepo ?? false};
+  const repoEligibility = projectConfig
+    ? {
+        hasReposConnected: projectConfig.hasReposConnected,
+        hasNonGithubRepo: projectConfig.hasNonGithubRepo ?? false,
+      }
+    : undefined;
 
   const {
     codingAgentIntegrations,

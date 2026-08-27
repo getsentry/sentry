@@ -29,6 +29,7 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
@@ -251,7 +252,13 @@ class IssuesEventWebhook(GitlabWebhook):
 
         # Handle status changes (CLOSE and REOPEN)
         if action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN] and organization:
-            self._handle_status_change(integration, external_issue_key, action, organization.id)
+            self._handle_status_change(
+                integration,
+                external_issue_key,
+                action,
+                organization.id,
+                object_attributes.get("updated_at"),
+            )
 
     def _handle_assignment(
         self,
@@ -330,11 +337,14 @@ class IssuesEventWebhook(GitlabWebhook):
         external_issue_key: str,
         action: str,
         organization_id: int,
+        updated_at: str | None,
     ) -> None:
         """
         Handle issue status changes (close/reopen).
 
         Triggers the sync_status_inbound task to update linked Sentry issues.
+
+        `updated_at` is GitLab's own timestamp, used to order deliveries.
         """
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id,
@@ -347,7 +357,7 @@ class IssuesEventWebhook(GitlabWebhook):
             if isinstance(installation, IssueSyncIntegration):
                 installation.sync_status_inbound(
                     external_issue_key,
-                    {"action": action},
+                    {"action": action, PROVIDER_EVENT_TIME_KEY: updated_at},
                 )
                 logger.info(
                     "gitlab.webhook.status.synced",

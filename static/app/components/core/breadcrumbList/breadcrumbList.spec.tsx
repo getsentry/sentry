@@ -98,6 +98,10 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(screen.getByRole('link', {name: 'Settings'})).not.toHaveAttribute(
       'aria-current'
     );
+    expect(screen.getByRole('link', {name: 'Settings'})).toHaveAttribute(
+      'data-test-id',
+      'breadcrumb-link'
+    );
 
     // The decorative slash dividers are hidden from the accessibility tree.
     const dividers = document.querySelectorAll('svg[role="img"]:not([aria-hidden])');

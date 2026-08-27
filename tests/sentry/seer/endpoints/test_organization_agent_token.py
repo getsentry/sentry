@@ -1274,7 +1274,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "EventAttachmentDetailsEndpoint": "organizations:event-attachments",
             "GroupAutofixEndpoint": "organizations:gen-ai-features",
             "GroupIntegrationDetailsEndpoint": "organizations:integrations-issue-basic",
-            "OrganizationAlertRuleIndexEndpoint": "organizations:incidents",
             "OrganizationEventsEndpoint": "organizations:discover-basic",
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
             "OrganizationProfilingFlamegraphEndpoint": "organizations:profiling",

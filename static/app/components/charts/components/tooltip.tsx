@@ -3,6 +3,7 @@ import 'echarts/lib/component/tooltip';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
+import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import moment from 'moment-timezone';
 
 import type {BaseChart, BaseChartProps} from 'sentry/components/charts/baseChart';
@@ -118,6 +119,12 @@ export type FormatterOptions = Pick<
      */
     limit?: number;
     /**
+     * Extra HTML appended to the series block, e.g. a legend for abbreviated series
+     * names. Receives the names of the series in the tooltip. Called on each tooltip
+     * render, so it can render a React tree to a string.
+     */
+    renderSeriesDetails?: (seriesNames: string[]) => string;
+    /**
      * If true does not display sublabels with a value of 0.
      */
     skipZeroValuedSubLabels?: boolean;
@@ -141,6 +148,7 @@ export function getFormatter({
   subLabels = [],
   addSecondsToTimeFormat = false,
   limit,
+  renderSeriesDetails,
   skipZeroValuedSubLabels,
 }: FormatterOptions): TooltipComponentFormatterCallback<any> {
   const getFilter = (seriesParam: any) => {
@@ -203,7 +211,7 @@ export function getFormatter({
       ].join('');
     }
 
-    let seriesParams = toArray(seriesParamsOrParam);
+    let seriesParams: CallbackDataParams[] = toArray(seriesParamsOrParam);
 
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
@@ -228,15 +236,18 @@ export function getFormatter({
         .sort((a, b) => getSeriesValue(b, 1) - getSeriesValue(a, 1))
         .slice(0, limit);
       if (originalLength > limit) {
+        // Not a real series, only the fields the rendering below reads are set.
         seriesParams.push({
           seriesName: `+${originalLength - limit} more`,
           value: '',
           color: 'transparent',
-        });
+        } as CallbackDataParams);
       }
     }
 
-    const {series, total} = seriesParams.filter(getFilter).reduce(
+    const visibleSeriesParams = seriesParams.filter(getFilter);
+
+    const {series, total} = visibleSeriesParams.reduce<{series: string[]; total: number}>(
       (acc, serie) => {
         const formattedLabel = nameFormatter(
           truncationFormatter(serie.seriesName ?? '', truncate),
@@ -245,7 +256,11 @@ export function getFormatter({
 
         const value = valueFormatter(getSeriesValue(serie, 1), serie.seriesName, serie);
 
-        const marker = markerFormatter(serie.marker ?? '', serie.seriesName);
+        // `marker` is HTML in the default render mode, an object in rich text mode.
+        const marker = markerFormatter(
+          typeof serie.marker === 'string' ? serie.marker : '',
+          serie.seriesName
+        );
 
         const filteredSubLabels = subLabels.filter(
           subLabel => subLabel.parentLabel === serie.seriesName
@@ -296,9 +311,13 @@ export function getFormatter({
       }
     );
 
+    const seriesDetails =
+      renderSeriesDetails?.(visibleSeriesParams.map(serie => serie.seriesName ?? '')) ??
+      '';
+
     if (subLabels.length > 0) {
       return [
-        `<div class="tooltip-series">${series.join('')}</div>`,
+        `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
         '<div class="tooltip-footer">',
         `<div><strong>${t('Date')}:</strong> ${date}</div>`,
         `<div><strong>${t('Total')}:</strong> ${valueFormatter(total)}</div>`,
@@ -308,7 +327,7 @@ export function getFormatter({
     }
 
     return [
-      `<div class="tooltip-series">${series.join('')}</div>`,
+      `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
       '<div class="tooltip-footer tooltip-footer-centered">',
       date,
       '</div>',
@@ -342,6 +361,7 @@ export function computeChartTooltip(
     nameFormatter,
     markerFormatter,
     hideDelay,
+    renderSeriesDetails,
     subLabels,
     chartId,
     skipZeroValuedSubLabels,
@@ -363,6 +383,7 @@ export function computeChartTooltip(
       valueFormatter,
       nameFormatter,
       markerFormatter,
+      renderSeriesDetails,
       subLabels,
       skipZeroValuedSubLabels,
     });

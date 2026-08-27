@@ -109,4 +109,33 @@ describe('ExploreCharts', () => {
       expect(screen.queryByLabelText('Expand chart')).not.toBeInTheDocument();
     });
   });
+
+  it('shows an error when the series conditional filter is invalid', async () => {
+    const visualize = Visualize.fromJSON({
+      yAxes: ['count_if(`p95(span.duration):>100`,span.duration)'],
+    })[0]!;
+
+    render(
+      <SpansQueryParamsProvider>
+        <ChartSelectionProvider>
+          <ExploreCharts
+            extrapolate
+            query=""
+            timeseriesResult={timeseriesResultFixture()}
+            visualizes={[visualize]}
+            setVisualizes={() => {}}
+            rawSpanCounts={{
+              total: {count: 0, isLoading: false},
+              normal: {count: 0, isLoading: false},
+            }}
+          />
+        </ChartSelectionProvider>
+      </SpansQueryParamsProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    expect(
+      await screen.findByText('Aggregates cannot be used in conditional filters')
+    ).toBeInTheDocument();
+  });
 });
