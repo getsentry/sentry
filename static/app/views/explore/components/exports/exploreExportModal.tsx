@@ -76,19 +76,21 @@ export function ExploreExportModal({
     onSubmit: async ({value}) => {
       const isAllColumns =
         config.supportsAllColumns && value.columns === ModalColumnValue.ALL;
-      // The local download can only serve rows already loaded in the browser, so
-      // anything beyond that must go through the server export.
-      const exceedsLocalData = value.limit > localRowCount;
 
       const format = isAllColumns ? 'jsonl' : value.format;
 
-      const useServerExport = isAllColumns || exceedsLocalData;
-      const exportType = useServerExport ? 'export_download' : 'browser_sync';
+      // Areas cap what their browser download can serve with `localRowCount`, so
+      // anything beyond that must go through the server export.
+      const localDownloadForSubmit =
+        !isAllColumns && localDownload && value.limit <= (localRowCount ?? 0)
+          ? localDownload
+          : undefined;
+      const exportType = localDownloadForSubmit ? 'browser_sync' : 'export_download';
 
       trackExportSubmit({format, limit: value.limit, isAllColumns, exportType});
 
-      if (!useServerExport) {
-        localDownload({format, limit: value.limit});
+      if (localDownloadForSubmit) {
+        localDownloadForSubmit({format, limit: value.limit});
         addSuccessMessage(t('Downloading file to your browser.'));
         closeModal();
         return;
