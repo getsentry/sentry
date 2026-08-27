@@ -252,7 +252,13 @@ function useUpdateOverlayPositionOnContentChange({
     resizeObserverRef.current = new ResizeObserver(() => {
       // Firefox can invoke ResizeObserver callbacks during rendering, when
       // calling an Effect Event is not allowed.
-      rafRef.current = requestAnimationFrame(() => updatePosition());
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        updatePosition();
+      });
     });
 
     return () => {
