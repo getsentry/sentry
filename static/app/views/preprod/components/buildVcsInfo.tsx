@@ -166,7 +166,7 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
       radius="md"
       padding="md"
       width="100%"
-      marginBottom={{'screen:xs': 'lg', 'screen:lg': '0'}}
+      marginBottom={{sm: 'lg', '4xl': '0'}}
     >
       <Stack gap="sm">
         <Text bold>{t('Missing Git metadata')}</Text>
