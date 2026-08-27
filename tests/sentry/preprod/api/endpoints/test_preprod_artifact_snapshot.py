@@ -66,6 +66,24 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert snapshot_metrics.preprod_artifact == artifact
         assert snapshot_metrics.image_count == 1
 
+    def test_snapshot_upload_rejects_reserved_archive_filename(self) -> None:
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "manifest.json": {
+                    "content_hash": "abc123def456",
+                    "width": 375,
+                    "height": 812,
+                },
+            },
+        }
+
+        response = self.client.post(self._get_create_url(), data, format="json")
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "The filename manifest.json is reserved."
+        assert not PreprodArtifact.objects.filter(project=self.project).exists()
+
     def _compressible_snapshot_payload(self) -> bytes:
         data = {
             "app_id": "com.example.app",

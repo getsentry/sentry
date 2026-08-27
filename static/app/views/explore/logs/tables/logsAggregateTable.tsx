@@ -7,6 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -23,7 +24,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
@@ -90,6 +91,7 @@ export function LogsAggregateTable({
   const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
 
   if (isRateLimitError(error)) {
     return (
@@ -185,6 +187,7 @@ export function LogsAggregateTable({
               attributes: row,
               attributeTypes: meta.fields,
               caseSensitiveHighlighting: false,
+              datetime: selection.datetime,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,

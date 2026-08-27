@@ -13,7 +13,10 @@ import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
+import {
+  canManageIntegrations,
+  integrationRequiresUpgrade,
+} from 'sentry/utils/integrationUtil';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -41,7 +44,6 @@ import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
-  getLangfuseUrl,
   getRelativeExplorerUrl,
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
@@ -214,6 +216,8 @@ export function SeerExplorerContent({
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
+  const isAgentWriteApprovalPending =
+    isAwaitingUserInput && pendingInput?.input_type === 'agent_write_approval';
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
 
   // Whether the org has an active Slack integration installed. Slack is an
@@ -235,7 +239,12 @@ export function SeerExplorerContent({
       integration.organizationIntegrationStatus === 'active'
   );
   const hasSlackIntegration = activeSlackIntegrations.length > 0;
+  // Only surface the reinstall CTA to users who can actually reinstall. Settings
+  // already gates the upgrade button on `canManageIntegrations`; without the same
+  // check here, members without `org:integrations` get a dead-end nudge.
   const needsSlackUpgrade = activeSlackIntegrations.some(integrationRequiresUpgrade);
+  const showSlackUpgradeAlert =
+    needsSlackUpgrade && !!organization && canManageIntegrations(organization);
 
   // Auto-submit the initial query forwarded from the command palette, but only
   // if the session is still empty (don't clobber an active run). The ref dedupes
@@ -311,7 +320,6 @@ export function SeerExplorerContent({
     }
   }, [runId, organization]);
 
-  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
   const conversationsUrl = useMemo(() => {
     if (runId === null) {
       return;
@@ -337,13 +345,6 @@ export function SeerExplorerContent({
       referrer: 'seer.agent.in-chat-link',
     });
   }, [runId, blocks]);
-
-  const handleOpenLangfuse = useCallback(() => {
-    // Command handler. Disabled in slash command menu for non-employees
-    if (langfuseUrl) {
-      window.open(langfuseUrl, '_blank');
-    }
-  }, [langfuseUrl]);
 
   const handleOpenConversations = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -385,7 +386,6 @@ export function SeerExplorerContent({
     slashCommandHandlers: {
       onNew: startNewSession,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
-      onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
         ? setOverrideBashModeEnabled
@@ -558,7 +558,7 @@ export function SeerExplorerContent({
         <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
       )}
       {menu}
-      {needsSlackUpgrade && (
+      {showSlackUpgradeAlert && (
         <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
       )}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
@@ -589,9 +589,14 @@ export function SeerExplorerContent({
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
                   interactionPending={
-                    isFileApprovalPending || isQuestionPending || showReauth
+                    isFileApprovalPending ||
+                    isAgentWriteApprovalPending ||
+                    isQuestionPending ||
+                    showReauth
                   }
+                  pendingInput={pendingInput}
                   readOnly={readOnly}
+                  respondToUserInput={respondToUserInput}
                   showThinking={showThinking}
                 />
               );

@@ -1,11 +1,11 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -23,11 +23,9 @@ import {
 } from 'sentry/constants/releases';
 import {IconAdd, IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -39,6 +37,7 @@ import {
   mergeGlobalFilters,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
+import {useDashboardMaxPickableDays} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -47,6 +46,7 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -55,53 +55,8 @@ import type {
   DashboardFilters,
   DashboardPermissions,
   GlobalFilter,
-  Widget,
 } from './types';
-import {DashboardFilterKeys, WidgetType} from './types';
-
-/**
- * Maps widget types to data categories for determining max pickable days
- */
-function getDataCategoriesFromWidgets(
-  widgets: Widget[]
-): [DataCategory, ...DataCategory[]] {
-  const categories = new Set<DataCategory>();
-
-  for (const widget of widgets) {
-    const widgetType = widget.widgetType ?? WidgetType.DISCOVER;
-
-    switch (widgetType) {
-      case WidgetType.SPANS:
-        categories.add(DataCategory.SPANS);
-        break;
-      case WidgetType.TRANSACTIONS:
-        categories.add(DataCategory.TRANSACTIONS);
-        break;
-      case WidgetType.TRACEMETRICS:
-        categories.add(DataCategory.TRACE_METRICS);
-        break;
-      case WidgetType.LOGS:
-        categories.add(DataCategory.LOG_ITEM);
-        break;
-      case WidgetType.ERRORS:
-      case WidgetType.DISCOVER:
-      case WidgetType.ISSUE:
-      case WidgetType.RELEASE:
-      case WidgetType.METRICS:
-      default:
-        // For error-like widgets, use TRANSACTIONS as a safe default
-        // since it has the most permissive date range
-        categories.add(DataCategory.TRANSACTIONS);
-        break;
-    }
-  }
-
-  // Return as tuple with at least one element (required by useMaxPickableDays)
-  const categoriesArray = Array.from(categories);
-  return categoriesArray.length > 0
-    ? (categoriesArray as [DataCategory, ...DataCategory[]])
-    : [DataCategory.TRANSACTIONS];
-}
+import {DashboardFilterKeys} from './types';
 
 export type FiltersBarProps = {
   filters: DashboardFilters;
@@ -141,6 +96,7 @@ export function FiltersBar({
   widgetLimitReached = false,
 }: FiltersBarProps) {
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
@@ -149,18 +105,7 @@ export function FiltersBar({
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
     : [];
 
-  // Determine data categories based on widget types in the dashboard
-  const dataCategories = useMemo(() => {
-    if (!dashboard?.widgets || dashboard.widgets.length === 0) {
-      // Default to TRANSACTIONS if no widgets
-      return [DataCategory.TRANSACTIONS] as [DataCategory, ...DataCategory[]];
-    }
-
-    return getDataCategoriesFromWidgets(dashboard.widgets);
-  }, [dashboard?.widgets]);
-
-  // Calculate maxPickableDays based on the data categories
-  const maxPickableDaysOptions = useMaxPickableDays({dataCategories});
+  const maxPickableDaysOptions = useDashboardMaxPickableDays(dashboard?.widgets);
 
   // Release sort state - validates and defaults to DATE via custom parser
   const [releaseSort, setReleaseSort] = useQueryState('sortReleasesBy', parseReleaseSort);
@@ -274,6 +219,7 @@ export function FiltersBar({
       : null
     : t('You do not have permission to edit this dashboard');
   const showAddWidgetButton =
+    !hasNewBreadcrumbs &&
     !isPrebuiltDashboard &&
     !isEditingDashboard &&
     !isPreview &&
@@ -281,7 +227,14 @@ export function FiltersBar({
     defined(onAddWidget);
 
   return (
-    <Wrapper>
+    <Flex
+      align={hasNewBreadcrumbs ? {zero: 'stretch', xl: 'start'} : 'start'}
+      direction={hasNewBreadcrumbs ? {zero: 'column', xl: 'row'} : 'row'}
+      wrap="wrap"
+      gap="lg"
+      marginBottom={hasNewBreadcrumbs ? '0' : 'xl'}
+      padding={hasNewBreadcrumbs ? 'lg xl xl' : 'lg xl'}
+    >
       <FiltersRow>
         <PageFilterBar condensed>
           <ProjectPageFilter
@@ -447,7 +400,7 @@ export function FiltersBar({
           </Feature>
         )}
       </Grid>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -461,20 +414,16 @@ const parseReleaseSort = createParser({
   serialize: (value: ReleasesSortOption): string => value,
 }).withDefault(DEFAULT_RELEASES_SORT);
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.lg};
-  margin-bottom: ${p => p.theme.space.xl};
-  align-items: flex-start;
-`;
+// Filters row starts wrapping siblings at this width.
+const FILTERS_ROW_FLEX_BASIS_PX = 480;
 
 const FiltersRow = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
-  flex: 1;
+  flex: 1 1 ${FILTERS_ROW_FLEX_BASIS_PX}px;
+  min-width: 0;
 
   & button[aria-haspopup] {
     height: 100%;

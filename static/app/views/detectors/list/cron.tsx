@@ -5,14 +5,17 @@ import {PlatformIcon} from 'platformicons';
 import onboardingImg from 'sentry-images/spot/crons-onboarding.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {OnboardingPanel} from 'sentry/components/onboardingPanel';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
@@ -65,7 +68,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   });
 
   return (
-    <Cell
+    <SimpleTable.RowCell
       data-column-name="visualization"
       padding="lg 0"
       borderLeft="muted"
@@ -92,7 +95,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
           );
         })}
       </Stack>
-    </Cell>
+    </SimpleTable.RowCell>
   );
 }
 
@@ -153,59 +156,76 @@ function CronEmptyState() {
   };
 
   return (
-    <OnboardingPanel image={<img src={onboardingImg} />}>
-      <Stack gap="2xl">
-        <Stack gap="md">
-          <Heading as="h2">{t('Monitor Your Cron Jobs')}</Heading>
-          <Text as="p">
-            {t(
-              "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
+    <Panel>
+      <EmptyState
+        padding="3xl"
+        align="center"
+        justify="center"
+        illustration={
+          <Image
+            width={{zero: '300px', md: '150px', '2xl': '300px'}}
+            src={onboardingImg}
+            alt={t(
+              'Purple bird emerging from an orange birdhouse with gears and a warning sign'
             )}
-          </Text>
-        </Stack>
-        <Flex gap="xl" wrap="wrap">
-          {platformGuides
-            .filter(({platform}) => !['cli', 'http'].includes(platform))
-            .map(({platform, label}) => (
-              <Stack key={platform} gap="xs" align="center">
-                <PlatformLinkButton
-                  variant="secondary"
-                  to={makeCreateUrl(platform)}
-                  aria-label={t('Create %s Monitor', platform)}
-                >
-                  <PlatformIcon platform={platform} format="lg" size="100%" />
-                </PlatformLinkButton>
-                <Text variant="muted">{label}</Text>
-              </Stack>
-            ))}
-        </Flex>
-        <Flex gap="md">
-          <LinkButton size="sm" icon={<IconTerminal />} to={makeCreateUrl('cli')}>
-            Sentry CLI
-          </LinkButton>
-          <LinkButton size="sm" icon={<IconGlobe />} to={makeCreateUrl('http')}>
-            HTTP (cURL)
-          </LinkButton>
-          <LinkButton
-            size="sm"
-            to={{
-              pathname: baseUrl,
-              query: {
-                detectorType: 'monitor_check_in_failure',
-                project: defaultProject?.id ?? '',
-                skipGuideDetection: true,
-              },
-            }}
-          >
-            {t('Manual Setup')}
-          </LinkButton>
-        </Flex>
-      </Stack>
-    </OnboardingPanel>
+          />
+        }
+        title={t('Monitor Your Cron Jobs')}
+        description={t(
+          "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
+        )}
+        action={
+          <Stack gap="xl" width="100%">
+            <Flex gap="xl" wrap="wrap" width="100%" maxWidth="600px">
+              {platformGuides
+                .filter(({platform}) => !['cli', 'http'].includes(platform))
+                .map(({platform, label}) => (
+                  <Stack key={platform} gap="xs" align="center">
+                    <PlatformLinkButton
+                      variant="secondary"
+                      to={makeCreateUrl(platform)}
+                      aria-label={t('Create %s Monitor', platform)}
+                    >
+                      <PlatformIcon platform={platform} format="lg" size="100%" />
+                    </PlatformLinkButton>
+                    <Text variant="muted">{label}</Text>
+                  </Stack>
+                ))}
+            </Flex>
+            <Flex gap="md" wrap="wrap">
+              <LinkButton size="sm" icon={<IconTerminal />} to={makeCreateUrl('cli')}>
+                Sentry CLI
+              </LinkButton>
+              <LinkButton size="sm" icon={<IconGlobe />} to={makeCreateUrl('http')}>
+                HTTP (cURL)
+              </LinkButton>
+              <LinkButton
+                size="sm"
+                to={{
+                  pathname: baseUrl,
+                  query: {
+                    detectorType: 'monitor_check_in_failure',
+                    project: defaultProject?.id ?? '',
+                    skipGuideDetection: true,
+                  },
+                }}
+              >
+                {t('Manual Setup')}
+              </LinkButton>
+            </Flex>
+          </Stack>
+        }
+      />
+    </Panel>
   );
 }
 
+const CronsListPageHeader = OverrideOrDefault({
+  overrideName: 'component:crons-list-page-header',
+});
+
 export default function CronDetectorsList() {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const detectorListQuery = useDetectorListQuery({
     detectorFilter: 'monitor_check_in_failure',
@@ -222,14 +242,14 @@ export default function CronDetectorsList() {
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (
-            <Cell
+            <SimpleTable.RowCell
               data-column-name="visualization"
               padding="lg 0"
               borderLeft="muted"
               height="100%"
             >
               <CheckInPlaceholder />
-            </Cell>
+            </SimpleTable.RowCell>
           );
         }
         if (detector.type === 'monitor_check_in_failure') {
@@ -249,6 +269,7 @@ export default function CronDetectorsList() {
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
         >
+          <CronsListPageHeader organization={organization} />
           <InsightsRedirectNotice>
             {t('Cron monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
@@ -270,10 +291,6 @@ export default function CronDetectorsList() {
     </MonitorViewContext.Provider>
   );
 }
-
-const Cell = styled(SimpleTable.RowCell)`
-  z-index: 4;
-`;
 
 const TimelineFadeIn = styled('div')`
   width: 100%;

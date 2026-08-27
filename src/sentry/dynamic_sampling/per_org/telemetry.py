@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from enum import StrEnum
 from typing import TypeVar
 
+import sentry_sdk
+
 from sentry.dynamic_sampling.per_org.gate import (
     is_killswitch_engaged,
     is_rollout_enabled,
@@ -21,8 +23,6 @@ METRIC_PREFIX = "dynamic_sampling"
 SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
 )
-
-PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC = "dynamic_sampling.per_org.projects_below_full_sample_rate"
 
 
 class DynamicSamplingStatus(StrEnum):
@@ -131,8 +131,9 @@ def track_dynamic_sampling(func: F) -> F:
             except SnubaRPCError:
                 emit_status(status_metric, DynamicSamplingStatus.SNUBA_ERROR)
                 raise
-            except Exception:
+            except Exception as exc:
                 emit_status(status_metric, DynamicSamplingStatus.FAILED)
+                sentry_sdk.capture_exception(exc)
                 raise
 
             status = set_duration_status(result)

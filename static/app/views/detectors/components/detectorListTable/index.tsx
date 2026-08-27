@@ -29,7 +29,10 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
+import {
+  DetectorsTableActions,
+  DetectorsTableActionsBanner,
+} from 'sentry/views/detectors/components/detectorListTable/actions';
 import {
   DetectorListRow,
   DetectorListRowSkeleton,
@@ -99,8 +102,18 @@ export function DetectorListTable({
   queryCount,
   allResultsVisible,
 }: DetectorListTableProps) {
-  const [selected, setSelected] = useState(new Set<string>());
+  const [selected, setSelectedIds] = useState(new Set<string>());
+  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false);
+
+  // Selecting every match only holds while something is selected, so emptying the
+  // selection has to clear it too.
+  const setSelected = useCallback((ids: Set<string>) => {
+    setSelectedIds(ids);
+    if (ids.size === 0) {
+      setAllInQuerySelected(false);
+    }
+  }, []);
 
   const detectorIds = new Set(detectors.map(d => d.id));
   const togglePageSelected = (pageSelected: boolean) => {
@@ -124,7 +137,7 @@ export function DetectorListTable({
       }
       setSelected(newSelected);
     },
-    [selected]
+    [selected, setSelected]
   );
 
   const canEnable = useMemo(
@@ -137,7 +150,7 @@ export function DetectorListTable({
   );
 
   const uniqueProjectIds = useMemo(
-    () => [...new Set(detectors.map(d => d.projectId))],
+    () => [...new Set(detectors.map(d => d.projectId).filter(defined))],
     [detectors]
   );
 
@@ -147,7 +160,7 @@ export function DetectorListTable({
     d => !detectorTypeIsUserCreateable(d.type)
   );
 
-  const elementRef = useRef<HTMLDivElement>(null);
+  const elementRef = useRef<HTMLTableCellElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
@@ -160,92 +173,105 @@ export function DetectorListTable({
   const hasVisualization = defined(renderVisualization);
 
   return (
-    <TableContainer>
+    <Container containerType="inline-size">
       <DetectorListSimpleTable
         hasVisualization={hasVisualization}
         isVisualizationExpanded={isVisualizationExpanded}
         additionalColumns={additionalColumns}
-      >
-        {selected.size === 0 ? (
-          <SimpleTable.Header>
-            <HeaderCell sortKey="name">
-              <Flex gap="md" align="center">
-                <SelectAllHeaderCheckbox
-                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                  onChange={checked => togglePageSelected(checked)}
-                />
-                <span>{t('Name')}</span>
-              </Flex>
-            </HeaderCell>
-            <HeaderCell data-column-name="type" divider sortKey="type">
-              {t('Type')}
-            </HeaderCell>
-            <HeaderCell data-column-name="last-issue" divider sortKey="latestGroup">
-              {t('Last Issue')}
-            </HeaderCell>
-            <HeaderCell data-column-name="assignee" divider>
-              {t('Assignee')}
-            </HeaderCell>
-            <HeaderCell
-              data-column-name="connected-automations"
-              divider
-              sortKey="connectedWorkflows"
-            >
-              {t('Alerts')}
-            </HeaderCell>
-            {additionalColumns.map(col => (
-              <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
-            ))}
-            {hasVisualization && detectors.length > 0 && (
-              <VisualizationHeaderContainer
-                data-column-name="visualization"
-                ref={elementRef}
-                borderLeft="muted"
-                minHeight="50px"
+        header={
+          selected.size === 0 ? (
+            <SimpleTable.HeaderRow>
+              <HeaderCell sortKey="name">
+                <Flex gap="md" align="center">
+                  <SelectAllHeaderCheckbox
+                    checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                    onChange={checked => togglePageSelected(checked)}
+                  />
+                  <span>{t('Name')}</span>
+                </Flex>
+              </HeaderCell>
+              <HeaderCell data-column-name="type" divider sortKey="type">
+                {t('Type')}
+              </HeaderCell>
+              <HeaderCell data-column-name="last-issue" divider sortKey="latestGroup">
+                {t('Last Issue')}
+              </HeaderCell>
+              <HeaderCell data-column-name="assignee" divider>
+                {t('Assignee')}
+              </HeaderCell>
+              <HeaderCell
+                data-column-name="connected-automations"
+                divider
+                sortKey="connectedWorkflows"
               >
-                <GridLineLabels timeWindowConfig={timeWindowConfig} />
-              </VisualizationHeaderContainer>
-            )}
-            {hasVisualization && (
-              <VisualizationExpandButton>
-                <Button
-                  size="xs"
-                  variant="transparent"
-                  icon={
-                    <IconChevron
-                      isDouble
-                      direction={isVisualizationExpanded ? 'right' : 'left'}
-                    />
-                  }
-                  aria-label={
-                    isVisualizationExpanded
-                      ? t('Collapse visualization')
-                      : t('Expand visualization')
-                  }
-                  tooltipProps={{
-                    title: isVisualizationExpanded
-                      ? t('Collapse visualization')
-                      : t('Expand visualization'),
-                  }}
-                  onClick={() => setIsVisualizationExpanded(v => !v)}
-                />
-              </VisualizationExpandButton>
-            )}
-          </SimpleTable.Header>
-        ) : (
-          <DetectorsTableActions
-            key="actions"
+                {t('Alerts')}
+              </HeaderCell>
+              {additionalColumns.map(col => (
+                <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
+              ))}
+              {hasVisualization && detectors.length > 0 && (
+                <VisualizationHeaderCell
+                  data-column-name="visualization"
+                  ref={elementRef}
+                  role="columnheader"
+                  scope="col"
+                >
+                  <GridLineLabels timeWindowConfig={timeWindowConfig} />
+                </VisualizationHeaderCell>
+              )}
+              {hasVisualization && (
+                <VisualizationExpandButtonCell role="columnheader" scope="col">
+                  <Button
+                    size="xs"
+                    variant="transparent"
+                    icon={
+                      <IconChevron
+                        isDouble
+                        direction={isVisualizationExpanded ? 'right' : 'left'}
+                      />
+                    }
+                    aria-label={
+                      isVisualizationExpanded
+                        ? t('Collapse visualization')
+                        : t('Expand visualization')
+                    }
+                    tooltipProps={{
+                      title: isVisualizationExpanded
+                        ? t('Collapse visualization')
+                        : t('Expand visualization'),
+                    }}
+                    onClick={() => setIsVisualizationExpanded(v => !v)}
+                  />
+                </VisualizationExpandButtonCell>
+              )}
+            </SimpleTable.HeaderRow>
+          ) : (
+            <DetectorsTableActions
+              key="actions"
+              selected={selected}
+              pageSelected={pageSelected}
+              togglePageSelected={togglePageSelected}
+              queryCount={queryCount}
+              allInQuerySelected={allInQuerySelected}
+              setAllInQuerySelected={setAllInQuerySelected}
+              showDisable={canDisable}
+              showEnable={canEnable}
+              canEdit={canEditDetectors}
+              hasSystemCreatedDetectors={hasSystemCreatedDetectors}
+              // TODO: Check if metric detector limit is reached
+              detectorLimitReached={false}
+            />
+          )
+        }
+      >
+        {selected.size > 0 && (
+          <DetectorsTableActionsBanner
             selected={selected}
             pageSelected={pageSelected}
-            togglePageSelected={togglePageSelected}
-            queryCount={queryCount}
             allResultsVisible={allResultsVisible}
-            showDisable={canDisable}
-            showEnable={canEnable}
-            canEdit={canEditDetectors}
-            hasSystemCreatedDetectors={hasSystemCreatedDetectors}
-            // TODO: Check if metric detector limit is reached
-            detectorLimitReached={false}
+            queryCount={queryCount}
+            allInQuerySelected={allInQuerySelected}
+            setAllInQuerySelected={setAllInQuerySelected}
           />
         )}
         {isError && <SimpleTable.Empty>{t('Error loading monitors')}</SimpleTable.Empty>}
@@ -260,16 +286,20 @@ export function DetectorListTable({
           </SimpleTable.Empty>
         )}
         {hasVisualization && detectors.length > 0 && (
-          <PositionedGridLineOverlay
-            stickyCursor
-            allowZoom
-            showCursor
-            cursorOffsets={{right: 40}}
-            additionalUi={renderTimelineOverlay?.({timeWindowConfig})}
-            timeWindowConfig={timeWindowConfig}
-            cursorOverlayAnchor="top"
-            cursorOverlayAnchorOffset={10}
-          />
+          <GridLineOverlayRow>
+            <GridLineOverlayCell>
+              <PositionedGridLineOverlay
+                stickyCursor
+                allowZoom
+                showCursor
+                cursorOffsets={{right: 40}}
+                additionalUi={renderTimelineOverlay?.({timeWindowConfig})}
+                timeWindowConfig={timeWindowConfig}
+                cursorOverlayAnchor="top"
+                cursorOverlayAnchorOffset={10}
+              />
+            </GridLineOverlayCell>
+          </GridLineOverlayRow>
         )}
         <IssueStreamDetectorContextProvider projectIds={uniqueProjectIds}>
           {detectors.map(detector => (
@@ -282,13 +312,9 @@ export function DetectorListTable({
           ))}
         </IssueStreamDetectorContextProvider>
       </DetectorListSimpleTable>
-    </TableContainer>
+    </Container>
   );
 }
-
-const TableContainer = styled('div')`
-  container-type: inline-size;
-`;
 
 type ColumnNames =
   | 'name'
@@ -327,7 +353,7 @@ const gridDefinitions = (
   return css`
     ${makeGridSizes(additionalColumns)};
 
-    @container (min-width: ${p.theme.breakpoints.xs}) {
+    @container (min-width: ${p.theme.container.sm}) {
       ${makeGridTemplate(['name', 'type'])}
 
       [data-column-name='type'] {
@@ -335,7 +361,7 @@ const gridDefinitions = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.sm}) {
+    @container (min-width: ${p.theme.container.xl}) {
       ${makeGridTemplate(['name', 'type', 'assignee'])}
 
       [data-column-name='assignee'] {
@@ -343,7 +369,7 @@ const gridDefinitions = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.md}) {
+    @container (min-width: ${p.theme.container['3xl']}) {
       ${makeGridTemplate(['name', 'type', 'last-issue', 'assignee'])}
 
       [data-column-name='last-issue'] {
@@ -351,7 +377,7 @@ const gridDefinitions = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.lg}) {
+    @container (min-width: ${p.theme.container['4xl']}) {
       ${makeGridTemplate([
         'name',
         'type',
@@ -365,7 +391,7 @@ const gridDefinitions = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.xl}) {
+    @container (min-width: ${p.theme.container['5xl']}) {
       ${makeGridTemplate([
         'name',
         'type',
@@ -393,7 +419,7 @@ const gridDefinitionsWithVisualization = (
   return css`
     ${makeGridSizes(additionalColumns)};
 
-    @container (min-width: ${p.theme.breakpoints.sm}) {
+    @container (min-width: ${p.theme.container.xl}) {
       ${makeGridTemplate(['name', 'visualization'])}
 
       [data-column-name='visualization'] {
@@ -403,7 +429,7 @@ const gridDefinitionsWithVisualization = (
       ${additionalColumnDisplay}
     }
 
-    @container (min-width: ${p.theme.breakpoints.md}) {
+    @container (min-width: ${p.theme.container['3xl']}) {
       ${makeGridTemplate(['name', 'assignee', 'visualization'])}
 
       [data-column-name='assignee'] {
@@ -411,7 +437,7 @@ const gridDefinitionsWithVisualization = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.lg}) {
+    @container (min-width: ${p.theme.container['4xl']}) {
       ${makeGridTemplate(['name', 'last-issue', 'assignee', 'visualization'])}
 
       [data-column-name='last-issue'] {
@@ -419,7 +445,7 @@ const gridDefinitionsWithVisualization = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.xl}) {
+    @container (min-width: ${p.theme.container['5xl']}) {
       ${makeGridTemplate([
         'name',
         'last-issue',
@@ -451,7 +477,7 @@ const gridDefinitionsWithVisualizationExpanded = (
   return css`
     ${makeGridSizes(additionalColumns)};
 
-    @container (min-width: ${p.theme.breakpoints.sm}) {
+    @container (min-width: ${p.theme.container.xl}) {
       ${makeGridTemplate(['name', 'visualization'])}
 
       [data-column-name='visualization'] {
@@ -469,6 +495,7 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
   isVisualizationExpanded: boolean;
 }>`
   grid-template-columns: 1fr;
+  overflow: clip;
 
   [data-column-name='type'],
   [data-column-name='last-issue'],
@@ -497,38 +524,54 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
     return gridDefinitions(p, p.additionalColumns);
   }}
 
-  @container (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     [data-column-name='visualization'] {
       grid-column: -3 / -1;
     }
   }
 `;
 
-const PositionedGridLineOverlay = styled(GridLineOverlay)`
-  grid-column: -3 / -1;
-  grid-row: 1 / auto;
+const GridLineOverlayRow = styled(SimpleTable.Row)`
+  position: static;
   pointer-events: none;
-  z-index: 3;
+  grid-row: 1;
+
+  &:not(:last-child) {
+    border-bottom: 0;
+  }
+`;
+
+const GridLineOverlayCell = styled(SimpleTable.RowCell)`
+  grid-column: -3 / -1;
+  padding: 0;
+`;
+
+const PositionedGridLineOverlay = styled(GridLineOverlay)`
+  pointer-events: none;
+  top: 0;
 
   display: none;
 
-  @container (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     display: block;
   }
 `;
 
-const VisualizationHeaderContainer = styled(Container)`
+const VisualizationHeaderCell = styled('th')`
   grid-column: -3 / -1;
+  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+  min-height: 50px;
+  min-width: 0;
 `;
 
-const VisualizationExpandButton = styled('div')`
+const VisualizationExpandButtonCell = styled('th')`
   grid-row: 1;
   grid-column: -1;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   display: none;
   z-index: 4;
 
-  @container (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     display: flex;
     align-items: center;
     justify-content: center;

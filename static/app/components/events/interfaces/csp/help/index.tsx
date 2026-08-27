@@ -17,10 +17,6 @@ export type HelpProps = {
 };
 
 export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
-  const getHelp = () => ({
-    __html: effectiveDirectives[key],
-  });
-
   const getLinkHref = () => {
     const baseLink =
       'https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#';
@@ -49,7 +45,7 @@ export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
       <h4>
         <code>{key}</code>
       </h4>
-      <blockquote dangerouslySetInnerHTML={getHelp()} />
+      <blockquote>{effectiveDirectives[key]}</blockquote>
       <StyledP>
         <span>{'\u2014 MDN ('}</span>
         <span>{getLink()}</span>

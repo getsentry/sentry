@@ -3,6 +3,7 @@ import {useCallback, useMemo} from 'react';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -109,7 +110,9 @@ function useCreateOrUpdateSavedQuery(id?: string) {
   const saveQueryApi = useCallback(
     async (data: ExploreSavedQueryRequest, starred = true) => {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'POST',
           data: {
@@ -128,7 +131,9 @@ function useCreateOrUpdateSavedQuery(id?: string) {
   const updateQueryApi = useCallback(
     async (data: ExploreSavedQueryRequest) => {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/${id}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+          path: {organizationIdOrSlug: organization.slug, id: String(id)},
+        }),
         {
           method: 'PUT',
           data: {
@@ -158,7 +163,9 @@ export function useFromSavedQuery() {
   const saveQueryFromSavedQuery = useCallback(
     async (savedQuery: SavedQuery) => {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'POST',
           data: {
@@ -178,7 +185,9 @@ export function useFromSavedQuery() {
   const updateQueryFromSavedQuery = useCallback(
     async (savedQuery: SavedQuery) => {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/${savedQuery.id}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+          path: {organizationIdOrSlug: organization.slug, id: savedQuery.id},
+        }),
         {
           method: 'PUT',
           data: {

@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -89,6 +90,7 @@ export function ConnectedMonitorsList({
   workflowId,
   ...props
 }: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
   const emptySelection = defined(detectorIds) && detectorIds.length === 0;
@@ -123,21 +125,24 @@ export function ConnectedMonitorsList({
         });
 
   return (
-    <Container {...props}>
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="type">
-            {t('Type')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="last-issue">
-            {t('Last Issue')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="owner">
-            {t('Assignee')}
-          </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
-        </SimpleTable.Header>
+    <Container containerType="inline-size" {...props}>
+      <SimpleTableWithColumns
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="type">
+              {t('Type')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="last-issue">
+              {t('Last Issue')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="owner">
+              {t('Assignee')}
+            </SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && (
           <Skeletons
             canEdit={canEdit}
@@ -148,7 +153,11 @@ export function ConnectedMonitorsList({
             }
           />
         )}
-        {isError && <LoadingError />}
+        {isError && (
+          <SimpleTable.Empty>
+            <LoadingError />
+          </SimpleTable.Empty>
+        )}
         {((isSuccess && detectors?.length === 0) || emptySelection) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
@@ -191,10 +200,6 @@ export function ConnectedMonitorsList({
   );
 }
 
-const Container = styled('div')`
-  container-type: inline-size;
-`;
-
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 100px minmax(0, 0.8fr) auto auto;
 
@@ -206,7 +211,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     width: 140px;
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: 1fr 100px auto auto;
 
     [data-column-name='last-issue'] {
@@ -214,7 +219,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr 100px auto;
 
     [data-column-name='owner'] {
@@ -222,7 +227,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+  @container (max-width: ${p => p.theme.container.sm}) {
     grid-template-columns: 1fr 100px;
 
     [data-column-name='type'] {

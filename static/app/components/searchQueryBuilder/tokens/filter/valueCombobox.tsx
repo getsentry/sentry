@@ -17,8 +17,6 @@ import {
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/searchBar/types';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
@@ -434,7 +432,6 @@ function useFilterSuggestions({
   const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
 
   // TODO(malwilley): Display error states
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isFetching} = useQuery({
     queryKey,
     queryFn: ctx =>
@@ -444,7 +441,6 @@ function useFilterSuggestions({
   });
 
   // TODO(malwilley): Display error states
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isFetching: isFetchingTagKeys} = useQuery({
     queryKey: tagKeysQueryKey,
     queryFn: ctx => {
@@ -638,11 +634,6 @@ function ValueComboboxCustomMenu(
     );
   }
 
-  // Remove Ask Seer items from the value list box since they are not shown here.
-  const hiddenOptions = new Set(props.hiddenOptions);
-  hiddenOptions.delete(ASK_SEER_ITEM_KEY);
-  hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
-
   return (
     <ValueListBox
       {...props}
@@ -651,7 +642,6 @@ function ValueComboboxCustomMenu(
           ? (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
-      hiddenOptions={hiddenOptions}
       wrapperRef={wrapperRef}
       isMultiSelect={canSelectMultipleValues}
       items={items}

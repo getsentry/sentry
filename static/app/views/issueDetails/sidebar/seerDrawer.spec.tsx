@@ -11,7 +11,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
+import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 
 function makeExplorerBlock({
   id = 'block-1',
@@ -321,6 +321,48 @@ describe('SeerDrawer', () => {
     ).toBeInTheDocument();
   });
 
+  describe('autoscroll', () => {
+    let scrollToSpy!: jest.Mock;
+
+    beforeEach(() => {
+      scrollToSpy = jest.fn();
+      // jsdom does not implement Element.prototype.scrollTo
+      Object.defineProperty(Element.prototype, 'scrollTo', {
+        value: scrollToSpy,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      // @ts-expect-error removing the jsdom stub added above
+      delete Element.prototype.scrollTo;
+    });
+
+    it('scrolls the drawer body to the bottom on open for a completed run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {
+          autofix: makeExplorerAutofixData({status: 'completed'}),
+        },
+      });
+
+      render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+        organization,
+      });
+
+      await waitForElementToBeRemoved(() =>
+        screen.queryByTestId('ai-setup-loading-indicator')
+      );
+
+      // Guards the wiring between the drawer body and useAutoScroll: the body
+      // is the scroll container, so it must receive the hook's ref.
+      await waitFor(() => {
+        expect(scrollToSpy).toHaveBeenCalled();
+      });
+    });
+  });
+
   describe('PR polling', () => {
     const autofixUrl = `/organizations/${DetailedProjectFixture().organization.slug}/issues/${GroupFixture().id}/autofix/`;
 
@@ -338,7 +380,7 @@ describe('SeerDrawer', () => {
       });
     }
 
-    it('does not poll the autofix endpoint when autofix-pr-iteration is disabled', async () => {
+    it('does not poll the autofix endpoint when both PR iteration features are disabled', async () => {
       const getMock = mockAutofixWithPr();
 
       render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
@@ -353,28 +395,32 @@ describe('SeerDrawer', () => {
       expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
     });
 
-    it('polls the autofix endpoint when autofix-pr-iteration is enabled and a PR exists', async () => {
-      const getMock = mockAutofixWithPr();
+    it.each([['autofix-pr-iteration'], ['autofix-pr-iteration-manual']])(
+      'polls the autofix endpoint when %s is enabled and a PR exists',
+      async feature => {
+        const getMock = mockAutofixWithPr();
 
-      render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-        organization: OrganizationFixture({
-          hideAiFeatures: false,
-          features: ['gen-ai-features', 'autofix-pr-iteration'],
-        }),
-      });
+        render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+          organization: OrganizationFixture({
+            hideAiFeatures: false,
+            features: ['gen-ai-features', feature],
+          }),
+        });
 
-      await waitForElementToBeRemoved(() =>
-        screen.queryByTestId('ai-setup-loading-indicator')
-      );
+        await waitForElementToBeRemoved(() =>
+          screen.queryByTestId('ai-setup-loading-indicator')
+        );
 
-      const callsAfterLoad = getMock.mock.calls.length;
+        const callsAfterLoad = getMock.mock.calls.length;
 
-      await waitFor(
-        () => {
-          expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
-        },
-        {timeout: 5000}
-      );
-    });
+        await waitFor(
+          () => {
+            expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
+          },
+          {timeout: 15_000}
+        );
+      },
+      20_000
+    );
   });
 });

@@ -9,7 +9,7 @@ from django.db.models.functions import Coalesce
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import eventstream, features, similarity, tsdb
+from sentry import eventstream, similarity, tsdb
 from sentry.db.models.base import Model
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -229,21 +229,6 @@ def merge_groups(
                     ),
                 )
 
-            for model in [
-                TSDBModel.frequent_releases_by_group,
-                TSDBModel.frequent_environments_by_group,
-            ]:
-                tsdb.backend.merge_frequencies(
-                    model,
-                    new_group.id,
-                    [group.id],
-                    environment_ids=(
-                        environment_ids
-                        if model in tsdb.backend.models_with_environment_support
-                        else None
-                    ),
-                )
-
             # Fetch buffered stats before deleting the group
             fetch_buffered_group_stats(group)
 
@@ -291,12 +276,7 @@ def merge_groups(
         if activation_id:
             mark_spawned(_TASK_KEY, activation_id)
     else:
-        if features.has(
-            "organizations:hard-delete-derived-data-invalidation",
-            new_group.project.organization,
-        ):
-            # hard delete derived data on the new group - it will be rebuilt when the next action is processed
-            invalidate_group_derived_data(new_group.id)
+        invalidate_group_derived_data(new_group.id)
 
         if eventstream_state:
             # All `from_object_ids` have been merged!

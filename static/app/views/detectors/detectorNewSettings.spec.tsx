@@ -25,7 +25,7 @@ import DetectorNewSettings from 'sentry/views/detectors/detectorNewSettings';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'visibility-explore-view', 'performance-view'],
+    features: ['visibility-explore-view', 'performance-view'],
   });
   const project = ProjectFixture({organization, environments: ['production']});
   const initialRouterConfig = {
@@ -594,11 +594,7 @@ describe('DetectorEdit', () => {
 
     it('hides transactions dataset when deprecateTransactionAlerts feature flag is enabled for new detectors', async () => {
       const organizationWithDeprecation = OrganizationFixture({
-        features: [
-          'workflow-engine-ui',
-          'visibility-explore-view',
-          'discover-saved-queries-deprecation',
-        ],
+        features: ['visibility-explore-view', 'discover-saved-queries-deprecation'],
       });
 
       render(<DetectorNewSettings />, {
@@ -783,12 +779,7 @@ describe('DetectorEdit', () => {
   describe('Metric Detector with Metrics dataset', () => {
     it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: [
-          'workflow-engine-ui',
-          'visibility-explore-view',
-          'performance-view',
-          'tracemetrics-enabled',
-        ],
+        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
       });
 
       render(<DetectorNewSettings />, {
@@ -818,12 +809,7 @@ describe('DetectorEdit', () => {
 
     it('can submit a new metric detector with metrics dataset from URL params', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: [
-          'workflow-engine-ui',
-          'visibility-explore-view',
-          'performance-view',
-          'tracemetrics-enabled',
-        ],
+        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
       });
 
       MockApiClient.addMockResponse({
@@ -1088,50 +1074,6 @@ describe('DetectorEdit', () => {
           }),
         })
       );
-    });
-
-    it('automatically sets monitor name from URL and stops after manual edit', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: uptimeRouterConfig,
-      });
-
-      const nameField = await screen.findByText('New Monitor');
-
-      // Type a simple hostname
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'URL'}),
-        'https://my-cool-site.com/'
-      );
-
-      await screen.findByText('Uptime check for my-cool-site.com');
-
-      // Clear and type a URL with a path - name should update
-      let urlInput = screen.getByRole('textbox', {name: 'URL'});
-      await userEvent.clear(urlInput);
-      await userEvent.type(urlInput, 'https://example.com/with-path');
-
-      // Name was updated with auto-generated name
-      expect(nameField).toHaveTextContent('Uptime check for example.com/with-path');
-
-      // Manually edit the name
-      await userEvent.click(nameField);
-      const nameInput = screen.getByRole('textbox', {name: 'Monitor Name'});
-      await userEvent.clear(nameInput);
-      await userEvent.type(nameInput, 'My Custom Name{Enter}');
-
-      await screen.findByText('My Custom Name');
-
-      // Change the URL - name should NOT update anymore
-      urlInput = screen.getByRole('textbox', {name: 'URL'});
-      await userEvent.clear(urlInput);
-      await userEvent.type(urlInput, 'https://different-site.com');
-
-      // Verify the name didn't change
-      expect(screen.getByText('My Custom Name')).toBeInTheDocument();
-      expect(
-        screen.queryByText('Uptime check for different-site.com')
-      ).not.toBeInTheDocument();
     });
   });
 

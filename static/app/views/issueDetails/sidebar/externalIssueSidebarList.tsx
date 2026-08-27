@@ -24,7 +24,7 @@ interface Props {
 export function ExternalIssueSidebarList({event, group}: Props) {
   const externalIssueData = useGroupExternalIssues({group, event});
   const {data: linkedPullRequestsData, isPending: isLinkedPullRequestsLoading} =
-    useLinkedPullRequests({group});
+    useLinkedPullRequests({group, includeChecksAndReview: false});
   const hasLinkedPullRequestActivity = getLinkedPullRequestActivityIds(group).size > 0;
   const showEmptyIssueTrackerAction =
     !externalIssueData.isLoading &&
@@ -60,12 +60,14 @@ export function ExternalIssueSidebarList({event, group}: Props) {
         <ErrorBoundary customComponent={null}>
           <LinkedPullRequests
             group={group}
+            showChecksAndReview={false}
             showEmptyState={
               !showEmptyIssueTrackerAction &&
               !externalIssueData.isLoading &&
               externalIssueData.integrations.length > 0 &&
               externalIssueData.linkedIssues.length === 0
             }
+            variant="compact"
           />
         </ErrorBoundary>
         {showEmptyIssueTrackerAction && (

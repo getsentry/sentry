@@ -1124,6 +1124,38 @@ describe('Customer Details', () => {
     await screen.findByRole('heading', {name: 'Customers'});
   });
 
+  it('renders Legacy Billing badge for default subscriptions', async () => {
+    setUpMocks(organization);
+
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: 'Customers'});
+    expect(screen.getByText('Legacy Billing')).toBeInTheDocument();
+    expect(screen.queryByText('Billing Platform')).not.toBeInTheDocument();
+  });
+
+  it('renders Billing Platform badge for migrated subscriptions', async () => {
+    setUpMocks(organization, {hasMigratedToBillingPlatform: true});
+
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: 'Customers'});
+    expect(screen.getByText('Billing Platform')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy Billing')).not.toBeInTheDocument();
+  });
+
   it('renders correct dropdown options', async () => {
     setUpMocks(organization);
 
@@ -1182,11 +1214,13 @@ describe('Customer Details', () => {
       })[0]!
     );
 
+    expect(
+      screen.getByRole('option', {name: /Start Enterprise Trial/})
+    ).toBeInTheDocument();
     expect(screen.getByText(/capped event limits/)).toBeInTheDocument();
-    expect(screen.queryByText(/unlimited events/)).not.toBeInTheDocument();
   });
 
-  it('shows unlimited events help text for paid plan enterprise trial', async () => {
+  it('hides Start Enterprise Trial for paid plans', async () => {
     setUpMocks(organization, {plan: 'am3_business', isFree: false});
 
     render(<CustomerDetails />, {
@@ -1205,8 +1239,9 @@ describe('Customer Details', () => {
       })[0]!
     );
 
-    expect(screen.getByText(/unlimited events/)).toBeInTheDocument();
-    expect(screen.queryByText(/capped event limits/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Start Enterprise Trial/})
+    ).not.toBeInTheDocument();
   });
 
   it('renders and hides generic confirmation modals', async () => {

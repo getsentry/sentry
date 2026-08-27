@@ -613,6 +613,14 @@ class PerformanceDetectionTest(TestCase):
             # All of the detectors ran, even though the slow DB detector errored out
             assert run_detector_spy.call_count == num_enabled_detectors
 
+    def test_each_detector_has_unique_detector_type(self) -> None:
+        assert all(type(detector_class.type) is DetectorType for detector_class in DETECTOR_CLASSES)
+        # Use a set so if there are any overlaps, we'll dedupe them
+        detector_types_from_classes = {
+            detector_class.type.value for detector_class in DETECTOR_CLASSES
+        }
+        assert len(detector_types_from_classes) == len(DetectorType)
+
 
 @pytest.mark.parametrize(
     "spans, duration",

@@ -65,7 +65,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
@@ -75,6 +75,7 @@ from sentry.plugins.providers.integration_repository import (
 from sentry.pr_metrics.lifecycle_mapping import (
     parse_scm_timestamp,
     pull_request_lifecycle_state_from_github,
+    update_pull_request_from_scm_snapshot,
 )
 from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_activity
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
@@ -89,7 +90,10 @@ from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
-from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.autofix.webhooks import (
+    handle_github_pr_webhook_for_autofix,
+    handle_pull_requests_merged_milestone,
+)
 from sentry.seer.code_review.contributor_seats import (
     record_contributor_action,
     track_contributor_seat,
@@ -1097,6 +1101,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
+        handle_pull_requests_merged_milestone,
         _track_contributor_action_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
@@ -1121,6 +1126,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     ) -> None:
         pull_request = event["pull_request"]
         number = pull_request["number"]
+
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
@@ -1146,6 +1152,8 @@ class PullRequestEventWebhook(GitHubWebhook):
         opened_at = parse_scm_timestamp(pull_request.get("created_at"))
         closed_at = parse_scm_timestamp(pull_request.get("closed_at"))
         merged_at = parse_scm_timestamp(pull_request.get("merged_at"))
+        # The ordering high-water mark; see update_pull_request_from_scm_snapshot.
+        provider_updated_at = parse_scm_timestamp(pull_request.get("updated_at"))
         state = pull_request_lifecycle_state_from_github(pull_request)
         draft = pull_request.get("draft")
 
@@ -1225,7 +1233,8 @@ class PullRequestEventWebhook(GitHubWebhook):
         )
         try:
             with activity_context:
-                _, created = PullRequest.objects.update_or_create(
+                _, created = update_pull_request_from_scm_snapshot(
+                    provider=self.provider,
                     organization_id=organization.id,
                     repository_id=repo.id,
                     key=number,
@@ -1239,9 +1248,13 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "opened_at": opened_at,
                         "closed_at": closed_at,
                         "merged_at": merged_at,
+                        "provider_updated_at": provider_updated_at,
                         "state": state,
                         "draft": draft,
+                        "external_id": pull_request["id"],
                     },
+                    event_state=state,
+                    event_updated_at=provider_updated_at,
                 )
 
             if created:

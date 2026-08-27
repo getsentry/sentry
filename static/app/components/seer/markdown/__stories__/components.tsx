@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -6,11 +7,10 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {
-  SEER_EMBED_SCHEMAS,
-  type SeerEmbedExample,
-} from 'sentry/components/seer/markdown/embeds/schemas';
+import {SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {Demo} from 'sentry/stories';
+import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const BASIC_MD = `## Root Cause
 
@@ -55,7 +55,7 @@ const STREAMING_CHUNKS = [
   '    return token.expires_at > now\n```\n',
 ];
 
-export function StreamingEmbedDemo() {
+export function StreamingEmbedExamples() {
   const [text, setText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const cancelRef = useRef(false);
@@ -107,55 +107,89 @@ function formatTag(name: string, data: unknown): string {
   return `{% ${name} %}${JSON.stringify(data)}{% /${name} %}`;
 }
 
-function buildEmbedMarkdown(
-  name: string,
-  levels: readonly string[],
-  examples: SeerEmbedExample[]
-): string {
-  return examples
-    .map(example => {
-      const level = example.level ?? levels[0] ?? 'inline';
-      const tag = formatTag(name, example.data);
-      if (level === 'inline') {
-        return `${example.label}: Lorem ipsum ${tag} dolor sit amet.\n`;
-      }
-      return `${example.label}:\n\n${tag}\n`;
+function useReplayExampleData(): Record<string, unknown> | undefined {
+  const organization = useOrganization();
+  const {data} = useQuery(
+    replayListApiOptions({
+      options: {query: {sort: '-started_at'}},
+      organization,
+      queryReferrer: 'replayList',
     })
-    .join('\n');
+  );
+
+  const replay = data?.data?.[0];
+  if (!replay?.started_at) {
+    return undefined;
+  }
+
+  return {
+    id: replay.id,
+    eventTimestamp: String(replay.started_at),
+  };
 }
 
-export function EmbedRegistry() {
-  const entries = Object.entries(SEER_EMBED_SCHEMAS);
+function LevelDemo({
+  name,
+  level,
+  exampleData,
+  isLargeBlock,
+}: {
+  exampleData: Record<string, unknown>;
+  level: string;
+  name: string;
+  isLargeBlock?: boolean;
+}) {
+  const tag = formatTag(name, exampleData);
+  const md = level === 'inline' ? `Lorem ipsum ${tag} dolor sit amet.` : tag;
+
   return (
-    <Stack gap="xl">
-      {entries.map(([name, schema]) => {
-        const examples = schema.examples;
-        const md = examples ? buildEmbedMarkdown(name, schema.level, examples) : null;
-        return (
-          <Stack key={name} gap="md">
-            <Text bold size="md">
-              {name}
-            </Text>
-            <Text size="sm" variant="muted">
-              Level: {schema.level.join(', ')}
-              {'featureFlag' in schema ? ` · Flag: ${schema.featureFlag}` : null}
-            </Text>
-            <Text size="sm" variant="muted">
-              Prompt: {schema.description}
-            </Text>
-            {md && (
-              <Stack gap="sm">
-                <Demo>
-                  <SeerMarkdown raw={md} />
-                </Demo>
-                <CodeBlock language="markdown" dark>
-                  {md}
-                </CodeBlock>
-              </Stack>
-            )}
-          </Stack>
-        );
-      })}
+    <Stack gap="sm">
+      <Text size="sm" bold>
+        {level}
+      </Text>
+      <Demo maxHeight={isLargeBlock ? '900px' : undefined}>
+        <SeerMarkdown raw={md} />
+      </Demo>
+      <CodeBlock language="markdown" dark>
+        {md}
+      </CodeBlock>
+    </Stack>
+  );
+}
+
+export function EmbedExamples({name}: {name: string}) {
+  const schema = SEER_EMBED_SCHEMAS[name as keyof typeof SEER_EMBED_SCHEMAS];
+  const replayData = useReplayExampleData();
+
+  if (!schema) {
+    return null;
+  }
+
+  const exampleData =
+    name === 'replay' && replayData ? replayData : (schema.examples?.[0]?.data ?? {});
+
+  const isLargeBlock = name === 'replay';
+
+  return (
+    <Stack gap="md">
+      <Text size="sm" variant="muted">
+        Level: {schema.level.join(', ')}
+        {'featureFlag' in schema ? ` · Flag: ${schema.featureFlag}` : null}
+      </Text>
+      <Text size="sm" variant="muted">
+        {schema.description}
+      </Text>
+      <Stack gap="lg">
+        {schema.level.map(level => (
+          <LevelDemo
+            key={level}
+            name={name}
+            level={level}
+            exampleData={exampleData}
+            isLargeBlock={isLargeBlock && level === 'block'}
+          />
+        ))}
+      </Stack>
     </Stack>
   );
 }

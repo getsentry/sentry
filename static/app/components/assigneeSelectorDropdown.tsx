@@ -86,10 +86,6 @@ interface AssigneeSelectorDropdownProps {
    */
   memberList?: User[];
   /**
-   * If true, the chevron to open the dropdown will not be shown
-   */
-  noDropdown?: boolean;
-  /**
    * Callback for when an assignee is selected from the dropdown.
    * The parent component should update the group with the new assignee
    * in this callback.
@@ -217,7 +213,6 @@ export function AssigneeSelectorDropdown({
   group,
   loading,
   memberList,
-  noDropdown = false,
   onAssign,
   onClear,
   owners,
@@ -231,73 +226,40 @@ export function AssigneeSelectorDropdown({
 
   const getSuggestedAssignees = (): SuggestedAssignee[] => {
     const currAssignableTeams = getAssignableTeams();
+    // Use owners from the group if no owners are provided
+    const suggestedOwners =
+      owners ??
+      uniqBy(group.owners ?? [], owner => owner.owner).map(suggestion => {
+        const [type, id] = suggestion.owner.split(':') as [Actor['type'], string];
+        return {
+          id,
+          type,
+          name: '',
+          suggestedReason: suggestion.type,
+          suggestedReasonText: suggestedReasonTable[suggestion.type],
+        };
+      });
 
-    if (owners !== undefined) {
-      // Add team or user from store
-      return owners
-        .map<SuggestedAssignee | null>(owner => {
-          if (owner.type === 'user') {
-            const member = currentMemberList.find(user => user.id === owner.id);
-            if (member) {
-              return {
-                ...owner,
-                assignee: member,
-              };
-            }
-          }
-          if (owner.type === 'team') {
-            const matchingTeam = currAssignableTeams.find(
-              assignableTeam => assignableTeam.team.id === owner.id
-            );
-            if (matchingTeam) {
-              return {
-                ...owner,
-                assignee: matchingTeam,
-              };
-            }
-          }
-
-          return null;
-        })
-        .filter((owner): owner is SuggestedAssignee => !!owner);
-    }
-
-    const suggestedOwners = group.owners ?? [];
-    if (!suggestedOwners) {
-      return [];
-    }
-
-    const uniqueSuggestions = uniqBy(suggestedOwners, owner => owner.owner);
-    return uniqueSuggestions
-      .map<SuggestedAssignee | null>(suggestion => {
-        const [suggestionType, suggestionId] = suggestion.owner.split(':') as [
-          string,
-          string,
-        ];
-        const suggestedReasonText = suggestedReasonTable[suggestion.type];
-        if (suggestionType === 'user') {
-          const member = currentMemberList.find(user => user.id === suggestionId);
+    return suggestedOwners
+      .map<SuggestedAssignee | null>(owner => {
+        if (owner.type === 'user') {
+          const member = currentMemberList.find(user => user.id === owner.id);
           if (member) {
             return {
-              id: suggestionId,
-              type: 'user',
-              name: member.name,
-              suggestedReason: suggestion.type,
-              suggestedReasonText,
+              ...owner,
+              name: owner.name || member.name,
               assignee: member,
             };
           }
-        } else if (suggestionType === 'team') {
+        }
+        if (owner.type === 'team') {
           const matchingTeam = currAssignableTeams.find(
-            assignableTeam => assignableTeam.id === suggestion.owner
+            assignableTeam => assignableTeam.team.id === owner.id
           );
           if (matchingTeam) {
             return {
-              id: suggestionId,
-              type: 'team',
-              name: matchingTeam.team.name,
-              suggestedReason: suggestion.type,
-              suggestedReasonText,
+              ...owner,
+              name: owner.name || matchingTeam.team.name,
               assignee: matchingTeam,
             };
           }
@@ -529,7 +491,7 @@ export function AssigneeSelectorDropdown({
         {loading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
-        {!loading && !noDropdown && (
+        {!loading && (
           <AssigneeTrigger
             variant="transparent"
             data-test-id="assignee-selector"
@@ -538,7 +500,6 @@ export function AssigneeSelectorDropdown({
             {avatarElement}
           </AssigneeTrigger>
         )}
-        {!loading && noDropdown && avatarElement}
       </Fragment>
     );
   };

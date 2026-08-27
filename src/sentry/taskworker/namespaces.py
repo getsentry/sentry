@@ -66,6 +66,11 @@ digests_tasks = app.taskregistry.create_namespace(
     app_feature="shared",
 )
 
+debug_files_migration_tasks = app.taskregistry.create_namespace(
+    "debug-files-migration",
+    app_feature="debug_files",
+)
+
 export_tasks = app.taskregistry.create_namespace(
     name="export",
     processing_deadline_duration=15,
@@ -92,6 +97,7 @@ ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
 ingest_profiling_raw_tasks = app.taskregistry.create_namespace(
     "ingest.profiling.raw",
     app_feature="profiles",
+    is_raw_mode=True,
 )
 
 ingest_transactions_tasks = app.taskregistry.create_namespace(
@@ -112,6 +118,7 @@ ingest_attachments_tasks = app.taskregistry.create_namespace(
 ingest_events_raw_tasks = app.taskregistry.create_namespace(
     "ingest.events.raw",
     app_feature="errors",
+    is_raw_mode=True,
 )
 
 ingest_errors_tasks = app.taskregistry.create_namespace(
@@ -127,26 +134,31 @@ ingest_errors_postprocess_tasks = app.taskregistry.create_namespace(
 snuba_events_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.events.raw",
     app_feature="errors",
+    is_raw_mode=True,
 )
 
 snuba_transactions_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.transactions.raw",
     app_feature="transactions",
+    is_raw_mode=True,
 )
 
 snuba_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.metrics.raw",
     app_feature="sessions",
+    is_raw_mode=True,
 )
 
 snuba_generic_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.generic_metrics.raw",
     app_feature="transactions",
+    is_raw_mode=True,
 )
 
 snuba_eap_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.eap.raw",
     app_feature="transactions",
+    is_raw_mode=True,
 )
 
 issues_tasks = app.taskregistry.create_namespace(
@@ -154,8 +166,23 @@ issues_tasks = app.taskregistry.create_namespace(
     app_feature="issueplatform",
 )
 
+issues_action_log_tasks = app.taskregistry.create_namespace(
+    "issues.action_log",
+    app_feature="issueplatform",
+)
+
 issues_merge_tasks = app.taskregistry.create_namespace(
     "issues.merge",
+    app_feature="issueplatform",
+)
+
+issues_reprocessing_tasks = app.taskregistry.create_namespace(
+    "issues.reprocessing",
+    app_feature="issueplatform",
+)
+
+issues_long_tasks = app.taskregistry.create_namespace(
+    "issues.long",
     app_feature="issueplatform",
 )
 
@@ -213,6 +240,14 @@ relay_tasks = app.taskregistry.create_namespace(
     "relay",
     app_feature="shared",
 )
+# Namespace used for lower priority project config invalidations.
+#
+# Project configs requested by Relay must be computed as soon as possible to serve traffic,
+# invalidations can be slightly delayed.
+relay_invalidation_tasks = app.taskregistry.create_namespace(
+    "relay.invalidation",
+    app_feature="shared",
+)
 
 relocation_tasks = app.taskregistry.create_namespace(
     "relocation",
@@ -244,6 +279,7 @@ replays_long_tasks = app.taskregistry.create_namespace(
 replays_raw_tasks = app.taskregistry.create_namespace(
     "replays.raw",
     app_feature="replays",
+    is_raw_mode=True,
 )
 
 reports_tasks = app.taskregistry.create_namespace(
@@ -293,6 +329,16 @@ sentryapp_control_tasks = app.taskregistry.create_namespace(
 
 symbolication_tasks = app.taskregistry.create_namespace(
     "symbolication",
+    app_feature="errors",
+)
+
+symbolication_js_tasks = app.taskregistry.create_namespace(
+    "symbolication.js",
+    app_feature="errors",
+)
+
+symbolication_jvm_tasks = app.taskregistry.create_namespace(
+    "symbolication.jvm",
     app_feature="errors",
 )
 

@@ -101,6 +101,20 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
+FN_SPAN_COUNT_FUNCTIONS = [
+    "identity",
+    "sum",
+    "avg",
+    "min",
+    "max",
+    "median",
+    "quantile(0.5)",
+    "quantile(0.75)",
+    "quantile(0.90)",
+    "quantile(0.95)",
+    "quantile(0.99)",
+]
+
 
 class DiscoverDatasetConfig(DatasetConfig):
     custom_threshold_columns = {
@@ -109,7 +123,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         "user_misery()",
     }
     non_nullable_keys = {"event.type"}
-    nullable_context_keys = {"thread.id"}
+    nullable_context_keys = {"thread.id", "trace", "trace.span"}
     use_entity_prefix_for_fields: bool = False
 
     def __init__(self, builder: BaseQueryBuilder):
@@ -766,7 +780,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "fn_span_count",
                     required_args=[
                         SnQLStringArg("spans_op", True, True),
-                        SnQLStringArg("fn"),
+                        SnQLStringArg("fn", allowed_strings=FN_SPAN_COUNT_FUNCTIONS),
                     ],
                     snql_column=lambda args, alias: Function(
                         args["fn"],

@@ -1,69 +1,58 @@
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
+from collections.abc import Iterator
+from contextlib import contextmanager
+from unittest.mock import DEFAULT, MagicMock, patch
 
-import orjson
 import pytest
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
-    compare_rebalanced_projects_with_cache,
-    compare_rebalanced_transactions_with_cache,
-    get_cached_rebalanced_project_sample_rates,
-    get_cached_rebalanced_transaction_sample_rates,
-    is_within_relative_tolerance,
+    calculate_recalibration_factor,
     run_project_balancing,
     run_transaction_balancing,
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
-from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    generate_boost_low_volume_transactions_cache_key,
-)
+from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    make_project_volume,
+    mock_configuration,
+    patch_configuration,
+)
 
-
-def _project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:
-    return ProjectVolume(project_id=project_id, total=total, keep=keep, drop=max(total - keep, 0))
+CALCULATIONS = "sentry.dynamic_sampling.per_org.calculations"
+PROJECTS_MODEL_RUN = f"{CALCULATIONS}.ProjectsRebalancingModel.run"
+TRANSACTIONS_MODEL_RUN = f"{CALCULATIONS}.TransactionsRebalancingModel.run"
 
 
 class ProjectBalancingCalculationsTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.redis = get_redis_client_for_ds()
-
     def test_run_project_balancing_returns_rebalanced_projects(self) -> None:
         org = self.create_organization()
         project_with_volume = self.create_project(organization=org)
         project_without_volume = self.create_project(organization=org)
         other_project = self.create_project()
-        config = Mock()
-        config.organization = org
-        config.projects = [project_with_volume, project_without_volume]
-        config.get_sample_rate.return_value = 0.5
+        config = mock_configuration(
+            org, projects=[project_with_volume, project_without_volume], sample_rate=0.5
+        )
         rebalanced_projects = [
             RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
         ]
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.ProjectsRebalancingModel.run",
-            return_value=rebalanced_projects,
-        ) as model_run:
+        with patch_configuration({PROJECTS_MODEL_RUN: rebalanced_projects}) as mocks:
             result = run_project_balancing(
                 config,
                 [
-                    _project_volume(project_with_volume.id),
-                    _project_volume(project_without_volume.id, total=0, keep=0),
-                    _project_volume(other_project.id),
+                    make_project_volume(project_with_volume.id),
+                    make_project_volume(project_without_volume.id, total=0, keep=0),
+                    make_project_volume(other_project.id),
                 ],
             )
 
+        model_run = mocks[PROJECTS_MODEL_RUN]
         model_run.assert_called_once()
         model_input = model_run.call_args.args[-1]
         assert isinstance(model_input, ProjectsRebalancingInput)
@@ -83,22 +72,20 @@ class ProjectBalancingCalculationsTest(TestCase):
         org = self.create_organization()
         busy = self.create_project(organization=org)
         idle = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.projects = [busy, idle]
-        config.get_sample_rate.return_value = 1.0
+        config = mock_configuration(org, projects=[busy, idle], sample_rate=1.0)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.ProjectsRebalancingModel.run"
-        ) as model_run:
+        with patch_configuration({PROJECTS_MODEL_RUN: DEFAULT}) as mocks:
             result = run_project_balancing(
                 config,
-                [_project_volume(busy.id, total=1000), _project_volume(idle.id, total=0, keep=0)],
+                [
+                    make_project_volume(busy.id, total=1000),
+                    make_project_volume(idle.id, total=0, keep=0),
+                ],
             )
 
         # Mirrors legacy serving: a 100% org rate gives every project 100% and the balancing
         # model never runs.
-        model_run.assert_not_called()
+        mocks[PROJECTS_MODEL_RUN].assert_not_called()
         assert {int(item.id): item.new_sample_rate for item in result} == {
             busy.id: 1.0,
             idle.id: 1.0,
@@ -108,16 +95,15 @@ class ProjectBalancingCalculationsTest(TestCase):
         org = self.create_organization()
         project_with_volume = self.create_project(organization=org)
         project_without_volume = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.projects = [project_with_volume, project_without_volume]
-        config.get_sample_rate.return_value = 0.5
+        config = mock_configuration(
+            org, projects=[project_with_volume, project_without_volume], sample_rate=0.5
+        )
 
         result = run_project_balancing(
             config,
             [
-                _project_volume(project_with_volume.id, total=100),
-                _project_volume(project_without_volume.id, total=0, keep=0),
+                make_project_volume(project_with_volume.id, total=100),
+                make_project_volume(project_without_volume.id, total=0, keep=0),
             ],
         )
 
@@ -128,16 +114,13 @@ class ProjectBalancingCalculationsTest(TestCase):
         org = self.create_organization()
         project_a = self.create_project(organization=org)
         project_b = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.projects = [project_a, project_b]
-        config.get_sample_rate.return_value = 0.5
+        config = mock_configuration(org, projects=[project_a, project_b], sample_rate=0.5)
 
         result = run_project_balancing(
             config,
             [
-                _project_volume(project_a.id, total=0, keep=0),
-                _project_volume(project_b.id, total=0, keep=0),
+                make_project_volume(project_a.id, total=0, keep=0),
+                make_project_volume(project_b.id, total=0, keep=0),
             ],
         )
 
@@ -169,75 +152,20 @@ class ProjectBalancingCalculationsTest(TestCase):
         result = apply_project_sample_rate_overrides(rebalanced_projects)
         assert result == rebalanced_projects
 
-    def test_compare_rebalanced_projects_with_cache_logs_per_project(self) -> None:
-        org = self.create_organization()
-        project_with_volume = self.create_project(organization=org)
-        project_without_volume = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        rebalanced_projects = [
-            RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
-            RebalancedItem(id=project_without_volume.id, count=0, new_sample_rate=1.0),
-        ]
-        cached_sample_rates: dict[int, float | None] = {
-            project_with_volume.id: 0.2,
-            project_without_volume.id: 0.96,
-        }
-        project_volumes = [
-            ProjectVolume(project_id=project_with_volume.id, total=200, keep=100, drop=100),
-            ProjectVolume(project_id=project_without_volume.id, total=0, keep=0, drop=0),
-        ]
+    def test_calculate_recalibration_factor(self) -> None:
+        org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=25)
+        adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
+        assert adjusted_factor == 2.8
 
-        with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
-            compare_rebalanced_projects_with_cache(
-                config, rebalanced_projects, cached_sample_rates, project_volumes
-            )
+    def test_calculate_recalibration_factor_clamps_an_overshooting_volume(self) -> None:
+        # The two sources behind the volume disagreed, so more was stored than was seen. The
+        # rate is capped at 1.0, which leaves the factor at the target rather than scaling it
+        # down by however far the sources drifted apart.
+        org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=172)
+        assert calculate_recalibration_factor(org_volume, 1.4, 0.5) == pytest.approx(0.7)
 
-        assert [call.args for call in logger_info.call_args_list] == [
-            ("dynamic_sampling.per_org.project_balancing_comparison",),
-            ("dynamic_sampling.per_org.project_balancing_comparison",),
-        ]
-        assert [call.kwargs["extra"] for call in logger_info.call_args_list] == [
-            {
-                "org_id": org.id,
-                "ds_proj_id": project_with_volume.id,
-                "generic_metrics_sample_rate": 0.2,
-                "eap_sample_rate": 0.25,
-                "relative_deviation": pytest.approx(0.2),
-                "is_equal": False,
-                "total_volume_eap": 100,
-                "total_volume_eap_without_extrapolation": 100,
-            },
-            {
-                "org_id": org.id,
-                "ds_proj_id": project_without_volume.id,
-                "generic_metrics_sample_rate": 0.96,
-                "eap_sample_rate": 1.0,
-                "relative_deviation": pytest.approx(0.04),
-                "is_equal": True,
-                "total_volume_eap": 0,
-                "total_volume_eap_without_extrapolation": 0,
-            },
-        ]
-
-    def test_project_balancing_relative_tolerance(self) -> None:
-        assert is_within_relative_tolerance(0.95, 1.0)
-        assert is_within_relative_tolerance(1.05, 1.0)
-        assert not is_within_relative_tolerance(0.94, 1.0)
-        assert not is_within_relative_tolerance(1.06, 1.0)
-        assert is_within_relative_tolerance(0.0, 0.0)
-        assert not is_within_relative_tolerance(0.01, 0.0)
-        assert not is_within_relative_tolerance(None, 1.0)
-
-    def test_get_cached_rebalanced_project_sample_rates(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        cache_key = generate_boost_low_volume_projects_cache_key(org.id)
-        self.redis.delete(cache_key)
-        self.addCleanup(self.redis.delete, cache_key)
-        self.redis.hset(cache_key, str(project.id), "0.25")
-
-        assert get_cached_rebalanced_project_sample_rates(org.id) == {project.id: 0.25}
+        at_the_boundary = OrganizationDataVolume(org_id=1, total=100, indexed=100)
+        assert calculate_recalibration_factor(at_the_boundary, 1.4, 0.5) == pytest.approx(0.7)
 
 
 def _project_transactions(
@@ -252,26 +180,29 @@ def _project_transactions(
     )
 
 
-class TransactionBalancingCalculationsTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.redis = get_redis_client_for_ds()
+@contextmanager
+def patch_transactions_model() -> Iterator[MagicMock]:
+    """Patch the rebalancing model to echo back the sample rate it received."""
+    with patch(
+        TRANSACTIONS_MODEL_RUN,
+        side_effect=lambda model_input: ([], model_input.sample_rate),
+    ) as model_run:
+        yield model_run
 
+
+class TransactionBalancingCalculationsTest(TestCase):
     def test_run_transaction_balancing_uses_config_provided_rates(self) -> None:
         org = self.create_organization()
         project_a = self.create_project(organization=org)
         project_b = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project_a.id: 0.2, project_b.id: 0.8}
+        config = mock_configuration(
+            org, project_sample_rates={project_a.id: 0.2, project_b.id: 0.8}
+        )
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
-            side_effect=lambda model_input: ([], model_input.sample_rate),
-        ) as model_run:
+        with patch_transactions_model() as model_run:
             run_transaction_balancing(
                 config,
-                [_project_volume(project_a.id), _project_volume(project_b.id)],
+                [make_project_volume(project_a.id), make_project_volume(project_b.id)],
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
@@ -286,17 +217,14 @@ class TransactionBalancingCalculationsTest(TestCase):
         org = self.create_organization()
         project_a = self.create_project(organization=org)
         project_b = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project_a.id: 0.5, project_b.id: None}
+        config = mock_configuration(
+            org, project_sample_rates={project_a.id: 0.5, project_b.id: None}
+        )
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
-            side_effect=lambda model_input: ([], model_input.sample_rate),
-        ) as model_run:
+        with patch_transactions_model() as model_run:
             result = run_transaction_balancing(
                 config,
-                [_project_volume(project_a.id), _project_volume(project_b.id)],
+                [make_project_volume(project_a.id), make_project_volume(project_b.id)],
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
@@ -311,17 +239,14 @@ class TransactionBalancingCalculationsTest(TestCase):
         org = self.create_organization()
         project_a = self.create_project(organization=org)
         project_b = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project_a.id: 0.5, project_b.id: 1.0}
+        config = mock_configuration(
+            org, project_sample_rates={project_a.id: 0.5, project_b.id: 1.0}
+        )
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
-            side_effect=lambda model_input: ([], model_input.sample_rate),
-        ) as model_run:
+        with patch_transactions_model() as model_run:
             result = run_transaction_balancing(
                 config,
-                [_project_volume(project_a.id), _project_volume(project_b.id)],
+                [make_project_volume(project_a.id), make_project_volume(project_b.id)],
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
@@ -336,19 +261,16 @@ class TransactionBalancingCalculationsTest(TestCase):
         org = self.create_organization()
         project_a = self.create_project(organization=org)
         project_b = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project_a.id: 0.5, project_b.id: 0.5}
+        config = mock_configuration(
+            org, project_sample_rates={project_a.id: 0.5, project_b.id: 0.5}
+        )
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
-            side_effect=lambda model_input: ([], model_input.sample_rate),
-        ) as model_run:
+        with patch_transactions_model() as model_run:
             # project_b has transactions but no matching ProjectVolume — it must be
             # skipped instead of raising a KeyError that aborts the whole org's run.
             result = run_transaction_balancing(
                 config,
-                [_project_volume(project_a.id)],
+                [make_project_volume(project_a.id)],
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
@@ -361,29 +283,24 @@ class TransactionBalancingCalculationsTest(TestCase):
     def test_run_transaction_balancing_passes_min_sample_rate_option(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project.id: 0.5}
+        config = mock_configuration(org, project_sample_rates={project.id: 0.5})
 
-        with override_options({"dynamic-sampling.prioritise_transactions.min_sample_rate": 0.002}):
-            with patch(
-                "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
-                side_effect=lambda model_input: ([], model_input.sample_rate),
-            ) as model_run:
-                run_transaction_balancing(
-                    config,
-                    [_project_volume(project.id)],
-                    [_project_transactions(org.id, project.id, [("/a", 1.0)])],
-                )
+        with (
+            override_options({"dynamic-sampling.prioritise_transactions.min_sample_rate": 0.002}),
+            patch_transactions_model() as model_run,
+        ):
+            run_transaction_balancing(
+                config,
+                [make_project_volume(project.id)],
+                [_project_transactions(org.id, project.id, [("/a", 1.0)])],
+            )
 
         assert model_run.call_args.args[-1].min_sample_rate == 0.002
 
     def test_run_transaction_balancing_floors_dominant_transaction(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project.id: 0.05}
+        config = mock_configuration(org, project_sample_rates={project.id: 0.05})
 
         project_volume = ProjectVolume(
             project_id=project.id,
@@ -403,115 +320,12 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert big_rate.new_sample_rate == pytest.approx(0.001)
         assert implicit_rate == pytest.approx(0.099)
 
-    def test_get_cached_rebalanced_transaction_sample_rates(self) -> None:
-        org = self.create_organization()
-        project_hit = self.create_project(organization=org)
-        project_miss = self.create_project(organization=org)
-        cache_key = generate_boost_low_volume_transactions_cache_key(
-            org_id=org.id, proj_id=project_hit.id
-        )
-        self.redis.delete(cache_key)
-        self.addCleanup(self.redis.delete, cache_key)
-        self.redis.set(cache_key, orjson.dumps([{"checkout": 0.3}, 0.5]).decode())
-
-        result = get_cached_rebalanced_transaction_sample_rates(
-            org.id, [project_hit.id, project_miss.id]
-        )
-
-        assert result == {
-            project_hit.id: ({"checkout": 0.3}, 0.5),
-            project_miss.id: None,
-        }
-
-    def test_compare_rebalanced_transactions_with_cache_logs_per_transaction(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        rebalanced_transactions = {
-            project.id: (
-                [
-                    RebalancedItem(id="checkout", count=100, new_sample_rate=0.25),
-                    RebalancedItem(id="cart", count=50, new_sample_rate=0.96),
-                ],
-                0.5,
-            ),
-        }
-        cached_sample_rates: dict[int, tuple[dict[str, float], float] | None] = {
-            project.id: ({"checkout": 0.2, "cart": 1.0}, 0.45),
-        }
-
-        with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
-            compare_rebalanced_transactions_with_cache(
-                config, rebalanced_transactions, cached_sample_rates
-            )
-
-        messages = [call.args[0] for call in logger_info.call_args_list]
-        assert messages == [
-            "dynamic_sampling.per_org.transaction_balancing_implicit_comparison",
-            "dynamic_sampling.per_org.transaction_balancing_comparison",
-            "dynamic_sampling.per_org.transaction_balancing_comparison",
-        ]
-        extras = [call.kwargs["extra"] for call in logger_info.call_args_list]
-        assert extras == [
-            {
-                "org_id": org.id,
-                "ds_proj_id": project.id,
-                "generic_metrics_implicit_rate": 0.45,
-                "eap_implicit_rate": 0.5,
-                "relative_deviation": pytest.approx(0.1),
-                "is_equal": False,
-            },
-            {
-                "org_id": org.id,
-                "ds_proj_id": project.id,
-                "transaction": "checkout",
-                "generic_metrics_sample_rate": 0.2,
-                "eap_sample_rate": 0.25,
-                "relative_deviation": pytest.approx(0.2),
-                "is_equal": False,
-            },
-            {
-                "org_id": org.id,
-                "ds_proj_id": project.id,
-                "transaction": "cart",
-                "generic_metrics_sample_rate": 1.0,
-                "eap_sample_rate": 0.96,
-                "relative_deviation": pytest.approx(0.04166666666666674),
-                "is_equal": True,
-            },
-        ]
-
-    def test_compare_rebalanced_transactions_with_cache_handles_cache_miss(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        rebalanced_transactions = {
-            project.id: ([RebalancedItem(id="checkout", count=10, new_sample_rate=0.5)], 0.5),
-        }
-
-        with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
-            compare_rebalanced_transactions_with_cache(
-                config, rebalanced_transactions, {project.id: None}
-            )
-
-        extras = [call.kwargs["extra"] for call in logger_info.call_args_list]
-        assert extras[0]["generic_metrics_implicit_rate"] is None
-        assert extras[0]["relative_deviation"] is None
-        assert extras[0]["is_equal"] is False
-        assert extras[1]["generic_metrics_sample_rate"] is None
-        assert extras[1]["relative_deviation"] is None
-        assert extras[1]["is_equal"] is False
-
 
 class TransactionBalancingModelOutputTest(TestCase):
     def test_model_output_is_stored_as_is(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project.id: 0.1}
+        config = mock_configuration(org, project_sample_rates={project.id: 0.1})
 
         # Branch 3 of TransactionsRebalancingModel: the explicit pool is too small to absorb
         # its budget share, so the model returns an implicit rate below the project rate.

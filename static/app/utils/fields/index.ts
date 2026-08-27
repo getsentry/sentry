@@ -1,8 +1,11 @@
 import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 
 import {t, td} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
+import {
+  CONDITIONS_ARGUMENTS,
+  EQUALITY_CONDITIONS_ARGUMENTS,
+  WEB_VITALS_QUALITY,
+} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
@@ -22,6 +25,7 @@ export enum FieldKind {
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
   BOOLEAN = 'boolean',
+  ARRAY = 'array',
 }
 
 export enum FieldKey {
@@ -97,6 +101,7 @@ export enum FieldKey {
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
@@ -164,6 +169,7 @@ type SharedFieldKey =
   | FieldKey.PLATFORM
   | FieldKey.PLATFORM_NAME
   | FieldKey.PROFILE_ID
+  | FieldKey.PROFILER_ID
   | FieldKey.PROJECT
   | FieldKey.REPLAY_ID
   | FieldKey.TIMESTAMP
@@ -304,6 +310,7 @@ export enum FieldValueType {
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
   CURRENCY = 'currency',
+  ARRAY = 'array',
 }
 
 export enum WebVital {
@@ -394,6 +401,7 @@ export enum AggregationKey {
   P100 = 'p100',
   PERCENTILE = 'percentile',
   AVG = 'avg',
+  AVG_IF = 'avg_if',
   APDEX = 'apdex',
   USER_MISERY = 'user_misery',
   FAILURE_RATE = 'failure_rate',
@@ -456,6 +464,7 @@ type AggregateColumnParameter = {
   kind: 'column';
   name: string;
   required: boolean;
+  defaultLabel?: string;
   defaultValue?: string;
 };
 
@@ -996,6 +1005,47 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       },
     ],
   },
+  [AggregationKey.AVG_IF]: {
+    desc: t('Returns averages for a selected field, for events matching a condition'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'transaction',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '/',
+        required: true,
+      },
+    ],
+  },
   [AggregationKey.APDEX]: {
     desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
@@ -1105,6 +1155,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
 
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey.AVG_IF,
   AggregationKey.COUNT_IF,
   AggregationKey.APDEX,
   AggregationKey.USER_MISERY,
@@ -1329,6 +1380,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
             (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
           );
         },
+        defaultLabel: 'spans',
         defaultValue: 'span.duration',
         required: false,
       },
@@ -1419,6 +1471,46 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG_IF],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: 'db',
         required: true,
       },
     ],
@@ -1899,6 +1991,12 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
   },
   [FieldKey.PROFILE_ID]: {
     desc: t('The ID of an associated profile'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.PROFILER_ID]: {
+    desc: t('The ID of an associated continuous profile'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
@@ -2880,6 +2978,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -2954,6 +3053,7 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>(
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -3075,6 +3175,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE_CLIENT_SAMPLE_RATE,
 
   FieldKey.PROFILE_ID,
+  FieldKey.PROFILER_ID,
 
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,
@@ -3097,7 +3198,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
-export enum ReplayFieldKey {
+enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
@@ -3128,7 +3229,7 @@ export enum ReplayFieldKey {
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
-export enum ReplayClickFieldKey {
+enum ReplayClickFieldKey {
   CLICK_ALT = 'click.alt',
   CLICK_CLASS = 'click.class',
   CLICK_ID = 'click.id',
@@ -3664,6 +3765,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'log':
@@ -3686,6 +3791,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'tracemetric':
@@ -3706,6 +3815,10 @@ function _getFieldFromMappings(
 
       if (kind === FieldKind.BOOLEAN) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
       }
 
       return null;
@@ -3738,15 +3851,6 @@ export const getFieldDefinition = (
 ): FieldDefinition | null => {
   return _getFieldFromMappings(type, key, kind) ?? null;
 };
-
-export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
-  return Object.fromEntries(
-    fieldKeys.map(fieldKey => [
-      fieldKey,
-      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
-    ])
-  );
-}
 
 export function isDeviceClass(key: any): boolean {
   return key === FieldKey.DEVICE_CLASS;

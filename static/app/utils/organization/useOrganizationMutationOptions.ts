@@ -78,7 +78,9 @@ export function useOrganizationMutationOptions(organization: Organization) {
     mutationFn: (data: Variables) => {
       return fetchMutation<Organization>({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data,
       });
     },

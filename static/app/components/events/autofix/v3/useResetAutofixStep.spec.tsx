@@ -11,6 +11,7 @@ function makeAutofix(
 ): ReturnType<typeof useExplorerAutofix> {
   const base: ReturnType<typeof useExplorerAutofix> = {
     runState: null,
+    autofixFormatted: null,
     startStep: jest.fn(),
     createPR: jest.fn(),
     reset: jest.fn(),
@@ -19,7 +20,9 @@ function makeAutofix(
     dismissCodingAgentError: jest.fn(),
     warnings: [],
     isLoading: false,
+    isWaitingForRun: false,
     isPolling: false,
+    isProcessing: false,
   };
   return {...base, ...overrides};
 }
@@ -213,7 +216,7 @@ describe('useResetAutofixStep', () => {
         useResetAutofixStep({autofix, section, step: 'solution'})
       );
 
-      result.current.handleReset();
+      act(() => void result.current.handleReset());
 
       expect(autofix.startStep).toHaveBeenCalledWith('solution', {
         runId: 42,
@@ -240,7 +243,7 @@ describe('useResetAutofixStep', () => {
         })
       );
 
-      result.current.handleReset('Please focus on the auth module');
+      act(() => void result.current.handleReset('Please focus on the auth module'));
 
       expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {
         runId: 7,

@@ -280,11 +280,6 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
         [TSDBModel.users_affected_by_group], [group.id], environment_ids=environment_ids
     )
 
-    tsdb.backend.delete_frequencies(
-        [TSDBModel.frequent_releases_by_group, TSDBModel.frequent_environments_by_group],
-        [str(group.id)],
-    )
-
     # Don't do MinHash work if we use embeddings-based similarity.
     if not project.get_option("sentry:similarity_backfill_completed"):
         similarity.delete(project, group)
@@ -386,7 +381,6 @@ def collect_tsdb_data(
 ) -> tuple[
     dict[datetime, dict[TSDBModel, dict[tuple[int, int], int]]],
     dict[datetime, dict[TSDBModel, dict[tuple[int, int], set[str]]]],
-    dict[datetime, dict[TSDBModel, dict[str, dict[str, int | float]]]],
 ]:
     counters: dict[datetime, dict[TSDBModel, dict[tuple[int, int], int]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(int))
@@ -394,10 +388,6 @@ def collect_tsdb_data(
 
     sets: dict[datetime, dict[TSDBModel, dict[tuple[int, int], set[str]]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(set))
-    )
-
-    frequencies: dict[datetime, dict[TSDBModel, dict[str, dict[str, int | float]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     )
 
     for event in events:
@@ -413,31 +403,13 @@ def collect_tsdb_data(
                     (event.group_id, environment.id)
                 ].add(tag_value)
 
-        frequencies[event.datetime][TSDBModel.frequent_environments_by_group][str(event.group_id)][
-            str(environment.id)
-        ] += 1
-
-        release = event.get_tag("sentry:release")
-        if release:
-            # TODO: I'm also not sure if "environment" here is correct, see
-            # similar comment above during creation.
-            grouprelease = caches["GroupRelease"](
-                event.group_id,
-                get_environment_name(event),
-                caches["Release"](project.organization_id, release).id,
-            )
-
-            frequencies[event.datetime][TSDBModel.frequent_releases_by_group][str(event.group_id)][
-                str(grouprelease.id)
-            ] += 1
-
-    return counters, sets, frequencies
+    return counters, sets
 
 
 def repair_tsdb_data(
     caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
 ) -> None:
-    counters, sets, frequencies = collect_tsdb_data(caches, project, events)
+    counters, sets = collect_tsdb_data(caches, project, events)
 
     for timestamp, data in counters.items():
         for model, keys in data.items():
@@ -451,18 +423,6 @@ def repair_tsdb_data(
                 tsdb.backend.record(
                     model, key, list(sets_values), timestamp, environment_id=environment_id
                 )
-
-    for timestamp, frequencies_data in frequencies.items():
-        # Convert the frequency data to the format expected by record_frequency_multi
-        frequency_requests: list[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]] = [
-            (freq_model, freq_model_data)
-            for freq_model, freq_model_data in frequencies_data.items()
-        ]
-        if frequency_requests:
-            tsdb.backend.record_frequency_multi(
-                frequency_requests,
-                timestamp,
-            )
 
 
 def repair_denormalizations(

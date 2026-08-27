@@ -36,7 +36,7 @@ def get_query_hash(
             if isinstance(v, str):
                 param_val = percent_encode(v)
             else:
-                param_val = ",".join(percent_encode(val) for val in v)
+                param_val = ",".join(percent_encode(val) for val in sorted(v))
             sorted_query.append(f"{percent_encode(k)}={param_val}")
 
     query_string = "{}&{}&{}".format(method, uri, "&".join(sorted_query))
@@ -78,6 +78,7 @@ def get_integration_from_jwt(
     issuer = claims.get("iss")
     # Look up the sharedSecret for the clientKey, as stored
     # by the add-on during the installation handshake
+    # TODO(mark) Add using_replica here
     integration = integration_service.get_integration(provider=provider, external_id=issuer)
     if not integration:
         raise AtlassianConnectValidationError("No integration found")

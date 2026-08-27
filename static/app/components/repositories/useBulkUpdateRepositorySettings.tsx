@@ -5,6 +5,7 @@ import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/
 import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -38,7 +39,9 @@ export function useBulkUpdateRepositorySettings(
     mutationFn: data => {
       return fetchMutation({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/repos/settings/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/repos/settings/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data,
       });
     },

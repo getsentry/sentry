@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Any, TypedDict
 from uuid import uuid4
 
 from django.db import models
@@ -134,6 +134,25 @@ class SeerRunPullRequest(DefaultFieldsModel):
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
 
 
+class RootCauseArtifactExtras(TypedDict):
+    one_line_description: str
+
+
+class SolutionArtifactExtras(TypedDict):
+    one_line_summary: str
+
+
+class CodeChangesArtifactExtras(TypedDict):
+    # Each patch is AgentFilePatch.dict() verbatim; read back with AgentFilePatch.parse_obj.
+    diffs_by_repo: dict[str, list[dict[str, Any]]]
+
+
+class SeerRunMilestoneExtras(TypedDict, total=False):
+    root_cause_artifact: RootCauseArtifactExtras
+    solution_artifact: SolutionArtifactExtras
+    code_changes_artifact: CodeChangesArtifactExtras
+
+
 @cell_silo_model
 class SeerRunMilestone(DefaultFieldsModel):
     """Records the progress milestones a run reached.
@@ -151,6 +170,7 @@ class SeerRunMilestone(DefaultFieldsModel):
         "seer.SeerRun", on_delete=models.CASCADE, related_name="milestones"
     )
     milestone = models.CharField(max_length=256, choices=SeerRunMilestoneType.choices)
+    extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
         app_label = "seer"
@@ -169,6 +189,10 @@ class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
     # Deep link to the agent's session on the provider's own site (e.g. Cursor).
     # Not every provider supplies one.
     agent_url: str | None
+    # `Repository.external_id` of the repo the agent was launched against. Known only at
+    # launch -- the agent reports its PR back under a repo *name*, which resolves the row
+    # ambiguously at best, and for GitLab never at all.
+    repo_external_id: str | None
 
 
 @cell_silo_model

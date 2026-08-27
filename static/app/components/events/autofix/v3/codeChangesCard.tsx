@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -31,6 +31,8 @@ import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
@@ -56,7 +58,15 @@ function getFinalExplanation(section: AutofixSection): string | null {
 
 export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
   const organization = useOrganization();
-  const hasPrIterationFeature = organization.features.includes('autofix-pr-iteration');
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Reporting on an iteration applies to both flows; only the form is manual.
+  const hasPrIterationFeature =
+    organization.features.includes('autofix-pr-iteration') ||
+    organization.features.includes('autofix-pr-iteration-manual');
+  const hasManualPrIterationFeature = organization.features.includes(
+    'autofix-pr-iteration-manual'
+  );
 
   const isIterating =
     hasPrIterationFeature &&
@@ -95,12 +105,12 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     [artifact]
   );
 
-  const prIterationEnabled = hasPrIterationFeature;
   const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
-  const isResetEligible = prIterationEnabled
+  // Reset-after-PR is only reachable where reset opens the manual form.
+  const isResetEligible = hasManualPrIterationFeature
     ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
     : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
 
@@ -108,9 +118,25 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     useResetAutofixStep({
       autofix,
       canReset: isResetEligible,
+      initialShouldShowReset:
+        isResetEligible && location.query.seerDrawerAction === 'retry_code_changes',
       section,
       step: 'code_changes',
     });
+
+  useEffect(() => {
+    if (!shouldShowReset || location.query.seerDrawerAction !== 'retry_code_changes') {
+      return;
+    }
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {...location.query, seerDrawerAction: undefined},
+      },
+      {replace: true, preventScrollReset: true}
+    );
+  }, [location, navigate, shouldShowReset]);
+
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
@@ -137,7 +163,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const showPrIterationForm = hasPRs && prIterationEnabled;
+  const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
   const prIterationForm = (
     <PrIterationFeedbackForm
       autofix={autofix}
@@ -204,7 +230,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
         <ArtifactDetails>
           <Text>{summary}</Text>
         </ArtifactDetails>
-        {[...patchesByRepo.entries()].map(([repo, patches]) => (
+        {Array.from(patchesByRepo.entries(), ([repo, patches]) => (
           <ArtifactDetails key={repo}>
             <Flex gap="lg">
               <Text bold>{t('Repository:')}</Text>
@@ -253,17 +279,31 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     );
   } else {
     content = (
-      <ArtifactDetails>
+      <ArtifactDetails gap="lg">
         <Text>
           {t(
             'Seer failed to generate a code change. This one is on us. Try running it again.'
           )}
         </Text>
-        <Flex>
-          <Button variant="primary" icon={<IconRefresh />} onClick={() => handleReset()}>
-            {t('Re-run')}
-          </Button>
-        </Flex>
+        {shouldShowReset ? (
+          resetPrompt(
+            t('What additional context should Seer use?'),
+            t(
+              'Add context that could unblock the change, e.g. the repo or files to edit.'
+            )
+          )
+        ) : (
+          <Flex>
+            <Button
+              variant="primary"
+              icon={<IconRefresh />}
+              disabled={!canReset}
+              onClick={() => handleReset()}
+            >
+              {t('Re-run')}
+            </Button>
+          </Flex>
+        )}
       </ArtifactDetails>
     );
   }

@@ -79,7 +79,7 @@ def is_activity_tracking_enabled(
     The gates are meant to stop *post*-terminal accumulation, not the terminal
     event itself.
     """
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return False
 
     if pr is not None:
@@ -101,6 +101,17 @@ def is_activity_tracking_enabled(
         ).exists()
 
     return True
+
+
+def unattributed_activity_cutoff() -> datetime:
+    """Activity written before this is final if the PR is still unattributed.
+
+    One attribution buffer back. Activity older than that predates a full window in
+    which attribution could have arrived and did not, and the gate in
+    ``is_activity_tracking_enabled`` has since stopped collecting for the PR — so
+    the set can neither grow nor become readable.
+    """
+    return timezone.now() - _PR_ACTIVITY_ATTRIBUTION_BUFFER
 
 
 def iso_or_none(value: datetime | None) -> str | None:
