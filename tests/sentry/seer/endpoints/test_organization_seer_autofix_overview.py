@@ -57,9 +57,12 @@ class PullRequestStatusClientFake(PullRequestStatusClient):
         }
 
 
-def _root_cause_state(description):
+def _root_cause_state(description, headline=None):
     from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
 
+    data = {"one_line_description": description}
+    if headline is not None:
+        data["headline"] = headline
     return SeerRunState(
         run_id=1,
         blocks=[
@@ -67,11 +70,7 @@ def _root_cause_state(description):
                 id="b",
                 message=Message(role="assistant", content="c"),
                 timestamp="2026-02-10T00:00:00Z",
-                artifacts=[
-                    Artifact(
-                        key="root_cause", data={"one_line_description": description}, reason="r"
-                    )
-                ],
+                artifacts=[Artifact(key="root_cause", data=data, reason="r")],
             )
         ],
         status="completed",
@@ -86,10 +85,10 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def _run_for_group(self, group, description):
+    def _run_for_group(self, group, description, headline=None):
         run = self.create_seer_run(organization=self.organization)
         self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
-        reconcile_milestones(run, _root_cause_state(description))
+        reconcile_milestones(run, _root_cause_state(description, headline))
         return run
 
     def _group_with_events(self, fingerprint, *, events, users=1, minutes_ago=1):
@@ -115,7 +114,15 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert len(runs) == 1
         assert runs[0]["shortId"] == group.qualified_short_id
         assert runs[0]["rootCause"]["oneLineDescription"] == "the boom"
+        assert runs[0]["rootCause"]["headline"] is None
         assert runs[0]["proposedFix"] is None
+
+    def test_root_cause_exposes_headline(self):
+        group = self.create_group()
+        self._run_for_group(group, "the boom", headline="Checkout crashes on empty cart")
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
+        assert runs[0]["rootCause"]["headline"] == "Checkout crashes on empty cart"
 
     def _root_cause_short_ids(self, resp):
         return [r["shortId"] for r in resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]]

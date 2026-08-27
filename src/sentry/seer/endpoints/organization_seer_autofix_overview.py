@@ -316,7 +316,10 @@ def _serialize_run(
 ) -> RunPayload:
     root_cause_artifact = run.root_cause_artifact
     root_cause: RootCausePayload | None = (
-        {"oneLineDescription": root_cause_artifact.get("one_line_description")}
+        {
+            "oneLineDescription": root_cause_artifact.get("one_line_description"),
+            "headline": root_cause_artifact.get("headline"),
+        }
         if root_cause_artifact
         else None
     )

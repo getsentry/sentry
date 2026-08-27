@@ -68,6 +68,7 @@ def root_cause_memory_block(referrer: str | None = None) -> MemoryBlock:
             Artifact(
                 key="root_cause",
                 data={
+                    "headline": "Auth module dereferences a null user",
                     "one_line_description": "Null pointer in auth module",
                     "five_whys": ["Why 1"],
                     "fixability": {
