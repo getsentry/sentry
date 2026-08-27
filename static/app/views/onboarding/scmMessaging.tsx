@@ -89,7 +89,7 @@ export function ScmMessaging({
         isEligibleForIssueAlerts(integration)
     );
     // Drop exclusive if the install never surfaced a usable integration.
-    if (result.isError || !connected) {
+    if (result.isLoadingError || !connected) {
       setActiveRow(null);
     }
   };
