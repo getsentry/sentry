@@ -75,6 +75,10 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/`
   );
+  const issueDetailsLocation = {
+    pathname: issueDetailsUrl,
+    query: {referrer: 'inbox'},
+  };
 
   useMarkPreviewedGroupSeen(group);
 
@@ -92,7 +96,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
           ) : null}
           {group && (
             <LinkButton
-              to={issueDetailsUrl}
+              to={issueDetailsLocation}
               size="xs"
               analyticsEventKey="issue_inbox.open_issue_clicked"
               analyticsEventName="Issue Inbox: Open Issue Clicked"
@@ -144,10 +148,18 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
+  const issueDetailsLocation = {
+    pathname: issueDetailsUrl,
+    query: {referrer: 'inbox'},
+  };
   function openSeerDrawer(seerDrawerAction?: string) {
     navigate({
       pathname: issueDetailsUrl,
-      query: {seerDrawer: 'true', seerDrawerAction},
+      query: {
+        ...issueDetailsLocation.query,
+        seerDrawer: 'true',
+        seerDrawerAction,
+      },
     });
   }
 
@@ -166,7 +178,7 @@ function IssuePreviewContent() {
                   delay={1000}
                 >
                   <TitleLink
-                    to={issueDetailsUrl}
+                    to={issueDetailsLocation}
                     analyticsEventKey="issue_inbox.open_issue_clicked"
                     analyticsEventName="Issue Inbox: Open Issue Clicked"
                     analyticsParams={{
