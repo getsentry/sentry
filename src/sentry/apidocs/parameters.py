@@ -369,6 +369,19 @@ class IssueParams:
         type=OpenApiTypes.STR,
         required=False,
     )
+    PROJECT_GROUP_STATS_PERIOD = OpenApiParameter(
+        name="statsPeriod",
+        description=(
+            "The timeline on which stats for the groups should be presented. "
+            'Defaults to `"24h"`. Pass `""` to omit stats entirely. Unlike the '
+            "organization-wide issues endpoint, this does not filter the query "
+            "window and does not accept arbitrary periods."
+        ),
+        enum=["", "24h", "14d"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
 
     SHORT_ID_LOOKUP = OpenApiParameter(
         name="shortIdLookup",
