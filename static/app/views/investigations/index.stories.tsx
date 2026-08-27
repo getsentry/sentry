@@ -1,10 +1,9 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import InvestigationsView from 'sentry/views/investigations';
 import {InvestigationListItemFixture} from 'sentry/views/investigations/fixtures';
 import {
@@ -47,7 +46,9 @@ const DEFAULT_LIST_ITEMS = [
   InvestigationListItemFixture({
     id: '3',
     title: 'Untitled investigation',
-    titleGeneration: {status: 'running'},
+    // Keep titleGeneration idle so list stories do not poll and clobber sibling
+    // fixtures through the shared story API client.
+    titleGeneration: {status: null},
     blockCount: 0,
   }),
 ];
@@ -61,19 +62,13 @@ function ListStory({
   items?: Array<ReturnType<typeof InvestigationListItemFixture>>;
   openMembership?: boolean;
 }) {
-  const organization = useOrganization();
-  const listUrl = `/organizations/${organization.slug}/investigations/`;
-  const apiResponses = useMemo(
-    () => [{url: listUrl, response: {body: items}}],
-    [items, listUrl]
-  );
-
   return (
     <InvestigationsStoryProviders
       features={features}
       openMembership={openMembership}
-      apiResponses={apiResponses}
       seed={(queryClient, org) => {
+        // Per-story QueryClient fixtures only — avoid a shared list API mock so
+        // populated/empty examples on one scraps page stay independent.
         seedInvestigationList(queryClient, org.slug, items);
       }}
     >

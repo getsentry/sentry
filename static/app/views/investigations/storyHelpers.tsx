@@ -30,28 +30,49 @@ type StoryApiResponse = {
   statusCode?: number;
 };
 
-/**
- * Offline storybook helper: route investigation API traffic to fixture bodies so
- * list/detail pages and polling paths work without a backend.
- */
-export function installInvestigationsStoryApi(
-  responses: Array<{response: StoryApiResponse; url: string; method?: string}>
-) {
-  const original = QUERY_API_CLIENT.requestPromise.bind(QUERY_API_CLIENT);
+type StoryApiRoute = {
+  response: StoryApiResponse;
+  url: string;
+  method?: string;
+};
 
-  QUERY_API_CLIENT.requestPromise = ((path: string, options: any) => {
-    const method = (options.method || (options.data ? 'POST' : 'GET')).toUpperCase();
-    const match = responses.find(entry => {
+// Multiple story examples mount on one scraps page and share QUERY_API_CLIENT.
+// Keep a stack of route tables so sibling stories do not clobber each other.
+const storyApiRouteStack: StoryApiRoute[][] = [];
+let storyApiPatched = false;
+let originalRequestPromise: typeof QUERY_API_CLIENT.requestPromise | null = null;
+
+function matchStoryApiRoute(path: string, method: string): StoryApiRoute | undefined {
+  for (let index = storyApiRouteStack.length - 1; index >= 0; index -= 1) {
+    const routes = storyApiRouteStack[index] ?? [];
+    const match = routes.find(entry => {
       const entryMethod = (entry.method ?? 'GET').toUpperCase();
       return entryMethod === method && path.startsWith(entry.url);
     });
+    if (match) {
+      return match;
+    }
+  }
+  return undefined;
+}
+
+function ensureStoryApiPatch() {
+  if (storyApiPatched) {
+    return;
+  }
+  originalRequestPromise = QUERY_API_CLIENT.requestPromise.bind(QUERY_API_CLIENT);
+  QUERY_API_CLIENT.requestPromise = ((path: string, options: any) => {
+    const method = (options.method || (options.data ? 'POST' : 'GET')).toUpperCase();
+    const match = matchStoryApiRoute(path, method);
 
     if (!match) {
       // Keep mutations/no-op GETs from breaking unrelated scrap chrome.
       if (method === 'GET') {
         return Promise.reject(new Error(`No investigation story fixture for GET ${path}`));
       }
-      return Promise.resolve(options.includeAllArgs ? [{}, 'success', emptyResponseMeta()] : {});
+      return Promise.resolve(
+        options.includeAllArgs ? [{}, 'success', emptyResponseMeta()] : {}
+      );
     }
 
     const statusCode = match.response.statusCode ?? 200;
@@ -67,9 +88,27 @@ export function installInvestigationsStoryApi(
     }
     return Promise.resolve(match.response.body);
   }) as typeof QUERY_API_CLIENT.requestPromise;
+  storyApiPatched = true;
+}
+
+/**
+ * Offline storybook helper: route investigation API traffic to fixture bodies so
+ * list/detail pages and polling paths work without a backend.
+ */
+export function installInvestigationsStoryApi(responses: StoryApiRoute[]) {
+  ensureStoryApiPatch();
+  storyApiRouteStack.push(responses);
 
   return () => {
-    QUERY_API_CLIENT.requestPromise = original;
+    const index = storyApiRouteStack.lastIndexOf(responses);
+    if (index >= 0) {
+      storyApiRouteStack.splice(index, 1);
+    }
+    if (storyApiRouteStack.length === 0 && storyApiPatched && originalRequestPromise) {
+      QUERY_API_CLIENT.requestPromise = originalRequestPromise;
+      storyApiPatched = false;
+      originalRequestPromise = null;
+    }
   };
 }
 
@@ -92,12 +131,18 @@ export function makeInvestigationsStoryQueryClient() {
     defaultOptions: {
       queries: {
         retry: false,
+        // Story fixtures are static; keep seeded cache offline and stable.
+        networkMode: 'offlineFirst',
+        staleTime: Infinity,
+        gcTime: Infinity,
         refetchOnMount: false,
         refetchOnReconnect: false,
         refetchOnWindowFocus: false,
+        refetchInterval: false,
       },
       mutations: {
         retry: false,
+        networkMode: 'offlineFirst',
       },
     },
   });
@@ -109,10 +154,33 @@ export function seedInvestigationList(
   items: InvestigationListItem[],
   headers: Record<string, string> = {}
 ) {
-  queryClient.setQueryData(
-    investigationListQueryOptions({organizationSlug}).queryKey,
-    {json: items, headers}
-  );
+  const payload = {json: items, headers};
+  // Cover bare + empty-string query/cursor variants nuqs can produce in scraps.
+  const optionVariants = [
+    investigationListQueryOptions({organizationSlug}),
+    investigationListQueryOptions({
+      organizationSlug,
+      query: '',
+      cursor: '',
+    }),
+    investigationListQueryOptions({
+      organizationSlug,
+      query: '',
+    }),
+    investigationListQueryOptions({
+      organizationSlug,
+      cursor: '',
+    }),
+  ];
+  for (const options of optionVariants) {
+    queryClient.setQueryData(options.queryKey, payload);
+    void queryClient.prefetchQuery({
+      ...options,
+      staleTime: Infinity,
+      gcTime: Infinity,
+      queryFn: () => Promise.resolve(payload),
+    });
+  }
 }
 
 export function seedInvestigationDetail(
@@ -213,12 +281,6 @@ export function InvestigationsStoryOrganization({
 }
 
 type SeedFn = (queryClient: QueryClient, organization: Organization) => void;
-
-type StoryApiRoute = {
-  response: StoryApiResponse;
-  url: string;
-  method?: string;
-};
 
 export function InvestigationsStoryProviders({
   children,
