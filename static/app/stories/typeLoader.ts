@@ -73,8 +73,8 @@ function extractModuleExports(
 }
 
 function extractComponentProps(
-  moduleContext: LoaderContext<any>['_module'],
-  resourcePath: string
+  resourcePath: string,
+  module: string
 ): Record<string, TypeLoader.ComponentDocWithFilename> {
   const componentProps = docgen.parse(resourcePath, {
     shouldExtractLiteralValuesFromEnum: true,
@@ -94,7 +94,6 @@ function extractComponentProps(
     componentProps
       .filter(entry => entry.displayName && typeof entry.displayName === 'string')
       .map(entry => {
-        const module = extractRequest(moduleContext);
         return [
           entry.displayName,
           {
@@ -114,15 +113,19 @@ function extractComponentProps(
  * @param {string} source source file as string
  * @returns {void}
  */
-function prodTypeloader(this: LoaderContext<any>, _source: string) {
+function prodTypeloader(this: LoaderContext, _source: string) {
   const callback = this.async();
 
   const program = typescript.createProgram([this.resourcePath], {});
   const sourceFile = program.getSourceFile(this.resourcePath);
 
-  const module = extractRequest(this._module);
+  const module = extractRequest(
+    this.resourcePath,
+    this.rootContext,
+    this.utils.contextify
+  );
 
-  const moduleProps = extractComponentProps(this._module, this.resourcePath);
+  const moduleProps = extractComponentProps(this.resourcePath, module);
   const moduleExports = extractModuleExports(program, sourceFile);
 
   const typeLoaderResult: TypeLoader.TypeLoaderResult = {
@@ -142,12 +145,12 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
   );
 }
 
-function noopTypeLoader(this: LoaderContext<any>, _source: string) {
+function noopTypeLoader(this: LoaderContext, _source: string) {
   const callback = this.async();
   return callback(null, 'export default {props: {},exports: {}}');
 }
 
-export default function typeLoader(this: LoaderContext<any>, _source: string) {
+export default function typeLoader(this: LoaderContext, _source: string) {
   // Allow acceptance tests to opt out of type-loader for performance reasons
   const STORYBOOK_TYPES = process.env.IS_ACCEPTANCE_TEST !== '1';
 
@@ -156,14 +159,16 @@ export default function typeLoader(this: LoaderContext<any>, _source: string) {
     : noopTypeLoader.call(this, _source);
 }
 
-function extractRequest(module: LoaderContext<any>['_module']) {
-  if (!module || !('rawRequest' in module) || typeof module.rawRequest !== 'string') {
-    return '';
-  }
+export function extractRequest(
+  resourcePath: string,
+  rootContext: string,
+  contextify: (context: string, request: string) => string
+): string {
+  let modulePath = contextify(rootContext, resourcePath)
+    .replace(/^\.\/app\/components\/core\//, '@sentry/scraps/')
+    .replace(/^\.\/app\//, 'sentry/')
+    .replace(/\.[cm]?[jt]sx?$/, '');
 
-  let modulePath = module.rawRequest.split('!')?.at(-1) ?? '';
-
-  // @TODO: if we ever build on Windows, this will break... we should hopefully never need to build on Windows
   if (modulePath.endsWith('/index')) {
     modulePath = modulePath.slice(0, -6);
   }

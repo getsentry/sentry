@@ -1,7 +1,7 @@
-import {serializeTypeLoaderResult} from 'sentry/stories/typeLoader';
+import {extractRequest, serializeTypeLoaderResult} from 'sentry/stories/typeLoader';
 
 function makeTypeLoaderResult(rootContext: string, syntheticProperty: string) {
-  const componentPath = `${rootContext}/static/app/components/core/example.tsx`;
+  const componentPath = `${rootContext}/app/components/core/example.tsx`;
 
   return {
     props: {
@@ -28,8 +28,8 @@ function makeTypeLoaderResult(rootContext: string, syntheticProperty: string) {
 
 describe('serializeTypeLoaderResult', () => {
   it('stabilizes TypeScript properties and checkout paths', () => {
-    const firstRoot = '/home/first/sentry';
-    const secondRoot = '/different/checkout/sentry';
+    const firstRoot = '/home/first/sentry/static';
+    const secondRoot = '/different/checkout/sentry/static';
     const contextify = (context: string, request: string) =>
       `./${request.slice(context.length + 1)}`;
 
@@ -50,17 +50,40 @@ describe('serializeTypeLoaderResult', () => {
     expect(JSON.parse(first)).toMatchObject({
       props: {
         Example: {
-          filePath: './static/app/components/core/example.tsx',
-          filename: './static/app/components/core/example.tsx',
+          filePath: './app/components/core/example.tsx',
+          filename: './app/components/core/example.tsx',
           props: {
             label: {
               parent: {
-                fileName: './static/app/components/core/example.tsx',
+                fileName: './app/components/core/example.tsx',
               },
             },
           },
         },
       },
     });
+  });
+});
+
+describe('extractRequest', () => {
+  const rootContext = '/checkout/sentry/static';
+  const contextify = (context: string, request: string) =>
+    `./${request.slice(context.length + 1)}`;
+
+  it.each([
+    [
+      '/checkout/sentry/static/app/components/core/button/index.tsx',
+      '@sentry/scraps/button',
+    ],
+    [
+      '/checkout/sentry/static/app/components/dropdownMenu/index.tsx',
+      'sentry/components/dropdownMenu',
+    ],
+    [
+      '/checkout/sentry/static/app/views/dashboards/widgets/widget/widget.tsx',
+      'sentry/views/dashboards/widgets/widget/widget',
+    ],
+  ])('creates the public request for %s', (resourcePath, expected) => {
+    expect(extractRequest(resourcePath, rootContext, contextify)).toBe(expected);
   });
 });
