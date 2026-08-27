@@ -198,6 +198,53 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
 
         assert self._root_cause_short_ids(resp) == [high.qualified_short_id]
 
+    def test_sort_recommended_orders_by_fixability_boost(self):
+        plain = self._group_with_events("plain", events=1)
+        fixable = self._group_with_events("fixable", events=1)
+        fixable.update(seer_fixability_score=1.0)
+        self._run_for_group(plain, "plain")
+        self._run_for_group(fixable, "fixable")
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"sort": "recommended"}
+            )
+
+        assert self._root_cause_short_ids(resp) == [
+            fixable.qualified_short_id,
+            plain.qualified_short_id,
+        ]
+
+    def test_sort_recommended_uses_v2_scorer_and_viewer_actor(self):
+        group = self._group_with_events("boom", events=1)
+        self._run_for_group(group, "boom")
+
+        with (
+            self.feature("organizations:issue-stream-recommended-sort-experimental"),
+            mock.patch(
+                "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
+                wraps=search.backend.query,
+            ) as mock_query,
+        ):
+            self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
+
+        assert mock_query.call_count == 1
+        assert mock_query.call_args.kwargs["sort_by"] == "recommended_v2"
+        assert mock_query.call_args.kwargs["actor"].id == self.user.id
+
+    def test_sort_recommended_without_experimental_flag_uses_v1_scorer(self):
+        group = self._group_with_events("boom", events=1)
+        self._run_for_group(group, "boom")
+
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
+            wraps=search.backend.query,
+        ) as mock_query:
+            self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
+
+        assert mock_query.call_count == 1
+        assert mock_query.call_args.kwargs["sort_by"] == "recommended"
+
     def test_issue_sort_raises_paginator_cap_to_candidate_count(self):
         # Without the max_limit override the paginator silently caps at 100 and
         # candidates beyond it would sort last; assert the endpoint raises it.
