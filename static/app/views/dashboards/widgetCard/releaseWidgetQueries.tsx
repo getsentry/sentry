@@ -10,6 +10,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {escapeDoubleQuotes} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
@@ -188,7 +189,9 @@ export function ReleaseWidgetQueries({
 
     try {
       const releaseResponse = await api.requestPromise(
-        `/organizations/${organization.slug}/releases/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET',
           data: {

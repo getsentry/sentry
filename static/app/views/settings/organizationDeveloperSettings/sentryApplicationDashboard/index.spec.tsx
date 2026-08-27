@@ -125,7 +125,12 @@ describe('Sentry Application Dashboard', () => {
       await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3));
       expect(statsMock).toHaveBeenCalledTimes(1);
       expect(interactionMock).toHaveBeenCalledTimes(1);
-      expect(screen.queryByText('Request Log')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Request Log'})).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Only organization admins and members with integration management access can view the request log.'
+        )
+      ).toBeInTheDocument();
       expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
       expect(webhookRequestMock).not.toHaveBeenCalled();
     });
@@ -194,7 +199,7 @@ describe('Sentry Application Dashboard', () => {
         },
       });
 
-      MockApiClient.addMockResponse({
+      webhookRequestMock = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
       });
@@ -215,8 +220,8 @@ describe('Sentry Application Dashboard', () => {
       });
     });
 
-    it('shows the request log', async () => {
-      renderDashboard();
+    it('shows the request log for users with only org read access', async () => {
+      renderDashboard(OrganizationFixture({access: ['org:read']}));
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
@@ -224,6 +229,8 @@ describe('Sentry Application Dashboard', () => {
       expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
       expect(requestLog.getByText('400')).toBeInTheDocument();
       expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
+      expect(webhookRequestMock).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('org-permission-alert')).not.toBeInTheDocument();
 
       // Does not show the integration views
       expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();

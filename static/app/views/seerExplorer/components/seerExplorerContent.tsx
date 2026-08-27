@@ -13,7 +13,10 @@ import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
+import {
+  canManageIntegrations,
+  integrationRequiresUpgrade,
+} from 'sentry/utils/integrationUtil';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -236,7 +239,12 @@ export function SeerExplorerContent({
       integration.organizationIntegrationStatus === 'active'
   );
   const hasSlackIntegration = activeSlackIntegrations.length > 0;
+  // Only surface the reinstall CTA to users who can actually reinstall. Settings
+  // already gates the upgrade button on `canManageIntegrations`; without the same
+  // check here, members without `org:integrations` get a dead-end nudge.
   const needsSlackUpgrade = activeSlackIntegrations.some(integrationRequiresUpgrade);
+  const showSlackUpgradeAlert =
+    needsSlackUpgrade && !!organization && canManageIntegrations(organization);
 
   // Auto-submit the initial query forwarded from the command palette, but only
   // if the session is still empty (don't clobber an active run). The ref dedupes
@@ -550,7 +558,7 @@ export function SeerExplorerContent({
         <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
       )}
       {menu}
-      {needsSlackUpgrade && (
+      {showSlackUpgradeAlert && (
         <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
       )}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>

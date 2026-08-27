@@ -2,12 +2,14 @@ from urllib.parse import urlencode
 
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.activity.base import (
+    ACTIVITY_NOTIFICATION_REFERRER,
     ACTIVITY_TYPE_TO_SOURCE,
     EXAMPLE_ALERT_URL,
     EXAMPLE_ISSUE_URL,
     EXAMPLE_PROJECT_URL,
     EXAMPLE_USER_SETTINGS_URL,
     ActivityNotificationData,
+    SetResolvedInReleaseNotificationData,
     build_activity_notification_data,
     build_footer,
     build_issue_link,
@@ -129,9 +131,21 @@ class ActivityAlertBaseTest(TestCase):
         assert data.source == NotificationSource.ACTIVITY_SEER_RCA_STARTED
         assert data.activity_type == ActivityType.SEER_RCA_STARTED.value
         assert data.issue_short_id == self.group.qualified_short_id
-        assert absolute_uri(self.group.get_absolute_url()) in data.issue_url
+        expected_issue_url = self.group.get_absolute_url(
+            params={"seerDrawer": "true", "referrer": "activity_notification"}
+        )
+        assert absolute_uri(expected_issue_url) == data.issue_url
         assert data.issue_culprit == self.group.culprit
-        assert data.alert_url is not None
+        assert data.project_url == self.organization.absolute_url(
+            f"organizations/{self.organization.slug}/issues/",
+            query=urlencode(
+                {"project": self.project.id, "referrer": ACTIVITY_NOTIFICATION_REFERRER}
+            ),
+        )
+        assert data.alert_url == self.organization.absolute_url(
+            f"organizations/{self.organization.slug}/monitors/alerts/{workflow.id}/",
+            query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
+        )
         assert data.activity_data == activity.data
         assert data.user_settings_url is None
 
@@ -153,6 +167,7 @@ class ActivityAlertBaseTest(TestCase):
 
         assert data.user_settings_url is not None
         assert "notifications/alerts/" in data.user_settings_url
+        assert f"referrer={ACTIVITY_NOTIFICATION_REFERRER}" in data.user_settings_url
 
     def test_build_activity_notification_data_user_settings_url_email_without_workflow(
         self,
@@ -170,6 +185,7 @@ class ActivityAlertBaseTest(TestCase):
 
         assert data.user_settings_url is not None
         assert "notifications/workflow/" in data.user_settings_url
+        assert f"referrer={ACTIVITY_NOTIFICATION_REFERRER}" in data.user_settings_url
 
     def test_build_activity_notification_data_user_settings_url_dm(self) -> None:
         activity = self.create_group_activity(
@@ -185,6 +201,7 @@ class ActivityAlertBaseTest(TestCase):
 
         assert data.user_settings_url is not None
         assert "notifications/workflow/" in data.user_settings_url
+        assert f"referrer={ACTIVITY_NOTIFICATION_REFERRER}" in data.user_settings_url
 
     def test_build_activity_notification_data_user_settings_url_channel_excluded(self) -> None:
         activity = self.create_group_activity(
@@ -209,7 +226,13 @@ class ActivityAlertBaseTest(TestCase):
 
         expected_inbox_url = self.organization.absolute_url(
             f"organizations/{self.organization.slug}/issues/inbox/",
-            query=urlencode({"project": self.project.id, "preview": self.group.id}),
+            query=urlencode(
+                {
+                    "project": self.project.id,
+                    "preview": self.group.id,
+                    "referrer": "activity_notification",
+                }
+            ),
         )
         assert absolute_uri(expected_inbox_url) == data.issue_url
 
@@ -220,7 +243,26 @@ class ActivityAlertBaseTest(TestCase):
         )
         data = build_activity_notification_data(activity)
 
-        assert absolute_uri(self.group.get_absolute_url()) == data.issue_url
+        expected_issue_url = self.group.get_absolute_url(
+            params={"referrer": ACTIVITY_NOTIFICATION_REFERRER}
+        )
+        assert absolute_uri(expected_issue_url) == data.issue_url
+
+    def test_build_activity_notification_data_release_url_has_referrer(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            data={"version": "1.2.3"},
+        )
+        data = build_activity_notification_data(activity)
+
+        assert isinstance(data, SetResolvedInReleaseNotificationData)
+        assert data.release_url == self.organization.absolute_url(
+            f"organizations/{self.organization.slug}/releases/1.2.3/",
+            query=urlencode(
+                {"project": self.project.id, "referrer": ACTIVITY_NOTIFICATION_REFERRER}
+            ),
+        )
 
 
 class ActivitySeerAlertBaseTest(TestCase):

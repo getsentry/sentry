@@ -319,14 +319,30 @@ export function useLinkedPullRequests({
   const organization = useOrganization();
 
   return useQuery(
-    apiOptions.as<LinkedPullRequestsResponse>()(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
-      {
-        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-        query: includeChecksAndReview ? {expand: 'checksAndReview'} : undefined,
-        staleTime: 30_000,
-      }
-    )
+    linkedPullRequestsApiOptions({
+      groupId: group.id,
+      organizationSlug: organization.slug,
+      includeChecksAndReview,
+    })
+  );
+}
+
+export function linkedPullRequestsApiOptions({
+  groupId,
+  organizationSlug,
+  includeChecksAndReview = true,
+}: {
+  groupId: string;
+  organizationSlug: string;
+  includeChecksAndReview?: boolean;
+}) {
+  return apiOptions.as<LinkedPullRequestsResponse>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
+      query: includeChecksAndReview ? {expand: 'checksAndReview'} : undefined,
+      staleTime: 30_000,
+    }
   );
 }
 
