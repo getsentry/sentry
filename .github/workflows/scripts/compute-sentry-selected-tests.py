@@ -157,10 +157,13 @@ ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/backup/test_validate.py",
 }
 
-# Seer public-API matrix is discovered at collection time, not via coverage/
-# static imports of endpoint modules. Include it when publish_status is touched.
+# Seer public-API matrix discovers PUBLIC mutations at collection time, so
+# endpoint module edits (including publish_status flips) need an explicit include.
 PUBLIC_API_MATRIX_TEST = "tests/sentry/seer/endpoints/test_organization_agent_token.py"
-_PUBLISH_STATUS_DECL = re.compile(r"\bpublish_status\b")
+PUBLIC_API_MATRIX_PATH_TRIGGERS: list[re.Pattern[str]] = [
+    # Endpoint modules live under */endpoints/ across product areas.
+    re.compile(r"^src/sentry/.*/endpoints/.*\.py$"),
+]
 
 
 def _is_test(path: str) -> bool:
@@ -173,21 +176,12 @@ def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
     return file_path == trigger
 
 
-def _source_declares_publish_status(file_path: str, *, repo_root: Path | None = None) -> bool:
-    if not file_path.endswith(".py") or _is_test(file_path):
-        return False
-    path = (repo_root or Path.cwd()) / file_path
-    try:
-        contents = path.read_text(encoding="utf-8")
-    except OSError:
-        return False
-    return _PUBLISH_STATUS_DECL.search(contents) is not None
-
-
-def _changed_files_declare_publish_status(
-    changed_files: list[str], *, repo_root: Path | None = None
-) -> list[str]:
-    return [f for f in changed_files if _source_declares_publish_status(f, repo_root=repo_root)]
+def _changed_files_match_public_api_matrix_paths(changed_files: list[str]) -> list[str]:
+    return [
+        f
+        for f in changed_files
+        if any(_matches_trigger(f, t) for t in PUBLIC_API_MATRIX_PATH_TRIGGERS)
+    ]
 
 
 def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]:
@@ -335,11 +329,11 @@ def main() -> int:
             # Always run these tests
             affected_test_files.update(ALWAYS_RUN_TESTS)
 
-            publish_status_sources = _changed_files_declare_publish_status(changed)
-            if publish_status_sources:
+            endpoint_sources = _changed_files_match_public_api_matrix_paths(changed)
+            if endpoint_sources:
                 print(
-                    "Including public API matrix test due to publish_status in: "
-                    + ", ".join(publish_status_sources)
+                    "Including public API matrix test due to endpoint path(s): "
+                    + ", ".join(endpoint_sources)
                 )
                 affected_test_files.add(PUBLIC_API_MATRIX_TEST)
 
