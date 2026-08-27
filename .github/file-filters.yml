@@ -48,6 +48,11 @@ embed_widget_schema:
 embed_widget_codegen:
   - added|modified: 'src/sentry/seer/agent/embed_widgets.generated.json'
 
+# Test-only helpers under src/ that frontend acceptance/unit tests also import.
+# Changing them alongside frontend code should not trip the FE/BE deploy warning.
+replays_testutils:
+  - added|modified: 'src/sentry/replays/testutils.py'
+
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
