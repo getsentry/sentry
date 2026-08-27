@@ -268,3 +268,45 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
     },
   ],
 });
+
+const crossFileRuleTester = new RuleTester({
+  languageOptions: {
+    parserOptions: {
+      project: './tsconfig.json',
+      tsconfigRootDir: `${__dirname}/fixtures`,
+    },
+  },
+});
+
+crossFileRuleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
+  valid: [
+    {
+      name: 'imported function argument differs from default',
+      code: `
+import {a} from './importedDefault';
+a(1);
+`,
+      filename: 'consumer.ts',
+    },
+  ],
+  invalid: [
+    {
+      name: 'imported function with numeric default',
+      code: `
+import {a} from './importedDefault';
+a(0);
+`,
+      filename: 'consumer.ts',
+      output: `
+import {a} from './importedDefault';
+a();
+`,
+      errors: [
+        {
+          messageId: 'redundantDefaultValue',
+          data: {kind: 'argument', name: 'value', value: '0'},
+        },
+      ],
+    },
+  ],
+});
