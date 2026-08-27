@@ -1,3 +1,8 @@
+import io
+from unittest.mock import MagicMock, patch
+
+from PIL import Image, PngImagePlugin
+
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.tasks import (
     _chunk_result_key,
@@ -333,17 +338,17 @@ def test_build_comparison_plan_diff_threshold_defaults_to_zero():
     assert thresholds == {"default.png": 0.0}
 
 
-def test_build_comparison_plan_exceeds_pixel_limit():
+def test_build_comparison_plan_uses_comparison_dimensions_for_pixel_limit():
+    from sentry.preprod.snapshots.image_diff.compare import MAX_DIFF_PIXELS
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-    from sentry.preprod.snapshots.tasks import MAX_DIFF_PIXELS, _build_comparison_plan
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
 
-    oversized = MAX_DIFF_PIXELS + 1
     head = SnapshotManifest(
-        images={"huge.png": ImageMetadata(content_hash="h1", width=oversized, height=1)},
+        images={"huge.png": ImageMetadata(content_hash="h1", width=MAX_DIFF_PIXELS, height=1)},
         diff_threshold=None,
     )
     base = SnapshotManifest(
-        images={"huge.png": ImageMetadata(content_hash="h0", width=oversized, height=1)},
+        images={"huge.png": ImageMetadata(content_hash="h0", width=1, height=2)},
         diff_threshold=None,
     )
 
@@ -373,3 +378,48 @@ def test_build_comparison_plan_detects_rename():
     assert plan.non_diff_images["new.png"].status == "renamed"
     assert plan.non_diff_images["new.png"].previous_image_file_name == "old.png"
     assert "old.png" not in plan.non_diff_images
+
+
+def test_process_chunk_enforces_actual_batch_pixel_limit():
+    from sentry.preprod.snapshots.manifest import ChunkAssignment, ChunkCandidate
+    from sentry.preprod.snapshots.tasks import _process_chunk
+
+    assignment = ChunkAssignment(
+        chunk_index=0,
+        candidates=[
+            ChunkCandidate(
+                name=name,
+                head_hash=f"{name}-head",
+                base_hash=f"{name}-base",
+                pixel_count=1,
+                diff_threshold=0,
+            )
+            for name in ("first", "second")
+        ],
+    )
+    buffer = io.BytesIO()
+    Image.new("RGBA", (10, 10)).save(buffer, format="PNG")
+    fetched = {
+        image_hash: buffer.getvalue()
+        for candidate in assignment.candidates
+        for image_hash in (candidate.head_hash, candidate.base_hash)
+    }
+
+    with (
+        patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 150),
+        patch(
+            "sentry.preprod.snapshots.tasks._fetch_batch_images",
+            return_value=(fetched, set()),
+        ),
+        patch(
+            "sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[None]
+        ) as compare,
+        patch.object(PngImagePlugin.PngImageFile, "load") as load,
+        patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+    ):
+        results = _process_chunk(MagicMock(), assignment, 1, 2, 3, 4)
+
+    assert results["first"].reason == "image_processing_failed"
+    assert results["second"].reason == "exceeds_batch_pixel_limit"
+    assert len(compare.call_args.args[0]) == 1
+    load.assert_not_called()

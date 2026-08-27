@@ -20,6 +20,7 @@ import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,7 +70,9 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
   const fetchMissingMembers = useCallback(async () => {
     try {
       const data = await api.requestPromise(
-        `/organizations/${organization.slug}/missing-members/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/missing-members/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET',
         }
@@ -142,7 +145,9 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
     setSendingInvite(true);
     try {
       await api.requestPromise(
-        `/organizations/${organization.slug}/members/?referrer=github_nudge_invite`,
+        `${getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })}?referrer=github_nudge_invite`,
         {
           method: 'POST',
           data: {email},

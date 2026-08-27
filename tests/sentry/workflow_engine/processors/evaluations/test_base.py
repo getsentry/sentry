@@ -141,6 +141,15 @@ class TestWithError:
     def test_is_noop_when_already_tainted(self) -> None:
         assert _ev(True, ERR).with_error(OTHER_ERR).error == ERR
 
+    def test_to_artifact_includes_common_fields(self) -> None:
+        assert _ev(True, ERR).to_artifact() == {
+            "triggered": True,
+            "error": ERR.msg,
+            "logic_type": DataConditionGroup.Type.ANY,
+            "result": True,
+            "condition_evaluations": [],
+        }
+
 
 class TestChooseTainted:
     def test_returns_first_tainted(self) -> None:

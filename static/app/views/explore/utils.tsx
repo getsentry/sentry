@@ -24,17 +24,17 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -50,12 +50,20 @@ import type {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
-import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {
+  getFieldsForConstructedQuery,
+  normalizeCompareQueryParts,
+  type ReadableExploreQueryParts,
+} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  parseConditionalAggregate,
+  withReadableConditionalFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -159,14 +167,25 @@ function getExploreUrlFromSavedQueryUrl({
           ? visualize.chartType
           : undefined;
 
-        return {
-          ...q,
+        const normalized = normalizeCompareQueryParts({
           chartType,
           yAxes: (visualize?.yAxes ?? []).slice(),
           groupBys: groupBys ?? [],
+          query: q.query ?? '',
           sortBys: decodeSorts(q.orderby),
           caseInsensitive: q.caseInsensitive ? '1' : null,
-        };
+        });
+        const yAxes = normalized.yAxes ?? [];
+
+        return {
+          chartType: normalized.chartType,
+          yAxes,
+          groupBys: [...(normalized.groupBys ?? groupBys ?? [])],
+          query: normalized.query ?? '',
+          sortBys: [...(normalized.sortBys ?? decodeSorts(q.orderby))],
+          fields: getFieldsForConstructedQuery(yAxes),
+          caseInsensitive: normalized.caseInsensitive,
+        } satisfies ReadableExploreQueryParts;
       }),
       title: savedQuery.name,
       selection: {
@@ -311,6 +330,9 @@ export function generateTargetQuery({
 
   // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
+    if (!groupBy) {
+      continue;
+    }
     const value = row[groupBy];
     // some fields require special handling so make sure to handle it here
     if (groupBy === 'project' && typeof value === 'string') {
@@ -342,7 +364,9 @@ export function generateTargetQuery({
 
   // add all the arguments of the visualizations as columns
   for (const yAxis of yAxes) {
-    const parsedFunction = parseFunction(yAxis);
+    // Parse conditionally so an `_if` filter query is not mistaken for an attribute and
+    // added as a samples column.
+    const parsedFunction = parseConditionalAggregate(yAxis);
     if (!parsedFunction?.arguments[0]) {
       continue;
     }
@@ -369,7 +393,7 @@ export function generateTargetQuery({
 
   // find the first valid sort and sort on that
   for (const sort of sorts) {
-    const parsedFunction = parseFunction(sort.field);
+    const parsedFunction = parseConditionalAggregate(sort.field);
     if (!parsedFunction?.arguments[0]) {
       continue;
     }
@@ -432,12 +456,16 @@ export function viewSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return getTargetWithReadableQueryParams(location, {
+  const target = getTargetWithReadableQueryParams(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
     query: newSearch.formatString(),
     sortBys: newSortBys,
   });
+
+  delete target.query.table;
+
+  return target;
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
@@ -626,7 +654,7 @@ export function prettifyAggregation(aggregation: string): string | null {
     return expression.tokens
       .map(token => {
         if (isTokenFunction(token)) {
-          const func = parseFunction(token.text);
+          const func = parseFunction(withReadableConditionalFilter(token.text));
           if (func) {
             return prettifyParsedFunction(func);
           }
@@ -636,7 +664,7 @@ export function prettifyAggregation(aggregation: string): string | null {
       .join(' ');
   }
 
-  const func = parseFunction(aggregation);
+  const func = parseFunction(withReadableConditionalFilter(aggregation));
   if (func) {
     return prettifyParsedFunction(func);
   }
@@ -721,7 +749,7 @@ function getConversationsUrlFromSavedQueryUrl({
     queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
   }
   const basePath = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
   );
   return `${basePath}?${queryString}`;
 }
@@ -884,7 +912,8 @@ export function shouldWarnSamplingSensitive(
 }
 
 export function isSamplingSensitiveAggregate(yAxis: string): boolean {
-  const parsed = parseFunction(yAxis);
+  // Parse conditionally so `count_unique_if` is recognised as `count_unique`.
+  const parsed = parseConditionalAggregate(yAxis);
   if (!parsed) {
     return false;
   }

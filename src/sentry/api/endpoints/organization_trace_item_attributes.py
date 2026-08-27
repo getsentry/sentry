@@ -85,6 +85,7 @@ from sentry.search.eap.types import (
 from sentry.search.eap.utils import (
     can_expose_attribute,
     can_expose_attribute_to_api,
+    get_deprecated_source_internal_names,
     get_secondary_aliases,
     is_internal_sentry_convention_attribute,
     is_sentry_convention_replacement_attribute,
@@ -215,7 +216,9 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     many=True,
     type=str,
     enum=["context"],
-    # Internal-only for now, so exclude it from the public OpenAPI spec.
+    # Withheld from the public OpenAPI spec because the context shape it returns
+    # is still evolving. The matching half is the ``exclude_fields=["context"]``
+    # on ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
     exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include attribute metadata "
@@ -524,6 +527,21 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
     if name in {column.internal_name for column in definitions.columns.values()}:
         return True
     return ATTRIBUTE_METADATA.get(name) is not None
+
+
+def _replacement_superseded_by_present_source(
+    public_alias: str,
+    item_type: SupportedTraceItemType,
+    present_names: set[str],
+) -> bool:
+    """
+    Whether a convention replacement attribute should be hidden because its
+    deprecated source is also present in the results.
+    """
+    if not is_sentry_convention_replacement_attribute(public_alias, item_type):
+        return False
+    deprecated_names = get_deprecated_source_internal_names(public_alias, item_type)
+    return not deprecated_names.isdisjoint(present_names)
 
 
 def as_attribute_key(
@@ -947,6 +965,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_context: bool = False,
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
+        present_names = {attribute.name for attribute in rpc_response.attributes if attribute.name}
         for attribute in rpc_response.attributes:
             if not attribute.name:
                 continue
@@ -969,8 +988,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     trace_item_type,
                     include_internal=include_internal,
                 )
-                and not is_sentry_convention_replacement_attribute(
-                    attr_key["name"], trace_item_type
+                and not _replacement_superseded_by_present_source(
+                    attr_key["name"], trace_item_type, present_names
                 )
                 # Remove anything where the public alias doesn't match the substring
                 # This can happen when the public alias is different, but that's handled by
@@ -1077,6 +1096,11 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
+        supports_arrays = features.has(
+            "organizations:trace-item-array-query-support",
+            organization,
+            actor=request.user,
+        )
         # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
         # Dataset is going to replace item_type
@@ -1097,6 +1121,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
                 limit=limit,
                 offset=offset,
                 definitions=definitions,
+                supports_arrays=supports_arrays,
             )
 
             with handle_query_errors():
@@ -1131,15 +1156,19 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         limit: int,
         offset: int,
         definitions: ColumnDefinitions,
+        supports_arrays: bool = False,
     ):
         self.organization = organization
         self.snuba_params = snuba_params
+        self.supports_arrays = supports_arrays
         self.key = key
         self.query = query or ""
         self.limit = limit
         self.offset = offset
         self.resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=definitions
+            params=snuba_params,
+            config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
+            definitions=definitions,
         )
         self.search_type, self.attribute_key, self.context_definition = self.resolve_attribute_key(
             key
@@ -1179,6 +1208,13 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
         if self.search_type == "string":
             return self.string_autocomplete_function()
+
+        # Autocomplete values for array attributes (string-typed arrays)
+        if self.search_type == "array" and self.supports_arrays:
+            array_key = AttributeKey(
+                name=self.attribute_key.name, type=AttributeKey.Type.TYPE_ARRAY_STRING
+            )
+            return self.string_autocomplete_function(key=array_key)
 
         return []
 
@@ -1371,7 +1407,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             ),
         ]
 
-    def string_autocomplete_function(self) -> list[TagValue]:
+    def string_autocomplete_function(self, key: AttributeKey | None = None) -> list[TagValue]:
         adjusted_start_date, adjusted_end_date = adjust_start_end_window(
             self.snuba_params.start_date, self.snuba_params.end_date
         )
@@ -1386,7 +1422,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         meta = self.resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value)
         rpc_request = TraceItemAttributeValuesRequest(
             meta=meta,
-            key=self.attribute_key,
+            key=key if key is not None else self.attribute_key,
             value_substring_match=query,
             limit=self.limit,
             page_token=PageToken(offset=self.offset),

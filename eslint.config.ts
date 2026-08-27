@@ -150,6 +150,10 @@ const restrictedImportPaths = [
     message: 'Please import moment-timezone instead of moment',
   },
   {
+    name: 'platformicons/build/platformIcon',
+    message: "Import {PlatformIcon} from 'platformicons' instead.",
+  },
+  {
     name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
     message:
       'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
@@ -408,6 +412,7 @@ export default typescript.config([
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
+      'no-useless-computed-key': 'error',
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
@@ -843,10 +848,17 @@ export default typescript.config([
         {
           case: 'camelCase',
           ignore: [
-            'jest-pegjs-transform\\.js',
-            'jest-environment\\.js',
-            'jest-environment-node\\.js',
-            '/__mocks__/',
+            '^jest-pegjs-transform\\.js$',
+            '^jest-environment\\.js$',
+            '^jest-environment-node\\.js$',
+            // Mocks named after external packages must preserve the package's
+            // kebab-case basename so Jest can resolve them.
+            '^(?:analytics-browser|react-(?:date-range|lazyload))\\.tsx$',
+            // Unicorn changes capitalized abbreviations in camel-cased filenames:
+            // CTA to Cta, SDK to Sdk, and WebGL to WebGl. Keep the conventional
+            // capitalization when the rest of the filename is camel-cased.
+            '^[a-z][a-zA-Z\\d]*[A-Z]{2,}[a-zA-Z\\d]*(?:\\.[a-z\\d]+)+$',
+            '^[A-Z]{2,}[a-zA-Z\\d]*(?:\\.[a-z\\d]+)+$',
             // Shebang scripts can't use an inline disable comment (it must sit
             // on line 1, where the shebang is) and are invoked by their
             // kebab-case names from package.json/CI, so ignore them here.
@@ -1508,6 +1520,15 @@ export default typescript.config([
             {
               from: {element: {type: 'scraps'}},
               allow: [{to: {element: {type: 'sentry*'}}}],
+            },
+            // Keep the temporary Sentry allowance above, but do not allow
+            // scraps to import the legacy locale module. Use useTranslation()
+            // from the scraps translation context instead.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {file: {categories: 'sentry-locale'}}},
+              message:
+                'Scraps components must use useTranslation() instead of importing from sentry/locale',
             },
           ],
         },

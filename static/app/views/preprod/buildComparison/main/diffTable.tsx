@@ -77,7 +77,7 @@ export const DiffTableWithColumns = styled(SimpleTable)<{
   border-right: 0px;
 `;
 
-export const DiffTableHeader = styled(SimpleTable.Header)`
+export const DiffTableHeaderRow = styled(SimpleTable.HeaderRow)`
   border-radius: 0;
   border-left: 0px;
   border-right: 0px;

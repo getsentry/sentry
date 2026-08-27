@@ -18,7 +18,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRele
 from sentry.auth.staff import is_active_staff
 from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodArtifactApiSnapshotArchiveDownloadEvent
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
@@ -87,7 +87,7 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
         return artifact, metrics
 
     def _download(self, artifact: PreprodArtifact) -> HttpResponseBase:
-        session = get_preprod_session(artifact.project.organization_id, artifact.project_id)
+        session = get_session(UsecaseId.PREPROD, artifact.project)
         result = session.get(archive_object_key(artifact.id))
         if result is None:
             return Response({"detail": "Download not ready"}, status=409)
@@ -104,7 +104,7 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
         return response
 
     def _archive_exists(self, artifact: PreprodArtifact) -> bool:
-        session = get_preprod_session(artifact.project.organization_id, artifact.project_id)
+        session = get_session(UsecaseId.PREPROD, artifact.project)
         try:
             return archive_exists(session, archive_object_key(artifact.id))
         except RequestError:
@@ -144,7 +144,6 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
             return resolved
         artifact, _metrics = resolved
         user_id = getattr(request.user, "id", None)
-
         try:
             build_snapshot_images_zip.apply_async(
                 kwargs={
@@ -152,6 +151,8 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                     "project_id": artifact.project_id,
                     "artifact_id": artifact.id,
                     "user_id": user_id,
+                    # TODO: Remove after this change has been fully deployed.
+                    "include_manifest": True,
                 }
             )
         except Exception:

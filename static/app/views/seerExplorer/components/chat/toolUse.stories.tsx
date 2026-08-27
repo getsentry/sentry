@@ -13,7 +13,7 @@ import type {
   PendingUserInput,
 } from 'sentry/views/seerExplorer/types';
 
-// Minimal tool-result fixtures for the dev `/stories` route. No backend or Seer is needed.
+// Minimal tool-result fixtures for the dev `/scraps` route. No backend or Seer is needed.
 
 function block(overrides: Partial<Block>): Block {
   return {

@@ -27,12 +27,23 @@ from sentry.seer.autofix.utils import (
     get_seer_seat_based_tier_cache_key,
     update_seer_project_settings,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+
+def _clear_free_autofix_cohort_configuration(organization: Organization) -> None:
+    if not organization.get_option("agentic-triage-free-cohort", False):
+        return
+
+    SeerProjectRepository.objects.filter(
+        project_repository__project__organization_id=organization.id
+    ).delete()
+    organization.delete_option("agentic-triage-free-cohort")
 
 
 def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
@@ -88,7 +99,7 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
 def generate_issue_summary_only(group_id: int) -> None:
     """
     Generate issue summary WITHOUT triggering automation.
-    Used for triage signals flow when event count < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD or when summary doesn't exist yet.
+    Used for the triage signals flow when a summary doesn't exist yet.
     """
     from sentry.seer.autofix.issue_summary import (
         get_and_update_group_fixability_score,
@@ -131,7 +142,7 @@ def generate_issue_summary_only(group_id: int) -> None:
 def run_automation_only_task(group_id: int) -> None:
     """
     Run automation directly for a group (assumes summary and fixability already exist).
-    Used for triage signals flow when event count >= AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD and summary exists.
+    Used for the triage signals flow when a summary already exists.
     """
     from django.contrib.auth.models import AnonymousUser
 
@@ -194,12 +205,20 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     - Org-level: enable_seer_coding
     """
 
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "configure_seer_for_existing_org.organization_not_found",
+            extra={"organization_id": organization_id},
+        )
+        return
 
     sentry_sdk.set_tag("organization_id", organization.id)
     sentry_sdk.set_attribute("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
     sentry_sdk.set_attribute("organization_slug", organization.slug)
+    _clear_free_autofix_cohort_configuration(organization)
 
     # Set org-level options
     organization.update_option(

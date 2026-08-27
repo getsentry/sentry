@@ -685,10 +685,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             uuid4().hex,
             organization_id=self.organization.id,
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            # `gen_ai.request.model` is a sentry convention name supplied as a
-            # user tag, and `http.route` is a convention defined in
-            # sentry-conventions but not in attributes.py. Both stay `user`
-            # source but should still be matched to their convention's context.
             tags={"foo": "foo", "gen_ai.request.model": "gpt-4", "http.route": "/users/:id"},
         )
 
@@ -723,10 +719,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         # Custom (non-convention) attributes aren't served yet, so they get an
         # empty context.
         assert attributes["foo"]["context"] == {}
-        # A user tag whose name matches a sentry convention keeps its `user`
-        # source (it was user-set) but is still matched to the convention's
-        # context, since context is matched by name/type, not source.
-        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
+        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "sentry"
         assert attributes["gen_ai.request.model"]["context"] == {
             "isConvention": True,
             "brief": "The model identifier being used for the request.",
@@ -743,6 +736,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "The matched route, that is, the path template in the format used "
                 "by the respective server framework."
             ),
+            "details": [
+                "This attribute should primarily be set by server-side "
+                "instrumentation that captures the framework route of an incoming "
+                "request.",
+                "For `http.client` spans and client-side routing, use `url.template` instead.",
+            ],
             "examples": ["/users/:id"],
             "isDeprecated": False,
         }
@@ -1983,6 +1982,10 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
 ):
     item_type = SupportedTraceItemType.LOGS
     feature_flags = {"organizations:ourlogs-enabled": True}
+    array_feature_flags = {
+        "organizations:ourlogs-enabled": True,
+        "organizations:trace-item-array-query-support": True,
+    }
 
     def test_no_feature(self) -> None:
         response = self.do_request(features={}, key="test.attribute")
@@ -2033,6 +2036,90 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         assert "value1" in values
         assert "value2" in values
         assert all(item["key"] == "test1" for item in response.data)
+
+    @pytest.mark.xfail(
+        strict=False,
+        reason=(
+            "Blocked on EAP, the attribute-values RPC "
+            "(snuba/web/rpc/v1/trace_item_attribute_values.py) rejects array types. Remove this marker then."
+        ),
+    )
+    def test_array_attribute_values(self) -> None:
+        """Values endpoint against a string-array attribute.
+
+        The log carries a string-array attribute. The array-tag key form
+        resolves to the array branch (coerced to TYPE_ARRAY_STRING for Snuba),
+        and the endpoint should list the individual element values.
+        """
+        key = "tags[data_export.csv_headers,array]"
+
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "data_export.csv_headers": {
+                        "array_value": ArrayValue(
+                            values=[
+                                AnyValue(string_value="title"),
+                                AnyValue(string_value="project"),
+                            ]
+                        )
+                    }
+                },
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        string_response = self.do_request(
+            key=key,
+            query={"attributeType": "array"},
+            features=self.array_feature_flags,
+        )
+        assert string_response.status_code == 200, string_response.content
+        string_values = {item["value"] for item in string_response.data}
+        assert {"title", "project"} <= string_values
+        assert all(item["key"] == key for item in string_response.data)
+
+    @pytest.mark.xfail(
+        strict=False,
+        reason=(
+            "Blocked on EAP, the attribute-values RPC "
+            "(snuba/web/rpc/v1/trace_item_attribute_values.py) rejects array types. Remove this marker then."
+        ),
+    )
+    def test_array_attribute_values_numeric_returns_nothing(self) -> None:
+        """Numeric arrays yield no value suggestions.
+
+        Only string-array elements are autocompleted. A numeric array resolves to
+        the same array branch (coerced to TYPE_ARRAY_STRING for Snuba), so the
+        string-array lookup finds nothing and the endpoint returns no values,
+        matching scalar number attributes.
+        """
+        key = "tags[data_export.blob_offsets,array]"
+
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "data_export.blob_offsets": {
+                        "array_value": ArrayValue(
+                            values=[AnyValue(int_value=0), AnyValue(int_value=1048576)]
+                        )
+                    }
+                },
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        response = self.do_request(
+            key=key,
+            query={"attributeType": "array"},
+            features=self.array_feature_flags,
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
 
 class OrganizationTraceItemAttributeValuesEndpointSpansTest(

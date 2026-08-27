@@ -4,17 +4,21 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {tct} from 'sentry/locale';
+
 export type ActivityLineVariant = 'compact' | 'full';
 
 interface ActivityLineHeadlineProps {
   timestamp: React.ReactNode;
   title: React.ReactNode;
   details?: React.ReactNode;
+  source?: string;
 }
 
 export function ActivityLineHeadline({
   title,
   details,
+  source,
   timestamp,
 }: ActivityLineHeadlineProps) {
   return (
@@ -32,6 +36,12 @@ export function ActivityLineHeadline({
           <Fragment>
             {' '}
             <ActivityLineDetails>{details}</ActivityLineDetails>
+          </Fragment>
+        ) : null}
+        {source ? (
+          <Fragment>
+            {' '}
+            <ActivityLineDetails>{tct('via [source]', {source})}</ActivityLineDetails>
           </Fragment>
         ) : null}
         <Fragment>

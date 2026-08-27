@@ -186,6 +186,12 @@ class TestBlockUpdateValidator:
         assert not validator.is_valid()
         assert "version" in validator.errors
 
+    def test_requires_a_block_field(self) -> None:
+        validator = BlockUpdateValidator(data={"investigationVersion": 1, "version": 1})
+
+        assert not validator.is_valid()
+        assert "detail" in validator.errors
+
 
 class TestBlockOrderValidator:
     def test_accepts_block_ids(self) -> None:

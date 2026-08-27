@@ -11,7 +11,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {UptimeChecksGrid} from 'sentry/views/alerts/rules/uptime/uptimeChecksGrid';
+import {UptimeChecksGrid} from 'sentry/views/detectors/components/uptime/uptimeChecksGrid';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
 import {EventListTable} from 'sentry/views/issueDetails/eventListTable';

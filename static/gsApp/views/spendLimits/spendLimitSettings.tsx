@@ -61,7 +61,6 @@ export interface SpendLimitSettingsProps {
   organization: Organization;
   subscription: Subscription;
   footer?: React.ReactNode;
-  isOpen?: boolean;
 }
 
 interface BudgetModeSettingsProps extends Omit<

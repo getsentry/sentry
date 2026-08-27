@@ -4,6 +4,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -44,7 +45,10 @@ export function useToggleDashboardFavorite() {
   const {mutate} = useMutation({
     mutationFn: ({dashboard, shouldFavorite}: ToggleFavoriteVariables) =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/dashboards/${dashboard.id}/favorite/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/favorite/',
+          {path: {organizationIdOrSlug: organization.slug, dashboardId: dashboard.id}}
+        ),
         method: 'PUT',
         data: {shouldFavorite},
       }),

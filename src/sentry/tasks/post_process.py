@@ -24,7 +24,6 @@ from sentry.killswitches import (
     killswitch_matches_context,
     value_matches,
 )
-from sentry.options.rollout import in_rollout_group
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
@@ -1557,6 +1556,10 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    # Only run for new issues.
+    if not job["group_state"]["is_new"]:
+        return
+
     from sentry.seer.autofix.issue_summary import (
         get_issue_summary_cache_key,
         get_issue_summary_lock_key,
@@ -1570,11 +1573,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     event = job["event"]
     group = event.group
-
-    if not in_rollout_group(
-        "seer.post-process-issue-summary.rollout-rate", event.project.organization_id
-    ):
-        return
 
     if is_seer_seat_based_tier_enabled(group.organization):
         if group.seer_fixability_score is not None:

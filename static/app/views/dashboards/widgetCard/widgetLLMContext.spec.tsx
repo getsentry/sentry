@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
