@@ -39,6 +39,10 @@ class SentryAppWebhookRequestSerializerResponse(TypedDict):
     request_body: NotRequired[str | None]
     request_headers: NotRequired[Mapping[str, str] | None]
     response_body: NotRequired[str | None]
+    requestId: NotRequired[str | None]
+    subjectId: NotRequired[str | None]
+    subjectType: NotRequired[str | None]
+    durationMs: NotRequired[int | None]
 
 
 class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerializerResponse]):
@@ -82,6 +86,10 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
             "eventType": obj.data.event_type,
             "date": obj.data.date,
             "responseCode": response_code,
+            "requestId": obj.data.request_id,
+            "subjectId": obj.data.subject_id,
+            "subjectType": obj.data.subject_type,
+            "durationMs": obj.data.duration_ms,
         }
 
         if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:

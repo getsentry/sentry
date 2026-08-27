@@ -41,15 +41,19 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
 
 class SentryAppRequest(TypedDict):
     date: str
-    response_code: int
-    webhook_url: str
-    organization_id: int
-    event_type: str
-    error_id: NotRequired[str | None]
-    project_id: NotRequired[int | None]
-    request_body: NotRequired[str | None]
-    request_headers: NotRequired[Mapping[str, str] | None]
-    response_body: NotRequired[str | None]
+    response_code: int  # HTTP response code from the received response
+    webhook_url: str  # URL of the webhook destination
+    organization_id: int  # ID of the organization that triggered the webhook
+    event_type: str  # Type of event that triggered the webhook (e.g. issue.assigned, issue.unassigned, etc.)
+    error_id: NotRequired[str | None]  # ID for the error (if applicable)
+    project_id: NotRequired[int | None]  # ID for the project (if applicable)
+    request_body: NotRequired[str | None]  # Request body from the webhook (potentially truncated)
+    request_headers: NotRequired[Mapping[str, str] | None]  # Headers sent with the webhook
+    response_body: NotRequired[str | None]  # Response body from the webhook (potentially truncated)
+    request_id: NotRequired[str | None]  # Maps to requestId header on webhook
+    subject_id: NotRequired[str | None]  # ID for the resource denoted in subjectType
+    subject_type: NotRequired[str | None]  # Resource type (e.g. Group, Event, Seer Run)
+    duration_ms: NotRequired[int | None]  # Time taken to send the request
 
 
 def _decode_body(body: str | bytes) -> str:
@@ -159,6 +163,10 @@ class SentryAppWebhookRequestsBuffer:
         project_id: int | None = None,
         response: Response | None = None,
         headers: Mapping[str, str] | None = None,
+        request_id: str | None = None,
+        subject_id: str | None = None,
+        subject_type: str | None = None,
+        duration_ms: int | None = None,
     ) -> None:
         from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
@@ -174,6 +182,14 @@ class SentryAppWebhookRequestsBuffer:
             "response_code": response_code,
             "webhook_url": url,
         }
+
+        if request_id is not None:
+            request_data["request_id"] = request_id
+        if subject_id is not None and subject_type is not None:
+            request_data["subject_id"] = subject_id
+            request_data["subject_type"] = subject_type
+        if duration_ms is not None:
+            request_data["duration_ms"] = duration_ms
         MAX_SIZE = 1024
         if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
             if headers:

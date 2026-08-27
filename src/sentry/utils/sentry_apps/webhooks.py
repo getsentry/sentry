@@ -39,6 +39,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.sentry_apps.utils.webhook_subjects import extract_webhook_subject
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.taskworker.timeout import InnerTimeoutError, timeout_alarm
@@ -249,6 +250,16 @@ def _webhook_timeout(
             yield timeout_override
 
 
+def _get_webhook_timeout(org_id: int) -> float:
+    timeout_seconds = options.get("sentry-apps.webhook.timeout.sec")
+    overrides = options.get("sentry-apps.override.organization_ids.webhook.timeouts.sec").get(
+        str(org_id)
+    )
+    if overrides:
+        return overrides.get("webhook_timeout_override", timeout_seconds)
+    return timeout_seconds
+
+
 def _send_webhook_request(
     url: str,
     app_platform_event: AppPlatformEvent[T],
@@ -307,6 +318,12 @@ def send_and_save_webhook_request(
         )
 
         assert url is not None
+
+        request_id = app_platform_event.sentry_headers["Request-ID"]
+        subject_id, subject_type = extract_webhook_subject(
+            app_platform_event.resource, event, app_platform_event.data
+        )
+
         try:
             owner_context = organization_service.get_organization_by_id(
                 id=sentry_app.owner_id,
@@ -359,6 +376,10 @@ def send_and_save_webhook_request(
                 event=event,
                 url=url,
                 headers=app_platform_event.loggable_headers,
+                request_id=request_id,
+                subject_id=subject_id,
+                subject_type=subject_type,
+                duration_ms=int(_get_webhook_timeout(org_id) * 1000),
             )
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
@@ -395,6 +416,10 @@ def send_and_save_webhook_request(
             project_id=project_id,
             response=response,
             headers=app_platform_event.loggable_headers,
+            request_id=request_id,
+            subject_id=subject_id,
+            subject_type=subject_type,
+            duration_ms=int(response.elapsed.total_seconds() * 1000),
         )
 
         debug_logging_enabled = (
