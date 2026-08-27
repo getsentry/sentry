@@ -45,6 +45,7 @@ interface ToolbarVisualizeDropdownProps {
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   parsedFunction: ParsedFunction | null;
+  deleteLabel?: string;
   dragColumnId?: number;
   fieldDefinitionType?: GetFieldDefinitionType;
   /**
@@ -66,6 +67,7 @@ export function ToolbarVisualizeDropdown({
   onChangeAggregate,
   onChangeArgument,
   onDelete,
+  deleteLabel,
   onSearch,
   onClose,
   parsedFunction,
@@ -169,7 +171,7 @@ export function ToolbarVisualizeDropdown({
           icon={<IconDelete />}
           size="zero"
           onClick={onDelete}
-          aria-label={t('Remove Overlay')}
+          aria-label={deleteLabel ?? t('Remove Overlay')}
         />
       ) : null}
     </ToolbarRow>

@@ -36,6 +36,7 @@ import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttr
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   isVisualizeEquation,
+  isVisualizeFunction,
   MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
@@ -118,8 +119,14 @@ export function ToolbarVisualize({
                 onClick={() => toggleVisibility(i)}
               />
             );
-            const onDelete =
-              editableColumns.length > 1 ? () => deleteColumnAtIndex(i) : undefined;
+            const isOnlyVisualize = editableColumns.length === 1;
+            const canReset = isOnlyVisualize && !isDefaultVisualize(visualize);
+            const onDelete = isOnlyVisualize
+              ? canReset
+                ? () => replaceOverlay(i, new VisualizeFunction(DEFAULT_VISUALIZATION))
+                : undefined
+              : () => deleteColumnAtIndex(i);
+            const deleteLabel = canReset ? t('Clear Visualize') : undefined;
 
             if (isVisualizeEquation(visualize)) {
               return (
@@ -127,6 +134,7 @@ export function ToolbarVisualize({
                   key={column.uniqueId}
                   dragColumnId={dragColumnId}
                   onDelete={onDelete}
+                  deleteLabel={deleteLabel}
                   onReplace={newVisualize => replaceOverlay(i, newVisualize)}
                   visualize={visualize}
                   label={label}
@@ -139,6 +147,7 @@ export function ToolbarVisualize({
                 key={column.uniqueId}
                 dragColumnId={dragColumnId}
                 onDelete={onDelete}
+                deleteLabel={deleteLabel}
                 onReplace={newVisualize => replaceOverlay(i, newVisualize)}
                 visualize={visualize}
                 label={label}
@@ -167,6 +176,7 @@ interface VisualizeDropdownProps {
   label: ReactNode;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
+  deleteLabel?: string;
   dragColumnId?: number;
   onDelete?: () => void;
 }
@@ -175,6 +185,7 @@ function ToolbarVisualizeItem({
   dragColumnId,
   label,
   onDelete,
+  deleteLabel,
   onReplace,
   visualize,
 }: VisualizeDropdownProps) {
@@ -317,6 +328,7 @@ function ToolbarVisualizeItem({
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
+      deleteLabel={deleteLabel}
       parsedFunction={parsedFunction}
       label={label}
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
@@ -345,6 +357,14 @@ function ToolbarVisualizeItem({
         ) : undefined
       }
     />
+  );
+}
+
+function isDefaultVisualize(visualize: Visualize): boolean {
+  return (
+    isVisualizeFunction(visualize) &&
+    visualize.yAxis === DEFAULT_VISUALIZATION &&
+    visualize.visible
   );
 }
 
