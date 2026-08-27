@@ -230,13 +230,24 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       node: TSESTree.CallExpression,
       firstIndex: number
     ) {
-      const firstArgument = node.arguments[firstIndex]!;
-      const lastArgument = node.arguments.at(-1)!;
+      const firstArgument = node.arguments[firstIndex];
+      const lastArgument = node.arguments.at(-1);
+      if (!firstArgument || !lastArgument) {
+        return null;
+      }
+
+      let rangeStart = firstArgument.range[0];
+      if (firstIndex > 0) {
+        const previousArgument = node.arguments[firstIndex - 1];
+        if (!previousArgument) {
+          return null;
+        }
+        rangeStart = previousArgument.range[1];
+      }
+
       const tokenAfter = context.sourceCode.getTokenAfter(lastArgument);
       const range: TSESTree.Range = [
-        firstIndex === 0
-          ? firstArgument.range[0]
-          : node.arguments[firstIndex - 1]!.range[1],
+        rangeStart,
         tokenAfter?.value === ',' ? tokenAfter.range[1] : lastArgument.range[1],
       ];
       return rangeContainsComment(range) ? null : fixer.removeRange(range);
@@ -260,24 +271,35 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       node: TSESTree.ObjectExpression,
       indices: number[]
     ) {
-      const ranges = getContiguousRuns(indices).map(({end, start}) => {
-        const nextProperty = node.properties[end + 1];
-        if (nextProperty) {
-          return [
-            node.properties[start]!.range[0],
-            nextProperty.range[0],
-          ] satisfies TSESTree.Range;
+      const ranges: TSESTree.Range[] = [];
+      for (const {end, start} of getContiguousRuns(indices)) {
+        const firstProperty = node.properties[start];
+        const lastProperty = node.properties[end];
+        if (!firstProperty || !lastProperty) {
+          return null;
         }
 
-        const lastProperty = node.properties[end]!;
+        const nextProperty = node.properties[end + 1];
+        if (nextProperty) {
+          ranges.push([firstProperty.range[0], nextProperty.range[0]]);
+          continue;
+        }
+
+        let rangeStart = firstProperty.range[0];
+        if (start > 0) {
+          const previousProperty = node.properties[start - 1];
+          if (!previousProperty) {
+            return null;
+          }
+          rangeStart = previousProperty.range[1];
+        }
+
         const tokenAfter = context.sourceCode.getTokenAfter(lastProperty);
-        return [
-          start === 0
-            ? node.properties[start]!.range[0]
-            : node.properties[start - 1]!.range[1],
+        ranges.push([
+          rangeStart,
           tokenAfter?.value === ',' ? tokenAfter.range[1] : lastProperty.range[1],
-        ] satisfies TSESTree.Range;
-      });
+        ]);
+      }
 
       if (ranges.some(rangeContainsComment)) {
         return null;
@@ -290,18 +312,30 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       node: TSESTree.JSXOpeningElement,
       indices: number[]
     ) {
-      const ranges = getContiguousRuns(indices).map(({end, start}) => {
+      const ranges: TSESTree.Range[] = [];
+      for (const {end, start} of getContiguousRuns(indices)) {
+        const firstAttribute = node.attributes[start];
+        const lastAttribute = node.attributes[end];
+        if (!firstAttribute || !lastAttribute) {
+          return null;
+        }
+
         const nextAttribute = node.attributes[end + 1];
-        return nextAttribute
-          ? ([
-              node.attributes[start]!.range[0],
-              nextAttribute.range[0],
-            ] satisfies TSESTree.Range)
-          : ([
-              start === 0 ? node.name.range[1] : node.attributes[start - 1]!.range[1],
-              node.attributes[end]!.range[1],
-            ] satisfies TSESTree.Range);
-      });
+        if (nextAttribute) {
+          ranges.push([firstAttribute.range[0], nextAttribute.range[0]]);
+          continue;
+        }
+
+        let rangeStart = node.name.range[1];
+        if (start > 0) {
+          const previousAttribute = node.attributes[start - 1];
+          if (!previousAttribute) {
+            return null;
+          }
+          rangeStart = previousAttribute.range[1];
+        }
+        ranges.push([rangeStart, lastAttribute.range[1]]);
+      }
 
       if (ranges.some(rangeContainsComment)) {
         return null;
@@ -327,7 +361,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       }> = [];
 
       for (let index = node.properties.length - 1; index >= 0; index--) {
-        const property = node.properties[index]!;
+        const property = node.properties[index];
+        if (!property) {
+          continue;
+        }
         if (property.type === AST_NODE_TYPES.SpreadElement) {
           break;
         }
@@ -373,7 +410,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         let firstRedundantPosition = node.arguments.length;
 
         for (let index = node.arguments.length - 1; index >= 0; index--) {
-          const argument = node.arguments[index]!;
+          const argument = node.arguments[index];
+          if (!argument) {
+            break;
+          }
           const defaultValue = defaults.positional.get(index);
           const value = getHardcodedValue(argument);
           if (
@@ -387,9 +427,14 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         }
 
         for (let index = firstRedundantPosition; index < node.arguments.length; index++) {
+          const argument = node.arguments[index];
+          const defaultValue = defaults.positional.get(index);
+          if (!argument || !defaultValue) {
+            continue;
+          }
           report(
-            node.arguments[index]!,
-            defaults.positional.get(index)!,
+            argument,
+            defaultValue,
             'argument',
             index === firstRedundantPosition
               ? fixer => removeTrailingArguments(fixer, node, firstRedundantPosition)
@@ -421,7 +466,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         index: number;
       }> = [];
       for (let index = node.attributes.length - 1; index >= 0; index--) {
-        const attribute = node.attributes[index]!;
+        const attribute = node.attributes[index];
+        if (!attribute) {
+          continue;
+        }
         if (attribute.type === AST_NODE_TYPES.JSXSpreadAttribute) {
           break;
         }
