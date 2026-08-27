@@ -17,6 +17,7 @@ import {
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
+import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -197,6 +198,17 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       openSeerExplorerDrawer(drawerOptions);
     },
     [pipWindow, isSidebarMode, dispatch, openSidebar, openSeerExplorerDrawer]
+  );
+
+  // What "post a message into the chat" means outside the chat itself: open the
+  // Explorer on that message. `SeerExplorerContent` mounts its own
+  // `AutofixChatProvider` which shadows this one, so a caller rendered inside
+  // the chat appends to the live session instead of starting a fresh one.
+  const openChatWithMessage = useCallback(
+    (query: string) => {
+      openSeerExplorer({initialQuery: query});
+    },
+    [openSeerExplorer]
   );
 
   const closeSeerExplorer = useCallback(() => {
@@ -395,26 +407,28 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   return (
     <SeerExplorerContext.Provider value={contextValue}>
-      {children}
-      {pipWindow && (
-        <PictureInPicturePortal pipWindow={pipWindow}>
-          {/* Pop out the content of whichever surface is active: the decoupled
+      <AutofixChatProvider sendMessage={openChatWithMessage}>
+        {children}
+        {pipWindow && (
+          <PictureInPicturePortal pipWindow={pipWindow}>
+            {/* Pop out the content of whichever surface is active: the decoupled
               sidebar content when the flag is on (there is no drawer then), or
               the drawer content otherwise. */}
-          {isSidebarMode ? (
-            <SeerExplorerContent
-              key={sidebarKey}
-              getPageReferrer={getPageReferrer}
-              initialQuery={sidebarInitialQuery}
-              onClose={closeSeerExplorer}
-              sidebarPosition={sidebarPosition}
-              onSidebarPositionChange={setSidebarPosition}
-            />
-          ) : (
-            <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
-          )}
-        </PictureInPicturePortal>
-      )}
+            {isSidebarMode ? (
+              <SeerExplorerContent
+                key={sidebarKey}
+                getPageReferrer={getPageReferrer}
+                initialQuery={sidebarInitialQuery}
+                onClose={closeSeerExplorer}
+                sidebarPosition={sidebarPosition}
+                onSidebarPositionChange={setSidebarPosition}
+              />
+            ) : (
+              <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
+            )}
+          </PictureInPicturePortal>
+        )}
+      </AutofixChatProvider>
     </SeerExplorerContext.Provider>
   );
 }
