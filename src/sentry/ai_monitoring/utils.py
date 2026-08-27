@@ -280,7 +280,7 @@ def _generate_title_with_legacy_seer(
         system_prompt=TITLE_SYSTEM_PROMPT,
         prompt=f"First user message:\n\n{clamp_user_message(first_user_message)}",
         temperature=0.2,
-        max_tokens=64,
+        max_tokens=192,
         response_schema=TITLE_RESPONSE_SCHEMA,
         reasoning="off",  # force thinking_budget=0 on Gemini 2.x flash-lite
         # Never attach this call to a conversation: its own gen_ai spans would be
