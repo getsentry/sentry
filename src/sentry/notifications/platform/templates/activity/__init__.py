@@ -5,7 +5,6 @@ from .seer.coding_started import SeerCodingStartedActivityTemplate
 from .seer.iteration_completed import SeerIterationCompletedActivityTemplate
 from .seer.iteration_started import SeerIterationStartedActivityTemplate
 from .seer.pr_created import SeerPrCreatedActivityTemplate
-from .seer.pr_ready_for_review import SeerPrReadyForReviewTemplate
 from .seer.rca_completed import SeerRcaCompletedActivityTemplate
 from .seer.rca_started import SeerRcaStartedActivityTemplate
 from .seer.solution_completed import SeerSolutionCompletedActivityTemplate
@@ -28,7 +27,6 @@ __all__ = (
     "SeerCodingStartedActivityTemplate",
     "SeerCodingCompletedActivityTemplate",
     "SeerPrCreatedActivityTemplate",
-    "SeerPrReadyForReviewTemplate",
     "SeerIterationStartedActivityTemplate",
     "SeerIterationCompletedActivityTemplate",
     "SetResolvedActivityTemplate",

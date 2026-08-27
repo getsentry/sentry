@@ -18,7 +18,7 @@ SEER_WORKFLOW_ACTIVITIES = [
     ActivityType.SEER_RCA_COMPLETED,
     ActivityType.SEER_SOLUTION_COMPLETED,
     ActivityType.SEER_CODING_COMPLETED,
-    ActivityType.SEER_PR_READY_FOR_REVIEW,
+    ActivityType.SEER_PR_CREATED,
 ]
 
 # Activity types handled by the generic activity_handler.
