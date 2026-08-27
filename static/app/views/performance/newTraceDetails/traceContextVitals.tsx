@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import {Flex, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -11,6 +10,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -40,6 +40,7 @@ type Props = {
 };
 
 export function TraceContextVitals({rootEventResults, tree}: Props) {
+  const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {hasVitals} = useTraceContextSections({
@@ -120,7 +121,7 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
                       {
                         pathname: location.pathname,
                         query: {
-                          ...qs.parse(location.search),
+                          ...location.query,
                           tab: TraceLayoutTabKeys.WATERFALL,
                           zoomToNode: vital.node.pathToNode()[0],
                           zoomToTimestamp: vital.timestamp,
