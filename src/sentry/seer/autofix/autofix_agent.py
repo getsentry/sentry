@@ -550,6 +550,8 @@ def trigger_autofix_agent(
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
+            user=user,
+            enable_bash_tools=enable_bash_tools,
         )
         feature_run_id = feature_run.seer_run_state_id
         if feature_run_id is None:
