@@ -14,8 +14,16 @@ const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
 
 export type OpenSeerExplorerDrawerOptions = {
   /**
+   * Submit `initialQuery` into the run that is already open instead of
+   * replacing it with a fresh session. Without this, forwarding a query always
+   * starts a new conversation, and a query aimed at an in-progress session
+   * would otherwise be dropped for not landing on an empty one.
+   */
+  appendToOpenRun?: boolean;
+  /**
    * Optional query string to auto-submit once the drawer opens.
-   * Only takes effect on a fresh/empty session.
+   * Takes effect on a fresh/empty session, or on the open one with
+   * `appendToOpenRun`.
    */
   initialQuery?: string;
   /**
@@ -66,13 +74,20 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
 
   const openSeerExplorerDrawer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
-      const {runId: openRunId, startNewRun, initialQuery} = drawerOptions ?? {};
+      const {
+        runId: openRunId,
+        startNewRun,
+        initialQuery,
+        appendToOpenRun,
+      } = drawerOptions ?? {};
 
       if (initialQuery) {
-        // Always start a fresh session when a query is forwarded so it
-        // auto-submits into an empty conversation, even if the drawer is
-        // already open with an existing run.
-        dispatch({type: 'set run id', payload: null});
+        // A forwarded query starts a fresh session so it auto-submits into an
+        // empty conversation, even if the drawer is already open with an
+        // existing run — unless the caller asked to add to that run instead.
+        if (!appendToOpenRun) {
+          dispatch({type: 'set run id', payload: null});
+        }
       } else if (isDrawerOpenRef.current) {
         return;
       } else if (openRunId !== undefined) {
@@ -86,6 +101,7 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
           <ExplorerDrawerContent
             getPageReferrer={getPageReferrer}
             initialQuery={initialQuery}
+            appendInitialQuery={appendToOpenRun}
           />
         ),
         {

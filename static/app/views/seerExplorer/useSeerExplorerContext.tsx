@@ -17,7 +17,10 @@ import {
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
-import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
+import {
+  AutofixChatProvider,
+  type SendMessageOptions,
+} from 'sentry/components/seer/autofixChatContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -55,15 +58,20 @@ type SeerExplorerContextValue = {
    */
   setSidebarPosition: (position: SeerExplorerSidebarPosition) => void;
   /**
+   * Query to auto-submit into the sidebar content, forwarded from the command
+   * palette. Only meaningful in sidebar mode.
+   */
+  /**
+   * Whether `sidebarInitialQuery` should go into the run already open rather
+   * than only an empty one. Only meaningful in sidebar mode.
+   */
+  sidebarAppendInitialQuery: boolean;
+  /**
    * Ref attached by the sidebar layout to its measuring container, so the
    * provider can read the available size when persisting the popped-out
    * window's size. Only meaningful in sidebar mode.
    */
   sidebarContainerRef: RefObject<HTMLDivElement | null>;
-  /**
-   * Query to auto-submit into the sidebar content, forwarded from the command
-   * palette. Only meaningful in sidebar mode.
-   */
   sidebarInitialQuery: string | undefined;
   /**
    * Increments on each forwarded query so the (always-mounted) sidebar content
@@ -82,6 +90,7 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   sessionState: 'inactive',
   sidebarContainerRef: {current: null},
   setSidebarPosition: () => {},
+  sidebarAppendInitialQuery: false,
   sidebarInitialQuery: undefined,
   sidebarKey: 0,
   sidebarPosition: 'auto',
@@ -116,6 +125,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // sidebar content (mirrors the drawer's `initialQuery` prop). The nonce bumps
   // on each forward so the content resubmits a re-forwarded query even though it
   // stays mounted (the drawer gets this for free by remounting per open).
+  const [sidebarAppendInitialQuery, setSidebarAppendInitialQuery] = useState(false);
   const [sidebarInitialQuery, setSidebarInitialQuery] = useState<string | undefined>(
     undefined
   );
@@ -177,12 +187,20 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         // Mirror `useSeerExplorerDrawer`'s option handling so deep links
         // (runId), the command palette (initialQuery), and session switching
         // behave the same in sidebar mode as in the drawer.
-        const {runId: openRunId, startNewRun, initialQuery} = drawerOptions ?? {};
+        const {
+          runId: openRunId,
+          startNewRun,
+          initialQuery,
+          appendToOpenRun,
+        } = drawerOptions ?? {};
         if (initialQuery) {
-          // Always start a fresh session so the query auto-submits into an empty
-          // conversation, even if the sidebar is already open with a run. Bump
-          // the nonce so re-forwarding the same query submits again.
-          dispatch({type: 'set run id', payload: null});
+          // A forwarded query starts a fresh session so it auto-submits into an
+          // empty conversation, even if the sidebar is already open with a run —
+          // unless the caller asked to add to that run instead. Bump the nonce
+          // either way so re-forwarding the same query submits again.
+          if (!appendToOpenRun) {
+            dispatch({type: 'set run id', payload: null});
+          }
           setSidebarKey(n => n + 1);
         } else if (isSidebarOpenRef.current) {
           return;
@@ -192,6 +210,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           dispatch({type: 'set run id', payload: null});
         }
         setSidebarInitialQuery(initialQuery);
+        setSidebarAppendInitialQuery(!!appendToOpenRun);
         openSidebar();
         return;
       }
@@ -205,8 +224,11 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // `AutofixChatProvider` which shadows this one, so a caller rendered inside
   // the chat appends to the live session instead of starting a fresh one.
   const openChatWithMessage = useCallback(
-    (query: string) => {
-      openSeerExplorer({initialQuery: query});
+    (query: string, options?: SendMessageOptions) => {
+      // Default to adding to whatever conversation is already going, so a
+      // caller keeps the context that run has built up. `newChat` opts into the
+      // older behavior of replacing it with a fresh session.
+      openSeerExplorer({initialQuery: query, appendToOpenRun: !options?.newChat});
     },
     [openSeerExplorer]
   );
@@ -222,6 +244,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       // Tie the forwarded query to a single open lifecycle so a remount on
       // reopen (toggle / re-dock) doesn't auto-submit it again.
       setSidebarInitialQuery(undefined);
+      setSidebarAppendInitialQuery(false);
       setLastViewedAt(Date.now());
       return;
     }
@@ -240,6 +263,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         // Drop any forwarded query on close so reopening via toggle (which
         // forwards none) doesn't auto-submit a stale value.
         setSidebarInitialQuery(undefined);
+        setSidebarAppendInitialQuery(false);
         setIsSidebarOpen(false);
       } else {
         openSidebar();
@@ -351,6 +375,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       toggleSeerExplorer,
       sessionState,
       sidebarContainerRef,
+      sidebarAppendInitialQuery,
       sidebarInitialQuery,
       sidebarKey,
       sidebarPosition,
@@ -363,6 +388,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       closeSeerExplorer,
       toggleSeerExplorer,
       sessionState,
+      sidebarAppendInitialQuery,
       sidebarInitialQuery,
       sidebarKey,
       sidebarPosition,
@@ -419,6 +445,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
                 key={sidebarKey}
                 getPageReferrer={getPageReferrer}
                 initialQuery={sidebarInitialQuery}
+                appendInitialQuery={sidebarAppendInitialQuery}
                 onClose={closeSeerExplorer}
                 sidebarPosition={sidebarPosition}
                 onSidebarPositionChange={setSidebarPosition}

@@ -7,7 +7,10 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
+import {
+  AutofixChatProvider,
+  type SendMessageOptions,
+} from 'sentry/components/seer/autofixChatContext';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -102,6 +105,7 @@ function SidebarHeaderShell({
 export function SeerExplorerContent({
   getPageReferrer,
   initialQuery,
+  appendInitialQuery,
   onClose,
   renderHeader,
   sidebarPosition,
@@ -110,6 +114,8 @@ export function SeerExplorerContent({
   getPageReferrer: () => string;
   /** Closes the current surface (drawer / sidebar). */
   onClose: () => void;
+  /** Submit `initialQuery` into the open run rather than only an empty one. */
+  appendInitialQuery?: boolean;
   initialQuery?: string;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
   /** Surface chrome for the header. Defaults to the sidebar shell. */
@@ -248,19 +254,38 @@ export function SeerExplorerContent({
     needsSlackUpgrade && !!organization && canManageIntegrations(organization);
 
   // Auto-submit the initial query forwarded from the command palette, but only
-  // if the session is still empty (don't clobber an active run). The ref dedupes
-  // within a single mount; each *new* forward remounts this component (the drawer
-  // via `openDrawer`, the sidebar via a `key` on the forward nonce), which resets
+  // if the session is still empty (don't clobber an active run) unless the
+  // caller explicitly asked to add to the open run. The ref dedupes within a
+  // single mount; each *new* forward remounts this component (the drawer via
+  // `openDrawer`, the sidebar via a `key` on the forward nonce), which resets
   // the ref and re-arms the submit.
   const lastAutoSubmittedQueryRef = useRef<string | null>(null);
   useEffect(() => {
     const query = initialQuery?.trim();
-    if (!query || !isEmptyState || lastAutoSubmittedQueryRef.current === query) {
+    if (!query || lastAutoSubmittedQueryRef.current === query) {
+      return;
+    }
+    if (!isEmptyState && !appendInitialQuery) {
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
     sendMessage(query, blocks.length);
-  }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
+  }, [initialQuery, appendInitialQuery, isEmptyState, sendMessage, blocks.length]);
+
+  // What `AutofixChatProvider` hands to anything rendered inside the chat. The
+  // panel is already open here, so the default appends to the running
+  // conversation; `newChat` forces a new run instead (`sendMessage` treats an
+  // explicit `null` run id as "start fresh").
+  const postMessage = useCallback(
+    (query: string, options?: SendMessageOptions) => {
+      if (options?.newChat) {
+        sendMessage(query, 0, null);
+        return;
+      }
+      sendMessage(query);
+    },
+    [sendMessage]
+  );
 
   // - Pending user input (file approval + questions) -------------------------
   const {
@@ -543,7 +568,7 @@ export function SeerExplorerContent({
   );
 
   return (
-    <AutofixChatProvider sendMessage={readOnly ? undefined : sendMessage}>
+    <AutofixChatProvider sendMessage={readOnly ? undefined : postMessage}>
       <Stack
         ref={rootRef}
         data-seer-explorer-root=""

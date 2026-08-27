@@ -15,16 +15,20 @@ import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExpl
  * wants to hand the agent a message. It renders outside the chat, so it only
  * ever sees the provider mounted by `SeerExplorerContextProvider`.
  */
-function AskSeerButton({query}: {query: string}) {
+function AskSeerButton({query, newChat}: {query: string; newChat?: boolean}) {
   const {sendMessage} = useAutofixChat();
   return (
-    <button type="button" disabled={!sendMessage} onClick={() => sendMessage?.(query)}>
+    <button
+      type="button"
+      disabled={!sendMessage}
+      onClick={() => sendMessage?.(query, {newChat})}
+    >
       ask-seer
     </button>
   );
 }
 
-function tree(query: string) {
+function tree(query: string, newChat?: boolean) {
   return (
     <SeerExplorerSessionsProvider>
       <SeerExplorerChatStateProvider>
@@ -32,7 +36,7 @@ function tree(query: string) {
           <GlobalDrawer>
             <SeerExplorerContextProvider>
               <div>main app content</div>
-              <AskSeerButton query={query} />
+              <AskSeerButton query={query} newChat={newChat} />
             </SeerExplorerContextProvider>
           </GlobalDrawer>
         </PictureInPictureProvider>
@@ -101,6 +105,63 @@ describe('AutofixChatProvider', () => {
         })
       );
     });
+  });
+
+  it('adds to the run already in progress by default', async () => {
+    // Put a run in progress: the chat state restores its run id from session
+    // storage on mount, which is what makes this an *open* conversation rather
+    // than a fresh one.
+    sessionStorage.setItem('seer-explorer-run-id', '7');
+    MockApiClient.addMockResponse({
+      url: `${chatUrl}7/`,
+      method: 'GET',
+      body: {session: {run_id: 7, blocks: [], status: 'completed', updated_at: ''}},
+    });
+    const postExisting = MockApiClient.addMockResponse({
+      url: `${chatUrl}7/`,
+      method: 'POST',
+      body: {run_id: 7},
+    });
+
+    render(tree('Follow up on that'), {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'ask-seer'}));
+
+    await waitFor(() => {
+      expect(postExisting).toHaveBeenCalledWith(
+        `${chatUrl}7/`,
+        expect.objectContaining({
+          data: expect.objectContaining({query: 'Follow up on that'}),
+        })
+      );
+    });
+    // The open conversation was kept, not swapped for a fresh one.
+    expect(postChat).not.toHaveBeenCalled();
+  });
+
+  it('starts a fresh conversation with newChat', async () => {
+    sessionStorage.setItem('seer-explorer-run-id', '7');
+    MockApiClient.addMockResponse({
+      url: `${chatUrl}7/`,
+      method: 'GET',
+      body: {session: {run_id: 7, blocks: [], status: 'completed', updated_at: ''}},
+    });
+    const postExisting = MockApiClient.addMockResponse({
+      url: `${chatUrl}7/`,
+      method: 'POST',
+      body: {run_id: 7},
+    });
+
+    render(tree('Start over', true), {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'ask-seer'}));
+
+    // Posting to the collection URL (no run id) is what starts a new run.
+    await waitFor(() => {
+      expect(postChat).toHaveBeenCalledWith(
+        chatUrl,
+        expect.objectContaining({data: expect.objectContaining({query: 'Start over'})})
+      );
+    });
+    expect(postExisting).not.toHaveBeenCalled();
   });
 
   it('leaves the entry point disabled with no provider above it', () => {

@@ -1,5 +1,14 @@
 import {createContext, useContext, useMemo, type ReactNode} from 'react';
 
+export type SendMessageOptions = {
+  /**
+   * Start a fresh conversation rather than adding to the one already open.
+   * Defaults to appending, so a caller that just wants to say something to the
+   * agent keeps whatever context the running conversation has built up.
+   */
+  newChat?: boolean;
+};
+
 type AutofixChatContextValue = {
   /**
    * Posts `query` into the chat as a new user message, opening the Explorer
@@ -7,7 +16,7 @@ type AutofixChatContextValue = {
    * (Storybook) or the run is read-only, in which case callers render their
    * entry point disabled instead of acting.
    */
-  sendMessage?: (query: string) => void;
+  sendMessage?: (query: string, options?: SendMessageOptions) => void;
 };
 
 const AutofixChatContext = createContext<AutofixChatContextValue>({});
@@ -25,14 +34,15 @@ const AutofixChatContext = createContext<AutofixChatContextValue>({});
  * should append to the running conversation instead of starting a new one.
  *
  * Callers do not need to know which one they got. They call `sendMessage` and
- * the message lands in the chat either way.
+ * the message lands in the chat either way. Passing `{newChat: true}` starts a
+ * fresh conversation instead of adding to whatever is already open.
  */
 export function AutofixChatProvider({
   children,
   sendMessage,
 }: {
   children: ReactNode;
-  sendMessage?: (query: string) => void;
+  sendMessage?: (query: string, options?: SendMessageOptions) => void;
 }) {
   // The page re-renders on every poll; a stable value keeps that from
   // invalidating every consumer of this context.
