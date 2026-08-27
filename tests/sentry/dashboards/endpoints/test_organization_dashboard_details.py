@@ -32,6 +32,7 @@ from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
 
@@ -672,7 +673,8 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
     def test_delete(self) -> None:
         dashboard_id = self.dashboard.id
         dashboard_title = self.dashboard.title
-        response = self.do_request("delete", self.url(self.dashboard.id))
+        with outbox_runner():
+            response = self.do_request("delete", self.url(self.dashboard.id))
         assert response.status_code == 204
 
         assert self.client.get(self.url(dashboard_id)).status_code == 404
@@ -930,9 +932,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert response.status_code == 404, response.data
 
     def test_change_dashboard_title(self) -> None:
-        response = self.do_request(
-            "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
-        )
+        with outbox_runner():
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+            )
         assert response.status_code == 200, response.data
         assert Dashboard.objects.filter(
             title="Dashboard Hello", organization=self.organization, id=self.dashboard.id

@@ -10,6 +10,7 @@ from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
 
 
 class TestPrepareRestoreData:
@@ -120,7 +121,8 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
         self.dashboard.title = "New Title"
         self.dashboard.save()
 
-        response = self.client.post(self._url(revision.id))
+        with outbox_runner():
+            response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 200
         assert response.data["title"] == "Old Title"

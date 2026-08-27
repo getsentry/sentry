@@ -26,6 +26,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -1002,7 +1003,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert ids == [str(third.id), str(second.id), str(first.id)]
 
     def test_post(self) -> None:
-        response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
+        with outbox_runner():
+            response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
