@@ -272,7 +272,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 )
                 blocks.append(
                     ContextBlock(
-                        elements=[MarkdownTextObject(text=f"Run ID: <{run_url}|{conversation_id}>")]
+                        elements=[MarkdownTextObject(text=f"Agent Trace: <{run_url}|{conversation_id}>")]
                     )
                 )
 
