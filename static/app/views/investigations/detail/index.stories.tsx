@@ -1,6 +1,10 @@
 import {Container} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
+import {
+  InvestigationFixtureApi,
+  investigationExecutionFixtureKey,
+} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationBlockExecutionFixture,
@@ -15,10 +19,6 @@ import {
   InvestigationTitleGenerationFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
-import {
-  InvestigationFixtureApi,
-  investigationExecutionFixtureKey,
-} from 'sentry/views/investigations/stories/investigationFixtureApi';
 
 const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   id: 'completed-checkout-regression',

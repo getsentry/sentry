@@ -2,6 +2,10 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
+import {
+  InvestigationFixtureApi,
+  investigationExecutionFixtureKey,
+} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {InvestigationCell} from 'sentry/views/investigations/detail/cell';
 import {
   InvestigationBlockExecutionFixture,
@@ -10,10 +14,6 @@ import {
   InvestigationExecutionDetailFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
-import {
-  InvestigationFixtureApi,
-  investigationExecutionFixtureKey,
-} from 'sentry/views/investigations/stories/investigationFixtureApi';
 
 const completedDependency = InvestigationBlockFixture({
   id: 'completed-dependency',

@@ -3,12 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {InvestigationsPage} from 'sentry/views/investigations';
+import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationDetailFixture,
   InvestigationListItemFixture,
 } from 'sentry/views/investigations/fixtures';
-import {InvestigationFixtureApi} from 'sentry/views/investigations/stories/investigationFixtureApi';
 
 const organization = OrganizationFixture({
   features: ['investigations'],

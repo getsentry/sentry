@@ -6,7 +6,7 @@ import InvestigationsView from 'sentry/views/investigations';
 import {InvestigationListItemFixture} from 'sentry/views/investigations/fixtures';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
-import {InvestigationFixtureApi} from './stories/investigationFixtureApi';
+import {InvestigationFixtureApi} from './__stories__/investigationFixtureApi';
 
 const realisticInvestigations = [
   InvestigationListItemFixture({
