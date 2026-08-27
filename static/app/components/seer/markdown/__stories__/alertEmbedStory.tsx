@@ -27,25 +27,35 @@ export function AlertEmbedStory() {
     detectorListApiOptions(organization, {
       sortBy: '-id',
       limit: 100,
+    })
+  );
+  const issueStreamDetectorQuery = useQuery(
+    detectorListApiOptions(organization, {
+      type: 'issue_stream',
+      limit: 100,
       includeIssueStreamDetectors: true,
     })
   );
   const automationQuery = useQuery(
     automationsApiOptions(organization, {sortBy: '-lastTriggered', limit: 100})
   );
-  const issueAlertId = detectorQuery.data?.find(
-    detector => detector.type === 'issue_stream'
-  )?.workflowIds[0];
-  const issueAlert = automationQuery.data?.find(
-    automation => automation.id === issueAlertId
+  const issueAlertIds = new Set(
+    issueStreamDetectorQuery.data?.flatMap(detector => detector.workflowIds)
+  );
+  const issueAlert = automationQuery.data?.find(automation =>
+    issueAlertIds.has(automation.id)
   );
   const detectorAlerts = STORY_DETECTOR_ALERTS.flatMap(({kind, label, type}) => {
     const detector = detectorQuery.data?.find(candidate => candidate.type === type);
     return detector ? [{detector, kind, label}] : [];
   });
   const hasAlerts = Boolean(issueAlert || detectorAlerts.length);
-  const isPending = detectorQuery.isPending || automationQuery.isPending;
-  const isError = detectorQuery.isError || automationQuery.isError;
+  const isPending =
+    detectorQuery.isPending ||
+    issueStreamDetectorQuery.isPending ||
+    automationQuery.isPending;
+  const isError =
+    detectorQuery.isError || issueStreamDetectorQuery.isError || automationQuery.isError;
 
   return (
     <EmbedStory name="alert">
