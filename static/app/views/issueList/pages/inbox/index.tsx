@@ -363,7 +363,7 @@ function InboxContent() {
         <PageHeadingQuestionTooltip
           docsUrl="https://docs.sentry.io/product/issues/inbox/"
           title={t(
-            'A personalized view of issues relevant to you, organized by their progress toward a fix.'
+            'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
           )}
         />
       </Layout.Title>
