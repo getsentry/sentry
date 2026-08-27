@@ -689,10 +689,8 @@ export const LINK_RULES: LinkRule[] = [
     prefix: /\/organizations\/\{organization_id_or_slug\}\/monitors\/?$/,
     resolve: ({title}, {organization}) => ({
       label: title ?? t('View monitors'),
-      // Classic crons list redirects into the monitors surface.
-      url: {
-        pathname: makeAlertsPathname({organization, path: '/rules/crons/'}),
-      },
+      // Classic cron list lives under the monitors surface; `/alerts/rules/crons/` has no index.
+      url: {pathname: makeMonitorBasePathname(organization.slug)},
     }),
   },
   {
@@ -1038,7 +1036,8 @@ function searchUrl(
   if (dataset === 'issues') {
     return {pathname: '/issues/', query: queryParams};
   }
-  if (dataset === 'errors') {
+  if (dataset === 'errors' || dataset === 'discover') {
+    // Events API default dataset is `discover`; treat it like the inferred errors Explore surface.
     return {
       pathname: '/explore/discover/homepage/',
       query: errorsQuery(queryParams, params),
@@ -1076,9 +1075,13 @@ function errorsQuery(
     next.yAxis = y_axes;
   }
 
-  // In Discover, group_by values become selected columns (the `field` param) alongside the y_axes
-  // aggregates. Always force some: with no fields Discover re-routes to the saved default query.
-  const fields = [...getStringArray(group_by), ...getStringArray(y_axes)];
+  // In Discover, group_by / y_axes become selected columns (`field`). Prefer explicit `fields` from
+  // the events API when present; otherwise force defaults so Discover does not re-route to saved.
+  const fields = [
+    ...getStringArray(params.fields),
+    ...getStringArray(group_by),
+    ...getStringArray(y_axes),
+  ];
   next.field = fields.length
     ? fields
     : [...DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS].fields];

@@ -932,6 +932,78 @@ describe('search links', () => {
     );
   });
 
+  it('links events calls with dataset=discover the same way as inferred errors', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=discover&query=level%3Aerror',
+        title: 'Listing events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/explore/discover/homepage/',
+        }),
+      })
+    );
+  });
+
+  it('keeps events API field columns on the Discover deep-link', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=errors&field=title&field=count()',
+        title: 'Listing events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/explore/discover/homepage/',
+          query: expect.objectContaining({
+            field: ['title', 'count()'],
+          }),
+        }),
+      })
+    );
+  });
+
+  it('sends the classic monitors list to the monitors surface, not empty alerts/crons', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/monitors/',
+          params: {},
+          title: 'Listing monitors',
+        },
+        ctx
+      )
+    ).toEqual({
+      id: 'list_monitors',
+      label: 'Listing monitors',
+      url: {pathname: '/organizations/org-slug/monitors/'},
+    });
+  });
+
   it('does not let nested membership lists steal the parent entity link', () => {
     expect(
       resolveLink(
