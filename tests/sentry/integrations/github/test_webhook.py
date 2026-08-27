@@ -2283,27 +2283,6 @@ class IssuesEventWebhookTest(APITestCase):
 
         assert_success_metric(mock_record)
 
-    def _post_issues_event(self, event: dict) -> None:
-        body = json.dumps(event)
-        response = self.client.post(
-            path=self.url,
-            data=body,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="issues",
-            HTTP_X_HUB_SIGNATURE="sha1={}".format(
-                GitHubIntegrationsWebhookEndpoint.compute_signature(
-                    "sha1", body.encode("utf-8"), self.secret
-                )
-            ),
-            HTTP_X_HUB_SIGNATURE_256="sha256={}".format(
-                GitHubIntegrationsWebhookEndpoint.compute_signature(
-                    "sha256", body.encode("utf-8"), self.secret
-                )
-            ),
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-        assert response.status_code == 204
-
     def _linked_group_for_assignee_sync(self) -> Group:
         with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.get(
