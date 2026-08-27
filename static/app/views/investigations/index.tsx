@@ -99,7 +99,7 @@ function ClosedMembershipPage() {
   );
 }
 
-function InvestigationsPage() {
+export function InvestigationsPage() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
