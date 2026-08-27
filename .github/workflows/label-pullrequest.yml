@@ -43,7 +43,6 @@ jobs:
           comment-author: 'github-actions[bot]'
           body-includes: '<!-- FRONTEND_BACKEND_WARNING -->'
 
-      # GitHub Actions expressions have no arithmetic operators, so sum in shell.
       - name: Count backend warning exemptions
         id: backend_exemptions
         env:
