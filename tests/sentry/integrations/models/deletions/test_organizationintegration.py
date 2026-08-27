@@ -183,7 +183,10 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
     def test_reinstall_rescues_stuck_deletion(self) -> None:
         """
         A row abandoned in DELETION_IN_PROGRESS (failed deletion run) can be
-        rescued once `date_updated` is older than the stuck threshold.
+        rescued once `date_updated` is older than the stuck threshold. The
+        scheduled deletion row of a failed run has in_progress=True; the rescue
+        must remove it anyway so a later uninstall gets a fresh row instead of
+        inheriting the stale in_progress flag (which the runner skips).
         """
         org = self.create_organization()
         integration = self.create_provider_integration(provider="example", name="Example")
@@ -195,12 +198,24 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             date_updated=timezone.now() - timedelta(minutes=2),
         )
         deletion = ScheduledDeletion.schedule(instance=organization_integration, days=0)
+        deletion.update(in_progress=True)
 
         rescued = integration.add_organization(org, self.user)
         assert rescued is not None
         assert rescued.id == organization_integration.id
         assert rescued.status == ObjectStatus.ACTIVE
         assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
+
+        # A later uninstall must start from a clean slate: a fresh scheduled
+        # deletion row with in_progress=False that the runner will pick up.
+        rescued.update(status=ObjectStatus.PENDING_DELETION)
+        new_deletion = ScheduledDeletion.schedule(instance=rescued, days=0)
+        assert new_deletion.in_progress is False
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
     @with_feature("organizations:integrations-deletion-reinstall-cas")
     def test_claim_sets_date_updated(self) -> None:

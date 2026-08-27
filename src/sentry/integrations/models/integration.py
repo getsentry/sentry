@@ -219,7 +219,21 @@ class Integration(DefaultFieldsModelExisting):
 
                     if reactivated:
                         org_integration.status = ObjectStatus.ACTIVE
-                        ScheduledDeletion.cancel(org_integration)
+                        # Delete the scheduled deletion row unconditionally rather
+                        # than using ScheduledDeletion.cancel, which only removes
+                        # rows with in_progress=False. A deletion that already
+                        # claimed the row (or a stuck one) has in_progress=True and
+                        # cancel would leave it behind, poisoning the next
+                        # uninstall: schedule() reuses the row via update_or_create
+                        # without resetting in_progress, and the runner skips
+                        # in_progress rows until _reattempt_deletions flips them
+                        # hours later. Deleting here is safe: _run_deletion
+                        # tolerates a missing row, and the actual model deletion is
+                        # guarded by the claim CAS on status.
+                        ScheduledDeletion.objects.filter(
+                            model_name=type(org_integration).__name__,
+                            object_id=org_integration.pk,
+                        ).delete()
 
                     # The deletion task claimed the row recently. Exit early. We
                     # can not honor the re-installation request while children are
