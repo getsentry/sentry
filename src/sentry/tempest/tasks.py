@@ -351,9 +351,12 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
         # Record metrics AFTER state is saved (defensive: use 'or 0' to handle None values)
         crash_count = result.get("crash_count") or 0
         crash_fails = result.get("crash_fails") or 0
+        crash_rate_limited = result.get("crash_rate_limited") or 0
         metrics.distribution("tempest.crashes.batch_size", crash_count, tags=tags)
         if crash_fails > 0:
             metrics.incr("tempest.crashes.batch_failures", amount=crash_fails, tags=tags)
+        if crash_rate_limited > 0:
+            metrics.incr("tempest.crashes.batch_rate_limited", amount=crash_rate_limited, tags=tags)
         metrics.incr("tempest.crashes.success", tags=tags)
 
     except Timeout as e:
