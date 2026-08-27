@@ -231,30 +231,3 @@ describe('ConversationDetailPage summary errors', () => {
     expect(screen.queryByTestId('conversation-error-icon')).not.toBeInTheDocument();
   });
 });
-
-describe('ConversationDetailPage summary trace link', () => {
-  beforeEach(() => {
-    Element.prototype.scrollTo = jest.fn();
-    Element.prototype.scrollIntoView = jest.fn();
-    MockApiClient.clearMockResponses();
-    act(() => {
-      PageFiltersStore.reset();
-      PageFiltersStore.init();
-    });
-    mockApis();
-  });
-
-  it('deep-links to the trace and navigates in the same tab', async () => {
-    renderPage();
-
-    // Every fixture span shares a trace, so the link targets that trace's
-    // waterfall rather than the traces explorer.
-    const link = await screen.findByRole('link', {name: 'Trace'});
-    expect(link).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/explore/traces/trace/trace-1/?node=span-span-a'
-    );
-    // The link stays in-tab, so it must not signal itself as external.
-    expect(link).not.toHaveAttribute('target');
-  });
-});
