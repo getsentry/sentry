@@ -43,6 +43,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseActorString} from 'sentry/utils/parseActorString';
+import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
@@ -305,6 +306,10 @@ function AssignmentTabs({
 }
 
 function InboxContent() {
+  // Temporarily record all replays for the issue inbox
+  // Remove this once we roll out to more users
+  useReplayForCriticalFlow({flowName: 'issue_inbox', sampleRate: 1});
+
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
   const {layout} = usePrimaryNavigation();
