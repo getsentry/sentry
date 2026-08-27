@@ -245,14 +245,20 @@ function useUpdateOverlayPositionOnContentChange({
   updateOverlayPosition: (() => void) | null;
 }) {
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const rafRef = useRef<number | null>(null);
   const updatePosition = useEffectEvent(() => updateOverlayPosition?.());
 
   useLayoutEffect(() => {
     resizeObserverRef.current = new ResizeObserver(() => {
-      updatePosition();
+      // Firefox can invoke ResizeObserver callbacks during rendering, when
+      // calling an Effect Event is not allowed.
+      rafRef.current = requestAnimationFrame(() => updatePosition());
     });
 
     return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
     };
