@@ -2,7 +2,7 @@ import * as docgen from 'react-docgen-typescript';
 import type {LoaderContext} from '@rspack/core';
 import * as typescript from 'typescript';
 
-// TypeScript assigns these symbols process-global numeric IDs based on traversal order.
+// Numeric suffixes depend on parse order, so emitting these props changes chunk hashes.
 const TYPESCRIPT_SYNTHETIC_PROPERTY = /^__@[^@]+@\d+$/;
 // react-docgen-typescript returns checkout-specific absolute paths in these fields.
 const FILE_PATH_PROPERTIES = new Set(['fileName', 'filePath']);
@@ -18,6 +18,7 @@ export function serializeTypeLoaderResult(
   rootContext: string,
   contextify: Contextify
 ): string {
+  // Docgen nests absolute paths throughout its output, so normalize them during serialization.
   return JSON.stringify(result, (key, value) => {
     if (FILE_PATH_PROPERTIES.has(key) && typeof value === 'string') {
       return contextify(rootContext, value);
@@ -127,6 +128,7 @@ export default function typeLoader(this: LoaderContext): string {
     : prodTypeLoader.call(this);
 }
 
+// Convert the resource path to the canonical import shown in API docs.
 export function extractRequest(
   resourcePath: string,
   rootContext: string,
