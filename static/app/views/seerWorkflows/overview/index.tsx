@@ -95,6 +95,7 @@ const FilterBar = styled(Flex)`
 `;
 
 const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
+  {value: 'recommended', label: t('Recommended')},
   {value: 'seer', label: t('Recent Seer Activity')},
   {value: 'issue', label: t('Recent Issue Activity')},
   {value: 'events', label: t('Most events')},
@@ -171,7 +172,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   const sort: OverviewSort =
     SORT_OPTIONS.find(option => option.value === decodeScalar(location.query.sort))
-      ?.value ?? 'seer';
+      ?.value ?? 'recommended';
   const assignee = decodeScalar(location.query.assignee) ?? null;
   const view =
     decodeScalar(location.query.view) === 'in_progress' ? 'in_progress' : 'all';
@@ -383,7 +384,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           options={SORT_OPTIONS}
           onChange={selected => {
             trackFilterChanged('sort', selected.value);
-            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value);
+            setQueryParam(
+              'sort',
+              selected.value === 'recommended' ? undefined : selected.value
+            );
           }}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
