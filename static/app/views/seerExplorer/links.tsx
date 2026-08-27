@@ -6,6 +6,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
   LOGS_GROUP_BY_KEY,
@@ -23,9 +26,6 @@ import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
