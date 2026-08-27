@@ -36,14 +36,6 @@ const userFeedbackFeedbackOptions = {
   },
 };
 
-const pageLayout = {
-  columns: {
-    zero: '1fr',
-    '3xl': 'minmax(195px, 1fr) 1.5fr',
-    '4xl': 'minmax(390px, 1fr) 2fr',
-  },
-} as const;
-
 function PageContent({
   feedbackProjectSlug,
   hasFeedbackContent,
@@ -77,7 +69,11 @@ function PageContent({
       <ErrorBoundary>
         <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
           <Grid
-            {...pageLayout}
+            columns={{
+              zero: '1fr',
+              '3xl': 'minmax(195px, 1fr) 1.5fr',
+              '4xl': 'minmax(390px, 1fr) 2fr',
+            }}
             areas={{
               zero: hideTop ? '"list"' : '"top" "list"',
               '3xl': '"top top" "list details"',
