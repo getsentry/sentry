@@ -127,10 +127,6 @@ class BaseDynamicSamplingConfiguration(ABC):
             org_volume,
             results.previous_recalibration_factor,
             self.get_sample_rate(),
-            # The gain belongs to the loop, not to the arithmetic: only the factor this
-            # pass serves is fed back into the next one. The comparison logging recomputes
-            # factors from a common seed to tell the two volume sources apart, and damping
-            # those would only move both of them by the same amount.
             gain=options.get(RECALIBRATION_DAMPING_GAIN_OPTION),
         )
 

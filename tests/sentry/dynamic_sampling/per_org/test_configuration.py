@@ -188,8 +188,6 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         mocks[SET_FACTOR].assert_not_called()
 
     def test_subscription_backed_org_recalibrates_with_the_configured_gain(self) -> None:
-        # The gain is what keeps the loop from overshooting when the measurement window
-        # still covers the factor from the pass before, so it has to reach the calculation.
         org = self.create_organization()
         self.create_project(organization=org, teams=[])
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
