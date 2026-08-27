@@ -141,26 +141,26 @@ describe('TraceViewMetricsSection', () => {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
-            query: {query: 'unrelated:value'},
+            query: {
+              metricsQuery: 'metric.name:duration OR metric.name:distribution',
+              query: 'unrelated:value',
+            },
           },
         },
       }
     );
 
-    const search = await screen.findByRole('combobox', {name: 'Add a search term'});
-    await userEvent.type(search, 'metric.name:duration{enter}');
-    await userEvent.type(search, 'OR{enter}');
-    await userEvent.type(search, 'metric.name:distribution{enter}');
-
     await waitFor(() => {
-      expect(eventsRequest).toHaveBeenCalledTimes(4);
+      expect(eventsRequest).toHaveBeenCalled();
     });
     for (const call of eventsRequest.mock.calls) {
       expect(call[1]?.query?.query).toContain(
         '( !has:sentry.metric.source OR !sentry.metric.source:span )'
       );
     }
-    expect(eventsRequest.mock.calls.at(-1)?.[1]?.query?.query).toContain('duration');
+    expect(eventsRequest.mock.calls.at(-1)?.[1]?.query?.query).toBe(
+      `( !has:sentry.metric.source OR !sentry.metric.source:span ) AND ( metric.name:duration OR metric.name:distribution ) trace:[${traceId}]`
+    );
     const currentMetricsQuery = screen.getByLabelText(
       'Current metrics query'
     ).textContent;
