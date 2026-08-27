@@ -524,6 +524,42 @@ def confirm_green_check_suite(
     )
 
 
+def should_defer_pr_iteration(resolved: ResolvedGreenCheckSuite) -> bool:
+    """Whether a PR-iteration event on this head must leave a parked consume deferred.
+
+    A failing check suite parks its feedback and defers consume by an hour while
+    other checks are still running. A later event on the same head — today only a
+    green check suite — can pull that forward, but only once the head is actually
+    finished: one app going green says nothing about the other apps' suites.
+
+    Deferral holds unless the sweep ran and found nothing incomplete. Every
+    inconclusive outcome (SCM init failure, a provider that cannot list check
+    runs, a failed listing, a head the PR has already moved off) keeps the
+    existing 1h task as the only scheduler rather than starting an iteration
+    mid-CI. The automated-iteration hard cap defers for good.
+    """
+    # feedback.py imports the check-suite feedback source, which imports this
+    # module; deferred like ``make_scm`` below it.
+    from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
+
+    if automated_iteration_cap_reached(resolved.autofix_run.run_state):
+        _skip("hard_cap_reached", resolved.log_extra)
+        return True
+
+    inspected = inspect_check_suite_head(resolved)
+    if inspected is None:
+        return True
+
+    if inspected.sweep.incomplete:
+        _skip(
+            "check_runs_incomplete",
+            {**resolved.log_extra, "incomplete_count": inspected.sweep.incomplete},
+        )
+        return True
+
+    return False
+
+
 def green_review_side_effects_enabled(resolved: ResolvedGreenCheckSuite) -> bool:
     """Whether undraft / request-review may run for this run's org."""
     if features.has(REVIEW_REQUEST_FLAG, resolved.organization):
