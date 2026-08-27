@@ -1,20 +1,25 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import pytest
 
 from sentry.integrations.gcp.client import _CONNECTORS_PROJECT, _GCP_IAM_BASE
 from sentry.integrations.gcp.integration import (
+    GcpCustomerConfigApiStep,
     GcpIntegration,
     GcpIntegrationProvider,
     GcpSaGenerationApiStep,
+    GcpVerification,
+    GcpVerificationApiStep,
+    GcpVerificationInputSerializer,
 )
 from sentry.integrations.gcp.utils import validate_gcp_project_id
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.types import PipelineStepAction, PipelineStepResult
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -155,6 +160,187 @@ class GcpIntegrationTest(TestCase):
 
         assert not GcpServiceAccount.objects.filter(organization_id=self.organization.id).exists()
 
+    # -- Setup wizard: step contract --
+
+    def test_pipeline_steps_match_frontend_step_ids(self) -> None:
+        steps = [
+            step() if callable(step) else step for step in self.provider.get_pipeline_api_steps()
+        ]
+        assert [step.step_name for step in steps] == [
+            "gcp_sa_generation",
+            "gcp_customer_config",
+            "gcp_verification",
+        ]
+
+    def test_config_step_drops_duplicate_projects(self) -> None:
+        step = GcpCustomerConfigApiStep()
+        state: dict[str, object] = {"sentry_sa_email": _SA_EMAIL}
+        pipeline = self._make_pipeline(state=state)
+
+        result = step.handle_post(
+            {
+                "customer_sa_email": _CUSTOMER_SA,
+                "projects": ["project-prod", "project-staging", "project-prod"],
+            },
+            pipeline,
+            Mock(),
+        )
+
+        assert result == PipelineStepResult.advance()
+        config = state["config"]
+        assert isinstance(config, dict)
+        assert config["projects"] == ["project-prod", "project-staging"]
+
+    # -- Setup wizard: verification step --
+
+    def _validated_verification(self, **overrides: object) -> GcpVerification:
+        data: dict[str, Any] = {
+            "connectionStatus": "connected",
+            "projects": [{"gcpProjectId": "my-gcp-project", "connectionStatus": "connected"}],
+        }
+        data.update(overrides)
+        serializer = GcpVerificationInputSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        return cast(GcpVerification, serializer.validated_data)
+
+    def test_verification_step_exposes_values_to_verify(self) -> None:
+        step = GcpVerificationApiStep()
+        pipeline = self._make_pipeline(
+            state={
+                "sentry_sa_email": _SA_EMAIL,
+                "config": {
+                    "customer_sa_email": _CUSTOMER_SA,
+                    "projects": ["my-gcp-project"],
+                },
+            }
+        )
+
+        assert step.get_step_data(pipeline, Mock()) == {
+            "customerSaEmail": _CUSTOMER_SA,
+            "projects": ["my-gcp-project"],
+        }
+
+    def test_verification_step_records_result(self) -> None:
+        step = GcpVerificationApiStep()
+        state: dict[str, object] = {
+            "config": {"customer_sa_email": _CUSTOMER_SA, "projects": ["my-gcp-project"]}
+        }
+        pipeline = self._make_pipeline(state=state)
+
+        result = step.handle_post(self._validated_verification(), pipeline, Mock())
+
+        assert result == PipelineStepResult.advance()
+        assert state["verification"] == {
+            "connection_status": "connected",
+            "projects": [
+                {
+                    "gcp_project_id": "my-gcp-project",
+                    "connection_status": "connected",
+                    "error_detail": None,
+                }
+            ],
+        }
+
+    def test_verification_step_advances_when_connection_fails(self) -> None:
+        step = GcpVerificationApiStep()
+        state: dict[str, object] = {
+            "config": {"customer_sa_email": _CUSTOMER_SA, "projects": ["my-gcp-project"]}
+        }
+        pipeline = self._make_pipeline(state=state)
+
+        result = step.handle_post(
+            self._validated_verification(
+                connectionStatus="permission_denied",
+                projects=[
+                    {
+                        "gcpProjectId": "my-gcp-project",
+                        "connectionStatus": "permission_denied",
+                        "errorDetail": "IAM roles not granted",
+                    }
+                ],
+            ),
+            pipeline,
+            Mock(),
+        )
+
+        assert result == PipelineStepResult.advance()
+        assert state["verification"] == {
+            "connection_status": "permission_denied",
+            "projects": [
+                {
+                    "gcp_project_id": "my-gcp-project",
+                    "connection_status": "permission_denied",
+                    "error_detail": "IAM roles not granted",
+                }
+            ],
+        }
+
+    def test_verification_step_rejects_results_for_other_projects(self) -> None:
+        step = GcpVerificationApiStep()
+        state: dict[str, object] = {
+            "config": {
+                "customer_sa_email": _CUSTOMER_SA,
+                "projects": ["project-prod", "project-staging"],
+            }
+        }
+        pipeline = self._make_pipeline(state=state)
+
+        result = step.handle_post(
+            self._validated_verification(
+                projects=[{"gcpProjectId": "project-prod", "connectionStatus": "connected"}]
+            ),
+            pipeline,
+            Mock(),
+        )
+
+        assert result.action == PipelineStepAction.ERROR
+        assert "do not match the configured GCP projects" in result.data["detail"]
+        assert "verification" not in state
+
+    def test_verification_serializer_accepts_unknown_status(self) -> None:
+        serializer = GcpVerificationInputSerializer(
+            data={
+                "connectionStatus": "quota_exceeded",
+                "projects": [
+                    {"gcpProjectId": "my-gcp-project", "connectionStatus": "quota_exceeded"}
+                ],
+            }
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["connection_status"] == "quota_exceeded"
+
+    def test_verification_serializer_requires_at_least_one_project(self) -> None:
+        serializer = GcpVerificationInputSerializer(
+            data={"connectionStatus": "connected", "projects": []}
+        )
+        assert not serializer.is_valid()
+        assert "projects" in serializer.errors
+
+    def test_verification_step_normalizes_blank_error_detail(self) -> None:
+        step = GcpVerificationApiStep()
+        state: dict[str, object] = {
+            "config": {"customer_sa_email": _CUSTOMER_SA, "projects": ["my-gcp-project"]}
+        }
+        pipeline = self._make_pipeline(state=state)
+
+        step.handle_post(
+            self._validated_verification(
+                projects=[
+                    {
+                        "gcpProjectId": "my-gcp-project",
+                        "connectionStatus": "connected",
+                        "errorDetail": "",
+                    }
+                ],
+            ),
+            pipeline,
+            Mock(),
+        )
+
+        verification = state["verification"]
+        assert isinstance(verification, dict)
+        assert verification["projects"][0]["error_detail"] is None
+
     # -- Build + install --
 
     def test_build_integration_returns_correct_data(self) -> None:
@@ -182,6 +368,23 @@ class GcpIntegrationTest(TestCase):
             self._state(projects=["project-prod", "project-staging"])
         )
         assert result["post_install_data"]["projects"] == ["project-prod", "project-staging"]
+
+    def test_build_integration_passes_verification_through(self) -> None:
+        state = self._state()
+        verification = {
+            "connection_status": "connected",
+            "projects": [
+                {
+                    "gcp_project_id": "my-gcp-project",
+                    "connection_status": "connected",
+                    "error_detail": None,
+                }
+            ],
+        }
+        state["verification"] = verification
+
+        result = self.provider.build_integration(state)
+        assert result["post_install_data"]["verification"] == verification
 
     def test_build_integration_requires_config(self) -> None:
         with pytest.raises(IntegrationConfigurationError):
@@ -220,15 +423,100 @@ class GcpIntegrationTest(TestCase):
                 "sentry_sa_email": _SA_EMAIL,
                 "customer_sa_email": _CUSTOMER_SA,
                 "projects": ["my-gcp-project"],
+                "verification": {
+                    "connection_status": "connected",
+                    "projects": [
+                        {
+                            "gcp_project_id": "my-gcp-project",
+                            "connection_status": "connected",
+                            "error_detail": None,
+                        }
+                    ],
+                },
             },
         )
 
         org_integration.refresh_from_db()
-        assert org_integration.config == {
-            "sentry_sa_email": _SA_EMAIL,
-            "customer_sa_email": _CUSTOMER_SA,
-            "projects": ["my-gcp-project"],
-        }
+        assert org_integration.config["sentry_sa_email"] == _SA_EMAIL
+        assert org_integration.config["customer_sa_email"] == _CUSTOMER_SA
+        assert org_integration.config["projects"] == ["my-gcp-project"]
+
+    def test_post_install_stores_verification_status(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+        )
+
+        self.provider.post_install(
+            integration,
+            self.organization,
+            extra={
+                "sentry_sa_email": _SA_EMAIL,
+                "customer_sa_email": _CUSTOMER_SA,
+                "projects": ["my-gcp-project"],
+                "verification": {
+                    "connection_status": "permission_denied",
+                    "projects": [
+                        {
+                            "gcp_project_id": "my-gcp-project",
+                            "connection_status": "permission_denied",
+                            "error_detail": "IAM roles not granted",
+                        }
+                    ],
+                },
+            },
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+        assert org_integration.config["connection_status"] == "permission_denied"
+        assert org_integration.config["project_statuses"] == [
+            {
+                "gcp_project_id": "my-gcp-project",
+                "connection_status": "permission_denied",
+                "error_detail": "IAM roles not granted",
+            }
+        ]
+        assert org_integration.config["last_verified_at"]
+
+    def test_post_install_records_error_when_verification_missing(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+        )
+
+        self.provider.post_install(
+            integration,
+            self.organization,
+            extra={
+                "sentry_sa_email": _SA_EMAIL,
+                "customer_sa_email": _CUSTOMER_SA,
+                "projects": ["my-gcp-project"],
+                "verification": None,
+            },
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+        assert org_integration.config["connection_status"] == "error"
+        assert org_integration.config["last_verified_at"] is None
+        assert org_integration.config["project_statuses"] == [
+            {
+                "gcp_project_id": "my-gcp-project",
+                "connection_status": "error",
+                "error_detail": "Verification failed to run during setup.",
+            }
+        ]
 
     # -- Installed integration: config access --
 

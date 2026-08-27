@@ -28,6 +28,7 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
@@ -362,7 +363,15 @@ function InboxContent() {
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
-      <Layout.Title>{TITLE}</Layout.Title>
+      <Layout.Title>
+        {TITLE}
+        <PageHeadingQuestionTooltip
+          docsUrl="https://docs.sentry.io/product/issues/inbox/"
+          title={t(
+            'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
+          )}
+        />
+      </Layout.Title>
       <Grid
         flex={1}
         minHeight={0}
