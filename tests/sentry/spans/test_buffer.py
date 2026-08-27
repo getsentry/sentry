@@ -2334,10 +2334,9 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
     get_topic_codec(Topic.INGEST_SPANS).validate(cast(SpanEvent, output_span.payload))
 
     # Validate that the assembled segment conforms to the buffered-segments
-    # schema. Nothing produces to or consumes that topic anymore, so it has no
-    # Topic enum entry, but the schema still describes the payload the flusher
-    # hands to process_segment_task.
-    buffered_segments_codec = sentry_kafka_schemas.get_codec("buffered-segments")
+    # schema. Nothing produces to or consumes that topic anymore, but the schema
+    # still describes the payload the flusher hands to process_segment_task.
+    buffered_segments_codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)
     buffered_segments_codec.validate({"spans": [span.payload for span in segment.spans]})
 
     buffer.done_flush_segments(rv)

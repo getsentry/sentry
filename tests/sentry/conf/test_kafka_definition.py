@@ -55,9 +55,9 @@ class ConsumersDefinitionTest(TestCase):
 def test_get_topic_codec() -> None:
     """Test that get_topic_codec works with Topic enum values."""
     # Test with a known topic
-    codec = get_topic_codec(Topic.INGEST_SPANS)
+    codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)
     assert codec is not None
 
     # Should be equivalent to calling sentry_kafka_schemas.get_codec directly
-    expected_codec = sentry_kafka_schemas.get_codec(Topic.INGEST_SPANS.value)
+    expected_codec = sentry_kafka_schemas.get_codec(Topic.BUFFERED_SEGMENTS.value)
     assert codec == expected_codec
