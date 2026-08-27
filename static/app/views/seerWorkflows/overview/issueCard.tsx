@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, memo, useEffect, useRef} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -525,7 +525,7 @@ function PriorityAndAssignee({
   );
 }
 
-export function OverviewCard({
+export const OverviewCard = memo(function OverviewCardComponent({
   orgSlug,
   run,
   sectionKey,
@@ -695,7 +695,7 @@ export function OverviewCard({
       }
     />
   );
-}
+});
 
 function CardFrame({
   actions,
