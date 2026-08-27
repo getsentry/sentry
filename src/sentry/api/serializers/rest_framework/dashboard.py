@@ -228,7 +228,8 @@ def get_widget_layout_height_error(display_type: int, layout: dict[str, Any] | N
         return None
 
     min_height = get_min_widget_height(display_type)
-    if layout["h"] >= min_height:
+    height = layout.get("h")
+    if isinstance(height, int) and height >= min_height:
         return None
 
     display_type_name = DashboardWidgetDisplayTypes.get_type_name(display_type)
