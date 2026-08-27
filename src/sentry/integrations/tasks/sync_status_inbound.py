@@ -390,6 +390,13 @@ def sync_status_inbound(
                     sender=f"unresolved_with_{provider.key}",
                 )
 
-    # Only once applied, so a retry after a transient failure isn't blocked by its own
-    # watermark.
+    # Reached only once the event has processed to completion, so a retry after a transient
+    # failure isn't blocked by a watermark its own failed attempt wrote.
+    #
+    # A NOOP counts as processed. It changed no status, but it still proves what the
+    # provider's state was at `event_time`, and an older delta cannot describe a newer
+    # world. The cost is a resolve stranded behind a NOOP whose from-state already
+    # reflected it, which stays unapplied; the alternative is letting that stale delta
+    # reopen an issue a human resolved in Sentry, and destroying an intent is worse than
+    # missing a sync.
     _record_provider_event_time(external_issue, event_time)
