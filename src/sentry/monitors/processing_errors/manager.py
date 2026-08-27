@@ -180,7 +180,26 @@ def get_errors_for_projects(projects: list[Project]) -> list[CheckinProcessingEr
     return _get_for_entities([build_project_identifier(project.id) for project in projects])
 
 
+# Dropped by a guard before any work is done, at a volume that makes storing each one cost more
+# than it is worth. Only `MAX_ERRORS_PER_SET` are retained anyway.
+THROTTLED_ERROR_TYPES = frozenset(
+    {
+        ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED,
+        ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED,
+    }
+)
+
+
 def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException):
+    if all(
+        process_error["type"] in THROTTLED_ERROR_TYPES for process_error in error.processing_errors
+    ):
+        metrics.incr(
+            "monitors.checkin.handle_processing_error",
+            tags={"source": "consumer", "stored": "false"},
+        )
+        return
+
     try:
         project = Project.objects.get_from_cache(id=item.message["project_id"])
         organization = Organization.objects.get_from_cache(id=project.organization_id)
@@ -190,6 +209,7 @@ def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException
             tags={
                 "source": "consumer",
                 "sdk_platform": item.message["sdk"],
+                "stored": "true",
             },
         )
 
