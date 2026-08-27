@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, options
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -40,12 +40,16 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# How long a row may sit in DELETION_IN_PROGRESS (measured from `date_updated`,
-# which the deletion claim sets) before a re-installation is allowed to rescue
-# it. Deleting a single OrganizationIntegration's children normally takes
-# minutes; scheduled deletions are retried on a much longer cadence, so a row
-# older than this is almost certainly from a failed deletion run.
-STUCK_DELETION_THRESHOLD = timedelta(hours=6)
+
+def _stuck_deletion_threshold() -> timedelta:
+    """
+    How long a row may sit in DELETION_IN_PROGRESS (measured from `date_updated`,
+    which the deletion claim sets) before a re-installation is allowed to rescue
+    it. Deleting a single OrganizationIntegration's children normally takes
+    minutes; scheduled deletions are retried on a much longer cadence, so a row
+    older than this is almost certainly from a failed deletion run.
+    """
+    return timedelta(seconds=options.get("integrations.stuck-deletion-rescue-threshold-seconds"))
 
 
 @control_silo_model
@@ -178,7 +182,7 @@ class Integration(DefaultFieldsModelExisting):
                         # `date_updated` when it flips the row to DELETION_IN_PROGRESS
                         # (queryset updates don't auto-bump it, so that timestamp is
                         # the claim time). If the deletion has not completed after
-                        # STUCK_DELETION_THRESHOLD we assume it failed and let the
+                        # the configured stuck-deletion threshold we assume it failed and let the
                         # user rescue the row rather than being locked out until the
                         # deletion is retried. The CAS includes the staleness check,
                         # so a live deletion that just (re)claimed the row won't
@@ -196,7 +200,8 @@ class Integration(DefaultFieldsModelExisting):
                                     OrganizationIntegration.objects.filter(
                                         id=org_integration.id,
                                         status=ObjectStatus.DELETION_IN_PROGRESS,
-                                        date_updated__lt=timezone.now() - STUCK_DELETION_THRESHOLD,
+                                        date_updated__lt=timezone.now()
+                                        - _stuck_deletion_threshold(),
                                     ).update(
                                         status=ObjectStatus.ACTIVE, date_updated=timezone.now()
                                     )

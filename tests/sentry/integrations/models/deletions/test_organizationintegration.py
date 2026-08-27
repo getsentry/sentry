@@ -10,7 +10,7 @@ from sentry.deletions.defaults.organizationintegration import OrganizationIntegr
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.models.integration import STUCK_DELETION_THRESHOLD, Integration
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.project_option import ProjectOption
@@ -22,6 +22,7 @@ from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressE
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -178,6 +179,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         )
 
     @with_feature("organizations:integrations-deletion-reinstall-cas")
+    @override_options({"integrations.stuck-deletion-rescue-threshold-seconds": 60})
     def test_reinstall_rescues_stuck_deletion(self) -> None:
         """
         A row abandoned in DELETION_IN_PROGRESS (failed deletion run) can be
@@ -190,7 +192,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         organization_integration.update(
             status=ObjectStatus.DELETION_IN_PROGRESS,
-            date_updated=timezone.now() - STUCK_DELETION_THRESHOLD - timedelta(minutes=1),
+            date_updated=timezone.now() - timedelta(minutes=2),
         )
         deletion = ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
