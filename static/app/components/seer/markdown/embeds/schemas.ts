@@ -26,13 +26,21 @@ const chartSeriesSchema = z.union([
 ]);
 
 /**
+ * Opaque IDs that agents sometimes emit as bare JSON numbers. Accept both so
+ * `11276` and `"11276"` validate; URL builders coerce to the shape they need.
+ * Keep this as a plain union (no `.transform`) so `pnpm gen:embed-widgets` can
+ * export JSON Schema for the agent prompt.
+ */
+const idString = z.union([z.string(), z.number()]);
+
+/**
  * Page filters shared by every query embed. Seer supplies these separately from
  * the search string so the frontend can hand them to the canonical URL builders
  * rather than parsing them back out of a pre-built querystring.
  */
 const pageFilterFields = {
   projects: z
-    .array(z.string())
+    .array(idString)
     .optional()
     .describe('Project IDs. Omit for the "My Projects" selection.'),
   environments: z.array(z.string()).optional(),
