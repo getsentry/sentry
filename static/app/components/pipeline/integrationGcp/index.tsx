@@ -28,10 +28,10 @@ import type {
 } from 'sentry/utils/seer/gcpConnection';
 import {
   describeService,
-  GCP_STATUS_VARIANTS,
   getFailedServices,
   getProjectErrorDetail,
   getStatusLabel,
+  getStatusVariant,
 } from 'sentry/utils/seer/gcpConnection';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -218,7 +218,7 @@ function GcpProjectStatus({project}: {project: GcpProjectResult}) {
     <Stack gap="xs">
       <Flex gap="sm" align="center">
         <StatusIndicator
-          variant={GCP_STATUS_VARIANTS[project.connectionStatus]}
+          variant={getStatusVariant(project.connectionStatus)}
           animationIterationCount={1}
         />
         <Text bold>{project.gcpProjectId}</Text>

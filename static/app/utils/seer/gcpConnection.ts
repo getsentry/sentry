@@ -8,7 +8,7 @@ import {unreachable} from 'sentry/utils/unreachable';
  * src/sentry/integrations/gcp/utils.py, which in turn mirrors ConnectionStatus
  * in seer/automation/agent/mcp/gcp_verification.py.
  */
-export const GCP_STATUS_VARIANTS = {
+const GCP_STATUS_VARIANTS = {
   connected: 'success',
   permission_denied: 'danger',
   api_disabled: 'warning',
@@ -16,25 +16,31 @@ export const GCP_STATUS_VARIANTS = {
   error: 'danger',
 } as const satisfies Record<string, 'success' | 'warning' | 'danger'>;
 
-export type GcpConnectionStatus = keyof typeof GCP_STATUS_VARIANTS;
+type GcpConnectionStatus = keyof typeof GCP_STATUS_VARIANTS;
+
+type GcpStatusVariant = (typeof GCP_STATUS_VARIANTS)[GcpConnectionStatus];
+
+function isKnownStatus(status: string): status is GcpConnectionStatus {
+  return status in GCP_STATUS_VARIANTS;
+}
 
 /** One MCP server's result, as returned by Seer's verification endpoint. */
 export interface GcpServiceResult {
   service: string;
-  status: GcpConnectionStatus;
+  status: string;
   errorDetail?: string | null;
 }
 
 /** One project's result, aggregated across its services. */
 export interface GcpProjectResult {
-  connectionStatus: GcpConnectionStatus;
+  connectionStatus: string;
   gcpProjectId: string;
   services: GcpServiceResult[];
   errorDetail?: string | null;
 }
 
 export interface GcpVerifyConnectionResponse {
-  connectionStatus: GcpConnectionStatus;
+  connectionStatus: string;
   projects: GcpProjectResult[];
   errorDetail?: string | null;
 }
@@ -53,7 +59,14 @@ export interface GcpVerificationInput extends Pick<
   projects: GcpProjectVerification[];
 }
 
-export function getStatusLabel(status: GcpConnectionStatus): string {
+export function getStatusVariant(status: string): GcpStatusVariant {
+  return isKnownStatus(status) ? GCP_STATUS_VARIANTS[status] : 'danger';
+}
+
+export function getStatusLabel(status: string): string {
+  if (!isKnownStatus(status)) {
+    return t('Error');
+  }
   switch (status) {
     case 'connected':
       return t('Connected');
