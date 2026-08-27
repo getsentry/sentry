@@ -4,7 +4,7 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
-export const sentryFormErrorMapper = <TFormData,>(
+const sentryFormErrorMapper = <TFormData,>(
   error: Error,
   formValues: TFormData,
   fallbackMessage: string
