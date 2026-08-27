@@ -300,6 +300,10 @@ class AuthIdentityHandler:
             if invite_helper.invite_approved:
                 rpc_om = invite_helper.accept_invite(user)
                 assert rpc_om
+                # accept_invite only attaches the user; SSO validity still requires
+                # sso:linked. Without this, the first post-login org hit bounces
+                # back through needs_sso and forces a second IdP round-trip.
+                self._set_linked_flag(rpc_om)
                 return user, rpc_om
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,
