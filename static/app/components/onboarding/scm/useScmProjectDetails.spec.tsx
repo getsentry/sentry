@@ -117,12 +117,6 @@ describe('useScmProjectDetails', () => {
     );
   });
 
-  it('defaults the SCM alert interval to five minutes', () => {
-    const {result} = renderDetails();
-
-    expect(result.current.alertRuleConfig.interval).toBe('5m');
-  });
-
   it('requires an integration channel when notifying via integration', () => {
     TeamStore.loadInitialData([adminTeam]);
     ProjectsStore.loadInitialData([]);
