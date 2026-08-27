@@ -19,6 +19,7 @@ from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -63,6 +64,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
+    @with_feature("organizations:integrations-deletion-reinstall-cas")
     def test_reinstall_cancels_pending_deletion(self) -> None:
         org = self.create_organization()
         integration = self.create_provider_integration(provider="example", name="Example")
@@ -83,6 +85,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
+    @with_feature("organizations:integrations-deletion-reinstall-cas")
     def test_reinstall_after_deletion_task_read_the_row(self) -> None:
         """
         The scheduled deletion task checks `should_proceed` against a copy of the
@@ -119,6 +122,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         )
         assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
 
+    @with_feature("organizations:integrations-deletion-reinstall-cas")
     def test_delete_bulk_skips_rows_reactivated_after_selection(self) -> None:
         """
         `chunk` selects rows without locking them, so a reinstall can land
@@ -150,6 +154,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             == ObjectStatus.ACTIVE
         )
 
+    @with_feature("organizations:integrations-deletion-reinstall-cas")
     def test_reinstall_refused_while_deletion_in_progress(self) -> None:
         """
         Once the deletion has claimed the row its children are being torn down,
@@ -169,6 +174,29 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             OrganizationIntegration.objects.get(id=organization_integration.id).status
             == ObjectStatus.DELETION_IN_PROGRESS
         )
+
+    def test_reinstall_legacy_behavior_without_feature(self) -> None:
+        """
+        With the flag off, add_organization keeps the pre-existing behavior:
+        no CAS rescue, no rejection, no scheduled-deletion cancellation.
+        """
+        org = self.create_organization()
+        integration = self.create_provider_integration(provider="example", name="Example")
+        organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(instance=organization_integration, days=0)
+
+        reinstalled = integration.add_organization(org, self.user)
+        assert reinstalled is not None
+        assert reinstalled.status == ObjectStatus.PENDING_DELETION
+        assert ScheduledDeletion.objects.filter(id=deletion.id).exists()
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
     def test_repository_and_identity(self) -> None:
         org = self.create_organization()

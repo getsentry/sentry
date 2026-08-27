@@ -2,14 +2,27 @@ from collections.abc import Sequence
 
 from django.db import router
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import repository_service
+from sentry.organizations.services.organization import organization_service
 from sentry.silo.safety import unguarded_write
 from sentry.types.cell import CellMappingNotFound
 
 DELETABLE_STATUSES = (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+
+
+def use_cas_deletion_claim(organization_id: int) -> bool:
+    context = organization_service.get_organization_by_id(
+        id=organization_id, include_projects=False, include_teams=False
+    )
+    if context is None:
+        # The organization is already gone; fall back to the legacy behavior
+        # (proceed with deletion) since there is nothing left to reinstall.
+        return False
+    return features.has("organizations:integrations-deletion-reinstall-cas", context.organization)
 
 
 class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegration]):
@@ -23,6 +36,11 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
         return super().delete_bulk(claimed)
 
     def _claim(self, instance: OrganizationIntegration) -> bool:
+        if not use_cas_deletion_claim(instance.organization_id):
+            # Legacy behavior: proceed without claiming. `should_proceed` and
+            # `mark_deletion_in_progress` handle the status transition.
+            return True
+
         # Compare-and-swap claim. A single UPDATE ... WHERE status IN (...) is
         # atomic, so we never hold a row lock while doing other work (a prior
         # SELECT FOR UPDATE version of this stalled the database under lock

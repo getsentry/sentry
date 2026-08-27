@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.db import IntegrityError, models, router, transaction
 
+from sentry import features
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -119,8 +120,21 @@ class Integration(DefaultFieldsModelExisting):
         """
         from sentry.integrations.models.organization_integration import OrganizationIntegration
 
-        if not isinstance(organization_id, int):
+        organization: Organization | RpcOrganization | None
+        if isinstance(organization_id, int):
+            context = organization_service.get_organization_by_id(
+                id=organization_id, include_projects=False, include_teams=False
+            )
+            organization = context.organization if context is not None else None
+        else:
+            organization = organization_id
             organization_id = organization_id.id
+
+        # Checked outside the transaction below to avoid holding it open across
+        # an RPC call.
+        use_cas_reinstall = organization is not None and features.has(
+            "organizations:integrations-deletion-reinstall-cas", organization
+        )
 
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
@@ -130,7 +144,7 @@ class Integration(DefaultFieldsModelExisting):
                     defaults={"default_auth_id": default_auth_id, "config": {}},
                 )
                 # TODO(Steve): add audit log if created
-                if not created:
+                if not created and use_cas_reinstall:
                     # Guard against a deletion race with a compare-and-swap. A
                     # single UPDATE ... WHERE status = PENDING_DELETION is atomic:
                     # either we rescue the row before the deletion task claims it,
@@ -179,6 +193,10 @@ class Integration(DefaultFieldsModelExisting):
                             "Integration deletion is already in progress. Please try again in a few minutes."
                         )
 
+                    if default_auth_id:
+                        org_integration.update(default_auth_id=default_auth_id)
+                elif not created:
+                    # Legacy behavior (flag off): no deletion-race protection.
                     if default_auth_id:
                         org_integration.update(default_auth_id=default_auth_id)
 
