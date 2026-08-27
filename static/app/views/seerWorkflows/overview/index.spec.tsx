@@ -1873,25 +1873,49 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('Code Changes')).not.toBeInTheDocument();
   });
 
-  it('defaults to Recent Seer Activity and omits the sort param', async () => {
+  it('defaults to Recommended and keeps the sort param out of the URL', async () => {
     const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
-    renderPage();
+    const {router} = renderPage();
 
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: /Sort/})).toHaveTextContent(
-      'Recent Seer Activity'
-    );
+    expect(screen.getByRole('button', {name: /Sort/})).toHaveTextContent('Recommended');
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
-        query: expect.not.objectContaining({sort: expect.anything()}),
+        query: expect.objectContaining({sort: 'recommended'}),
       })
     );
+    expect(router.location.query.sort).toBeUndefined();
+  });
+
+  it('omits the sort param for the Recent Seer Activity backend default', async () => {
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+
+    const {router} = renderPage();
+
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: /Sort/}));
+    await userEvent.click(screen.getByRole('option', {name: 'Recent Seer Activity'}));
+
+    await waitFor(() =>
+      expect(statusPollRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/seer/autofix-overview/`,
+        expect.objectContaining({
+          query: expect.not.objectContaining({sort: expect.anything()}),
+        })
+      )
+    );
+    expect(router.location.query.sort).toBe('seer');
   });
 
   it.each([

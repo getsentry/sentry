@@ -178,7 +178,7 @@ export function useAutofixOverview({
         query: {
           project: selection.projects,
           ...normalizeDateTimeParams(selection.datetime),
-          // Default sort keeps the URL clean and adds no backend Snuba work.
+          // 'seer' is the backend's default order, so it needs no sort param.
           ...(sort === 'seer' ? {} : {sort}),
           ...query,
         },
