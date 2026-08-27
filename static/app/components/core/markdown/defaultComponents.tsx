@@ -105,7 +105,7 @@ export function DefaultOrderedList({children}: {children: ReactNode}) {
   );
 }
 
-export function DefaultListItem({children}: {children: ReactNode; checked?: boolean}) {
+export function DefaultListItem({children}: {children: ReactNode}) {
   return <Container as="li">{children}</Container>;
 }
 

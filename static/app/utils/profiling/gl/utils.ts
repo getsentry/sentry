@@ -688,11 +688,9 @@ export function getTranslationMatrixFromPhysicalSpace(
   deltaX: number,
   deltaY: number,
   view: CanvasView<any>,
-  canvas: FlamegraphCanvas,
-  multiplierX = 0.8,
-  multiplierY = 1
+  canvas: FlamegraphCanvas
 ) {
-  const physicalDelta = vec2.fromValues(deltaX * multiplierX, deltaY * multiplierY);
+  const physicalDelta = vec2.fromValues(deltaX * 0.8, deltaY * 1);
   const physicalToConfig = mat3.invert(
     mat3.create(),
     view.fromConfigView(canvas.physicalSpace)
@@ -722,13 +720,10 @@ export function getConfigViewTranslationBetweenVectors(
   offsetY: number,
   start: vec2,
   view: CanvasView<any>,
-  canvas: FlamegraphCanvas,
-  invert?: boolean
+  canvas: FlamegraphCanvas
 ): mat3 | null {
   const physicalMousePos = getPhysicalSpacePositionFromOffset(offsetX, offsetY);
-  const physicalDelta = invert
-    ? vec2.subtract(vec2.create(), physicalMousePos, start)
-    : vec2.subtract(vec2.create(), start, physicalMousePos);
+  const physicalDelta = vec2.subtract(vec2.create(), start, physicalMousePos);
 
   if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
     return null;

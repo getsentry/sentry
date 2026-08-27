@@ -298,14 +298,11 @@ type DeleteEventAttachmentOptions = UseMutationOptions<
   DeleteEventAttachmentContext
 >;
 
-export const useDeleteEventAttachmentOptimistic = (
-  incomingOptions: Partial<DeleteEventAttachmentOptions> = {}
-) => {
+export const useDeleteEventAttachmentOptimistic = () => {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   const options: DeleteEventAttachmentOptions = {
-    ...incomingOptions,
     mutationFn: ({orgSlug, projectSlug, eventId, attachmentId}) => {
       return api.requestPromise(
         getApiUrl(
@@ -322,7 +319,7 @@ export const useDeleteEventAttachmentOptimistic = (
         {method: 'DELETE'}
       );
     },
-    onMutate: async (variables, context) => {
+    onMutate: async variables => {
       await queryClient.cancelQueries({
         queryKey: makeFetchEventAttachmentsQueryKey(variables),
       });
@@ -344,11 +341,9 @@ export const useDeleteEventAttachmentOptimistic = (
         }
       );
 
-      incomingOptions.onMutate?.(variables, context);
-
       return {previous};
     },
-    onError: (error, variables, onMutateResult, context) => {
+    onError: (_error, variables, onMutateResult) => {
       addErrorMessage(t('An error occurred while deleting the attachment'));
 
       if (onMutateResult) {
@@ -358,8 +353,6 @@ export const useDeleteEventAttachmentOptimistic = (
           onMutateResult.previous
         );
       }
-
-      incomingOptions.onError?.(error, variables, onMutateResult, context);
     },
   };
 

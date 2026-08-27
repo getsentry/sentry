@@ -4,7 +4,6 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import type {ButtonVariant} from '@sentry/scraps/button/types';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -66,16 +65,8 @@ const Anchor = styled('a', {
   ${getLinkStyles}
 `;
 
-type LinkPropsWithButtonBehavior = LinkProps & {
-  busy?: boolean;
-  variant?: ButtonVariant;
-};
-
-function LinkBase(props: LinkPropsWithButtonBehavior) {
+function LinkBase(props: LinkProps) {
   const {Component, behavior} = useLinkBehavior(props);
-  // LinkButton reuses this component for router links and passes these
-  // button-only props through at runtime. They are consumed by tracking and
-  // removed before reaching the router or DOM element.
   const propsWithBehavior = behavior();
   const {handleClick} = useClickTracking(propsWithBehavior, 'link');
 
@@ -91,8 +82,6 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     analyticsEventKey: _analyticsEventKey,
     analyticsEventName: _analyticsEventName,
     analyticsParams: _analyticsParams,
-    busy: _busy,
-    variant: _variant,
     ...linkProps
   } = propsWithBehavior;
 

@@ -108,8 +108,7 @@ export function generateIconName(
 
 export function getRelativeTimeFromEventDateCreated(
   eventDateCreated: string | undefined,
-  timestamp?: string,
-  showTimestamp = true
+  timestamp?: string
 ) {
   if (!defined(timestamp)) {
     return timestamp;
@@ -131,10 +130,6 @@ export function getRelativeTimeFromEventDateCreated(
   const relativeTime = `(${dateTime.from(referenceDate, true)} ${t(
     'before this event'
   )})`;
-
-  if (!showTimestamp) {
-    return <RelativeTime>{relativeTime}</RelativeTime>;
-  }
 
   return (
     <Fragment>
