@@ -483,6 +483,7 @@ export default typescript.config([
       '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-flag-comments': 'error',
       '@sentry/no-query-data-type-parameters': 'error',
+      '@sentry/no-redundant-default-argument': 'error',
       '@sentry/no-static-translations': 'error',
       '@sentry/no-raw-css-in-styled': 'error',
       '@sentry/no-styled-shortcut': 'error',
