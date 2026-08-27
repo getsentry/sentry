@@ -9,6 +9,7 @@ from sentry.models.pullrequest import (
     is_abandoned_pull_request_state,
 )
 from sentry.seer.models.run import (
+    RootCauseArtifactExtras,
     SeerRun,
     SeerRunMilestone,
     SeerRunMilestoneExtras,
@@ -49,12 +50,16 @@ def milestones_from_state(state: SeerRunState) -> dict[str, SeerRunMilestoneExtr
     result: dict[str, SeerRunMilestoneExtras] = {}
     artifacts = state.get_artifacts()
     if "root_cause" in artifacts:
-        description = (artifacts["root_cause"].data or {}).get("one_line_description")
-        result[SeerRunMilestoneType.ROOT_CAUSE] = (
-            {"root_cause_artifact": {"one_line_description": description}}
-            if isinstance(description, str)
-            else {}
-        )
+        data = artifacts["root_cause"].data or {}
+        description = data.get("one_line_description")
+        if isinstance(description, str):
+            extras: RootCauseArtifactExtras = {"one_line_description": description}
+            headline = data.get("headline")
+            if isinstance(headline, str) and headline:
+                extras["headline"] = headline
+            result[SeerRunMilestoneType.ROOT_CAUSE] = {"root_cause_artifact": extras}
+        else:
+            result[SeerRunMilestoneType.ROOT_CAUSE] = {}
     if "solution" in artifacts:
         summary = (artifacts["solution"].data or {}).get("one_line_summary")
         result[SeerRunMilestoneType.SOLUTION] = (
