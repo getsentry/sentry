@@ -20,7 +20,6 @@ export interface AssistantBlockProps extends BlockVariantProps {
   interactionPending?: boolean;
   readOnly?: boolean;
   runId?: SeerExplorerRunId;
-  sendMessage?: (query: string) => void;
 }
 
 export interface ToolUseBlockProps extends BlockVariantProps {

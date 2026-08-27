@@ -7,6 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -534,141 +535,142 @@ export function SeerExplorerContent({
   );
 
   return (
-    <Stack
-      ref={rootRef}
-      data-seer-explorer-root=""
-      width="100%"
-      height="100%"
-      position="relative"
-      background="primary"
-      overflow="hidden"
-      containerType="inline-size"
-    >
-      {renderHeader ? (
-        renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
-      ) : (
-        <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
-      )}
-      {menu}
-      {needsSlackUpgrade && (
-        <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
-      )}
-      <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-        {isEmptyState ? (
-          <EmptyState
-            isLoading={isPolling}
-            isError={isError}
-            errorStatusCode={errorStatusCode}
-            runId={runId}
-            displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
-            onSuggestionClick={readOnly ? undefined : sendMessage}
-          />
+    <AutofixChatProvider sendMessage={readOnly ? undefined : sendMessage}>
+      <Stack
+        ref={rootRef}
+        data-seer-explorer-root=""
+        width="100%"
+        height="100%"
+        position="relative"
+        background="primary"
+        overflow="hidden"
+        containerType="inline-size"
+      >
+        {renderHeader ? (
+          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
         ) : (
-          <Fragment>
-            {blocks.map((block: Block, index: number) => {
-              // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
-              const key = block.message.role === 'user' ? `user-${index}` : block.id;
+          <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
+        )}
+        {menu}
+        {needsSlackUpgrade && (
+          <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
+        )}
+        <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
+          {isEmptyState ? (
+            <EmptyState
+              isLoading={isPolling}
+              isError={isError}
+              errorStatusCode={errorStatusCode}
+              runId={runId}
+              displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
+              onSuggestionClick={readOnly ? undefined : sendMessage}
+            />
+          ) : (
+            <Fragment>
+              {blocks.map((block: Block, index: number) => {
+                // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
+                const key = block.message.role === 'user' ? `user-${index}` : block.id;
 
-              return (
-                <BlockComponent
-                  key={key}
-                  ref={el => {
-                    blockRefs.current[index] = el;
-                  }}
-                  block={block}
-                  blockIndex={index}
-                  blocks={blocks}
-                  runId={runId ?? undefined}
-                  getPageReferrer={getPageReferrer}
-                  interactionPending={
-                    isFileApprovalPending ||
-                    isAgentWriteApprovalPending ||
-                    isQuestionPending ||
-                    showReauth
-                  }
-                  pendingInput={pendingInput}
-                  readOnly={readOnly}
-                  respondToUserInput={respondToUserInput}
-                  sendMessage={readOnly ? undefined : sendMessage}
-                  showThinking={showThinking}
-                />
-              );
-            })}
-            {!readOnly &&
-              isFileApprovalPending &&
-              fileApprovalIndex < fileApprovalTotalPatches && (
-                <FileChangeApprovalBlock
-                  currentIndex={fileApprovalIndex}
-                  pendingInput={pendingInput}
+                return (
+                  <BlockComponent
+                    key={key}
+                    ref={el => {
+                      blockRefs.current[index] = el;
+                    }}
+                    block={block}
+                    blockIndex={index}
+                    blocks={blocks}
+                    runId={runId ?? undefined}
+                    getPageReferrer={getPageReferrer}
+                    interactionPending={
+                      isFileApprovalPending ||
+                      isAgentWriteApprovalPending ||
+                      isQuestionPending ||
+                      showReauth
+                    }
+                    pendingInput={pendingInput}
+                    readOnly={readOnly}
+                    respondToUserInput={respondToUserInput}
+                    showThinking={showThinking}
+                  />
+                );
+              })}
+              {!readOnly &&
+                isFileApprovalPending &&
+                fileApprovalIndex < fileApprovalTotalPatches && (
+                  <FileChangeApprovalBlock
+                    currentIndex={fileApprovalIndex}
+                    pendingInput={pendingInput}
+                  />
+                )}
+              {!readOnly && isQuestionPending && currentQuestion && (
+                <AskUserQuestionBlock
+                  currentQuestion={currentQuestion}
+                  customText={customText}
+                  isOtherSelected={isOtherSelected}
+                  onCustomTextChange={handleQuestionCustomTextChange}
+                  onSelectOption={handleQuestionSelectOption}
+                  questionIndex={questionIndex}
+                  selectedOption={selectedOption}
                 />
               )}
-            {!readOnly && isQuestionPending && currentQuestion && (
-              <AskUserQuestionBlock
-                currentQuestion={currentQuestion}
-                customText={customText}
-                isOtherSelected={isOtherSelected}
-                onCustomTextChange={handleQuestionCustomTextChange}
-                onSelectOption={handleQuestionSelectOption}
-                questionIndex={questionIndex}
-                selectedOption={selectedOption}
-              />
-            )}
-            {!readOnly && showReauth && reauthData && (
-              <ReauthMonitoringProviderBlock
-                data={reauthData}
-                onComplete={handleReauthComplete}
-                returnUrl={
-                  runId === null
-                    ? undefined
-                    : getRelativeExplorerUrl(runId, {resume: true})
+              {!readOnly && showReauth && reauthData && (
+                <ReauthMonitoringProviderBlock
+                  data={reauthData}
+                  onComplete={handleReauthComplete}
+                  returnUrl={
+                    runId === null
+                      ? undefined
+                      : getRelativeExplorerUrl(runId, {resume: true})
+                  }
+                />
+              )}
+            </Fragment>
+          )}
+        </BlocksContainer>
+        <InputSection
+          blocks={blocks}
+          enabled={!readOnly}
+          inputValue={inputValue}
+          canSendMessage={canSendMessage}
+          interruptState={interruptState}
+          isTimedOut={isTimedOut}
+          onCreatePR={createPR}
+          onInputChange={handleInputChange}
+          onInputClick={handleInputClick}
+          onInterrupt={interruptRun}
+          onKeyDown={handleInputKeyDown}
+          onSend={handleSend}
+          onPRWidgetClick={openPRWidget}
+          prWidgetButtonRef={prWidgetButtonRef}
+          repoPRStates={repoPRStates}
+          textAreaRef={textareaRef}
+          fileApprovalActions={
+            isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
+              ? {
+                  currentIndex: fileApprovalIndex,
+                  totalPatches: fileApprovalTotalPatches,
+                  onApprove: handleFileApprovalApprove,
+                  onReject: handleFileApprovalReject,
                 }
-              />
-            )}
-          </Fragment>
-        )}
-      </BlocksContainer>
-      <InputSection
-        blocks={blocks}
-        enabled={!readOnly}
-        inputValue={inputValue}
-        canSendMessage={canSendMessage}
-        interruptState={interruptState}
-        isTimedOut={isTimedOut}
-        onCreatePR={createPR}
-        onInputChange={handleInputChange}
-        onInputClick={handleInputClick}
-        onInterrupt={interruptRun}
-        onKeyDown={handleInputKeyDown}
-        onSend={handleSend}
-        onPRWidgetClick={openPRWidget}
-        prWidgetButtonRef={prWidgetButtonRef}
-        repoPRStates={repoPRStates}
-        textAreaRef={textareaRef}
-        fileApprovalActions={
-          isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
-            ? {
-                currentIndex: fileApprovalIndex,
-                totalPatches: fileApprovalTotalPatches,
-                onApprove: handleFileApprovalApprove,
-                onReject: handleFileApprovalReject,
-              }
-            : undefined
-        }
-        questionActions={
-          isQuestionPending && currentQuestion
-            ? {
-                currentIndex: questionIndex,
-                totalQuestions,
-                canSubmit: canSubmitQuestion,
-                onNext: handleQuestionNext,
-                onBack: handleQuestionBack,
-                onMoveUp: handleQuestionMoveUp,
-                onMoveDown: handleQuestionMoveDown,
-              }
-            : undefined
-        }
-      />
-    </Stack>
+              : undefined
+          }
+          questionActions={
+            isQuestionPending && currentQuestion
+              ? {
+                  currentIndex: questionIndex,
+                  totalQuestions,
+                  canSubmit: canSubmitQuestion,
+                  onNext: handleQuestionNext,
+                  onBack: handleQuestionBack,
+                  onMoveUp: handleQuestionMoveUp,
+                  onMoveDown: handleQuestionMoveDown,
+                }
+              : undefined
+          }
+        />
+      </Stack>
+    </AutofixChatProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import {createContext, useContext, useMemo, type ReactNode} from 'react';
+import {useMemo, type ReactNode} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -26,6 +26,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -127,32 +128,6 @@ export const NEXT_STEP: Partial<Record<AutofixExplorerStep, AutofixExplorerStep>
   solution: 'code_changes',
 };
 
-/**
- * Lets the AutofixRef embed post a message into the enclosing Seer Explorer
- * chat instead of calling the autofix API directly, so the chat transcript
- * keeps a timestamped record of the retry/continue/draft-PR action. Provided
- * by `AssistantBlock`, where the embed actually renders; `sendMessage` is
- * undefined wherever that provider isn't mounted (e.g. Storybook), in which
- * case the buttons render disabled.
- */
-const AutofixChatContext = createContext<{
-  sendMessage?: (query: string) => void;
-}>({});
-
-export function AutofixChatProvider({
-  children,
-  sendMessage,
-}: {
-  children: ReactNode;
-  sendMessage?: (query: string) => void;
-}) {
-  return (
-    <AutofixChatContext.Provider value={{sendMessage}}>
-      {children}
-    </AutofixChatContext.Provider>
-  );
-}
-
 interface AutofixRefContentProps extends Pick<Group, 'id' | 'shortId'> {
   runId: string | number;
   step: AutofixExplorerStep;
@@ -161,7 +136,7 @@ interface AutofixRefContentProps extends Pick<Group, 'id' | 'shortId'> {
 function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const autofix = useExplorerAutofix({id, shortId});
   const {runState, isLoading, isPolling} = autofix;
-  const {sendMessage} = useContext(AutofixChatContext);
+  const {sendMessage} = useAutofixChat();
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);

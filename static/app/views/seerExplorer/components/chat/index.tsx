@@ -25,7 +25,6 @@ interface BlockProps {
   ref?: React.Ref<HTMLDivElement>;
   respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
   runId?: SeerExplorerRunId;
-  sendMessage?: (query: string) => void;
   showThinking?: boolean;
 }
 
@@ -72,7 +71,6 @@ function BlockVariant(props: Omit<BlockProps, 'onClick' | 'ref'>) {
           runId={props.runId}
           interactionPending={props.interactionPending}
           readOnly={props.readOnly}
-          sendMessage={props.sendMessage}
         />
       );
     default: {
