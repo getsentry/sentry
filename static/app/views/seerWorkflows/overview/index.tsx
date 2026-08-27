@@ -299,9 +299,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     .map(run => run.seerRunId);
   const orderedPrRunIdsKey = orderedPrRunIds.join(',');
   const scmWindowsByRunId = useMemo(() => {
+    const ids = orderedPrRunIdsKey ? orderedPrRunIdsKey.split(',') : [];
     const windows: string[][] = [];
-    for (let start = 0; start < orderedPrRunIds.length; start += SCM_WINDOW_SIZE) {
-      windows.push(orderedPrRunIds.slice(start, start + SCM_WINDOW_SIZE));
+    for (let start = 0; start < ids.length; start += SCM_WINDOW_SIZE) {
+      windows.push(ids.slice(start, start + SCM_WINDOW_SIZE));
     }
     const map = new Map<string, string[][]>();
     windows.forEach((window, index) => {
@@ -312,7 +313,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       }
     });
     return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderedPrRunIdsKey]);
 
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
