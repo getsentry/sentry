@@ -7,6 +7,7 @@ import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 
@@ -52,7 +53,7 @@ import {
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys} from './types';
-import {connectDashboardCharts, getMergedDashboardFilters} from './utils';
+import {getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -196,7 +197,7 @@ function DashboardInner({
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
 
-    connectDashboardCharts(DASHBOARD_CHART_GROUP);
+    connect(DASHBOARD_CHART_GROUP);
     trackEngagementAnalytics(
       dashboard.widgets,
       organization,
