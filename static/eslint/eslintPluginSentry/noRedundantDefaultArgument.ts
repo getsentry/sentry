@@ -365,34 +365,42 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     }
 
     function checkCall(node: TSESTree.CallExpression, defaults: FunctionDefaults) {
-      let firstRedundantPosition = node.arguments.length;
+      const spreadIndex = node.arguments.findIndex(
+        argument => argument.type === AST_NODE_TYPES.SpreadElement
+      );
 
-      for (let index = node.arguments.length - 1; index >= 0; index--) {
-        const argument = node.arguments[index]!;
-        const defaultValue = defaults.positional.get(index);
-        const value = getHardcodedValue(argument);
-        if (
-          !defaultValue ||
-          value === NOT_HARDCODED ||
-          !Object.is(value, defaultValue.value)
-        ) {
-          break;
+      if (spreadIndex === -1) {
+        let firstRedundantPosition = node.arguments.length;
+
+        for (let index = node.arguments.length - 1; index >= 0; index--) {
+          const argument = node.arguments[index]!;
+          const defaultValue = defaults.positional.get(index);
+          const value = getHardcodedValue(argument);
+          if (
+            !defaultValue ||
+            value === NOT_HARDCODED ||
+            !Object.is(value, defaultValue.value)
+          ) {
+            break;
+          }
+          firstRedundantPosition = index;
         }
-        firstRedundantPosition = index;
+
+        for (let index = firstRedundantPosition; index < node.arguments.length; index++) {
+          report(
+            node.arguments[index]!,
+            defaults.positional.get(index)!,
+            'argument',
+            index === firstRedundantPosition
+              ? fixer => removeTrailingArguments(fixer, node, firstRedundantPosition)
+              : undefined
+          );
+        }
       }
 
-      for (let index = firstRedundantPosition; index < node.arguments.length; index++) {
-        report(
-          node.arguments[index]!,
-          defaults.positional.get(index)!,
-          'argument',
-          index === firstRedundantPosition
-            ? fixer => removeTrailingArguments(fixer, node, firstRedundantPosition)
-            : undefined
-        );
-      }
-
-      node.arguments.forEach((argument, index) => {
+      const alignedArgumentCount =
+        spreadIndex === -1 ? node.arguments.length : spreadIndex;
+      node.arguments.slice(0, alignedArgumentCount).forEach((argument, index) => {
         const objectDefaults = defaults.objectProperties.get(index);
         if (argument.type === AST_NODE_TYPES.ObjectExpression && objectDefaults) {
           checkObjectExpression(argument, objectDefaults);

@@ -33,6 +33,18 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
       code: 'function foo(value = 0, other = 1) {} foo(0, 2);',
     },
     {
+      name: 'spread prevents positional argument alignment',
+      code: 'function foo(first, value = 20) {} foo(...values, 20);',
+    },
+    {
+      name: 'later spread prevents positional argument omission',
+      code: 'function foo(value = 20, ...rest) {} foo(20, ...values);',
+    },
+    {
+      name: 'object argument after spread is not aligned',
+      code: 'function foo(first, {value = 5}) {} foo(...values, {value: 5});',
+    },
+    {
       name: 'parameter has no default',
       code: 'function foo(value) {} foo(0);',
     },
@@ -187,6 +199,12 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
       name: 'object spread before explicit property',
       code: 'function foo({value = 5}) {} foo({...other, value: 5});',
       output: 'function foo({value = 5}) {} foo({...other});',
+      errors: [{messageId: 'redundantDefaultValue'}],
+    },
+    {
+      name: 'object argument before call spread stays aligned',
+      code: 'function foo({value = 5}, ...rest) {} foo({value: 5}, ...values);',
+      output: 'function foo({value = 5}, ...rest) {} foo({}, ...values);',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
