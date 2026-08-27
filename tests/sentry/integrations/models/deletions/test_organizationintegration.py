@@ -132,7 +132,9 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         organization_integration.update(status=ObjectStatus.PENDING_DELETION)
 
         task = deletions.get(
-            model=OrganizationIntegration, query={"id": organization_integration.id}
+            model=OrganizationIntegration,
+            query={"id": organization_integration.id},
+            claim_pending_deletion=True,
         )
         assert isinstance(task, OrganizationIntegrationDeletionTask)
 
@@ -181,10 +183,12 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         assert organization_integration is not None
         assert organization_integration.status == ObjectStatus.ACTIVE
 
+        # Cascade constructs the task without claim_pending_deletion.
         task = deletions.get(
             model=OrganizationIntegration, query={"id": organization_integration.id}
         )
         assert isinstance(task, OrganizationIntegrationDeletionTask)
+        assert task.claim_pending_deletion is False
 
         with mock.patch.object(
             OrganizationIntegrationDeletionTask,

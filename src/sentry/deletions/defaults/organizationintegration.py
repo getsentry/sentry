@@ -1,9 +1,11 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.db import router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.deletions.manager import DeletionTaskManager
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import repository_service
 from sentry.types.cell import CellMappingNotFound
@@ -12,30 +14,34 @@ DELETABLE_STATUSES = (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PR
 
 
 class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegration]):
+    def __init__(
+        self,
+        manager: DeletionTaskManager,
+        model: type[OrganizationIntegration],
+        query: Mapping[str, Any],
+        *,
+        claim_pending_deletion: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(manager, model, query, **kwargs)
+        # Scheduled uninstall races with reinstall and must claim under lock.
+        # Hybrid-cloud org tombstone cascade deletes ACTIVE rows at high volume
+        # and must not take that lock.
+        self.claim_pending_deletion = claim_pending_deletion
+
     def should_proceed(self, instance: OrganizationIntegration) -> bool:
         return instance.status in DELETABLE_STATUSES
 
     def delete_bulk(self, instance_list: Sequence[OrganizationIntegration]) -> bool:
-        """
-        OrganizationIntegration is deleted from two paths:
-
-        1. Scheduled / manual uninstall: rows are PENDING_DELETION and can race
-           with re-install. Those need a row lock + claim.
-        2. Hybrid-cloud org tombstone cascade: rows are typically still ACTIVE
-           after the parent org is gone. That path is high volume and must not
-           take the race lock or refuse ACTIVE rows.
-
-        Only the uninstall race path uses select_for_update.
-        """
-        claimed: list[OrganizationIntegration] = []
-        for instance in instance_list:
-            if instance.status in DELETABLE_STATUSES:
-                if self._claim_for_scheduled_deletion(instance):
-                    claimed.append(instance)
-            else:
-                # Cascade / hard-delete path: parent org is already gone, so the
-                # reinstall race does not apply. Keep the ordinary delete query.
-                claimed.append(instance)
+        if self.claim_pending_deletion:
+            claimed = [
+                instance
+                for instance in instance_list
+                if self._claim_for_scheduled_deletion(instance)
+            ]
+        else:
+            # Cascade / hard-delete: no uninstall↔reinstall race to guard.
+            claimed = list(instance_list)
 
         if not claimed:
             return False
