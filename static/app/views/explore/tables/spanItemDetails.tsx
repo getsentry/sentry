@@ -72,7 +72,7 @@ export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
     [selection.datetime]
   );
 
-  const {data, isError, isFetching, refetch} = useTraceItemDetails({
+  const {data, isError, isLoading, refetch} = useTraceItemDetails({
     traceItemId: spanId,
     projectId: project?.id ?? '',
     traceId,
@@ -101,7 +101,7 @@ export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
     [data?.attributes]
   );
 
-  if (isFetching) {
+  if (isLoading) {
     return (
       <SpanItemDetailsContainer>
         <Flex align="center" justify="center" minHeight="100px">
