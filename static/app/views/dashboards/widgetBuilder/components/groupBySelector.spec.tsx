@@ -95,6 +95,48 @@ describe('WidgetBuilderGroupBySelector', () => {
     });
   });
 
+  it('renders saved group bys on typed EAP attributes with prettified names', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {key: 'tags[my_number,number]', name: 'my_number', attributeType: 'number'},
+        {key: 'tags[my_boolean,boolean]', name: 'my_boolean', attributeType: 'boolean'},
+        {key: 'tags[my_string,string]', name: 'my_string', attributeType: 'string'},
+      ],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+      </WidgetBuilderProvider>,
+      {
+        organization: OrganizationFixture({features: ['ourlogs-enabled']}),
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {
+              dataset: WidgetType.LOGS,
+              displayType: DisplayType.LINE,
+              // Saved group bys keep the explicit `tags[name,type]` form.
+              field: [
+                'tags[my_number,number]',
+                'tags[my_boolean,boolean]',
+                'tags[my_string,string]',
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('my_number')).toBeInTheDocument();
+    expect(await screen.findByText('my_boolean')).toBeInTheDocument();
+    expect(await screen.findByText('my_string')).toBeInTheDocument();
+    expect(screen.queryByText('tags[my_boolean,boolean]')).not.toBeInTheDocument();
+    expect(screen.queryByText('tags[my_string,string]')).not.toBeInTheDocument();
+  });
+
   it('disables group by selector when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
     const organizationWithFeature = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
