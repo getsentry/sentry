@@ -22,7 +22,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import features, options, quotas, roles
+from sentry import audit_log, features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -755,6 +755,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     )
 
                 dashboard = serializer.save()
+
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=dashboard.id,
+                event=audit_log.get_event_id("DASHBOARD_ADD"),
+                data=dashboard.get_audit_log_data(),
+            )
 
             body: DashboardDetailsResponse = serialize(dashboard, request.user)
             return Response(body, status=201)

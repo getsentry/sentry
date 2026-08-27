@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboard_revision_restore import (
     _prepare_restore_data,
 )
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.models.dashboard_permissions import DashboardPermissions
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 
 
@@ -125,6 +127,16 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
 
         self.dashboard.refresh_from_db()
         assert self.dashboard.title == "Old Title"
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("DASHBOARD_EDIT"),
+            target_object=self.dashboard.id,
+            data={
+                **self.dashboard.get_audit_log_data(),
+                "revision_id": revision.id,
+                "source": "restore",
+            },
+        )
 
     def test_creates_pre_restore_snapshot(self) -> None:
         revision = self._create_revision(snapshot={"title": "Old Title", "widgets": []})
