@@ -9,7 +9,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
@@ -40,7 +40,7 @@ import type {PullRequestStatus} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getMessage, getTitle} from 'sentry/utils/events';
+import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseActorString} from 'sentry/utils/parseActorString';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -57,6 +57,10 @@ import {IssueListContainer} from 'sentry/views/issueList';
 import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreview';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
+import {
+  type AssignmentFilter,
+  useAssignmentFilter,
+} from 'sentry/views/issueList/pages/useAssignmentFilter';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
@@ -65,14 +69,10 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
-const ASSIGNMENT_QUERY_PARAM = 'assignment';
-const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
 const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
-type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
-
 interface AssignmentCounts {
   all: number;
   me: number;
@@ -312,12 +312,7 @@ function InboxContent() {
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
   const hasSeer = orgHasSeerAccess(organization);
-  const [assignmentFilter, setAssignmentFilter] = useQueryState(
-    ASSIGNMENT_QUERY_PARAM,
-    parseAsStringLiteral(ASSIGNMENT_FILTERS)
-      .withDefault('me')
-      .withOptions({history: 'replace'})
-  );
+  const [assignmentFilter, setAssignmentFilter] = useAssignmentFilter();
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
@@ -710,8 +705,8 @@ function InboxIssueCard({
         onClick={() =>
           trackAnalytics('issue_inbox.item_clicked', {
             organization,
+            ...getAnalyticsDataForGroup(group),
             assignment_filter: assignmentFilter,
-            group_id: group.id,
             progress: group.derivedData?.progress,
             last_progressed_at: group.derivedData?.lastProgressedAt ?? null,
           })
