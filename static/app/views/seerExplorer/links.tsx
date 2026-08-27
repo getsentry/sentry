@@ -34,9 +34,16 @@ import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
 /**
  * Where a Code Mode call sends you.
  *
- * `LINK_RULES` below is the only place in the app that knows. One table, one entry shape, read top
- * to bottom, first rule that resolves wins. A call no rule claims still renders as a row — it just
- * is not a link.
+ * `LINK_RULES` below is the only place in the app that knows. One table, one entry shape.
+ *
+ * Resolution order:
+ * 1. A lib helper or seer-emitted link whose `name` equals a rule id is tried first (by name).
+ * 2. Otherwise the **longest path prefix** wins: each entity rule declares a `prefix` regex over the
+ *    templated API path; the match that ends furthest to the right is preferred, so
+ *    `/issues/{issue_id}/tags/` links as an issue and `/projects/.../releases/{version}/files/` as a
+ *    release rather than a project. Ties keep table order. A rule that matches but returns null is
+ *    skipped and the next-longest is tried.
+ * 3. A call no rule claims still renders as a row — it just is not a link.
  *
  * ## Adding a link
  *
@@ -45,11 +52,11 @@ import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
  * 1. Find the route. The row's text is a title seer generates from
  *    `src/seer/experimental/mcp/call_title_lock.json` in the seer repo — grep the phrase there and
  *    the key is the `"<METHOD> <templated path>"` you need.
- * 2. Add a rule. `match` is a plain predicate over the call; write a comparison or a regex inline.
- *    `resolve` returns `{label, url}`, or `null` to decline and let a later rule try.
+ * 2. Add a rule. Give it a `prefix` over the entity segment in the templated path (not only the
+ *    end-of-path form). Nested calls under that entity inherit the same destination. `resolve`
+ *    returns `{label, url}`, or `null` to decline and let a shorter prefix try.
  * 3. Add its example to `LINK_RULE_EXAMPLES` in `links.spec.tsx`. The spec asserts every rule has
- *    one, that the example actually reaches the rule (nothing above it matches first), and that it
- *    resolves — so a rule buried under a more generic one fails by name.
+ *    one and that the example resolves to that rule under longest-prefix selection.
  * 4. `pnpm test-ci static/app/views/seerExplorer/`.
  *
  * Nothing on the seer side changes, and no other file needs editing.
@@ -104,15 +111,18 @@ export type LinkResult = {
 export type LinkRule = {
   /**
    * Identifies the rule, and doubles as the call name it answers to: a lib method or seer-emitted
-   * link whose name equals this id reaches the rule without needing a `match`.
+   * link whose name equals this id reaches the rule without needing a path `prefix`.
    *
    * Reported as the `tool_kind` analytics dimension when the link is clicked, so renaming one
    * breaks that series.
    */
   id: string;
   resolve: (subject: LinkSubject, ctx: LinkContext) => LinkResult | null;
-  /** Omit for a rule that only ever answers to its own name. */
-  match?: (subject: LinkSubject) => boolean;
+  /**
+   * Templated-path segment this rule owns. Used for longest-prefix selection among path-matched
+   * API rows. Omit for name-only rules (lib helpers, seer-emitted links, search).
+   */
+  prefix?: RegExp;
 };
 
 /**
@@ -145,7 +155,8 @@ function asUrlSegment(value: unknown): string | undefined {
  */
 const ISSUE_RULE: LinkRule = {
   id: 'get_issue_details',
-  match: ({path}) => /\{issue_id\}\/?$/.test(path ?? ''),
+  // Any call under `/issues/{issue_id}/…` (tags, notes, hashes, …) inherits the issue page.
+  prefix: /\/issues\/\{issue_id\}/,
   resolve: ({params, title}) => {
     const {start, end} = params;
     const issueId = asUrlSegment(params.issue_id);
@@ -166,13 +177,15 @@ const ISSUE_RULE: LinkRule = {
 };
 
 export const LINK_RULES: LinkRule[] = [
-  // --- Entities. A route earns one of these by *ending* at the param that names its subject:
-  // `/issues/{issue_id}/` is about an issue, `/issues/{issue_id}/tags/` is about tags, and there is
-  // no tags page to send anyone to. ---
+  // --- Entities. Each `prefix` is the path segment that names the subject. Nested routes under that
+  // segment inherit the same destination via longest-prefix selection (e.g. issue tags → issue).
+  // More specific prefixes (event under issue, release under project) win because they end further
+  // to the right in the templated path. ---
 
   {
     id: 'get_event_details',
-    match: ({path}) => /\{event_id\}\/?$/.test(path ?? ''),
+    // Issue-scoped event only — project events use `get_project_event`.
+    prefix: /\/issues\/\{issue_id\}\/events\/\{event_id\}/,
     resolve: (subject, ctx) => {
       const {params, title} = subject;
       const {start, end} = params;
@@ -200,7 +213,7 @@ export const LINK_RULES: LinkRule[] = [
   ISSUE_RULE,
   {
     id: 'get_trace_waterfall',
-    match: ({path}) => /\{trace_id\}\/?$/.test(path ?? ''),
+    prefix: /\/trace(?:-meta)?\/\{trace_id\}/,
     resolve: ({params, title}) => {
       const {span_id, timestamp} = params;
       const traceId = asUrlSegment(params.trace_id);
@@ -246,7 +259,7 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_replay_details',
-    match: ({path}) => /\{replay_id\}\/?$/.test(path ?? ''),
+    prefix: /\/replays\/\{replay_id\}/,
     resolve: ({params, title}, {organization}) => {
       const replayId = asUrlSegment(params.replay_id);
       if (!replayId) {
@@ -263,7 +276,8 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_project_details',
-    match: ({path}) => /\{project_id_or_slug\}\/?$/.test(path ?? ''),
+    // Broad project root. Nested release/monitor/rule/event prefixes end further right and win.
+    prefix: /\/projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\}/,
     resolve: ({params, title}, {organization, projects}) => {
       const value = asUrlSegment(params.project_id_or_slug);
       if (!value) {
@@ -289,9 +303,8 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_profile_flamegraph',
-    // Lib helper emits by name; the profiles API ends at `{profile_id}` and carries the project
-    // as a path param instead of `project_id`.
-    match: ({path}) => /\{profile_id\}\/?$/.test(path ?? ''),
+    // Lib helper emits by name; the profiles API carries the project as a path param.
+    prefix: /\/profiles\/\{profile_id\}/,
     resolve: ({params, title}, {projects}) => {
       const {is_continuous, start_ts, end_ts, thread_id} = params;
       const profileId = asUrlSegment(params.profile_id);
@@ -337,7 +350,7 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_dashboard_details',
-    match: ({path}) => /\/dashboards\/\{dashboard_id\}\/?$/.test(path ?? ''),
+    prefix: /\/dashboards\/\{dashboard_id\}/,
     resolve: ({params, title}) => {
       const dashboardId = asUrlSegment(params.dashboard_id);
       if (!dashboardId) {
@@ -353,7 +366,7 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_release_details',
-    match: ({path}) => /\/releases\/\{version\}\/?$/.test(path ?? ''),
+    prefix: /\/releases\/\{version\}/,
     resolve: ({params, title}, {organization, projects}) => {
       const version = asUrlSegment(params.version);
       if (!version) {
@@ -377,7 +390,7 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_detector_details',
-    match: ({path}) => /\/detectors\/\{detector_id\}\/?$/.test(path ?? ''),
+    prefix: /\/detectors\/\{detector_id\}/,
     resolve: ({params, title}, {organization}) => {
       const detectorId = asUrlSegment(params.detector_id);
       if (!detectorId) {
@@ -392,7 +405,7 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_workflow_details',
-    match: ({path}) => /\/workflows\/\{workflow_id\}\/?$/.test(path ?? ''),
+    prefix: /\/workflows\/\{workflow_id\}/,
     resolve: ({params, title}, {organization}) => {
       const workflowId = asUrlSegment(params.workflow_id);
       if (!workflowId) {
@@ -409,7 +422,7 @@ export const LINK_RULES: LinkRule[] = [
     id: 'get_cron_monitor_details',
     // Classic cron monitors. The workflow-engine `detectors` route is a different surface and is
     // claimed above; these still need project + slug for the alerts UI.
-    match: ({path}) => /\/monitors\/\{monitor_id_or_slug\}\/?$/.test(path ?? ''),
+    prefix: /\/monitors\/\{monitor_id_or_slug\}/,
     resolve: ({params, title}, {organization, projects}) => {
       const monitor = asUrlSegment(params.monitor_id_or_slug);
       if (!monitor) {
@@ -436,7 +449,7 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_issue_alert_rule',
-    match: ({path}) => /\/rules\/\{rule_id\}\/?$/.test(path ?? ''),
+    prefix: /\/rules\/\{rule_id\}/,
     resolve: ({params, title}, {organization, projects}) => {
       const ruleId = asUrlSegment(params.rule_id);
       if (!ruleId) {
@@ -462,9 +475,7 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_member_details',
-    match: ({path}) =>
-      /\/members\/\{member_id\}\/?$/.test(path ?? '') ||
-      /\/scim\/v2\/Users\/\{member_id\}$/.test(path ?? ''),
+    prefix: /(?:\/members\/\{member_id\}|\/scim\/v2\/Users\/\{member_id\})/,
     resolve: ({params, title}, {organization}) => {
       const memberId = asUrlSegment(params.member_id);
       if (!memberId) {
@@ -480,9 +491,9 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_team_details',
-    match: ({path}) =>
-      /\/teams\/\{organization_id_or_slug\}\/\{team_id_or_slug\}\/?$/.test(path ?? '') ||
-      /\/scim\/v2\/Groups\/\{team_id_or_slug\}$/.test(path ?? ''),
+    // Require the org+team teams route (or SCIM). Do not claim `/members/…/teams/…` membership rows.
+    prefix:
+      /(?:\/teams\/\{organization_id_or_slug\}\/\{team_id_or_slug\}|\/scim\/v2\/Groups\/\{team_id_or_slug\})/,
     resolve: ({params, title}, {organization}) => {
       const team = asUrlSegment(params.team_id_or_slug);
       if (!team) {
@@ -505,11 +516,9 @@ export const LINK_RULES: LinkRule[] = [
     id: 'get_project_event',
     // Project event fetch has no issue id. `/projects/:project/events/:event/` resolves the group
     // client-side (ProjectEventRedirect) — better than leaving the row dead when the issue route
-    // cannot be built.
-    match: ({path}) =>
-      /\/projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\}\/events\/\{event_id\}\/?$/.test(
-        path ?? ''
-      ),
+    // cannot be built. Prefix ends after `{event_id}`, so it beats the bare project root.
+    prefix:
+      /\/projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\}\/events\/\{event_id\}/,
     resolve: ({params, title}, {projects}) => {
       const eventId = asUrlSegment(params.event_id);
       if (!eventId) {
@@ -598,8 +607,9 @@ export const LINK_RULES: LinkRule[] = [
  * Where a call links to, or null when no rule claims it — which is the common case, and not a
  * failure: a row with no link is still a row, labeled by the title seer shipped.
  *
- * Rules run in order. One that matches but returns null has declined, and the search continues —
- * so a generic rule can sit under a specific one without swallowing it.
+ * Name-matched rules (lib / seer bus) are tried first. Path-matched API rows use longest prefix:
+ * the `prefix` match that ends furthest right wins; a resolve that returns null falls through to
+ * the next-longest candidate.
  */
 export function resolveLink(
   subject: LinkSubject,
@@ -611,21 +621,40 @@ export function resolveLink(
     return null;
   }
 
-  for (const rule of LINK_RULES) {
-    if (subject.name !== rule.id && rule.match?.(subject) !== true) {
-      continue;
-    }
+  const finish = (rule: LinkRule, result: LinkResult) => ({
+    id: rule.id,
+    label: result.label,
+    url: scopeToOrganization(result.url, ctx.organization),
+  });
 
+  // Lib helpers and seer-emitted links address a rule by name.
+  if (subject.name) {
+    const named = LINK_RULES.find(rule => rule.id === subject.name);
+    if (named) {
+      const result = named.resolve(subject, ctx);
+      if (result) {
+        return finish(named, result);
+      }
+    }
+  }
+
+  const path = subject.path ?? '';
+  const ranked = LINK_RULES.flatMap((rule, index) => {
+    if (!rule.prefix) {
+      return [];
+    }
+    const match = rule.prefix.exec(path);
+    if (!match) {
+      return [];
+    }
+    return [{rule, index, end: match.index + match[0].length}];
+  }).sort((a, b) => b.end - a.end || a.index - b.index);
+
+  for (const {rule} of ranked) {
     const result = rule.resolve(subject, ctx);
-    if (!result) {
-      continue;
+    if (result) {
+      return finish(rule, result);
     }
-
-    return {
-      id: rule.id,
-      label: result.label,
-      url: scopeToOrganization(result.url, ctx.organization),
-    };
   }
   return null;
 }

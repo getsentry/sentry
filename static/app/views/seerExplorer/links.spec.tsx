@@ -23,8 +23,7 @@ const ctx = {organization, projects};
  * One call per rule that reaches it and resolves.
  *
  * Lives here rather than in `links.tsx` so the app bundle carries only the strings it renders. The
- * tests below turn this map into the two guards a table read top-to-bottom needs: that every rule is
- * reachable, and that none is shadowed by a more generic rule above it.
+ * tests below assert every rule is reachable under longest-prefix selection (or by name).
  *
  * A rule added without an entry fails `coverage`, by name.
  */
@@ -140,10 +139,6 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
   },
 };
 
-function matches(rule: (typeof LINK_RULES)[number], subject: LinkSubject) {
-  return subject.name === rule.id || rule.match?.(subject) === true;
-}
-
 describe('LINK_RULES', () => {
   it('has an example for every rule, and no example for a rule that does not exist', () => {
     expect(Object.keys(LINK_RULE_EXAMPLES).sort()).toEqual(
@@ -156,19 +151,12 @@ describe('LINK_RULES', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  // The table is read top to bottom, so a rule placed under a more generic one that also matches its
-  // example is dead code. This is the guard that makes ordering a checkable property rather than
-  // something a reviewer has to hold in their head.
+  // Longest-prefix selection (or name match) must still land each example on its own rule. A more
+  // generic prefix that ends further right would steal it; a missing prefix would leave it null.
   it.each(LINK_RULES.map(rule => [rule.id] as const))(
     '%s is reachable, and resolves its example',
     id => {
-      const index = LINK_RULES.findIndex(rule => rule.id === id);
       const subject = LINK_RULE_EXAMPLES[id]!;
-      const shadowedBy = LINK_RULES.slice(0, index).filter(
-        earlier => matches(earlier, subject) && earlier.resolve(subject, ctx)
-      );
-
-      expect(shadowedBy.map(rule => rule.id)).toEqual([]);
       expect(resolveLink(subject, ctx)?.id).toBe(id);
     }
   );
@@ -243,10 +231,10 @@ describe('resolveLink', () => {
     ).toBeNull();
   });
 
-  // A literal segment where an entity rule expects a param: this route ends at `latest/`, so it names
-  // no event, and it does not end at `{issue_id}` either. Both entity regexes miss and the row is a
-  // row about fetching, not about a thing you can open.
-  it('claims nothing for a route whose last segment is a literal, not a param', () => {
+  // `/issues/{issue_id}/events/latest/` is not a concrete event (API-only alias), so the event rule
+  // declines. Longest-prefix still finds `/issues/{issue_id}/` and links the issue page instead of
+  // leaving the row dead — better than a 404 event URL, and matches nested issue inheritance.
+  it('falls back from an API-only event alias to the issue page', () => {
     expect(
       resolveLink(
         {
@@ -258,7 +246,11 @@ describe('resolveLink', () => {
         },
         ctx
       )
-    ).toBeNull();
+    ).toEqual({
+      id: 'get_issue_details',
+      label: 'Retrieve the Latest Event',
+      url: {pathname: '/organizations/org-slug/issues/54/', query: {}},
+    });
   });
 
   it('does not double-prefix a path that is already org-scoped', () => {
@@ -387,7 +379,7 @@ describe('entity links added for Code Mode API coverage', () => {
     ).toBeNull();
   });
 
-  it('does not treat a nested team membership call as a team page', () => {
+  it('treats nested team membership as the member, not the team page', () => {
     expect(
       resolveLink(
         {
@@ -397,8 +389,8 @@ describe('entity links added for Code Mode API coverage', () => {
           params: {member_id: '7', team_id_or_slug: 'frontend'},
         },
         ctx
-      )
-    ).toBeNull();
+      )?.id
+    ).toBe('get_member_details');
   });
 
   it('routes a project event through ProjectEventRedirect when no issue id is present', () => {
@@ -489,8 +481,8 @@ describe('project links', () => {
     expect(resolveLink(subject, ctx)).toBeNull();
   });
 
-  // The other half of the routes ending at `{project_id_or_slug}`: a row about a weekly-report
-  // exclusion is not a row about a project, and the method guard is what keeps it from linking.
+  // Weekly-report exclusions sit under `/organizations/…/…/{project_id_or_slug}/`, not the
+  // `/projects/{org}/{project}/` prefix, so the project rule never claims them. DELETE also blocks.
   it('does not link a weekly-report exclusion to the project page', () => {
     const subject: LinkSubject = {
       kind: 'api',
@@ -500,6 +492,88 @@ describe('project links', () => {
       title: 'Remove a Weekly Report Exclusion',
     };
     expect(resolveLink(subject, ctx)).toBeNull();
+  });
+});
+
+describe('longest path prefix inheritance', () => {
+  it('links nested issue subresources to the issue page', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/tags/{key}/',
+          params: {issue_id: '54', key: 'browser'},
+          title: "List an Issue's Tags",
+        },
+        ctx
+      )
+    ).toEqual({
+      id: 'get_issue_details',
+      label: "List an Issue's Tags",
+      url: {pathname: '/organizations/org-slug/issues/54/', query: {}},
+    });
+  });
+
+  it('prefers a release over the project root on nested release paths', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/files/',
+          params: {project_id_or_slug: 'javascript', version: '1.2.3'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_release_details');
+  });
+
+  it('prefers project event over the bare project root', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/attachments/',
+          params: {project_id_or_slug: 'javascript', event_id: 'deadbeef'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_project_event');
+  });
+
+  it('links nested project hooks to the project page', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/',
+          params: {project_id_or_slug: 'javascript', hook_id: '9'},
+          title: 'Retrieve a Service Hook',
+        },
+        ctx
+      )
+    ).toEqual({
+      id: 'get_project_details',
+      label: 'Retrieve a Service Hook',
+      url: {pathname: '/organizations/org-slug/insights/projects/javascript/'},
+    });
+  });
+
+  it('still prefers member over team on nested membership paths', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'PUT',
+          path: '/api/0/organizations/{organization_id_or_slug}/members/{member_id}/teams/{team_id_or_slug}/',
+          params: {member_id: '7', team_id_or_slug: 'frontend'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_member_details');
   });
 });
 
