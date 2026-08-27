@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 import {EmbedStory, EmbedVariant} from './embedStory';
@@ -21,6 +22,17 @@ const STORY_DETECTOR_ALERTS = [
   type: Detector['type'];
 }>;
 
+function issueAlertApiOptions(organizationSlug: string, issueAlertId?: string) {
+  return apiOptions.as<Automation[]>()(
+    '/organizations/$organizationIdOrSlug/workflows/',
+    {
+      path: issueAlertId ? {organizationIdOrSlug: organizationSlug} : skipToken,
+      query: {id: issueAlertId ? [issueAlertId] : undefined, per_page: 1},
+      staleTime: 0,
+    }
+  );
+}
+
 export function AlertEmbedStory() {
   const organization = useOrganization();
   const detectorQuery = useQuery(
@@ -33,17 +45,19 @@ export function AlertEmbedStory() {
     detectorListApiOptions(organization, {
       type: 'issue_stream',
       limit: 100,
+      sortBy: '-connectedWorkflows',
       includeIssueStreamDetectors: true,
     })
   );
-  const automationQuery = useQuery(
-    automationsApiOptions(organization, {sortBy: '-lastTriggered', limit: 100})
-  );
-  const issueAlertIds = new Set(
-    issueStreamDetectorQuery.data?.flatMap(detector => detector.workflowIds)
-  );
-  const issueAlert = automationQuery.data?.find(automation =>
-    issueAlertIds.has(automation.id)
+  const issueAlertId = issueStreamDetectorQuery.data?.find(
+    detector => detector.workflowIds.length > 0
+  )?.workflowIds[0];
+  const automationQuery = useQuery({
+    ...issueAlertApiOptions(organization.slug, issueAlertId),
+    retry: false,
+  });
+  const issueAlert = automationQuery.data?.find(
+    automation => automation.id === issueAlertId
   );
   const detectorAlerts = STORY_DETECTOR_ALERTS.flatMap(({kind, label, type}) => {
     const detector = detectorQuery.data?.find(candidate => candidate.type === type);
@@ -53,7 +67,7 @@ export function AlertEmbedStory() {
   const isPending =
     detectorQuery.isPending ||
     issueStreamDetectorQuery.isPending ||
-    automationQuery.isPending;
+    (Boolean(issueAlertId) && automationQuery.isPending);
   const isError =
     detectorQuery.isError || issueStreamDetectorQuery.isError || automationQuery.isError;
 
