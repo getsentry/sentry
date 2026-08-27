@@ -82,18 +82,21 @@ export function DebugFileRow({
               ? '\u2015'
               : objectName}
           </Name>
-          <Description>
-            <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
-
-            {features && (
-              <Flex display="inline-flex" wrap="wrap" gap="xs">
-                {features.map(feature => (
-                  <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
-                    <Tag variant="muted">{feature}</Tag>
-                  </Tooltip>
-                ))}
-              </Flex>
-            )}
+          <Text as="div" size="sm" variant="muted">
+            <Flex align="center" gap={{zero: 'md', '4xl': '0 md'}} wrap="wrap">
+              <Text as="span" size="sm" variant="muted">
+                {getPrettyFileType(debugFile)}
+              </Text>
+              {features && (
+                <Flex display="inline-flex" wrap="wrap" gap="xs">
+                  {features.map(feature => (
+                    <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
+                      <Tag variant="muted">{feature}</Tag>
+                    </Tooltip>
+                  ))}
+                </Flex>
+              )}
+            </Flex>
             {showDetails && (
               <div>
                 {/* there will be more stuff here in the future */}
@@ -104,7 +107,7 @@ export function DebugFileRow({
                 )}
               </div>
             )}
-          </Description>
+          </Text>
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" align="start" marginTop="md">
@@ -160,11 +163,6 @@ export function DebugFileRow({
   );
 }
 
-const DescriptionText = styled('span')`
-  display: inline-flex;
-  margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
-`;
-
 const DebugId = styled('code')`
   font-size: ${p => p.theme.font.size.sm};
 `;
@@ -176,14 +174,6 @@ const StyledFileSize = styled(FileSize)`
 const Name = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${p => p.theme.space.md};
-`;
-
-const Description = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  @container (max-width: ${p => p.theme.container['4xl']}) {
-    line-height: 1.7;
-  }
 `;
 
 const DetailsItem = styled('div')`
