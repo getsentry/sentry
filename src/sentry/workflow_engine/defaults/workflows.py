@@ -144,7 +144,8 @@ def create_and_connect_pull_request_workflow(
         DataCondition.objects.create(
             type=Condition.SEER_ACTIVITY_TRIGGER,
             condition_group=when_condition_group,
-            comparison=[SeerActivityTriggerStage.PR_READY_FOR_REVIEW.value],
+            # TODO(Leander): Update this with PR_READY_FOR_REVIEW when that's done
+            comparison=[SeerActivityTriggerStage.PR_CREATED.value],
             condition_result=True,
         )
         action_filter = DataConditionGroup.objects.create(

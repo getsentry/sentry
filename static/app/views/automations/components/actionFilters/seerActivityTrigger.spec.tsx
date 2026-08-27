@@ -17,13 +17,13 @@ describe('SeerActivityTriggerDetails', () => {
       <SeerActivityTriggerDetails
         condition={DataConditionFixture({
           type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-          comparison: ['pr_ready_for_review'],
+          comparison: ['pr_created'],
         })}
       />
     );
 
     expect(
-      screen.getByText("Seer reaches the 'Pull request ready for review' stage")
+      screen.getByText("Seer reaches the 'Pull request created' stage")
     ).toBeInTheDocument();
   });
 
@@ -103,11 +103,11 @@ describe('SeerActivityTriggerNode', () => {
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Seer activity stages'}));
     await userEvent.click(
-      screen.getByRole('menuitemcheckbox', {name: 'Pull request ready for review'})
+      screen.getByRole('menuitemcheckbox', {name: 'Pull request created'})
     );
     await waitFor(() => {
       expect(dataConditionNodeContext.onUpdate).toHaveBeenCalledWith({
-        comparison: dataCondition.comparison.concat('pr_ready_for_review'),
+        comparison: dataCondition.comparison.concat('pr_created'),
       });
     });
     expect(errorContext.removeError).toHaveBeenCalledWith('seer-1');
