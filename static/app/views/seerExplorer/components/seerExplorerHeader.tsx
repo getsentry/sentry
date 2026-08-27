@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -9,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {SeerExplorerDebugMenu} from 'sentry/views/seerExplorer/components/seerExplorerDebugMenu';
 import {
   SeerExplorerHeaderActions,
@@ -64,7 +64,7 @@ export function SeerExplorerHeader({
   disableNewChatButton = false,
 }: SeerExplorerHeaderProps) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 300});
 
   const {data, isFetching, isError, refetch} = useSeerExplorerSessionsQuery({
     query: debouncedSearch || undefined,
