@@ -32,6 +32,8 @@ const productionEntryPoints = [
   'static/app/components/connectRepository/**/*.{ts,tsx}',
   // TODO: Remove when wired into the React authentication flow
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
+  // React authentication routes are discovered dynamically by the frontend route registry
+  'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
   // https://github.com/getsentry/sentry/pull/121178
   'static/app/components/core/table/*.tsx',
   'static/app/components/core/dragHandle/*.tsx',
