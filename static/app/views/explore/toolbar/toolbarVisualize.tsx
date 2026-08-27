@@ -347,11 +347,7 @@ function ToolbarVisualizeItem({
 }
 
 function isDefaultVisualize(visualize: Visualize): boolean {
-  return (
-    isVisualizeFunction(visualize) &&
-    visualize.yAxis === DEFAULT_VISUALIZATION &&
-    visualize.visible
-  );
+  return isVisualizeFunction(visualize) && visualize.yAxis === DEFAULT_VISUALIZATION;
 }
 
 interface VisualizeLabelProps {

@@ -315,6 +315,16 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
+  it('does not show a clear button when the default chart is only hidden', async () => {
+    render(<ExploreToolbar />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-visualizes');
+    expect(within(section).queryByLabelText('Clear Visualize')).not.toBeInTheDocument();
+
+    await userEvent.click(within(section).getByText('A'));
+    expect(within(section).queryByLabelText('Clear Visualize')).not.toBeInTheDocument();
+  });
+
   it('allows changing group bys', async () => {
     let groupBys: any;
 
