@@ -144,7 +144,7 @@ def _create_client() -> Client:
 _CLIENT: Client | None = None
 
 
-def get_client() -> Client:
+def _get_client() -> Client:
     global _CLIENT
     if not _CLIENT:
         _CLIENT = _create_client()
@@ -180,7 +180,7 @@ def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None =
         objectstore_usecase = usecase.create()
         _USECASES[usecase] = objectstore_usecase
 
-    return get_client().session(objectstore_usecase, org=org_id, project=project_id)
+    return _get_client().session(objectstore_usecase, org=org_id, project=project_id)
 
 
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
