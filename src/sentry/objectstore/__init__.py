@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import subprocess
 from datetime import timedelta
+from enum import Enum
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse, urlsplit, urlunparse
 
 import urllib3
@@ -13,8 +17,10 @@ from objectstore_client import (
     TimeToIdle,
     TimeToLive,
     TokenGenerator,
-    Usecase,
     parse_accept_encoding,
+)
+from objectstore_client import (
+    Usecase as ObjectstoreClientUsecase,
 )
 from objectstore_client.metrics import Tags
 
@@ -22,7 +28,10 @@ from sentry import options
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.env import in_test_environment
 
-__all__ = ["get_attachments_session", "get_debug_files_session", "parse_accept_encoding"]
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
+__all__ = ["UsecaseId", "get_session", "parse_accept_encoding"]
 
 
 # Default validity of the token used for redirecting to Objectstore. This is a
@@ -69,12 +78,21 @@ class SentryMetricsBackend(MetricsBackend):
 
 
 _OBJECTSTORE_CLIENT: Client | None = None
-_ATTACHMENTS_USECASE: Usecase | None = None
-_DEBUG_FILES_USECASE = Usecase(
+_ATTACHMENTS_USECASE: ObjectstoreClientUsecase | None = None
+_DEBUG_FILES_USECASE = ObjectstoreClientUsecase(
     "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
 )
-_PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
-_PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
+_PROFILE_ATTACHMENTS_USECASE: ObjectstoreClientUsecase | None = None
+_PREPROD_USECASE = ObjectstoreClientUsecase(
+    "preprod", expiration_policy=TimeToIdle(timedelta(days=30))
+)
+
+
+class UsecaseId(Enum):
+    ATTACHMENTS = "attachments"
+    DEBUG_FILES = "debug_files"
+    PROFILE_ATTACHMENTS = "profile_attachments"
+    PREPROD = "preprod"
 
 
 def create_client() -> Client:
@@ -110,42 +128,51 @@ def get_client() -> Client:
     return _OBJECTSTORE_CLIENT
 
 
-def get_attachments_usecase() -> Usecase:
+def _get_attachments_usecase() -> ObjectstoreClientUsecase:
     global _ATTACHMENTS_USECASE
     if not _ATTACHMENTS_USECASE:
         retention = default_attachment_retention()
-        _ATTACHMENTS_USECASE = Usecase(
+        _ATTACHMENTS_USECASE = ObjectstoreClientUsecase(
             "attachments", expiration_policy=TimeToLive(timedelta(days=retention))
         )
     return _ATTACHMENTS_USECASE
 
 
-def get_attachments_session(org: int, project: int) -> Session:
-    return get_client().session(get_attachments_usecase(), org=org, project=project)
-
-
-def get_debug_files_session(org: int, project: int) -> Session:
-    return get_client().session(_DEBUG_FILES_USECASE, org=org, project=project)
-
-
-def get_profile_attachments_usecase() -> Usecase:
+def _get_profile_attachments_usecase() -> ObjectstoreClientUsecase:
     # Relay stores raw profiles and their attachments (e.g. Perfetto traces) under
     # the "profile_attachments" usecase, so we must read them back with the same usecase.
     global _PROFILE_ATTACHMENTS_USECASE
     if not _PROFILE_ATTACHMENTS_USECASE:
         retention = default_attachment_retention()
-        _PROFILE_ATTACHMENTS_USECASE = Usecase(
+        _PROFILE_ATTACHMENTS_USECASE = ObjectstoreClientUsecase(
             "profile_attachments", expiration_policy=TimeToLive(timedelta(days=retention))
         )
     return _PROFILE_ATTACHMENTS_USECASE
 
 
-def get_profile_attachments_session(org: int, project: int) -> Session:
-    return get_client().session(get_profile_attachments_usecase(), org=org, project=project)
+def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
+    if isinstance(project, int):
+        if org is None:
+            raise TypeError("org is required when project is an ID")
+        project_id = project
+        org_id = org
+    else:
+        project_id = project.id
+        org_id = project.organization_id
+        if org is not None and org != org_id:
+            raise ValueError("project does not belong to org")
 
+    match usecase:
+        case UsecaseId.ATTACHMENTS:
+            objectstore_usecase = _get_attachments_usecase()
+        case UsecaseId.DEBUG_FILES:
+            objectstore_usecase = _DEBUG_FILES_USECASE
+        case UsecaseId.PROFILE_ATTACHMENTS:
+            objectstore_usecase = _get_profile_attachments_usecase()
+        case UsecaseId.PREPROD:
+            objectstore_usecase = _PREPROD_USECASE
 
-def get_preprod_session(org: int, project: int) -> Session:
-    return get_client().session(_PREPROD_USECASE, org=org, project=project)
+    return get_client().session(objectstore_usecase, org=org_id, project=project_id)
 
 
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
