@@ -1597,7 +1597,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
 
         mock_send.assert_called_once()
 
-    @mock.patch("sentry.auth.helper.ratelimiter")
+    @mock.patch("sentry.auth.email_verification.ratelimiter")
     @mock.patch("sentry.auth.helper.send_signup_verification_email")
     def test_rate_limited_send_shows_error_instead_of_pending_page(
         self, mock_send: mock.MagicMock, mock_ratelimiter: mock.MagicMock
