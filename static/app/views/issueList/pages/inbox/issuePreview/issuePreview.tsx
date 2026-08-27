@@ -155,7 +155,11 @@ function IssuePreviewContent() {
   function openSeerDrawer(seerDrawerAction?: string) {
     navigate({
       pathname: issueDetailsUrl,
-      query: {seerDrawer: 'true', seerDrawerAction},
+      query: {
+        ...issueDetailsLocation.query,
+        seerDrawer: 'true',
+        seerDrawerAction,
+      },
     });
   }
 
