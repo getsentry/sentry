@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
@@ -509,7 +509,9 @@ describe('ScmMessagingChannelPicker', () => {
         url: `/organizations/${organization.slug}/integrations/10/channels/`,
         statusCode: 500,
       });
-      await queryClient.invalidateQueries();
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
 
       // A failed background refetch (isLoadingError false) must not show the
       // error alert or clear the cached selection.
@@ -547,7 +549,9 @@ describe('ScmMessagingChannelPicker', () => {
         url: `/organizations/${organization.slug}/integrations/10/channel-validate/`,
         statusCode: 500,
       });
-      await queryClient.invalidateQueries();
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
 
       // A failed background refetch (isLoadingError false) must not set channelError
       // or disable Add destination.

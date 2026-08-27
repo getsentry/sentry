@@ -254,7 +254,9 @@ describe('ScmMessaging', () => {
       statusCode: 500,
       match: [MockApiClient.matchQuery({channel: '#alerts'})],
     });
-    await queryClient.invalidateQueries();
+    await act(async () => {
+      await queryClient.invalidateQueries();
+    });
 
     // isRefetchError keeps both queries settled; cached {valid: true} stays usable.
     expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();

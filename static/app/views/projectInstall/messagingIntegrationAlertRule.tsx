@@ -58,7 +58,7 @@ export function useMessagingIntegrationAlertRule(
 ) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {refetchOnWindowFocus} = options ?? {};
+  const refetchOnWindowFocus = options?.refetchOnWindowFocus ?? false;
 
   const {
     data: channels,
