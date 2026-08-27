@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   LogsExportModalButton,
   useLogsQueryInfo,
@@ -27,6 +28,13 @@ export function LogsDirectExportModalButton({
 
   const queryInfo = useLogsQueryInfo({
     field: [...fields],
+    // Without this the server export falls back to normal sampling and can hand
+    // back a downsampled set of the rows on screen. Not the table's flex-time
+    // mode though: this export paginates by offset and stops on the first short
+    // page, and flex-time returns short pages as it walks its time windows. Only
+    // the "All Columns" export can afford flex-time, because it continues on a
+    // page token rather than an offset.
+    sampling: SAMPLING_MODE.HIGH_ACCURACY,
     sort: sortBys.map(formatExportSort),
   });
   const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);

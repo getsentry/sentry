@@ -1,5 +1,8 @@
 import {downloadRows} from 'sentry/components/exports/downloadRows';
-import {ExportQueryType} from 'sentry/components/exports/useDataExport';
+import {
+  ExportQueryType,
+  type EventsQuerySamplingMode,
+} from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,6 +24,7 @@ export interface LogsQueryInfo {
   sort: string[];
   end?: string;
   environment?: string[];
+  sampling?: EventsQuerySamplingMode;
   start?: string;
   statsPeriod?: string;
 }
@@ -37,10 +41,12 @@ type LogsExportModalButtonProps = {
 
 export function useLogsQueryInfo({
   field,
+  sampling,
   sort,
 }: {
   field: string[];
   sort: string[];
+  sampling?: EventsQuerySamplingMode;
 }): LogsQueryInfo {
   const {selection} = usePageFilters();
   const logsSearch = useQueryParamsSearch();
@@ -52,6 +58,7 @@ export function useLogsQueryInfo({
     field,
     query: logsSearch.formatString(),
     project: projects,
+    sampling,
     sort,
     start: start ? new Date(start).toISOString() : undefined,
     end: end ? new Date(end).toISOString() : undefined,
