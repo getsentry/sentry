@@ -10,6 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {mergeGlobalFilters} from 'sentry/views/dashboards/globalFilter/utils';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {cloneDashboard} from 'sentry/views/dashboards/utils';
+import {enforceLayoutMinHeight} from 'sentry/views/dashboards/utils/enforceLayoutMinHeight';
 import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
@@ -52,6 +53,7 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
           }
         } else {
           dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
+          dashboardDetail.widgets = enforceLayoutMinHeight(dashboardDetail.widgets);
         }
 
         const newDashboard = cloneDashboard(dashboardDetail);

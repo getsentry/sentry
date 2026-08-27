@@ -3,8 +3,8 @@ import {AutofixStartCardContent} from 'sentry/components/events/autofix/v3/autof
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
-import {IssuePreviewAutofixSummary} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofixSummary';
 import {AutofixQuotaContent} from 'sentry/views/issueDetails/sidebar/autofixSection';
+import {IssuePreviewAutofixSummary} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewAutofixSummary';
 
 type IssuePreviewSeerState = 'configure' | 'start' | 'summary';
 

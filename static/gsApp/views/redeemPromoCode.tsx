@@ -9,6 +9,7 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -40,7 +41,9 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
   const mutation = useMutation({
     mutationFn: (data: {code: string}) =>
       fetchMutation<{details?: string}>({
-        url: `/customers/${organization.slug}/redeem-promo/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/redeem-promo/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'PUT',
         data,
       }),

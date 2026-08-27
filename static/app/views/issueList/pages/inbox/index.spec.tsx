@@ -21,13 +21,14 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {ProgressState} from 'sentry/types/group';
 import {useMedia} from 'sentry/utils/useMedia';
-import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 
-import InboxPage from './inbox';
+import InboxPage from './index';
 
 jest.mock('sentry/utils/useMedia');
 
@@ -909,12 +910,27 @@ describe('InboxPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('prefetches the preview on hover so opening it needs no new request', async () => {
+  it('prefetches independent preview details after an intentional hover', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
+    const pendingRequest = new Promise(() => {});
     const groupRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
       body: fixProposedGroup,
+    });
+    const pullRequestsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
+      asyncDelay: pendingRequest,
+    });
+    const autofixSetupRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
+      asyncDelay: pendingRequest,
+    });
+    const autofixRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
+      match: [MockApiClient.matchQuery({mode: 'explorer', llmFormat: 'markdown'})],
+      asyncDelay: pendingRequest,
     });
 
     render(<InboxPage />, {organization, initialRouterConfig});
@@ -924,16 +940,25 @@ describe('InboxPage', () => {
     ).findByRole('link', {name: /Fix proposed issue/});
     await userEvent.hover(issueLink);
 
-    await waitFor(() => expect(groupRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      expect(groupRequest).toHaveBeenCalledTimes(1);
+      expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
+      expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
+      expect(autofixRequest).toHaveBeenCalledTimes(1);
+    });
 
-    // Reads the warmed cache, which only holds if the query keys match.
+    // Reads the warmed caches, which only hold if all query keys match.
     await userEvent.click(issueLink);
 
     const preview = screen.getByRole('complementary', {name: 'Issue preview'});
     expect(
-      await within(preview).findByRole('heading', {name: 'Activity'})
+      await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
     ).toBeInTheDocument();
+    expect(within(preview).getByText('Fix proposed message')).toBeInTheDocument();
     expect(groupRequest).toHaveBeenCalledTimes(1);
+    expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
+    expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
+    expect(autofixRequest).toHaveBeenCalledTimes(1);
   });
 
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
@@ -1220,6 +1245,21 @@ describe('InboxPage', () => {
         autofix: ExplorerAutofixStateFixture({
           blocks: [
             ExplorerAutofixBlockFixture({
+              merged_file_patches: [
+                {
+                  repo_name: 'org/repository',
+                  diff: 'diff --git a/src/user.ts b/src/user.ts',
+                  patch: {
+                    path: 'src/user.ts',
+                    added: 1,
+                    removed: 0,
+                    hunks: [],
+                    source_file: 'src/user.ts',
+                    target_file: 'src/user.ts',
+                    type: DiffFileType.MODIFIED,
+                  },
+                },
+              ],
               message: {
                 content: 'Code changes complete',
                 metadata: {step: 'code_changes'},

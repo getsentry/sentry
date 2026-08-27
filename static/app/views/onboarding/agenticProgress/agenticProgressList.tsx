@@ -2,19 +2,23 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProjectList} from 'sentry/components/projectList';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
+  IconBot,
   IconCircle,
   IconCircleCheckmark,
+  IconCircleDashed,
   IconFatal,
   IconNot,
   IconPieHalf,
 } from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 
 import type {AgenticProgressRun} from './types';
 
@@ -80,7 +84,7 @@ function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
     return <ActiveLoadingIndicator mini />;
   }
 
-  return <IconCircle size="md" variant="muted" />;
+  return <IconCircleDashed size="md" variant="muted" />;
 }
 
 const ActiveLoadingIndicator = styled(LoadingIndicator)`
@@ -251,13 +255,20 @@ function ProgressItem({
 
 export function AgenticProgressList({
   extraContentByStage,
+  header,
   stages,
 }: {
   stages: AgenticProgressStageState[];
   extraContentByStage?: Partial<Record<AgenticProgressStage, React.ReactNode>>;
+  header?: React.ReactNode;
 }) {
   return (
     <Stack width="100%" border="muted" radius="lg" overflow="hidden" gap="0">
+      {header ? (
+        <Container padding="lg" borderBottom="muted">
+          {header}
+        </Container>
+      ) : null}
       {stages.map((stage, index) => (
         <ProgressItem
           key={stage.stage}
@@ -270,6 +281,57 @@ export function AgenticProgressList({
   );
 }
 
+function AgenticProgressHeader({
+  onboardingCode,
+  updatedAt,
+}: {
+  onboardingCode: string | undefined;
+  updatedAt: string;
+}) {
+  return (
+    <Stack gap="md">
+      <Flex align="center" gap="sm">
+        <IconBot size="md" variant="secondary" />
+        <Text variant="muted" size="sm" bold uppercase>
+          {t('Agent Connected')}
+        </Text>
+      </Flex>
+      <Text variant="muted" density="comfortable">
+        {t(
+          'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
+        )}
+      </Text>
+      <Flex align="center" justify="between" gap="md" marginTop="sm">
+        <Flex align="center" gap="sm">
+          <Flex width="16px" align="center" justify="center" flexShrink={0}>
+            <StatusIndicator variant="accent" />
+          </Flex>
+          <Text size="sm" variant="muted">
+            {tct('Last update [time]', {
+              time: (
+                <TimeSince
+                  date={updatedAt}
+                  disabledAbsoluteTooltip
+                  liveUpdateInterval="second"
+                />
+              ),
+            })}
+          </Text>
+        </Flex>
+        {onboardingCode ? (
+          <RunId size="sm" variant="muted" monospace>
+            {t('ID:%s', onboardingCode)}
+          </RunId>
+        ) : null}
+      </Flex>
+    </Stack>
+  );
+}
+
+const RunId = styled(Text)`
+  opacity: 0.6;
+`;
+
 function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
   return (
     <Grid columns="max-content max-content" align="center" gap="md">
@@ -281,12 +343,24 @@ function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
   );
 }
 
-export function AgenticProgress({run}: {run: AgenticProgressRun}) {
+export function AgenticProgress({
+  run,
+  onboardingCode = run.onboardingCode,
+}: {
+  run: AgenticProgressRun;
+  onboardingCode?: string;
+}) {
   const createProjectStage = run.stages.find(stage => stage.stage === 'create_project');
   const projectSlugs = createProjectStage?.extra?.projectSlugs ?? [];
 
   return (
     <AgenticProgressList
+      header={
+        <AgenticProgressHeader
+          onboardingCode={onboardingCode}
+          updatedAt={run.updatedAt}
+        />
+      }
       stages={run.stages}
       extraContentByStage={
         projectSlugs.length

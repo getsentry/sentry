@@ -13,6 +13,7 @@ from sentry import eventstream, nodestore, options
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.exceptions import DeleteAborted
+from sentry.killswitches import killswitch_matches_context
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.search.eap.occurrences.query_utils import (
@@ -90,6 +91,19 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
     prefix = "deletions.nodestore"
     if not group_ids:
         raise DeleteAborted("delete_events_from_nodestore.empty_group_ids")
+
+    if killswitch_matches_context(
+        "deletions.nodestore.killswitch-projects", {"project_id": project_id}
+    ):
+        logger.warning(
+            "deletions.nodestore.halted_by_killswitch",
+            extra={
+                "project_id": project_id,
+                "transaction_id": transaction_id,
+                "dataset": dataset_str,
+            },
+        )
+        return
 
     kwargs_to_schedule_next_task = {
         "organization_id": organization_id,
