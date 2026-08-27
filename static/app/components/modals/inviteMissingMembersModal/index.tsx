@@ -20,6 +20,7 @@ import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
@@ -139,7 +140,9 @@ export function InviteMissingMembersModal({
 
     try {
       await api.requestPromise(
-        `/organizations/${organization?.slug}/members/?referrer=${referrer}`,
+        `${getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+          path: {organizationIdOrSlug: String(organization?.slug)},
+        })}?referrer=${referrer}`,
         {
           method: 'POST',
           data,

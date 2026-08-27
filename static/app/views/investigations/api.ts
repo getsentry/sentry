@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {
   InvestigationCandidate,
@@ -204,7 +205,9 @@ export function useCreateInvestigationMutation(
     organizationSlug,
     () =>
       fetchMutation<InvestigationListItem>({
-        url: `/organizations/${organizationSlug}/investigations/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
+          path: {organizationIdOrSlug: organizationSlug},
+        }),
         method: 'POST',
         data: {title: 'Untitled investigation'},
       }),
@@ -220,7 +223,9 @@ export function useLaunchInvestigationMutation(
     organizationSlug,
     source =>
       fetchMutation<InvestigationDetail>({
-        url: `/organizations/${organizationSlug}/investigations/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
+          path: {organizationIdOrSlug: organizationSlug},
+        }),
         method: 'POST',
         data: {
           templateKey: 'breached_metric',
@@ -254,7 +259,15 @@ export function useRenameInvestigationMutation(
       }
 
       return fetchMutation<InvestigationDetail>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+            },
+          }
+        ),
         method: 'PUT',
         data: {title, investigationVersion: current.version},
       });
@@ -301,7 +314,15 @@ export function useAddInvestigationBlockMutation(
     ...options,
     mutationFn: ({investigation, kind, prompt, title}) =>
       fetchMutation<InvestigationBlock>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+            },
+          }
+        ),
         method: 'POST',
         data: {
           investigationVersion: investigation.version,
@@ -347,7 +368,16 @@ export function useDeleteInvestigationBlockMutation(
     ...options,
     mutationFn: ({block, investigationVersion}) => {
       return fetchMutation<void>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${block.id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+              blockId: block.id,
+            },
+          }
+        ),
         method: 'DELETE',
         data: {
           investigationVersion,
@@ -398,7 +428,16 @@ export function useRunInvestigationBlockMutation(
     ...options,
     mutationFn: ({block, investigationVersion}) =>
       fetchMutation<InvestigationBlockExecutionStart>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${block.id}/executions/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+              blockId: block.id,
+            },
+          }
+        ),
         method: 'POST',
         data: {
           investigationVersion,
@@ -456,7 +495,16 @@ export function useUpdateInvestigationBlockPromptMutation(
     ...options,
     mutationFn: ({block, investigationVersion, prompt}) =>
       fetchMutation<InvestigationBlock>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${block.id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+              blockId: block.id,
+            },
+          }
+        ),
         method: 'PUT',
         data: {
           investigationVersion,
@@ -505,7 +553,17 @@ export function useStopInvestigationExecutionMutation(
     ...options,
     mutationFn: ({blockId, executionId}) =>
       fetchMutation<void>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/executions/${executionId}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/$executionId/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+              blockId,
+              executionId,
+            },
+          }
+        ),
         method: 'DELETE',
       }),
     onSuccess: async (_data, variables, onMutateResult, context) => {
@@ -540,7 +598,17 @@ export function useResumeInvestigationExecutionMutation(
     ...options,
     mutationFn: ({blockId, executionId, inputId, responseData}) =>
       fetchMutation<void>({
-        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/executions/${executionId}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/$executionId/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+              blockId,
+              executionId,
+            },
+          }
+        ),
         method: 'PATCH',
         data: {input_id: inputId, response_data: responseData},
       }),
@@ -569,7 +637,15 @@ export function useSetInvestigationFavoriteMutation(
     organizationSlug,
     ({investigation, shouldFavorite}: FavoriteVariables) =>
       fetchMutation<void>({
-        url: `/organizations/${organizationSlug}/investigations/${investigation.id}/favorite/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/favorite/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId: investigation.id,
+            },
+          }
+        ),
         method: 'PUT',
         data: {shouldFavorite},
       }),
@@ -585,7 +661,15 @@ export function useDuplicateInvestigationMutation(
     organizationSlug,
     investigation =>
       fetchMutation<InvestigationListItem>({
-        url: `/organizations/${organizationSlug}/investigations/${investigation.id}/duplicate/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/duplicate/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId: investigation.id,
+            },
+          }
+        ),
         method: 'POST',
       }),
     options
@@ -600,7 +684,15 @@ export function useDeleteInvestigationMutation(
     organizationSlug,
     investigation =>
       fetchMutation<void>({
-        url: `/organizations/${organizationSlug}/investigations/${investigation.id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId: investigation.id,
+            },
+          }
+        ),
         method: 'DELETE',
         data: {investigationVersion: investigation.version},
       }),
