@@ -434,7 +434,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       block.currentExecution?.status === 'cancelled' &&
       block.currentExecution.error?.code === 'investigation_execution_failed'
   );
-  const investigationExecutionFailed = Boolean(failedBlock || hasFailureCancellation);
+  const investigationExecutionFailed =
+    investigation.mode === 'agentic' && Boolean(failedBlock || hasFailureCancellation);
   const summaryBlock =
     investigation.mode !== 'agentic' && investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
@@ -933,6 +934,10 @@ const NotebookSummaryCard = styled(InvestigationSummaryCard)`
   width: 100%;
   margin-bottom: ${p => p.theme.space.xl};
   padding-inline: ${p => p.theme.space.xl};
+`;
+
+const InvestigationFailureAlert = styled(Alert.Container)`
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`

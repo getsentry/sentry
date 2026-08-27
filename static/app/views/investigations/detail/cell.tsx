@@ -79,9 +79,11 @@ export function InvestigationCell({
   investigation,
 }: InvestigationCellProps) {
   const organizationSlug = useOrganization().slug;
-  const activeExecutionId = isExecutionActive(block.currentExecution?.status)
-    ? (block.currentExecution?.id ?? null)
-    : null;
+  const isAgentManaged = Boolean(agenticReport) || isAgentOwnedReportBlock(block);
+  const activeExecutionId =
+    !isAgentManaged && isExecutionActive(block.currentExecution?.status)
+      ? (block.currentExecution?.id ?? null)
+      : null;
   const autoOpenedExecutionId = useRef(activeExecutionId);
   const [panelOpen, setPanelOpen] = useState(Boolean(activeExecutionId));
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
@@ -91,7 +93,6 @@ export function InvestigationCell({
   const [prompt, setPrompt] = useState(() =>
     block.outputStatus === 'notRun' ? block.generationPrompt : ''
   );
-  const isAgentManaged = Boolean(agenticReport) || isAgentOwnedReportBlock(block);
   const legacyProgressState = getCellProgressState(block, investigation.blocks ?? []);
   const progressState =
     getAgenticBlockProgressState(block, agenticReport) ?? legacyProgressState;

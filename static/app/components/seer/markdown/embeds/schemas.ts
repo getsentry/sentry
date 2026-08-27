@@ -77,7 +77,7 @@ export interface SeerEmbedExample {
 interface SeerEmbedSchema {
   description: string;
   level: SeerEmbedLevel[];
-  schema: z.ZodObject;
+  schema: z.ZodType;
   examples?: SeerEmbedExample[];
   featureFlag?: string;
 }

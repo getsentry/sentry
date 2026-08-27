@@ -266,6 +266,9 @@ class BreachedMetricSourceRefTest(TestCase):
             competing = self.create_investigation(
                 organization=self.organization,
                 created_by=self.user,
+                source_type=InvestigationSourceType.BREACHED_METRIC,
+                source_ref=source["ref"],
+                source_key=investigation_legacy_source_key(source),
                 source=source,
                 lineage_key=lineage_key,
                 source_revision=1,

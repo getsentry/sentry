@@ -1,6 +1,6 @@
 import {lazy, useMemo} from 'react';
-import queryString from 'query-string';
 import {useQuery} from '@tanstack/react-query';
+import queryString from 'query-string';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

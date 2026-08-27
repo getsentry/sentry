@@ -60,14 +60,7 @@ export function EvidenceBoundary({children}: {children: React.ReactNode}) {
     []
   );
 
-  return (
-    <ErrorBoundary
-      customComponent={renderFallback}
-      errorTag={{component: 'seer-evidence-embed'}}
-    >
-      {children}
-    </ErrorBoundary>
-  );
+  return <ErrorBoundary customComponent={renderFallback}>{children}</ErrorBoundary>;
 }
 
 export function EvidenceFrame({

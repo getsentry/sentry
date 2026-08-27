@@ -1,5 +1,5 @@
-import queryString from 'query-string';
 import styled from '@emotion/styled';
+import queryString from 'query-string';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

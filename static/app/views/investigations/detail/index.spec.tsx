@@ -348,7 +348,7 @@ describe('Investigation detail', () => {
     renderView();
 
     expect(
-      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
+      await screen.findByRole('button', {name: 'Cell actions for Summary'})
     ).toBeInTheDocument();
     expect(orchestrationRequest).not.toHaveBeenCalled();
     expect(screen.queryByTestId('investigation-orchestration')).not.toBeInTheDocument();
@@ -368,7 +368,7 @@ describe('Investigation detail', () => {
     renderView();
 
     expect(
-      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
+      await screen.findByRole('button', {name: 'Cell actions for Summary'})
     ).toBeInTheDocument();
     await waitFor(() => expect(orchestrationRequest).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId('investigation-orchestration')).not.toBeInTheDocument();
