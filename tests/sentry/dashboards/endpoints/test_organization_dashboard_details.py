@@ -2268,6 +2268,94 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         for widget in widgets:
             assert widget["layout"] == layouts[int(widget["id"])]
 
+    def test_update_widget_layout_allows_height_below_minimum(self) -> None:
+        layout = {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2}
+
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={"widgets": [{"id": self.widget_1.id, "layout": layout}]},
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["layout"] == layout
+
+    def test_update_widget_layout_rejects_new_invalid_height(self) -> None:
+        self.widget_1.detail = {"layout": {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2}}
+        self.widget_1.save()
+
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "id": self.widget_1.id,
+                        "layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2},
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert str(response.data["widgets"][0]["layout"]["h"]) == (
+            "Height must be at least 2 for line widgets."
+        )
+
+    def test_update_widget_display_type_rejects_new_invalid_height(self) -> None:
+        self.widget_1.display_type = DashboardWidgetDisplayTypes.BIG_NUMBER
+        self.widget_1.detail = {"layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1}}
+        self.widget_1.save()
+
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "id": self.widget_1.id,
+                        "displayType": "line",
+                        "layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1},
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert str(response.data["widgets"][0]["layout"]["h"]) == (
+            "Height must be at least 2 for line widgets."
+        )
+
+    def test_update_rejects_new_widget_with_invalid_height(self) -> None:
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "displayType": "line",
+                        "interval": "5m",
+                        "title": "Short line chart",
+                        "queries": [
+                            {
+                                "name": "Transactions",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                                "conditions": "event.type:transaction",
+                            }
+                        ],
+                        "layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2},
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert str(response.data["widgets"][0]["layout"]["h"]) == (
+            "Height must be at least 2 for line widgets."
+        )
+
     def test_update_layout_with_invalid_data_fails(self) -> None:
         response = self.do_request(
             "put",

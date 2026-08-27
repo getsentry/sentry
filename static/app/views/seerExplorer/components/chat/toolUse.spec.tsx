@@ -1181,4 +1181,219 @@ describe('ToolUseBlock', () => {
       expect(screen.getAllByRole('link')).toHaveLength(1);
     });
   });
+
+  describe('in-flight Code Mode calls', () => {
+    // Code Mode's tool name is suppressed and its rows are built from work it has not done yet, so
+    // an in-flight call used to render nothing at all — the reader saw the answer stop mid-stream.
+    // `Loading` is the block placeholder; `Running...` is a call row's own status tick.
+    function runningBlock(overrides?: Partial<Block>): Block {
+      return createBlock({
+        loading: true,
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'call-1', function: 'sentry_api_search', args: '{}'}],
+        },
+        tool_results: [],
+        tool_links: [],
+        ...overrides,
+      });
+    }
+
+    function executeBlock(liveCalls: Block['live_calls']): Block {
+      return runningBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+        },
+        live_calls: liveCalls,
+      });
+    }
+
+    it('keeps the placeholder up while a search runs, which reports no calls', () => {
+      render(<BlockComponent block={runningBlock()} blockIndex={0} />);
+      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
+    });
+
+    it('renders the same placeholder a block with no tool calls yet would', () => {
+      // The transition the fix is about: the spinner must not vanish, move or change when the tool
+      // call attaches, so both states have to render the identical element.
+      const before = render(
+        <BlockComponent
+          block={createBlock({
+            loading: true,
+            message: {role: 'tool_use', content: null, tool_calls: null},
+          })}
+          blockIndex={0}
+        />
+      );
+      const placeholder = screen.getByRole('status', {name: 'Loading'}).outerHTML;
+      before.unmount();
+
+      render(<BlockComponent block={runningBlock()} blockIndex={0} />);
+      expect(screen.getByRole('status', {name: 'Loading'}).outerHTML).toBe(placeholder);
+    });
+
+    it('keeps the placeholder up alongside an in-flight call row', () => {
+      // The mirror publishes a record when a call starts, so this row is spinning too. Hiding the
+      // placeholder whenever a row spins would blink it out and back on every call the execute
+      // makes; the two say different things and are allowed to coexist.
+      const block = executeBlock([
+        {id: 1, kind: 'api', method: 'GET', path: '/issues/', title: 'Listing issues'},
+      ]);
+
+      render(<BlockComponent block={block} blockIndex={0} />);
+
+      expect(screen.getByText('Listing issues')).toBeInTheDocument();
+      expect(screen.getByRole('status', {name: 'Running...'})).toBeInTheDocument();
+      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
+    });
+
+    it('keeps the placeholder up after the last call has returned', () => {
+      // The sandbox is still working after its final call came back, and no row says so: they have
+      // all settled to a checkmark.
+      const block = executeBlock([
+        {
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: '/issues/',
+          title: 'Listing issues',
+          status: 200,
+        },
+      ]);
+
+      render(<BlockComponent block={block} blockIndex={0} />);
+
+      expect(screen.getByLabelText('All tool calls succeeded')).toBeInTheDocument();
+      expect(screen.queryByRole('status', {name: 'Running...'})).not.toBeInTheDocument();
+      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
+    });
+
+    it('does not spin for a call with no id, which can never be seen settling', () => {
+      // Results are matched to calls by id. Treating an id-less call as running would keep the
+      // placeholder up for as long as the block claims to be loading, with nothing able to clear
+      // it. Matches how `liveCallsForCallId` decides what is pending.
+      const block = runningBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: undefined, function: 'sentry_api_search', args: '{}'}],
+        },
+      });
+
+      render(<BlockComponent block={block} blockIndex={0} />);
+      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
+    });
+
+    it('drops the placeholder once the call reports back', () => {
+      const block = runningBlock({
+        loading: false,
+        tool_results: [
+          {
+            tool_call_id: 'call-1',
+            tool_call_function: 'sentry_api_search',
+            content: 'ran',
+          },
+        ],
+      });
+
+      render(<BlockComponent block={block} blockIndex={0} />);
+      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
+    });
+
+    it('keeps it up while one of two calls is still in flight', () => {
+      // `loading` stays true until every call in the block responds, so it cannot be the signal on
+      // its own — the block would keep spinning after the last call settled.
+      const block = runningBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [
+            {id: 'call-1', function: 'sentry_api_search', args: '{}'},
+            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
+          ],
+        },
+        tool_results: [
+          {
+            tool_call_id: 'call-1',
+            tool_call_function: 'sentry_api_search',
+            content: 'ran',
+          },
+        ],
+      });
+
+      render(<BlockComponent block={block} blockIndex={0} />);
+      expect(screen.getAllByRole('status', {name: 'Loading'})).toHaveLength(1);
+    });
+
+    it('renders one placeholder for a block, not one per in-flight call', () => {
+      const block = runningBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [
+            {id: 'call-1', function: 'sentry_api_search', args: '{}'},
+            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
+          ],
+        },
+      });
+
+      render(<BlockComponent block={block} blockIndex={0} />);
+      expect(screen.getAllByRole('status', {name: 'Loading'})).toHaveLength(1);
+    });
+
+    it('puts the placeholder after every row, not beside the running call', () => {
+      // The running call is first, so a per-call placeholder would land between the two calls'
+      // rows and read as a stalled row rather than as the block still working.
+      const block = runningBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [
+            {id: 'call-1', function: 'sentry_api_execute', args: '{}'},
+            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
+          ],
+        },
+        tool_results: [
+          {
+            tool_call_id: 'call-2',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ran',
+            structuredContent: {
+              calls: [
+                {
+                  id: 1,
+                  kind: 'api',
+                  method: 'GET',
+                  path: '/issues/',
+                  title: 'Listing issues',
+                  status: 200,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      render(<BlockComponent block={block} blockIndex={0} />);
+
+      const spinner = screen.getByRole('status', {name: 'Loading'});
+      const row = screen.getByText('Listing issues');
+      expect(
+        row.compareDocumentPosition(spinner) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
+
+    it('leaves a classic tool to its own label rather than adding a placeholder', () => {
+      const block = createBlock({loading: true, tool_results: [], tool_links: []});
+
+      render(<BlockComponent block={block} blockIndex={0} />);
+
+      expect(screen.getByText(/Querying spans/)).toBeInTheDocument();
+      expect(screen.getByRole('status', {name: 'Running...'})).toBeInTheDocument();
+      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
+    });
+  });
 });

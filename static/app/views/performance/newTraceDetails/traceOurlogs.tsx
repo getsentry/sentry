@@ -78,6 +78,7 @@ function LogsSectionContent({
   fallbackTimestampSeconds,
 }: Required<TraceViewLogsSectionProps>) {
   const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {selection} = usePageFilters();
   const traceIds = useLogsFrozenTraceIds();
 
@@ -92,11 +93,15 @@ function LogsSectionContent({
     useLogItemAttributes({}, 'number', HiddenLogSearchFields);
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes({enabled: supportsArrays}, 'array', HiddenLogSearchFields);
 
   const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
+    arrayAttributes,
     booleanAttributes,
     numberAttributes,
     stringAttributes,
+    arraySecondaryAliases,
     booleanSecondaryAliases,
     numberSecondaryAliases,
     stringSecondaryAliases,

@@ -1,17 +1,11 @@
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import type {LinkProps} from '@sentry/scraps/link';
 
-import type {Crumb} from 'sentry/components/breadcrumbs';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
@@ -355,58 +349,6 @@ function getInsightsModuleBreadcrumbs(
   return crumbs;
 }
 
-function LeafBreadCrumbLabel({
-  traceSlug,
-  project,
-}: {
-  project: Project | undefined;
-  traceSlug: string;
-}) {
-  return (
-    <Wrapper>
-      {project && (
-        <ProjectBadge
-          hideName
-          project={project}
-          avatarSize={16}
-          avatarProps={{
-            hasTooltip: true,
-            tooltip: project.slug,
-          }}
-        />
-      )}
-      <span>{formatVersion(traceSlug)}</span>
-      <CopyToClipboardButton
-        aria-label={t('Copy trace ID to clipboard')}
-        className="trace-id-copy-button"
-        text={traceSlug}
-        size="zero"
-        variant="transparent"
-        style={{
-          transform: 'translateY(-1px) translateX(-3px)',
-        }}
-      />
-    </Wrapper>
-  );
-}
-
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  min-height: 24px;
-
-  .trace-id-copy-button {
-    display: none;
-  }
-
-  &:hover {
-    .trace-id-copy-button {
-      display: block;
-    }
-  }
-`;
-
 interface TraceParentCrumbsOptions {
   location: Location;
   moduleURLBuilder: URLBuilder;
@@ -533,35 +475,5 @@ export function getTraceViewParentCrumbs(
         location.query
       ),
     },
-  ];
-}
-
-export function getTraceViewBreadcrumbs({
-  organization,
-  location,
-  moduleURLBuilder,
-  traceSlug,
-  project,
-  view,
-}: {
-  location: Location;
-  moduleURLBuilder: URLBuilder;
-  organization: Organization;
-  traceSlug: string;
-  project?: Project;
-  view?: DomainView;
-}): Crumb[] {
-  // Legacy breadcrumbs keep the pre-BreadcrumbList fallback: an unlinked
-  // "Trace" label rather than a link to the traces list.
-  const parentCrumbs = getKnownSourceParentCrumbs({
-    organization,
-    location,
-    moduleURLBuilder,
-    view,
-  }) ?? [{label: t('Trace')}];
-
-  return [
-    ...parentCrumbs,
-    {label: <LeafBreadCrumbLabel traceSlug={traceSlug} project={project} />},
   ];
 }

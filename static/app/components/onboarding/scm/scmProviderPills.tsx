@@ -48,8 +48,8 @@ export function ScmProviderPills({
     <Flex justify="start">
       <Grid
         columns={{
-          'screen:xs': columnsXs,
-          'screen:md': columnsMd,
+          zero: columnsXs,
+          '3xl': columnsMd,
         }}
         justify="center"
         gap="md"

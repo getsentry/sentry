@@ -673,7 +673,7 @@ function SeerInvestigationSection({
       );
       navigate(
         normalizeUrl(
-          `/organizations/${organization.slug}/seer/investigation/${launchedInvestigation.id}/`
+          `/organizations/${organization.slug}/explore/investigations/${launchedInvestigation.id}/`
         )
       );
     },
@@ -683,7 +683,7 @@ function SeerInvestigationSection({
   const investigationPath =
     candidate?.status === 'view'
       ? normalizeUrl(
-          `/organizations/${organization.slug}/seer/investigation/${candidate.investigationId}/`
+          `/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`
         )
       : null;
 

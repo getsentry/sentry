@@ -1,6 +1,7 @@
 import {useQueryClient} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -24,7 +25,10 @@ export function useGeneralSettingsMutationOptions() {
   return {
     mutationFn: (data: {enable_images: boolean}) =>
       fetchMutation({
-        url: `/projects/${organization.slug}/${projectSlug}/performance/configure/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
+        ),
         method: 'POST',
         data,
       }),

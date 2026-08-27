@@ -21,6 +21,7 @@ import {
 import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -66,7 +67,9 @@ export function SpansTabSeerComboBox() {
     mutationFn: async (queryToSubmit: string) => {
       if (useTranslateEndpoint) {
         const data = await fetchMutation<SeerRawResponse>({
-          url: `/organizations/${organization.slug}/search-agent/translate/`,
+          url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           method: 'POST',
           data: {
             natural_language_query: queryToSubmit,
@@ -80,7 +83,9 @@ export function SpansTabSeerComboBox() {
       }
 
       const data = await fetchMutation<TraceAskSeerSearchResponse>({
-        url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/trace-explorer-ai/query/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           natural_language_query: queryToSubmit,

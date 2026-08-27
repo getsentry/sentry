@@ -170,7 +170,7 @@ export function ScmMessagingChannelPicker({
   };
 
   return (
-    <Stack gap="md">
+    <Stack gap="xl">
       <Grid columns="1fr 1fr" gap="md">
         <Stack gap="xs">
           <Text bold size="sm">
@@ -215,7 +215,7 @@ export function ScmMessagingChannelPicker({
       )}
       <Flex gap="sm" justify="end">
         {onCancel && (
-          <Button size="sm" onClick={onCancel}>
+          <Button size="sm" variant="link" onClick={onCancel}>
             {t('Cancel')}
           </Button>
         )}

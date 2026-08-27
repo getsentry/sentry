@@ -174,7 +174,10 @@ export function CustomerDetails() {
   const onGenerateSpikeProjectionsMutation = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/_admin/customers/${orgId}/queue-spike-projection/`,
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/queue-spike-projection/',
+          {path: {organizationIdOrSlug: orgId}}
+        ),
         method: 'POST',
       }),
     onSuccess: () => {
@@ -335,6 +338,15 @@ export function CustomerDetails() {
       help: 'OnDemand has been disabled for this account due to payment failures',
       level: 'warning',
       visible: subscription.onDemandDisabled,
+    },
+    {
+      name: subscription.hasMigratedToBillingPlatform
+        ? 'Billing Platform'
+        : 'Legacy Billing',
+      level: subscription.hasMigratedToBillingPlatform ? 'success' : 'muted',
+      help: subscription.hasMigratedToBillingPlatform
+        ? 'This org is served by the billing platform.'
+        : 'This org is still served by the legacy billing system.',
     },
   ];
 

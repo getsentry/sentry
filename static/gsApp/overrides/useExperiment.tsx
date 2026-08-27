@@ -3,6 +3,7 @@ import * as Amplitude from '@amplitude/analytics-browser';
 import {useMutation} from '@tanstack/react-query';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -64,7 +65,9 @@ export function useExperiment(options: UseExperimentOptions): UseExperimentResul
     mutationFn: () =>
       fetchMutation({
         method: 'POST',
-        url: `/organizations/${organization.slug}/experiment-exposure/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/experiment-exposure/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {experimentName: feature, assignment},
       }),
     retry: false,

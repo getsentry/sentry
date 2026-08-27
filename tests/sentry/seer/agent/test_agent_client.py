@@ -687,35 +687,35 @@ class TestSeerAgentClient(TestCase):
         with pytest.raises(SeerApiError):
             client.get_run(123)
 
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_runs_request")
-    def test_get_runs_basic(self, mock_post, mock_access):
-        """Test getting runs with filters"""
-        mock_access.return_value = (True, None)
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "data": [
-                {
-                    "run_id": 1,
-                    "title": "Test",
-                    "last_triggered_at": "2024-01-01T00:00:00",
-                    "created_at": "2024-01-01T00:00:00",
-                    "category_key": "bug-fixer",
-                    "category_value": "issue-123",
-                }
-            ]
+
+class SeerAgentClientGetRunsTest(TestCase):
+    def test_scopes_to_accessible_projects(self) -> None:
+        accessible = self.create_project(organization=self.organization)
+        hidden = self.create_project(organization=self.organization)
+
+        run_accessible = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run=run_accessible, project=accessible)
+        run_hidden = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run=run_hidden, project=hidden)
+        # No project (agent row with null project) and no agent row at all are
+        # both kept regardless of project access.
+        run_null_project = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run=run_null_project, project=None)
+        run_no_agent = self.create_seer_run(organization=self.organization)
+
+        with patch(
+            "sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None)
+        ):
+            client = SeerAgentClient(self.organization)
+
+        queryset = client.get_runs(accessible_project_ids={accessible.id})
+
+        assert {r.id for r in queryset} == {
+            run_accessible.id,
+            run_null_project.id,
+            run_no_agent.id,
         }
-        mock_response.status = 200
-        mock_post.return_value = mock_response
-
-        client = SeerAgentClient(self.organization, self.user)
-        runs = client.get_runs(category_key="bug-fixer", category_value="issue-123")
-
-        assert len(runs) == 1
-        assert runs[0].category_key == "bug-fixer"
-        body = mock_post.call_args[0][0]
-        assert body["category_key"] == "bug-fixer"
-        assert body["category_value"] == "issue-123"
+        assert run_hidden.id not in {r.id for r in queryset}
 
 
 class TestSeerAgentClientArtifacts(TestCase):
@@ -1613,6 +1613,33 @@ class TestStartFeatureRun(TestCase):
         assert outbox is not None and outbox.payload is not None
         body = outbox.payload["body"]
         assert body["agent_run_options"]["enable_frontend_code_search"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-explorer-allow-bash-mode")
+    def test_forwards_bash_mode(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["enable_bash_mode"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_omits_bash_mode_without_org_flag(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert "enable_bash_mode" not in body["agent_run_options"]
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")

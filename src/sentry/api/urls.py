@@ -575,6 +575,7 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
 )
 from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
+    OrganizationSeerAutofixScmInfoEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
@@ -732,6 +733,7 @@ from .endpoints.auth_2fa import AuthTwoFactorChallengeEndpoint, AuthTwoFactorEnd
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
+from .endpoints.auth_recovery import AuthRecoveryConfirmEndpoint, AuthRecoveryEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -1084,6 +1086,16 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^recovery/$",
+        AuthRecoveryEndpoint.as_view(),
+        name="sentry-api-0-auth-recovery",
+    ),
+    re_path(
+        r"^recovery/confirm/$",
+        AuthRecoveryConfirmEndpoint.as_view(),
+        name="sentry-api-0-auth-recovery-confirm",
     ),
     re_path(
         r"^2fa/$",
@@ -2537,6 +2549,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",
         OrganizationSeerAutofixOverviewEndpoint.as_view(),
         name="sentry-api-0-organization-seer-autofix-overview",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-scm-info/$",
+        OrganizationSeerAutofixScmInfoEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-autofix-scm-info",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",

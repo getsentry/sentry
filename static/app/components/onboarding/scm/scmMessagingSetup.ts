@@ -1,5 +1,10 @@
 import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
 
+export type ScmMessagingActiveRow = {
+  mode: 'configuring' | 'removing';
+  providerKey: ScmMessagingProviderKey;
+} | null;
+
 export type ScmMessagingSetup =
   | {mode: 'unconfigured'}
   | {mode: 'skipped'}

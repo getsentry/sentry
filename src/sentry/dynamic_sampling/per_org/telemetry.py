@@ -24,6 +24,39 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
 )
 
+SERVING_SOURCE_METRIC = "dynamic_sampling.per_org.serving_source"
+
+
+class ServedValue(StrEnum):
+    """The piece of data rule generation reads from a cache."""
+
+    PROJECT_SAMPLE_RATE = "project_sample_rate"
+    TRANSACTION_SAMPLE_RATES = "transaction_sample_rates"
+    RECALIBRATION_FACTOR = "recalibration_factor"
+
+
+class ServingSource(StrEnum):
+    """Which pipeline supplied a value that rule generation served."""
+
+    # The organization is not in the serving rollout.
+    LEGACY = "legacy"
+    PER_ORG = "per_org"
+    PER_ORG_FALLBACK = "per_org_fallback"
+    PER_ORG_NO_DATA = "per_org_no_data"
+
+
+def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
+    """Record which pipeline supplied a value that rule generation served.
+
+    Sampled like the rest of the per-org metrics: this runs on every rule generation, and
+    the legacy-to-per-org ratio survives sampling because both sides are sampled alike.
+    """
+    metrics.incr(
+        SERVING_SOURCE_METRIC,
+        sample_rate=metrics_sample_rate(),
+        tags={"value": value.value, "source": source.value},
+    )
+
 
 class DynamicSamplingStatus(StrEnum):
     ALL_PROJECTS_AT_FULL_SAMPLE_RATE = "all_projects_at_full_sample_rate"
