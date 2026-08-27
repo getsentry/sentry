@@ -48,6 +48,7 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.UNASSIGNED.value: NotificationSource.ACTIVITY_UNASSIGNED,
 }
 
+ACTIVITY_NOTIFICATION_REFERRER = "activity_notification"
 EXAMPLE_PROJECT_URL = "https://sentry.io/organizations/acme/issues/?project=123"
 EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/acme/issues/1/"
 EXAMPLE_ALERT_URL = "https://sentry.io/organizations/acme/monitors/alerts/1/"
@@ -182,13 +183,21 @@ def build_activity_notification_data(
         except Workflow.DoesNotExist:
             raise ValueError(f"Workflow not found: {workflow_id}")
 
-    issue_url = group.get_absolute_url()
+    issue_url = group.get_absolute_url(params={"referrer": ACTIVITY_NOTIFICATION_REFERRER})
     if ActivityType(activity.type) in SEER_ACTIVITY_TYPES:
-        issue_url = group.get_absolute_url(params={"seerDrawer": "true"})
+        issue_url = group.get_absolute_url(
+            params={"seerDrawer": "true", "referrer": ACTIVITY_NOTIFICATION_REFERRER}
+        )
         if features.has("organizations:issue-inbox", organization):
             issue_url = organization.absolute_url(
                 f"organizations/{organization.slug}/issues/inbox/",
-                query=urlencode({"project": project.id, "preview": group.id}),
+                query=urlencode(
+                    {
+                        "project": project.id,
+                        "preview": group.id,
+                        "referrer": ACTIVITY_NOTIFICATION_REFERRER,
+                    }
+                ),
             )
 
     action_data = dict(
@@ -202,7 +211,7 @@ def build_activity_notification_data(
         project_slug=project.slug,
         project_url=organization.absolute_url(
             f"organizations/{organization.slug}/issues/",
-            query=urlencode({"project": project.id}),
+            query=urlencode({"project": project.id, "referrer": ACTIVITY_NOTIFICATION_REFERRER}),
         ),
         activity_data=activity.data,
         activity_user_name=None,
@@ -213,7 +222,8 @@ def build_activity_notification_data(
             {
                 "alert_name": workflow.name,
                 "alert_url": organization.absolute_url(
-                    f"organizations/{organization.slug}/monitors/alerts/{workflow_id}/"
+                    f"organizations/{organization.slug}/monitors/alerts/{workflow_id}/",
+                    query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
                 ),
             }
         )
@@ -228,7 +238,8 @@ def build_activity_notification_data(
         action_data.update(
             {
                 "user_settings_url": organization.absolute_url(
-                    f"settings/account/notifications/{notification_category}/"
+                    f"settings/account/notifications/{notification_category}/",
+                    query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
                 )
             }
         )
@@ -259,7 +270,9 @@ def build_activity_notification_data(
                 raw_version = activity.data["version"]
                 release_url = organization.absolute_url(
                     f"organizations/{organization.slug}/releases/{raw_version}/",
-                    query=urlencode({"project": project.id}),
+                    query=urlencode(
+                        {"project": project.id, "referrer": ACTIVITY_NOTIFICATION_REFERRER}
+                    ),
                 )
             return SetResolvedInReleaseNotificationData(**action_data, release_url=release_url)
 

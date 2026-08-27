@@ -52,6 +52,14 @@ class SentryAppRequest(TypedDict):
     response_body: NotRequired[str | None]
 
 
+def _decode_body(body: str | bytes) -> str:
+    # Decode before truncating so the limit applies to characters and a
+    # multi-byte sequence is never split.
+    if isinstance(body, bytes):
+        return body.decode("utf-8", errors="replace")
+    return body
+
+
 class SentryAppWebhookRequestsBuffer:
     """
     Create a data structure to store basic information about Sentry App webhook requests in Redis
@@ -173,18 +181,11 @@ class SentryAppWebhookRequestsBuffer:
 
             if response is not None:
                 if response.content is not None:
-                    try:
-                        json.loads(response.content)
-                        # if the type is jsonifiable, treat it as such
-                        prettified_response_body = json.dumps(response.content)
-                        request_data["response_body"] = prettified_response_body[:MAX_SIZE]
-                    except (json.JSONDecodeError, TypeError):
-                        request_data["response_body"] = response.content[:MAX_SIZE]
+                    request_data["response_body"] = _decode_body(response.content)[:MAX_SIZE]
                 if response.request is not None:
                     request_body = response.request.body
                     if request_body is not None:
-                        prettified_request_body = json.dumps(request_body)
-                        request_data["request_body"] = prettified_request_body[:MAX_SIZE]
+                        request_data["request_body"] = _decode_body(request_body)[:MAX_SIZE]
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway
         if not self.sentry_app.is_internal:

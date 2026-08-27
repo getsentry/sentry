@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, tagstore, tsdb
+from sentry import analytics, features, options, tagstore, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
@@ -54,6 +54,7 @@ from sentry.issues.constants import (
     get_issue_tsdb_group_model,
 )
 from sentry.issues.derived.features import STATUS, IssueStatus
+from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -135,7 +136,13 @@ class GroupDetailsEndpoint(GroupEndpoint):
         This is a best-effort, non-essential side effect on a read path; callers
         must ensure a failure here never breaks the group view.
         """
-        if not features.has("projects:issue-status-reconciliation", group.project):
+        if options.get("issues.derived_data.read_path_checks.killswitch"):
+            return
+
+        if not (
+            features.has("projects:issue-status-reconciliation", group.project)
+            or derived_should_be_correct(group.project)
+        ):
             return
 
         expected_status = _GROUP_STATUS_TO_DERIVED_STATUS.get(group.status)

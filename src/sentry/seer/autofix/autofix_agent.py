@@ -533,7 +533,15 @@ def trigger_autofix_agent(
             if not has_budget:
                 raise NoSeerQuotaException()
 
-    use_seer_rca_feature = features.has(
+    # If autofix-should-run-repo-checks is enabled,
+    # we should force bash tools on as it is dependent on bash tools
+    enable_bash_tools = enable_bash_tools or (
+        referrer == AutofixReferrer.NIGHT_SHIFT
+        and features.has("organizations:autofix-should-run-repo-checks", group.organization)
+    )
+
+    # TODO: we want to support bash tools under the autofix-rca-in-seer feature
+    use_seer_rca_feature = not enable_bash_tools and features.has(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
     )
     if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
@@ -611,9 +619,7 @@ def trigger_autofix_agent(
         group,
         user_context,
         run_state=run_state,
-        should_run_repo_checks=features.has(
-            "organizations:autofix-should-run-repo-checks", group.organization
-        ),
+        should_run_repo_checks=enable_bash_tools,
     )
     prompt_metadata = {
         "step": step.value,
@@ -689,10 +695,6 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
     """
     Get the current state of an agent-based autofix run for a group.
 
-    Args:
-        organization: The organization
-        group_id: The group ID to get state for
-
     Returns:
         SeerRunState if a run exists, None otherwise
     """
@@ -702,13 +704,7 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_key="autofix",
         category_value=str(group_id),
     )
-
-    runs = client.get_runs(category_key="autofix", category_value=str(group_id))
-    if not runs:
-        return None
-
-    # Return the most recent run's state
-    return client.get_run(runs[0].run_id)
+    return client.fetch_latest_run_state(group_id=group_id)
 
 
 def generate_autofix_handoff_prompt(
@@ -732,6 +728,18 @@ def generate_autofix_handoff_prompt(
             )
         else:
             parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+
+    parts.append(
+        " ".join(
+            [
+                "When you open a pull request, write a description that briefly explains the root",
+                "cause and the solution at a high level, so a reviewer can understand the change",
+                "without reading the diff. Base it on the changes you actually implemented, not on",
+                "the proposed solution below. Keep it to a few sentences. State in the description",
+                "that this pull request was triggered by a Seer handoff from Sentry.",
+            ]
+        )
+    )
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -886,7 +894,7 @@ def trigger_coding_agent_handoff(
         user_id=user_id,
         prompt=prompt,
         repos=[repo],
-        branch_name_base=group.title or "seer",
+        branch_name_base=f"seer/{group.title}" if group.title else "seer/fix",
         auto_create_pr=auto_create_pr,
         issue_short_id=short_id,
         issue_url=issue_url,

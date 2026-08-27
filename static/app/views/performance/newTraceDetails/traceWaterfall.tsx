@@ -34,7 +34,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
@@ -100,7 +99,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
   const isEAP = useIsEAPTraceEnabled();
 
@@ -692,7 +690,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   // On the standalone trace page these two moved into the page-title crumb.
   // Embedded waterfalls (issues, replay) have no such crumb, so they keep them.
-  const showToolbarTraceActions = !(props.source === 'performance' && hasNewBreadcrumbs);
+  const showToolbarTraceActions = props.source !== 'performance';
 
   return (
     <Stack flex={1}>

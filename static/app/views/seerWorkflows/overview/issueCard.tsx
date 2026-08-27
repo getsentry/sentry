@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,7 +7,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -35,7 +35,11 @@ import type {
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
 import {OpenSeerButton} from './openSeerButton';
@@ -48,7 +52,13 @@ import {
 } from './overviewIssuePriority';
 import {periodWindowLabel} from './periods';
 import {PullRequestFiles} from './pullRequestFiles';
-import type {AutofixStateKey, OverviewPullRequest, OverviewRun} from './types';
+import type {
+  AutofixStateKey,
+  OverviewPullRequest,
+  OverviewRun,
+  ProjectConfig,
+} from './types';
+import {useIsInView} from './useIsInView';
 
 // The endpoint orders links oldest-first and only enriches open/draft PRs, so
 // the newest actionable link is the one carrying badges and files.
@@ -131,15 +141,25 @@ function OverviewAction({
   run,
   reviewPullRequest,
   issueUrl,
-  enrichmentPending,
+  projectConfig,
 }: {
-  enrichmentPending: boolean;
   issueUrl: string;
+  projectConfig: ProjectConfig | undefined;
   reviewPullRequest: OverviewPullRequest | undefined;
   run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
+  const organization = useOrganization();
   const {pullRequests, status} = run;
+  const trackPrClicked = (section: 'merged' | 'review_pr', pr: OverviewPullRequest) =>
+    trackAnalytics('autofix.overview.pr_clicked', {
+      organization,
+      group_id: run.groupId,
+      run_id: run.seerRunId,
+      section,
+      checks_status: pr.checksStatus ?? undefined,
+      review_status: pr.reviewStatus ?? undefined,
+    });
   if (status === 'processing') {
     return (
       <ButtonBar>
@@ -152,7 +172,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <OpenSeerButton run={run} size="sm" variant="secondary" />
+        <OpenSeerButton run={run} section={sectionKey} size="sm" variant="secondary" />
       </ButtonBar>
     );
   }
@@ -182,11 +202,17 @@ function OverviewAction({
                     icon={<IconMerge />}
                     href={pullRequest.url}
                     external
+                    onClick={() => trackPrClicked('merged', pullRequest)}
                   >
                     {label}
                   </LinkButton>
                 </Tooltip>
-                <OpenSeerButton run={run} size="sm" variant="secondary" />
+                <OpenSeerButton
+                  run={run}
+                  section={sectionKey}
+                  size="sm"
+                  variant="secondary"
+                />
               </ButtonBar>
             );
           })}
@@ -211,67 +237,66 @@ function OverviewAction({
       : null;
     const failedChecks =
       reviewPullRequest.checksStatus === 'failure'
-        ? (reviewPullRequest.failedChecks ?? [])
+        ? (reviewPullRequest.failedCheckDetails ?? [])
         : [];
 
     return (
       <Stack align="end" gap="xs">
         <ButtonBar>
-          <Tooltip title={REVIEW_PR_META.description} skipWrapper>
-            <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
-              <Flex as="span" gap="xs" align="center">
-                {t('Review PR #%s', reviewPullRequest.number)}
-                <IconOpen size="xs" />
-              </Flex>
-            </LinkButton>
-          </Tooltip>
-          <OpenSeerButton run={run} size="sm" variant="primary" />
+          <LinkButton
+            size="sm"
+            variant="primary"
+            href={reviewPullRequest.url}
+            external
+            onClick={() => trackPrClicked('review_pr', reviewPullRequest)}
+          >
+            <Flex as="span" gap="xs" align="center">
+              {t('Review PR #%s', reviewPullRequest.number)}
+              <IconOpen size="xs" />
+            </Flex>
+          </LinkButton>
+          <OpenSeerButton run={run} section={sectionKey} size="sm" variant="primary" />
         </ButtonBar>
-        {enrichmentPending ? (
-          // Two slots mirror the review + checks tags the enriched response
-          // typically fills in, so the row height doesn't jump on resolve.
-          <Fragment>
-            <Placeholder height="1.25rem" width="5.5rem" />
-            <Placeholder height="1.25rem" width="7rem" />
-          </Fragment>
-        ) : (
-          <Fragment>
-            {reviewStatusTag && (
-              <Tag variant={reviewStatusTag.variant} icon={reviewStatusTag.icon}>
-                {reviewStatusTag.label}
-              </Tag>
-            )}
-            {checksStatusTag && (
-              <Tooltip
-                disabled={failedChecks.length === 0}
-                title={
-                  <Stack gap="xs" align="start">
-                    <Text size="sm" bold align="left">
-                      {t('Failing checks:')}
-                    </Text>
-                    <Stack gap="2xs" align="start">
-                      {failedChecks.map((name, index) => (
-                        <Flex key={`${name}-${index}`} gap="xs" align="start">
-                          <Text size="sm" variant="muted">
-                            •
-                          </Text>
-                          <Text size="sm" align="left">
-                            {name}
-                          </Text>
-                        </Flex>
-                      ))}
-                    </Stack>
+        {reviewStatusTag && (
+          <Tag variant={reviewStatusTag.variant} icon={reviewStatusTag.icon}>
+            {reviewStatusTag.label}
+          </Tag>
+        )}
+        {checksStatusTag && (
+          <HoverOverlayGroupProvider>
+            <Tooltip
+              disabled={failedChecks.length === 0}
+              title={
+                <Stack gap="xs" align="start">
+                  <Text size="sm" bold align="left">
+                    {t('Failing checks:')}
+                  </Text>
+                  <Stack gap="2xs" align="start">
+                    {failedChecks.map((check, index) => (
+                      <Flex key={`${check.name}-${index}`} gap="xs" align="start">
+                        <Text size="sm" variant="muted">
+                          •
+                        </Text>
+                        <Text size="sm" align="left">
+                          {check.url ? (
+                            <ExternalLink href={check.url}>{check.name}</ExternalLink>
+                          ) : (
+                            check.name
+                          )}
+                        </Text>
+                      </Flex>
+                    ))}
                   </Stack>
-                }
-              >
-                <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
-                  {failedChecks.length > 0
-                    ? tn('%s Check Failing', '%s Checks Failing', failedChecks.length)
-                    : checksStatusTag.label}
-                </Tag>
-              </Tooltip>
-            )}
-          </Fragment>
+                </Stack>
+              }
+            >
+              <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
+                {failedChecks.length > 0
+                  ? tn('%s Check Failing', '%s Checks Failing', failedChecks.length)
+                  : checksStatusTag.label}
+              </Tag>
+            </Tooltip>
+          </HoverOverlayGroupProvider>
         )}
       </Stack>
     );
@@ -292,7 +317,9 @@ function OverviewAction({
     );
   }
 
-  return <OverviewCardAction run={run} sectionKey={sectionKey} />;
+  return (
+    <OverviewCardAction run={run} sectionKey={sectionKey} projectConfig={projectConfig} />
+  );
 }
 
 const TitleLink = styled(Link)`
@@ -350,78 +377,95 @@ function NarrativeBlock({
 function IssueVitals({
   run,
   statsPeriod,
-  enrichmentPending,
+  vitalsPending,
 }: {
-  enrichmentPending: boolean;
   run: OverviewRun;
   statsPeriod: string | null;
+  vitalsPending: boolean;
 }) {
   const eventCount = run.issue.count ? Number(run.issue.count) : null;
-  const userCount = run.issue.userCount ?? 0;
+  const userCount = run.issue.userCount ?? null;
   const windowLabel = periodWindowLabel(statsPeriod);
+  // lastTriggeredAt rides the status poll, so keep it visible even while the
+  // Snuba-sourced counts are still shimmering in.
+  const seerActivity = (
+    <Flex gap="xs" align="center">
+      <IconSeer size="xs" variant="muted" aria-hidden />
+      <Text size="sm" variant="muted">
+        <TimeSince
+          date={run.lastTriggeredAt}
+          tooltipPrefix={t('Last activity on this Seer run')}
+        />
+      </Text>
+    </Flex>
+  );
+  if (vitalsPending) {
+    return (
+      <Fragment>
+        <Flex gap="xs" align="center">
+          <IconGraph size="xs" variant="muted" aria-hidden />
+          <Placeholder height="1rem" width="4rem" />
+        </Flex>
+        <Flex gap="xs" align="center">
+          <IconUser size="xs" variant="muted" aria-hidden />
+          <Placeholder height="1rem" width="4rem" />
+        </Flex>
+        <Flex gap="xs" align="center">
+          <IconClock size="xs" variant="muted" aria-hidden />
+          <Placeholder height="1rem" width="5rem" />
+        </Flex>
+        {seerActivity}
+      </Fragment>
+    );
+  }
   return (
     <Fragment>
-      {enrichmentPending ? (
-        <Fragment>
-          <Flex gap="xs" align="center">
-            <IconGraph size="xs" variant="muted" aria-hidden />
-            <Placeholder height="1rem" width="4rem" />
-          </Flex>
-          <Flex gap="xs" align="center">
-            <IconClock size="xs" variant="muted" aria-hidden />
-            <Placeholder height="1rem" width="5rem" />
-          </Flex>
-        </Fragment>
-      ) : (
-        <Fragment>
-          {eventCount !== null && (
-            <Flex gap="xs" align="center">
-              <IconGraph size="xs" variant="muted" aria-hidden />
-              <InfoText
-                size="sm"
-                variant="muted"
-                title={
-                  windowLabel
-                    ? t('%s events %s', eventCount.toLocaleString(), windowLabel)
-                    : t('%s events', eventCount.toLocaleString())
-                }
-              >
-                {eventCount === 1
-                  ? t('1 event')
-                  : t('%s events', formatAbbreviatedNumber(eventCount))}
-              </InfoText>
-            </Flex>
-          )}
-          {userCount > 0 && (
-            <Flex gap="xs" align="center">
-              <IconUser size="xs" variant="muted" aria-hidden />
-              <InfoText
-                size="sm"
-                variant="muted"
-                title={
-                  windowLabel
-                    ? t('%s affected users %s', userCount.toLocaleString(), windowLabel)
-                    : t('%s affected users', userCount.toLocaleString())
-                }
-              >
-                {userCount === 1
-                  ? t('1 user')
-                  : t('%s users', formatAbbreviatedNumber(userCount))}
-              </InfoText>
-            </Flex>
-          )}
-          {run.issue.lastSeen && (
-            <Flex gap="xs" align="center">
-              <IconClock size="xs" variant="muted" aria-hidden />
-              <Text size="sm" variant="muted">
-                <TimeSince
-                  date={run.issue.lastSeen}
-                  tooltipPrefix={t('The most recent event in this issue occurred')}
-                />
-              </Text>
-            </Flex>
-          )}
-        </Fragment>
+      {eventCount !== null && (
+        <Flex gap="xs" align="center">
+          <IconGraph size="xs" variant="muted" aria-hidden />
+          <InfoText
+            size="sm"
+            variant="muted"
+            title={
+              windowLabel
+                ? t('%s events %s', eventCount.toLocaleString(), windowLabel)
+                : t('%s events', eventCount.toLocaleString())
+            }
+          >
+            {eventCount === 1
+              ? t('1 event')
+              : t('%s events', formatAbbreviatedNumber(eventCount))}
+          </InfoText>
+        </Flex>
+      )}
+      {userCount !== null && (
+        <Flex gap="xs" align="center">
+          <IconUser size="xs" variant="muted" aria-hidden />
+          <InfoText
+            size="sm"
+            variant="muted"
+            title={
+              windowLabel
+                ? t('%s affected users %s', userCount.toLocaleString(), windowLabel)
+                : t('%s affected users', userCount.toLocaleString())
+            }
+          >
+            {userCount === 1
+              ? t('1 user')
+              : t('%s users', formatAbbreviatedNumber(userCount))}
+          </InfoText>
+        </Flex>
+      )}
+      {run.issue.lastSeen && (
+        <Flex gap="xs" align="center">
+          <IconClock size="xs" variant="muted" aria-hidden />
+          <Text size="sm" variant="muted">
+            <TimeSince
+              date={run.issue.lastSeen}
+              tooltipPrefix={t('The most recent event in this issue occurred')}
+            />
+          </Text>
+        </Flex>
       )}
       <Flex gap="xs" align="center">
         <IconSeer size="xs" variant="muted" aria-hidden />
@@ -436,7 +480,15 @@ function IssueVitals({
   );
 }
 
-function PriorityAndAssignee({run}: {run: OverviewRun}) {
+function PriorityAndAssignee({
+  run,
+  memberList,
+  assigneeReady,
+}: {
+  assigneeReady: boolean;
+  run: OverviewRun;
+  memberList?: User[];
+}) {
   const {issue} = run;
   const priorityGroup: OverviewIssuePriorityGroup = {
     id: run.groupId,
@@ -455,13 +507,18 @@ function PriorityAndAssignee({run}: {run: OverviewRun}) {
   return (
     <Flex gap="xs" align="center">
       <OverviewIssuePriority group={priorityGroup} />
-      <OverviewIssueAssignee
-        groupId={run.groupId}
-        projectId={issue.project.id}
-        projectSlug={issue.project.slug}
-        assignedTo={issue.assignedTo ?? undefined}
-        owners={issue.owners}
-      />
+      {assigneeReady ? (
+        <OverviewIssueAssignee
+          groupId={run.groupId}
+          projectId={issue.project.id}
+          projectSlug={issue.project.slug}
+          assignedTo={issue.assignedTo ?? undefined}
+          owners={issue.owners}
+          memberList={memberList}
+        />
+      ) : (
+        <Placeholder shape="circle" width="24px" height="24px" />
+      )}
     </Flex>
   );
 }
@@ -471,23 +528,60 @@ export function OverviewCard({
   run,
   sectionKey,
   statsPeriod,
-  enrichmentPending,
+  scmSettled,
+  vitalsPending,
+  requestScmWindow,
+  scmWindows,
+  projectConfig,
+  memberList,
+  assigneeReady,
 }: {
-  enrichmentPending: boolean;
+  assigneeReady: boolean;
   orgSlug: string;
+  projectConfig: ProjectConfig | undefined;
+  requestScmWindow: (runIds: string[]) => void;
   run: OverviewRun;
+  scmSettled: boolean;
+  scmWindows: string[][] | undefined;
   sectionKey: AutofixStateKey;
   statsPeriod: string | null;
+  vitalsPending: boolean;
+  memberList?: User[];
 }) {
+  const organization = useOrganization();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const inView = useIsInView(cardRef);
+  useEffect(() => {
+    if (inView && scmWindows) {
+      for (const window of scmWindows) {
+        requestScmWindow(window);
+      }
+    }
+  }, [inView, scmWindows, requestScmWindow]);
   const rootCause = run.rootCause?.oneLineDescription;
   const proposedFix = run.proposedFix?.oneLineSummary;
   const issueUrl = `/organizations/${orgSlug}/issues/${run.groupId}/`;
   const reviewPullRequest =
     sectionKey === 'review_pr' ? selectReviewPullRequest(run.pullRequests) : undefined;
   const changedFiles = reviewPullRequest?.files ?? [];
+  const hasEnrichment = Boolean(
+    reviewPullRequest?.checksStatus ||
+    reviewPullRequest?.reviewStatus ||
+    reviewPullRequest?.files?.length
+  );
+  const enrichmentPending =
+    Boolean(reviewPullRequest?.url) && !hasEnrichment && !scmSettled;
+  const trackCodeChangesExpanded = () =>
+    trackAnalytics('autofix.overview.code_changes_expanded', {
+      organization,
+      group_id: run.groupId,
+      run_id: run.seerRunId,
+      section: sectionKey,
+    });
 
   return (
     <CardFrame
+      containerRef={cardRef}
       aside={
         <Fragment>
           <OverviewAction
@@ -495,9 +589,13 @@ export function OverviewCard({
             run={run}
             reviewPullRequest={reviewPullRequest}
             issueUrl={issueUrl}
-            enrichmentPending={enrichmentPending}
+            projectConfig={projectConfig}
           />
-          <PriorityAndAssignee run={run} />
+          <PriorityAndAssignee
+            run={run}
+            memberList={memberList}
+            assigneeReady={assigneeReady}
+          />
         </Fragment>
       }
     >
@@ -507,7 +605,19 @@ export function OverviewCard({
         <LevelBar level={run.issue.level ?? undefined} />
         <Stack minWidth="0" gap="xs">
           <Text bold display="block" textWrap="pretty" wordBreak="break-word" size="lg">
-            <TitleLink to={issueUrl}>{run.title}</TitleLink>
+            <TitleLink
+              to={issueUrl}
+              onClick={() =>
+                trackAnalytics('autofix.overview.issue_clicked', {
+                  organization,
+                  group_id: run.groupId,
+                  run_id: run.seerRunId,
+                  section: sectionKey,
+                })
+              }
+            >
+              {run.title}
+            </TitleLink>
           </Text>
           <Flex wrap="wrap" gap="md" align="center">
             <Flex gap="xs" align="center">
@@ -524,7 +634,7 @@ export function OverviewCard({
             <IssueVitals
               run={run}
               statsPeriod={statsPeriod}
-              enrichmentPending={enrichmentPending}
+              vitalsPending={vitalsPending}
             />
           </Flex>
         </Stack>
@@ -546,12 +656,19 @@ export function OverviewCard({
         </NarrativeBlock>
       )}
       {sectionKey === 'code_changes_ready' && run.codeChanges?.length ? (
-        <CodeChanges codeChanges={run.codeChanges} />
+        <CodeChanges
+          codeChanges={run.codeChanges}
+          onFirstExpand={trackCodeChangesExpanded}
+        />
       ) : null}
       {enrichmentPending && reviewPullRequest?.url ? (
         <Placeholder height="3rem" />
       ) : reviewPullRequest && changedFiles.length > 0 ? (
-        <PullRequestFiles orgSlug={orgSlug} pullRequest={reviewPullRequest} />
+        <PullRequestFiles
+          orgSlug={orgSlug}
+          pullRequest={reviewPullRequest}
+          onFirstExpand={trackCodeChangesExpanded}
+        />
       ) : null}
     </CardFrame>
   );
@@ -560,12 +677,20 @@ export function OverviewCard({
 function CardFrame({
   aside,
   children,
+  containerRef,
 }: {
   aside: React.ReactNode;
   children: React.ReactNode;
+  containerRef?: React.Ref<HTMLDivElement>;
 }) {
   return (
-    <Container background="primary" border="primary" radius="md" padding="xl">
+    <Container
+      ref={containerRef}
+      background="primary"
+      border="primary"
+      radius="md"
+      padding="xl"
+    >
       <Stack gap="xl">
         <Flex
           gap={{xs: 'xl', sm: '3xl'}}
@@ -621,7 +746,7 @@ export function OverviewCardSkeleton() {
         <Stack minWidth="0" gap="xs">
           <TextLineSkeleton size="lg" width="70%" />
           <Flex wrap="wrap" gap="md" align="center">
-            {['4.5rem', '4rem', '5rem', '5rem'].map((width, index) => (
+            {['4.5rem', '4rem', '4rem', '5rem', '5rem'].map((width, index) => (
               <TextLineSkeleton key={index} size="sm" width={width} />
             ))}
           </Flex>
