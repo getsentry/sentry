@@ -15,6 +15,7 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 const GCP_PROJECT_ID_RE = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const MAX_PROJECTS = 20;
@@ -110,7 +111,7 @@ function GcpCustomerConfigStep({
 
   useEffect(() => {
     if (advanceError) {
-      setFieldErrors(form, advanceError);
+      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
     }
   }, [advanceError, form]);
 

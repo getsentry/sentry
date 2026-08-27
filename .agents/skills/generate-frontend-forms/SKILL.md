@@ -337,17 +337,17 @@ Both Stack and Row layouts support a `variant="compact"` prop. In compact mode, 
 ```tsx
 // Default: hint text appears below the label
 <field.Layout.Row label="Email" hintText="We'll never share your email">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Row>
 
 // Compact: hint text appears in tooltip when hovering the label
 <field.Layout.Row label="Email" hintText="We'll never share your email" variant="compact">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Row>
 
 // Also works with Stack layout
 <field.Layout.Stack label="Email" hintText="We'll never share your email" variant="compact">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Stack>
 ```
 
@@ -389,13 +389,13 @@ Group related fields into sections with a title.
 
 ```tsx
 <form.FieldGroup title="Personal Information">
-  <form.AppField name="firstName">{/* ... */}</form.AppField>
-  <form.AppField name="lastName">{/* ... */}</form.AppField>
+    <form.AppField name="firstName">{/* ... */}</form.AppField>
+    <form.AppField name="lastName">{/* ... */}</form.AppField>
 </form.FieldGroup>
 
 <form.FieldGroup title="Contact Information">
-  <form.AppField name="email">{/* ... */}</form.AppField>
-  <form.AppField name="phone">{/* ... */}</form.AppField>
+    <form.AppField name="email">{/* ... */}</form.AppField>
+    <form.AppField name="phone">{/* ... */}</form.AppField>
 </form.FieldGroup>
 ```
 
@@ -411,9 +411,9 @@ Fields accept `disabled` as a boolean or string. When a string is provided, it d
 
 // ✅ Provide a reason when disabling
 <field.Input
-  disabled="This feature requires a Business plan"
-  value={field.state.value}
-  onChange={field.handleChange}
+    disabled="This feature requires a Business plan"
+    value={field.state.value}
+    onChange={field.handleChange}
 />
 ```
 
@@ -527,6 +527,8 @@ import {useMutation} from '@tanstack/react-query';
 import {setFieldErrors} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 function MyForm() {
   const mutation = useMutation({
@@ -547,17 +549,43 @@ function MyForm() {
       try {
         await mutation.mutateAsync(value);
       } catch (error) {
-        // Set field-specific errors from backend
-        setFieldErrors(formApi, {
-          email: {message: 'This email is already registered'},
-          username: {message: 'Username is taken'},
-        });
+        if (error instanceof RequestError) {
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+        }
       }
     },
   });
 
   // ...
 }
+```
+
+`setFieldErrors` accepts the Scraps `FieldErrors` contract. It does not accept
+Sentry's `RequestError`. Use `requestErrorToFieldErrors` at the app boundary to:
+
+- accept a `RequestError` after the call site narrows the unknown error;
+- keep only keys that exist in the form values;
+- convert string and array response values to `{message: string}`.
+
+Do not pass an API error to Scraps directly:
+
+```tsx
+// ❌ RequestError is an app type, not a Scraps form error
+setFieldErrors(formApi, error);
+
+// ✅ Narrow at the app call site, then convert to the Scraps contract
+if (error instanceof RequestError) {
+  setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+}
+```
+
+Use a direct object when you create the field messages in the form code:
+
+```tsx
+setFieldErrors(formApi, {
+  email: {message: 'This email is already registered'},
+  username: {message: 'Username is taken'},
+});
 ```
 
 > **Important**: `setFieldErrors` supports nested paths with dot notation: `'address.city': {message: 'City not found'}`
@@ -986,7 +1014,7 @@ When creating a new form:
 - [ ] Wrap with `<form.AppForm form={form}>`
 - [ ] Use `<form.AppField>` for each field
 - [ ] Choose appropriate layout (Stack or Row)
-- [ ] Handle server errors with `setFieldErrors`
+- [ ] Narrow unknown errors to `RequestError` at the call site, convert them with `requestErrorToFieldErrors`, then call `setFieldErrors`
 - [ ] Add `<form.SubmitButton>` for submission
 - [ ] Call `form.reset()` after successful mutation if the form stays on the page
 

@@ -4,6 +4,7 @@ export {
   useScrapsForm,
   defaultFormOptions,
   setFieldErrors,
+  type FieldErrors,
   withFieldGroup,
   withForm,
 } from './scrapsForm';

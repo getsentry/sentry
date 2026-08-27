@@ -13,8 +13,6 @@ import {
 import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Configuration for confirmation dialogs before applying changes.
@@ -198,20 +196,13 @@ export function AutoSaveForm<
         return Promise.resolve();
       }
 
-      const onError = (error: Error) => {
+      const onError = () => {
         if (resetOnErrorRef.current) {
           formApi.reset();
         }
-        const isRequestError = error instanceof RequestError;
-        const hasBackendErrors = isRequestError ? setFieldErrors(formApi, error) : false;
-        if (!hasBackendErrors) {
-          const message = isRequestError
-            ? getRequestErrorUserMessage(error, t('Failed to save'))
-            : t('Failed to save');
-          setFieldErrors(formApi, {
-            [name]: {message},
-          } as never);
-        }
+        setFieldErrors(formApi, {
+          [name]: {message: t('Failed to save')},
+        } as never);
       };
 
       const onSuccess = () => {
