@@ -755,17 +755,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     )
 
                 dashboard = serializer.save()
-
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=dashboard.id,
-                event=audit_log.get_event_id("DASHBOARD_ADD"),
-                data=dashboard.get_audit_log_data(),
-            )
-
-            body: DashboardDetailsResponse = serialize(dashboard, request.user)
-            return Response(body, status=201)
         except IntegrityError:
             if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
@@ -777,3 +766,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return self.post(request, organization, retry=retry + 1)
         except UnableToAcquireLock:
             return Response("Unable to create dashboard, please try again", status=503)
+
+        # Audit only after a successful create so title-conflict retries cannot
+        # emit multiple create entries.
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=dashboard.id,
+            event=audit_log.get_event_id("DASHBOARD_ADD"),
+            data=dashboard.get_audit_log_data(),
+        )
+
+        body: DashboardDetailsResponse = serialize(dashboard, request.user)
+        return Response(body, status=201)

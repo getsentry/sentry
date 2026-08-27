@@ -131,13 +131,9 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
         assert self.dashboard.title == "Old Title"
         assert_org_audit_log_exists(
             organization=self.organization,
-            event=audit_log.get_event_id("DASHBOARD_EDIT"),
+            event=audit_log.get_event_id("DASHBOARD_RESTORE"),
             target_object=self.dashboard.id,
-            data={
-                **self.dashboard.get_audit_log_data(),
-                "revision_id": revision.id,
-                "source": "restore",
-            },
+            data=self.dashboard.get_audit_log_data(),
         )
 
     def test_creates_pre_restore_snapshot(self) -> None:

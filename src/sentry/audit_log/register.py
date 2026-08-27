@@ -744,3 +744,11 @@ default_manager.add(
         template="removed dashboard {title}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=222,
+        name="DASHBOARD_RESTORE",
+        api_name="dashboard.restore",
+        template="restored dashboard {title}",
+    )
+)

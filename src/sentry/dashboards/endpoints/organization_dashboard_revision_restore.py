@@ -112,12 +112,8 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
             request=request,
             organization=organization,
             target_object=updated_dashboard.id,
-            event=audit_log.get_event_id("DASHBOARD_EDIT"),
-            data={
-                **updated_dashboard.get_audit_log_data(),
-                "revision_id": revision.id,
-                "source": "restore",
-            },
+            event=audit_log.get_event_id("DASHBOARD_RESTORE"),
+            data=updated_dashboard.get_audit_log_data(),
         )
 
         return self.respond(serialize(updated_dashboard, request.user), status=200)
