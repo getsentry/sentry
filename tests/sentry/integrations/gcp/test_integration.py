@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import pytest
@@ -12,6 +12,7 @@ from sentry.integrations.gcp.integration import (
     GcpIntegration,
     GcpIntegrationProvider,
     GcpSaGenerationApiStep,
+    GcpVerification,
     GcpVerificationApiStep,
     GcpVerificationInputSerializer,
 )
@@ -162,7 +163,9 @@ class GcpIntegrationTest(TestCase):
     # -- Setup wizard: step contract --
 
     def test_pipeline_steps_match_frontend_step_ids(self) -> None:
-        steps = self.provider.get_pipeline_api_steps()
+        steps = [
+            step() if callable(step) else step for step in self.provider.get_pipeline_api_steps()
+        ]
         assert [step.step_name for step in steps] == [
             "gcp_sa_generation",
             "gcp_customer_config",
@@ -190,7 +193,7 @@ class GcpIntegrationTest(TestCase):
 
     # -- Setup wizard: verification step --
 
-    def _validated_verification(self, **overrides: object) -> dict[str, Any]:
+    def _validated_verification(self, **overrides: object) -> GcpVerification:
         data: dict[str, Any] = {
             "connectionStatus": "connected",
             "projects": [{"gcpProjectId": "my-gcp-project", "connectionStatus": "connected"}],
@@ -198,7 +201,7 @@ class GcpIntegrationTest(TestCase):
         data.update(overrides)
         serializer = GcpVerificationInputSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
-        return serializer.validated_data
+        return cast(GcpVerification, serializer.validated_data)
 
     def test_verification_step_exposes_values_to_verify(self) -> None:
         step = GcpVerificationApiStep()
