@@ -15,11 +15,14 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressError
 from sentry.signals import integration_added
+from sentry.silo.safety import unguarded_write
 from sentry.types.cell import find_cells_for_orgs
 
 if TYPE_CHECKING:
@@ -127,8 +130,57 @@ class Integration(DefaultFieldsModelExisting):
                     defaults={"default_auth_id": default_auth_id, "config": {}},
                 )
                 # TODO(Steve): add audit log if created
-                if not created and default_auth_id:
-                    org_integration.update(default_auth_id=default_auth_id)
+                if not created:
+                    # Guard against a deletion race with a compare-and-swap. A
+                    # single UPDATE ... WHERE status = PENDING_DELETION is atomic:
+                    # either we rescue the row before the deletion task claims it,
+                    # or we don't touch it at all. We deliberately avoid row locks
+                    # (SELECT FOR UPDATE) here; a prior version of this fix stalled
+                    # the database under lock contention. You can find the other
+                    # side of this CAS here:
+                    #   src/sentry/deletions/defaults/organizationintegration.py
+                    #
+                    # `unguarded_write` is safe because status replication is
+                    # disabled for this model; see the note at the deletion side.
+                    with unguarded_write(using=router.db_for_write(OrganizationIntegration)):
+                        reactivated = bool(
+                            OrganizationIntegration.objects.filter(
+                                id=org_integration.id, status=ObjectStatus.PENDING_DELETION
+                            ).update(status=ObjectStatus.ACTIVE)
+                        )
+                    if reactivated:
+                        org_integration.status = ObjectStatus.ACTIVE
+                        ScheduledDeletion.cancel(org_integration)
+                    else:
+                        org_integration.refresh_from_db()
+
+                    # The deletion task has already claimed the row. Exit early. We
+                    # can not honor the re-installation request.
+                    #
+                    # There is a chance that a failed deletion leaves this
+                    # stuck. Deletes are periodically retried but there could
+                    # be significant time delay. Ideally we're not mutating shared
+                    # state in this way. We should be creating new integration rows
+                    # not fighting over the old one. Or just not deleting it at all
+                    # but I don't know enough to determine the side effects.
+                    if org_integration.status == ObjectStatus.DELETION_IN_PROGRESS:
+                        logger.info(
+                            "add-organization-deletion-in-progress",
+                            extra={
+                                "organization_id": organization_id,
+                                "integration_id": self.id,
+                                "organization_integration_id": org_integration.id,
+                            },
+                        )
+                        # Raise rather than return None: this is transient and
+                        # retryable, and callers that discard the return value
+                        # would otherwise report success having linked nothing.
+                        raise IntegrationDeletionInProgressError(
+                            "Integration deletion is already in progress. Please try again in a few minutes."
+                        )
+
+                    if default_auth_id:
+                        org_integration.update(default_auth_id=default_auth_id)
 
                 if created:
                     organization_service.schedule_signal(
