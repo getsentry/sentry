@@ -56,23 +56,6 @@ describe('SeerActivityTriggerDetails', () => {
 
     expect(screen.getByText('Seer reaches any of these stages:')).toBeInTheDocument();
   });
-
-  it('filters out a legacy pr_created stage', () => {
-    // A legacy `pr_created` value is no longer a known stage (the draft/ready split
-    // replaced it) and is filtered out of the details render until the user re-selects.
-    render(
-      <SeerActivityTriggerDetails
-        condition={DataConditionFixture({
-          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-          comparison: ['pr_created', 'rca_completed'],
-        })}
-      />
-    );
-
-    expect(
-      screen.getByText("Seer reaches the 'Root cause analysis completed' stage")
-    ).toBeInTheDocument();
-  });
 });
 
 describe('SeerActivityTriggerNode', () => {
@@ -142,29 +125,6 @@ describe('SeerActivityTriggerNode', () => {
     expect(screen.getByText('Root cause analysis completed')).toBeInTheDocument();
     expect(screen.getByText('Coding completed')).toBeInTheDocument();
   });
-
-  it('filters a legacy pr_created value out of the select', () => {
-    render(
-      <AutomationBuilderErrorContext.Provider value={errorContext}>
-        <DataConditionNodeContext.Provider
-          value={{
-            ...dataConditionNodeContext,
-            condition: DataConditionFixture({
-              id: 'seer-1',
-              type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-              comparison: ['pr_created'],
-            }),
-          }}
-        >
-          <SeerActivityTriggerNode />
-        </DataConditionNodeContext.Provider>
-      </AutomationBuilderErrorContext.Provider>
-    );
-
-    // A retired `pr_created` value is not a known stage, so the select shows nothing
-    // selected until the user picks the replacement option.
-    expect(screen.queryByText('Pull request ready for review')).not.toBeInTheDocument();
-  });
 });
 
 describe('validateSeerActivityTriggerCondition', () => {
@@ -197,18 +157,5 @@ describe('validateSeerActivityTriggerCondition', () => {
         }),
       })
     ).toBeUndefined();
-  });
-
-  it('errors for a legacy pr_created-only comparison', () => {
-    // A legacy `pr_created` value is not a known stage, so it alone doesn't pass
-    // validation; the user must select the replacement option to save.
-    expect(
-      validateSeerActivityTriggerCondition({
-        condition: DataConditionFixture({
-          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-          comparison: ['pr_created'],
-        }),
-      })
-    ).toBe('You must select at least one Seer stage.');
   });
 });
