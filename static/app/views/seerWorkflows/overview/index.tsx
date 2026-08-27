@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -78,6 +79,20 @@ import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 const SeerTrialCTA = OverrideOrDefault({
   overrideName: 'component:seer-trial-cta',
 });
+
+const FilterBar = styled(Flex)`
+  @container (width < ${p => p.theme.container.sm}) {
+    > * {
+      flex: 1 1 calc(50% - ${p => p.theme.space.md});
+      min-width: 0;
+    }
+
+    > * > button {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+`;
 
 const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
   {value: 'seer', label: t('Recent Seer Activity')},
@@ -335,8 +350,8 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   }
 
   return (
-    <Stack gap="lg" padding="lg xl">
-      <Flex gap="md" align="center" wrap="wrap">
+    <Stack gap="lg" padding={{xs: 'lg md', sm: 'lg xl'}}>
+      <FilterBar gap="md" align="center" wrap="wrap">
         {pageFiltersReady && projectsLoaded ? (
           <PageFilterBar condensed>
             <ProjectPageFilter />
@@ -374,7 +389,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
-      </Flex>
+      </FilterBar>
       {isError ? (
         <LoadingError onRetry={refetch} />
       ) : resultsPending ? (

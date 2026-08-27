@@ -470,6 +470,13 @@ class Dashboard(Model):
             "projects": projects,
         }
 
+    def get_audit_log_data(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "prebuilt_id": self.prebuilt_id,
+        }
+
 
 @cell_silo_model
 class DashboardRevision(DefaultFieldsModel):

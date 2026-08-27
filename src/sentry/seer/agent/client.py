@@ -641,6 +641,10 @@ class SeerAgentClient:
 
         opts = AgentRunOptions()
 
+
+        if self.enable_bash_tools:
+            opts["enable_bash_mode"] = True
+
         if random.random() < options.get("seer.explorer.context-engine-rollout"):
             opts["is_context_engine_enabled"] = True
 
