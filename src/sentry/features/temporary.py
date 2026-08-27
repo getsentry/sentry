@@ -1,9 +1,4 @@
-from .base import (
-    FeatureHandlerStrategy,
-    OrganizationFeature,
-    ProjectFeature,
-    SystemFeature,
-)
+from .base import FeatureHandlerStrategy, OrganizationFeature, ProjectFeature, SystemFeature
 from .manager import FeatureManager
 
 # XXX: See `features/__init__.py` for documentation on how to use feature flags
@@ -443,7 +438,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable alerting on trace metrics
+    # Enable table support for the trace metrics dataset in dashboards
+    manager.add("organizations:tracemetrics-dashboard-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
