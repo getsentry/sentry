@@ -833,10 +833,17 @@ const platformKeys = platforms.map(p => p.id);
 // Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
 export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   ...platformKeys.filter(
-    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+    id =>
+      id.startsWith('apple') ||
+      id.startsWith('java') ||
+      id.startsWith('node') ||
+      id.startsWith('python')
   ),
+  'android',
   'bun',
+  'dart',
   'deno',
+  'react-native',
 ];
 
 // Feature flag platforms to show the issue details distribution drawer for.
