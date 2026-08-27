@@ -29,6 +29,7 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {withAppStartScreenFilterFallback} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/widenAppStartScreenFilter';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -329,9 +330,11 @@ function VisualizationWidgetContent({
             ],
             query: applyDashboardFilters({
               baseQuery: exploreQuery.formatString(),
-              dashboardFilters,
+              dashboardFilters: withAppStartScreenFilterFallback(
+                widget,
+                dashboardFilters
+              ),
               widgetType: widget.widgetType,
-              globalFilterFallback: widget.queries[0]?.globalFilterFallback,
             }),
           });
           labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;

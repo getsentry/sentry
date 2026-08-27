@@ -22,6 +22,7 @@ import {
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
+import {withAppStartScreenFilterFallback} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/widenAppStartScreenFilter';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -341,9 +342,8 @@ function _getWidgetExploreUrl(
     field: fields,
     query: applyDashboardFilters({
       baseQuery: overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
-      dashboardFilters,
+      dashboardFilters: withAppStartScreenFilterFallback(widget, dashboardFilters),
       widgetType: widget.widgetType,
-      globalFilterFallback: query.globalFilterFallback,
     }),
     sort: sort || undefined,
     interval:
@@ -423,9 +423,7 @@ function _getWidgetExploreUrlForMultipleQueries(
       query:
         applyDashboardFilters({
           baseQuery: query.conditions,
-          dashboardFilters,
-          widgetType: widget.widgetType,
-          globalFilterFallback: query.globalFilterFallback,
+          dashboardFilters: withAppStartScreenFilterFallback(widget, dashboardFilters),
         }) ?? '',
       sortBys: decodeSorts(query.orderby).filter(
         s => s.field !== SpanFields.IS_STARRED_TRANSACTION

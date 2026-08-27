@@ -8,6 +8,7 @@ import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {COLD_OPERATIONS_TABLE_WIDGET_ID} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/widenAppStartScreenFilter';
 
 describe('getWidgetExploreUrl', () => {
   const organization = OrganizationFixture();
@@ -324,8 +325,9 @@ describe('getWidgetExploreUrl', () => {
     });
   });
 
-  it('widens a screen filter with the widget query fallback for Explore', () => {
+  it('widens a screen filter for App Starts operations Explore', () => {
     const widget = WidgetFixture({
+      id: COLD_OPERATIONS_TABLE_WIDGET_ID,
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       queries: [
@@ -336,10 +338,6 @@ describe('getWidgetExploreUrl', () => {
           conditions: '!is_transaction:true',
           orderby: '-avg(span.self_time)',
           name: '',
-          globalFilterFallback: {
-            attribute: 'app.vitals.start.screen',
-            fallbackAttribute: 'transaction',
-          },
         },
       ],
     });

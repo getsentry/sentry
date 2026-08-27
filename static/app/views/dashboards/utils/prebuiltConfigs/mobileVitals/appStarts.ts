@@ -1,10 +1,11 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  APP_START_SCREEN_FILTER_FALLBACK,
   AVG_START_VALUE,
   COLD_START_CONDITION,
   COLD_START_TABLE_OPERATIONS_CONDITION,
@@ -13,6 +14,10 @@ import {
   WARM_START_TABLE_OPERATIONS_CONDITION,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 import {APP_STARTS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
+import {
+  COLD_OPERATIONS_TABLE_WIDGET_ID,
+  WARM_OPERATIONS_TABLE_WIDGET_ID,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/widenAppStartScreenFilter';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -235,7 +240,7 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
 };
 
 const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
-  id: 'cold-operations-table',
+  id: COLD_OPERATIONS_TABLE_WIDGET_ID,
   title: t('Cold Start Operations'),
   description: '',
   displayType: DisplayType.TABLE,
@@ -260,7 +265,6 @@ const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.avg,
       ],
       conditions: COLD_START_TABLE_OPERATIONS_CONDITION,
-      globalFilterFallback: APP_START_SCREEN_FILTER_FALLBACK,
       orderby: '-avg(span.self_time)',
     },
   ],
@@ -274,7 +278,7 @@ const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
 };
 
 const WARM_OPERATIONS_TABLE: PrebuiltWidget = {
-  id: 'warm-operations-table',
+  id: WARM_OPERATIONS_TABLE_WIDGET_ID,
   title: t('Warm Start Operations'),
   description: '',
   displayType: DisplayType.TABLE,
@@ -299,7 +303,6 @@ const WARM_OPERATIONS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.avg,
       ],
       conditions: WARM_START_TABLE_OPERATIONS_CONDITION,
-      globalFilterFallback: APP_START_SCREEN_FILTER_FALLBACK,
       orderby: '-avg(span.self_time)',
     },
   ],

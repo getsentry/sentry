@@ -47,7 +47,6 @@ import {
   WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {expandGlobalFilterFallback} from 'sentry/views/dashboards/utils/expandGlobalFilterFallback';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -596,17 +595,15 @@ export function applyDashboardFilters({
   dashboardFilters,
   widgetType,
   skipParens,
-  globalFilterFallback,
 }: {
   baseQuery: string | undefined;
   dashboardFilters: DashboardFilters | undefined;
-  globalFilterFallback?: {attribute: string; fallbackAttribute: string};
   skipParens?: boolean;
   widgetType?: WidgetType;
 }): string | undefined {
-  const dashboardFilterConditions = expandGlobalFilterFallback(
-    dashboardFiltersToString(dashboardFilters, widgetType),
-    globalFilterFallback
+  const dashboardFilterConditions = dashboardFiltersToString(
+    dashboardFilters,
+    widgetType
   );
   if (dashboardFilterConditions) {
     if (baseQuery) {

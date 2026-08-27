@@ -39,6 +39,7 @@ import {
   widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import {withAppStartScreenFilterFallback} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/widenAppStartScreenFilter';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
@@ -316,9 +317,8 @@ export function getMenuOptions(
         const baseQuery =
           applyDashboardFilters({
             baseQuery: widgetQuery?.conditions,
-            dashboardFilters,
+            dashboardFilters: withAppStartScreenFilterFallback(widget, dashboardFilters),
             widgetType: widget.widgetType,
-            globalFilterFallback: widgetQuery?.globalFilterFallback,
           }) ?? '';
 
         // Add group-by values as filters to the alert query
