@@ -39,7 +39,7 @@ export interface GcpVerifyConnectionResponse {
   errorDetail?: string | null;
 }
 
-export interface GcpProjectVerification extends Pick<
+interface GcpProjectVerification extends Pick<
   GcpProjectResult,
   'gcpProjectId' | 'connectionStatus'
 > {
@@ -70,7 +70,7 @@ export function getStatusLabel(status: GcpConnectionStatus): string {
   }
 }
 
-export function getServiceLabel(service: string): string {
+function getServiceLabel(service: string): string {
   switch (service) {
     case 'logging':
       return t('Cloud Logging');
