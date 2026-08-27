@@ -1204,10 +1204,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run once a day at 04:00 UTC, off-peak.
         "schedule": crontab("0", "4", "*", "*", "*"),
     },
-    "refresh-artifact-bundles-in-use": {
-        "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
-        "schedule": crontab("*/1", "*", "*", "*", "*"),
-    },
     "on-demand-metrics-schedule-on-demand-check": {
         "task": "performance:sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
