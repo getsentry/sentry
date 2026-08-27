@@ -113,12 +113,6 @@ def _trigger_explorer_indexes_if_needed(
         build_service_map.apply_async(args=[organization_id])
 
 
-def _has_context_engine(
-    organization: Organization, user: User | RpcUser | AnonymousUser | None
-) -> bool:
-    return True
-
-
 def get_available_monitoring_providers(
     organization: Organization,
     user_id: int,
@@ -647,9 +641,8 @@ class SeerAgentClient:
 
         opts = AgentRunOptions()
 
-        if _has_context_engine(self.organization, self.user):
-            if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                opts["is_context_engine_enabled"] = True
+        if random.random() < options.get("seer.explorer.context-engine-rollout"):
+            opts["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
@@ -800,8 +793,7 @@ class SeerAgentClient:
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
-        if _has_context_engine(self.organization, self.user):
-            agent_run_options["is_context_engine_enabled"] = True
+        agent_run_options["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-agent-source-code-search",
