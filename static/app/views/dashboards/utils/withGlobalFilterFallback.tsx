@@ -11,14 +11,13 @@ function expandFilterValue(
 ): string {
   const {filterToken, noValueToken} = deriveFilterState(globalFilter);
 
-  // Only a bare `attribute:value` clause can be widened. Negating it, or pairing it
-  // with a "(no value)" clause, would make the added OR match more than it should.
+  // Only a plain positive clause can be widened. ORing in the fallback for a negated
+  // clause, or one paired with "(no value)", would change what the filter matches.
   if (!filterToken || filterToken.negated || noValueToken) {
     return globalFilter.value;
   }
 
-  // Reuse the clause verbatim and swap only the leading key, so operators,
-  // wildcards, and quoting carry over to the fallback.
+  // Swapping only the leading key keeps operators, wildcards, and quoting intact.
   const fallbackClause =
     fallbackAttribute + filterToken.text.slice(filterToken.key.text.length);
 

@@ -12,8 +12,8 @@ export const TRANSACTION_COUNT = `count_unique(${SpanFields.TRANSACTION_SPAN_ID}
 export const TTID_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.initial_display has:${SpanFields.APP_VITALS_TTID_VALUE})`;
 export const TTFD_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.full_display has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
 
-// Group by start.screen. has: uses the number tag because search can't parse
-// millisecond; avg uses millisecond so the column shows as a duration.
+// has: uses the number tag because search can't parse millisecond; avg uses
+// millisecond so the column renders as a duration.
 // Relay copies these attributes onto V1 ui.load roots.
 const START_VALUE_NUMBER = `tags[${SpanFields.APP_VITALS_START_VALUE},number]`;
 const START_VALUE_DURATION = `tags[${SpanFields.APP_VITALS_START_VALUE},millisecond]`;
