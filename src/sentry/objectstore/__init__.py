@@ -78,6 +78,13 @@ class SentryMetricsBackend(MetricsBackend):
 
 
 class UsecaseId(Enum):
+    """Objectstore workloads and their default configuration.
+
+    Use this enum with ``get_session`` instead of constructing a client usecase
+    directly. This configures the correct expiration policy and other usecase
+    settings.
+    """
+
     ATTACHMENTS = "attachments"
     DEBUG_FILES = "debug_files"
     PROFILE_ATTACHMENTS = "profile_attachments"
@@ -108,7 +115,7 @@ class UsecaseId(Enum):
                 )
 
 
-def create_client() -> Client:
+def _create_client() -> Client:
     options = settings.SENTRY_OBJECTSTORE_CONFIG
 
     # Initialize the `TokenGenerator` if key parameters are found.
@@ -140,7 +147,7 @@ _CLIENT: Client | None = None
 def get_client() -> Client:
     global _CLIENT
     if not _CLIENT:
-        _CLIENT = create_client()
+        _CLIENT = _create_client()
     return _CLIENT
 
 
@@ -148,6 +155,15 @@ _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
 def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
+    """Return an Objectstore session scoped to a project.
+
+    There are two ways to construct a session:
+    - Project model: ``get_session(UsecaseId.ATTACHMENTS, project)``
+    - Project and org IDs: ``get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)``
+
+    When passing a project model, ``org`` is optional and must match the
+    project's organization. It is required when passing a project ID.
+    """
     if isinstance(project, int):
         if org is None:
             raise TypeError("org is required when project is an ID")
@@ -170,23 +186,26 @@ def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None =
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
 
 
-def maybe_rewrite_url_for_symbolicator(url: str) -> str:
+def _maybe_rewrite_internal_url(url: str) -> str:
     """
-    Rewrites a full Objectstore URL so that Symbolicator can reach it.
+    Rewrites a full Objectstore URL so that an internal service can reach it.
 
-    In prod, the URL is returned unchanged, as both Sentry and Symbolicator talk to Objectstore
-    using the same hostname.
+    In production, the URL is returned unchanged, as both Sentry and internal
+    services talk to Objectstore using the same hostname.
 
-    While in development or testing, we might need to replace the hostname, depending on how
-    Symbolicator is running. This function runs a `docker ps` to automatically return the correct
-    URL in the following 2 cases:
-        - Symbolicator running in Docker (possibly via `devservices`) -- this mirrors `sentry`'s CI.
-          If this is detected, we replace Objectstore's hostname with the one reachable in the Docker network.
+    While in development or testing, we might need to replace the hostname,
+    depending on how Symbolicator is running. This function runs a `docker ps`
+    to automatically return the correct URL in the following 2 cases:
+        - Symbolicator running in Docker (possibly via `devservices`) -- this
+          mirrors `sentry`'s CI. If this is detected, we replace Objectstore's
+          hostname with the one reachable in the Docker network.
 
-          Note that this approach doesn't work if Objectstore is running both locally and in Docker, as we'll always
-          rewrite the URL to the Docker one, so Sentry and Symbolicator might attempt to talk to 2 different Objectstores.
-        - Symbolicator running locally -- this mirrors `symbolicator`'s CI.
-          In this case, we don't need to rewrite the URL.
+          Note that this approach doesn't work if Objectstore is running both
+          locally and in Docker, as we'll always rewrite the URL to the Docker
+          one, so Sentry and Symbolicator might attempt to talk to 2 different
+          Objectstores.
+        - Symbolicator running locally -- this mirrors `symbolicator`'s CI. In
+          this case, we don't need to rewrite the URL.
     """
     global _IS_SYMBOLICATOR_CONTAINER  # Cached to avoid running `docker ps` multiple times
 
@@ -228,9 +247,7 @@ def get_internal_download_url(
     # instead, so we need to additionally wrap this with `maybe_rewrite_url_for_symbolicator`.
     # TODO(lcian): Find a more robust way to do this. Here we assume that the caller is Symbolicator,
     # which is currently the case in practice, but in theory it could be any other service.
-    return maybe_rewrite_url_for_symbolicator(
-        session.object_url(key, token_validity=token_validity)
-    )
+    return _maybe_rewrite_internal_url(session.object_url(key, token_validity=token_validity))
 
 
 def get_download_redirect_url(
