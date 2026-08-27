@@ -695,9 +695,18 @@ function InboxIssueCard({
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group);
   const suggestedAssignees = useIssueSuggestedAssignees(group);
+  const cardRef = useRef<HTMLDivElement>(null);
+  // Restore a selection from navigation without recentering cards selected in-place.
+  const shouldRestoreScroll = useRef(selected);
+
+  useLayoutEffect(() => {
+    if (shouldRestoreScroll.current) {
+      cardRef.current?.scrollIntoView({block: 'center'});
+    }
+  }, []);
 
   return (
-    <Container position="relative">
+    <Container ref={cardRef} position="relative">
       <IssueCardLink
         {...prefetchHoverProps}
         aria-current={selected ? 'true' : undefined}

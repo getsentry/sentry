@@ -133,6 +133,7 @@ describe('InboxPage', () => {
   });
 
   beforeEach(() => {
+    Element.prototype.scrollIntoView = jest.fn();
     jest.mocked(useMedia).mockReturnValue(false);
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
@@ -984,6 +985,7 @@ describe('InboxPage', () => {
 
     expect(router.location.query.preview).toBe(fixProposedGroup.id);
     expect(issueLink).toHaveAttribute('aria-current', 'true');
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
     expect(
       await within(preview).findByRole('heading', {
         name: 'Fix proposed issue',
@@ -1001,6 +1003,31 @@ describe('InboxPage', () => {
     expect(
       within(preview).queryByRole('heading', {name: 'Fix proposed issue'})
     ).not.toBeInTheDocument();
+  });
+
+  it('scrolls an initially selected issue into view', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+
+    render(<InboxPage />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            preview: fixProposedGroup.id,
+          },
+        },
+      },
+    });
+
+    const issueLink = await within(
+      screen.getByRole('region', {name: 'Fix Proposed'})
+    ).findByRole('link', {name: /Fix proposed issue/});
+    expect(issueLink).toHaveAttribute('aria-current', 'true');
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({block: 'center'});
   });
 
   it('starts finding the root cause in Autofix when there is no Autofix state', async () => {
