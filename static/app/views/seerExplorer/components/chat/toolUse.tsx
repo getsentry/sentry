@@ -16,6 +16,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {
@@ -30,6 +31,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {
   callRecordDetail,
   callRecordFailure,
+  callRecordInputQuery,
   callRecordLabel,
   callRecordStatus,
   visibleCallRecords,
@@ -673,9 +675,11 @@ function CodeModeCallRow({
 }) {
   const detail = callRecordDetail(record);
   const failure = callRecordFailure(record);
+  const inputQuery = callRecordInputQuery(record);
   // Falls back to the generic link glyph for a destination the Telemetry Icons board does not
   // cover yet (e.g. `get_project_details`) rather than rendering no icon at all.
   const Icon = resourceKind ? RESOURCE_KIND_ICON[resourceKind] : IconLink;
+  const isFailure = callRecordStatus(record, settled) === 'failure';
 
   return (
     <ToolCall
@@ -691,7 +695,10 @@ function CodeModeCallRow({
             }
           : undefined
       }
-      notifications={failure ? [failure] : undefined}
+      failureLabel={isFailure && record.status ? String(record.status) : undefined}
+      input={inputQuery ? <ProvidedFormattedQuery query={inputQuery} /> : undefined}
+      output={isFailure && failure ? <Text size="sm">{failure}</Text> : undefined}
+      notifications={!isFailure && failure ? [failure] : undefined}
     >
       {detail ? <RequestDetail detail={detail} /> : null}
     </ToolCall>

@@ -1191,7 +1191,7 @@ describe('ToolUseBlock', () => {
   describe('in-flight Code Mode calls', () => {
     // Code Mode's tool name is suppressed and its rows are built from work it has not done yet, so
     // an in-flight call used to render nothing at all — the reader saw the answer stop mid-stream.
-    // `Loading` is the block placeholder; `Running...` is a call row's own status tick.
+    // `Loading` is the block placeholder; `Running` is a Code Mode call row's own status tick.
     function runningBlock(overrides?: Partial<Block>): Block {
       return createBlock({
         loading: true,
@@ -1252,7 +1252,7 @@ describe('ToolUseBlock', () => {
       render(<BlockComponent block={block} blockIndex={0} />);
 
       expect(screen.getByText('Listing issues')).toBeInTheDocument();
-      expect(screen.getByRole('status', {name: 'Running...'})).toBeInTheDocument();
+      expect(screen.getByLabelText('Running')).toBeInTheDocument();
       expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
     });
 
@@ -1272,8 +1272,8 @@ describe('ToolUseBlock', () => {
 
       render(<BlockComponent block={block} blockIndex={0} />);
 
-      expect(screen.getByLabelText('All tool calls succeeded')).toBeInTheDocument();
-      expect(screen.queryByRole('status', {name: 'Running...'})).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Running')).not.toBeInTheDocument();
       expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
     });
 
