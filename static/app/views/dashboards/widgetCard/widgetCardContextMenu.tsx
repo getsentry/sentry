@@ -34,12 +34,12 @@ import {
   performanceScoreTooltip,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/expandGlobalFilterFallback';
 import {
   getWidgetExploreUrl,
   widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';

@@ -22,7 +22,7 @@ import {
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
-import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/expandGlobalFilterFallback';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';

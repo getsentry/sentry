@@ -24,7 +24,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {expandGlobalFilterFallback} from 'sentry/views/dashboards/utils/expandGlobalFilterFallback';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -366,21 +366,17 @@ export function applyDashboardFiltersToWidget(
 
   if (dashboardFilters) {
     const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
 
     filtered.queries.forEach(query => {
-      const nextFilterConditions = expandGlobalFilterFallback(
-        dashboardFilterConditions,
-        query.globalFilterFallback
+      const dashboardFilterConditions = dashboardFiltersToString(
+        withGlobalFilterFallback(dashboardFilters, query.globalFilterFallback),
+        filtered.widgetType
       );
-      if (nextFilterConditions) {
+      if (dashboardFilterConditions) {
         if (query.conditions && !skipParens) {
           query.conditions = `(${query.conditions})`;
         }
-        query.conditions = `${query.conditions} ${nextFilterConditions}`;
+        query.conditions = `${query.conditions} ${dashboardFilterConditions}`;
       }
     });
 

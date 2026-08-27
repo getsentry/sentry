@@ -56,7 +56,9 @@ const WARM_START_V2_OPERATIONS_CONDITION = `!${SpanFields.IS_TRANSACTION}:true $
 const WARM_START_STANDALONE_OPERATIONS_CONDITION = `${APP_START_STANDALONE_OPERATIONS_CONDITION} ${SpanFields.APP_VITALS_START_TYPE}:warm`;
 export const WARM_START_TABLE_OPERATIONS_CONDITION = `(${WARM_START_V1_OPERATIONS_CONDITION} OR ${WARM_START_V2_OPERATIONS_CONDITION} OR ${WARM_START_STANDALONE_OPERATIONS_CONDITION})`;
 
-// Screen filters also match `transaction`, so V1 children still appear.
+// V1 app start spans predate `app.vitals.start.screen` and carry the screen name on
+// `transaction` instead, so a screen filter has to match both attributes to keep
+// their operation rows in the table.
 export const APP_START_SCREEN_FILTER_FALLBACK = {
   attribute: SpanFields.APP_VITALS_START_SCREEN,
   fallbackAttribute: SpanFields.TRANSACTION,

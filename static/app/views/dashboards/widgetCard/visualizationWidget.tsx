@@ -24,12 +24,12 @@ import {
   type Widget as TWidget,
 } from 'sentry/views/dashboards/types';
 import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
-import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/expandGlobalFilterFallback';
 import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
