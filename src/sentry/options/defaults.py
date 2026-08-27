@@ -990,7 +990,7 @@ register(
 )
 
 
-# Refresh Bundle Indexes reported as used by symbolicator
+# TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
