@@ -34,15 +34,12 @@ import {
   type TraceViewCalculationContext,
   type TraceViewCalculations,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/traceViewCalculations';
-import {
-  computeVitalTimestampZoom,
-  type VitalZoomSession,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVitalZoom';
 
 import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
+const VITAL_ZOOM_PADDING_RATIO = 0.05;
 
 export type TraceTimeCompressionManagerOptions = {
   enabled: boolean;
@@ -154,9 +151,9 @@ export class VirtualizedViewManager {
   private readonly ROW_PADDING_PX = 16;
   private readonly span_matrix: SpanMatrix = [1, 0, 0, 1, 0, 0];
   private _compressedViewCache: CompressedView | null = null;
+  private activeVital: string | null = null;
   private readonly compressedViewCalculations = new CompressedTraceViewCalculations();
   private readonly normalViewCalculations = new NormalTraceViewCalculations();
-  private vitalZoomSession: VitalZoomSession | null = null;
 
   timers: {
     onFovChange: {id: number} | null;
@@ -605,7 +602,7 @@ export class VirtualizedViewManager {
             : newView[0],
         width: newView[2],
       });
-      this.vitalZoomSession = null;
+      this.activeVital = null;
     } else {
       if (!this.timers.onWheelEnd) {
         this.onWheelStart();
@@ -634,7 +631,7 @@ export class VirtualizedViewManager {
         )
       );
       if (distance !== 0) {
-        this.vitalZoomSession = null;
+        this.activeVital = null;
       }
     }
   }
@@ -669,39 +666,29 @@ export class VirtualizedViewManager {
     });
   }
 
-  onZoomAroundTimestamp(timestamp: number, vital: string) {
+  onZoomToVital(timestamp: number, vital: string) {
+    if (this.activeVital === vital) {
+      return;
+    }
+
     if (this.timers.onZoomIntoSpace !== null) {
       window.cancelAnimationFrame(this.timers.onZoomIntoSpace);
       this.timers.onZoomIntoSpace = null;
     }
 
-    const nextZoom = computeVitalTimestampZoom({
-      compression: this.time_compression,
-      minWidth: this.view.MAX_ZOOM_PRECISION_MS,
-      origin: this.view.to_origin,
-      session: this.vitalZoomSession,
-      timestamp,
-      traceWidth: this.view.trace_space.width,
-      viewWidth: this.getCompressedView().width,
-      vital,
-    });
-    this.vitalZoomSession = nextZoom.session;
-
-    const zoomToSpace = (space: [number, number], onComplete?: () => void) =>
-      this.onZoomIntoSpace(space, {
-        onComplete,
-        padding: false,
-        preserveVitalZoom: true,
-      });
-
-    if (nextZoom.shouldResetToFullTrace) {
-      zoomToSpace([this.view.to_origin, this.view.trace_space.width], () =>
-        zoomToSpace(nextZoom.space)
-      );
-      return;
-    }
-
-    zoomToSpace(nextZoom.space);
+    const vitalDuration = timestamp - this.view.to_origin;
+    this.onZoomIntoSpace(
+      [
+        this.view.to_origin,
+        clamp(
+          vitalDuration * (1 + VITAL_ZOOM_PADDING_RATIO),
+          0,
+          this.view.trace_space.width
+        ),
+      ],
+      {padding: false}
+    );
+    this.activeVital = vital;
   }
 
   onZoomIntoSpace(
@@ -709,12 +696,9 @@ export class VirtualizedViewManager {
     options: {
       onComplete?: () => void;
       padding?: boolean;
-      preserveVitalZoom?: boolean;
     } = {}
   ) {
-    if (!options.preserveVitalZoom) {
-      this.vitalZoomSession = null;
-    }
+    this.activeVital = null;
 
     let final_x = space[0] - this.view.to_origin;
     let final_width = space[1];

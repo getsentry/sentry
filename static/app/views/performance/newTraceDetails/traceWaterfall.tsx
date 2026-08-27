@@ -628,7 +628,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         ? Number.parseFloat(query.zoomToTimestamp)
         : Number.NaN;
     if (Number.isFinite(timestamp)) {
-      viewManager.onZoomAroundTimestamp(
+      viewManager.onZoomToVital(
         timestamp,
         typeof query.zoomToVital === 'string' ? query.zoomToVital : `${timestamp}`
       );
