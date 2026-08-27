@@ -55,6 +55,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_condition_query_groups,
     get_group_to_groupevent,
     get_groups_to_fire,
+    is_retry,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
@@ -537,6 +538,41 @@ class TestGetSnubaResults(BaseWorkflowTest):
     def test_empty_condition_groups(self) -> None:
         assert get_condition_group_results({}) == {}
 
+    def test_is_retry(self) -> None:
+        task = Mock(spec=CurrentTaskState)
+        task.attempt = 0
+
+        assert not is_retry(None)
+        assert not is_retry(task)
+
+        task.attempt = 1
+        assert is_retry(task)
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.metrics.incr")
+    @patch("sentry.workflow_engine.processors.delayed_workflow.current_task")
+    def test_condition_query_metric_tracks_retry_load(
+        self, mock_current_task: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        task = Mock(spec=CurrentTaskState)
+        task.attempt = 1
+        task.retries_remaining = True
+        mock_current_task.return_value = task
+        mock_handler = Mock(spec=BaseEventFrequencyQueryHandler)
+        mock_handler.get_rate_bulk.return_value = {}
+        mock_handler.intervals = {"1h": ("fake", timedelta(seconds=1))}
+        unique_query = UniqueConditionQuery(
+            handler=lambda: mock_handler,  # type: ignore[arg-type]
+            interval="1h",
+            environment_id=None,
+        )
+
+        get_condition_group_results({unique_query: GroupQueryParams(group_ids={1}, timestamp=None)})
+
+        mock_incr.assert_called_once_with(
+            "workflow_engine.delayed_workflow.condition_query",
+            tags={"is_retry": True},
+        )
+
     def test_count_comparison_condition(self) -> None:
         dc = self.create_event_frequency_condition()
         condition_groups, group_id, unique_queries = self.create_condition_groups([dc])
@@ -620,6 +656,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
         self, mock_current_task: MagicMock
     ) -> None:
         mock_task = Mock(spec=CurrentTaskState)
+        mock_task.attempt = 1
         mock_task.retries_remaining = False
         mock_current_task.return_value = mock_task
 

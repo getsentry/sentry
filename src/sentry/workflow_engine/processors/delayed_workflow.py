@@ -11,7 +11,7 @@ import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
 from taskbroker_client.retry import retry_task
-from taskbroker_client.state import current_task
+from taskbroker_client.state import CurrentTaskState, current_task
 
 from sentry import features, nodestore
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -64,6 +64,10 @@ logger = log_context.get_logger("sentry.workflow_engine.processors.delayed_workf
 
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
+
+
+def is_retry(task: CurrentTaskState | None) -> bool:
+    return task is not None and task.attempt > 0
 
 
 class EventInstance(BaseModel):
@@ -452,9 +456,9 @@ def get_condition_group_results(
         )
     )
 
-    last_try = False
-    if task := current_task():
-        last_try = not task.retries_remaining
+    task = current_task()
+    last_try = task is not None and not task.retries_remaining
+    retry = is_retry(task)
 
     for unique_condition, time_and_groups in queries_to_groups.items():
         handler = unique_condition.handler()
@@ -471,6 +475,10 @@ def get_condition_group_results(
             )
 
         try:
+            metrics.incr(
+                "workflow_engine.delayed_workflow.condition_query",
+                tags={"is_retry": retry},
+            )
             result = handler.get_rate_bulk(
                 duration=duration,
                 groups=groups_to_query,
@@ -1036,7 +1044,9 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
 
 @trace
 def process_delayed_workflows(
-    batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
+    batch_client: DelayedWorkflowClient,
+    project_id: int,
+    batch_key: str | None = None,
 ) -> None:
     """
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
@@ -1049,6 +1059,7 @@ def process_delayed_workflows(
     metrics.incr(
         "workflow_engine.delayed_workflow",
         amount=len(event_data.events),
+        tags={"is_retry": is_retry(current_task())},
     )
 
     project = fetch_project(project_id)
