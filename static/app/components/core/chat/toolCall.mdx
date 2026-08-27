@@ -11,6 +11,7 @@ import {ToolCall} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {IconIssues} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/chat/toolCall');
@@ -156,4 +157,33 @@ toggling the title.
     GET /api/0/organizations/sentry/traces/
   </Text>
 </ToolCall>
+```
+
+## Resource icons
+
+`reference`/`output` take any `icon`, so a chip pointing at a Sentry resource
+— an issue, a trace, a replay — can use whichever glyph best identifies it.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Retrieve an issue"
+      status="success"
+      reference={{
+        value: 'Issue: SEER-123',
+        icon: <IconIssues />,
+        to: '/issues/123/',
+      }}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+import {IconIssues} from 'sentry/icons';
+
+<ToolCall
+  title="Retrieve an issue"
+  status="success"
+  reference={{value: 'Issue: SEER-123', icon: <IconIssues />, to: '/issues/123/'}}
+/>;
 ```

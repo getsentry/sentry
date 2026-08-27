@@ -8,6 +8,7 @@ import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {
   AgentWriteApproval,
   Block,
+  CallRecord,
   PendingUserInput,
   TodoItem,
 } from 'sentry/views/seerExplorer/types';
@@ -537,12 +538,13 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    expect(screen.getByRole('link', {name: /Querying spans/})).toHaveAttribute(
+    // The row keeps seer's title; the link chip names the paired bus destination.
+    expect(screen.getByText('Querying spans')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View spans'})).toHaveAttribute(
       'href',
       expect.stringContaining('query=transaction.op%3Apageload')
     );
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('pairs each telemetry search row with its own bus destination in a multi-search execute', () => {
@@ -606,15 +608,18 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    expect(
-      screen.getByRole('link', {name: 'Querying issues for open bugs'})
-    ).toHaveAttribute('href', expect.stringContaining('/issues/'));
-    expect(
-      screen.getByRole('link', {name: 'Querying spans for slow db'})
-    ).toHaveAttribute('href', expect.stringContaining('query=span.op%3Adb'));
-    expect(screen.queryByText('View issues')).not.toBeInTheDocument();
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+    // Each row keeps seer's title; its own link chip names its paired bus destination.
+    expect(screen.getByText('Querying issues for open bugs')).toBeInTheDocument();
+    expect(screen.getByText('Querying spans for slow db')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View issues'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/issues/')
+    );
+    expect(screen.getByRole('button', {name: 'View spans'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=span.op%3Adb')
+    );
+    expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 
   it('prefers bus project filters over a stamped row url that lacks them', () => {
@@ -668,15 +673,15 @@ describe('ToolUseBlock', () => {
     ]);
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    const rowLink = screen.getByRole('link', {name: 'Querying spans for top pageloads'});
+    expect(screen.getByText('Querying spans for top pageloads')).toBeInTheDocument();
+    const rowLink = screen.getByRole('button', {name: 'View spans'});
     expect(rowLink).toHaveAttribute(
       'href',
       expect.stringContaining('query=transaction.op%3Apageload')
     );
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=2'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=3'));
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('makes a telemetry call row itself the issues search link when params include the query', () => {
@@ -727,11 +732,12 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    const rowLink = screen.getByRole('link', {name: title});
+    expect(screen.getByText(title)).toBeInTheDocument();
+    const rowLink = screen.getByRole('button', {name: 'View issues'});
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('/issues/'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('is%3Aunresolved'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
-    expect(screen.queryByRole('link', {name: /View issues/})).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('does not double-render a classic link present in both channels', () => {
@@ -1185,7 +1191,7 @@ describe('ToolUseBlock', () => {
   describe('in-flight Code Mode calls', () => {
     // Code Mode's tool name is suppressed and its rows are built from work it has not done yet, so
     // an in-flight call used to render nothing at all — the reader saw the answer stop mid-stream.
-    // `Loading` is the block placeholder; `Running...` is a call row's own status tick.
+    // `Loading` is the block placeholder; `Running` is a Code Mode call row's own status tick.
     function runningBlock(overrides?: Partial<Block>): Block {
       return createBlock({
         loading: true,
@@ -1246,7 +1252,7 @@ describe('ToolUseBlock', () => {
       render(<BlockComponent block={block} blockIndex={0} />);
 
       expect(screen.getByText('Listing issues')).toBeInTheDocument();
-      expect(screen.getByRole('status', {name: 'Running...'})).toBeInTheDocument();
+      expect(screen.getByLabelText('Running')).toBeInTheDocument();
       expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
     });
 
@@ -1266,8 +1272,8 @@ describe('ToolUseBlock', () => {
 
       render(<BlockComponent block={block} blockIndex={0} />);
 
-      expect(screen.getByLabelText('All tool calls succeeded')).toBeInTheDocument();
-      expect(screen.queryByRole('status', {name: 'Running...'})).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Running')).not.toBeInTheDocument();
       expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
     });
 
@@ -1394,6 +1400,77 @@ describe('ToolUseBlock', () => {
       expect(screen.getByText(/Querying spans/)).toBeInTheDocument();
       expect(screen.getByRole('status', {name: 'Running...'})).toBeInTheDocument();
       expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Code Mode call records rendered as ToolCall', () => {
+    function codeModeCallsBlock(calls: CallRecord[]) {
+      return createBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+        },
+        tool_links: [null],
+        tool_results: [
+          {
+            tool_call_id: 'call-1',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ran',
+            structuredContent: {calls},
+          },
+        ],
+      });
+    }
+
+    const issueCall: CallRecord = {
+      id: 1,
+      kind: 'api',
+      method: 'GET',
+      path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/',
+      resolved_path: '/api/0/organizations/test-org/issues/123/',
+      path_params: {issue_id: '123'},
+      status: 200,
+      title: 'Retrieve an issue',
+    };
+
+    it('renders each record as a ToolCall titled by its label', () => {
+      const block = codeModeCallsBlock([issueCall]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.getByText('Retrieve an issue')).toBeInTheDocument();
+    });
+
+    it('surfaces the navigable resource as a real link chip', () => {
+      const block = codeModeCallsBlock([issueCall]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      // A record that addresses its own resource links to it; the chip is a real anchor.
+      expect(screen.getByRole('button', {name: /View issue/})).toHaveAttribute(
+        'href',
+        expect.stringContaining('/issues/123/')
+      );
+    });
+
+    it('keeps the request detail collapsed until the row is expanded', async () => {
+      const block = codeModeCallsBlock([issueCall]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      const detail = screen.getByText('GET /api/0/organizations/test-org/issues/123/');
+      expect(detail).not.toBeVisible();
+
+      await userEvent.click(screen.getByRole('button', {name: /Retrieve an issue/}));
+
+      expect(detail).toBeVisible();
+    });
+
+    it('surfaces a failed call through a notification', () => {
+      const block = codeModeCallsBlock([
+        {...issueCall, status: 500, title: 'Retrieve an issue'},
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.getByText('Returned HTTP 500')).toBeInTheDocument();
     });
   });
 });

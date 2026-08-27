@@ -459,11 +459,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 config is not None
                 and display_type_id not in config["supported_display_types"]
                 # Existing tracemetrics table widgets (those sent with an ``id``)
-                # are allowed to save. The Widget Builder doesn't offer table for
-                # tracemetrics, but some widgets were created with this combo
-                # before display-type validation existed, and those dashboards
-                # must still be saveable. New widgets are still rejected.
-                and not self._is_existing_tracemetrics_table(widget_type_id, display_type_id)
+                # are allowed to save. New tracemetrics table widgets are enabled
+                # by the feature flag.
+                and not self._allows_tracemetrics_table(widget_type_id, display_type_id)
             ):
                 supported_names = sorted(
                     DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
@@ -477,11 +475,17 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return display_type_id
 
-    def _is_existing_tracemetrics_table(self, widget_type_id, display_type_id):
-        return (
-            self.context.get("widget_id") is not None
-            and widget_type_id == DashboardWidgetTypes.TRACEMETRICS
-            and display_type_id == DashboardWidgetDisplayTypes.TABLE
+    def _allows_tracemetrics_table(self, widget_type_id, display_type_id):
+        if (
+            widget_type_id != DashboardWidgetTypes.TRACEMETRICS
+            or display_type_id != DashboardWidgetDisplayTypes.TABLE
+        ):
+            return False
+
+        return self.context.get("widget_id") is not None or features.has(
+            "organizations:tracemetrics-dashboard-table",
+            self.context["organization"],
+            actor=self.context["request"].user,
         )
 
     def _validate_widget_type(self, data):

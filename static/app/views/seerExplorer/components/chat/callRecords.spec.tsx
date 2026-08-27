@@ -98,7 +98,7 @@ describe('call record rendering', () => {
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.getByRole('link', {name: /Retrieve an Issue/})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'View issue'})).toHaveAttribute(
       'href',
       expect.stringContaining('/issues/139458447/')
     );
@@ -120,7 +120,7 @@ describe('call record rendering', () => {
 
       // An anchor inside a button is invalid HTML, and it leaves expand and navigate sharing one
       // click target and one tab stop.
-      const link = screen.getByRole('link', {name: /Retrieve an Issue/});
+      const link = screen.getByRole('button', {name: 'View issue'});
       const expander = screen.getByRole('button', {name: /Retrieve an Issue/});
       expect(expander).not.toContainElement(link);
     });
