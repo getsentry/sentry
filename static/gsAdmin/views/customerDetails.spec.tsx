@@ -1124,6 +1124,38 @@ describe('Customer Details', () => {
     await screen.findByRole('heading', {name: 'Customers'});
   });
 
+  it('renders Legacy Billing badge for default subscriptions', async () => {
+    setUpMocks(organization);
+
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: 'Customers'});
+    expect(screen.getByText('Legacy Billing')).toBeInTheDocument();
+    expect(screen.queryByText('Billing Platform')).not.toBeInTheDocument();
+  });
+
+  it('renders Billing Platform badge for migrated subscriptions', async () => {
+    setUpMocks(organization, {hasMigratedToBillingPlatform: true});
+
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: 'Customers'});
+    expect(screen.getByText('Billing Platform')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy Billing')).not.toBeInTheDocument();
+  });
+
   it('renders correct dropdown options', async () => {
     setUpMocks(organization);
 

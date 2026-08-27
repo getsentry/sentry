@@ -13,6 +13,7 @@ import {
   IconEllipsis,
   IconGithub,
   IconGroup,
+  IconLab,
   IconMegaphone,
   IconOpen,
   IconQuestion,
@@ -26,6 +27,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
+import {useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
@@ -47,6 +49,7 @@ export function PrimaryNavigationHelpMenu({
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
+  const {isAuthV2Enabled, setAuthV2Enabled} = useEnableAuthV2();
 
   useEffect(() => {
     trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
@@ -181,6 +184,24 @@ export function PrimaryNavigationHelpMenu({
               <IconOpen />
             </MenuIcon>
           ),
+        },
+      ],
+    },
+    {
+      key: 'auth-v2',
+      hidden: !organization.features.includes('authv2-enable-toggle'),
+      children: [
+        {
+          key: 'toggle-auth-v2',
+          label: isAuthV2Enabled ? t('Disable new login') : t('Enable new login'),
+          leadingItems: (
+            <MenuIcon>
+              <IconLab isSolid />
+            </MenuIcon>
+          ),
+          onAction() {
+            setAuthV2Enabled(!isAuthV2Enabled);
+          },
         },
       ],
     },

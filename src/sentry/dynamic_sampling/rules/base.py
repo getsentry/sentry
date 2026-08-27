@@ -6,13 +6,11 @@ import sentry_sdk
 from sentry import quotas
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
+from sentry.dynamic_sampling.per_org.serving import get_project_sample_rate
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_override_for_project
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    get_boost_low_volume_projects_sample_rate,
-)
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_project_mode_sampling
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -88,7 +86,7 @@ def get_guarded_project_sample_rate(organization: Organization, project: Project
 
     # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
     # any issues.
-    sample_rate, _ = get_boost_low_volume_projects_sample_rate(
+    sample_rate = get_project_sample_rate(
         org_id=organization.id,
         project_id=project.id,
         error_sample_rate_fallback=sample_rate,

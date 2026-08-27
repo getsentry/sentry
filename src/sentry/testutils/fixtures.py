@@ -833,6 +833,9 @@ class Fixtures:
 
         return Factories.create_detector(project=project, type=type, *args, **kwargs)
 
+    def create_all_projects_detector(self, organization: Organization, **kwargs):
+        return Factories.create_all_projects_detector(organization_id=organization.id, **kwargs)
+
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
 

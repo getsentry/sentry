@@ -103,6 +103,7 @@ def merge_groups(
     from sentry.models.groupassignee import GroupAssignee
     from sentry.models.groupenvironment import GroupEnvironment
     from sentry.models.grouphash import GroupHash
+    from sentry.models.grouplink import GroupLink
     from sentry.models.groupmeta import GroupMeta
     from sentry.models.groupredirect import GroupRedirect
     from sentry.models.grouprulestatus import GroupRuleStatus
@@ -178,6 +179,7 @@ def merge_groups(
             GroupAssignee,
             GroupEnvironment,
             GroupHash,
+            GroupLink,
             GroupRuleStatus,
             GroupSubscription,
             EventAttachment,

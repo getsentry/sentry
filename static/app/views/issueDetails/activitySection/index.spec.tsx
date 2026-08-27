@@ -30,6 +30,13 @@ import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataConte
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
 
+function getCommentEditor(name = 'Add a comment') {
+  const editor = screen.getByRole('combobox', {name});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
+}
+
 describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
@@ -87,7 +94,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>
     );
 
-    const commentInput = screen.getByPlaceholderText('Add a comment…');
+    const commentInput = getCommentEditor();
     expect(commentInput).toBeInTheDocument();
 
     expect(
@@ -127,7 +134,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>
     );
 
-    const commentInput = screen.getByPlaceholderText('Add a comment…');
+    const commentInput = getCommentEditor();
     await userEvent.type(commentInput, comment);
     await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
     expect(postMock).toHaveBeenCalled();
@@ -157,8 +164,8 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>
     );
 
-    await userEvent.type(screen.getByPlaceholderText('Add a comment…'), '@jane');
-    await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
+    await userEvent.type(getCommentEditor(), '@jane');
+    await userEvent.click(await screen.findByRole('option', {name: /Jane Doe/}));
     await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 
     expect(postMock).toHaveBeenCalledWith(
@@ -800,7 +807,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
+    await userEvent.type(getCommentEditor('Edit comment'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     expect(editMock).not.toHaveBeenCalled();
@@ -810,7 +817,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
+    await userEvent.type(getCommentEditor('Edit comment'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));

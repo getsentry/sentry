@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -988,6 +989,69 @@ describe('SeerExplorerContent', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
       await waitFor(() => expect(requestWindow).toHaveBeenCalled());
+    });
+  });
+
+  describe('Slack upgrade alert', () => {
+    const outdatedSlackIntegration = OrganizationIntegrationsFixture({
+      outOfDate: true,
+    });
+
+    const upgradeNudgeText =
+      'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.';
+
+    it('shows the reinstall nudge when Slack is outdated and the user can manage integrations', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        method: 'GET',
+        body: [outdatedSlackIntegration],
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      expect(await screen.findByText(upgradeNudgeText)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Update Now'})).toBeInTheDocument();
+    });
+
+    it('hides the reinstall nudge when the user cannot manage integrations', async () => {
+      const memberOrg = OrganizationFixture({
+        openMembership: true,
+        features: ['seer-explorer', 'gen-ai-features'],
+        hideAiFeatures: false,
+        access: ['org:read', 'project:read', 'team:read', 'alerts:read'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${memberOrg.slug}/integrations/`,
+        method: 'GET',
+        body: [outdatedSlackIntegration],
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization: memberOrg}
+      );
+
+      await screen.findByTestId('seer-explorer-input');
+      expect(screen.queryByText(upgradeNudgeText)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Update Now'})).not.toBeInTheDocument();
     });
   });
 });

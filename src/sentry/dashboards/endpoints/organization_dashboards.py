@@ -22,7 +22,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import features, options, quotas, roles
+from sentry import audit_log, features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -43,7 +43,12 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    DashboardParams,
+    GlobalParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
@@ -416,7 +421,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="listOrganizationDashboards",
         summary="List an Organization's Custom Dashboards",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            DashboardParams.FILTER,
+            DashboardParams.QUERY,
+            DashboardParams.SORT,
+            DashboardParams.PIN,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -742,9 +755,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     )
 
                 dashboard = serializer.save()
-
-            body: DashboardDetailsResponse = serialize(dashboard, request.user)
-            return Response(body, status=201)
         except IntegrityError:
             if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
@@ -756,3 +766,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return self.post(request, organization, retry=retry + 1)
         except UnableToAcquireLock:
             return Response("Unable to create dashboard, please try again", status=503)
+
+        # Audit only after a successful create so title-conflict retries cannot
+        # emit multiple create entries.
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=dashboard.id,
+            event=audit_log.get_event_id("DASHBOARD_ADD"),
+            data=dashboard.get_audit_log_data(),
+        )
+
+        body: DashboardDetailsResponse = serialize(dashboard, request.user)
+        return Response(body, status=201)
