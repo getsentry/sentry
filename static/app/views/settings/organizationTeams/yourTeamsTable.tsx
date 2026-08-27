@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -146,8 +145,6 @@ function YourTeamRow({
   team: Team;
 }) {
   const organization = useOrganization();
-  const isMobile = useResponsivePropValue({zero: true, xl: false});
-
   const {mutate: leaveTeam, isPending} = useLeaveTeam({organization, team});
 
   const teamRoleName = useMemo(() => {
@@ -196,13 +193,13 @@ function YourTeamRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" data-column-name="actions">
         {isPending ? (
-          <Button size={isMobile ? 'xs' : 'sm'} disabled>
+          <Button size={{zero: 'xs', xl: 'sm'}} disabled>
             {'\u2026'}
           </Button>
         ) : (
           <Button
             aria-label={t('Leave Team')}
-            size={isMobile ? 'xs' : 'sm'}
+            size={{zero: 'xs', xl: 'sm'}}
             onClick={() => leaveTeam()}
             disabled={isIdpProvisioned}
             tooltipProps={{title: buttonHelpText}}

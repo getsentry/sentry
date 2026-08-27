@@ -4,12 +4,13 @@ import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 import {
+  type ButtonSize,
   type ButtonVariant,
   type DO_NOT_USE_CommonButtonProps as CommonButtonProps,
 } from './types';
 
 export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
-  NonNullable<CommonButtonProps['size']>,
+  ButtonSize,
   SVGIconProps['size']
 > = {
   zero: 'xs',
@@ -23,7 +24,7 @@ const elevation = {
   sm: '2px',
   xs: '1px',
   zero: '0px',
-} satisfies Record<NonNullable<ButtonProps['size']>, string>;
+} satisfies Record<ButtonSize, string>;
 
 const hoverElevation = '1px';
 
@@ -31,7 +32,7 @@ export function DO_NOT_USE_getButtonStyles(
   p: Pick<CommonButtonProps, 'variant' | 'busy'> &
     Pick<ButtonProps, 'disabled'> & {
       shapeVariant: 'rectangular' | 'square';
-      size: NonNullable<ButtonProps['size']>;
+      size: ButtonSize;
       theme: Theme;
     }
 ): StrictCSSObject {
