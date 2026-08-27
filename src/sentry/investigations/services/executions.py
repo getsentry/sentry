@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Any
 from uuid import UUID
 
@@ -32,6 +33,7 @@ from sentry.investigations.services.parameters import (
     ParameterValidationError,
     validate_parameter_value,
 )
+from sentry.investigations.telemetry import record_execution_cancelled
 from sentry.models.project import Project
 from sentry.utils import json
 
@@ -539,12 +541,19 @@ def mark_block_execution_stopping(execution: InvestigationBlockExecution) -> boo
     return updated == 1
 
 
-def mark_block_execution_cancelled(execution: InvestigationBlockExecution) -> bool:
+def mark_block_execution_cancelled(
+    execution: InvestigationBlockExecution, *, reason: str = "user_requested"
+) -> bool:
     updated = (
         InvestigationBlockExecution.objects.filter(id=execution.id)
         .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
         .update(status=InvestigationBlockExecutionStatus.CANCELLED, completed_at=timezone.now())
     )
+    if updated:
+        transaction.on_commit(
+            partial(record_execution_cancelled, execution, reason=reason),
+            using=router.db_for_write(InvestigationBlockExecution),
+        )
     return updated == 1
 
 
