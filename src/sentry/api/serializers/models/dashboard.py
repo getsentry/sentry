@@ -683,14 +683,10 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         )
 
         creator_ids = [d.created_by_id for d in item_list if d.created_by_id is not None]
-        serialized_users = (
-            {
-                u["id"]: u
-                for u in user_service.serialize_many(filter={"user_ids": creator_ids})
-            }
-            if creator_ids
-            else {}
+        serialized_creators = (
+            user_service.serialize_many(filter={"user_ids": creator_ids}) if creator_ids else []
         )
+        serialized_users = {u["id"]: u for u in serialized_creators}
 
         for dashboard in item_list:
             dashboard_widgets = [w for w in widgets if w and w["dashboardId"] == str(dashboard.id)]
