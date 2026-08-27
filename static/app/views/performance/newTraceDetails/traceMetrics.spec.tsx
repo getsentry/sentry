@@ -169,8 +169,31 @@ describe('TraceViewMetricsSection', () => {
     expect(currentMetricsQuery).not.toContain('sentry.metric.source');
     expect(router.location.query.metricsQuery).toBe(currentMetricsQuery);
     expect(router.location.query.query).toBe('unrelated:value');
+  });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+  it('removes the metrics query parameter when the search is cleared', async () => {
+    mockTraceMetricAttributes();
+    const {router} = render(
+      <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+        <TraceViewMetricsSection />
+      </TraceViewMetricsProviderWrapper>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
+            query: {
+              metricsQuery: 'metric.name:duration',
+              query: 'unrelated:value',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Clear search query'})
+    );
 
     await waitFor(() => {
       expect(router.location.query.metricsQuery).toBeUndefined();
@@ -244,7 +267,8 @@ describe('TraceViewMetricsSection', () => {
     await userEvent.click(
       await screen.findByPlaceholderText('Search application metrics for this trace')
     );
-    await userEvent.click(await screen.findByRole('option', {name: 'metric.name'}));
+    const menu = await screen.findByRole('listbox');
+    await userEvent.click(await within(menu).findByRole('option', {name: 'metric.name'}));
 
     await waitFor(() => {
       expect(attributesRequest).toHaveBeenCalledWith(
