@@ -18,7 +18,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -624,7 +624,7 @@ function FilteredVolumeCells({
     )
   );
 
-  const markLine = MarkLine({
+  const markLine = createMarkLine({
     silent: true,
     animation: false,
     lineStyle: {
@@ -903,31 +903,36 @@ export function CustomFilters({project}: {project: Project}) {
         <LoadingIndicator />
       ) : (
         <Container containerType="inline-size">
-          <CustomFiltersTable>
-            <SimpleTable.Header>
-              <SimpleTable.HeaderCell divider={false}>
-                {t('Active')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false}>
-                {t('Conditions')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false} data-column-name="trend">
-                {t('Trend')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false} data-column-name="filtered">
-                {t('Filtered')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false} data-column-name="created">
-                {t('Created')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false} data-column-name="edited">
-                {t('Edited')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false}>
-                {t('Action')}
-              </SimpleTable.HeaderCell>
-            </SimpleTable.Header>
+          <CustomFiltersTable
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell divider={false}>
+                  {t('Active')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false}>
+                  {t('Name')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false}>
+                  {t('Conditions')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false} data-column-name="trend">
+                  {t('Trend')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false} data-column-name="filtered">
+                  {t('Filtered')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false} data-column-name="created">
+                  {t('Created')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false} data-column-name="edited">
+                  {t('Edited')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false}>
+                  {t('Action')}
+                </SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
+            }
+          >
             {visibleFilters.length === 0 && (
               <SimpleTable.Empty>
                 {filters.length === 0

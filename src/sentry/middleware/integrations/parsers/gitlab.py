@@ -54,9 +54,9 @@ class GitlabRequestParser(BaseRequestParser):
         except Exception as e:
             metrics.incr(
                 self._METRIC_CONTROL_PATH_FAILURE_KEY,
-                tags={"integration": self.provider, "error": str(e)},
+                tags={"integration": self.provider, "error": type(e).__name__},
             )
-            logger.warning("Failed to get integration from request")
+            logger.exception("Failed to get integration from request")
 
         return None
 

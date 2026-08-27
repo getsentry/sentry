@@ -14,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -41,7 +40,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
@@ -96,10 +94,8 @@ type Props = {
   applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
   customColumns?: Array<'attachments' | 'minidump'>;
-  domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
   hidePagination?: boolean;
-  isEventLoading?: boolean;
   isRegressionIssue?: boolean;
   issueId?: string;
   projectSlug?: string;
@@ -122,10 +118,8 @@ export function EventsTable({
   applyEnvironmentFilter,
   columnTitles: initialColumnTitles,
   customColumns,
-  domainViewFilters,
   excludedTags,
   hidePagination,
-  isEventLoading,
   isRegressionIssue,
   issueId,
   projectSlug,
@@ -245,14 +239,9 @@ export function EventsTable({
             location,
             organization,
             source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-            view: domainViewFilters?.view,
           });
         } else if (dataRow.trace) {
-          target = generateTraceLink(transactionName, domainViewFilters?.view)(
-            organization,
-            dataRow,
-            location
-          );
+          target = generateTraceLink(transactionName)(organization, dataRow, location);
         }
 
         return (
@@ -372,7 +361,6 @@ export function EventsTable({
       transactionName,
       issueId,
       isRegressionIssue,
-      domainViewFilters,
       replayLinkGenerator,
       handleCellAction,
     ]
@@ -520,13 +508,11 @@ export function EventsTable({
       (col: TableColumn<string | number>) => col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
     );
 
-  const {columns, handleResizeColumn} = useStateBasedColumnResize({
-    columns: eventView.getColumns(),
-  });
-
-  const columnOrder = columns.filter((col: TableColumn<string | number>) =>
-    shouldRenderColumn(containsSpanOpsBreakdown, col.name)
-  );
+  const columnOrder = eventView
+    .getColumns()
+    .filter((col: TableColumn<string | number>) =>
+      shouldRenderColumn(containsSpanOpsBreakdown, col.name)
+    );
 
   if (customColumns?.includes('attachments') && attachments.length) {
     columnOrder.push({
@@ -609,14 +595,12 @@ export function EventsTable({
                         isLoading={
                           isTotalEventsLoading ||
                           isDiscoverQueryLoading ||
-                          shouldFetchAttachments ||
-                          isEventLoading
+                          shouldFetchAttachments
                         }
                         data={tableData?.data ?? []}
                         columnOrder={columnOrder}
                         columnSortBy={eventView.getSorts()}
                         grid={{
-                          onResizeColumn: handleResizeColumn,
                           renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
                           renderBodyCell: renderBodyCellWithData(tableData) as any,
                         }}

@@ -1,13 +1,22 @@
 from typing import Any
+from unittest import mock
 
+import pytest
 from django.urls import reverse
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesResponse,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
-from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.cases import APITestCase, OurLogTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTestCase):
+class OrganizationEventsValidateEndpointTest(
+    APITestCase, SnubaTestCase, SpanTestCase, OurLogTestCase
+):
     viewname = "sentry-api-0-organization-events-validate"
 
     def do_request(self, query: Any) -> Response:
@@ -175,6 +184,84 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
                 "valid": True,
                 "attrType": "boolean",
             },
+        ]
+
+    def test_array_attribute(self) -> None:
+        """Array columns should be typed as ``array`` rather than misclassified as ``number``.
+
+        Array attribute names only surface through Snuba's co-occurring-attrs v2 roll-up,
+        gated by the ``use_co_occurring_attrs_v2`` snuba option. It is enabled in production
+        but defaults off in the local/CI test Snuba, which therefore never surfaces array
+        names. So mock the attribute-names RPC to report the array attribute as present in
+        storage and exercise the serialize_type path.
+        """
+        attribute_name = "data_export.csv_headers"
+        column = f"tags[{attribute_name},array]"
+
+        # The only column is an array, so the endpoint only looks up array attributes.
+        array_attributes = TraceItemAttributeNamesResponse(
+            attributes=[
+                TraceItemAttributeNamesResponse.Attribute(
+                    name=attribute_name, type=AttributeKey.Type.TYPE_ARRAY_STRING
+                )
+            ]
+        )
+
+        with mock.patch(
+            "sentry.utils.snuba_rpc.attribute_names_rpc",
+            return_value=array_attributes,
+        ):
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "dataset": "spans",
+                    "field": [column],
+                }
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["field"] == [
+            {"error": None, "name": column, "valid": True, "attrType": "array"}
+        ]
+
+    @pytest.mark.xfail(
+        strict=False,
+        reason="Passes once use_co_occurring_attrs_v2 is enabled in the local/CI test Snuba (already on in production).",
+    )
+    def test_array_attribute_real(self) -> None:
+        """Real integration variant of test_array_attribute: store an actual array attribute
+        and let Snuba surface it, with no mocking of the attribute-names RPC."""
+        attribute_name = "my.array.attr"
+        column = f"tags[{attribute_name},array]"
+
+        log = self.create_ourlog(
+            organization=self.organization,
+            project=self.project,
+            timestamp=before_now(minutes=10),
+            attributes={
+                attribute_name: {
+                    "array_value": ArrayValue(
+                        values=[AnyValue(string_value="a"), AnyValue(string_value="b")]
+                    )
+                },
+            },
+        )
+        self.store_eap_items([log])
+
+        with self.feature("organizations:trace-item-array-query-support"):
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "dataset": "logs",
+                    "field": [column],
+                }
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["field"] == [
+            {"error": None, "name": column, "valid": True, "attrType": "array"}
         ]
 
     def test_mix_of_validity(self) -> None:

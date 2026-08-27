@@ -269,7 +269,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
     def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params)
+        default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_NUMBER_LIMIT)
 
         org = group.organization
         autocomplete_url = reverse(

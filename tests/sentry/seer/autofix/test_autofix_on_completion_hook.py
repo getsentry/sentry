@@ -21,6 +21,7 @@ from sentry.seer.autofix.on_completion_hook import (
     _group_and_referrer_from_run,
     _stopping_point_from_run,
 )
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
@@ -293,6 +294,17 @@ class TestStoppingPointFromRun(TestCase):
             == AutofixStoppingPoint.CODE_CHANGES.value
         )
 
+    def test_matches_runs_created_with_the_autofix_source(self) -> None:
+        self._create_run(
+            123,
+            extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value},
+            source="autofix",
+        )
+        assert (
+            _stopping_point_from_run(self.organization, 123)
+            == AutofixStoppingPoint.CODE_CHANGES.value
+        )
+
     def test_is_scoped_to_the_organization(self) -> None:
         self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
         assert _stopping_point_from_run(self.create_organization(), 123) is None
@@ -307,6 +319,13 @@ class TestStoppingPointFromRun(TestCase):
 
     def test_group_and_referrer_returns_autofix_rca_context(self) -> None:
         self._create_run(123, extras={"referrer": AutofixReferrer.WEB.value})
+        assert _group_and_referrer_from_run(self.organization, 123) == (
+            self.group.id,
+            AutofixReferrer.WEB,
+        )
+
+    def test_group_and_referrer_matches_the_autofix_source(self) -> None:
+        self._create_run(123, extras={"referrer": AutofixReferrer.WEB.value}, source="autofix")
         assert _group_and_referrer_from_run(self.organization, 123) == (
             self.group.id,
             AutofixReferrer.WEB,
@@ -935,6 +954,43 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
 
         mock_broadcast.assert_not_called()
+
+    def _pr_created_state(self):
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                provider="github",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+            )
+        }
+        return state
+
+    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_pr_is_ready_on_open(self, mock_broadcast, mock_emit):
+        state = self._pr_created_state()
+        AutofixOnCompletionHook._send_step_webhook(
+            organization=self.organization, run_id=123, state=state, group=self.group
+        )
+
+        mock_emit.assert_called_once()
+        kwargs = mock_emit.call_args.kwargs
+        assert kwargs["group"] == self.group
+        assert kwargs["state"] is state
+
+    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_draft_pr_is_not_ready_on_open(self, mock_broadcast, mock_emit):
+        state = self._pr_created_state()
+        with self.feature(REVIEW_REQUEST_FLAG):
+            AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_emit.assert_not_called()
+        assert mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.PR_CREATED.value
 
 
 class TestAutofixOnCompletionHookHandoff(TestCase):

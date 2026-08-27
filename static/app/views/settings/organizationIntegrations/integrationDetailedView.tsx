@@ -289,7 +289,10 @@ export default function IntegrationDetailedView() {
     mutationFn: (integration: Integration) =>
       fetchMutation({
         method: 'DELETE',
-        url: `/organizations/${organization.slug}/integrations/${integration.id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+        ),
       }),
     onMutate: async integration => {
       const queryKey = makeIntegrationQueryKey({

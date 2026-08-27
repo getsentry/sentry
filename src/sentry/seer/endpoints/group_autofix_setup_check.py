@@ -96,17 +96,11 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 organization=org, project=group.project
             )
 
-        # Free cohort orgs have no Seer subscription, so check_seer_quota
-        # always returns False. We want them to see autofix results when
-        # night shift has already processed the issue, but NOT show the
-        # "Start Analysis" button for issues night shift skipped — manual
-        # triggers would fail with a quota error. So we return True only
-        # when an autofix run already exists for this group, which renders
-        # the results UI. Otherwise False, which renders the paywall.
-        if is_free_cohort_org(org):
-            # Night shift can go through either the regular autofix path
-            # (source="autofix") or the RCA feature path (source="autofix_rca")
-            # depending on the organizations:autofix-rca-in-seer flag.
+        # Free cohort orgs have no subscription — quota check always fails. Return hasAutofixQuota
+        # True only when a run exists (so they see results), False otherwise (shows paywall).
+        is_free_cohort = is_free_cohort_org(org)
+        if is_free_cohort:
+            # Existing runs can use either the legacy autofix source or the RCA feature source.
             has_autofix_quota = (
                 runs_for_group(group.id, "autofix").exists()
                 or runs_for_group(group.id, "autofix_rca").exists()
@@ -117,7 +111,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             )
 
         seer_repos_linked = False
-        # Check if org has github integration and is on seat-based tier.
         if integration_check is None:
             try:
                 seer_repos_linked = has_project_connected_repos(org, group.project)

@@ -1,18 +1,16 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {IconAdd, IconDelete, IconWarning} from 'sentry/icons';
+import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -26,16 +24,12 @@ import {
 import {getPointerPosition} from 'sentry/utils/touch';
 import type {UserSelectValues} from 'sentry/utils/userselect';
 import {setBodyUserSelect} from 'sentry/utils/userselect';
-import {WidgetType} from 'sentry/views/dashboards/types';
-import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {FieldValueOption} from './queryField';
 import {QueryField} from './queryField';
 import {FieldValueKind} from './types';
-
-type Sources = WidgetType;
 
 type Props = {
   // Input columns
@@ -47,10 +41,6 @@ type Props = {
   className?: string;
   filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
-  isOnDemandWidget?: boolean;
-  noFieldsMessage?: string;
-  showAliasField?: boolean;
-  source?: Sources;
   supportsEquations?: boolean;
 };
 
@@ -80,12 +70,8 @@ function ColumnEditCollection({
   fieldOptions,
   filterAggregateParameters,
   filterPrimaryOptions,
-  noFieldsMessage,
-  showAliasField,
-  isOnDemandWidget,
   onChange,
   organization,
-  source,
   className,
   supportsEquations,
 }: Props) {
@@ -344,44 +330,11 @@ function ColumnEditCollection({
     });
 
     // Issue column in Issue widgets are fixed (cannot be moved or deleted)
-    if (
-      targetIndex >= 0 &&
-      targetIndex !== draggingTargetIndex &&
-      !isFixedMetricsColumn(targetIndex)
-    ) {
+    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       setDragState(prev => ({...prev, draggingTargetIndex: targetIndex}));
     }
   };
   onDragMoveRef.current = onDragMove;
-
-  const isFixedIssueColumn = (columnIndex: number) => {
-    const column = columns[columnIndex]!;
-    const issueFieldColumnCount = columns.filter(
-      col => col.kind === 'field' && col.field === FieldKey.ISSUE
-    ).length;
-    return (
-      issueFieldColumnCount <= 1 &&
-      source === WidgetType.ISSUE &&
-      column.kind === 'field' &&
-      column.field === FieldKey.ISSUE
-    );
-  };
-
-  const isFixedMetricsColumn = (columnIndex: number) => {
-    return source === WidgetType.METRICS && columnIndex === 0;
-  };
-
-  const isRemainingReleaseHealthAggregate = (columnIndex: number) => {
-    const column = columns[columnIndex]!;
-    const aggregateCount = columns.filter(
-      col => col.kind === FieldValueKind.FUNCTION
-    ).length;
-    return (
-      aggregateCount <= 1 &&
-      source === WidgetType.RELEASE &&
-      column.kind === FieldValueKind.FUNCTION
-    );
-  };
 
   const onDragEnd = (event: MouseEvent | TouchEvent) => {
     if (!dragState.isDragging || !['mouseup', 'touchend'].includes(event.type)) {
@@ -421,13 +374,7 @@ function ColumnEditCollection({
   };
   onDragEndRef.current = onDragEnd;
 
-  const renderGhost = ({
-    gridColumns,
-    singleColumn,
-  }: {
-    gridColumns: number;
-    singleColumn: boolean;
-  }) => {
+  const renderGhost = ({gridColumns}: {gridColumns: number}) => {
     const {isDragging, draggingIndex, draggingGrabbedOffset} = dragState;
 
     const index = draggingIndex;
@@ -448,7 +395,6 @@ function ColumnEditCollection({
     const ghost = (
       <Ghost ref={dragGhostRef} style={style}>
         {renderItem(col, index, {
-          singleColumn,
           isGhost: true,
           gridColumns,
         })}
@@ -462,7 +408,6 @@ function ColumnEditCollection({
     col: Column,
     i: number,
     {
-      singleColumn,
       canDelete = true,
       canDrag = true,
       isGhost = false,
@@ -470,7 +415,6 @@ function ColumnEditCollection({
       disabled = false,
     }: {
       gridColumns: number;
-      singleColumn: boolean;
       canDelete?: boolean;
       canDrag?: boolean;
       disabled?: boolean;
@@ -504,17 +448,13 @@ function ColumnEditCollection({
     return (
       <Fragment key={`${i}:${keyForColumn(col, isGhost)}`}>
         {position === PlaceholderPosition.TOP && placeholder}
-        <RowContainer
-          showAliasField={showAliasField}
-          singleColumn={singleColumn}
-          className={isGhost ? '' : DRAG_CLASS}
-        >
+        <RowContainer className={isGhost ? '' : DRAG_CLASS}>
           {canDrag ? (
             <StyledDragReorderButton
               onMouseDown={event => startDrag(event, i)}
               onTouchStart={event => startDrag(event, i)}
             />
-          ) : singleColumn && showAliasField ? null : (
+          ) : (
             <span />
           )}
           <QueryField
@@ -529,58 +469,18 @@ function ColumnEditCollection({
             disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
             filterAggregateParameters={filterAggregateParameters}
-            noFieldsMessage={noFieldsMessage}
-            skipParameterPlaceholder={showAliasField}
           />
-          {showAliasField && (
-            <Container
-              marginTop={{zero: 'md', xl: '0'}}
-              marginLeft={{zero: '0', xl: 'md'}}
-              row={{zero: '2 / 2', xl: 'auto'}}
-              column={{
-                zero: singleColumn ? '1 / -1' : '2 / 2',
-                xl: 'auto',
-              }}
-            >
-              <AliasInput
-                name="alias"
-                placeholder={t('Alias')}
-                value={col.alias ?? ''}
-                onChange={value => {
-                  handleUpdateColumn(i, {
-                    ...col,
-                    alias: value.target.value,
-                  });
-                }}
-              />
-            </Container>
-          )}
           {canDelete || col.kind === 'equation' ? (
-            showAliasField ? (
-              <RemoveButton
-                data-test-id={`remove-column-${i}`}
-                aria-label={t('Remove column')}
-                tooltipProps={{title: t('Remove column')}}
-                onClick={() => removeColumn(i)}
-                icon={<IconDelete />}
-                variant="transparent"
-              />
-            ) : (
-              <RemoveButton
-                data-test-id={`remove-column-${i}`}
-                aria-label={t('Remove column')}
-                onClick={() => removeColumn(i)}
-                icon={<IconDelete />}
-                variant="transparent"
-              />
-            )
-          ) : singleColumn && showAliasField ? null : (
+            <RemoveButton
+              data-test-id={`remove-column-${i}`}
+              aria-label={t('Remove column')}
+              onClick={() => removeColumn(i)}
+              icon={<IconDelete />}
+              variant="transparent"
+            />
+          ) : (
             <span />
           )}
-
-          {isOnDemandWidget && col.kind === 'equation' ? (
-            <OnDemandEquationsWarning />
-          ) : null}
         </RowContainer>
         {position === PlaceholderPosition.BOTTOM && placeholder}
       </Fragment>
@@ -597,76 +497,42 @@ function ColumnEditCollection({
         MAX_COL_COUNT
       );
 
-  const singleColumn = columns.length === 1;
-
   // Get the longest number of columns so we can layout the rows.
   // We always want at least 2 columns.
-  const gridColumns =
-    source === WidgetType.ISSUE
-      ? 1
-      : Math.max(
-          ...columns.map(col => {
-            if (col.kind !== 'function') {
-              return 2;
-            }
-            const operation =
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
-            if (!operation?.parameters) {
-              // Operation should be in the look-up table, but not all operations are (eg. private). This should be changed at some point.
-              return 3;
-            }
-            return operation.parameters.length === 2 ? 3 : 2;
-          })
-        );
+  const gridColumns = Math.max(
+    ...columns.map(col => {
+      if (col.kind !== 'function') {
+        return 2;
+      }
+      const operation =
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
+      if (!operation?.parameters) {
+        // Operation should be in the look-up table, but not all operations are (eg. private). This should be changed at some point.
+        return 3;
+      }
+      return operation.parameters.length === 2 ? 3 : 2;
+    })
+  );
 
   return (
     <div className={className}>
-      {renderGhost({gridColumns, singleColumn})}
-      {!showAliasField && source !== WidgetType.ISSUE && (
-        <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Heading gridColumns={gridColumns}>
-            <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
-            <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
-          </Heading>
-        </RowContainer>
-      )}
+      {renderGhost({gridColumns})}
+      <RowContainer>
+        <Heading gridColumns={gridColumns}>
+          <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
+          <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
+        </Heading>
+      </RowContainer>
       {columns.map((col: Column, i: number) => {
-        // Issue column in Issue widgets are fixed (cannot be changed or deleted)
-        if (isFixedIssueColumn(i)) {
-          return renderItem(col, i, {
-            singleColumn,
-            canDelete: false,
-            canDrag,
-            gridColumns,
-            disabled: true,
-          });
-        }
-        if (isRemainingReleaseHealthAggregate(i)) {
-          return renderItem(col, i, {
-            singleColumn,
-            canDelete: false,
-            canDrag,
-            gridColumns,
-          });
-        }
-        if (isFixedMetricsColumn(i)) {
-          return renderItem(col, i, {
-            singleColumn,
-            canDelete: false,
-            canDrag: false,
-            gridColumns,
-          });
-        }
         return renderItem(col, i, {
-          singleColumn,
           canDelete,
           canDrag,
           gridColumns,
         });
       })}
-      <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-        <Actions showAliasField={showAliasField}>
+      <RowContainer>
+        <Actions>
           <Button
             size="sm"
             aria-label={t('Add a Column')}
@@ -695,32 +561,14 @@ function ColumnEditCollection({
   );
 }
 
-function OnDemandEquationsWarning() {
-  return (
-    <OnDemandContainer>
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          "This is using indexed data because we don't routinely collect metrics for equations."
-        )}
-      >
-        <IconWarning variant="warning" />
-      </Tooltip>
-    </OnDemandContainer>
-  );
-}
-
-const Actions = styled((props: GridProps & {showAliasField?: boolean}) => (
+const Actions = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
-))<{showAliasField?: boolean}>`
-  grid-column: ${p => (p.showAliasField ? '1/-1' : ' 2/3')};
+))`
+  grid-column: 2/3;
   justify-content: flex-start;
 `;
 
-const RowContainer = styled('div')<{
-  singleColumn: boolean;
-  showAliasField?: boolean;
-}>`
+const RowContainer = styled('div')`
   display: grid;
   grid-template-columns: ${p => p.theme.space['2xl']} 1fr 40px 40px;
   justify-content: center;
@@ -728,23 +576,6 @@ const RowContainer = styled('div')<{
   width: 100%;
   touch-action: none;
   padding-bottom: ${p => p.theme.space.md};
-
-  ${p =>
-    p.showAliasField &&
-    css`
-      align-items: flex-start;
-      grid-template-columns: ${
-        p.singleColumn ? '1fr' : `${p.theme.space['2xl']} 1fr 40px 40px`
-      };
-
-      @container (min-width: ${p.theme.container.xl}) {
-        grid-template-columns: ${
-          p.singleColumn
-            ? `1fr calc(200px + ${p.theme.space.md})`
-            : `${p.theme.space['2xl']} 1fr calc(200px + ${p.theme.space.md}) 40px 40px`
-        };
-      }
-    `}
 `;
 
 const Ghost = styled('div')`
@@ -768,13 +599,6 @@ const Ghost = styled('div')`
   }
 `;
 
-const OnDemandContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-`;
-
 const DragPlaceholder = styled('div')`
   margin: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space.md}
     ${p => p.theme.space['2xl']};
@@ -794,10 +618,6 @@ const Heading = styled('div')<{gridColumns: number}>`
 
 const StyledSectionHeading = styled(SectionHeading)`
   margin: 0;
-`;
-
-const AliasInput = styled(Input)`
-  min-width: 50px;
 `;
 
 const RemoveButton = styled(Button)`

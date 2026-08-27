@@ -4,6 +4,8 @@ import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
+import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
 import {
   ALL_ACCESS_PROJECTS,
   DATE_TIME_KEYS,
@@ -19,13 +21,19 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {
+  DateString,
+  PageFilters,
+  PageFilterDatetime,
+  PinnedPageFilter,
+} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {DAY as DAY_IN_MS, HOUR as HOUR_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -84,15 +92,16 @@ function getProjectIdFromProject(project: MinimalProject) {
   return parseInt(project.id, 10);
 }
 
+export function getOldestPickableStart(maxPickableDays: number, now = Date.now()) {
+  return new Date(now - maxPickableDays * DAY_IN_MS);
+}
+
 /**
  * Merges two date time objects, where the `base` object takes precedence, and
  * the `fallback` values are used when the base values are null or undefined.
  */
-function mergeDatetime(
-  base: PageFilters['datetime'],
-  fallback?: Partial<PageFilters['datetime']>
-) {
-  const datetime: PageFilters['datetime'] = {
+function mergeDatetime(base: PageFilterDatetime, fallback?: Partial<PageFilterDatetime>) {
+  const datetime: PageFilterDatetime = {
     start: base.start ?? fallback?.start ?? null,
     end: base.end ?? fallback?.end ?? null,
     period: base.period ?? fallback?.period ?? null,
@@ -199,6 +208,8 @@ export function initializeUrlState({
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
 
+  const adjustments: PageFilterAdjustments = {};
+
   /**
    * Check to make sure that the project ID exists in the projects list. Invalid project
    * IDs (project was deleted/moved to another org) can still exist in local storage or
@@ -229,6 +240,16 @@ export function initializeUrlState({
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project?.filter(validateProjectId) || [];
     pageFilters.environments = parsed.environment?.filter(validateEnvironment) || [];
+
+    if (pageFilters.projects.length < (parsed.project?.length ?? 0)) {
+      adjustments.projects = {reason: PageFilterAdjustmentReason.INVALID_PROJECTS};
+    }
+
+    if (pageFilters.environments.length < (parsed.environment?.length ?? 0)) {
+      adjustments.environments = {
+        reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
+      };
+    }
   }
 
   const storedPageFilters = skipLoadLastUsed
@@ -248,6 +269,7 @@ export function initializeUrlState({
 
       if (pageFilters.projects.length < (storedState.project?.length ?? 0)) {
         shouldUpdateLocalStorage = true; // update storage to remove invalid projects
+        adjustments.projects = {reason: PageFilterAdjustmentReason.INVALID_PROJECTS};
       }
     }
 
@@ -261,6 +283,9 @@ export function initializeUrlState({
 
       if (pageFilters.environments.length < (storedState.environment?.length ?? 0)) {
         shouldUpdateLocalStorage = true; // update storage to remove invalid environments
+        adjustments.environments = {
+          reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
+        };
       }
     }
 
@@ -279,6 +304,10 @@ export function initializeUrlState({
     const onlyProject = memberProjects[0] ?? nonMemberProjects[0];
     if (onlyProject) {
       pageFilters.projects = [getProjectIdFromProject(onlyProject)];
+      adjustments.projects = {
+        reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
+        projectSlug: onlyProject.slug,
+      };
     }
   }
 
@@ -293,6 +322,7 @@ export function initializeUrlState({
     // The user has no projects they are a member of, but they could look at "all projects".
     // We can attempt to be helpful and redirect them to the all projects view.
     pageFilters.projects = [ALL_ACCESS_PROJECTS];
+    adjustments.projects = {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS};
   }
 
   const {projects, environments: environment, datetime} = pageFilters;
@@ -310,26 +340,30 @@ export function initializeUrlState({
   if (newProject) {
     pageFilters.projects = newProject;
     project = newProject;
+
+    // The forced project replaces whatever the branches above picked, so any
+    // explanation of how they picked it no longer describes the selection.
+    delete adjustments.projects;
   }
 
   let shouldUseMaxPickableDays = false;
   let shouldUseMaxDateRange = false;
 
   if (maxPickableDays && pageFilters.datetime) {
+    const now = Date.now();
     let {start, end} = pageFilters.datetime;
 
     if (pageFilters.datetime.period) {
-      const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
-      start = parsedPeriod.start;
-      end = parsedPeriod.end;
+      const periodInHours = parsePeriodToHours(pageFilters.datetime.period);
+      start = new Date(now - periodInHours * HOUR_IN_MS);
+      end = new Date(now);
     }
 
     if (start && end) {
       const periodStart = new Date(start);
       const periodEnd = new Date(end);
-      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
-      const maxTimeRange = (maxDateRange ?? maxPickableDays) * 24 * 60 * 60 * 1000;
-      const maxStart = new Date(maxPeriod.start);
+      const maxTimeRange = (maxDateRange ?? maxPickableDays) * DAY_IN_MS;
+      const maxStart = getOldestPickableStart(maxPickableDays, now);
       if (maxDateRange) {
         if (
           periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||
@@ -342,6 +376,10 @@ export function initializeUrlState({
             end: null,
             utc: datetime.utc,
           };
+          adjustments.datetime = {
+            reason: PageFilterAdjustmentReason.MAX_DATE_RANGE,
+            days: maxDateRange,
+          };
         }
       } else {
         if (periodStart.getTime() < maxStart.getTime()) {
@@ -352,12 +390,16 @@ export function initializeUrlState({
             end: null,
             utc: datetime.utc,
           };
+          adjustments.datetime = {
+            reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
+            days: maxPickableDays,
+          };
         }
       }
     }
   }
 
-  PageFiltersStore.onInitializeUrlState(pageFilters, shouldPersist);
+  PageFiltersStore.onInitializeUrlState(pageFilters, shouldPersist, adjustments);
   if (shouldUpdateLocalStorage) {
     setPageFiltersStorage(
       organization.slug,

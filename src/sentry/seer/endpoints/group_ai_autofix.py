@@ -14,6 +14,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.conditional_get import ConditionalGetResponseMixin
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
@@ -187,7 +188,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
-class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
+class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -383,7 +384,7 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
                 except SeerPermissionError:
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                if not run_state.repo_pr_states:
+                if not run_state.get_created_pull_request_states():
                     return Response(
                         {"detail": "Cannot iterate on a PR before one has been created"},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -439,7 +440,7 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                    if run_state.repo_pr_states or run_state.coding_agents:
+                    if run_state.get_created_pull_request_states() or run_state.coding_agents:
                         return Response(
                             {
                                 "detail": "Cannot re-run a step after a pull request or coding agent has started"
@@ -580,6 +581,7 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
             GithubAppPermissionsWarning(
                 repo_name=repo_name,
                 installation_id=info.installation_id,
+                installation_url=info.installation_url,
             ).dict()
             for repo_name, info in missing_perms.items()
         ]

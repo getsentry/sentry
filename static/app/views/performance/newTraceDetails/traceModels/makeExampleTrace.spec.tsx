@@ -11,7 +11,7 @@ describe('makeExampleTrace', () => {
 
     // Root span + its descendants
     expect(tree.list).toHaveLength(22);
-    expect(Math.max(...tree.list.map(node => TraceTree.Depth(node)))).toBeGreaterThan(1);
+    expect(Math.max(...tree.list.map(node => TraceTree.depth(node)))).toBeGreaterThan(1);
   });
 
   it('makes spans with unique ids so none are dropped as cycles', () => {

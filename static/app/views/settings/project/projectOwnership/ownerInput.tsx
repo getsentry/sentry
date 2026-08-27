@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -29,7 +30,6 @@ type Props = {
    */
   page: 'issue_details' | 'project_settings';
   project: Project;
-  disabled?: boolean;
   onSave?: (ownership: IssueOwnership) => void;
 };
 
@@ -49,7 +49,6 @@ function parseError(error: InputError | null) {
 
 export function OwnerInput({
   dateUpdated,
-  disabled = false,
   initialText,
   onCancel,
   onSave,
@@ -66,7 +65,9 @@ export function OwnerInput({
 
     const api = new Client();
     const request = api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/ownership/`,
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {
         method: 'PUT',
         data: {raw: text || ''},
@@ -150,7 +151,6 @@ export function OwnerInput({
               }
               monospace
               onChange={handleChange}
-              disabled={disabled}
               value={defined(text) ? text : initialText}
               spellCheck="false"
               autoComplete="off"
@@ -169,7 +169,7 @@ export function OwnerInput({
               size="sm"
               variant="primary"
               onClick={handleUpdateOwnership}
-              disabled={disabled || !hasChanges}
+              disabled={!hasChanges}
             >
               {t('Save')}
             </Button>

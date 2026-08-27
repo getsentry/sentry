@@ -44,8 +44,8 @@ jest.mock('sentry/data/platforms', () => {
   const actual = jest.requireActual('sentry/data/platforms');
   return {
     ...actual,
-    platforms: actual.platforms.filter(
-      (p: {id: string}) => p.id === 'python' || p.id === 'javascript'
+    platforms: actual.platforms.filter((p: {id: string}) =>
+      ['python', 'javascript', 'python-django', 'javascript-react'].includes(p.id)
     ),
   };
 });
@@ -65,6 +65,11 @@ const pythonPlatform: OnboardingSelectedSDK = {
 describe('ScmCreateProject', () => {
   const organization = OrganizationFixture({features: ['performance-view']});
   const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
+  const selectedTeam = TeamFixture({
+    id: '2',
+    slug: 'selected-team',
+    access: ['team:admin'],
+  });
   const githubIntegration = OrganizationIntegrationsFixture({
     id: '1',
     name: 'getsentry',
@@ -286,6 +291,38 @@ describe('ScmCreateProject', () => {
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
 
+  it('hides the repository section for members without a connected integration', async () => {
+    const integrationsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+    });
+    const memberOrganization = OrganizationFixture({
+      features: ['performance-view'],
+      access: ['org:read', 'project:read', 'team:read'],
+      allowMemberProjectCreation: true,
+    });
+    render(<ScmCreateProject />, {organization: memberOrganization});
+
+    expect(await screen.findByRole('heading', {name: 'Platform'})).toBeInTheDocument();
+    // Wait for the integrations fetch so the section's absence reflects the
+    // settled empty result, not the pending state.
+    await waitFor(() => expect(integrationsRequest).toHaveBeenCalled());
+    expect(screen.queryByRole('heading', {name: 'Repository'})).not.toBeInTheDocument();
+  });
+
+  it('keeps the repository section for members when an integration is connected', async () => {
+    mockExistingGithubRepository();
+    const memberOrganization = OrganizationFixture({
+      features: ['performance-view'],
+      access: ['org:read', 'project:read', 'team:read'],
+      allowMemberProjectCreation: true,
+    });
+    render(<ScmCreateProject />, {organization: memberOrganization});
+
+    expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
+    expect(await screen.findByText('Search repositories')).toBeInTheDocument();
+  });
+
   it('shows a tooltip on the disabled Create CTA explaining what is missing', async () => {
     render(<ScmCreateProject />, {organization});
 
@@ -297,6 +334,47 @@ describe('ScmCreateProject', () => {
     expect(
       await screen.findByText('Please fill out all the required fields')
     ).toBeInTheDocument();
+  });
+
+  it('updates the default name and preserves edited project details', async () => {
+    TeamStore.loadInitialData([adminTeam, selectedTeam]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/user-teams/`,
+      body: [adminTeam, selectedTeam],
+    });
+    render(<ScmCreateProject />, {organization});
+
+    // Framework SDKs commit straight from the picker; a base language (plain
+    // Python) would detour through the framework-suggestion modal.
+    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
+
+    const projectName = screen.getByPlaceholderText('project-name');
+    expect(projectName).toHaveValue('python-django');
+    await userEvent.type(screen.getByLabelText('Select a Team'), '{keyDown}');
+    await userEvent.click(await screen.findByText('#selected-team'));
+
+    await userEvent.click(screen.getByText('Django'));
+    await userEvent.keyboard('React');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'React'}));
+
+    // The name was never touched, so it re-derives from the new platform
+    // while the team selection survives.
+    expect(projectName).toHaveValue('javascript-react');
+    expect(screen.getByText('#selected-team')).toBeInTheDocument();
+
+    await userEvent.clear(projectName);
+    await userEvent.type(projectName, 'my-app');
+
+    await userEvent.click(screen.getByText('React'));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
+
+    // The manual name survives the switch back to Django, where a reset would
+    // have re-derived 'python-django'.
+    expect(projectName).toHaveValue('my-app');
+    expect(screen.getByText('#selected-team')).toBeInTheDocument();
   });
 
   it('drops a persisted wizard on a fresh visit (no return from getting-started)', async () => {
@@ -326,6 +404,38 @@ describe('ScmCreateProject', () => {
       await screen.findByRole('heading', {name: 'Project name'})
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
+  });
+
+  it('re-derives a restored untouched name on a platform change', async () => {
+    // A completed session stores the resolved name with the manual-edit flag;
+    // false marks it as platform-derived, so it must follow a new platform
+    // instead of sticking to the old default (the explicit-name fallback alone
+    // would wrongly preserve it).
+    persistWizardSession({
+      projectDetailsForm: {
+        projectName: 'python',
+        teamSlug: adminTeam.slug,
+        wasNameManuallyModified: false,
+      },
+    });
+    renderGlobalModal();
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    const projectName = await screen.findByPlaceholderText('project-name');
+    expect(projectName).toHaveValue('python');
+
+    await userEvent.click(screen.getByText('Python'));
+    await userEvent.keyboard('JavaScript');
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Browser JavaScript'})
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+
+    expect(projectName).toHaveValue('javascript');
+    expect(screen.getByText(`#${adminTeam.slug}`)).toBeInTheDocument();
   });
 
   it('restores the wizard when the return params arrive after mount', async () => {
@@ -516,6 +626,10 @@ describe('ScmCreateProject', () => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
     expect(createRequest).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(window.sessionStorage.getItem(WIZARD_KEY)!).projectDetailsForm
+        .wasNameManuallyModified
+    ).toBe(true);
   });
 
   it('creates from fresh manual selections and persists the completed state', async () => {

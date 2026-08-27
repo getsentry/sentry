@@ -206,7 +206,9 @@ describe('AutomationsList', () => {
 
     // Click on Name column header to sort
     await userEvent.click(
-      screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      within(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      ).getByRole('button')
     );
 
     await waitFor(() => {
@@ -223,7 +225,9 @@ describe('AutomationsList', () => {
 
     // Click on Name column header again to change sort direction
     await userEvent.click(
-      screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      within(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      ).getByRole('button')
     );
 
     await waitFor(() => {

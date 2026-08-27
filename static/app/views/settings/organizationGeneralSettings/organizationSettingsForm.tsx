@@ -25,6 +25,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {MembershipSettingsProps} from 'sentry/types/overrides';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getLocalityDataFromOrganization,
   shouldDisplayLocalities,
@@ -89,7 +90,9 @@ export function ReplayAccessMembersField({
   onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
 }) {
-  const endpoint = `/organizations/${organization.slug}/`;
+  const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const initialValue = (organization.replayAccessMembers ?? []).map(String);
 
   const [selectedIds, setSelectedIds] = useState(initialValue);
@@ -148,7 +151,9 @@ function OrganizationMembershipSettingsBase({
   organization,
   onSave,
 }: MembershipSettingsProps) {
-  const endpoint = `/organizations/${organization.slug}/`;
+  const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const features = new Set(organization.features);
   const access = new Set(organization.access);
   const hasOrgWrite = access.has('org:write');
@@ -427,7 +432,9 @@ function OrganizationMembershipSettingsBase({
 
 export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const organization = useOrganization();
-  const endpoint = `/organizations/${organization.slug}/`;
+  const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');

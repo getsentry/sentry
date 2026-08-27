@@ -1,16 +1,16 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -73,6 +73,16 @@ export function TransactionsTable(props: Props) {
     return titles ?? eventView.getFields();
   };
 
+  const columnCount = (titles ?? eventView.getFields()).length;
+  const columns = useMemo<TableColumnConfig[]>(
+    () =>
+      Array.from({length: columnCount}, (_, index) => ({
+        key: String(index),
+        width: 'auto',
+      })),
+    [columnCount]
+  );
+
   const renderHeader = () => {
     const tableMeta = tableData?.meta;
     const tableTitles = getTitles();
@@ -83,7 +93,7 @@ export function TransactionsTable(props: Props) {
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
-          <Container padding="xl" key={index}>
+          <SimpleTable.HeaderCell key={index}>
             <SortLink
               align={align}
               title={
@@ -105,14 +115,14 @@ export function TransactionsTable(props: Props) {
               direction={undefined}
               canSort={false}
             />
-          </Container>
+          </SimpleTable.HeaderCell>
         );
       }
 
       return (
-        <Container padding="xl" key={index}>
+        <SimpleTable.HeaderCell key={index}>
           <SortLink align={align} title={title} direction={undefined} canSort={false} />
-        </Container>
+        </SimpleTable.HeaderCell>
       );
     });
 
@@ -124,7 +134,7 @@ export function TransactionsTable(props: Props) {
     rowIndex: number,
     colOrder: Array<TableColumn<string | number>>,
     tableMeta: MetaType
-  ): React.ReactNode[] => {
+  ): React.ReactNode => {
     const fields = eventView.getFields();
 
     if (titles?.length) {
@@ -196,17 +206,17 @@ export function TransactionsTable(props: Props) {
       return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
     });
 
-    return resultsRow;
+    return <SimpleTable.Row key={rowIndex}>{resultsRow}</SimpleTable.Row>;
   };
 
   const renderResults = () => {
-    let cells: React.ReactNode[] = [];
+    const rows: React.ReactNode[] = [];
 
     if (isLoading) {
-      return cells;
+      return rows;
     }
     if (!tableData?.meta || !tableData.data) {
-      return cells;
+      return rows;
     }
 
     tableData.data.forEach((row, i: number) => {
@@ -215,9 +225,9 @@ export function TransactionsTable(props: Props) {
         return;
       }
       // @ts-expect-error TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
-      cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta, theme));
+      rows.push(renderRow(row, i, columnOrder, tableData.meta, theme));
     });
-    return cells;
+    return rows;
   };
 
   const hasResults = tableData?.meta && tableData.data?.length > 0;
@@ -231,21 +241,21 @@ export function TransactionsTable(props: Props) {
       hasData={hasResults}
       isLoading={isLoading}
     >
-      <PanelTable
+      <SimpleTable
         data-test-id="transactions-table"
-        isEmpty={!hasResults}
-        emptyMessage={
-          eventView.query
-            ? t('No transactions found for this filter.')
-            : t('No transactions found.')
-        }
-        headers={renderHeader()}
-        isLoading={isLoading}
-        disablePadding
-        loader={loader}
+        columns={columns}
+        header={<SimpleTable.HeaderRow>{renderHeader()}</SimpleTable.HeaderRow>}
       >
+        {isLoading && <SimpleTable.Empty>{loader}</SimpleTable.Empty>}
+        {!isLoading && !hasResults && (
+          <SimpleTable.Empty>
+            {eventView.query
+              ? t('No transactions found for this filter.')
+              : t('No transactions found.')}
+          </SimpleTable.Empty>
+        )}
         {renderResults()}
-      </PanelTable>
+      </SimpleTable>
     </VisuallyCompleteWithData>
   );
 }
@@ -263,7 +273,7 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
   };
 }
 
-const BodyCellContainer = styled('div')`
+const BodyCellContainer = styled(SimpleTable.RowCell)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: block;
   width: 100%;

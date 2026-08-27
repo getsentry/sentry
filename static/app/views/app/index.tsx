@@ -10,7 +10,6 @@ import {
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Indicators from 'sentry/components/indicators';
 import {Override} from 'sentry/components/override';
@@ -24,7 +23,6 @@ import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
-import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
@@ -93,8 +91,6 @@ function AppAlerts() {
  * App is the root level container for all uathenticated routes.
  */
 export function App() {
-  useColorscheme();
-
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
@@ -145,7 +141,6 @@ export function App() {
       getOverride('analytics:init-user')?.(user);
     }
 
-    initApiClientErrorHandling();
     fetchGuides();
 
     // When the app is unloaded clear the organizationst list

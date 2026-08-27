@@ -105,6 +105,7 @@ def _perms(integration_id: int) -> MissingGithubPermissions:
             metadata={},
             status=0,
         ),
+        repo_id=integration_id,
         missing_scopes=["contents"],
     )
 
