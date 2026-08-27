@@ -186,7 +186,7 @@ describe('GroupHeaderAssigneeSelector', () => {
       />,
       {
         organization: OrganizationFixture({
-          features: ['issue-assignee-selector-ui'],
+          features: ['issue-priority-assignee-ui'],
         }),
       }
     );
@@ -240,7 +240,7 @@ describe('GroupHeaderAssigneeSelector', () => {
       />,
       {
         organization: OrganizationFixture({
-          features: ['issue-assignee-selector-ui'],
+          features: ['issue-priority-assignee-ui'],
         }),
       }
     );

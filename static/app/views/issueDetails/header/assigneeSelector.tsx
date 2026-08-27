@@ -142,7 +142,7 @@ export function GroupHeaderAssigneeSelector({
       assignmentDetails={assignmentDetails}
       showLabel={showLabel}
       trigger={
-        organization.features.includes('issue-assignee-selector-ui')
+        organization.features.includes('issue-priority-assignee-ui')
           ? makeRedesignedAssigneeTrigger({
               assignmentDetails,
               group,
