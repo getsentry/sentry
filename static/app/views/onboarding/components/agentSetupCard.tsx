@@ -1,5 +1,5 @@
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock, InlineCode} from '@sentry/scraps/code';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -8,7 +8,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {IconBot, IconCheckmark, IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 export type AgentSetupCopySource = 'install_command' | 'prompt';
 
@@ -24,9 +24,14 @@ const AGENT_CAPABILITIES = [
 interface AgentSetupCardProps {
   onCopyCommand: (source: AgentSetupCopySource) => void;
   prompt: string;
+  onboardingCode?: string;
 }
 
-export function AgentSetupCard({onCopyCommand, prompt}: AgentSetupCardProps) {
+export function AgentSetupCard({
+  onboardingCode,
+  onCopyCommand,
+  prompt,
+}: AgentSetupCardProps) {
   return (
     <Stack height="100%" border="accent" radius="lg" overflow="hidden" gap="0">
       <Stack padding="xl" gap="xl" flex="1">
@@ -82,17 +87,41 @@ export function AgentSetupCard({onCopyCommand, prompt}: AgentSetupCardProps) {
                     <Hovercard
                       position="top"
                       body={
-                        <Stack gap="md">
-                          {AGENT_CAPABILITIES.map(capability => (
-                            <Flex key={capability} align="center" gap="md">
-                              <Flex flexShrink={0}>
-                                <IconCheckmark size="sm" variant="success" />
+                        <Stack gap="xl">
+                          <Stack gap="md">
+                            {AGENT_CAPABILITIES.map(capability => (
+                              <Grid
+                                key={capability}
+                                columns="16px 1fr"
+                                align="center"
+                                gap="md"
+                              >
+                                <Flex justify="center">
+                                  <IconCheckmark size="sm" variant="success" />
+                                </Flex>
+                                <Text variant="muted" size="sm">
+                                  {capability}
+                                </Text>
+                              </Grid>
+                            ))}
+                          </Stack>
+                          {onboardingCode ? (
+                            <Grid columns="16px 1fr" align="start" gap="md">
+                              <Flex justify="center" paddingTop="2xs">
+                                <IconInfo size="xs" variant="secondary" />
                               </Flex>
                               <Text variant="muted" size="sm">
-                                {capability}
+                                {tct(
+                                  'Your agent uses ID [onboardingCode] to report setup progress here. Progress updates sent with this ID never include any part of your source code.',
+                                  {
+                                    onboardingCode: (
+                                      <InlineCode>{onboardingCode}</InlineCode>
+                                    ),
+                                  }
+                                )}
                               </Text>
-                            </Flex>
-                          ))}
+                            </Grid>
+                          ) : null}
                         </Stack>
                       }
                     >

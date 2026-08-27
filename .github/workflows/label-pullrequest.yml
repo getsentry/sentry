@@ -43,13 +43,21 @@ jobs:
           comment-author: 'github-actions[bot]'
           body-includes: '<!-- FRONTEND_BACKEND_WARNING -->'
 
+      - name: Count backend warning exemptions
+        id: backend_exemptions
+        env:
+          EMBED_WIDGET_CODEGEN_COUNT: ${{ steps.changes.outputs.embed_widget_codegen_count }}
+          INTEGRATION_TEST_UTILS_COUNT: ${{ steps.changes.outputs.integration_test_utils_count }}
+        run: |
+          echo "count=$((${EMBED_WIDGET_CODEGEN_COUNT:-0} + ${INTEGRATION_TEST_UTILS_COUNT:-0}))" >> "$GITHUB_OUTPUT"
+
       - name: Add frontend/backend warning comment
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
         if: >
           fromJSON(steps.changes.outputs.frontend_all_count) >
           fromJSON(steps.changes.outputs.api_url_codegen_count) &&
           fromJSON(steps.changes.outputs.backend_src_count) >
-          fromJSON(steps.changes.outputs.embed_widget_codegen_count) &&
+          fromJSON(steps.backend_exemptions.outputs.count || '0') &&
           steps.fc.outputs.comment-id == 0
         with:
           issue-number: ${{ github.event.pull_request.number }}
