@@ -45,6 +45,7 @@ from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
     repos_with_failed_tool_calls,
 )
+from sentry.seer.autofix.pr_iteration.emit import emit_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -895,6 +896,22 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
             log_ctx = cls._iteration_log_context(organization, group, state)
+
+            try:
+                emit_pr_iteration_details(
+                    organization=organization,
+                    group=group,
+                    run_id=run_id,
+                    state=state,
+                    errored_repos=cls._iteration_terminal_errored_repos(state),
+                    referrer=referrer.value,
+                )
+            except Exception:
+                logger.exception(
+                    "autofix.pr_iteration.details.emit_failed",
+                    extra={"run_id": run_id, "organization_id": organization.id},
+                )
+
             pushed = cls._push_iteration_changes(
                 log_ctx,
                 group,

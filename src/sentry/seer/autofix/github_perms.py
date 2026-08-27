@@ -98,6 +98,11 @@ def _failed_tool_calls(block: MemoryBlock) -> Iterator[ToolCall]:
             yield call
 
 
+def failed_tool_calls(blocks: Iterable[MemoryBlock]) -> Iterator[ToolCall]:
+    for block in blocks:
+        yield from _failed_tool_calls(block)
+
+
 def _repo_name_from_tool_call(call: ToolCall) -> str | None:
     """The repo a tool call targeted, from its `repo_name` arg (None if absent)."""
     try:
@@ -133,11 +138,10 @@ def repos_with_failed_tool_calls(blocks: Iterable[MemoryBlock]) -> set[str]:
     `repo_name` as a required arg. A failed non-repo tool yields no repo.
     """
     repos: set[str] = set()
-    for block in blocks:
-        for call in _failed_tool_calls(block):
-            repo_name = _repo_name_from_tool_call(call)
-            if repo_name:
-                repos.add(repo_name)
+    for call in failed_tool_calls(blocks):
+        repo_name = _repo_name_from_tool_call(call)
+        if repo_name:
+            repos.add(repo_name)
     return repos
 
 

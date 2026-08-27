@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 from django.utils import timezone
 from pydantic import BaseModel, Field, ValidationError, root_validator
@@ -17,6 +17,9 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.utils import json
+
+if TYPE_CHECKING:
+    from sentry.seer.autofix.autofix_agent import Iteration
 
 FeedbackSource = Annotated[
     UserUIFeedbackSource
@@ -87,6 +90,14 @@ def serialize_feedback(items: Sequence[Feedback]) -> str:
     return json.dumps([item.dict() for item in items])
 
 
+def blocks_feedback(blocks: Sequence[MemoryBlock]) -> list[Feedback]:
+    return [
+        feedback
+        for block in blocks
+        for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
+    ]
+
+
 def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     """Whether a PR iteration was driven *only* by automated feedback.
 
@@ -94,14 +105,18 @@ def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     (and resets the streak); an iteration is automated only when every feedback
     item in it is automated (see ``FeedbackSourceBase.is_automated``).
     """
-    feedbacks = [
-        feedback
-        for block in iteration_blocks
-        for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
-    ]
     # An iteration with no parseable feedback isn't a human iteration, so treat it
     # as automated (don't let a metadata gap reset the streak).
-    return all(feedback.source.is_automated for feedback in feedbacks)
+    return all(feedback.source.is_automated for feedback in blocks_feedback(iteration_blocks))
+
+
+def automated_iteration_streak(iterations: Sequence[Iteration]) -> int:
+    streak = 0
+    for iteration in reversed(iterations):
+        if not iteration_is_automated(iteration.blocks):
+            break
+        streak += 1
+    return streak
 
 
 def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:
@@ -120,8 +135,4 @@ def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:
     if cap <= 0:
         return False
 
-    last_iterations = get_iterations(run_state)[-cap:]
-    if len(last_iterations) < cap:
-        return False
-
-    return all(iteration_is_automated(iteration.blocks) for iteration in last_iterations)
+    return automated_iteration_streak(get_iterations(run_state)) >= cap

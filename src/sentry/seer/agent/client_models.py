@@ -112,6 +112,7 @@ class RepoPRState(BaseModel):
     commit_sha: str | None = None
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
+    pr_creation_error_code: str | None = None
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None
