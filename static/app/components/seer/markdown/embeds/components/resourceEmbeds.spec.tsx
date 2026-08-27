@@ -86,14 +86,10 @@ describe('Seer resource embeds', () => {
   it('renders a replay player preview at block level with a timestamp', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    renderEmbed(
-      'replay',
-      {
-        id: '4c1f2e3d1234567890',
-        eventTimestamp: '2026-08-25T16:37:12Z',
-      },
-      'block'
-    );
+    renderEmbed('replay', {
+      id: '4c1f2e3d1234567890',
+      eventTimestamp: '2026-08-25T16:37:12Z',
+    });
 
     await waitFor(() => {
       expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
@@ -101,7 +97,7 @@ describe('Seer resource embeds', () => {
   });
 
   it('falls back to a link at block level without a timestamp', () => {
-    renderEmbed('replay', {id: 'abcdef1234567890'}, 'block');
+    renderEmbed('replay', {id: 'abcdef1234567890'});
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
       'href',

@@ -91,7 +91,7 @@ export function makeGroupPriorityDropdownOptions({
   return PRIORITY_OPTIONS.map(priority => ({
     textValue: PRIORITY_KEY_TO_LABEL[priority],
     key: priority,
-    label: <GroupPriorityBadge showLabel priority={priority} />,
+    label: <GroupPriorityBadge priority={priority} />,
     onAction: () => onChange(priority),
   }));
 }
