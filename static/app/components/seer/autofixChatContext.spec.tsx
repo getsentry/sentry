@@ -6,32 +6,9 @@ import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
-import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-
-const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
-  sessionData: null,
-  isPolling: false,
-  isError: false,
-  errorStatusCode: undefined,
-  isTimedOut: false,
-  runId: null,
-  overrideBashModeEnabled: false,
-  overrideCtxEngEnable: true,
-  overrideCodeModeEnable: 'off',
-  hasSentInterrupt: false,
-  sendMessage: jest.fn(),
-  switchToRun: jest.fn(),
-  startNewSession: jest.fn(),
-  interruptRun: jest.fn(),
-  respondToUserInput: jest.fn(),
-  createPR: jest.fn(),
-  setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCtxEngEnable: jest.fn(),
-  setOverrideCodeModeEnable: jest.fn(),
-};
 
 /**
  * Stands in for a button somewhere else in the app — issue details, say — that
@@ -71,19 +48,27 @@ describe('AutofixChatProvider', () => {
     features: ['seer-explorer', 'gen-ai-features'],
   });
 
-  let sendMessage!: jest.Mock;
+  const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+  let postChat!: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
     localStorage.clear();
-    jest.clearAllMocks();
 
-    sendMessage = jest.fn();
-    jest
-      .spyOn(useSeerExplorerModule, 'useSeerExplorer')
-      .mockReturnValue({...defaultHookReturn, sendMessage});
-
+    // No session yet, so the explorer opens empty and auto-submits the query.
+    MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+    postChat = MockApiClient.addMockResponse({
+      url: chatUrl,
+      method: 'POST',
+      body: {run_id: 1},
+    });
+    MockApiClient.addMockResponse({
+      url: `${chatUrl}1/`,
+      method: 'GET',
+      body: {session: {run_id: 1, blocks: [], status: 'completed', updated_at: ''}},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       method: 'GET',
@@ -96,31 +81,26 @@ describe('AutofixChatProvider', () => {
     });
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   it('opens the explorer and submits the message from outside the chat', async () => {
     render(tree('Why is this issue spiking?'), {organization});
 
     expect(await screen.findByText('main app content')).toBeInTheDocument();
     // Nothing is open yet, so nothing has been sent.
-    expect(sendMessage).not.toHaveBeenCalled();
+    expect(postChat).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', {name: 'ask-seer'}));
 
+    // The chat itself opens, and the message goes out as a real request.
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     await waitFor(() => {
-      expect(sendMessage).toHaveBeenCalledWith(
-        'Why is this issue spiking?',
-        expect.any(Number)
+      expect(postChat).toHaveBeenCalledWith(
+        chatUrl,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({query: 'Why is this issue spiking?'}),
+        })
       );
     });
-  });
-
-  it('enables the entry point wherever the provider is mounted', async () => {
-    render(tree('anything'), {organization});
-
-    expect(await screen.findByRole('button', {name: 'ask-seer'})).toBeEnabled();
   });
 
   it('leaves the entry point disabled with no provider above it', () => {
