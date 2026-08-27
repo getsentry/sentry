@@ -13,14 +13,29 @@ import type {CallRecord} from 'sentry/views/seerExplorer/types';
  */
 
 /**
- * The title seer shipped for a call, or null when it shipped none.
+ * What a row reads as: the agent's own line when it wrote one, seer's title otherwise.
+ *
+ * A title answers what ran; only the agent knows a `grep` was checking whether retries caused the
+ * regression, and that is the half a user needs. The title is not discarded — `callRecordDetail`
+ * still shows what actually happened, so a description is always checkable against it.
  *
  * A fallback, not a decision: a row whose call matches a rule in `links.tsx` is labeled by that rule
  * instead. Returning null rather than the route or an operation id is deliberate — a raw identifier
  * on screen is worse than one fewer row.
  */
 export function callRecordLabel(record: CallRecord): string | null {
-  return record.title?.trim() || null;
+  return record.description?.trim() || record.title?.trim() || null;
+}
+
+/**
+ * A readable stand-in for a record nothing could name.
+ *
+ * Deliberately generic: the alternative is a route or an operation id, which reads worse on screen
+ * than saying nothing specific. But the call did happen, so it is reported — an untitled record
+ * silently vanishing is how a whole endpoint disappears from the UI the day it is added.
+ */
+export function fallbackCallLabel(record: CallRecord): string {
+  return record.kind === 'api' ? t('Sentry API request') : t('Working…');
 }
 
 /**
@@ -71,6 +86,15 @@ export function callRecordDetail(record: CallRecord): {
   body: string | null;
   request: string;
 } | null {
+  // A described row reads as the agent's own words, so what actually ran has to stay reachable —
+  // otherwise a description is an unfalsifiable claim. The title is that: "Running command
+  // grep -rn retry in getsentry/sentry" beneath "Checking whether retries are the cause".
+  const description = record.description?.trim();
+  const title = record.title?.trim();
+  if (description && title && description !== title) {
+    return {request: title, body: null};
+  }
+
   // A lib call is a heading for the api calls nested under it, and those carry the detail. Giving
   // it its own expander would add a control that reveals less than the rows already below it.
   if (record.kind !== 'api' || !record.method) {
@@ -233,6 +257,10 @@ const PREFER_LIB_OVER_CHILDREN = new Set(['get_span_details']);
  * children. A lib call with no api children is kept — the Explorer-backed helpers (`code_search`,
  * `bash`, `ask_user_question`) never touch the transport, so their own row is the only trace they
  * leave. Helpers in `PREFER_LIB_OVER_CHILDREN` keep their own row and suppress children instead.
+ *
+ * A parent the agent described inverts that first premise, so it is kept and its children hidden:
+ * the heading now says what the operation was *for*, which none of the requests underneath can.
+ * Without a description the old behaviour stands, so the description is what earns the row.
  */
 export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
   const hasChildren = new Set(
@@ -241,14 +269,15 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
     )
   );
 
+  const prefersOwnRow = (record: CallRecord): boolean =>
+    Boolean(record.description?.trim()) ||
+    Boolean(record.name && PREFER_LIB_OVER_CHILDREN.has(record.name));
+
   const hideChildrenOf = new Set(
     records
       .filter(
         record =>
-          record.kind === 'lib' &&
-          record.name &&
-          PREFER_LIB_OVER_CHILDREN.has(record.name) &&
-          hasChildren.has(record.id)
+          record.kind === 'lib' && prefersOwnRow(record) && hasChildren.has(record.id)
       )
       .map(record => record.id)
   );
@@ -264,6 +293,6 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
     if (record.kind !== 'lib' || !hasChildren.has(record.id)) {
       return true;
     }
-    return Boolean(record.name && PREFER_LIB_OVER_CHILDREN.has(record.name));
+    return prefersOwnRow(record);
   });
 }

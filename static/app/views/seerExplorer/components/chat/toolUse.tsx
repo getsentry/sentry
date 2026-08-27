@@ -33,6 +33,7 @@ import {
   callRecordFailure,
   callRecordInputQuery,
   callRecordLabel,
+  fallbackCallLabel,
   callRecordStatus,
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
@@ -240,6 +241,21 @@ function useToolLinks(block: Block) {
   // The mirror lives on the block, not per tool call, so it can only be attributed to a call that
   // has not reported yet. With several still in flight there is no way to tell whose calls these
   // are, so it is shown on none of them rather than duplicated across all.
+  // In-flight lines from the progress channel, grouped by the tool call that emitted them. Unlike
+  // the mirror below there is nothing to infer: an event names its own call, so several calls can
+  // be in flight at once and each still reports.
+  const progressForCallId = useMemo(() => {
+    const grouped = new Map<string, string[]>();
+    for (const event of block.progress ?? []) {
+      const message = event?.message?.trim();
+      if (!event?.token || !message) {
+        continue;
+      }
+      grouped.set(event.token, [...(grouped.get(event.token) ?? []), message]);
+    }
+    return grouped;
+  }, [block.progress]);
+
   const liveCallsForCallId = useMemo(() => {
     const calls = block.live_calls ?? [];
     if (!calls.length) {
@@ -263,6 +279,7 @@ function useToolLinks(block: Block) {
     structuredContentMarkdownByCallId,
     callRecordsByCallId,
     liveCallsForCallId,
+    progressForCallId,
     settledCallIds,
     organization,
     projects,
@@ -285,6 +302,7 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
     structuredContentMarkdownByCallId,
     callRecordsByCallId,
     liveCallsForCallId,
+    progressForCallId,
     settledCallIds,
     organization,
     projects,
@@ -405,6 +423,12 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
         const finishedCalls = toolCall.id
           ? (callRecordsByCallId.get(toolCall.id) ?? [])
           : [];
+        // Progress first when the tool call reported any: it is attributed by its own token, so it
+        // survives several calls being in flight, which is exactly when the mirror shows nothing.
+        // The mirror remains the fallback for a seer that does not send progress yet.
+        const progressLines = toolCall.id
+          ? (progressForCallId.get(toolCall.id) ?? [])
+          : [];
         const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
         // A result exists, so the execute returned and nothing it reported is still running. Read
         // off the result itself rather than off the records it carried: a call that reports none
@@ -419,7 +443,20 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
         // claiming it wholesale would starve later rows of their bus twins. Those are paired one
         // bus link at a time below instead.
         const claimedLinkKinds = new Set<string>();
-        const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
+        // Progress carries a string and no structure — that is all the protocol offers mid-call —
+        // so each line becomes a note-shaped record and rides the same row renderer as everything
+        // else. Negative ids keep them clear of the real per-execute counter.
+        const inFlightRows: CallRecord[] = progressLines.map((message, index) => ({
+          id: -(index + 1),
+          kind: 'note' as const,
+          description: message,
+        }));
+        const rowSource = finishedCalls.length
+          ? finishedCalls
+          : inFlightRows.length
+            ? inFlightRows
+            : live;
+        const callRows = visibleCallRecords(rowSource)
           .map(record => {
             const subject = subjectFromCallRecord(record);
             const link = resolveLink(subject, {organization, projects});
@@ -443,10 +480,15 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
               linkLabel: genericLink?.label ?? null,
             };
           })
-          // A record we have no label for is dropped rather than rendered as a route or an
-          // internal identifier — one fewer row beats a raw string on screen. The predicate
-          // narrows `label` for the render below, which is why it is not a plain Boolean check.
-          .filter((row): row is typeof row & {label: string} => Boolean(row.label));
+          // A record with no label still happened, so it is reported rather than deleted — seer's
+          // own contract is that a row never disappears for want of wording. What it is not given
+          // is a raw route or an operation id: those read worse than no row at all, which is why
+          // the degraded form is generic. An api row keeps its expander, so what actually ran is
+          // still one click away.
+          .map(row => ({
+            ...row,
+            label: row.label ?? fallbackCallLabel(row.record),
+          }));
 
         const residualNavItems = navItems.filter(
           item => !claimedLinkKinds.has(item.kind)

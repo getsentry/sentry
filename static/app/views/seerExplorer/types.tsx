@@ -97,11 +97,22 @@ export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
  */
 export interface CallRecord {
   id: number;
-  kind: 'api' | 'lib';
+  /**
+   * `api` and `lib` are calls seer observed. `note` is a line the agent wrote itself, about work
+   * no call describes — a correlation, a join, a decision between calls.
+   *
+   * Read additively: an unknown kind from a newer seer must be ignored, not break the render.
+   */
+  kind: 'api' | 'lib' | 'note';
   /** Bounded slice of the request body, if the call had one. */
   body?: string;
   /** Whether `body` was cut short. */
   body_truncated?: boolean;
+  /**
+   * What the agent said the call was for, in its own words. Carried beside `title`, never instead
+   * of it, so an agent-authored line is always readable next to what actually ran.
+   */
+  description?: string;
   /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
   error?: string;
   method?: string;
@@ -125,6 +136,23 @@ export interface CallRecord {
   status?: number;
   /** Human name for the operation, from the OpenAPI spec. Absent when it has none. */
   title?: string;
+}
+
+/**
+ * One in-flight update for a tool call, shaped as an MCP progress notification.
+ *
+ * `token` is the `tool_call_id` it belongs to — which is the point. `live_calls` lives on the block
+ * and cannot be attributed when more than one tool call is outstanding, so it is shown on none of
+ * them; an event names its own call instead of leaving it to be inferred.
+ *
+ * Carries a string and no structured payload, because that is all the protocol offers mid-call. The
+ * full records arrive on the tool result when the call finishes.
+ */
+export interface ProgressEvent {
+  progress: number;
+  token: string;
+  message?: string;
+  total?: number;
 }
 
 export interface ToolResult {
@@ -173,6 +201,7 @@ export interface Block {
   loading?: boolean;
   merged_file_patches?: ExplorerFilePatch[] | null;
   pr_commit_shas?: Record<string, string> | null;
+  progress?: ProgressEvent[] | null;
   todos?: TodoItem[] | null;
   tool_links?: Array<ToolLink | null> | null;
   tool_results?: Array<ToolResult | null> | null;
