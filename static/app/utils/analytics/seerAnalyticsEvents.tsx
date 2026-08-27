@@ -95,7 +95,7 @@ export type SeerAnalyticsEventsParameters = {
     section: AutofixOverviewSection;
   };
   'autofix.overview.filter_changed': {
-    filter_type: 'sort' | 'assignee' | 'activity' | 'view_tab';
+    filter_type: 'sort' | 'assignee' | 'activity' | 'view_tab' | 'display';
     organization: Organization;
     value: string;
   };

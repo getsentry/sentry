@@ -1,25 +1,15 @@
-import {
-  type ComponentProps,
-  Fragment,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {Fragment, type ReactNode, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -32,16 +22,13 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconGrid, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
-import {
-  indexMembersByProject,
-  type IndexedMembersByProject,
-} from 'sentry/utils/members/shared';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
@@ -56,20 +43,15 @@ import {useUser} from 'sentry/utils/useUser';
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {useMilestoneAdvanceToasts} from './milestoneToast';
+import {OverviewSectionDisclosure} from './overviewShared';
 import {OverviewSkeleton, ProjectFilterSkeleton} from './overviewSkeleton';
+import {OverviewSectionTable, type OverviewSectionRendererProps} from './overviewTable';
 import {ProjectSetupWarning} from './projectSetupWarning';
-import {
-  GroupHeader,
-  STATUS_GROUP_META,
-  StatusGroup,
-  type StatusGroupKey,
-  StatusGroupTooltip,
-} from './statusGroups';
+import {type StatusGroupKey} from './statusGroups';
 import {
   OVERVIEW_SECTIONS,
   type OverviewRun,
   type OverviewSort,
-  type ProjectConfig,
   SCM_WINDOW_SIZE,
 } from './types';
 import {useAutofixOverview} from './useAutofixOverview';
@@ -168,6 +150,14 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     'seer-autofix-overview:collapsed-groups',
     []
   );
+  const [displayMode, setDisplayMode] = useLocalStorageState<'cards' | 'table'>(
+    'seer-autofix-overview:display-mode',
+    'cards'
+  );
+  // Table view is desktop-only; below the sm breakpoint we always fall back to
+  // cards and hide the toggle.
+  const canShowTable = breakpoints.sm;
+  const displayModeEffective = canShowTable ? displayMode : 'cards';
 
   const sort: OverviewSort =
     SORT_OPTIONS.find(option => option.value === decodeScalar(location.query.sort))
@@ -186,7 +176,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     );
 
   const trackFilterChanged = (
-    filterType: 'sort' | 'assignee' | 'activity' | 'view_tab',
+    filterType: 'sort' | 'assignee' | 'activity' | 'view_tab' | 'display',
     value: string
   ) =>
     trackAnalytics('autofix.overview.filter_changed', {
@@ -315,6 +305,22 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     );
   };
 
+  const sectionRendererProps: OverviewSectionRendererProps = {
+    sections: populatedSections,
+    collapsedGroups,
+    onToggle: toggleGroup,
+    orgSlug: organization.slug,
+    statsPeriod: selection.datetime.period,
+    requestScmWindow,
+    scmWindowsByRunId,
+    isScmSettled,
+    isVitalsPending,
+    projectConfigById,
+    membersByProject,
+    resolvedTeamIds,
+    teamsSettled,
+  };
+
   const resultsPending = isPending || projectConfigPending || issueStatsPending;
   const populatedKeys = populatedSections.map(section => section.key);
   const allCollapsed =
@@ -389,6 +395,30 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
+        {canShowTable && (
+          <Flex flex="1" justify="end">
+            <SegmentedControl
+              size="sm"
+              aria-label={t('Display mode')}
+              value={displayModeEffective}
+              onChange={next => {
+                setDisplayMode(next);
+                trackFilterChanged('display', next);
+              }}
+            >
+              <SegmentedControl.Item
+                key="cards"
+                aria-label={t('Card view')}
+                icon={<IconGrid />}
+              />
+              <SegmentedControl.Item
+                key="table"
+                aria-label={t('Table view')}
+                icon={<IconTable />}
+              />
+            </SegmentedControl>
+          </Flex>
+        )}
       </FilterBar>
       {isError ? (
         <LoadingError onRetry={refetch} />
@@ -444,22 +474,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   padding="3xl"
                   title={t('No Autofix runs are currently in progress.')}
                 />
+              ) : displayModeEffective === 'table' ? (
+                <OverviewSectionTable {...sectionRendererProps} />
               ) : (
-                <OverviewSectionList
-                  sections={populatedSections}
-                  collapsedGroups={collapsedGroups}
-                  onToggle={toggleGroup}
-                  orgSlug={organization.slug}
-                  statsPeriod={selection.datetime.period}
-                  requestScmWindow={requestScmWindow}
-                  scmWindowsByRunId={scmWindowsByRunId}
-                  isScmSettled={isScmSettled}
-                  isVitalsPending={isVitalsPending}
-                  projectConfigById={projectConfigById}
-                  membersByProject={membersByProject}
-                  resolvedTeamIds={resolvedTeamIds}
-                  teamsSettled={teamsSettled}
-                />
+                <OverviewSectionList {...sectionRendererProps} />
               )}
             </Fragment>
           )}
@@ -483,75 +501,44 @@ function OverviewSectionList({
   membersByProject,
   resolvedTeamIds,
   teamsSettled,
-}: {
-  collapsedGroups: StatusGroupKey[];
-  isScmSettled: (seerRunId: string) => boolean;
-  isVitalsPending: (seerRunId: string) => boolean;
-  membersByProject: IndexedMembersByProject;
-  onToggle: (groupKey: StatusGroupKey, expanded: boolean) => void;
-  orgSlug: string;
-  projectConfigById: Map<string, ProjectConfig>;
-  requestScmWindow: (runIds: string[]) => void;
-  resolvedTeamIds: Set<string>;
-  scmWindowsByRunId: Map<string, string[][]>;
-  sections: Array<(typeof OVERVIEW_SECTIONS)[number] & {runs: OverviewRun[]}>;
-  statsPeriod: ComponentProps<typeof OverviewCard>['statsPeriod'];
-  teamsSettled: boolean;
-}) {
+}: OverviewSectionRendererProps) {
   return (
     <Stack gap="lg">
-      {sections.map(({key, runs}) => {
-        const meta = STATUS_GROUP_META[key];
-        const groupLabel = key === 'needs_investigation' ? t('Create Plan') : meta.label;
-        const expanded = !collapsedGroups.includes(key);
-        return (
-          <StatusGroup
-            key={key}
-            size="sm"
-            expanded={expanded}
-            onExpandedChange={next => onToggle(key, next)}
-          >
-            <GroupHeader>
-              <Disclosure.Title>
-                <Flex gap="sm" align="center">
-                  <Tooltip title={<StatusGroupTooltip groupKey={key} />} skipWrapper>
-                    <meta.Icon size="sm" aria-hidden />
-                  </Tooltip>
-                  <Text bold>{groupLabel}</Text>
-                  <Badge variant="muted">{runs.length}</Badge>
-                </Flex>
-              </Disclosure.Title>
-            </GroupHeader>
-            <Disclosure.Content>
-              <Stack gap="md" paddingTop="sm">
-                {runs.map(run => {
-                  const assignee = run.issue.assignedTo;
-                  const assigneeReady =
-                    assignee?.type !== 'team' ||
-                    resolvedTeamIds.has(assignee.id) ||
-                    teamsSettled;
-                  return (
-                    <OverviewCard
-                      key={run.seerRunId}
-                      run={run}
-                      orgSlug={orgSlug}
-                      sectionKey={key}
-                      statsPeriod={statsPeriod}
-                      scmSettled={isScmSettled(run.seerRunId)}
-                      vitalsPending={isVitalsPending(run.seerRunId)}
-                      requestScmWindow={requestScmWindow}
-                      scmWindows={scmWindowsByRunId.get(run.seerRunId)}
-                      projectConfig={projectConfigById.get(run.issue.project.id)}
-                      memberList={membersByProject.get(run.issue.project.slug) ?? []}
-                      assigneeReady={assigneeReady}
-                    />
-                  );
-                })}
-              </Stack>
-            </Disclosure.Content>
-          </StatusGroup>
-        );
-      })}
+      {sections.map(({key, runs}) => (
+        <OverviewSectionDisclosure
+          key={key}
+          sectionKey={key}
+          count={runs.length}
+          expanded={!collapsedGroups.includes(key)}
+          onToggle={next => onToggle(key, next)}
+        >
+          <Stack gap="md" paddingTop="sm">
+            {runs.map(run => {
+              const assignee = run.issue.assignedTo;
+              const assigneeReady =
+                assignee?.type !== 'team' ||
+                resolvedTeamIds.has(assignee.id) ||
+                teamsSettled;
+              return (
+                <OverviewCard
+                  key={run.seerRunId}
+                  run={run}
+                  orgSlug={orgSlug}
+                  sectionKey={key}
+                  statsPeriod={statsPeriod}
+                  scmSettled={isScmSettled(run.seerRunId)}
+                  vitalsPending={isVitalsPending(run.seerRunId)}
+                  requestScmWindow={requestScmWindow}
+                  scmWindows={scmWindowsByRunId.get(run.seerRunId)}
+                  projectConfig={projectConfigById.get(run.issue.project.id)}
+                  memberList={membersByProject.get(run.issue.project.slug) ?? []}
+                  assigneeReady={assigneeReady}
+                />
+              );
+            })}
+          </Stack>
+        </OverviewSectionDisclosure>
+      ))}
     </Stack>
   );
 }

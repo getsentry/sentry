@@ -181,6 +181,10 @@ describe('AutofixOverview', () => {
   }
 
   const originalIntersectionObserver = window.IntersectionObserver;
+  const originalInnerWidth = window.innerWidth;
+  function setViewportWidth(width: number) {
+    Object.defineProperty(window, 'innerWidth', {configurable: true, value: width});
+  }
   function makeCardsVisible({
     deferred = false,
     onlyMatching,
@@ -246,6 +250,7 @@ describe('AutofixOverview', () => {
 
   afterEach(() => {
     window.IntersectionObserver = originalIntersectionObserver;
+    setViewportWidth(originalInnerWidth);
   });
 
   function renderPage(query: Record<string, string> = {}) {
@@ -2383,5 +2388,138 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByText('Set up Seer to start fixing issues')
     ).not.toBeInTheDocument();
+  });
+
+  describe('table view', () => {
+    const openPullRequest: OverviewPullRequest = {
+      id: '42',
+      number: 42,
+      url: 'https://github.com/getsentry/sentry/pull/42',
+      status: 'open',
+      checksStatus: null,
+      reviewStatus: null,
+      repoName: 'getsentry/sentry',
+      files: [],
+    };
+    const reviewRun = {
+      ...rootCauseRun,
+      seerRunId: 'run-1',
+      pullRequests: [openPullRequest],
+    };
+    const codeChangesRun = {
+      ...rootCauseRun,
+      groupId: '2',
+      seerRunId: 'run-cc',
+      shortId: 'PROJ-9',
+      title: 'Null deref in worker',
+      proposedFix: {oneLineSummary: 'Guard the null case.'},
+      codeChanges: [
+        {
+          repoName: 'getsentry/sentry',
+          patch: {
+            path: 'src/worker.py',
+            source_file: 'src/worker.py',
+            target_file: 'src/worker.py',
+            type: DiffFileType.MODIFIED,
+            added: 8,
+            removed: 14,
+            hunks: [],
+          },
+        },
+      ],
+    };
+
+    it('toggles to a table with titles, actions and section badges', async () => {
+      makeCardsVisible();
+      mockOverview({
+        base: {
+          has_pull_request: [reviewRun],
+          autofix_code_changes: [codeChangesRun],
+        },
+        scmInfo: {
+          'run-1': {
+            pullRequests: [
+              {...openPullRequest, checksStatus: 'success', reviewStatus: 'approved'},
+            ],
+          },
+        },
+      });
+
+      renderPage();
+
+      // Cards paint first; wait for the PR enrichment to settle.
+      expect(await screen.findByText('Checks Passing')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Table view'}));
+
+      expect(screen.getAllByRole('table').length).toBeGreaterThan(0);
+      expect(screen.getByText('TypeError in checkout cart')).toBeInTheDocument();
+      expect(screen.getByText('Null deref in worker')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Review PR #42/})).toBeInTheDocument();
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+      expect(screen.getByText('Checks Passing')).toBeInTheDocument();
+      // The Create-PR section badge is sourced from the status poll, no fetch.
+      expect(screen.getByText('1 file')).toBeInTheDocument();
+      expect(screen.getByText('+8')).toBeInTheDocument();
+      expect(screen.getByText('−14')).toBeInTheDocument();
+    });
+
+    it('persists the table preference across mounts', async () => {
+      makeCardsVisible();
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+      const view = renderPage();
+      await userEvent.click(await screen.findByRole('radio', {name: 'Table view'}));
+      expect(screen.getAllByRole('table').length).toBeGreaterThan(0);
+
+      view.unmount();
+      renderPage();
+
+      // A fresh mount reads the stored preference and opens straight into the table.
+      expect(await screen.findByRole('table')).toBeInTheDocument();
+      expect(screen.getByRole('radio', {name: 'Table view'})).toBeChecked();
+    });
+
+    it('does not refetch overview or scm data when toggling views', async () => {
+      makeCardsVisible();
+      const {statusPollRequest, scmInfoRequest} = mockOverview({
+        base: {has_pull_request: [reviewRun]},
+        scmInfo: {
+          'run-1': {
+            pullRequests: [
+              {...openPullRequest, checksStatus: 'success', reviewStatus: 'approved'},
+            ],
+          },
+        },
+      });
+
+      renderPage();
+      expect(await screen.findByText('Checks Passing')).toBeInTheDocument();
+
+      const statusCallsBefore = statusPollRequest.mock.calls.length;
+      const scmCallsBefore = scmInfoRequest.mock.calls.length;
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Table view'}));
+      expect(screen.getAllByRole('table').length).toBeGreaterThan(0);
+      await userEvent.click(screen.getByRole('radio', {name: 'Card view'}));
+
+      expect(statusPollRequest.mock.calls).toHaveLength(statusCallsBefore);
+      expect(scmInfoRequest.mock.calls).toHaveLength(scmCallsBefore);
+    });
+
+    it('hides the toggle and forces cards below the sm breakpoint', async () => {
+      setViewportWidth(500);
+      localStorage.setItem('seer-autofix-overview:display-mode', JSON.stringify('table'));
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+      renderPage();
+
+      expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+      // Toggle is desktop-only, and the stored table preference is overridden.
+      expect(
+        screen.queryByRole('radiogroup', {name: 'Display mode'})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    });
   });
 });
