@@ -14,7 +14,7 @@ from sentry.sentry_apps.api.utils.webhook_requests import BufferedRequest
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
+from sentry.utils.sentry_apps.webhooks import NO_RESPONSE_STATUS_CODES
 
 
 class _BufferedRequestAttrs(TypedDict):
@@ -92,7 +92,7 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
             "durationMs": obj.data.duration_ms,
         }
 
-        if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
+        if response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES:
             # add error data to display in Sentry app dashboard
             data.update(
                 {

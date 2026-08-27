@@ -6,7 +6,7 @@ import orjson
 import pytest
 from django.conf import settings
 from requests import Response
-from requests.exceptions import Timeout
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry.notifications.platform.service import NotificationService
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -25,7 +25,12 @@ from sentry.testutils.silo import cell_silo_test
 from sentry.utils import redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
-from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
+from sentry.utils.sentry_apps.webhooks import (
+    CONNECTION_ERROR_STATUS_CODE,
+    TIMEOUT_STATUS_CODE,
+    WebhookTimeoutError,
+    send_and_save_webhook_request,
+)
 
 
 def _raise_status_false() -> bool:
@@ -532,8 +537,30 @@ class WebhookRequestIdAndDurationTest(TestCase):
         requests = SentryAppWebhookRequestsBuffer(self.sentry_app).get_requests(errors_only=True)
         assert len(requests) == 1
         row = requests[0]
+        assert row["response_code"] == TIMEOUT_STATUS_CODE
         # CIRCUIT_BREAKER_OPTIONS sets the webhook timeout to 1.0s -> 1000ms.
         assert row["duration_ms"] == 1000
+        assert row["request_id"] == event.sentry_headers["Request-ID"]
+        assert row["subject_id"] == "123"
+        assert row["subject_type"] == "group"
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_connection_error_row_stores_no_duration(self, MockBreaker, mock_safe_urlopen):
+        MockBreaker.return_value.should_allow_request.return_value = True
+        mock_safe_urlopen.side_effect = ConnectionError()
+
+        event = self._issue_event()
+        with pytest.raises(ConnectionError):
+            send_and_save_webhook_request(self.sentry_app, event)
+
+        requests = SentryAppWebhookRequestsBuffer(self.sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        row = requests[0]
+        # Its own code, distinct from a timeout, and no meaningful response time.
+        assert row["response_code"] == CONNECTION_ERROR_STATUS_CODE
+        assert row.get("duration_ms") is None
         assert row["request_id"] == event.sentry_headers["Request-ID"]
         assert row["subject_id"] == "123"
         assert row["subject_type"] == "group"

@@ -168,7 +168,7 @@ class SentryAppWebhookRequestsBuffer:
         subject_type: str | None = None,
         duration_ms: int | None = None,
     ) -> None:
-        from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
+        from sentry.utils.sentry_apps.webhooks import NO_RESPONSE_STATUS_CODES
 
         if event not in EXTENDED_VALID_EVENTS:
             logger.warning("Event %s is not a valid event that can be stored.", event)
@@ -191,7 +191,7 @@ class SentryAppWebhookRequestsBuffer:
         if duration_ms is not None:
             request_data["duration_ms"] = duration_ms
         MAX_SIZE = 1024
-        if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
+        if response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES:
             if headers:
                 request_data["request_headers"] = headers
 
@@ -217,7 +217,7 @@ class SentryAppWebhookRequestsBuffer:
         self._add_to_buffer_pipeline(request_key, request_data, pipe)
 
         # If it's an error add it to the error buffer
-        if 400 <= response_code <= 599 or response_code == TIMEOUT_STATUS_CODE:
+        if 400 <= response_code <= 599 or response_code in NO_RESPONSE_STATUS_CODES:
             error_key = self._get_redis_key(event, error=True)
             self._add_to_buffer_pipeline(error_key, request_data, pipe)
 

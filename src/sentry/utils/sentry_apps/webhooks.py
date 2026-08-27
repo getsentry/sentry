@@ -4,6 +4,7 @@ import contextlib
 import logging
 import re
 from collections.abc import Callable, Generator, Mapping
+from datetime import timedelta
 from types import FrameType
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 from urllib.parse import urlparse
@@ -57,6 +58,8 @@ if TYPE_CHECKING:
 
 
 TIMEOUT_STATUS_CODE = 0
+CONNECTION_ERROR_STATUS_CODE = -1
+NO_RESPONSE_STATUS_CODES = frozenset({TIMEOUT_STATUS_CODE, CONNECTION_ERROR_STATUS_CODE})
 
 CLAUDE_ROUTINE_URL_RE = re.compile(
     r"https://api\.anthropic\.com/v1/claude_code/routines/[^/?#]+/fire/?"
@@ -358,18 +361,7 @@ def send_and_save_webhook_request(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}"
             )
             raise
-        except (Timeout, ConnectionError) as e:
-            error_type = e.__class__.__name__.lower()
-            lifecycle.add_extras(
-                {
-                    "reason": "send_and_save_webhook_request.timeout",
-                    "error_type": error_type,
-                    "organization_id": org_id,
-                    "integration_slug": sentry_app.slug,
-                    "url": url,
-                },
-            )
-            track_response_code(error_type, slug, event)
+        except Timeout as e:
             buffer.add_request(
                 response_code=TIMEOUT_STATUS_CODE,
                 org_id=org_id,
@@ -383,6 +375,20 @@ def send_and_save_webhook_request(
             )
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
+            raise
+        except ConnectionError as e:
+            buffer.add_request(
+                response_code=CONNECTION_ERROR_STATUS_CODE,
+                org_id=org_id,
+                event=event,
+                url=url,
+                headers=app_platform_event.loggable_headers,
+                request_id=request_id,
+                subject_id=subject_id,
+                subject_type=subject_type,
+                duration_ms=None,
+            )
+            lifecycle.record_halt(e)
             raise
         except ChunkedEncodingError:
             lifecycle.record_halt(
@@ -407,6 +413,10 @@ def send_and_save_webhook_request(
             if (p_id := response.headers.get("Sentry-Hook-Project")) and p_id.isdigit()
             else None
         )
+        elapsed = getattr(response, "elapsed", None)
+        duration_ms = (
+            int(elapsed.total_seconds() * 1000) if isinstance(elapsed, timedelta) else None
+        )
         buffer.add_request(
             response_code=response.status_code,
             org_id=org_id,
@@ -419,7 +429,7 @@ def send_and_save_webhook_request(
             request_id=request_id,
             subject_id=subject_id,
             subject_type=subject_type,
-            duration_ms=int(response.elapsed.total_seconds() * 1000),
+            duration_ms=duration_ms,
         )
 
         debug_logging_enabled = (
