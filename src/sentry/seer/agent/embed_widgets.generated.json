@@ -777,7 +777,7 @@
   },
   {
     "name": "errorsQuery",
-    "description": "Link to an errors (Discover) query results page. Use this for tabular error exploration across events. `query` uses event search syntax and `fields` are the table columns. Provide `yAxes` to chart aggregates alongside the table.",
+    "description": "Preview individual error events from an errors (Discover) query. Use this for non-aggregate error exploration. `query` uses event search syntax and `fields` are non-aggregate table columns. Inline renders a link; block renders the first five matching rows. Provide `yAxes` to chart aggregates on the linked results page.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -847,12 +847,96 @@
     },
     "examples": [
       {
-        "label": "Errors by URL",
+        "label": "Recent errors",
         "data": {
           "query": "event.type:error",
-          "fields": ["title", "count()", "url"],
+          "fields": ["title", "project", "user.display", "timestamp"],
           "statsPeriod": "24h",
-          "title": "Checkout errors"
+          "title": "Recent errors"
+        }
+      }
+    ]
+  },
+  {
+    "name": "errorsQueryAggregate",
+    "description": "Preview grouped results from an aggregate errors (Discover) query. Use this when comparing error groups or aggregate values. `query` uses event search syntax. `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders the first five grouped rows. Provide `yAxes` to chart aggregates on the linked results page.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "yAxes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sort": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Errors by title",
+        "data": {
+          "query": "",
+          "fields": ["title", "project", "count_unique(user)"],
+          "sort": "-count_unique_user",
+          "statsPeriod": "1h",
+          "yAxes": ["count()"],
+          "title": "Errors by title"
         }
       }
     ]

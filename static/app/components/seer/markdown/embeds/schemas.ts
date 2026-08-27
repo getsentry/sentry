@@ -517,10 +517,11 @@ export const SEER_EMBED_SCHEMAS = {
   },
   errorsQuery: {
     description:
-      'Link to an errors (Discover) query results page. ' +
-      'Use this for tabular error exploration across events. ' +
-      '`query` uses event search syntax and `fields` are the table columns. ' +
-      'Provide `yAxes` to chart aggregates alongside the table.',
+      'Preview individual error events from an errors (Discover) query. ' +
+      'Use this for non-aggregate error exploration. ' +
+      '`query` uses event search syntax and `fields` are non-aggregate table columns. ' +
+      'Inline renders a link; block renders the first five matching rows. ' +
+      'Provide `yAxes` to chart aggregates on the linked results page.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -532,12 +533,43 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Errors by URL',
+        label: 'Recent errors',
         data: {
           query: 'event.type:error',
-          fields: ['title', 'count()', 'url'],
+          fields: ['title', 'project', 'user.display', 'timestamp'],
           statsPeriod: '24h',
-          title: 'Checkout errors',
+          title: 'Recent errors',
+        },
+      },
+    ],
+  },
+  errorsQueryAggregate: {
+    description:
+      'Preview grouped results from an aggregate errors (Discover) query. ' +
+      'Use this when comparing error groups or aggregate values. ' +
+      '`query` uses event search syntax. `fields` must include the group-by columns ' +
+      'and at least one aggregate function, such as "count()" or "count_unique(user)". ' +
+      'Inline renders a link; block renders the first five grouped rows. ' +
+      'Provide `yAxes` to chart aggregates on the linked results page.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      ...pageFilterFields,
+      query: z.string().default(''),
+      fields: z.array(z.string()).optional(),
+      yAxes: z.array(z.string()).optional(),
+      sort: z.string().optional(),
+      title: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Errors by title',
+        data: {
+          query: '',
+          fields: ['title', 'project', 'count_unique(user)'],
+          sort: '-count_unique_user',
+          statsPeriod: '1h',
+          yAxes: ['count()'],
+          title: 'Errors by title',
         },
       },
     ],
