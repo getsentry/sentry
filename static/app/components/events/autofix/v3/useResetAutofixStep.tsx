@@ -2,7 +2,6 @@ import {useMemo, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
-import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import {
   type AutofixExplorerStep,
   type AutofixSection,
@@ -30,7 +29,7 @@ export function useResetAutofixStep({
   const {runState, startStep} = autofix;
   const runId = getAutofixRunId(runState);
   const notProcessing = autofix.runState?.status !== 'processing';
-  const noPRs = !hasCreatedPullRequests(autofix.runState?.repo_pr_states);
+  const noPRs = Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0;
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
   const defaultCanReset = notProcessing && noPRs && noCodingAgents;

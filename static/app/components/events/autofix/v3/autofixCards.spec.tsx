@@ -748,7 +748,7 @@ describe('ArtifactCard', () => {
       });
     });
 
-    it('opens the code-changes reset prompt when PR creation failed', async () => {
+    it('does not offer a code-changes reset when PR creation failed', () => {
       const startStepMock = jest.fn();
       const autofixWithFailedPR: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofixWithRunState,
@@ -782,11 +782,7 @@ describe('ArtifactCard', () => {
         {organization: manualPrIterationOrganization}
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
-
-      expect(
-        screen.getByText('What additional context should Seer use?')
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add context & retry'})).toBeDisabled();
       expect(
         screen.queryByText('Anything else you want to see on your PR?')
       ).not.toBeInTheDocument();

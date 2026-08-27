@@ -107,7 +107,7 @@ describe('useResetAutofixStep', () => {
       expect(result.current.canReset).toBe(false);
     });
 
-    it('returns true when PR creation failed without opening a PR', () => {
+    it('returns false when a PR create failed without opening a PR', () => {
       const autofix = makeAutofix({
         runState: {
           run_id: 1,
@@ -135,7 +135,7 @@ describe('useResetAutofixStep', () => {
         useResetAutofixStep({autofix, section: makeSection(), step: 'code_changes'})
       );
 
-      expect(result.current.canReset).toBe(true);
+      expect(result.current.canReset).toBe(false);
     });
 
     it('uses the canReset override when provided', () => {
