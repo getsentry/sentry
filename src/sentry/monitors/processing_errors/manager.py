@@ -180,9 +180,8 @@ def get_errors_for_projects(projects: list[Project]) -> list[CheckinProcessingEr
     return _get_for_entities([build_project_identifier(project.id) for project in projects])
 
 
-# Fraction of each error type to store. These are dropped by a guard before any work is done and
-# arrive far faster than they are worth storing, and only `MAX_ERRORS_PER_SET` are retained anyway,
-# so a sample carries the same signal. Kill-switched organizations are abusive, nothing is kept.
+# Fraction of each error type to store. Only `MAX_ERRORS_PER_SET` are retained, so a sample
+# carries the same signal as the full stream at a fraction of the cost.
 THROTTLED_SAMPLE_RATES = {
     ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED: 0.01,
     ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED: 0.0,
@@ -198,14 +197,13 @@ def _store_sample_rate(error: ProcessingErrorsException) -> float:
             THROTTLED_SAMPLE_RATES.get(process_error["type"], 1.0)
             for process_error in error.processing_errors
         ),
-        # Nothing to store. Not reachable from the consumer, which always raises with at least
-        # one error, but `max()` has no answer for an empty sequence.
         default=0.0,
     )
 
 
 def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException):
-    if random.random() >= _store_sample_rate(error):
+    sample_rate = _store_sample_rate(error)
+    if not sample_rate or random.random() >= sample_rate:
         metrics.incr(
             "monitors.checkin.handle_processing_error",
             tags={"source": "consumer", "stored": "false"},
