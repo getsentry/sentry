@@ -9,6 +9,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -237,15 +238,30 @@ function SpanMetadata({
   attributes: SpanAttributes;
   node: AITraceSpanNode;
 }) {
-  const rows = getHighlightedSpanAttributes({
-    op: node.op,
-    spanId: node.id,
-    attributes: attributes ?? node.attributes,
-  });
-
-  if (rows.length === 0) {
-    return null;
-  }
+  const rows: Array<{name: string; value: React.ReactNode}> = [
+    {
+      name: t('Span ID'),
+      value: (
+        <Flex align="center" gap="xs" minWidth="0">
+          <Text size="md" monospace ellipsis>
+            {node.id}
+          </Text>
+          <CopyToClipboardButton
+            variant="transparent"
+            size="zero"
+            text={node.id}
+            aria-label={t('Copy span ID to clipboard')}
+            tooltipProps={{disabled: true}}
+          />
+        </Flex>
+      ),
+    },
+    ...getHighlightedSpanAttributes({
+      op: node.op,
+      spanId: node.id,
+      attributes: attributes ?? node.attributes,
+    }),
+  ];
 
   return (
     <Grid columns="max-content minmax(0, 1fr)" gap="lg" align="center">

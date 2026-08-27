@@ -115,6 +115,18 @@ describe('ConversationViewContent', () => {
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
   });
 
+  it('shows the span ID of the open span', async () => {
+    renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
+
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+
+    expect(screen.getByText('Span ID')).toBeInTheDocument();
+    expect(screen.getByText('span-a')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Copy span ID to clipboard'})
+    ).toBeInTheDocument();
+  });
+
   it('writes a sticky selection when the user picks a span', async () => {
     const onSelectSpan = jest.fn();
     renderView({activeTab: 'transcript', onSelectSpan});
