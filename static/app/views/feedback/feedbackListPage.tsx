@@ -3,7 +3,7 @@ import {Fragment, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -159,6 +159,7 @@ export default function FeedbackListPage() {
 
   useRedirectToFeedbackFromEvent();
 
+  const isCompact = useResponsivePropValue({zero: true, '3xl': false});
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
@@ -166,10 +167,10 @@ export default function FeedbackListPage() {
   // the list or appears beside it based on the available container width.
   useLayoutEffect(() => {
     setShowItemPreview(Boolean(feedbackId));
-    if (feedbackId) {
+    if (feedbackId && isCompact) {
       window.scrollTo(0, 0);
     }
-  }, [feedbackId]);
+  }, [feedbackId, isCompact]);
 
   useEffect(() => {
     setSelectedItemIndex(null);
