@@ -254,6 +254,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_agent_response(cls, data: SeerAgentResponse) -> SlackRenderable:
         from sentry import features
         from sentry.models.organization import Organization
+        from sentry.seer.endpoints.utils import get_seer_run
 
         blocks: list[Block] = [MarkdownBlock(text=data.summary)]
         try:
@@ -261,14 +262,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         except Organization.DoesNotExist:
             organization = None
         if organization and features.has("organizations:seer-run-id-in-slack", organization):
-            run_url = organization.absolute_url(
-                f"/organizations/{organization.slug}/explore/agents/conversations/{data.run_id}/"
-            )
-            blocks.append(
-                ContextBlock(
-                    elements=[MarkdownTextObject(text=f"Run ID: <{run_url}|{data.run_id}>")]
+            # Slack carries Seer's numeric DbRunState id; Explore Agents conversations
+            # are keyed by gen_ai.conversation.id, which is SeerRun.uuid / external_idempotency_key.
+            seer_run = get_seer_run(data.run_id, organization)
+            if seer_run is not None:
+                conversation_id = str(seer_run.uuid)
+                run_url = organization.absolute_url(
+                    f"/organizations/{organization.slug}/explore/agents/conversations/{conversation_id}/"
                 )
-            )
+                run_id_element: MarkdownTextObject | PlainTextObject = MarkdownTextObject(
+                    text=f"Run ID: <{run_url}|{data.run_id}>"
+                )
+            else:
+                run_id_element = PlainTextObject(text=f"Run ID: {data.run_id}")
+            blocks.append(ContextBlock(elements=[run_id_element]))
 
         if data.missing_scope_settings_url:
             blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
