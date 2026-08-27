@@ -95,7 +95,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const [orgRole, setOrgRole] = useState(member.orgRole);
   const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
-  const isNarrow = useResponsivePropValue({zero: true, lg: false});
+  const isLarge = useResponsivePropValue({zero: false, lg: true});
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -309,9 +309,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
           <PanelHeader>{t('Authentication')}</PanelHeader>
           <PanelBody>
             <FieldGroup
-              alignRight={!isNarrow}
+              alignRight={isLarge}
               flexibleControlStateSize
-              inline={!isNarrow}
+              inline={isLarge}
               label={t('Reset two-factor authentication')}
               help={t(
                 'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
