@@ -232,6 +232,39 @@ class GitlabRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
+    def test_get_integration_from_request_failure_tag_is_bounded(self) -> None:
+        """The failure counter must not tag per-request exception text.
+
+        Tag values open a time series each, so the message — which carries the
+        external id and instance URL — would make this counter unbounded.
+        """
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+
+        with mock.patch.object(
+            parser,
+            "_resolve_external_id",
+            side_effect=ValueError(f"no integration for {EXTERNAL_ID} at example.gitlab.com"),
+        ):
+            with mock.patch(
+                "sentry.middleware.integrations.parsers.gitlab.metrics"
+            ) as mock_metrics:
+                assert parser.get_integration_from_request() is None
+
+        mock_metrics.incr.assert_called_once_with(
+            GitlabRequestParser._METRIC_CONTROL_PATH_FAILURE_KEY,
+            tags={"integration": "gitlab", "error": "ValueError"},
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
     @responses.activate
     def test_webhook_outbox_creation(self) -> None:
         request = self.factory.post(

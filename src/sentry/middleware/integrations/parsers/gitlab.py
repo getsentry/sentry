@@ -52,11 +52,14 @@ class GitlabRequestParser(BaseRequestParser):
                 ).first()
                 return self._integration
         except Exception as e:
+            # The class name, not the message: a message carries the external id,
+            # the instance URL and other per-request detail, so every distinct one
+            # would open its own time series.
             metrics.incr(
                 self._METRIC_CONTROL_PATH_FAILURE_KEY,
-                tags={"integration": self.provider, "error": str(e)},
+                tags={"integration": self.provider, "error": type(e).__name__},
             )
-            logger.warning("Failed to get integration from request")
+            logger.exception("gitlab.get_integration_from_request.failure")
 
         return None
 
