@@ -98,111 +98,154 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
   invalid: [
     {
       name: 'function declaration with numeric default',
-      code: 'function foo(value = 0) {} foo(0);',
+      code: 'function foo(defaultPage = 20) {} foo(20);',
+      output: 'function foo(defaultPage = 20) {} foo();',
       errors: [
         {
           messageId: 'redundantDefaultValue',
-          data: {kind: 'argument', name: 'value'},
+          data: {kind: 'argument', name: 'defaultPage', value: '20'},
         },
       ],
     },
     {
       name: 'call before function declaration',
       code: 'foo(0); function foo(value = 0) {}',
+      output: 'foo(); function foo(value = 0) {}',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
       name: 'const arrow function with string default',
       code: `const foo = (value = 'all') => {}; foo("all");`,
+      output: `const foo = (value = 'all') => {}; foo();`,
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
       name: 'const function expression with boolean default',
       code: 'const foo = function(value = false) {}; foo(false);',
+      output: 'const foo = function(value = false) {}; foo();',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
       name: 'all trailing arguments use their defaults',
       code: `function foo(enabled = false, mode = 'all') {} foo(false, 'all');`,
+      output: `function foo(enabled = false, mode = 'all') {} foo();`,
       errors: [
         {
           messageId: 'redundantDefaultValue',
-          data: {kind: 'argument', name: 'enabled'},
+          data: {kind: 'argument', name: 'enabled', value: 'false'},
         },
         {
           messageId: 'redundantDefaultValue',
-          data: {kind: 'argument', name: 'mode'},
+          data: {kind: 'argument', name: 'mode', value: '"all"'},
         },
+      ],
+    },
+    {
+      name: 'does not remove comments between trailing arguments',
+      code: 'function foo(first = false, second = true) {} foo(false, /* keep */ true);',
+      output: null,
+      errors: [
+        {messageId: 'redundantDefaultValue'},
+        {messageId: 'redundantDefaultValue'},
       ],
     },
     {
       name: 'negative numeric default',
       code: 'function foo(value = -1) {} foo(-1);',
+      output: 'function foo(value = -1) {} foo();',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
       name: 'template literal equals string default',
       code: 'function foo(value = `all`) {} foo("all");',
+      output: 'function foo(value = `all`) {} foo();',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
       name: 'object destructuring in function call',
       code: 'function foo({value = 5}) {} foo({value: 5});',
+      output: 'function foo({value = 5}) {} foo({});',
       errors: [
         {
           messageId: 'redundantDefaultValue',
-          data: {kind: 'property', name: 'value'},
+          data: {kind: 'property', name: 'value', value: '5'},
         },
       ],
     },
     {
       name: 'renamed object destructuring property',
       code: 'function foo({value: localValue = 5}) {} foo({value: 5});',
+      output: 'function foo({value: localValue = 5}) {} foo({});',
       errors: [
         {
           messageId: 'redundantDefaultValue',
-          data: {kind: 'property', name: 'value'},
+          data: {kind: 'property', name: 'value', value: '5'},
         },
       ],
     },
     {
       name: 'object spread before explicit property',
       code: 'function foo({value = 5}) {} foo({...other, value: 5});',
+      output: 'function foo({value = 5}) {} foo({...other});',
       errors: [{messageId: 'redundantDefaultValue'}],
+    },
+    {
+      name: 'multiple destructured properties use their defaults',
+      code: 'function foo({first = 1, second = 2}) {} foo({first: 1, second: 2});',
+      output: 'function foo({first = 1, second = 2}) {} foo({});',
+      errors: [
+        {messageId: 'redundantDefaultValue'},
+        {messageId: 'redundantDefaultValue'},
+      ],
     },
     {
       name: 'function component with numeric JSX prop',
       code: 'function Foo({value = 5}) { return null; } <Foo value={5} />;',
+      output: 'function Foo({value = 5}) { return null; } <Foo />;',
       errors: [
         {
           messageId: 'redundantDefaultValue',
-          data: {kind: 'prop', name: 'value'},
+          data: {kind: 'prop', name: 'value', value: '5'},
         },
       ],
     },
     {
       name: 'arrow component with string JSX prop',
       code: `const Foo = ({label = 'hello'}) => null; <Foo label="hello" />;`,
+      output: `const Foo = ({label = 'hello'}) => null; <Foo />;`,
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
       name: 'boolean JSX shorthand',
       code: 'function Foo({enabled = true}) { return null; } <Foo enabled />;',
+      output: 'function Foo({enabled = true}) { return null; } <Foo />;',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
       name: 'JSX spread before explicit prop',
       code: 'function Foo({value = 5}) { return null; } <Foo {...props} value={5} />;',
+      output: 'function Foo({value = 5}) { return null; } <Foo {...props} />;',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {
       name: 'destructured props parameter with its own default',
       code: 'function Foo({value = 5} = {}) { return null; } <Foo value={5} />;',
+      output: 'function Foo({value = 5} = {}) { return null; } <Foo />;',
       errors: [{messageId: 'redundantDefaultValue'}],
+    },
+    {
+      name: 'multiple JSX props use their defaults',
+      code: 'function Foo({first = 1, second = 2}) { return null; } <Foo first={1} second={2} />;',
+      output: 'function Foo({first = 1, second = 2}) { return null; } <Foo />;',
+      errors: [
+        {messageId: 'redundantDefaultValue'},
+        {messageId: 'redundantDefaultValue'},
+      ],
     },
     {
       name: 'TypeScript const assertion',
       code: 'const foo = (value = 5 as const) => {}; foo(5 as const);',
+      output: 'const foo = (value = 5 as const) => {}; foo();',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
   ],

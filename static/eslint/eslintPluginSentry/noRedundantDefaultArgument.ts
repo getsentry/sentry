@@ -1,5 +1,5 @@
 import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
-import type {Scope} from '@typescript-eslint/utils/ts-eslint';
+import type {RuleFix, RuleFixer, Scope} from '@typescript-eslint/utils/ts-eslint';
 
 const NOT_HARDCODED = Symbol('not hardcoded');
 
@@ -140,6 +140,19 @@ function hasDefaults(defaults: FunctionDefaults): boolean {
   return defaults.positional.size > 0 || defaults.objectProperties.size > 0;
 }
 
+function formatHardcodedValue(value: HardcodedValue): string {
+  if (typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'bigint') {
+    return `${value}n`;
+  }
+  if (typeof value === 'number' && Object.is(value, -0)) {
+    return '-0';
+  }
+  return String(value);
+}
+
 export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'suggestion',
@@ -147,10 +160,11 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       description:
         'Disallow hardcoded function arguments and JSX props that equal their local default value.',
     },
+    fixable: 'code',
     schema: [],
     messages: {
       redundantDefaultValue:
-        'Do not pass the default value for "{{name}}". Omit this {{kind}}.',
+        'Do not pass the default value ({{value}}) for "{{name}}". Omit this {{kind}}.',
     },
   },
   create(context) {
@@ -187,12 +201,112 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       }
     }
 
-    function report(node: TSESTree.Node, defaultValue: DefaultValue, kind: string) {
+    function report(
+      node: TSESTree.Node,
+      defaultValue: DefaultValue,
+      kind: string,
+      fix?: (fixer: RuleFixer) => RuleFix | RuleFix[] | null
+    ) {
       context.report({
         node,
         messageId: 'redundantDefaultValue',
-        data: {kind, name: defaultValue.name},
+        data: {
+          kind,
+          name: defaultValue.name,
+          value: formatHardcodedValue(defaultValue.value),
+        },
+        ...(fix ? {fix} : {}),
       });
+    }
+
+    function rangeContainsComment(range: TSESTree.Range) {
+      return context.sourceCode
+        .getAllComments()
+        .some(comment => comment.range[0] >= range[0] && comment.range[1] <= range[1]);
+    }
+
+    function removeTrailingArguments(
+      fixer: RuleFixer,
+      node: TSESTree.CallExpression,
+      firstIndex: number
+    ) {
+      const firstArgument = node.arguments[firstIndex]!;
+      const lastArgument = node.arguments.at(-1)!;
+      const tokenAfter = context.sourceCode.getTokenAfter(lastArgument);
+      const range: TSESTree.Range = [
+        firstIndex === 0
+          ? firstArgument.range[0]
+          : node.arguments[firstIndex - 1]!.range[1],
+        tokenAfter?.value === ',' ? tokenAfter.range[1] : lastArgument.range[1],
+      ];
+      return rangeContainsComment(range) ? null : fixer.removeRange(range);
+    }
+
+    function getContiguousRuns(indices: number[]) {
+      const runs: Array<{end: number; start: number}> = [];
+      for (const index of indices) {
+        const previous = runs.at(-1);
+        if (previous?.end === index - 1) {
+          previous.end = index;
+        } else {
+          runs.push({end: index, start: index});
+        }
+      }
+      return runs;
+    }
+
+    function removeObjectProperties(
+      fixer: RuleFixer,
+      node: TSESTree.ObjectExpression,
+      indices: number[]
+    ) {
+      const ranges = getContiguousRuns(indices).map(({end, start}) => {
+        const nextProperty = node.properties[end + 1];
+        if (nextProperty) {
+          return [
+            node.properties[start]!.range[0],
+            nextProperty.range[0],
+          ] satisfies TSESTree.Range;
+        }
+
+        const lastProperty = node.properties[end]!;
+        const tokenAfter = context.sourceCode.getTokenAfter(lastProperty);
+        return [
+          start === 0
+            ? node.properties[start]!.range[0]
+            : node.properties[start - 1]!.range[1],
+          tokenAfter?.value === ',' ? tokenAfter.range[1] : lastProperty.range[1],
+        ] satisfies TSESTree.Range;
+      });
+
+      if (ranges.some(rangeContainsComment)) {
+        return null;
+      }
+      return ranges.map(range => fixer.removeRange(range));
+    }
+
+    function removeJSXAttributes(
+      fixer: RuleFixer,
+      node: TSESTree.JSXOpeningElement,
+      indices: number[]
+    ) {
+      const ranges = getContiguousRuns(indices).map(({end, start}) => {
+        const nextAttribute = node.attributes[end + 1];
+        return nextAttribute
+          ? ([
+              node.attributes[start]!.range[0],
+              nextAttribute.range[0],
+            ] satisfies TSESTree.Range)
+          : ([
+              start === 0 ? node.name.range[1] : node.attributes[start - 1]!.range[1],
+              node.attributes[end]!.range[1],
+            ] satisfies TSESTree.Range);
+      });
+
+      if (ranges.some(rangeContainsComment)) {
+        return null;
+      }
+      return ranges.map(range => fixer.removeRange(range));
     }
 
     function isStable(variable: Scope.Variable) {
@@ -206,6 +320,11 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       defaults: Map<string, DefaultValue>
     ) {
       const seen = new Set<string>();
+      const redundantProperties: Array<{
+        defaultValue: DefaultValue;
+        index: number;
+        property: TSESTree.Property;
+      }> = [];
 
       for (let index = node.properties.length - 1; index >= 0; index--) {
         const property = node.properties[index]!;
@@ -229,9 +348,20 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           value !== NOT_HARDCODED &&
           Object.is(value, defaultValue.value)
         ) {
-          report(property, defaultValue, 'property');
+          redundantProperties.push({defaultValue, index, property});
         }
       }
+
+      redundantProperties.reverse();
+      const indices = redundantProperties.map(({index}) => index);
+      redundantProperties.forEach(({defaultValue, property}, index) => {
+        report(
+          property,
+          defaultValue,
+          'property',
+          index === 0 ? fixer => removeObjectProperties(fixer, node, indices) : undefined
+        );
+      });
     }
 
     function checkCall(node: TSESTree.CallExpression, defaults: FunctionDefaults) {
@@ -252,7 +382,14 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       }
 
       for (let index = firstRedundantPosition; index < node.arguments.length; index++) {
-        report(node.arguments[index]!, defaults.positional.get(index)!, 'argument');
+        report(
+          node.arguments[index]!,
+          defaults.positional.get(index)!,
+          'argument',
+          index === firstRedundantPosition
+            ? fixer => removeTrailingArguments(fixer, node, firstRedundantPosition)
+            : undefined
+        );
       }
 
       node.arguments.forEach((argument, index) => {
@@ -270,6 +407,11 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       }
 
       const seen = new Set<string>();
+      const redundantAttributes: Array<{
+        attribute: TSESTree.JSXAttribute;
+        defaultValue: DefaultValue;
+        index: number;
+      }> = [];
       for (let index = node.attributes.length - 1; index >= 0; index--) {
         const attribute = node.attributes[index]!;
         if (attribute.type === AST_NODE_TYPES.JSXSpreadAttribute) {
@@ -298,9 +440,20 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         }
 
         if (value !== NOT_HARDCODED && Object.is(value, defaultValue.value)) {
-          report(attribute, defaultValue, 'prop');
+          redundantAttributes.push({attribute, defaultValue, index});
         }
       }
+
+      redundantAttributes.reverse();
+      const indices = redundantAttributes.map(({index}) => index);
+      redundantAttributes.forEach(({attribute, defaultValue}, index) => {
+        report(
+          attribute,
+          defaultValue,
+          'prop',
+          index === 0 ? fixer => removeJSXAttributes(fixer, node, indices) : undefined
+        );
+      });
     }
 
     return {
