@@ -15,7 +15,7 @@ import {
 import type {ButtonSize, DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
-export type {ButtonProps};
+export type {ButtonProps, ButtonSize};
 
 export function Button({
   disabled,

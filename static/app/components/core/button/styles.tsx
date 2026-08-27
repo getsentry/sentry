@@ -286,7 +286,7 @@ function getButtonTheme(variant: ButtonVariant, theme: Theme) {
   }
 }
 
-function getButtonSizeTheme(size: ButtonProps['size'], theme: Theme): StrictCSSObject {
+function getButtonSizeTheme(size: ButtonSize, theme: Theme): StrictCSSObject {
   switch (size) {
     case 'md':
       return {

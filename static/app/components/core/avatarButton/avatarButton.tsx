@@ -6,13 +6,16 @@ import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Button, type ButtonProps, type ButtonSize} from '@sentry/scraps/button';
+import {type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
+
+type AvatarButtonSize = Exclude<ButtonSize, 'zero'>;
 
 interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'variant'> {
   'aria-label': string;
   avatar: BaseAvatarProps;
-  size?: Exclude<ButtonProps['size'], 'zero'>;
+  size?: Responsive<AvatarButtonSize>;
 }
 
 export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButtonProps) {
@@ -41,7 +44,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
   });
 
   const contextSize = useSizeContext();
-  const size = explicitSize ?? contextSize ?? 'md';
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
 
   if (avatarDefinition.type === 'letter') {
     const avatarChonk = color(avatarDefinition.configuration.background)
@@ -71,7 +74,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
 }
 
 const AvatarContainer = styled('div')<{
-  size: NonNullable<ButtonProps['size']>;
+  size: AvatarButtonSize;
   chonk?: string;
   padded?: boolean;
 }>`
@@ -109,23 +112,26 @@ const StyledLetterAvatar = styled(LetterAvatar)`
 `;
 
 // Elevation per size, matching the base button's chonk depth.
-const AVATAR_BUTTON_ELEVATION: Record<string, string> = {
+const AVATAR_BUTTON_ELEVATION: Record<AvatarButtonSize, string> = {
   md: '2px',
   sm: '2px',
   xs: '1px',
 };
 
-const StyledAvatarButton = styled(Button)<{chonk: string | undefined}>`
+const StyledAvatarButton = styled(Button)<{
+  chonk: string | undefined;
+  size?: AvatarButtonSize;
+}>`
   padding: 0;
-  width: ${p => (p.size === 'zero' ? '24px' : p.theme.form[p.size ?? 'md'].height)};
-  min-width: ${p => (p.size === 'zero' ? '24px' : p.theme.form[p.size ?? 'md'].height)};
+  width: ${p => p.theme.form[p.size ?? 'md'].height};
+  min-width: ${p => p.theme.form[p.size ?? 'md'].height};
 
   ${p =>
     p.chonk &&
     css`
       &&::before {
         background: ${p.chonk};
-        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size ?? 'md'] ?? '2px'} 0 0px ${p.chonk};
+        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size ?? 'md']} 0 0px ${p.chonk};
       }
       &&::after {
         border-color: ${p.chonk};
