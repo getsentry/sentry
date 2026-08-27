@@ -25,12 +25,8 @@ const chartSeriesSchema = z.union([
   }),
 ]);
 
-/**
- * Opaque IDs that agents sometimes emit as bare JSON numbers. Accept both so
- * `11276` and `"11276"` validate; URL builders coerce to the shape they need.
- * Keep this as a plain union (no `.transform`) so `pnpm gen:embed-widgets` can
- * export JSON Schema for the agent prompt.
- */
+// Agents often emit bare numbers for IDs; keep as a plain union (no .transform)
+// so gen:embed-widgets can still export JSON Schema.
 const idString = z.union([z.string(), z.number()]);
 
 /**

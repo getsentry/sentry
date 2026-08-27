@@ -10,9 +10,9 @@ interface PageFilterParams {
 }
 
 /**
- * Seer may report project IDs as strings or numbers. URL builders take the
- * numeric `PageFilters` shape. An empty project list is meaningful rather than
- * absent: the builders encode it as the "My Projects" selection.
+ * Project IDs may arrive as strings or numbers. URL builders take the numeric
+ * `PageFilters` shape. An empty project list is meaningful rather than absent:
+ * the builders encode it as the "My Projects" selection.
  */
 export function toPageFilters({
   projects,
