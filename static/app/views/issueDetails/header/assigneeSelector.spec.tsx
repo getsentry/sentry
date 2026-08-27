@@ -183,7 +183,12 @@ describe('GroupHeaderAssigneeSelector', () => {
         group={assignedGroup}
         project={project}
         event={event}
-      />
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['issue-assignee-selector-ui'],
+        }),
+      }
     );
 
     await userEvent.hover(await screen.findByText(assignedUser.name));
@@ -232,7 +237,12 @@ describe('GroupHeaderAssigneeSelector', () => {
         group={assignedGroup}
         project={project}
         event={event}
-      />
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['issue-assignee-selector-ui'],
+        }),
+      }
     );
 
     await userEvent.hover(await screen.findByText(assignedUser.name));

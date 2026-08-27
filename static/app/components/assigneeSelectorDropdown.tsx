@@ -16,6 +16,10 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {
+  AssignedAssigneeTooltip,
+  type AssignmentDetails,
+} from 'sentry/components/assigneeBadge';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -65,7 +69,12 @@ export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
 
 interface AssigneeSelectorTriggerContext {
   loading: boolean;
-  renderAvatar: () => React.ReactNode;
+  renderAvatar: (options?: RenderAssigneeAvatarOptions) => React.ReactNode;
+}
+
+interface RenderAssigneeAvatarOptions {
+  assignmentDetails?: AssignmentDetails;
+  label?: React.ReactNode;
 }
 
 export type AssigneeSelectorTrigger = (
@@ -124,8 +133,12 @@ interface AssigneeSelectorDropdownProps {
 function AssigneeAvatar({
   assignedTo,
   suggestedActors = [],
+  assignmentDetails,
+  label,
 }: {
   assignedTo?: Actor | null;
+  assignmentDetails?: AssignmentDetails;
+  label?: React.ReactNode;
   suggestedActors?: SuggestedAssignee[];
 }) {
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
@@ -143,38 +156,53 @@ function AssigneeAvatar({
 
   if (assignedTo) {
     return (
-      <ActorAvatar
-        actor={assignedTo}
-        className="avatar"
-        size={24}
-        tooltip={
-          <Stack gap="xs" align="start">
-            <Text as="div" align="left" wrap="nowrap">
-              {tct('Assigned to [name]', {
-                name:
-                  assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
-              })}
-            </Text>
-            {assignedToSuggestion &&
-              suggestedReasons[assignedToSuggestion.suggestedReason] && (
-                <Text as="div" align="left" variant="muted">
-                  {suggestedReasons[assignedToSuggestion.suggestedReason]}
-                </Text>
-              )}
-          </Stack>
+      <Tooltip
+        isHoverable
+        skipWrapper
+        title={
+          assignmentDetails ? (
+            <AssignedAssigneeTooltip
+              assignedTo={assignedTo}
+              assignmentDetails={assignmentDetails}
+            />
+          ) : (
+            <Stack gap="xs" align="start">
+              <Text as="div" align="left" wrap="nowrap">
+                {tct('Assigned to [name]', {
+                  name:
+                    assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
+                })}
+              </Text>
+              {assignedToSuggestion &&
+                suggestedReasons[assignedToSuggestion.suggestedReason] && (
+                  <Text as="div" align="left" variant="muted">
+                    {suggestedReasons[assignedToSuggestion.suggestedReason]}
+                  </Text>
+                )}
+            </Stack>
+          )
         }
-      />
+      >
+        <AssigneeAvatarContent align="center" gap="sm" wrap="nowrap">
+          <ActorAvatar
+            actor={assignedTo}
+            className="avatar"
+            size={24}
+            hasTooltip={false}
+          />
+          {label}
+        </AssigneeAvatarContent>
+      </Tooltip>
     );
   }
 
   if (suggestedActors.length > 0) {
     const actor = suggestedActors[0]!;
     return (
-      <SuggestedAvatarStack
-        size={24}
-        owners={suggestedActors}
-        tooltipOptions={{isHoverable: true}}
-        tooltip={
+      <Tooltip
+        isHoverable
+        skipWrapper
+        title={
           <Stack gap="xs" align="start">
             <Text as="div" align="left" wrap="nowrap">
               {tct('Suggestion: [name]', {
@@ -188,7 +216,12 @@ function AssigneeAvatar({
             </Text>
           </Stack>
         }
-      />
+      >
+        <AssigneeAvatarContent align="center" gap="sm" wrap="nowrap">
+          <SuggestedAvatarStack size={24} owners={suggestedActors} />
+          {label}
+        </AssigneeAvatarContent>
+      </Tooltip>
     );
   }
 
@@ -214,10 +247,17 @@ function AssigneeAvatar({
         </Stack>
       }
     >
-      <StyledIconUser data-test-id="unassigned" size="md" variant="primary" />
+      <AssigneeAvatarContent align="center" gap="sm" wrap="nowrap">
+        <StyledIconUser data-test-id="unassigned" size="md" variant="primary" />
+        {label}
+      </AssigneeAvatarContent>
     </Tooltip>
   );
 }
+
+const AssigneeAvatarContent = styled(Flex)`
+  min-width: 0;
+`;
 
 export function AssigneeSelectorDropdown({
   className,
@@ -491,10 +531,11 @@ export function AssigneeSelectorDropdown({
   };
 
   const makeTrigger = (props: TriggerProps, isOpen: boolean) => {
-    const renderAvatar = () => (
+    const renderAvatar = (options?: RenderAssigneeAvatarOptions) => (
       <AssigneeAvatar
         assignedTo={group.assignedTo}
         suggestedActors={getSuggestedAssignees()}
+        {...options}
       />
     );
 
