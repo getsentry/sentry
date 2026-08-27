@@ -36,7 +36,7 @@ export function getWidgetConfigError(
     widget.displayType === DisplayType.TABLE &&
     widget.queries.every(q => q.aggregates.length === 0)
   ) {
-    return t('This widget is missing a metric to visualize.');
+    return t('This widget is missing a metric aggregation to visualize.');
   }
 
   // Trace-metric widgets encode the metric in the aggregate; if it doesn't resolve,
