@@ -6,8 +6,6 @@ import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-import {SentryFormErrorProvider} from './formError';
-
 const testSchema = z.object({
   testField: z.string(),
 });
@@ -22,25 +20,23 @@ function createRequestError(responseJSON?: Record<string, unknown>): RequestErro
 
 async function renderFailedAutoSave(error: Error) {
   render(
-    <SentryFormErrorProvider>
-      <AutoSaveForm
-        name="testField"
-        schema={testSchema}
-        initialValue="initial"
-        mutationOptions={{
-          mutationFn: () => {
-            throw error;
-          },
-        }}
-      >
-        {field => (
-          <field.Layout.Row label="Name">
-            <field.Input value={field.state.value} onChange={field.handleChange} />
-            <field.Meta />
-          </field.Layout.Row>
-        )}
-      </AutoSaveForm>
-    </SentryFormErrorProvider>
+    <AutoSaveForm
+      name="testField"
+      schema={testSchema}
+      initialValue="initial"
+      mutationOptions={{
+        mutationFn: () => {
+          throw error;
+        },
+      }}
+    >
+      {field => (
+        <field.Layout.Row label="Name">
+          <field.Input value={field.state.value} onChange={field.handleChange} />
+          <field.Meta />
+        </field.Layout.Row>
+      )}
+    </AutoSaveForm>
   );
 
   const input = screen.getByRole('textbox', {name: 'Name'});
