@@ -120,7 +120,7 @@ def test_zstd_chunks() -> None:
 
 
 @django_db_all
-@mock.patch("sentry.attachments.base.get_attachments_session")
+@mock.patch("sentry.attachments.base.get_session")
 def test_overwriting_stored_attachment_keeps_metadata(mock_get_session: mock.Mock) -> None:
     cache = BaseAttachmentCache(InMemoryCache())
     project = mock.Mock(id=42, organization_id=1)

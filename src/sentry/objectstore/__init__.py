@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import subprocess
 from datetime import timedelta
+from enum import Enum
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse, urlsplit, urlunparse
 
 import urllib3
@@ -13,8 +17,10 @@ from objectstore_client import (
     TimeToIdle,
     TimeToLive,
     TokenGenerator,
-    Usecase,
     parse_accept_encoding,
+)
+from objectstore_client import (
+    Usecase as ObjectstoreClientUsecase,
 )
 from objectstore_client.metrics import Tags
 
@@ -22,7 +28,10 @@ from sentry import options
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.env import in_test_environment
 
-__all__ = ["get_attachments_session", "get_debug_files_session", "parse_accept_encoding"]
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
+__all__ = ["UsecaseId", "get_session", "parse_accept_encoding"]
 
 
 # Default validity of the token used for redirecting to Objectstore. This is a
@@ -68,16 +77,45 @@ class SentryMetricsBackend(MetricsBackend):
         sentry_metrics.distribution(name, value, tags=tags, unit=unit)
 
 
-_OBJECTSTORE_CLIENT: Client | None = None
-_ATTACHMENTS_USECASE: Usecase | None = None
-_DEBUG_FILES_USECASE = Usecase(
-    "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
-)
-_PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
-_PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
+class UsecaseId(Enum):
+    """Objectstore workloads and their default configuration.
+
+    Use this enum with ``get_session`` instead of constructing a client usecase
+    directly. This configures the correct expiration policy and other usecase
+    settings.
+    """
+
+    ATTACHMENTS = "attachments"
+    DEBUG_FILES = "debug_files"
+    PROFILE_ATTACHMENTS = "profile_attachments"
+    PREPROD = "preprod"
+
+    def create(self) -> ObjectstoreClientUsecase:
+        match self:
+            case UsecaseId.ATTACHMENTS:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
+                )
+            case UsecaseId.DEBUG_FILES:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    compression="none",
+                    expiration_policy=TimeToIdle(timedelta(days=90)),
+                )
+            case UsecaseId.PROFILE_ATTACHMENTS:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
+                )
+            case UsecaseId.PREPROD:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    expiration_policy=TimeToIdle(timedelta(days=30)),
+                )
 
 
-def create_client() -> Client:
+def _create_client() -> Client:
     options = settings.SENTRY_OBJECTSTORE_CONFIG
 
     # Initialize the `TokenGenerator` if key parameters are found.
@@ -103,71 +141,71 @@ def create_client() -> Client:
     )
 
 
-def get_client() -> Client:
-    global _OBJECTSTORE_CLIENT
-    if not _OBJECTSTORE_CLIENT:
-        _OBJECTSTORE_CLIENT = create_client()
-    return _OBJECTSTORE_CLIENT
+_CLIENT: Client | None = None
 
 
-def get_attachments_usecase() -> Usecase:
-    global _ATTACHMENTS_USECASE
-    if not _ATTACHMENTS_USECASE:
-        retention = default_attachment_retention()
-        _ATTACHMENTS_USECASE = Usecase(
-            "attachments", expiration_policy=TimeToLive(timedelta(days=retention))
-        )
-    return _ATTACHMENTS_USECASE
+def _get_client() -> Client:
+    global _CLIENT
+    if not _CLIENT:
+        _CLIENT = _create_client()
+    return _CLIENT
 
 
-def get_attachments_session(org: int, project: int) -> Session:
-    return get_client().session(get_attachments_usecase(), org=org, project=project)
+_USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
-def get_debug_files_session(org: int, project: int) -> Session:
-    return get_client().session(_DEBUG_FILES_USECASE, org=org, project=project)
+def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
+    """Return an Objectstore session scoped to a project.
 
+    There are two ways to construct a session:
+    - Project model: ``get_session(UsecaseId.ATTACHMENTS, project)``
+    - Project and org IDs: ``get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)``
 
-def get_profile_attachments_usecase() -> Usecase:
-    # Relay stores raw profiles and their attachments (e.g. Perfetto traces) under
-    # the "profile_attachments" usecase, so we must read them back with the same usecase.
-    global _PROFILE_ATTACHMENTS_USECASE
-    if not _PROFILE_ATTACHMENTS_USECASE:
-        retention = default_attachment_retention()
-        _PROFILE_ATTACHMENTS_USECASE = Usecase(
-            "profile_attachments", expiration_policy=TimeToLive(timedelta(days=retention))
-        )
-    return _PROFILE_ATTACHMENTS_USECASE
+    When passing a project model, ``org`` is optional and must match the
+    project's organization. It is required when passing a project ID.
+    """
+    if isinstance(project, int):
+        if org is None:
+            raise TypeError("org is required when project is an ID")
+        project_id = project
+        org_id = org
+    else:
+        project_id = project.id
+        org_id = project.organization_id
+        if org is not None and org != org_id:
+            raise ValueError("project does not belong to org")
 
+    objectstore_usecase = _USECASES.get(usecase)
+    if objectstore_usecase is None:
+        objectstore_usecase = usecase.create()
+        _USECASES[usecase] = objectstore_usecase
 
-def get_profile_attachments_session(org: int, project: int) -> Session:
-    return get_client().session(get_profile_attachments_usecase(), org=org, project=project)
-
-
-def get_preprod_session(org: int, project: int) -> Session:
-    return get_client().session(_PREPROD_USECASE, org=org, project=project)
+    return _get_client().session(objectstore_usecase, org=org_id, project=project_id)
 
 
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
 
 
-def maybe_rewrite_url_for_symbolicator(url: str) -> str:
+def _maybe_rewrite_internal_url(url: str) -> str:
     """
-    Rewrites a full Objectstore URL so that Symbolicator can reach it.
+    Rewrites a full Objectstore URL so that an internal service can reach it.
 
-    In prod, the URL is returned unchanged, as both Sentry and Symbolicator talk to Objectstore
-    using the same hostname.
+    In production, the URL is returned unchanged, as both Sentry and internal
+    services talk to Objectstore using the same hostname.
 
-    While in development or testing, we might need to replace the hostname, depending on how
-    Symbolicator is running. This function runs a `docker ps` to automatically return the correct
-    URL in the following 2 cases:
-        - Symbolicator running in Docker (possibly via `devservices`) -- this mirrors `sentry`'s CI.
-          If this is detected, we replace Objectstore's hostname with the one reachable in the Docker network.
+    While in development or testing, we might need to replace the hostname,
+    depending on how Symbolicator is running. This function runs a `docker ps`
+    to automatically return the correct URL in the following 2 cases:
+        - Symbolicator running in Docker (possibly via `devservices`) -- this
+          mirrors `sentry`'s CI. If this is detected, we replace Objectstore's
+          hostname with the one reachable in the Docker network.
 
-          Note that this approach doesn't work if Objectstore is running both locally and in Docker, as we'll always
-          rewrite the URL to the Docker one, so Sentry and Symbolicator might attempt to talk to 2 different Objectstores.
-        - Symbolicator running locally -- this mirrors `symbolicator`'s CI.
-          In this case, we don't need to rewrite the URL.
+          Note that this approach doesn't work if Objectstore is running both
+          locally and in Docker, as we'll always rewrite the URL to the Docker
+          one, so Sentry and Symbolicator might attempt to talk to 2 different
+          Objectstores.
+        - Symbolicator running locally -- this mirrors `symbolicator`'s CI. In
+          this case, we don't need to rewrite the URL.
     """
     global _IS_SYMBOLICATOR_CONTAINER  # Cached to avoid running `docker ps` multiple times
 
@@ -209,9 +247,7 @@ def get_internal_download_url(
     # instead, so we need to additionally wrap this with `maybe_rewrite_url_for_symbolicator`.
     # TODO(lcian): Find a more robust way to do this. Here we assume that the caller is Symbolicator,
     # which is currently the case in practice, but in theory it could be any other service.
-    return maybe_rewrite_url_for_symbolicator(
-        session.object_url(key, token_validity=token_validity)
-    )
+    return _maybe_rewrite_internal_url(session.object_url(key, token_validity=token_validity))
 
 
 def get_download_redirect_url(
