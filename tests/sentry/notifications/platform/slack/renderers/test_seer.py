@@ -330,7 +330,7 @@ class SeerSlackRendererAgentTest(TestCase):
         expected_url = self.organization.absolute_url(
             f"/organizations/{self.organization.slug}/explore/agents/conversations/{conversation_id}/"
         )
-        assert run_id_text == f"Run ID: <{expected_url}|{MOCK_RUN_ID}>"
+        assert run_id_text == f"Run ID: <{expected_url}|{conversation_id}>"
 
     def test_render_agent_response_without_seer_run_mirror(self) -> None:
         data = self._create_agent_response(
@@ -341,10 +341,8 @@ class SeerSlackRendererAgentTest(TestCase):
 
         assert renderable["text"] == "Seer Agent has finished"
         blocks = renderable["blocks"]
-        assert len(blocks) == 2
-        assert isinstance(blocks[1], ContextBlock)
-        assert isinstance(blocks[1].elements[0], PlainTextObject)
-        assert blocks[1].elements[0].text == f"Run ID: {MOCK_RUN_ID}"
+        assert len(blocks) == 1
+        assert isinstance(blocks[0], MarkdownBlock)
 
     def test_render_agent_response_without_run_id_flag(self) -> None:
         data = self._create_agent_response(
