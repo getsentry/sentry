@@ -177,7 +177,8 @@ export function ResponseGroup({
 
   const startTime = new Date(group[0]!.timestamp);
   // Keep ThinkingBlock expanded if loading or awaiting user input (approval/question)
-  const endTime = active || pendingInput ? undefined : new Date(group[group.length - 1]!.timestamp);
+  const endTime =
+    active || pendingInput ? undefined : new Date(group[group.length - 1]!.timestamp);
 
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">
@@ -188,9 +189,7 @@ export function ResponseGroup({
           respondToUserInput={respondToUserInput}
         >
           {/* Show loading placeholder when response is streaming but has no visible content yet */}
-          {active && !hasTrace && !answer ? (
-            <MessagePlaceholder />
-          ) : null}
+          {active && !hasTrace && !answer ? <MessagePlaceholder /> : null}
 
           {hasTrace ? (
             <MessageRow from="assistant" density="compact">
