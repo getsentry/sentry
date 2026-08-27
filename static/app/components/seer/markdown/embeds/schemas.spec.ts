@@ -32,7 +32,9 @@ describe('SEER_EMBED_SCHEMAS page filters', () => {
   });
 
   it('exports projects as string or number in the agent JSON Schema', () => {
-    const spansQuery = seerEmbedsToJsonSchemas().find(widget => widget.name === 'spansQuery');
+    const spansQuery = seerEmbedsToJsonSchemas().find(
+      widget => widget.name === 'spansQuery'
+    );
 
     expect(spansQuery?.body).toMatchObject({
       properties: {
