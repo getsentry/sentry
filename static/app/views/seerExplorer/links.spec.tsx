@@ -137,6 +137,78 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     name: 'telemetry_live_search',
     params: {dataset: 'issues', query: 'is:unresolved'},
   },
+  list_replays: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/replays/',
+    params: {},
+  },
+  list_releases: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/releases/',
+    params: {},
+  },
+  list_dashboards: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/dashboards/',
+    params: {},
+  },
+  list_detectors: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/detectors/',
+    params: {},
+  },
+  list_workflows: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/workflows/',
+    params: {},
+  },
+  list_monitors: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/monitors/',
+    params: {},
+  },
+  list_members: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/members/',
+    params: {},
+  },
+  list_teams: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/teams/',
+    params: {},
+  },
+  list_projects: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/projects/',
+    params: {},
+  },
+  get_explore_saved_query: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/explore/saved/{id}/',
+    params: {id: '42'},
+  },
+  get_discover_saved_query: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/discover/saved/{query_id}/',
+    params: {query_id: '42'},
+  },
+  resolve_short_id: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/shortids/{issue_id}/',
+    params: {issue_id: 'JAVASCRIPT-1A'},
+  },
 };
 
 describe('LINK_RULES', () => {
@@ -288,9 +360,9 @@ describe('resolveLink', () => {
         {
           kind: 'api',
           method: 'GET',
-          path: '/api/0/organizations/{organization_id_or_slug}/releases/',
+          path: '/api/0/organizations/{organization_id_or_slug}/relay/projectconfigs/',
           params: {organization_id_or_slug: 'org-slug'},
-          title: 'List an Organization’s Releases',
+          title: 'Retrieve Project Configs',
         },
         ctx
       )
@@ -756,6 +828,135 @@ describe('search links', () => {
       },
     });
   });
+
+  it('deep-links an org events API call into Explore from the query string', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=logs&query=level%3Aerror&statsPeriod=24h&project=2',
+        title: 'Listing events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        label: 'Listing events',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/explore/logs/',
+          query: expect.objectContaining({
+            statsPeriod: '24h',
+            project: ['2'],
+          }),
+        }),
+      })
+    );
+  });
+
+  it('infers the issues dataset for a bare org issues list', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/issues/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path: '/api/0/organizations/org-slug/issues/?query=is%3Aunresolved',
+        title: 'Listing issues',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual({
+      id: 'telemetry_live_search',
+      label: 'Listing issues',
+      url: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          query: 'is:unresolved',
+          project: null,
+        },
+      },
+    });
+  });
+
+  it('keeps issue event lists on the issue page, not Explore', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/',
+          params: {issue_id: '54'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_issue_details');
+  });
+
+  it('pins a project-scoped events list onto errors Explore for that project', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/',
+        path_params: {
+          organization_id_or_slug: 'org-slug',
+          project_id_or_slug: 'javascript',
+        },
+        resolved_path: '/api/0/projects/org-slug/javascript/events/?statsPeriod=7d',
+        title: 'Listing project events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/explore/discover/homepage/',
+          query: expect.objectContaining({
+            dataset: 'errors',
+            project: ['2'],
+            statsPeriod: '7d',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('does not let nested membership lists steal the parent entity link', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/members/',
+          params: {project_id_or_slug: 'javascript'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_project_details');
+
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/projects/',
+          params: {team_id_or_slug: 'frontend'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_team_details');
+  });
 });
 
 describe('subjectFromCallRecord', () => {
@@ -766,12 +967,20 @@ describe('subjectFromCallRecord', () => {
         kind: 'api',
         method: 'GET',
         path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
         resolved_path: '/api/0/organizations/org-slug/events/?dataset=logs&per_page=10',
       })
     ).toEqual(
       expect.objectContaining({
         pathname: '/api/0/organizations/org-slug/events/',
         query: {dataset: 'logs', per_page: '10'},
+        // Query string merges into params so composite rules can read dataset/query the same way
+        // a lib search does.
+        params: expect.objectContaining({
+          organization_id_or_slug: 'org-slug',
+          dataset: 'logs',
+          per_page: '10',
+        }),
       })
     );
   });
