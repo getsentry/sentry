@@ -259,3 +259,43 @@ class HandleProcessingErrorsTest(TestCase):
                 error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID.value],
             ),
         )
+
+    def test_throttled_types_are_not_stored(self) -> None:
+        """
+        Guards that drop a check-in before doing any work fire thousands of times a minute for a
+        single monitor environment. Storing each one costs two cache lookups and two redis round
+        trips inside the serial processing loop, for data capped at `MAX_ERRORS_PER_SET` anyway.
+        """
+        monitor = self.create_monitor()
+        item = build_checkin_item(
+            message_overrides={"project_id": self.project.id},
+            payload_overrides={"monitor_slug": monitor.slug},
+        )
+
+        for error_type in (
+            ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED,
+            ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED,
+        ):
+            handle_processing_errors(
+                item, ProcessingErrorsException([{"type": error_type}], monitor=monitor)
+            )
+
+        assert get_errors_for_monitor(monitor) == []
+
+    def test_throttled_type_alongside_a_real_error_is_stored(self) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException(
+                [
+                    {"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED},
+                    {"type": ProcessingErrorType.CHECKIN_INVALID_GUID},
+                ],
+                monitor=monitor,
+            ),
+        )
+
+        assert len(get_errors_for_monitor(monitor)) == 1
