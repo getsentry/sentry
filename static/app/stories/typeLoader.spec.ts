@@ -1,6 +1,10 @@
-import {extractRequest, serializeTypeLoaderResult} from 'sentry/stories/typeLoader';
+import {
+  extractRequest,
+  isDocumentedProp,
+  serializeTypeLoaderResult,
+} from 'sentry/stories/typeLoader';
 
-function makeTypeLoaderResult(rootContext: string, syntheticProperty: string) {
+function makeTypeLoaderResult(rootContext: string) {
   const componentPath = `${rootContext}/app/components/core/example.tsx`;
 
   return {
@@ -8,7 +12,6 @@ function makeTypeLoaderResult(rootContext: string, syntheticProperty: string) {
       Example: {
         displayName: 'Example',
         filePath: componentPath,
-        filename: componentPath,
         props: {
           label: {
             name: 'label',
@@ -16,9 +19,6 @@ function makeTypeLoaderResult(rootContext: string, syntheticProperty: string) {
               fileName: componentPath,
               name: 'ExampleProps',
             },
-          },
-          [syntheticProperty]: {
-            name: syntheticProperty,
           },
         },
       },
@@ -34,24 +34,22 @@ describe('serializeTypeLoaderResult', () => {
       `./${request.slice(context.length + 1)}`;
 
     const first = serializeTypeLoaderResult(
-      makeTypeLoaderResult(firstRoot, '__@iterator@123'),
+      makeTypeLoaderResult(firstRoot),
       firstRoot,
       contextify
     );
     const second = serializeTypeLoaderResult(
-      makeTypeLoaderResult(secondRoot, '__@iterator@987'),
+      makeTypeLoaderResult(secondRoot),
       secondRoot,
       contextify
     );
 
     expect(first).toBe(second);
-    expect(first).not.toContain('__@iterator');
     expect(first).not.toContain(firstRoot);
     expect(JSON.parse(first)).toMatchObject({
       props: {
         Example: {
           filePath: './app/components/core/example.tsx',
-          filename: './app/components/core/example.tsx',
           props: {
             label: {
               parent: {
@@ -62,6 +60,19 @@ describe('serializeTypeLoaderResult', () => {
         },
       },
     });
+  });
+});
+
+describe('isDocumentedProp', () => {
+  it.each(['__@iterator@123', '__@hasInstance@987', '__@metadata@456'])(
+    'filters the unstable TypeScript property %s',
+    name => {
+      expect(isDocumentedProp({name})).toBe(false);
+    }
+  );
+
+  it('keeps regular component properties', () => {
+    expect(isDocumentedProp({name: 'children'})).toBe(true);
   });
 });
 
