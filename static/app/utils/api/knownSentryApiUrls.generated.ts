@@ -28,6 +28,8 @@ export type KnownSentryApiUrls =
   | '/auth/2fa/challenge/'
   | '/auth/config/'
   | '/auth/login/'
+  | '/auth/recovery/'
+  | '/auth/recovery/confirm/'
   | '/auth/validate/'
   | '/authenticators/'
   | '/broadcasts/'

@@ -367,6 +367,7 @@ export function useAutofixOverview({
     data,
     projectConfig: projectConfigQuery.data?.projectConfig,
     projectConfigPending: projectConfigQuery.isLoading,
+    issueStatsPending: issueStatsQuery.isLoading,
     isPending: !data,
     isError: statusPollQuery.isError && !data,
     // isFetching, not isPending: a stale-cache remount must wait for the refetch
