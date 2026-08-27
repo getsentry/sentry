@@ -55,13 +55,15 @@ interface Props extends Omit<
   suffix?: string;
   /**
    * Customize the tooltip content. This replaces the `RelativeTime` card
-   * completely.
+   * completely, so `tooltipPrefix` has nothing left to label and is ignored.
    */
   tooltipBody?: React.ReactNode;
   /**
    * What the timestamp refers to, e.g. "Last Seen". Becomes the card's header,
    * alongside the same relative time the trigger shows. Without one the card is
    * the timezone rows on their own.
+   *
+   * Has no effect alongside `tooltipBody`, which replaces the card it heads.
    */
   tooltipPrefix?: React.ReactNode;
   /**

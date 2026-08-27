@@ -109,6 +109,20 @@ describe('TimeSince', () => {
       expect(await screen.findByText('Last Seen')).toBeInTheDocument();
     });
 
+    it('drops tooltipPrefix when a tooltipBody replaces the card', async () => {
+      // The prefix heads the card, so a body that replaces the card leaves it
+      // nothing to head. Asserted rather than left implicit, because it reads
+      // as a prop quietly doing nothing.
+      renderInNewYork(
+        <TimeSince date={date} tooltipPrefix="Last Seen" tooltipBody={<p>Replaced</p>} />
+      );
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('Replaced')).toBeInTheDocument();
+      expect(screen.queryByText('Last Seen')).not.toBeInTheDocument();
+    });
+
     it('shows seconds when the call site asks for them', async () => {
       renderInNewYork(<TimeSince date={date} tooltipShowSeconds />);
 
