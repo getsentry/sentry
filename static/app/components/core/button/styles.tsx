@@ -9,10 +9,7 @@ import {
   type DO_NOT_USE_CommonButtonProps as CommonButtonProps,
 } from './types';
 
-export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
-  ButtonSize,
-  SVGIconProps['size']
-> = {
+export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<ButtonSize, SVGIconProps['size']> = {
   zero: 'xs',
   xs: 'xs',
   sm: 'sm',
