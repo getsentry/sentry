@@ -13,7 +13,7 @@ import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
@@ -409,6 +409,8 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onSettings,
     onUninstall,
   } = installation;
+  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, xl: true});
+  const manageRepositoriesLabel = t('Manage repositories');
 
   return (
     <Fragment>
@@ -422,10 +424,9 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
           variant="link"
           size="xs"
           icon={<IconOpen />}
+          aria-label={manageRepositoriesLabel}
         >
-          <Text as="span" display={{zero: 'none', xl: 'inline'}}>
-            {t('Manage repositories')}
-          </Text>
+          {showManageRepositoriesLabel ? manageRepositoriesLabel : undefined}
         </LinkButton>
       )}
       {(onUninstall || onSettings || !!overflowMenuItems?.length) && (
