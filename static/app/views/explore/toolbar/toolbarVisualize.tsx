@@ -5,10 +5,15 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {IconHide} from 'sentry/icons/iconHide';
-import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
+import {t} from 'sentry/locale';
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -20,6 +25,7 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -36,6 +42,13 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  applyConditionalFilter,
+  buildConditionalAggregate,
+  CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
+  parseConditionalAggregate,
+  supportsConditionalAggregateFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
@@ -167,6 +180,11 @@ function ToolbarVisualizeItem({
 }: VisualizeDropdownProps) {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const hasConditionalAggregates = organization.features.includes(
+    'explore-conditional-aggregates'
+  );
 
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
     {search: debouncedSearch},
@@ -193,7 +211,12 @@ function ToolbarVisualizeItem({
     []
   );
 
-  const parsedFunction = useMemo(() => parseFunction(visualize.yAxis), [visualize.yAxis]);
+  // The dropdowns operate on the base aggregate, with the `_if` combinator and its
+  // filter argument stripped off.
+  const parsedFunction = useMemo(
+    () => parseConditionalAggregate(visualize.yAxis),
+    [visualize.yAxis]
+  );
 
   const fieldOptions = useVisualizeFields({
     numberTags,
@@ -203,6 +226,13 @@ function ToolbarVisualizeItem({
     traceItemType: TraceItemDataset.SPANS,
   });
 
+  // Filters only survive a swap to another aggregate that supports them, and are dropped
+  // entirely while the feature is off so that toggling it never leaves a stale filter.
+  const filter = useMemo(
+    () => (hasConditionalAggregates ? (parsedFunction?.filter ?? '') : ''),
+    [hasConditionalAggregates, parsedFunction?.filter]
+  );
+
   const onChangeAggregate = useCallback(
     (option: SelectOption<SelectKey>) => {
       if (typeof option.value === 'string') {
@@ -211,10 +241,16 @@ function ToolbarVisualizeItem({
           oldAggregate: parsedFunction?.name,
           oldArguments: parsedFunction?.arguments,
         });
-        onReplace(visualize.replace({yAxis}));
+        onReplace(
+          visualize.replace({
+            yAxis: supportsConditionalAggregateFilter(option.value)
+              ? applyConditionalFilter(yAxis, filter)
+              : yAxis,
+          })
+        );
       }
     },
-    [onReplace, parsedFunction, visualize]
+    [filter, onReplace, parsedFunction, visualize]
   );
 
   const onChangeArgument = useCallback(
@@ -226,12 +262,52 @@ function ToolbarVisualizeItem({
         } else {
           args = [option.value];
         }
-        const yAxis = `${parsedFunction?.name}(${args.join(',')})`;
-        onReplace(visualize.replace({yAxis}));
+        onReplace(
+          visualize.replace({
+            yAxis: buildConditionalAggregate({
+              name: parsedFunction?.name ?? '',
+              arguments: args,
+              filter,
+            }),
+          })
+        );
       }
+    },
+    [filter, onReplace, parsedFunction, visualize]
+  );
+
+  const onFilterSearch = useCallback(
+    (newFilter: string) => {
+      if (!parsedFunction) {
+        return;
+      }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction.name,
+            arguments: parsedFunction.arguments,
+            filter: newFilter,
+          }),
+        })
+      );
     },
     [onReplace, parsedFunction, visualize]
   );
+
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: filter,
+    onSearch: onFilterSearch,
+    searchSource: 'explore-conditional-aggregate',
+    placeholder: t('Filter spans for this series'),
+    // Attribute-only, same as metrics / samples-mode search: never offer visualize
+    // aggregates (p95, count, …) as series-filter keys.
+    supportedAggregates: [],
+  });
+
+  const showFilterSearchBar =
+    hasConditionalAggregates &&
+    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
 
   return (
     <ToolbarVisualizeDropdown
@@ -246,6 +322,28 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
+      filterSearchBar={
+        showFilterSearchBar ? (
+          <TraceItemSearchQueryBuilder
+            {...spanSearchQueryBuilderProps}
+            showSearchIcon={false}
+            // This spans toolbar clips menus that are not portaled, and the full width
+            // filter key menu anchors itself inside the bar, so it has to be turned off for
+            // portaling to cover every menu.
+            portalTarget={document.body}
+            disableFullWidthFilterKeyMenu
+            // Same "Invalid key" UX as metrics: aggregates are not valid series-filter
+            // keys (metrics gets this from validate; we list visualize aggregates).
+            invalidFilterKeys={[
+              ...(spanSearchQueryBuilderProps.invalidFilterKeys ?? []),
+              ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+            ]}
+            invalidMessages={{
+              [InvalidReason.INVALID_KEY]: CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
+            }}
+          />
+        ) : undefined
+      }
     />
   );
 }

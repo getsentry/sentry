@@ -11,21 +11,15 @@ import {
 } from '@sentry/scraps/table';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
-  Body,
-  Grid,
-  GridBodyCell,
   GridBodyCellStatic,
-  GridHead,
-  GridHeadCell,
   GridHeadCellStatic,
-  GridRow,
-  GridStatus,
   Header,
   HeaderButtonContainer,
   HeaderTitle,
@@ -142,7 +136,7 @@ export function GridEditable<
       : [];
 
     return (
-      <GridRow data-test-id="grid-head-row">
+      <DataTable.Row data-test-id="grid-head-row">
         {prependColumns &&
           props.columnOrder?.length > 0 &&
           prependColumns.map((item, i) => (
@@ -151,7 +145,7 @@ export function GridEditable<
             </GridHeadCellStatic>
           ))}
         {props.columnOrder.map((column, i) => (
-          <GridHeadCell
+          <DataTable.HeadCell
             aria-sort={getAriaSort(
               props.columnSortBy.find(sort => sort.key === column.key)?.order
             )}
@@ -161,36 +155,36 @@ export function GridEditable<
             isFirst={i === 0}
           >
             {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-          </GridHeadCell>
+          </DataTable.HeadCell>
         ))}
-      </GridRow>
+      </DataTable.Row>
     );
   }
 
   const renderGridBody = () => {
     if (error) {
       return (
-        <GridStatus>
+        <DataTable.Status>
           <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-        </GridStatus>
+        </DataTable.Status>
       );
     }
 
     if (isLoading) {
       return (
-        <GridStatus>
+        <DataTable.Status>
           <LoadingIndicator />
-        </GridStatus>
+        </DataTable.Status>
       );
     }
 
     if (!data || data.length === 0) {
       return (
-        <GridStatus>
+        <DataTable.Status>
           {props.emptyMessage ?? (
             <EmptyState title={t('No results found for your query')} />
           )}
-        </GridStatus>
+        </DataTable.Status>
       );
     }
 
@@ -203,7 +197,7 @@ export function GridEditable<
       : [];
 
     return (
-      <GridRow
+      <DataTable.Row
         key={row}
         onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
@@ -223,13 +217,13 @@ export function GridEditable<
           </GridBodyCellStatic>
         ))}
         {props.columnOrder.map((col, i) => (
-          <GridBodyCell data-test-id="grid-body-cell" key={`${String(col.key)}${i}`}>
+          <DataTable.Cell data-test-id="grid-body-cell" key={`${String(col.key)}${i}`}>
             {grid.renderBodyCell
               ? grid.renderBodyCell(col, dataRow, row, i)
               : dataRow[col.key as string]}
-          </GridBodyCell>
+          </DataTable.Cell>
         ))}
-      </GridRow>
+      </DataTable.Row>
     );
   };
 
@@ -245,8 +239,8 @@ export function GridEditable<
             )}
           </Header>
         )}
-        <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
-          <Grid
+        <DataTable.Frame style={bodyStyle} showVerticalScrollbar={scrollable}>
+          <DataTable.Grid
             aria-label={ariaLabel}
             columns={columns}
             data-test-id="grid-editable"
@@ -257,10 +251,10 @@ export function GridEditable<
             prependColumnWidths={grid.prependColumnWidths}
             scrollable={scrollable}
           >
-            <GridHead sticky={stickyHeader}>{renderGridHead()}</GridHead>
+            <DataTable.Head sticky={stickyHeader}>{renderGridHead()}</DataTable.Head>
             <Table.Body>{renderGridBody()}</Table.Body>
-          </Grid>
-        </Body>
+          </DataTable.Grid>
+        </DataTable.Frame>
       </Profiler>
     </Fragment>
   );

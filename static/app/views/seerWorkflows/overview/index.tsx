@@ -1,4 +1,4 @@
-import {type ComponentProps, Fragment, useMemo} from 'react';
+import {type ComponentProps, Fragment, type ReactNode, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
@@ -22,6 +22,7 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -61,6 +62,14 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
   {value: 'events', label: t('Most events')},
   {value: 'users', label: t('Most users')},
 ];
+
+const {'90d': _90d, ...ACTIVITY_RELATIVE_PERIODS} = DEFAULT_RELATIVE_PERIODS;
+
+const activityRelativeOptions = ({
+  arbitraryOptions,
+}: {
+  arbitraryOptions: Record<string, ReactNode>;
+}) => ({...ACTIVITY_RELATIVE_PERIODS, ...arbitraryOptions});
 
 // Buckets the assignee filter value (a raw `type:id` actor string) for
 // analytics, avoiding actor-id PII/cardinality. Null means the filter was
@@ -246,6 +255,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           <ProjectFilterSkeleton />
         )}
         <DatePageFilter
+          relativeOptions={activityRelativeOptions}
           onChange={update =>
             trackFilterChanged('activity', update.relative ?? 'absolute')
           }
@@ -261,6 +271,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             setQueryParam('assignee', next ?? undefined);
           }}
           loading={isPending}
+          truncated={(data?.truncatedMilestones?.length ?? 0) > 0}
         />
         <CompactSelect
           value={sort}
@@ -273,13 +284,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
-        {(data?.truncatedMilestones?.length ?? 0) > 0 && (
-          <Text size="sm" variant="muted">
-            {t(
-              'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
-            )}
-          </Text>
-        )}
         <Flex marginLeft="auto">
           <Button
             onClick={toggleAllGroups}

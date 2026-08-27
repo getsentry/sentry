@@ -6,7 +6,7 @@ import time
 import uuid
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal, overload
+from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone as django_timezone
@@ -24,7 +24,7 @@ from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.agent.client_models import AgentRun, AgentRunWithPrs, SeerRunState
+from sentry.seer.agent.client_models import AgentRun, SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
     AgentReposRequest,
@@ -870,35 +870,46 @@ class SeerAgentClient:
 
         return state
 
-    @overload
-    def get_runs(
+    def latest_run(
         self,
-        category_key: str | None = ...,
-        category_value: str | None = ...,
-        offset: int | None = ...,
-        limit: int | None = ...,
-        project_ids: list[int] | None = ...,
-        expand: Literal["prs"] = ...,
-        only_current_user: bool = ...,
-        start: datetime | None = ...,
-        end: datetime | None = ...,
-        query: str | None = ...,
-    ) -> list[AgentRunWithPrs]: ...
+        *,
+        group_id: int | None = None,
+        only_current_user: bool = True,
+    ) -> SeerAgentRun | None:
+        """Most recent run for this source; ordering by last_triggered_at keeps a continued run current."""
+        qs = SeerAgentRun.objects.filter(
+            run__organization_id=self.organization.id,
+            source=self.category_key or "",
+        )
+        if (
+            only_current_user
+            and self.user
+            and hasattr(self.user, "id")
+            and self.user.id is not None
+        ):
+            qs = qs.filter(run__user_id=int(self.user.id))
+        if group_id is not None:
+            qs = qs.filter(group_id=group_id)
+        elif self.category_value is not None:
+            qs = qs.filter(extras__category_value=self.category_value)
+        return (
+            qs.select_related("run")
+            .filter(run__seer_run_state_id__isnull=False)
+            .order_by("-run__last_triggered_at")
+            .first()
+        )
 
-    @overload
-    def get_runs(
+    def fetch_latest_run_state(
         self,
-        category_key: str | None = ...,
-        category_value: str | None = ...,
-        offset: int | None = ...,
-        limit: int | None = ...,
-        project_ids: list[int] | None = ...,
-        expand: None = ...,
-        only_current_user: bool = ...,
-        start: datetime | None = ...,
-        end: datetime | None = ...,
-        query: str | None = ...,
-    ) -> list[AgentRun]: ...
+        *,
+        group_id: int | None = None,
+        only_current_user: bool = True,
+    ) -> SeerRunState | None:
+        """The remote state of the latest live run mirror for this client, or None."""
+        run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
+        if run is None:
+            return None
+        return self.get_run(run.run.seer_run_state_id)
 
     def get_runs(
         self,
@@ -907,12 +918,11 @@ class SeerAgentClient:
         offset: int | None = None,
         limit: int | None = None,
         project_ids: list[int] | None = None,
-        expand: Literal["prs"] | None = None,
         only_current_user: bool = True,
         start: datetime | None = None,
         end: datetime | None = None,
         query: str | None = None,
-    ) -> list[AgentRunWithPrs] | list[AgentRun]:
+    ) -> list[AgentRun]:
         """
         Get a list of Seer Agent runs for the organization with optional filters.
 
@@ -921,12 +931,10 @@ class SeerAgentClient:
             category_value: Optional category value to filter by (e.g., "issue-123")
             offset: Optional offset for pagination
             limit: Optional limit for pagination
-            expand: Optional string to include additional fields
             only_current_user: Optional to filter runs by current user
 
         Returns:
             List of runs matching the filters, sorted by most recent first.
-            Returns AgentRunWithPrs when expand="prs", AgentRun otherwise.
 
         Raises:
             SeerApiError: If the Seer API request fails
@@ -953,8 +961,6 @@ class SeerAgentClient:
             runs_body["project_ids"] = project_ids
         if limit is not None:
             runs_body["limit"] = limit
-        if expand is not None:
-            runs_body["expand"] = expand
         if start is not None:
             runs_body["start"] = start
         if end is not None:
@@ -968,8 +974,7 @@ class SeerAgentClient:
             raise SeerApiError("Seer request failed", response.status)
         result = response.json()
 
-        Model = AgentRunWithPrs if expand == "prs" else AgentRun
-        runs = [Model(**run) for run in result.get("data", [])]
+        runs = [AgentRun(**run) for run in result.get("data", [])]
         return runs
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:

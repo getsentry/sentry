@@ -1521,6 +1521,15 @@ export default typescript.config([
               from: {element: {type: 'scraps'}},
               allow: [{to: {element: {type: 'sentry*'}}}],
             },
+            // Keep the temporary Sentry allowance above, but do not allow
+            // scraps to import the legacy locale module. Use useTranslation()
+            // from the scraps translation context instead.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {file: {categories: 'sentry-locale'}}},
+              message:
+                'Scraps components must use useTranslation() instead of importing from sentry/locale',
+            },
           ],
         },
       ],

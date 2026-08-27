@@ -230,6 +230,33 @@ class InvestigationExecutionServiceTest(TestCase):
         assert execution.input_snapshot["projectIds"] == [project.id for project in expected]
         assert execution.input_snapshot["projectSlugs"] == [project.slug for project in expected]
 
+    def test_snapshots_the_resolved_investigation_source(self) -> None:
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": "30", "openPeriodId": "85"},
+            "snapshot": {
+                "analysisWindow": {
+                    "baselineStart": "2026-08-11T01:21:15+00:00",
+                    "breachStart": "2026-08-14T23:56:02+00:00",
+                    "end": "2026-08-18T22:30:49+00:00",
+                },
+                "monitor": {
+                    "name": "Mobile API error volume",
+                    "query": "fixture_metric:mobile-api-errors",
+                    "aggregate": "count()",
+                    "direction": "above",
+                },
+            },
+        }
+        self.investigation.update(source=source)
+        block = self.create_block()
+
+        execution, created = self.run_block(block)
+
+        assert created
+        assert execution.input_snapshot["organizationSlug"] == self.organization.slug
+        assert execution.input_snapshot["source"] == source
+
     def test_revalidates_project_parameter_access(self) -> None:
         cases: list[tuple[InvestigationParameterType, Callable[[int], Any]]] = [
             (InvestigationParameterType.PROJECT, lambda project_id: project_id),
