@@ -12,7 +12,7 @@ export interface MetricSelectorOption extends SelectOption<string> {
   tooltip?: string;
 }
 
-export interface FieldSelectorOption extends SelectOption<string> {
+interface FieldSelectorOption extends SelectOption<string> {
   kind: 'field';
   textValue: string;
   tooltip?: string;
