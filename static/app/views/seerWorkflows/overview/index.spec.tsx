@@ -174,6 +174,12 @@ describe('AutofixOverview', () => {
     return {promise, resolve};
   }
 
+  // Flush pending microtasks so already-resolved mock responses apply and render.
+  async function tick() {
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+
   const originalIntersectionObserver = window.IntersectionObserver;
   function makeCardsVisible({
     deferred = false,
@@ -739,23 +745,44 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('0 users')).not.toBeInTheDocument();
   });
 
-  it('shimmers the Snuba vitals until the issueStats call resolves', async () => {
+  it('holds the skeleton until the issueStats call resolves, then shows vitals', async () => {
     const issueStats = deferredResponse();
-    mockOverview({
+    const {statusPollRequest, projectConfigRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
       issueStatsAsyncDelay: issueStats.promise,
     });
 
     renderPage();
 
-    expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+    // Let the status + projectConfig responses land and render; only the vitals
+    // stay pending. Cards must not paint yet, so events/users never shimmer.
+    await waitFor(() => expect(statusPollRequest).toHaveBeenCalled());
+    await waitFor(() => expect(projectConfigRequest).toHaveBeenCalled());
+    await act(tick);
+    expect(screen.queryByText('TypeError in checkout cart')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
-    expect(screen.queryByText('1.2K events')).not.toBeInTheDocument();
 
     issueStats.resolve();
 
-    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+    expect(screen.getByText('1.2K events')).toBeInTheDocument();
     expect(screen.getByText('5 users')).toBeInTheDocument();
+  });
+
+  it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      issueStatsStatusCode: 500,
+    });
+
+    renderPage();
+
+    // A failed vitals call must not withhold the cards forever; once the query
+    // settles (after its one retry) the cards render. The timeout covers the
+    // issueStats retry backoff.
+    expect(
+      await screen.findByText('TypeError in checkout cart', undefined, {timeout: 5000})
+    ).toBeInTheDocument();
   });
 
   it('fetches the vitals once for a stable run set, without looping', async () => {
