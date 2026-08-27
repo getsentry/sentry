@@ -8,6 +8,7 @@ import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextP
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {SeerXRayOverlayProvider} from 'sentry/views/seerExplorer/xray/seerXRayOverlayProvider';
 
 interface AppProvidersProps {
   children: NonNullable<React.ReactNode>;
@@ -35,6 +36,8 @@ export function AppProviders({preloadData, children}: AppProvidersProps) {
       GlobalFeedbackForm,
       DemoToursProvider,
       LLMContextProvider,
+      // Reads the tree LLMContextProvider maintains, so must render inside it.
+      SeerXRayOverlayProvider,
       GlobalAlertProvider,
     ];
 

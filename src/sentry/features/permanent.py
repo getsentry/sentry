@@ -126,8 +126,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:discover-query": FlagpoleFeature(default=True, api_expose=True),
         # Enable 'spans' category on the stats page
         "organizations:span-stats": FlagpoleFeature(default=False, api_expose=True),
-        # Enable incidents feature
-        "organizations:incidents": FlagpoleFeature(default=True, api_expose=True),
         # Enable integration functionality to work with alert rules
         "organizations:integrations-alert-rule": FlagpoleFeature(default=True, api_expose=True),
         # Enable integration functionality to work with alert rules (specifically chat integrations)

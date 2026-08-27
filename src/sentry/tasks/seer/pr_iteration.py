@@ -69,8 +69,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused, record_pause_blocked
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
+    clear_queued_autofix_feedback,
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
@@ -129,6 +131,10 @@ def trigger_consume_pr_iteration_feedback(
     bypass: bool = False,
     delay: int | None = None,
 ) -> None:
+    if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+        record_pause_blocked("trigger_consume")
+        return
+
     if bypass:
         task: ConsumeTask | None = ConsumeTask.Now
     else:
@@ -165,6 +171,12 @@ def consume_queued_autofix_feedback(
     )
 
     with lock.acquire():
+        # A task with a countdown can start after the pause.
+        if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+            record_pause_blocked("consume")
+            clear_queued_autofix_feedback(run_id)
+            return
+
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:

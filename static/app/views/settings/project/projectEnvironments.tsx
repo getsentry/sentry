@@ -1,19 +1,24 @@
-import {Fragment} from 'react';
+import {Fragment, useDeferredValue, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
+import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Access} from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {t} from 'sentry/locale';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
@@ -22,6 +27,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDisplayName} from 'sentry/utils/environment';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {fzf} from 'sentry/utils/search/fzf';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -51,6 +57,8 @@ interface ToggleEnvironmentVariables {
   environment: ProjectEnvironment;
   shouldHide: boolean;
 }
+
+const ENVIRONMENTS_PER_PAGE = 100;
 
 function EnvironmentRow({children, eventCount, name}: EnvironmentRowProps) {
   return (
@@ -105,13 +113,14 @@ function useEventCounts(organization: Organization, project: DetailedProject) {
     )
   );
 
-  const eventCountsByEnvironment = Object.fromEntries(
-    tagValues.map(tag => [tag.value, tag.count])
-  );
+  return useMemo(() => {
+    const eventCountsByEnvironment = Object.fromEntries(
+      tagValues.map(tag => [tag.value, tag.count])
+    );
+    const eventCountAll = tagValues.reduce((sum, tag) => sum + (tag.count ?? 0), 0);
 
-  const eventCountAll = tagValues.reduce((sum, tag) => sum + (tag.count ?? 0), 0);
-
-  return {eventCountsByEnvironment, eventCountAll};
+    return {eventCountsByEnvironment, eventCountAll};
+  }, [tagValues]);
 }
 
 export default function ProjectEnvironments() {
@@ -120,8 +129,16 @@ export default function ProjectEnvironments() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const queryClient = useQueryClient();
+  const [{direction, page, query: searchQuery, sort}, setQueryParams] = useQueryStates({
+    direction: parseAsStringEnum(['asc', 'desc']).withDefault('asc'),
+    page: parseAsInteger.withDefault(1),
+    query: parseAsString.withDefault(''),
+    sort: parseAsStringEnum(['events', 'name']).withDefault('name'),
+  });
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
 
   const isHidden = location.pathname.endsWith('hidden/');
+  const visibility = isHidden ? 'hidden' : 'visible';
   const environmentsQueryOptions = apiOptions.as<ProjectEnvironment[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
     {
@@ -129,7 +146,7 @@ export default function ProjectEnvironments() {
         organizationIdOrSlug: organization.slug,
         projectIdOrSlug: params.projectId,
       },
-      query: {visibility: isHidden ? 'hidden' : 'visible'},
+      query: {visibility},
       staleTime: 0,
     }
   );
@@ -200,6 +217,59 @@ export default function ProjectEnvironments() {
   });
 
   const {eventCountsByEnvironment, eventCountAll} = useEventCounts(organization, project);
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  const visibleEnvironments = useMemo(() => {
+    const matches = deferredSearchQuery
+      ? (environments ?? []).filter(
+          environment => fzf(environment.name, deferredSearchQuery, false).end !== -1
+        )
+      : (environments ?? []);
+
+    const multiplier = direction === 'asc' ? 1 : -1;
+
+    return matches.toSorted((left, right) => {
+      if (sort === 'events') {
+        const countDifference =
+          (eventCountsByEnvironment[left.name] ?? 0) -
+          (eventCountsByEnvironment[right.name] ?? 0);
+
+        if (countDifference !== 0) {
+          return countDifference * multiplier;
+        }
+      }
+
+      return left.name.localeCompare(right.name) * multiplier;
+    });
+  }, [deferredSearchQuery, direction, environments, eventCountsByEnvironment, sort]);
+  const environmentCount = visibleEnvironments.length;
+  const lastPage = Math.max(1, Math.ceil(environmentCount / ENVIRONMENTS_PER_PAGE));
+  const currentPage = Math.min(Math.max(page, 1), lastPage);
+  const pageStart = (currentPage - 1) * ENVIRONMENTS_PER_PAGE;
+  const paginatedEnvironments = visibleEnvironments.slice(
+    pageStart,
+    pageStart + ENVIRONMENTS_PER_PAGE
+  );
+  const changePage = (delta: number) => {
+    const nextPage = currentPage + delta;
+    setQueryParams({page: nextPage === 1 ? null : nextPage}, {history: 'push'});
+  };
+  const handleSearch = (query: string) => {
+    setQueryParams({page: null, query: query || null}, {history: 'replace'});
+  };
+  const handleSort = (field: 'events' | 'name') => {
+    const nextDirection =
+      sort === field
+        ? direction === 'asc'
+          ? 'desc'
+          : 'asc'
+        : field === 'events'
+          ? 'desc'
+          : 'asc';
+    setQueryParams(
+      {direction: nextDirection, page: null, sort: field},
+      {history: 'push'}
+    );
+  };
 
   return (
     <div>
@@ -224,15 +294,34 @@ export default function ProjectEnvironments() {
         </Tabs>
       </TabsContainer>
       <ProjectPermissionAlert project={project} />
+      <Flex paddingBottom="xl">
+        <Container width="100%">
+          {containerProps => (
+            <SearchBar
+              {...containerProps}
+              aria-label={t('Search environments')}
+              placeholder={t('Search environments')}
+              query={searchQuery}
+              onChange={handleSearch}
+            />
+          )}
+        </Container>
+      </Flex>
 
       <SimpleTable
         columns={ENVIRONMENT_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
-            <SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell
+              sort={sort === 'name' ? direction : undefined}
+              handleSortClick={() => handleSort('name')}
+            >
               {isHidden ? t('Hidden') : t('Active Environments')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell
+              sort={sort === 'events' ? direction : undefined}
+              handleSortClick={() => handleSort('events')}
+            >
               <InfoText
                 title={t('Count of all error events from the last 30 days')}
                 variant="muted"
@@ -250,44 +339,72 @@ export default function ProjectEnvironments() {
           <SimpleTable.Empty>
             <LoadingError onRetry={refetch} />
           </SimpleTable.Empty>
-        ) : environments?.length ? (
+        ) : visibleEnvironments.length ? (
           <Fragment>
-            {!isHidden && (
+            {currentPage === 1 && !isHidden && !deferredSearchQuery && (
               <EnvironmentRow name={t('All Environments')} eventCount={eventCountAll} />
             )}
-            {environments.map(env => (
+            {paginatedEnvironments.map(env => (
               <EnvironmentRow
                 key={env.id}
                 name={env.name}
                 eventCount={eventCountsByEnvironment[env.name]}
               >
-                <Access access={['project:write']} project={project}>
-                  {({hasAccess}) => (
-                    <Button
-                      size="xs"
-                      disabled={!hasAccess}
-                      onClick={() =>
-                        toggleEnvironment.mutate({
-                          environment: env,
-                          shouldHide: !isHidden,
-                        })
-                      }
-                    >
-                      {isHidden ? t('Show') : t('Hide')}
-                    </Button>
-                  )}
-                </Access>
+                <Button
+                  size="xs"
+                  disabled={!hasWriteAccess}
+                  onClick={() =>
+                    toggleEnvironment.mutate({
+                      environment: env,
+                      shouldHide: !isHidden,
+                    })
+                  }
+                >
+                  {isHidden ? t('Show') : t('Hide')}
+                </Button>
               </EnvironmentRow>
             ))}
           </Fragment>
         ) : (
           <SimpleTable.Empty>
-            {isHidden
-              ? t("You don't have any hidden environments.")
-              : t("You don't have any environments yet.")}
+            {deferredSearchQuery
+              ? t('No environments match your search.')
+              : isHidden
+                ? t("You don't have any hidden environments.")
+                : t("You don't have any environments yet.")}
           </SimpleTable.Empty>
         )}
       </SimpleTable>
+      {environmentCount > ENVIRONMENTS_PER_PAGE && (
+        <Flex justify="end" align="center" gap="xl" margin="2xl 0 0 0">
+          <Text variant="muted">
+            {tct('[start]-[end] of [total]', {
+              start: (pageStart + 1).toLocaleString(),
+              end: Math.min(
+                pageStart + ENVIRONMENTS_PER_PAGE,
+                environmentCount
+              ).toLocaleString(),
+              total: environmentCount.toLocaleString(),
+            })}
+          </Text>
+          <ButtonBar>
+            <Button
+              icon={<IconChevron direction="left" />}
+              aria-label={t('Previous')}
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => changePage(-1)}
+            />
+            <Button
+              icon={<IconChevron direction="right" />}
+              aria-label={t('Next')}
+              size="sm"
+              disabled={currentPage >= lastPage}
+              onClick={() => changePage(1)}
+            />
+          </ButtonBar>
+        </Flex>
+      )}
     </div>
   );
 }

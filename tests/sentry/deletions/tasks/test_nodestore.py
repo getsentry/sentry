@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -10,6 +11,7 @@ from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.utils.snuba import UnqualifiedQueryError
 
 
@@ -41,6 +43,65 @@ class NodestoreDeletionTaskTest(TestCase):
             },
             last_event_id=last_event_id,
             last_event_timestamp=last_event_timestamp,
+        )
+
+    def test_project_killswitch_stops_deletion_chain(self) -> None:
+        transaction_id = uuid4().hex
+        with (
+            override_options({"deletions.nodestore.killswitch-projects": [self.project.id]}),
+            patch(
+                "sentry.deletions.tasks.nodestore.fetch_events_from_eventstore"
+            ) as mock_fetch_events,
+            patch(
+                "sentry.deletions.tasks.nodestore.delete_events_from_eventstore"
+            ) as mock_delete_events,
+            patch.object(
+                delete_events_for_groups_from_nodestore_and_eventstore, "apply_async"
+            ) as mock_apply_async,
+        ):
+            delete_events_for_groups_from_nodestore_and_eventstore(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_ids=[1],
+                times_seen=[1],
+                transaction_id=transaction_id,
+                dataset_str=Dataset.Events.value,
+                referrer=Referrer.DELETIONS_GROUP.value,
+            )
+
+        mock_fetch_events.assert_not_called()
+        mock_delete_events.assert_not_called()
+        mock_apply_async.assert_not_called()
+
+    def test_project_killswitch_does_not_stop_other_projects(self) -> None:
+        other_project = self.create_project()
+        transaction_id = uuid4().hex
+        with (
+            override_options({"deletions.nodestore.killswitch-projects": [other_project.id]}),
+            patch(
+                "sentry.deletions.tasks.nodestore.fetch_events_from_eventstore", return_value=[]
+            ) as mock_fetch_events,
+            patch(
+                "sentry.deletions.tasks.nodestore.delete_events_from_eventstore"
+            ) as mock_delete_events,
+        ):
+            delete_events_for_groups_from_nodestore_and_eventstore(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_ids=[1],
+                times_seen=[1],
+                transaction_id=transaction_id,
+                dataset_str=Dataset.Events.value,
+                referrer=Referrer.DELETIONS_GROUP.value,
+            )
+
+        mock_fetch_events.assert_called_once()
+        mock_delete_events.assert_called_once_with(
+            self.organization.id,
+            self.project.id,
+            [1],
+            [1],
+            Dataset.Events,
         )
 
     def test_simple_deletion_with_events(self) -> None:

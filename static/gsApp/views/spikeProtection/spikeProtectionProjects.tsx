@@ -20,6 +20,7 @@ import type {
   NotificationAction,
 } from 'sentry/types/notificationActions';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -77,7 +78,9 @@ function SpikeProtectionProjects({subscription}: Props) {
       }
       setIsFetchingProjects(true);
       const [data, _, resp] = await api.requestPromise(
-        `/organizations/${organization.slug}/projects/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           includeAllArgs: true,
           query: {
@@ -106,7 +109,9 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   const fetchAvailableNotificationActions = useCallback(async () => {
     const data = await api.requestPromise(
-      `/organizations/${organization.slug}/notifications/available-actions/`
+      getApiUrl('/organizations/$organizationIdOrSlug/notifications/available-actions/', {
+        path: {organizationIdOrSlug: organization.slug},
+      })
     );
     setAvailableNotificationActions(data.actions);
   }, [api, organization]);
@@ -128,7 +133,9 @@ function SpikeProtectionProjects({subscription}: Props) {
   ) => {
     const projectId = project.id;
     const data = await api.requestPromise(
-      `/organizations/${organization.slug}/notifications/actions/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/notifications/actions/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {triggerType, project: projectId}}
     );
 
@@ -146,8 +153,13 @@ function SpikeProtectionProjects({subscription}: Props) {
   const updateAllProjects = async (isEnabling: boolean) => {
     try {
       await api.requestPromise(
-        `/organizations/${organization.slug}/spike-protections/?projectSlug=$all`,
-        {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
+        `${getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })}?projectSlug=$all`,
+        {
+          method: isEnabling ? 'POST' : 'DELETE',
+          data: {projects: []},
+        }
       );
       const newProjects = projects.map(p => ({
         ...p,

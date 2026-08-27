@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {act, Fragment, useState} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -11,6 +11,7 @@ import {
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
@@ -32,6 +33,52 @@ const selectedMessagingSetup: ScmMessagingSetup = {
   channelId: 'C123',
   channelName: '#alerts',
 };
+
+const slackIntegration = OrganizationIntegrationsFixture({
+  id: 'slack-1',
+  name: 'test-workspace',
+  provider: {
+    key: 'slack',
+    slug: 'slack',
+    name: 'slack',
+    canAdd: true,
+    canDisable: false,
+    features: [],
+    aspects: {},
+  },
+  status: 'active',
+});
+
+const discordIntegration = OrganizationIntegrationsFixture({
+  id: 'discord-1',
+  name: 'test-server',
+  provider: {
+    key: 'discord',
+    slug: 'discord',
+    name: 'discord',
+    canAdd: true,
+    canDisable: false,
+    features: [],
+    aspects: {},
+  },
+  status: 'active',
+});
+
+const msteamsIntegration = OrganizationIntegrationsFixture({
+  id: 'msteams-1',
+  name: 'test-teams',
+  provider: {
+    key: 'msteams',
+    slug: 'msteams',
+    name: 'msteams',
+    canAdd: true,
+    canDisable: false,
+    features: [],
+    aspects: {},
+  },
+  status: 'active',
+  configData: {installationType: 'team'},
+});
 
 function mockIntegration(
   overrides?: Partial<Parameters<typeof OrganizationIntegrationsFixture>[0]>
@@ -168,7 +215,7 @@ describe('ScmMessaging', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
     );
-    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(warning)).not.toBeInTheDocument());
   });
 
   it('marks the channel stale without resetting session state when channel-validate returns false', async () => {
@@ -351,12 +398,6 @@ describe('ScmMessaging', () => {
         status: 'active',
       }),
     ]);
-    // A connected-but-unconfigured row auto-expands its channel picker, which
-    // loads the integration's channels.
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {results: []},
-    });
 
     renderMessaging(jest.fn(), {mode: 'unconfigured'});
 
@@ -365,26 +406,26 @@ describe('ScmMessaging', () => {
     expect(screen.getByText('msteams')).toBeInTheDocument();
   });
 
-  it('Continue is disabled when no destination is configured', () => {
+  it('Continue is not rendered when no destination is configured', () => {
     renderMessaging(jest.fn(), {mode: 'unconfigured'});
-    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+    expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
   });
 
-  it('Continue is enabled once a configured destination revalidates', async () => {
+  it('Continue is disabled while revalidation is in flight', async () => {
     mockIntegration();
     mockChannelValidate(true);
     renderMessaging(jest.fn(), selectedMessagingSetup);
 
-    // Revalidation is still in flight on first paint, so the restored
-    // destination is not submittable yet.
+    // Revalidation is still in flight on first paint — Continue is visible but disabled.
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
 
+    // Once revalidation passes, Continue becomes enabled.
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
     );
   });
 
-  it('Continue stays disabled while the saved channel is stale', async () => {
+  it('Continue is disabled while the saved channel is stale', async () => {
     mockIntegration();
     mockChannelValidate(false);
     renderMessaging(jest.fn(), selectedMessagingSetup);
@@ -397,7 +438,7 @@ describe('ScmMessaging', () => {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 
-  it('Continue stays disabled when the saved destination cannot be checked', async () => {
+  it('Continue is disabled when the saved destination cannot be checked', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/',
       statusCode: 500,
@@ -418,7 +459,8 @@ describe('ScmMessaging', () => {
     const onComplete = jest.fn();
     renderMessaging(jest.fn(), selectedMessagingSetup, onComplete);
 
-    const continueButton = await screen.findByRole('button', {name: 'Continue'});
+    // Continue is visible immediately but disabled until revalidation succeeds.
+    const continueButton = screen.getByRole('button', {name: 'Continue'});
     await waitFor(() => expect(continueButton).toBeEnabled());
 
     await userEvent.click(continueButton);
@@ -466,5 +508,188 @@ describe('ScmMessaging', () => {
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
     expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+  });
+
+  describe('exclusive mode (activeRow)', () => {
+    it('entering configuring mode hides sibling rows and the footer; Cancel restores them', async () => {
+      mockProviderQueries([slackIntegration, discordIntegration, msteamsIntegration]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {results: []},
+      });
+
+      renderMessaging(jest.fn(), {mode: 'unconfigured'});
+
+      // All three rows visible initially.
+      expect(await screen.findByText('slack')).toBeInTheDocument();
+      expect(screen.getByText('discord')).toBeInTheDocument();
+      expect(screen.getByText('msteams')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: /Choose destination for slack/})
+      );
+
+      // Only slack row visible; footer gone.
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
+
+      // Cancel returns to full list.
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+      expect(await screen.findByText('discord')).toBeInTheDocument();
+      expect(screen.getByText('msteams')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+    });
+
+    it('entering removing mode hides sibling rows and the footer; Cancel restores them', async () => {
+      const slackSetup: ScmMessagingSetup = {
+        mode: 'selected',
+        providerKey: 'slack',
+        integrationId: 'slack-1',
+        channelId: 'C123',
+        channelName: '#alerts',
+      };
+      mockProviderQueries([slackIntegration, discordIntegration, msteamsIntegration]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/',
+        body: slackIntegration,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channel-validate/',
+        body: {valid: true},
+      });
+
+      renderMessaging(jest.fn(), slackSetup);
+
+      expect(await screen.findByText('slack')).toBeInTheDocument();
+      expect(screen.getByText('discord')).toBeInTheDocument();
+      expect(screen.getByText('msteams')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /Remove/}));
+
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+      expect(await screen.findByText('discord')).toBeInTheDocument();
+      expect(screen.getByText('msteams')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+    });
+
+    it('clears stale removing activeRow when the destination is cleared externally', async () => {
+      const slackSetup: ScmMessagingSetup = {
+        mode: 'selected',
+        providerKey: 'slack',
+        integrationId: 'slack-1',
+        channelId: 'C123',
+        channelName: '#alerts',
+      };
+      mockProviderQueries([slackIntegration]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/',
+        body: slackIntegration,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channel-validate/',
+        body: {valid: true},
+      });
+
+      function MessagingSetupController() {
+        const [setup, setSetup] = useState<ScmMessagingSetup>(slackSetup);
+        return (
+          <Fragment>
+            <button onClick={() => setSetup({mode: 'unconfigured'})}>
+              Clear destination
+            </button>
+            <ScmMessaging
+              messagingSetup={setup}
+              onMessagingSetupChange={setSetup}
+              selectedPlatform={selectedPlatform}
+            />
+          </Fragment>
+        );
+      }
+
+      render(<MessagingSetupController />);
+
+      expect(await screen.findByText('slack')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+
+      // Enter removing mode — footer disappears.
+      await userEvent.click(screen.getByRole('button', {name: /Remove/}));
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
+
+      // External clear simulates validation reset (e.g. integration went inactive).
+      await userEvent.click(screen.getByRole('button', {name: 'Clear destination'}));
+
+      // derivedActiveRow detects the stale removing state and returns null — footer reappears.
+      expect(
+        await screen.findByRole('button', {name: 'Set up later'})
+      ).toBeInTheDocument();
+    });
+
+    it('auto-opens the channel picker after a successful install', async () => {
+      let pipelineOnComplete: ((data: any) => void) | undefined;
+      jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation((opts: any) => {
+        pipelineOnComplete = opts.onComplete;
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {results: []},
+      });
+
+      renderMessaging(jest.fn(), {mode: 'unconfigured'});
+
+      expect(
+        await screen.findByRole('button', {name: /Connect slack/i})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect slack/i}));
+
+      let releaseRefetch = () => {};
+      const refetchGate = new Promise<void>(resolve => {
+        releaseRefetch = resolve;
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+        body: [slackIntegration],
+        asyncDelay: refetchGate,
+      });
+
+      act(() => pipelineOnComplete?.(slackIntegration));
+
+      // Exclusive before the refetch settles — footer and siblings must not
+      // stay up during that window.
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+
+      act(() => releaseRefetch());
+
+      // Refetch settled: picker auto-opened (its "Workspace" label), Connect
+      // gone, footer still hidden.
+      expect(await screen.findByText('Workspace')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /Connect slack/i})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
+    });
   });
 });

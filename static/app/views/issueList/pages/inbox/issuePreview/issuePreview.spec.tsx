@@ -97,6 +97,78 @@ describe('IssuePreview', () => {
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
   });
 
+  it('labels and links each CTA when multiple pull requests exist', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          coding_agents: {
+            'agent-1': {
+              id: 'agent-1',
+              name: 'Cursor',
+              provider: 'cursor_background_agent',
+              started_at: '2026-08-17T12:00:00Z',
+              status: 'completed',
+              results: [
+                {
+                  description: 'Fixed',
+                  repo_full_name: 'example/repo-name',
+                  repo_provider: 'github',
+                  pr_number: 11,
+                  pr_url: 'https://github.com/example/repo-name/pull/11',
+                },
+              ],
+            },
+          },
+        }),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '10',
+              dateCreated: '2026-08-16T12:00:00Z',
+              externalUrl: 'https://github.com/example/repo-name/pull/10',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-08-16T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
+          {
+            ...PullRequestFixture({
+              id: '11',
+              dateCreated: '2026-08-17T12:00:00Z',
+              externalUrl: 'https://github.com/example/repo-name/pull/11',
+            }),
+            attribution: {id: 'seer', type: 'seer'},
+            checksStatus: null,
+            dateLinked: '2026-08-17T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'View PR #11'})).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo-name/pull/11'
+    );
+    expect(screen.getByRole('button', {name: 'View PR #10'})).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo-name/pull/10'
+    );
+    expect(screen.getByRole('button', {name: 'Restart Autofix'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+  });
+
   it('offers a retry instead of a PR when Autofix produced no code changes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,

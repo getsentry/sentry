@@ -6,6 +6,7 @@ from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import NamedTuple, cast
+from uuid import UUID
 
 from django.db.models import Exists, OuterRef, Q
 from pydantic import ValidationError
@@ -51,6 +52,8 @@ from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
     PullRequestPayload,
     RootCausePayload,
     RunPayload,
+    ScmInfoResponse,
+    ScmInfoRunPayload,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import (
@@ -85,6 +88,10 @@ _HIDDEN_PULL_REQUEST_STATES = (PullRequestLifecycleState.CLOSED,)
 _VISIBLE_PULL_REQUEST_FILTER = Q(pull_request__state__isnull=True) | ~Q(
     pull_request__state__in=_HIDDEN_PULL_REQUEST_STATES
 )
+
+# Agent sources that surface in the autofix overview. `autofix_rca` no longer gets new
+# writes; removable from these filters by 2026-11-11 (data retention).
+_AUTOFIX_AGENT_SOURCES = ("autofix", "autofix_rca")
 
 # The three issue-based sort params, mapped to their search-backend names.
 # Any other value (seer default, empty, unknown) keeps the default order.
@@ -354,6 +361,8 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
 
         start, end = get_date_range_from_stats_period(request.GET)
         expand = request.GET.getlist("expand")
+        # TODO: remove the scmInfo path once all clients fetch PR/SCM data from
+        # OrganizationSeerAutofixScmInfoEndpoint (frontend windowed rollout complete).
         include_scm_info = "scmInfo" in expand
         include_issue_stats = "issueStats" in expand
         include_status = "status" in expand
@@ -448,6 +457,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                     "hasReposConnected": repo_eligibility_by_project[
                         project.id
                     ].has_repos_connected,
+                    "hasNonGithubRepo": repo_eligibility_by_project[project.id].has_non_github_repo,
                 }
                 for project in projects
             ]
@@ -495,10 +505,9 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
     ) -> dict[int, _RunMilestones]:
         pr_links = SeerRunPullRequest.objects.filter(seer_run_id=OuterRef("seer_run_id"))
         milestone_rows = (
-            # writes for autofix_rca no longer happen, we should be able to remove this from the query by 11/11/2026 latest (data retention)
             SeerRunMilestone.objects.filter(
                 seer_run__organization=organization,
-                seer_run__agent__source__in=("autofix", "autofix_rca"),
+                seer_run__agent__source__in=_AUTOFIX_AGENT_SOURCES,
                 seer_run__agent__group_id__isnull=False,
                 seer_run__agent__project_id__in=project_ids,
                 seer_run__last_triggered_at__range=(start, end),
@@ -560,3 +569,42 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         # Candidates with no in-window events are absent from Snuba; keep them, sorted last.
         ordered_ids.extend(gid for gid in latest_run_per_group if gid not in seen)
         return {gid: latest_run_per_group[gid] for gid in ordered_ids}
+
+
+@cell_silo_endpoint
+class OrganizationSeerAutofixScmInfoEndpoint(OrganizationEndpoint):
+    # Split from the overview's `scmInfo` expand so the slow GitHub GraphQL work
+    # runs only for the window of runs a client is actually viewing. Keyed by seerRunId.
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    owner = ApiOwner.ML_AI
+    permission_classes = (OrganizationSeerAutofixOverviewPermission,)
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        projects = self.get_projects(request, organization)
+        project_ids = [p.id for p in projects]
+
+        try:
+            run_uuids = [UUID(run_id) for run_id in request.GET.getlist("runIds")]
+        except ValueError:
+            return Response({"detail": "Invalid runIds."}, status=400)
+
+        # Scope to accessible projects (and autofix sources) so runIds can't reach PR
+        # data outside the caller's overview; runIds that don't resolve are omitted.
+        runs = SeerRun.objects.filter(
+            uuid__in=run_uuids,
+            organization=organization,
+            agent__project_id__in=project_ids,
+            agent__source__in=_AUTOFIX_AGENT_SOURCES,
+        )
+        uuid_by_run_id = {run.id: str(run.uuid) for run in runs}
+
+        pull_requests_by_seer_run_id = _pull_requests_by_seer_run_id(
+            list(uuid_by_run_id), include_scm_info=True
+        )
+
+        scm_info_by_run_id: dict[str, ScmInfoRunPayload] = {
+            run_uuid: {"pullRequests": pull_requests_by_seer_run_id.get(run_id, [])}
+            for run_id, run_uuid in uuid_by_run_id.items()
+        }
+        response: ScmInfoResponse = {"scmInfoByRunId": scm_info_by_run_id}
+        return Response(response)

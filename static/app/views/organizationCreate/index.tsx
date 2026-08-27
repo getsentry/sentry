@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSignupLocalities} from 'sentry/utils/cells';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -72,7 +73,7 @@ function OrganizationCreate() {
   const mutation = useMutation({
     mutationFn: (data: CreateOrganizationPayload) =>
       fetchMutation<OrganizationSummary>({
-        url: '/organizations/',
+        url: getApiUrl('/organizations/'),
         method: 'POST',
         data,
         options: {host: links.sentryUrl},
