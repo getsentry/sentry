@@ -41,7 +41,6 @@ def emit_pr_ready_for_review(
     from sentry.seer.entrypoints.operator import (
         SeerAutofixOperator,
         process_autofix_updates,
-        record_seer_activity,
     )
     from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 
@@ -67,17 +66,11 @@ def emit_pr_ready_for_review(
                 "autofix.pr_ready_for_review.process_autofix_updates",
                 tags={"event_type": str(SentryAppEventType.SEER_PR_READY_FOR_REVIEW)},
             )
-            record_seer_activity(
-                group=group,
-                event_type=SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
-                event_payload=payload,
-            )
             process_autofix_updates.apply_async(
                 kwargs={
                     "event_type": SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
                     "event_payload": payload,
                     "organization_id": organization.id,
-                    "activity_already_recorded": True,
                 }
             )
     except Exception:
