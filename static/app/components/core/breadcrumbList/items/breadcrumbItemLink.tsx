@@ -27,6 +27,7 @@ export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLi
             to={to}
             analyticsEventKey="breadcrumbs.link.clicked"
             analyticsEventName="Breadcrumbs: Link Clicked"
+            analyticsParams={{organization: null}}
             data-test-id="breadcrumb-link"
             {...styleProps}
           >
