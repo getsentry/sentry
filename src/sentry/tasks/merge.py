@@ -85,6 +85,7 @@ def start_merge_groups(
     name="sentry.tasks.merge.merge_groups",
     namespace=issues_merge_tasks,
     retry=Retry(delay=60 * 5),
+    processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
 @track_group_async_operation
