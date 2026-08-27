@@ -40,7 +40,7 @@ export function useDrawerContentContext() {
  */
 interface DrawerPanelProps extends Pick<
   DrawerOptions,
-  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'resizable' | 'onClose'
+  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'drawerMaxWidth' | 'resizable' | 'onClose'
 > {
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
@@ -55,6 +55,7 @@ function DrawerPanel({
   children,
   onClose,
   drawerWidth,
+  drawerMaxWidth,
   drawerKey,
   resizable = true,
 }: DrawerPanelProps) {
@@ -62,6 +63,7 @@ function DrawerPanel({
     useDrawerResizing({
       drawerKey,
       drawerWidth,
+      drawerMaxWidth,
       enabled: resizable,
     });
   const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);

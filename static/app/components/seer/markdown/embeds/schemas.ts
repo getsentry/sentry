@@ -212,7 +212,16 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Replay',
+        label: 'Inline',
+        level: 'inline',
+        data: {
+          id: '4c1f2e3d1234567890',
+          eventTimestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+      {
+        label: 'Block',
+        level: 'block',
         data: {
           id: '4c1f2e3d1234567890',
           eventTimestamp: '2026-08-25T16:37:12Z',

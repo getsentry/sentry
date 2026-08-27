@@ -271,6 +271,29 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   // on a Code Mode call that was suppressed.
   let rendered = 0;
 
+  // Whether any Code Mode call in this block is still running. Asked of the block rather than of
+  // each call: the placeholder says the block is working, so several in-flight calls warrant one
+  // spinner, not one each, and it belongs after every row rather than wherever the running call
+  // happens to sit in the list.
+  //
+  // Read off each call's own tool result rather than off `block.loading` alone, which stays true
+  // until every call responds. Loading is still required: a call that never reported at all (an
+  // interrupted run replayed from history) has no result either, and must not spin forever.
+  //
+  // An id is required to count as in flight, matching how `liveCallsForCallId` decides what is
+  // pending. Results are matched to calls by id, so a call without one can never be observed
+  // settling — treating it as running would spin for as long as the block claims to be loading.
+  // Seer synthesizes an id for every tool call, so this is a guard on the optional wire type
+  // rather than a case that is expected to arrive.
+  const isCodeModeRunning =
+    Boolean(block.loading) &&
+    (block.message.tool_calls ?? []).some(
+      toolCall =>
+        CODE_MODE_TOOLS.has(toolCall.function) &&
+        toolCall.id &&
+        !settledCallIds.has(toolCall.id)
+    );
+
   // `flatMap` into one row per call, each in its own MessageRow. How the run partitioned work into
   // blocks and tool calls is invisible to the reader, so it must not show up as spacing: one
   // execute that made three calls has to look exactly like three that made one each.
@@ -424,7 +447,9 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
 
         // Nothing to say: a Code Mode call whose label is suppressed and which reported no calls,
-        // todos, links or markdown would render an empty row with a lone status tick.
+        // todos, links or markdown would render an empty row with a lone status tick. A call that
+        // is still running contributes no row of its own either — the block's placeholder below
+        // covers it, wherever in the list the running call happens to be.
         // Use residual nav items, not the pre-pairing list: consumed destinations no longer render.
         const hasContent =
           Boolean(toolString) ||
@@ -506,6 +531,18 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           </MessageRow>
         ));
       })}
+      {/*
+        The same placeholder the block renders before its tool calls attach, kept on screen for as
+        long as a Code Mode call is still running. Continuity is the point: the spinner does not
+        move, resize or change glyph at the moment a call attaches, so there is no frame where the
+        answer looks like it stopped. It brings its own MessageRow, so it sits beside the rows
+        rather than inside one.
+
+        It reads as the block still working, which is not what a call row's tick says — that is
+        per-row status, and it settles to a checkmark while the execute keeps going. Both can be on
+        screen at once for the same reason a spinning row can sit under an active heading.
+      */}
+      {isCodeModeRunning && <MessagePlaceholder />}
     </Fragment>
   );
 }

@@ -155,6 +155,8 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/auth/$'),
   new RegExp('^api/0/auth/config/$'),
   new RegExp('^api/0/auth/login/$'),
+  new RegExp('^api/0/auth/recovery/$'),
+  new RegExp('^api/0/auth/recovery/confirm/$'),
   new RegExp('^api/0/auth/2fa/$'),
   new RegExp('^api/0/auth/2fa/challenge/$'),
   new RegExp('^api/0/auth/validate/$'),

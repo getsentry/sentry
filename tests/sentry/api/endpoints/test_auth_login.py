@@ -1,7 +1,12 @@
+from datetime import timedelta
 from unittest.mock import ANY, MagicMock, patch
 
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
+from rest_framework.response import Response
+from rest_framework.test import APIClient
 
 from sentry.auth.authenticators.base import ActivationChallengeResult, ActivationMessageResult
 from sentry.auth.authenticators.sms import SmsInterface
@@ -9,6 +14,8 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.lostpasswordhash import LostPasswordHash
+from sentry.users.models.useremail import UserEmail
 from sentry.utils.auth import SsoSession
 
 
@@ -511,3 +518,250 @@ class AuthLoginEndpointTest(APITestCase):
         assert [str(s) for s in response.data["errors"]["__all__"]] == [
             "You have made too many failed authentication attempts. Please try again later."
         ]
+
+
+@control_silo_test
+class AuthRecoveryEndpointTest(APITestCase):
+    def request_recovery(
+        self, user: str | None = None, client: APIClient | None = None
+    ) -> Response:
+        return (client or self.client).post(
+            reverse("sentry-api-0-auth-recovery"),
+            data={"user": user or self.user.email},
+        )
+
+    def confirm_recovery(
+        self,
+        token: str,
+        password: str = "new-secure-password",
+        client: APIClient | None = None,
+    ) -> Response:
+        return (client or self.client).post(
+            reverse("sentry-api-0-auth-recovery-confirm"),
+            data={"userId": self.user.id, "token": token, "password": password},
+        )
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_request_recovery(self, send_recovery_email: MagicMock) -> None:
+        response = self.request_recovery()
+
+        assert response.status_code == 202
+        assert response.data == {
+            "detail": "If an eligible account exists, a recovery email has been sent."
+        }
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+        send_recovery_email.assert_called_once_with(self.user, password_hash.hash, "127.0.0.1")
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_request_recovery_does_not_reveal_account_status(
+        self, send_recovery_email: MagicMock
+    ) -> None:
+        unknown_response = self.request_recovery("unknown@example.com")
+        self.user.update(is_suspended=True)
+        suspended_response = self.request_recovery()
+
+        assert unknown_response.status_code == 202
+        assert suspended_response.status_code == 202
+        assert unknown_response.data == suspended_response.data
+        assert not LostPasswordHash.objects.exists()
+        send_recovery_email.assert_not_called()
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_request_recovery_does_not_send_for_managed_account(
+        self, send_recovery_email: MagicMock
+    ) -> None:
+        self.user.update(is_managed=True)
+
+        response = self.request_recovery()
+
+        assert response.status_code == 202
+        assert not LostPasswordHash.objects.exists()
+        send_recovery_email.assert_not_called()
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_request_recovery_does_not_send_for_ambiguous_email(
+        self, send_recovery_email: MagicMock
+    ) -> None:
+        """Do not choose an account when legacy duplicate primary emails are ambiguous."""
+        shared_email = "shared@example.com"
+        self.user.update(email=shared_email)
+        other_user = self.create_user(email="other@example.com")
+        other_user.update(email=shared_email)
+
+        response = self.request_recovery(shared_email)
+
+        assert response.status_code == 202
+        assert not LostPasswordHash.objects.exists()
+        send_recovery_email.assert_not_called()
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_request_recovery_rotates_expired_token(self, send_recovery_email: MagicMock) -> None:
+        self.request_recovery()
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+        expired_token = password_hash.hash
+        password_hash.update(date_added=timezone.now() - timedelta(hours=2))
+
+        response = self.request_recovery()
+
+        assert response.status_code == 202
+        password_hash.refresh_from_db()
+        assert password_hash.hash != expired_token
+        assert send_recovery_email.call_count == 2
+        assert send_recovery_email.call_args.args[1] == password_hash.hash
+
+    @patch(
+        "sentry.api.endpoints.auth_recovery.ratelimiter.backend.is_limited",
+        return_value=True,
+    )
+    def test_request_recovery_rate_limited(self, is_limited: MagicMock) -> None:
+        response = self.client.post(reverse("sentry-api-0-auth-recovery"), data={})
+
+        assert response.status_code == 429
+        assert response.data == {"detail": "Too many password recovery attempts"}
+
+    @patch("sentry.api.endpoints.auth_recovery.capture_security_activity")
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_confirm_recovery_changes_password_without_login(
+        self, send_recovery_email: MagicMock, capture_security_activity: MagicMock
+    ) -> None:
+        previous_nonce = self.user.session_nonce
+        user_email = UserEmail.objects.get(user=self.user, email=self.user.email)
+        user_email.update(is_verified=False)
+        self.request_recovery()
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.confirm_recovery(password_hash.hash)
+
+        assert response.status_code == 204
+        assert response.content == b""
+        assert "_auth_user_id" not in self.client.session
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+        self.user.refresh_from_db()
+        user_email.refresh_from_db()
+        assert self.user.check_password("new-secure-password")
+        assert self.user.session_nonce != previous_nonce
+        assert user_email.is_verified
+        capture_security_activity.assert_called_once_with(
+            account=self.user,
+            type="password-changed",
+            actor=self.user,
+            ip_address="127.0.0.1",
+            send_email=True,
+        )
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_confirm_recovery_invalidates_existing_session(
+        self, send_recovery_email: MagicMock
+    ) -> None:
+        self.login_as(self.user)
+        assert self.client.get(reverse("sentry-api-0-auth")).status_code == 200
+        recovery_client = APIClient()
+        self.request_recovery(client=recovery_client)
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+
+        response = self.confirm_recovery(password_hash.hash, client=recovery_client)
+
+        assert response.status_code == 204
+        assert self.client.get(reverse("sentry-api-0-auth")).status_code == 400
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_confirm_recovery_token_cannot_be_replayed(
+        self, send_recovery_email: MagicMock
+    ) -> None:
+        self.request_recovery()
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+
+        first_response = self.confirm_recovery(password_hash.hash)
+        second_response = self.confirm_recovery(password_hash.hash, "another-secure-password")
+
+        assert first_response.status_code == 204
+        assert second_response.status_code == 400
+        assert second_response.data == {"detail": "Invalid or expired recovery token"}
+        self.user.refresh_from_db()
+        assert self.user.check_password("new-secure-password")
+
+    def test_confirm_recovery_rejects_invalid_token(self) -> None:
+        previous_password = self.user.password
+
+        response = self.confirm_recovery("invalid-token")
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid or expired recovery token"}
+        self.user.refresh_from_db()
+        assert self.user.password == previous_password
+        assert "_auth_user_id" not in self.client.session
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_confirm_recovery_rejects_expired_token(self, send_recovery_email: MagicMock) -> None:
+        previous_password = self.user.password
+        self.request_recovery()
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+        password_hash.update(date_added=timezone.now() - timedelta(hours=2))
+
+        response = self.confirm_recovery(password_hash.hash)
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid or expired recovery token"}
+        self.user.refresh_from_db()
+        assert self.user.password == previous_password
+        assert "_auth_user_id" not in self.client.session
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_confirm_recovery_rejects_suspended_account(
+        self, send_recovery_email: MagicMock
+    ) -> None:
+        previous_password = self.user.password
+        self.request_recovery()
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+        self.user.update(is_suspended=True)
+
+        response = self.confirm_recovery(password_hash.hash)
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid or expired recovery token"}
+        self.user.refresh_from_db()
+        assert self.user.password == previous_password
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_confirm_recovery_rejects_managed_account(self, send_recovery_email: MagicMock) -> None:
+        previous_password = self.user.password
+        self.request_recovery()
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+        self.user.update(is_managed=True)
+
+        response = self.confirm_recovery(password_hash.hash)
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid or expired recovery token"}
+        self.user.refresh_from_db()
+        assert self.user.password == previous_password
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+
+    @patch(
+        "sentry.api.endpoints.auth_recovery.ratelimiter.backend.is_limited",
+        return_value=True,
+    )
+    def test_confirm_recovery_rate_limited(self, is_limited: MagicMock) -> None:
+        response = self.client.post(reverse("sentry-api-0-auth-recovery-confirm"), data={})
+
+        assert response.status_code == 429
+        assert response.data == {"detail": "Too many password recovery attempts"}
+
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}
+        ]
+    )
+    @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
+    def test_confirm_recovery_validates_password(self, send_recovery_email: MagicMock) -> None:
+        self.request_recovery()
+        password_hash = LostPasswordHash.objects.get(user=self.user)
+
+        response = self.confirm_recovery(password_hash.hash, self.user.username)
+
+        assert response.status_code == 400
+        assert response.data == {"password": ["The password is too similar to the username."]}
+        assert LostPasswordHash.objects.filter(user=self.user).exists()
+        assert "_auth_user_id" not in self.client.session

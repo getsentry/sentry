@@ -23,13 +23,13 @@ from django.utils.translation import gettext_lazy as _
 
 from flagpole.conditions import glob_star_match
 from sentry import audit_log, features, options
-from sentry import ratelimits as ratelimiter
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.email_verification import (
     hash_email,
     is_email_verified_by_trusted_provider,
+    is_verification_send_rate_limited,
     send_signup_verification_email,
 )
 from sentry.auth.exceptions import (
@@ -127,13 +127,6 @@ def _sso_verification_required(email: str) -> bool:
     in_allowlist = any(glob_star_match(p, email) for p in force_emails)
 
     return features.has("auth:email-verification-at-sso-signup") or in_allowlist
-
-
-def _sso_verification_send_rate_limited(email: str) -> bool:
-    """Throttle verification email sends per email address"""
-    return ratelimiter.backend.is_limited(
-        f"signup-verify-send:email:{hash_email(email)}", limit=5, window=300
-    )
 
 
 @dataclass
@@ -581,9 +574,9 @@ class AuthIdentityHandler:
         If rate limited, match the rate limit response in BaseSignupVerificationView.
         """
         if not getattr(state, "verification_email_sent", False):
-            if _sso_verification_send_rate_limited(email):
+            if is_verification_send_rate_limited(email):
                 logger.warning(
-                    "sso_signup.verification_send_rate_limited",
+                    "sso_signup_verification.send_rate_limited",
                     extra={"email_hash": hash_email(email)},
                 )
                 return self._respond(

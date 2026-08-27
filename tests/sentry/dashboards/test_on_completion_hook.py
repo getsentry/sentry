@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+from pydantic import ValidationError
+
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.dashboards.on_completion_hook import (
     FIX_PROMPT,
@@ -109,6 +112,20 @@ def _make_artifact(**widget_overrides: Any) -> GeneratedDashboard:
         **widget_overrides,
     }
     return GeneratedDashboard(title="Dashboard", widgets=[widget])
+
+
+def test_generated_widget_rejects_height_below_display_type_minimum() -> None:
+    with pytest.raises(ValidationError, match="Height must be at least 2 for line widgets"):
+        _make_artifact(layout={"x": 0, "y": 0, "w": 3, "h": 1, "min_h": 1})
+
+
+def test_generated_widget_derives_min_height_from_display_type() -> None:
+    artifact = _make_artifact(
+        display_type="big_number",
+        layout={"x": 0, "y": 0, "w": 2, "h": 1, "min_h": 2},
+    )
+
+    assert artifact.widgets[0].layout.min_h == 1
 
 
 class TestFormatSerializerErrors(TestCase):

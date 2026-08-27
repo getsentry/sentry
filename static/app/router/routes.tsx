@@ -2324,6 +2324,10 @@ function buildRoutes(): RouteObject[] {
       path: 'investigations/',
       component: make(() => import('sentry/views/investigations')),
     },
+    {
+      path: 'investigations/:investigationId/',
+      component: make(() => import('sentry/views/investigations/detail')),
+    },
     // Unknown /explore/ subpaths redirect to the default explore view, rather
     // than falling through to the `/:orgId/:projectId/` legacy redirect and
     // rendering "The project you were looking for was not found".
@@ -2347,12 +2351,6 @@ function buildRoutes(): RouteObject[] {
     path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
-  };
-
-  const investigationRoutes: SentryRouteObject = {
-    path: '/seer/investigation/:investigationId/',
-    withOrgPath: true,
-    component: make(() => import('sentry/views/investigations/detail')),
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2831,7 +2829,6 @@ function buildRoutes(): RouteObject[] {
       domainViewRoutes,
       tracesRoutes,
       exploreRoutes,
-      investigationRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
       gettingStartedRoutes,

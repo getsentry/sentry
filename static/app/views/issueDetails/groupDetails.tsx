@@ -25,6 +25,7 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -790,7 +791,16 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   useEffect(() => {
     const fetchLatestEvent = async () => {
       const event = await api.requestPromise(
-        `/organizations/${organization.slug}/issues/${props.group?.id}/events/latest/`
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              issueId: String(props.group?.id),
+              eventId: 'latest',
+            },
+          }
+        )
       );
       setInjectedEvent(event);
     };
