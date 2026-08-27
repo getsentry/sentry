@@ -300,7 +300,9 @@ function OnboardingContent({
                     })}
                     {jsFrameworkDocs?.platformOptions && (
                       <PlatformOptionDropdown
-                        platformOptions={jsFrameworkDocs?.platformOptions}
+                        platformOptions={pickPlatformOptions(
+                          jsFrameworkDocs.platformOptions
+                        )}
                         disabled={setupMode === 'jsLoader'}
                       />
                     )}
