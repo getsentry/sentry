@@ -260,7 +260,7 @@ const SpanDetailsToggleCell = styled(DataTable.Cell)`
 const SpanDetailsCell = styled(DataTable.Cell)`
   background-color: ${p => p.theme.colors.gray100};
   grid-column: 1 / -1;
-  padding-block: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md};
 `;
 
 export function addValidatedFieldTypesToMeta({
