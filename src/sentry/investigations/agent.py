@@ -33,10 +33,12 @@ from sentry.investigations.services.investigations import (
     mark_downstream_blocks_stale,
 )
 from sentry.investigations.telemetry import (
+    record_execution_cancelled,
     record_execution_completed,
     record_execution_failed,
     record_execution_started,
     record_investigation_completed,
+    record_investigation_failed,
     record_title_generation_completed,
     record_title_generation_failed,
 )
@@ -651,6 +653,12 @@ def cancel_investigation_executions_after_failure(
         ):
             return
 
+        failure_reason = str((failed_execution.error or {}).get("code") or "execution_failed")
+        transaction.on_commit(
+            partial(record_investigation_failed, investigation, reason=failure_reason),
+            using=database,
+        )
+
         active_executions = list(
             InvestigationBlockExecution.objects.select_for_update(of=("self",))
             .filter(
@@ -658,7 +666,7 @@ def cancel_investigation_executions_after_failure(
                 status__in=ACTIVE_BLOCK_EXECUTION_STATUSES,
             )
             .exclude(id=failed_execution.id)
-            .select_related("seer_run")
+            .select_related("block__investigation", "seer_run")
             .order_by("id")
         )
         completed_at = timezone.now()
@@ -675,6 +683,14 @@ def cancel_investigation_executions_after_failure(
         )
 
         for execution in active_executions:
+            transaction.on_commit(
+                partial(
+                    record_execution_cancelled,
+                    execution,
+                    reason="investigation_execution_failed",
+                ),
+                using=database,
+            )
             if execution.seer_run is None or execution.seer_run.seer_run_state_id is None:
                 continue
             transaction.on_commit(
@@ -995,7 +1011,6 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         ):
             return
         locked.update(title_generation_status=TitleGenerationStatus.PENDING)
-    record_investigation_completed(locked)
 
     title_seer_run_state_id: int | None = None
 
@@ -1066,6 +1081,7 @@ def synchronize_title(investigation: Investigation, state: SeerRunState) -> None
     investigation.update(**updates)
     if metadata is not None:
         record_title_generation_completed(investigation)
+        record_investigation_completed(investigation)
     else:
         record_title_generation_failed(
             investigation,
