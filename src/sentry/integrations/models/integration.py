@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.db import IntegrityError, models, router, transaction
+from django.utils import timezone
 
 from sentry import features
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
@@ -37,6 +39,13 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
+
+# How long a row may sit in DELETION_IN_PROGRESS (measured from `date_updated`,
+# which the deletion claim sets) before a re-installation is allowed to rescue
+# it. Deleting a single OrganizationIntegration's children normally takes
+# minutes; scheduled deletions are retried on a much longer cadence, so a row
+# older than this is almost certainly from a failed deletion run.
+STUCK_DELETION_THRESHOLD = timedelta(hours=6)
 
 
 @control_silo_model
@@ -160,23 +169,57 @@ class Integration(DefaultFieldsModelExisting):
                         reactivated = bool(
                             OrganizationIntegration.objects.filter(
                                 id=org_integration.id, status=ObjectStatus.PENDING_DELETION
-                            ).update(status=ObjectStatus.ACTIVE)
+                            ).update(status=ObjectStatus.ACTIVE, date_updated=timezone.now())
                         )
+                    if not reactivated:
+                        org_integration.refresh_from_db()
+
+                        # Escape hatch for stuck deletions. The deletion claim sets
+                        # `date_updated` when it flips the row to DELETION_IN_PROGRESS
+                        # (queryset updates don't auto-bump it, so that timestamp is
+                        # the claim time). If the deletion has not completed after
+                        # STUCK_DELETION_THRESHOLD we assume it failed and let the
+                        # user rescue the row rather than being locked out until the
+                        # deletion is retried. The CAS includes the staleness check,
+                        # so a live deletion that just (re)claimed the row won't
+                        # match. A retried deletion is also safe afterwards: its
+                        # claim CAS requires a deletable status and the row is ACTIVE
+                        # again. The rescued row may have lost some child relations
+                        # (identities, repo associations) torn down by the partial
+                        # deletion; that's preferable to a permanently blocked
+                        # re-install.
+                        if org_integration.status == ObjectStatus.DELETION_IN_PROGRESS:
+                            with unguarded_write(
+                                using=router.db_for_write(OrganizationIntegration)
+                            ):
+                                reactivated = bool(
+                                    OrganizationIntegration.objects.filter(
+                                        id=org_integration.id,
+                                        status=ObjectStatus.DELETION_IN_PROGRESS,
+                                        date_updated__lt=timezone.now() - STUCK_DELETION_THRESHOLD,
+                                    ).update(
+                                        status=ObjectStatus.ACTIVE, date_updated=timezone.now()
+                                    )
+                                )
+                            if reactivated:
+                                logger.warning(
+                                    "add-organization-rescued-stuck-deletion",
+                                    extra={
+                                        "organization_id": organization_id,
+                                        "integration_id": self.id,
+                                        "organization_integration_id": org_integration.id,
+                                        "stuck_since": org_integration.date_updated,
+                                    },
+                                )
+
                     if reactivated:
                         org_integration.status = ObjectStatus.ACTIVE
                         ScheduledDeletion.cancel(org_integration)
-                    else:
-                        org_integration.refresh_from_db()
 
-                    # The deletion task has already claimed the row. Exit early. We
-                    # can not honor the re-installation request.
-                    #
-                    # There is a chance that a failed deletion leaves this
-                    # stuck. Deletes are periodically retried but there could
-                    # be significant time delay. Ideally we're not mutating shared
-                    # state in this way. We should be creating new integration rows
-                    # not fighting over the old one. Or just not deleting it at all
-                    # but I don't know enough to determine the side effects.
+                    # The deletion task claimed the row recently. Exit early. We
+                    # can not honor the re-installation request while children are
+                    # actively being torn down; the stuck-deletion escape hatch
+                    # above handles the case where the deletion never finishes.
                     if org_integration.status == ObjectStatus.DELETION_IN_PROGRESS:
                         logger.info(
                             "add-organization-deletion-in-progress",

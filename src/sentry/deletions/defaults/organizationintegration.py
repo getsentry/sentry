@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 from django.db import router
+from django.utils import timezone
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -56,7 +57,15 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
         with unguarded_write(using=router.db_for_write(OrganizationIntegration)):
             claimed = OrganizationIntegration.objects.filter(
                 id=instance.id, status__in=DELETABLE_STATUSES
-            ).update(status=ObjectStatus.DELETION_IN_PROGRESS)
+            ).update(
+                # `date_updated` is not auto-bumped by queryset updates. We set it
+                # explicitly because the re-installation path uses it to detect
+                # stuck deletions (see Integration.add_organization): a row left
+                # in DELETION_IN_PROGRESS long past this timestamp is assumed
+                # abandoned and can be rescued.
+                status=ObjectStatus.DELETION_IN_PROGRESS,
+                date_updated=timezone.now(),
+            )
         if not claimed:
             # The only way the row's status is not one of the DELETABLE_STATUSES
             # is if a concurrent writer flipped it to ACTIVE (re-installation) or
