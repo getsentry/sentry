@@ -98,10 +98,8 @@ export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
 export interface CallRecord {
   id: number;
   /**
-   * `api` and `lib` are calls seer observed. `note` is a line the agent wrote itself, about work
-   * no call describes — a correlation, a join, a decision between calls.
-   *
-   * Read additively: an unknown kind from a newer seer must be ignored, not break the render.
+   * `api` and `lib` are observed calls; `note` is a line the agent wrote itself. Read additively:
+   * an unknown kind from a newer seer must be ignored, not break the render.
    */
   kind: 'api' | 'lib' | 'note';
   /** Bounded slice of the request body, if the call had one. */
@@ -111,9 +109,8 @@ export interface CallRecord {
   /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
   error?: string;
   /**
-   * What the agent said it was trying to accomplish, in its own words. Carried beside `title`,
-   * never instead of it, so the agent's line is always readable next to what actually ran. Named
-   * for its author: `title` is generated, this is not.
+   * What the agent said it was trying to accomplish. Carried beside `title`, never instead of it.
+   * Named for its author: `title` is generated, this is not.
    */
   llm_description?: string;
   method?: string;
@@ -142,12 +139,8 @@ export interface CallRecord {
 /**
  * One in-flight update for a tool call, shaped as an MCP progress notification.
  *
- * `token` is the `tool_call_id` it belongs to — which is the point. `live_calls` lives on the block
- * and cannot be attributed when more than one tool call is outstanding, so it is shown on none of
- * them; an event names its own call instead of leaving it to be inferred.
- *
- * Carries a string and no structured payload, because that is all the protocol offers mid-call. The
- * full records arrive on the tool result when the call finishes.
+ * `token` is the `tool_call_id`, which is the point: `live_calls` lives on the block and cannot be
+ * attributed when several calls are outstanding. Carries a string; full records arrive on the result.
  */
 interface ProgressEvent {
   progress: number;

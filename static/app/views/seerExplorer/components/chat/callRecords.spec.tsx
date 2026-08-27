@@ -97,9 +97,8 @@ describe('call record rendering', () => {
   });
 
   it('reports a record with no title rather than deleting it', () => {
-    // An untitled record still happened. It gets a generic label rather than its route, which
-    // reads worse than saying nothing specific — but it is reported, because a record vanishing
-    // for want of wording is how a whole endpoint disappears the day it is added.
+    // Given a generic label rather than its route, but reported: a record vanishing for want of
+    // wording is how a whole endpoint disappears the day it is added.
     const block = codeModeBlock([
       apiRecord({title: undefined, path: '/api/0/dropped/{thing_id}/'}),
       apiRecord({id: 2, title: 'List Your Organizations'}),

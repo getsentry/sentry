@@ -241,9 +241,8 @@ function useToolLinks(block: Block) {
   // The mirror lives on the block, not per tool call, so it can only be attributed to a call that
   // has not reported yet. With several still in flight there is no way to tell whose calls these
   // are, so it is shown on none of them rather than duplicated across all.
-  // In-flight lines from the progress channel, grouped by the tool call that emitted them. Unlike
-  // the mirror below there is nothing to infer: an event names its own call, so several calls can
-  // be in flight at once and each still reports.
+  // Grouped by the call that emitted them: an event names its own, so unlike the mirror below
+  // several calls can be in flight and each still reports.
   const progressForCallId = useMemo(() => {
     const grouped = new Map<string, string[]>();
     for (const event of block.progress ?? []) {
@@ -423,9 +422,8 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
         const finishedCalls = toolCall.id
           ? (callRecordsByCallId.get(toolCall.id) ?? [])
           : [];
-        // Progress first when the tool call reported any: it is attributed by its own token, so it
-        // survives several calls being in flight, which is exactly when the mirror shows nothing.
-        // The mirror remains the fallback for a seer that does not send progress yet.
+        // Progress first: attributed by token, so it survives several calls in flight — exactly
+        // when the mirror shows nothing. The mirror stays the fallback for an older seer.
         const progressLines = toolCall.id
           ? (progressForCallId.get(toolCall.id) ?? [])
           : [];
@@ -443,9 +441,8 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
         // claiming it wholesale would starve later rows of their bus twins. Those are paired one
         // bus link at a time below instead.
         const claimedLinkKinds = new Set<string>();
-        // Progress carries a string and no structure — that is all the protocol offers mid-call —
-        // so each line becomes a note-shaped record and rides the same row renderer as everything
-        // else. Negative ids keep them clear of the real per-execute counter.
+        // Progress carries a string, so each line becomes a note-shaped record and rides the same
+        // renderer. Negative ids keep them clear of the per-execute counter.
         const inFlightRows: CallRecord[] = progressLines.map((message, index) => ({
           id: -(index + 1),
           kind: 'note' as const,
@@ -480,11 +477,8 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
               linkLabel: genericLink?.label ?? null,
             };
           })
-          // A record with no label still happened, so it is reported rather than deleted — seer's
-          // own contract is that a row never disappears for want of wording. What it is not given
-          // is a raw route or an operation id: those read worse than no row at all, which is why
-          // the degraded form is generic. An api row keeps its expander, so what actually ran is
-          // still one click away.
+          // Reported rather than deleted — a row should never disappear for want of wording — but
+          // given a generic label, since a raw route reads worse than no row at all.
           .map(row => ({
             ...row,
             label: row.label ?? fallbackCallLabel(row.record),

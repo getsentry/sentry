@@ -15,24 +15,16 @@ import type {CallRecord} from 'sentry/views/seerExplorer/types';
 /**
  * What a row reads as: the agent's own line when it wrote one, seer's title otherwise.
  *
- * A title answers what ran; only the agent knows a `grep` was checking whether retries caused the
- * regression, and that is the half a user needs. The title is not discarded — `callRecordDetail`
- * still shows what actually happened, so a description is always checkable against it.
- *
- * A fallback, not a decision: a row whose call matches a rule in `links.tsx` is labeled by that rule
- * instead. Returning null rather than the route or an operation id is deliberate — a raw identifier
- * on screen is worse than one fewer row.
+ * The title is not discarded — `callRecordDetail` keeps what ran, so the line stays checkable.
+ * A row matching a rule in `links.tsx` is labeled by that rule instead.
  */
 export function callRecordLabel(record: CallRecord): string | null {
   return record.llm_description?.trim() || record.title?.trim() || null;
 }
 
 /**
- * A readable stand-in for a record nothing could name.
- *
- * Deliberately generic: the alternative is a route or an operation id, which reads worse on screen
- * than saying nothing specific. But the call did happen, so it is reported — an untitled record
- * silently vanishing is how a whole endpoint disappears from the UI the day it is added.
+ * A readable stand-in for a record nothing could name — generic, because a route or an operation
+ * id reads worse. Reported rather than dropped: a vanishing record is how an endpoint disappears.
  */
 export function fallbackCallLabel(record: CallRecord): string {
   return record.kind === 'api' ? t('Sentry API request') : t('Working…');
@@ -86,9 +78,8 @@ export function callRecordDetail(record: CallRecord): {
   body: string | null;
   request: string;
 } | null {
-  // An api record's own request is the best account of what ran, and it is what a described row
-  // needs to stay checkable — so it is built first, before any fallback. Returning the title here
-  // instead would trade the literal URL and the request body for a generated sentence.
+  // Built before any fallback: the literal URL beats a generated sentence as the account of
+  // what ran, which is what a described row needs to stay checkable.
   if (record.kind === 'api' && record.method) {
     const path = record.resolved_path ?? record.path;
     if (path) {
@@ -102,10 +93,8 @@ export function callRecordDetail(record: CallRecord): {
     return null;
   }
 
-  // Everything else has no request of its own: a lib call is a heading for the api rows nested
-  // under it, and a note ran nothing at all. A described one still needs what happened to be
-  // reachable, or the description is an unfalsifiable claim — the generated title is that:
-  // "Running command grep -rn retry in getsentry/sentry" beneath "Checking the retry ceiling".
+  // Nothing else ran a request of its own, so a described row falls back to the generated title
+  // — without it the description would be an unfalsifiable claim.
   const described = record.llm_description?.trim();
   const title = record.title?.trim();
   if (described && title && described !== title) {
@@ -258,9 +247,8 @@ const PREFER_LIB_OVER_CHILDREN = new Set(['get_span_details']);
  * `bash`, `ask_user_question`) never touch the transport, so their own row is the only trace they
  * leave. Helpers in `PREFER_LIB_OVER_CHILDREN` keep their own row and suppress children instead.
  *
- * A parent the agent described inverts that first premise, so it is kept and its children hidden:
- * the heading now says what the operation was *for*, which none of the requests underneath can.
- * Without a description the old behaviour stands, so the description is what earns the row.
+ * A described parent inverts that premise — the heading now says what none of the requests
+ * underneath can — so it is kept and its children hidden. The description is what earns the row.
  */
 export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
   const hasChildren = new Set(
