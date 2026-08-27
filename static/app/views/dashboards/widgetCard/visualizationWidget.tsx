@@ -24,12 +24,12 @@ import {
   type Widget as TWidget,
 } from 'sentry/views/dashboards/types';
 import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/expandGlobalFilterFallback';
 import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {withAppStartScreenFilterFallback} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/widenAppStartScreenFilter';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -330,9 +330,9 @@ function VisualizationWidgetContent({
             ],
             query: applyDashboardFilters({
               baseQuery: exploreQuery.formatString(),
-              dashboardFilters: withAppStartScreenFilterFallback(
-                widget,
-                dashboardFilters
+              dashboardFilters: withGlobalFilterFallback(
+                dashboardFilters,
+                widget.queries[0]?.globalFilterFallback
               ),
               widgetType: widget.widgetType,
             }),

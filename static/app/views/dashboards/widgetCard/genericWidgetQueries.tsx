@@ -24,7 +24,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {widenAppStartScreenFilter} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/widenAppStartScreenFilter';
+import {expandGlobalFilterFallback} from 'sentry/views/dashboards/utils/expandGlobalFilterFallback';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -366,17 +366,21 @@ export function applyDashboardFiltersToWidget(
 
   if (dashboardFilters) {
     const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = widenAppStartScreenFilter(
-      filtered,
-      dashboardFiltersToString(dashboardFilters, filtered.widgetType)
+    const dashboardFilterConditions = dashboardFiltersToString(
+      dashboardFilters,
+      filtered.widgetType
     );
 
     filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
+      const nextFilterConditions = expandGlobalFilterFallback(
+        dashboardFilterConditions,
+        query.globalFilterFallback
+      );
+      if (nextFilterConditions) {
         if (query.conditions && !skipParens) {
           query.conditions = `(${query.conditions})`;
         }
-        query.conditions = `${query.conditions} ${dashboardFilterConditions}`;
+        query.conditions = `${query.conditions} ${nextFilterConditions}`;
       }
     });
 
