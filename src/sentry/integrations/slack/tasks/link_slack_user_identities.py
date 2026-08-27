@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.users import SlackUserData, get_slack_data_by_user
@@ -33,9 +32,7 @@ def link_slack_user_identities(
     organization_id: int,
 ) -> None:
     integration = integration_service.get_integration(
-        integration_id=integration_id,
-        status=ObjectStatus.ACTIVE,
-        using_replica=options.get("integration_service.get_integration.using_replica"),
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
     )
     organization_context = organization_service.get_organization_by_id(id=organization_id)
     organization = organization_context.organization if organization_context else None
