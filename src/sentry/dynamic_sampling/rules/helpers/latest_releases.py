@@ -284,14 +284,7 @@ class LatestReleaseBias:
 
     OBSERVED_VALUE = "1"
     ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
-    # This key holds the date of the newest release seen for the project, and it is the only thing
-    # that stops an older release from being boosted. The expiry is here to drop the projects that
-    # stopped shipping releases, so it must be much longer than the gap between two releases of a
-    # live project. If it fires between two releases, the next event of an older release counts as
-    # a new latest release and gets one boost it should not get. 90 days gives that margin, and it
-    # is the same bound the transaction clusterer uses for its per-project hash. Each new latest
-    # release rewrites the key with a full 90 days, so an active project always keeps its date.
-    LATEST_RELEASE_TIMEOUT_MS = 60 * 60 * 24 * 90 * 1000
+    LATEST_RELEASE_TIMEOUT_SECS = 60 * 60 * 24 * 90
 
     def __init__(self, latest_release_params: LatestReleaseParams):
         self.redis_client = get_redis_client_for_ds()
@@ -327,7 +320,7 @@ class LatestReleaseBias:
         incoming_release_date = self._get_release_date_from_incoming_release()
         latest_release_date = self._get_release_date_from_latest_release()
 
-        if incoming_release_date is not None:
+        if incoming_release_date is not None and self._is_recent_release(incoming_release_date):
             # We also accept release with the same timestamp because that covers the case in which we have the same
             # release with a different environment.
             #
@@ -340,11 +333,18 @@ class LatestReleaseBias:
 
         return False
 
+    def _is_recent_release(self, release_date: float) -> bool:
+        """
+        Tells whether a release is new enough to be worth boosting.
+        """
+        age = datetime.now(timezone.utc).timestamp() - release_date
+        return age <= self.LATEST_RELEASE_TIMEOUT_SECS
+
     def _update_latest_release_date(self, timestamp: float) -> None:
         cache_key = self._generate_cache_key_for_project_latest_release()
         # The expiry goes in the same command as the value, so the key can never be left without
         # one.
-        self.redis_client.set(cache_key, timestamp, px=self.LATEST_RELEASE_TIMEOUT_MS)
+        self.redis_client.set(cache_key, timestamp, ex=self.LATEST_RELEASE_TIMEOUT_SECS)
 
     def _get_release_date_from_incoming_release(self) -> float | None:
         release = self.latest_release_params.release

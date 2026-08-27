@@ -4298,12 +4298,64 @@ class DSLatestReleaseBoostTest(TestCase):
         cache_key = f"ds::p:{project.id}:latest_release"
         assert self.redis_client.get(cache_key) is not None
 
-        lifetime_secs = LatestReleaseBias.LATEST_RELEASE_TIMEOUT_MS // 1000
+        lifetime_secs = LatestReleaseBias.LATEST_RELEASE_TIMEOUT_SECS
         ttl = self.redis_client.ttl(cache_key)
         assert ttl > 0
         assert ttl <= lifetime_secs
         # A fresh write gets the full lifetime, so the key must not be near the end of it.
         assert ttl > lifetime_secs - 60
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_boost_release_skips_release_older_than_the_key_lifetime(self) -> None:
+        """A release too old to be an adoption is not boosted, even with no date key present."""
+        project = self.create_project(platform="python")
+        stale_date = timezone.now() - timedelta(
+            seconds=LatestReleaseBias.LATEST_RELEASE_TIMEOUT_SECS + 1
+        )
+        stale_release = Release.get_or_create(project=project, version="1.0", date_added=stale_date)
+
+        self.make_release_transaction(
+            release_version=stale_release.version,
+            environment_name=self.environment1.name,
+            project_id=project.id,
+            checksum="a" * 32,
+            timestamp=self.timestamp,
+        )
+
+        assert self.redis_client.get(f"ds::p:{project.id}:latest_release") is None
+        assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {}
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_boost_release_skips_stale_releases_after_the_key_expires(self) -> None:
+        """Losing the date key must not let a run of old releases each take a boost."""
+        ts = timezone.now().timestamp()
+
+        project = self.create_project(platform="python")
+        stale_1 = Release.get_or_create(
+            project=project, version="1.0", date_added=timezone.now() - timedelta(days=200)
+        )
+        stale_2 = Release.get_or_create(
+            project=project, version="2.0", date_added=timezone.now() - timedelta(days=100)
+        )
+        current = Release.get_or_create(project=project, version="3.0", date_added=timezone.now())
+
+        # The date key is absent, as it would be after the expiry fired on a project that stopped
+        # shipping. The two old releases must not be read as a new latest release.
+        for release in (stale_1, stale_2, current):
+            self.make_release_transaction(
+                release_version=release.version,
+                environment_name=self.environment1.name,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+
+        assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+            f"ds::r:{current.id}:e:{self.environment1.name}": str(ts),
+        }
+        assert self.redis_client.get(f"ds::p:{project.id}:latest_release") == str(
+            float(current.date_added.timestamp())
+        )
 
 
 class TestSaveGroupHashAndGroup(TestCase):
