@@ -229,11 +229,14 @@ export interface ReauthMonitoringProviderData {
 
 export type SeerExplorerRunId = number | string;
 
+export type ExplorerFailureReason = 'timeout' | 'stalled';
+
 export type SeerExplorerResponse = {
   session: {
     blocks: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    failure_reason?: ExplorerFailureReason | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
