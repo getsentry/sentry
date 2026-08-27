@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.issues.derived.aggregators import track_merge_aware_status
 from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.store import GroupDerivedDataStore
@@ -16,6 +17,12 @@ from sentry.models.group import Group
 
 DEFAULT_LIMIT = 1000
 MAX_LIMIT = 10000
+
+_MERGE_AWARE_PIPELINE = Pipeline((*PIPELINE.aggregators, track_merge_aware_status))
+_PIPELINES = {
+    "live": PIPELINE,
+    "merge_aware": _MERGE_AWARE_PIPELINE,
+}
 
 
 def _state_to_dict(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
@@ -30,6 +37,17 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
     }
 
     def get(self, request: Request, group: Group) -> Response:
+        pipeline_name = request.GET.get("pipeline", "live")
+        pipeline = _PIPELINES.get(pipeline_name)
+        if pipeline is None:
+            available = ", ".join(_PIPELINES)
+            return Response(
+                {
+                    "detail": f"Invalid pipeline: {pipeline_name!r}. Available pipelines: {available}"
+                },
+                status=400,
+            )
+
         raw_limit = request.GET.get("limit", str(DEFAULT_LIMIT))
         try:
             limit = int(raw_limit)
@@ -65,15 +83,16 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
             entry_count = None
             truncated = True
         else:
-            state = PIPELINE.run(entries)
-            computed = _state_to_dict(PIPELINE, state)
+            state = pipeline.run(entries)
+            computed = _state_to_dict(pipeline, state)
             entry_count = len(entries)
             truncated = False
 
         return Response(
             {
                 "groupId": str(group.id),
-                "pipelineHash": PIPELINE.pipeline_hash,
+                "pipeline": pipeline_name,
+                "pipelineHash": pipeline.pipeline_hash,
                 "stored": stored,
                 "computed": computed,
                 "entryCount": entry_count,
