@@ -17,11 +17,10 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.eap.attribute_existence import check_attribute_names_exist
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.utils import serialize_search_type
+from sentry.search.eap.utils import check_attribute_names_exist, serialize_search_type
 from sentry.search.events import fields
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import RPC_DATASETS

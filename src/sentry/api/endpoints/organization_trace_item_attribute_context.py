@@ -34,9 +34,9 @@ from sentry.explore.models import (
 )
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
-from sentry.search.eap.attribute_existence import attribute_name_exists
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import attribute_name_exists
 
 AttributeType = Literal["string", "number", "boolean"]
 

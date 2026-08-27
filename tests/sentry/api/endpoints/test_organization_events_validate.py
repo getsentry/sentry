@@ -206,7 +206,7 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         ]
 
     @mock.patch(
-        "sentry.search.eap.attribute_existence.ATTRIBUTE_NAME_LIMIT",
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
         TRUNCATED_ATTRIBUTE_NAME_LIMIT,
     )
     def test_tag_beyond_the_attribute_name_limit(self) -> None:
@@ -236,7 +236,7 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         ]
 
     @mock.patch(
-        "sentry.search.eap.attribute_existence.ATTRIBUTE_NAME_LIMIT",
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
         TRUNCATED_ATTRIBUTE_NAME_LIMIT,
     )
     def test_unknown_tag_beyond_the_attribute_name_limit(self) -> None:

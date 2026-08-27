@@ -277,7 +277,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         assert "not found" in response.data["detail"]
 
     @mock.patch(
-        "sentry.search.eap.attribute_existence.ATTRIBUTE_NAME_LIMIT",
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
         TRUNCATED_ATTRIBUTE_NAME_LIMIT,
     )
     def test_accepts_attribute_beyond_the_attribute_name_limit(self) -> None:

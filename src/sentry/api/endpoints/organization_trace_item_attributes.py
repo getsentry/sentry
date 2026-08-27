@@ -63,7 +63,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.search.eap import constants
-from sentry.search.eap.attribute_existence import check_attribute_names_exist
 from sentry.search.eap.columns import (
     ColumnDefinitions,
     ResolvedAttribute,
@@ -84,6 +83,7 @@ from sentry.search.eap.types import (
 from sentry.search.eap.utils import (
     can_expose_attribute,
     can_expose_attribute_to_api,
+    check_attribute_names_exist,
     get_deprecated_source_internal_names,
     get_secondary_aliases,
     is_internal_sentry_convention_attribute,
