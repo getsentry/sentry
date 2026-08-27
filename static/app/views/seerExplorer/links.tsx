@@ -1077,10 +1077,13 @@ function errorsQuery(
 
   // In Discover, group_by / y_axes become selected columns (`field`). Prefer explicit `fields` from
   // the events API when present; otherwise force defaults so Discover does not re-route to saved.
+  // Dedup: wire `field` and `yAxis` often both carry the same aggregate (e.g. count()).
   const fields = [
-    ...getStringArray(params.fields),
-    ...getStringArray(group_by),
-    ...getStringArray(y_axes),
+    ...new Set([
+      ...getStringArray(params.fields),
+      ...getStringArray(group_by),
+      ...getStringArray(y_axes),
+    ]),
   ];
   next.field = fields.length
     ? fields

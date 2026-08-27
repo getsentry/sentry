@@ -985,6 +985,34 @@ describe('search links', () => {
     );
   });
 
+  it('dedupes overlapping field and yAxis values on Discover deep-links', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=errors&field=count()&yAxis=count()',
+        title: 'Listing events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        url: expect.objectContaining({
+          query: expect.objectContaining({
+            field: ['count()'],
+            yAxis: ['count()'],
+          }),
+        }),
+      })
+    );
+  });
+
   it('sends the classic monitors list to the monitors surface, not empty alerts/crons', () => {
     expect(
       resolveLink(
