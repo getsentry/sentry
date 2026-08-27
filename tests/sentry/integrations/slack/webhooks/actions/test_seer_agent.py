@@ -4,12 +4,15 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.seer import agent_token
 from sentry.seer.agent.client_models import PendingUserInput, SeerRunState
+from sentry.seer.entrypoints.cache import SeerOperatorAgentCache
 from sentry.seer.entrypoints.slack.cache import (
     SlackSeerAgentMessageCache,
     SlackSeerAgentMessageCachePayload,
 )
+from sentry.seer.entrypoints.slack.entrypoint import SlackAgentCachePayload
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
@@ -99,6 +102,15 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
             response = self.post_webhook_block_kit(
                 action_data=[self.get_action(SlackAction.SEER_AGENT_WRITE_APPROVE)],
                 original_message=self.get_original_message(),
+                data={
+                    "message": None,
+                    "container": {
+                        "type": "message",
+                        "message_ts": self.message_ts,
+                        "channel_id": "C065W1189",
+                        "is_ephemeral": True,
+                    },
+                },
             )
 
         assert response.status_code == 200
@@ -121,9 +133,56 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
             viewer_context=viewer_context,
         )
         mock_update.assert_called_once_with(update_body, viewer_context=viewer_context)
+        assert SeerOperatorAgentCache[SlackAgentCachePayload].get(
+            entrypoint_key="slack",
+            run_id=self.run_id,
+        ) == {
+            "organization_id": self.organization.id,
+            "integration_id": self.integration.id,
+            "thread": {
+                "channel_id": "C065W1189",
+                "thread_ts": "1702424381.221719",
+            },
+            "slack_user_id": self.external_id,
+        }
         assert self.mock_post.call_args.kwargs["replace_original"] is True
         result_block = self.mock_post.call_args.kwargs["blocks"][0]
         assert "Access granted" in result_block.text
+
+    @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
+    @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
+    def test_approval_update_failure_returns_ephemeral_error(self, mock_fetch, mock_update):
+        self.cache_message()
+        mock_fetch.return_value = self.pending_state()
+        mock_update.return_value = Mock(status=202)
+        self.mock_post.return_value = Mock(status_code=500)
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self.post_webhook_block_kit(
+                action_data=[self.get_action(SlackAction.SEER_AGENT_WRITE_APPROVE)],
+                original_message=self.get_original_message(),
+            )
+
+        assert response.status_code == 200
+        assert response.data["text"] == "Sentry can't perform that action right now on your behalf!"
+        assert self.mock_post.call_count == 2
+
+    @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
+    @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
+    def test_approval_update_timeout_returns_ephemeral_error(self, mock_fetch, mock_update):
+        self.cache_message()
+        mock_fetch.return_value = self.pending_state()
+        mock_update.return_value = Mock(status=202)
+        self.mock_post.side_effect = TimeoutError
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self.post_webhook_block_kit(
+                action_data=[self.get_action(SlackAction.SEER_AGENT_WRITE_APPROVE)],
+                original_message=self.get_original_message(),
+            )
+
+        assert response.status_code == 200
+        assert response.data["text"] == "Sentry can't perform that action right now on your behalf!"
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
@@ -338,6 +397,29 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
         assert response.status_code == 200
         assert response.data["text"] == "This approval request is no longer available."
+        mock_fetch.assert_not_called()
+        mock_update.assert_not_called()
+
+    @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
+    @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
+    def test_unapproved_member_cannot_approve(self, mock_fetch, mock_update):
+        self.cache_message()
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        member.invite_status = InviteStatus.REQUESTED_TO_JOIN.value
+        member.save(update_fields=["invite_status"])
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self.post_webhook_block_kit(
+                action_data=[self.get_action(SlackAction.SEER_AGENT_WRITE_APPROVE)],
+                original_message=self.get_original_message(),
+            )
+
+        assert response.status_code == 200
+        assert response.data["text"] == "This approval request is no longer available."
+        assert not agent_token.active_grant_scopes(self.organization.id, self.user.id, "session-1")
         mock_fetch.assert_not_called()
         mock_update.assert_not_called()
 

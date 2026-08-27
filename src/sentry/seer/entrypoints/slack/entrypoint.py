@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
@@ -11,6 +11,7 @@ from sentry.models.project import Project
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
+    SeerAgentWriteApproval,
     SeerAutofixError,
     SeerAutofixUpdate,
 )
@@ -76,6 +77,7 @@ class SlackAgentCachePayload(TypedDict):
     organization_id: int
     integration_id: int
     thread: SlackThreadDetails
+    slack_user_id: NotRequired[str]
 
 
 class SlackPendingMentionPayload(TypedDict):
@@ -113,6 +115,35 @@ def _agent_write_approval(
     if not scopes:
         return None
     return pending_user_input.id, scopes
+
+
+def _send_agent_write_approval(
+    *,
+    integration_id: int,
+    organization_id: int,
+    thread: SlackThreadDetails,
+    data: SeerAgentWriteApproval,
+    slack_user_id: str,
+) -> None:
+    from sentry.integrations.slack.integration import SlackIntegration
+
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    if not integration:
+        logger.error(
+            "seer.entrypoint.slack.agent_write_approval.integration_not_found",
+            extra={"integration_id": integration_id, "organization_id": organization_id},
+        )
+        return
+    send_thread_update(
+        install=SlackIntegration(model=integration, organization_id=organization_id),
+        thread=thread,
+        data=data,
+        ephemeral_user_id=slack_user_id,
+    )
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
@@ -551,6 +582,7 @@ class SlackAgentEntrypoint(
             thread=self.thread,
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
+            slack_user_id=self.slack_user_id,
         )
 
     @staticmethod
@@ -564,22 +596,41 @@ class SlackAgentEntrypoint(
         integration_id = cache_payload["integration_id"]
         thread = cache_payload["thread"]
         approval = _agent_write_approval(pending_user_input)
-        data: SeerAgentError | SeerAgentResponse
-
         if approval:
             input_id, scopes = approval
-            data = SeerAgentResponse(
+            data = SeerAgentWriteApproval(
                 run_id=run_id,
                 organization_id=organization_id,
-                summary="Seer needs your approval before it can make this change.",
-                write_approval_input_id=input_id,
-                write_approval_scopes=scopes,
+                input_id=input_id,
+                scopes=scopes,
             )
-        elif (
-            pending_user_input is not None
+            slack_user_id = cache_payload.get("slack_user_id")
+            if slack_user_id:
+                # Keep this synchronous so mixed-version workers never deserialize the new source.
+                _send_agent_write_approval(
+                    integration_id=integration_id,
+                    organization_id=organization_id,
+                    thread=thread,
+                    data=data,
+                    slack_user_id=slack_user_id,
+                )
+            else:
+                # Pre-deploy cache entries lack the recipient; never expose approval publicly.
+                logger.error(
+                    "seer.entrypoint.slack.agent_write_approval.slack_user_missing",
+                    extra={"organization_id": organization_id, "run_id": run_id},
+                )
+            if not summary:
+                return
+
+        if (
+            approval is None
+            and pending_user_input is not None
             and pending_user_input.input_type == "agent_write_approval"
         ) or not summary:
-            data = SeerAgentError(error_message="Seer was unable to generate a response.")
+            response_data: SeerAgentError | SeerAgentResponse = SeerAgentError(
+                error_message="Seer was unable to generate a response."
+            )
         else:
             missing_scope_url = _get_missing_scope_settings_url(
                 integration_id=integration_id,
@@ -587,7 +638,7 @@ class SlackAgentEntrypoint(
                 channel_id=thread["channel_id"],
                 thread_ts=thread["thread_ts"],
             )
-            data = SeerAgentResponse(
+            response_data = SeerAgentResponse(
                 run_id=run_id,
                 organization_id=organization_id,
                 summary=summary,
@@ -597,7 +648,7 @@ class SlackAgentEntrypoint(
             threads=[thread],
             integration_id=integration_id,
             organization_id=organization_id,
-            data=data,
+            data=response_data,
         )
 
 

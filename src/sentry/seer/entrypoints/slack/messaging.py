@@ -106,6 +106,9 @@ def send_thread_update(
                     )
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
+        except TimeoutError as e:
+            lifecycle.record_failure(failure_reason=e)
+            raise IntegrationError("Slack request timed out") from e
         except IntegrationError as e:
             lifecycle.record_failure(failure_reason=e)
             # Retry, hopefully it's transient

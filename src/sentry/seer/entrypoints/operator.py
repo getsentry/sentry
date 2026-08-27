@@ -33,6 +33,7 @@ from sentry.seer.entrypoints.types import (
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
@@ -921,5 +922,8 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
                             run_id=run_id,
                             pending_user_input=state.pending_user_input,
                         )
+                    except IntegrationError:
+                        # Seer's completion-hook delivery task retries failed RPC calls.
+                        raise
                     except Exception as e:
                         ept_lifecycle.record_failure(failure_reason=e)

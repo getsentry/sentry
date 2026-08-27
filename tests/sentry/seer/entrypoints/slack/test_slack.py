@@ -9,6 +9,7 @@ from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
+    SeerAgentWriteApproval,
     SeerAutofixUpdate,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
@@ -31,6 +32,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     update_existing_message,
 )
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
 
@@ -211,6 +213,21 @@ class SlackAutofixEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_user_id,
         )
+
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",
+        side_effect=TimeoutError,
+    )
+    def test_send_thread_update_normalizes_timeout(self, _mock_send_ephemeral):
+        install = self.integration.get_installation(organization_id=self.organization.id)
+
+        with pytest.raises(IntegrationError):
+            send_thread_update(
+                install=install,
+                thread=self.thread,
+                data=self._create_update(),
+                ephemeral_user_id=self.slack_user_id,
+            )
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     def test_update_existing_message(self, mock_update_message):
@@ -619,24 +636,34 @@ class SlackAgentEntrypointTest(TestCase):
         assert payload["integration_id"] == self.integration.id
         assert payload["thread"]["thread_ts"] == self.thread_ts
         assert payload["thread"]["channel_id"] == self.channel_id
+        assert payload["slack_user_id"] == self.slack_user_id
 
     @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
-        return_value={"ok": True, "ts": "1234567890.000100"},
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",
+        return_value={"ok": True, "message_ts": "1234567890.000100"},
     )
-    def test_send_write_approval_caches_input_id(self, mock_send_threaded_message):
+    def test_send_ephemeral_write_approval_caches_input_id(self, mock_send_ephemeral):
         ep = self._get_entrypoint()
-        data = SeerAgentResponse(
+        data = SeerAgentWriteApproval(
             run_id=12345,
             organization_id=self.organization.id,
-            summary="Seer needs your approval before it can make this change.",
-            write_approval_input_id="approval-1",
-            write_approval_scopes=["org:write"],
+            input_id="approval-1",
+            scopes=["org:write"],
         )
 
-        send_thread_update(install=ep.install, thread=ep.thread, data=data)
+        send_thread_update(
+            install=ep.install,
+            thread=ep.thread,
+            data=data,
+            ephemeral_user_id=self.slack_user_id,
+        )
 
-        mock_send_threaded_message.assert_called_once()
+        mock_send_ephemeral.assert_called_once_with(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=ANY,
+            slack_user_id=self.slack_user_id,
+        )
         assert SlackSeerAgentMessageCache.get(
             integration_id=self.integration.id,
             channel_id=self.channel_id,
@@ -691,9 +718,43 @@ class SlackAgentEntrypointTest(TestCase):
         assert call_data.error_message == "Seer was unable to generate a response."
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_agent_update_with_write_approval(self, mock_schedule_all_thread_updates):
+    @patch("sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval")
+    def test_on_agent_update_with_write_approval(
+        self, mock_send_write_approval, mock_schedule_all_thread_updates
+    ):
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=cache_payload,
+            summary="Seer needs write access to continue.",
+            run_id=12345,
+            pending_user_input=PendingUserInput(
+                id="approval-1",
+                input_type="agent_write_approval",
+                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            ),
+        )
+
+        mock_send_write_approval.assert_called_once()
+        call_data = mock_send_write_approval.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentWriteApproval)
+        assert call_data.input_id == "approval-1"
+        assert call_data.scopes == ["org:write"]
+        assert call_data.status is None
+        assert mock_send_write_approval.call_args.kwargs["slack_user_id"] == self.slack_user_id
+        response_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert isinstance(response_data, SeerAgentResponse)
+        assert response_data.summary == "Seer needs write access to continue."
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    def test_on_agent_update_supports_cached_payload_without_slack_user(
+        self, mock_send_message, mock_send_ephemeral
+    ):
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_agent_cache_payload()
+        cache_payload.pop("slack_user_id")
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
@@ -706,11 +767,8 @@ class SlackAgentEntrypointTest(TestCase):
             ),
         )
 
-        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
-        assert isinstance(call_data, SeerAgentResponse)
-        assert call_data.write_approval_input_id == "approval-1"
-        assert call_data.write_approval_scopes == ["org:write"]
-        assert call_data.write_approval_status is None
+        mock_send_message.assert_not_called()
+        mock_send_ephemeral.assert_not_called()
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     def test_on_agent_update_rejects_invalid_write_approval(self, mock_schedule_all_thread_updates):

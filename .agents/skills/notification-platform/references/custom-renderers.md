@@ -34,49 +34,35 @@ Do NOT use a custom renderer when:
 
 Custom renderers live at: `{provider}/renderers/{name}.py`
 
-Example: `slack/renderers/seer.py`
+Example: `slack/renderers/seer_agent.py`
 
-## Concrete Example: SeerSlackRenderer
+## Concrete Example: Seer Slack Renderers
+
+Seer keeps its concrete renderers in domain modules such as
+`seer_agent.py` and `seer_autofix.py`. The small `seer.py` module maps each
+notification source to exactly one concrete renderer:
 
 **File:** `src/sentry/notifications/platform/slack/renderers/seer.py`
-
-This renderer handles three different Seer notification data types with completely different Slack outputs:
 
 ```python
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.types import (
-    NotificationData,
-    NotificationRenderedTemplate,
+from sentry.notifications.platform.slack.renderers.seer_agent import (
+    SeerAgentResponseSlackRenderer,
 )
+from sentry.notifications.platform.types import NotificationData, NotificationSource
 
+_SEER_SLACK_RENDERERS: dict[
+    NotificationSource, type[NotificationRenderer[SlackRenderable]]
+] = {
+    NotificationSource.SEER_AGENT_RESPONSE: SeerAgentResponseSlackRenderer,
+    # Other Seer notification sources each map to their concrete renderer.
+}
 
-class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
-    @classmethod
-    def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
-    ) -> SlackRenderable:
-        if isinstance(data, SeerAutofixTrigger):
-            # Renders a single action button
-            return SlackRenderable(
-                blocks=[ActionsBlock(elements=[autofix_button])],
-                text="Seer Autofix Trigger",
-            )
-        elif isinstance(data, SeerAutofixError):
-            # Renders error sections
-            return SlackRenderable(
-                blocks=[
-                    SectionBlock(text=data.error_title),
-                    SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
-                ],
-                text=f"Seer stumbled: {data.error_title}",
-            )
-        elif isinstance(data, SeerAutofixUpdate):
-            # Complex rendering: heading, summary, steps list, code changes, PR buttons
-            # ... (see full source for details)
-            pass
-        else:
-            raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
+def get_seer_slack_renderer(
+    data: NotificationData,
+) -> type[NotificationRenderer[SlackRenderable]]:
+    return _SEER_SLACK_RENDERERS[data.source]
 ```
 
 ## Provider-Side Registration
@@ -86,7 +72,7 @@ The provider dispatches to the custom renderer by overriding `get_renderer()`:
 **File:** `src/sentry/notifications/platform/slack/provider.py`
 
 ```python
-from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+from sentry.notifications.platform.slack.renderers.seer import get_seer_slack_renderer
 
 @provider_registry.register(NotificationProviderKey.SLACK)
 class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
@@ -98,7 +84,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         cls, *, data: NotificationData, category: NotificationCategory
     ) -> type[NotificationRenderer[SlackRenderable]]:
         if category == NotificationCategory.SEER:
-            return SeerSlackRenderer
+            return get_seer_slack_renderer(data)
         return cls.default_renderer
 ```
 
