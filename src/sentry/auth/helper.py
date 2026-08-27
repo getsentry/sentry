@@ -364,25 +364,26 @@ class AuthIdentityHandler:
         Best-effort: this only ever relaxes the verification requirement, so any failure here must fall back to
         requiring verification as usual rather than block account creation.
         """
-        if self.request.user.is_authenticated:
-            # An existing (logged in) user that is invited to a new org and declines to link to the existing account
-            # ends up here.
-            # In a more complicated scenario (ex: user A is a member of org 1, user B is invited to org 1.
-            # User A's session is still active and they try to accept user B's invite - edge case but possible),
-            # if the existing (logged in) user is already a member of the org that is on the invitation,
-            # _get_invite() looks up the invite by request.user_id first, which returns the membership
-            # for the logged in user, not the invite that is in the session.
-            # To prevent this mix-up, bail if there is an auth'd user AND that user is already
-            # a member of the org on the invitation.
-            already_a_member = (
-                organization_service.check_membership_by_id(
-                    user_id=self.request.user.id, organization_id=self.organization.id
-                )
-                is not None
-            )
-            if already_a_member:
-                return False
         try:
+            if self.request.user.is_authenticated:
+                # An existing (logged in) user that is invited to a new org and declines to link to the existing account
+                # ends up here.
+                # In a more complicated scenario (ex: user A is a member of org 1, user B is invited to org 1.
+                # User A's session is still active and they try to accept user B's invite - edge case but possible),
+                # if the existing (logged in) user is already a member of the org that is on the invitation,
+                # _get_invite() (used by invite_helper) looks up the invite by request.user_id first, which returns
+                # the membership for the logged-in user, not the invite that is in the session.
+                # To prevent this mix-up, bail if there is an auth'd user AND that user is already
+                # a member of the org on the invitation.
+                already_a_member = (
+                    organization_service.check_membership_by_id(
+                        user_id=self.request.user.id, organization_id=self.organization.id
+                    )
+                    is not None
+                )
+                if already_a_member:
+                    return False
+
             invite_helper = ApiInviteHelper.from_session_or_email(
                 request=self.request,
                 organization_id=self.organization.id,
