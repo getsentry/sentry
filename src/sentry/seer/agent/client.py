@@ -641,7 +641,6 @@ class SeerAgentClient:
 
         opts = AgentRunOptions()
 
-
         if self.enable_bash_tools:
             opts["enable_bash_mode"] = True
 
