@@ -2574,11 +2574,6 @@ register(
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "hybridcloud.webhookpayload.push_drain_trigger",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Remove the rows a claim-bounded drain finishes with — delivered, attempts
 # exhausted, or stale — in batches instead of one DELETE per row. Such a drain
 # stays inside a claim reserved for its whole run, so deferring deletes cannot
