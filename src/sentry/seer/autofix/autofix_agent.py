@@ -533,7 +533,15 @@ def trigger_autofix_agent(
             if not has_budget:
                 raise NoSeerQuotaException()
 
-    use_seer_rca_feature = features.has(
+    # If autofix-should-run-repo-checks is enabled,
+    # we should force bash tools on as it is dependent on bash tools
+    enable_bash_tools = enable_bash_tools or (
+        referrer == AutofixReferrer.NIGHT_SHIFT
+        and features.has("organizations:autofix-should-run-repo-checks", group.organization)
+    )
+
+    # TODO: we want to support bash tools under the autofix-rca-in-seer feature
+    use_seer_rca_feature = not enable_bash_tools and features.has(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
     )
     if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
@@ -580,13 +588,6 @@ def trigger_autofix_agent(
         "organizations:autofix-pr-iteration", group.organization
     ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
     is_iteration_step = step == AutofixStep.PR_ITERATION
-
-    # If autofix-should-run-repo-checks is enabled,
-    # we should force bash tools on as it is dependent on bash tools
-    enable_bash_tools = enable_bash_tools or (
-        referrer == AutofixReferrer.NIGHT_SHIFT
-        and features.has("organizations:autofix-should-run-repo-checks", group.organization)
-    )
 
     client = get_autofix_agent_client(
         group,
