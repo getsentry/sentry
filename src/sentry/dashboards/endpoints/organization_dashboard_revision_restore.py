@@ -88,6 +88,7 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
                 "validation_projects": projects
                 or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
+                "allow_legacy_widget_heights": True,
             },
         )
 
