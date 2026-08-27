@@ -38,7 +38,8 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
 
     def _claim(self, instance: OrganizationIntegration) -> bool:
         if not use_cas_deletion_claim(instance.organization_id):
-            # Legacy behavior when the flag is off.
+            # Legacy behavior: proceed without claiming. `should_proceed` and
+            # `mark_deletion_in_progress` handle the status transition.
             return True
 
         # Compare-and-swap claim. A single UPDATE ... WHERE status IN (...) is
