@@ -29,6 +29,16 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 
+function getDefaultAggregate(
+  traceMetric: TraceMetric
+): AggregationKeyWithAlias | undefined {
+  const aggregate =
+    DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ??
+    OPTIONS_BY_TYPE[traceMetric.type]?.[0]?.value;
+
+  return aggregate as AggregationKeyWithAlias | undefined;
+}
+
 function getUpdatedAggregatesMultiMetric(
   aggregateSource: Column[],
   index: number,
@@ -48,8 +58,7 @@ function getUpdatedAggregatesMultiMetric(
 
   const nextAggregateKey = isValid
     ? currentAggregateKey
-    : ((DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
-        validAggregateOptions[0]?.value) as AggregationKeyWithAlias);
+    : getDefaultAggregate(newTraceMetric);
 
   if (!nextAggregateKey) {
     return undefined;
@@ -68,18 +77,13 @@ function replaceFieldWithDefaultAggregate(
   index: number,
   traceMetric: TraceMetric
 ): Column[] | undefined {
-  const aggregate =
-    DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ??
-    OPTIONS_BY_TYPE[traceMetric.type]?.[0]?.value;
+  const aggregate = getDefaultAggregate(traceMetric);
   if (!aggregate) {
     return undefined;
   }
 
   const updatedAggregates = [...aggregateSource];
-  updatedAggregates[index] = buildTraceMetricAggregate(
-    aggregate as AggregationKeyWithAlias,
-    traceMetric
-  );
+  updatedAggregates[index] = buildTraceMetricAggregate(aggregate, traceMetric);
   return updatedAggregates;
 }
 
@@ -150,24 +154,18 @@ export function MetricSelectRow({
             const isValid = validAggregateOptions.some(opt => opt.value === aggregate);
 
             if (!isValid && validAggregateOptions.length > 0) {
-              return buildTraceMetricAggregate(
-                (DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
-                  validAggregateOptions[0]?.value) as AggregationKeyWithAlias,
-                newTraceMetric
-              );
+              const defaultAggregate = getDefaultAggregate(newTraceMetric);
+              if (defaultAggregate) {
+                return buildTraceMetricAggregate(defaultAggregate, newTraceMetric);
+              }
             }
 
             return buildTraceMetricAggregate(aggregate, newTraceMetric);
           }
           if (aggregateIndex === index) {
-            const aggregate =
-              DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
-              validAggregateOptions[0]?.value;
+            const aggregate = getDefaultAggregate(newTraceMetric);
             if (aggregate) {
-              return buildTraceMetricAggregate(
-                aggregate as AggregationKeyWithAlias,
-                newTraceMetric
-              );
+              return buildTraceMetricAggregate(aggregate, newTraceMetric);
             }
           }
           return f;
