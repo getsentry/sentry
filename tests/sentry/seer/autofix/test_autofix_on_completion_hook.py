@@ -804,7 +804,6 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         mock_emit.assert_called_once()
         kwargs = mock_emit.call_args.kwargs
         assert kwargs["group"] == self.group
-        assert kwargs["run_id"] == 123
         assert kwargs["state"] is state
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")

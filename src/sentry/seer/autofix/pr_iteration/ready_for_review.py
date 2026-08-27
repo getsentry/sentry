@@ -85,7 +85,6 @@ def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
         emit_pr_ready_for_review(
             organization=resolved.organization,
             group=group,
-            run_id=resolved.autofix_run.run_state.run_id,
             sentry_run_id=str(resolved.seer_run.uuid),
             state=resolved.autofix_run.run_state,
             # We only want to signal about this single repo's PR status change, not any others.

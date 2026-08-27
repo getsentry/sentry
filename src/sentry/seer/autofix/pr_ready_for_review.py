@@ -31,7 +31,6 @@ def emit_pr_ready_for_review(
     *,
     organization: Organization,
     group: Group,
-    run_id: int,
     sentry_run_id: str | None,
     state: SeerRunState,
     filtered_repos: list[str] | None = None,
@@ -51,13 +50,13 @@ def emit_pr_ready_for_review(
         pull_requests = [pr for pr in pull_requests if pr["repo_name"] in filtered_repos]
 
     payload = {
-        "run_id": run_id,
+        "run_id": state.run_id,
         "sentry_run_id": sentry_run_id,
         "group_id": group.id,
         "pull_requests": pull_requests,
     }
     log_extra = {
-        "run_id": run_id,
+        "run_id": state.run_id,
         "group_id": group.id,
         "organization_id": organization.id,
     }

@@ -647,7 +647,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             emit_pr_ready_for_review(
                 organization=organization,
                 group=group,
-                run_id=run_id,
                 sentry_run_id=webhook_payload["sentry_run_id"],
                 state=state,
             )

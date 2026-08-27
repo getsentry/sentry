@@ -128,7 +128,6 @@ class EmitPrReadyForReviewTest(TestCase):
         emit_pr_ready_for_review(
             organization=self.organization,
             group=self.group,
-            run_id=RUN_ID,
             sentry_run_id=None,
             state=state,
             filtered_repos=["owner/repo"],
@@ -373,7 +372,7 @@ class MarkReadyForReviewTest(TestCase):
         kwargs = mock_emit.call_args.kwargs
         assert kwargs["group"].id == self.group.id
         assert kwargs["organization"].id == self.organization.id
-        assert kwargs["run_id"] == RUN_ID
+        assert kwargs["state"].run_id == RUN_ID
         assert kwargs["sentry_run_id"] == str(self.seer_run.uuid)
         # Undraft emits with the repo scoped so only the PR just undrafted is
         # signalled as ready — other repos may still be draft.
