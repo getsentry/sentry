@@ -248,6 +248,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
 
         max_attributes = options.get("explore.trace-items.keys.max")
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        include_internal_convention_attributes = request.user.is_staff
 
         def get_table_results():
             with handle_query_errors():
@@ -321,6 +322,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     public_alias,
                     stats_config.visibility_item_type,
                     include_internal=include_internal,
+                    include_internal_convention_attributes=include_internal_convention_attributes,
                 ):
                     continue
 

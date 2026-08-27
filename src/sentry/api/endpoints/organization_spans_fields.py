@@ -114,6 +114,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        include_internal_convention_attributes = request.user.is_staff
 
         paginator = ChainPaginator(
             [
@@ -125,6 +126,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                         attribute.name,
                         SupportedTraceItemType.SPANS,
                         include_internal=include_internal,
+                        include_internal_convention_attributes=include_internal_convention_attributes,
                     )
                 ],
             ],
