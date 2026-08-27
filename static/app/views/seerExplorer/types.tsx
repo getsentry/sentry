@@ -108,13 +108,14 @@ export interface CallRecord {
   body?: string;
   /** Whether `body` was cut short. */
   body_truncated?: boolean;
-  /**
-   * What the agent said the call was for, in its own words. Carried beside `title`, never instead
-   * of it, so an agent-authored line is always readable next to what actually ran.
-   */
-  description?: string;
   /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
   error?: string;
+  /**
+   * What the agent said it was trying to accomplish, in its own words. Carried beside `title`,
+   * never instead of it, so the agent's line is always readable next to what actually ran. Named
+   * for its author: `title` is generated, this is not.
+   */
+  llm_description?: string;
   method?: string;
   /** Lib records only. */
   name?: string;

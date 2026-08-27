@@ -24,7 +24,7 @@ import type {CallRecord} from 'sentry/views/seerExplorer/types';
  * on screen is worse than one fewer row.
  */
 export function callRecordLabel(record: CallRecord): string | null {
-  return record.description?.trim() || record.title?.trim() || null;
+  return record.llm_description?.trim() || record.title?.trim() || null;
 }
 
 /**
@@ -89,9 +89,9 @@ export function callRecordDetail(record: CallRecord): {
   // A described row reads as the agent's own words, so what actually ran has to stay reachable —
   // otherwise a description is an unfalsifiable claim. The title is that: "Running command
   // grep -rn retry in getsentry/sentry" beneath "Checking whether retries are the cause".
-  const description = record.description?.trim();
+  const described = record.llm_description?.trim();
   const title = record.title?.trim();
-  if (description && title && description !== title) {
+  if (described && title && described !== title) {
     return {request: title, body: null};
   }
 
@@ -270,7 +270,7 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
   );
 
   const prefersOwnRow = (record: CallRecord): boolean =>
-    Boolean(record.description?.trim()) ||
+    Boolean(record.llm_description?.trim()) ||
     Boolean(record.name && PREFER_LIB_OVER_CHILDREN.has(record.name));
 
   const hideChildrenOf = new Set(

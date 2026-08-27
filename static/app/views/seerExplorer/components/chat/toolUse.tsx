@@ -449,7 +449,7 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
         const inFlightRows: CallRecord[] = progressLines.map((message, index) => ({
           id: -(index + 1),
           kind: 'note' as const,
-          description: message,
+          llm_description: message,
         }));
         const rowSource = finishedCalls.length
           ? finishedCalls

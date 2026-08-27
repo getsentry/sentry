@@ -114,13 +114,13 @@ describe('call record rendering', () => {
     const block = codeModeBlock([
       apiRecord({
         title: 'Retrieve an Organization',
-        description: 'Checking which org owns the failing project',
+        llm_description: 'Working out which org owns the failing project',
       }),
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(
-      screen.getByText('Checking which org owns the failing project')
+      screen.getByText('Working out which org owns the failing project')
     ).toBeInTheDocument();
   });
 
@@ -134,14 +134,14 @@ describe('call record rendering', () => {
         kind: 'lib',
         name: 'get_issue_details',
         title: 'Getting enriched issue details for issue 4521',
-        description: 'Pulling the failing event to see which span is slow',
+        llm_description: 'Working out which span makes checkout slow',
       },
       apiRecord({id: 2, parent: 1, title: 'Retrieve an Issue'}),
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(
-      screen.getByText('Pulling the failing event to see which span is slow')
+      screen.getByText('Working out which span makes checkout slow')
     ).toBeInTheDocument();
     expect(screen.queryByText('Retrieve an Issue')).not.toBeInTheDocument();
   });
@@ -168,7 +168,7 @@ describe('call record rendering', () => {
   it('renders a note in the order it was written', () => {
     const block = codeModeBlock([
       apiRecord({id: 1, title: 'Retrieve an Organization'}),
-      {id: 2, parent: null, kind: 'note', description: 'Comparing the two traces'},
+      {id: 2, parent: null, kind: 'note', llm_description: 'Comparing the two traces'},
       apiRecord({id: 3, title: 'List Your Organizations'}),
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
