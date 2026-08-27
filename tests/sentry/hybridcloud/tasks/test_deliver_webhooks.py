@@ -3,7 +3,6 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
 
-import orjson
 import pytest
 import responses
 from django.core.cache import cache
@@ -1585,7 +1584,7 @@ class DeliveryTimeMetricsTest(MetricCallsMixin, TestCase):
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_delivery_time_metrics_github_event_and_action(self, mock_metrics: MagicMock) -> None:
+    def test_delivery_time_metrics_github_event_type(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -1596,10 +1595,6 @@ class DeliveryTimeMetricsTest(MetricCallsMixin, TestCase):
             mailbox_name="github:123:0:pull_request",
             cell_name="us",
             provider="github",
-            request_headers=orjson.dumps(
-                {"X-GitHub-Event": "pull_request", "Content-Type": "application/json"}
-            ).decode(),
-            request_body=orjson.dumps({"action": "opened", "repository": {}}).decode(),
         )
         drain_mailbox(webhook.id, claimed_count=MAX_MAILBOX_DRAIN)
 
@@ -1609,41 +1604,11 @@ class DeliveryTimeMetricsTest(MetricCallsMixin, TestCase):
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "github"
         assert tags.get("event_type") == "pull_request"
-        # Both tags emit while consumers migrate off the unbounded one.
-        assert tags.get("github_event_and_action") == "pull_request.opened"
 
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_delivery_time_metrics_github_event_only(self, mock_metrics: MagicMock) -> None:
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=200,
-            body="",
-        )
-        webhook = self.create_webhook_payload(
-            mailbox_name="github:123:0:push",
-            cell_name="us",
-            provider="github",
-            request_headers=orjson.dumps(
-                {"X-GitHub-Event": "push", "Content-Type": "application/json"}
-            ).decode(),
-            request_body=orjson.dumps({"repository": {}}).decode(),
-        )
-        drain_mailbox(webhook.id, claimed_count=MAX_MAILBOX_DRAIN)
-
-        delivery_time_tags = self.distribution_tags(mock_metrics, DELIVERY_TIME_METRIC)
-        assert len(delivery_time_tags) == 1
-        tags = delivery_time_tags[0]
-        assert tags.get("region_sent_to") == "us"
-        assert tags.get("event_type") == "push"
-        assert tags.get("github_event_and_action") == "push.unknown"
-
-    @responses.activate
-    @override_cells(cell_config)
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_delivery_time_metrics_non_github_no_github_tags(self, mock_metrics: MagicMock) -> None:
+    def test_delivery_time_metrics_non_github_event_type(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -1663,7 +1628,6 @@ class DeliveryTimeMetricsTest(MetricCallsMixin, TestCase):
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "stripe"
         assert tags.get("event_type") == "none"
-        assert "github_event_and_action" not in tags
 
     @responses.activate
     @override_cells(cell_config)
