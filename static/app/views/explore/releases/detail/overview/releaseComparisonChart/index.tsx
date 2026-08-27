@@ -29,6 +29,7 @@ import {
   type ReleaseWithHealth,
 } from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -258,7 +259,9 @@ export function ReleaseComparisonChart({
 
     try {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/issues-count/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             project: project.id,

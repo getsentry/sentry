@@ -6,6 +6,12 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {AgenticProgress, AgenticProgressList} from './agenticProgressList';
 
 describe('AgenticProgressList', () => {
+  it('renders header content', () => {
+    render(<AgenticProgressList stages={[]} header="Progress header" />);
+
+    expect(screen.getByText('Progress header')).toBeInTheDocument();
+  });
+
   it('renders every visible stage status and its notes', () => {
     render(
       <AgenticProgressList
@@ -128,6 +134,14 @@ describe('AgenticProgressList', () => {
     );
 
     expect(screen.getByText('Created 2 projects')).toBeInTheDocument();
+    expect(screen.getByText('Agent Connected')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Last update/)).toBeInTheDocument();
+    expect(screen.getByText('ID:Lg1iSt2qeQ')).toBeInTheDocument();
     await waitFor(() => expect(projectsRequest).toHaveBeenCalled());
   });
 });

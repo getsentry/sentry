@@ -13,8 +13,10 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export function ExploreSecondaryNavigation() {
+function ExploreSecondaryNavigationImpl() {
   const organization = useOrganization();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
@@ -25,6 +27,70 @@ export function ExploreSecondaryNavigation() {
   });
 
   const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
+
+  // Mirrors the <Feature> gates below so the reported nav items match what's
+  // actually rendered — including any beta/new/alpha badge shown on them.
+  // `to` disambiguates items that can share a label (e.g. "Errors" from both
+  // the explore-errors and discover-basic branches) but point elsewhere.
+  const navItems: Array<{label: string; to: string; badge?: 'new' | 'beta' | 'alpha'}> =
+    [];
+  if (
+    organization.features.includes('performance-view') &&
+    organization.features.includes('visibility-explore-view')
+  ) {
+    navItems.push({label: 'Traces', to: `${baseUrl}/traces/`});
+  }
+  if (organization.features.includes('ourlogs-enabled')) {
+    navItems.push({label: 'Logs', to: `${baseUrl}/logs/`});
+  }
+  if (organization.features.includes('tracemetrics-enabled')) {
+    navItems.push({label: 'Metrics', badge: 'new', to: `${baseUrl}/metrics/`});
+  }
+  if (organization.features.includes('explore-errors')) {
+    navItems.push({label: 'Errors', badge: 'alpha', to: `${baseUrl}/errors-v2/`});
+  }
+  if (organization.features.includes('discover-basic')) {
+    navItems.push({
+      label: discoverTransactionsDeprecation ? 'Errors' : 'Discover',
+      to: discoverTransactionsDeprecation
+        ? `${baseUrl}/errors/homepage/`
+        : `${baseUrl}/discover/homepage/`,
+    });
+  }
+  if (organization.features.includes('profiling')) {
+    navItems.push({label: 'Profiles', to: `${baseUrl}/profiles/`});
+  }
+  if (organization.features.includes('session-replay-ui')) {
+    navItems.push({label: 'Replays', to: `${baseUrl}/replays/`});
+  }
+  navItems.push({label: 'Releases', to: `${baseUrl}/releases/`});
+  if (organization.features.includes('gen-ai-conversations')) {
+    navItems.push({
+      label: 'Agents',
+      badge: 'beta',
+      to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
+    });
+  }
+  if (organization.openMembership && organization.features.includes('investigations')) {
+    navItems.push({
+      label: 'Investigations',
+      badge: 'beta',
+      to: `${baseUrl}/investigations/`,
+    });
+  }
+
+  useLLMContext({
+    contextHint:
+      'The Explore secondary nav panel — data-type shortcuts (Traces, Logs, ' +
+      'Metrics, ...), some behind a beta/new/alpha badge, plus the starred ' +
+      'saved queries list.',
+    navItems,
+    starredQueries: (starredQueries ?? []).map(query => ({
+      id: query.id,
+      name: query.name,
+      dataset: query.dataset,
+    })),
+  });
 
   return (
     <Fragment>
@@ -157,10 +223,7 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link
                     to={`${baseUrl}/investigations/`}
-                    activeTo={[
-                      `${baseUrl}/investigations/`,
-                      `/organizations/${organization.slug}/seer/investigation/`,
-                    ]}
+                    activeTo={`${baseUrl}/investigations/`}
                     analyticsItemName="explore_investigations"
                     trailingItems={<FeatureBadge type="beta" />}
                   >
@@ -200,3 +263,8 @@ export function ExploreSecondaryNavigation() {
     </Fragment>
   );
 }
+
+export const ExploreSecondaryNavigation = registerLLMContext(
+  'navigation',
+  ExploreSecondaryNavigationImpl
+);

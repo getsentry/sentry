@@ -27,6 +27,7 @@ import {
   type ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   useConsoleSdkInvites,
@@ -180,7 +181,9 @@ function ToggleConsolePlatformsModal({
       const {newConsoleSdkInviteQuota, ...platforms} = data;
       return fetchMutation({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {
           enabledConsolePlatforms: Object.keys(platforms).reduce<string[]>((acc, key) => {
             if (platforms[key]) {

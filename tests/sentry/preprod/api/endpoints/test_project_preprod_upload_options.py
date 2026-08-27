@@ -5,6 +5,7 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from sentry.objectstore import UsecaseId
 from sentry.testutils.cases import APITestCase
 
 
@@ -19,7 +20,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
             args=[self.org.slug, self.project.slug],
         )
 
-    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
     def test_returns_upload_options(self, mock_get_session) -> None:
         mock_session = MagicMock()
         mock_session.mint_token.return_value = "fake-token"
@@ -38,9 +39,9 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert data["expirationPolicy"] == "tti:30 days"
 
-        mock_get_session.assert_called_once_with(org=self.org.id, project=self.project.id)
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
 
-    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
     def test_objectstore_url_uses_region_endpoint(self, mock_get_session) -> None:
         mock_session = MagicMock()
         mock_session.mint_token.return_value = "fake-token"

@@ -19,6 +19,7 @@ class JiraNotifyServiceForm(IntegrationNotifyServiceForm):
             return None
 
         integration_id = cleaned_data.get("integration")
+        # TODO(mark) Add using_replica here
         integration = integration_service.get_integration(
             integration_id=integration_id, provider=self.provider
         )

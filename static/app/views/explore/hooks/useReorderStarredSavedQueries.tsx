@@ -1,6 +1,7 @@
 import {useQueryClient} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -16,7 +17,10 @@ export function useReorderStarredSavedQueries() {
   const {mutate} = useMutation({
     mutationFn: (queries: SavedQuery[]) =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/explore/saved/starred/order/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/explore/saved/starred/order/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
         method: 'PUT',
         data: {
           query_ids: queries.map(query => query.id),

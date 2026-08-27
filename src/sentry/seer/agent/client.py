@@ -29,6 +29,7 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
     AgentReposRequest,
+    AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
     collect_user_org_context,
@@ -552,8 +553,7 @@ class SeerAgentClient:
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
         referrer: str | None = None,
-        force_ce: bool | None = None,
-        force_frontend_code_search: bool | None = None,
+        agent_run_options: AgentRunOptions | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -571,8 +571,8 @@ class SeerAgentClient:
         flush=False: leave the row for the async outbox runner to drain and
         retry. Use for background callers (e.g. night shift).
 
-        force_ce if set forces context engine on/off, force_frontend_code_search
-        likewise for frontend source code search.
+        Explicit agent_run_options override any options derived from organization
+        configuration.
         """
         user_id = (
             self.user.id
@@ -592,6 +592,10 @@ class SeerAgentClient:
             if on_run_created is not None:
                 on_run_created(run)
 
+        resolved_agent_run_options = self._build_agent_run_options()
+        if agent_run_options is not None:
+            resolved_agent_run_options.update(agent_run_options)
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
@@ -599,10 +603,7 @@ class SeerAgentClient:
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
-                agent_run_options=self._build_agent_run_options(
-                    force_ce=force_ce,
-                    force_frontend_code_search=force_frontend_code_search,
-                ),
+                agent_run_options=resolved_agent_run_options,
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
@@ -637,13 +638,17 @@ class SeerAgentClient:
         override_ce_enable: bool = True,
         force_ce: bool | None = None,
         force_frontend_code_search: bool | None = None,
-    ) -> dict[str, Any]:
+    ) -> AgentRunOptions:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run.
 
         force_ce if set forces context engine on/off, force_frontend_code_search
         likewise for frontend source code search.
         """
-        opts: dict[str, Any] = {}
+
+        opts = AgentRunOptions()
+
+        if self.enable_bash_tools:
+            opts["enable_bash_mode"] = True
 
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
