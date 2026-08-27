@@ -2,6 +2,29 @@ import * as docgen from 'react-docgen-typescript';
 import type {LoaderContext} from '@rspack/core';
 import * as typescript from 'typescript';
 
+// TypeScript assigns these symbols process-global numeric IDs based on traversal order.
+const TYPESCRIPT_SYNTHETIC_PROPERTY = /^__@[^@]+@\d+$/;
+// react-docgen-typescript returns checkout-specific absolute paths in these fields.
+const FILE_PATH_PROPERTIES = new Set(['fileName', 'filePath', 'filename']);
+
+export function serializeTypeLoaderResult(
+  result: TypeLoader.TypeLoaderResult,
+  rootContext: string,
+  contextify: (context: string, request: string) => string
+): string {
+  return JSON.stringify(result, (key, value) => {
+    if (TYPESCRIPT_SYNTHETIC_PROPERTY.test(key)) {
+      return;
+    }
+
+    if (FILE_PATH_PROPERTIES.has(key) && typeof value === 'string') {
+      return contextify(rootContext, value);
+    }
+
+    return value;
+  });
+}
+
 function extractModuleExports(
   program: typescript.Program,
   sourceFile: typescript.SourceFile | undefined
@@ -109,7 +132,14 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
       exports: moduleExports,
     },
   };
-  return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
+  return callback(
+    null,
+    `export default ${serializeTypeLoaderResult(
+      typeLoaderResult,
+      this.rootContext,
+      this.utils.contextify
+    )}`
+  );
 }
 
 function noopTypeLoader(this: LoaderContext<any>, _source: string) {
