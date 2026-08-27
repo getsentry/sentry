@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 import {z} from 'zod';
 
@@ -39,23 +39,6 @@ export function GetStarted({
   const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
   const localityOptions = getSignupLocalities();
 
-  const {mutateAsync: validatePromoCode} = useMutation({
-    mutationFn: (code: string) =>
-      queryClient.fetchQuery(
-        apiOptions.as<unknown>()('/promocodes-external/$code', {
-          path: {code},
-          staleTime: 0,
-        })
-      ),
-    onError: error => {
-      addErrorMessage(
-        error instanceof RequestError && error.status === 403
-          ? PROMO_CODE_ERROR_MSG
-          : PROMO_CODE_FALLBACK_ERROR_MSG
-      );
-    },
-  });
-
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {orgSlugs, localityName, promoCode},
@@ -70,9 +53,21 @@ export function GetStarted({
       };
 
       return parsedValue.promoCode
-        ? validatePromoCode(parsedValue.promoCode)
+        ? queryClient
+            .fetchQuery(
+              apiOptions.as<unknown>()('/promocodes-external/$code', {
+                path: {code: parsedValue.promoCode},
+                staleTime: 0,
+              })
+            )
             .then(completeStep)
-            .catch(() => {})
+            .catch(error => {
+              addErrorMessage(
+                error instanceof RequestError && error.status === 403
+                  ? PROMO_CODE_ERROR_MSG
+                  : PROMO_CODE_FALLBACK_ERROR_MSG
+              );
+            })
         : completeStep();
     },
   });
