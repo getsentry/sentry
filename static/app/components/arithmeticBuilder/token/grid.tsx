@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, type PointerEvent} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
@@ -25,6 +25,8 @@ import {ArithmeticTokenParenthesis} from 'sentry/components/arithmeticBuilder/to
 import {ArithmeticBuilderTokenReference} from 'sentry/components/arithmeticBuilder/token/reference';
 import {computeNextAllowedTokenKinds} from 'sentry/components/arithmeticBuilder/validator';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
+import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
+import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
@@ -107,13 +109,46 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
 
   useApplyFocusOverride(state);
 
+  const onGridPaddingPointerDown = useCallback(
+    (evt: PointerEvent<HTMLDivElement>) => {
+      if (evt.target !== evt.currentTarget) {
+        gridProps.onPointerDown?.(evt);
+        return;
+      }
+
+      // Padding clicks would otherwise focus the grid itself, which has no caret.
+      evt.preventDefault();
+
+      const rect = evt.currentTarget.getBoundingClientRect();
+      const closerToStart = evt.clientY < rect.top + rect.height / 2;
+      const key = closerToStart
+        ? state.collection.getFirstKey()
+        : state.collection.getLastKey();
+      if (!key) {
+        return;
+      }
+
+      focusTarget(state, key);
+
+      const item = state.collection.getItem(key);
+      const rows = Array.from(
+        evt.currentTarget.querySelectorAll<HTMLElement>('[role="row"]')
+      ).filter(row => row.closest('[role="grid"]') === evt.currentTarget);
+      const row = closerToStart ? rows.at(0) : rows.at(-1);
+      if (row && item) {
+        shiftFocusToChild(row, item, state);
+      }
+    },
+    [gridProps, state]
+  );
+
   const nextAllowedTokenKindsAtIndex = useMemo(() => {
     const tokens = Array.from(state.collection, item => item.value);
     return computeNextAllowedTokenKinds(tokens);
   }, [state.collection]);
 
   return (
-    <TokenGridWrapper {...gridProps} ref={ref}>
+    <TokenGridWrapper {...gridProps} onPointerDown={onGridPaddingPointerDown} ref={ref}>
       {Array.from(state.collection, (item, i) => {
         const token = item.value;
 
@@ -197,11 +232,15 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
 }
 
 const TokenGridWrapper = styled('div')`
-  padding: ${p => p.theme.space.sm};
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.sm};
   display: flex;
   align-items: center;
   row-gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
+  cursor: text;
 
   &:focus {
     outline: none;

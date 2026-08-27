@@ -1,4 +1,4 @@
-import type {ChangeEvent, FocusEvent, RefObject} from 'react';
+import type {ChangeEvent, FocusEvent, MouseEvent, RefObject} from 'react';
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,6 +10,14 @@ import type {CollectionChildren, KeyboardEvent, Node} from '@react-types/shared'
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
+import {
+  ensureSearchFilterArgument,
+  isFilterKeySuggestion,
+  isSearchFilterParameter,
+  replaceConditionalFilterClause,
+  unwrapSearchFilterArgument,
+} from 'sentry/components/arithmeticBuilder/conditionalFilter';
+import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilterAutocomplete';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {
   Token,
@@ -30,6 +38,22 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 
+function resolveArgumentDisplayLabel(
+  parameterDefinition:
+    | {defaultLabel?: string; kind?: string; name?: string}
+    | null
+    | undefined,
+  fallbackLabel: string
+): string {
+  if (parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel) {
+    return parameterDefinition.defaultLabel;
+  }
+  if (isSearchFilterParameter(parameterDefinition)) {
+    return unwrapSearchFilterArgument(fallbackLabel);
+  }
+  return fallbackLabel;
+}
+
 interface ArithmeticTokenFunctionProps {
   item: Node<Token>;
   state: ListState<Token>;
@@ -44,12 +68,28 @@ export function ArithmeticTokenFunction({
   const functionArguments = token.attributes;
 
   const ref = useRef<HTMLDivElement>(null);
+  const skipArgumentFocusRef = useRef(false);
   const {rowProps, gridCellProps} = useGridListItem({
     item,
     ref,
     state,
     focusable: defined(functionArguments) && functionArguments.length > 0, // if there are no arguments, it's not focusable
   });
+
+  const onRowFocus = useCallback(
+    (evt: FocusEvent<HTMLDivElement>) => {
+      if (skipArgumentFocusRef.current) {
+        skipArgumentFocusRef.current = false;
+        return;
+      }
+      rowProps.onFocus?.(evt);
+    },
+    [rowProps]
+  );
+
+  const onFunctionNameMouseDown = useCallback(() => {
+    skipArgumentFocusRef.current = true;
+  }, []);
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
@@ -58,13 +98,16 @@ export function ArithmeticTokenFunction({
   return (
     <FunctionWrapper
       {...rowProps}
+      onFocus={onRowFocus}
       ref={ref}
       tabIndex={isFocused ? 0 : -1}
       aria-label={`${token.function}(${attrText ?? ''})`}
       aria-invalid={false}
       state="valid"
     >
-      <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
+      <FunctionGridCell {...gridCellProps} onMouseDown={onFunctionNameMouseDown}>
+        {token.function}
+      </FunctionGridCell>
       <ArgumentsGrid rowRef={ref} item={item} state={state} token={token} />
       <BaseGridCell {...gridCellProps}>
         <DeleteButton token={token} label={t('Remove function %s', token.text)} />
@@ -92,10 +135,7 @@ function ArgumentsGrid({
       const fieldDefinition = getFieldDefinition(functionToken.function)?.parameters?.[
         index
       ];
-      if (fieldDefinition?.kind === 'column') {
-        return fieldDefinition?.defaultLabel ?? fallbackLabel;
-      }
-      return fallbackLabel;
+      return resolveArgumentDisplayLabel(fieldDefinition, fallbackLabel);
     },
     [getFieldDefinition, functionToken]
   );
@@ -251,6 +291,7 @@ function InternalInput({
   argumentsListState,
   argumentItem,
   argument,
+  argumentRef,
   arguments: functionArguments,
   onArgumentsChange,
 }: InternalInputProps) {
@@ -271,6 +312,7 @@ function InternalInput({
     dispatch,
     functionArguments: builderFunctionArguments,
     getFieldDefinition,
+    getFilterTagValues,
     getSuggestedKey,
   } = useArithmeticBuilder();
 
@@ -281,9 +323,7 @@ function InternalInput({
 
   const resolveDisplayLabel = useCallback(
     (fallback: string): string =>
-      parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
-        ? parameterDefinition.defaultLabel
-        : fallback,
+      resolveArgumentDisplayLabel(parameterDefinition, fallback),
     [parameterDefinition]
   );
 
@@ -292,15 +332,34 @@ function InternalInput({
   const [inputValue, setInputValue] = useState('');
   const [currentValue, setCurrentValue] = useState(initialLabel);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
-  const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
-  const [_isOpen, setIsOpen] = useState(false); // TODO
+  const [selectionIndex, setSelectionIndex] = useState(0);
 
-  const filterValue = inputValue.trim();
+  const isFilterParameter = isSearchFilterParameter(parameterDefinition);
+
   const displayValue = isCurrentlyEditing ? inputValue : currentValue;
 
-  const updateSelectionIndex = useCallback(() => {
-    setSelectionIndex(inputRef.current?.selectionStart ?? 0);
-  }, [setSelectionIndex]);
+  const {
+    comboBoxFilterValue,
+    editPhase,
+    items: filterItems,
+  } = useConditionalFilterAutocomplete({
+    enabled: isFilterParameter && isCurrentlyEditing,
+    filterValue: inputValue,
+    functionArguments: builderFunctionArguments,
+    getFilterTagValues,
+    selectionIndex,
+  });
+
+  const shouldFilterComboBoxResults = !(
+    isFilterParameter &&
+    editPhase === 'value' &&
+    getFilterTagValues
+  );
+
+  const updateSelectionIndex = useCallback((input?: HTMLInputElement | null) => {
+    const target = input ?? inputRef.current;
+    setSelectionIndex(target?.selectionStart ?? 0);
+  }, []);
 
   const resetInputValue = useCallback(() => {
     setInputValue('');
@@ -348,6 +407,12 @@ function InternalInput({
   const attributeItems = useAttributeItems(allowedAttributes);
 
   const items = useMemo(() => {
+    if (isFilterParameter) {
+      return filterItems;
+    }
+
+    const filterValue = inputValue.trim();
+
     if (parameterDefinition?.kind === 'value' && parameterDefinition.options) {
       return parameterDefinition.options
         .filter(
@@ -393,13 +458,23 @@ function InternalInput({
     }
 
     return result;
-  }, [parameterDefinition, filterValue, attributeItems]);
+  }, [attributeItems, filterItems, inputValue, isFilterParameter, parameterDefinition]);
 
   const shouldCloseOnInteractOutside = useCallback((el: Element) => {
     return !gridCellRef.current?.contains(el);
   }, []);
 
-  const onClick = useCallback(() => {
+  const onClick = useCallback(
+    (evt: MouseEvent<HTMLInputElement>) => {
+      const input = evt.currentTarget;
+      requestAnimationFrame(() => {
+        updateSelectionIndex(input);
+      });
+    },
+    [updateSelectionIndex]
+  );
+
+  const onKeyUp = useCallback(() => {
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
@@ -410,6 +485,9 @@ function InternalInput({
 
   const resolveValue = useCallback(
     (raw: string): string => {
+      if (isSearchFilterParameter(parameterDefinition)) {
+        return ensureSearchFilterArgument(raw);
+      }
       if (
         parameterDefinition?.kind === 'column' &&
         parameterDefinition.defaultLabel &&
@@ -423,34 +501,100 @@ function InternalInput({
     [parameterDefinition]
   );
 
-  const onTextInputBlur = useCallback(() => {
-    if (inputValue) {
-      onArgumentsChange(argumentIndex, inputValue);
-      dispatch({
-        text: `${functionToken.function}(${updateAttrsWith(inputValue)})`,
-        type: 'REPLACE_TOKEN',
-        token: functionToken,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(
-            functionListState,
-            functionToken,
-            TokenKind.FREE_TEXT
-          ),
-        },
-      });
-    }
-    resetInputValue();
-    setIsCurrentlyEditing(false);
-  }, [
-    argumentIndex,
-    dispatch,
-    functionListState,
-    functionToken,
-    inputValue,
-    onArgumentsChange,
-    resetInputValue,
-    updateAttrsWith,
-  ]);
+  // Persist free-text filter edits on blur. Skip REPLACE_TOKEN while focus stays inside
+  // the arguments grid — that remounts the function and steals focus from the next arg.
+  const onFilterInputBlur = useCallback(
+    (evt?: FocusEvent<HTMLInputElement>) => {
+      const value = inputValue ? ensureSearchFilterArgument(inputValue) : null;
+      if (value) {
+        setCurrentValue(unwrapSearchFilterArgument(value));
+        onArgumentsChange(argumentIndex, value);
+      }
+      resetInputValue();
+      setIsCurrentlyEditing(false);
+
+      if (!value || value === functionToken.attributes[argumentIndex]?.text) {
+        return;
+      }
+
+      const commitFilter = () => {
+        dispatch({
+          text: `${functionToken.function}(${updateAttrsWith(value)})`,
+          type: 'REPLACE_TOKEN',
+          token: functionToken,
+        });
+      };
+
+      if (evt) {
+        const argsGrid = evt.currentTarget.closest('[role="grid"]');
+        const related = evt.relatedTarget;
+        const stayingInArgs = Boolean(
+          argsGrid && related instanceof Node && argsGrid.contains(related)
+        );
+        if (!stayingInArgs) {
+          commitFilter();
+        }
+        return;
+      }
+
+      // Click-outside closes the menu without a focus event; check after focus settles.
+      window.setTimeout(() => {
+        const stayingInArgs = Boolean(
+          document.activeElement && argumentRef.current?.contains(document.activeElement)
+        );
+        if (!stayingInArgs) {
+          commitFilter();
+        }
+      }, 0);
+    },
+    [
+      argumentIndex,
+      argumentRef,
+      dispatch,
+      functionToken,
+      inputValue,
+      onArgumentsChange,
+      resetInputValue,
+      updateAttrsWith,
+    ]
+  );
+
+  // Non-filter free-text values (e.g. apdex threshold) still use InputBox and can use the
+  // relatedTarget check to REPLACE only when leaving the arguments grid.
+  const onTextInputBlur = useCallback(
+    (evt: FocusEvent<HTMLInputElement>) => {
+      if (inputValue) {
+        onArgumentsChange(argumentIndex, inputValue);
+
+        const argsGrid = evt.currentTarget.closest('[role="grid"]');
+        const related = evt.relatedTarget;
+        const stayingInArgs = Boolean(
+          related instanceof Node && argsGrid?.contains(related)
+        );
+        if (
+          !stayingInArgs &&
+          inputValue !== functionToken.attributes[argumentIndex]?.text
+        ) {
+          dispatch({
+            text: `${functionToken.function}(${updateAttrsWith(inputValue)})`,
+            type: 'REPLACE_TOKEN',
+            token: functionToken,
+          });
+        }
+      }
+      resetInputValue();
+      setIsCurrentlyEditing(false);
+    },
+    [
+      argumentIndex,
+      dispatch,
+      functionToken,
+      inputValue,
+      onArgumentsChange,
+      resetInputValue,
+      updateAttrsWith,
+    ]
+  );
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
@@ -521,6 +665,19 @@ function InternalInput({
       resetInputValue();
     },
     [argumentItem.key, argumentsListState, resetInputValue]
+  );
+
+  // Free-text value args (e.g. `_if` filters) should keep their current text on focus so
+  // the user can edit it. ComboBox clears on focus to type a new filter query.
+  const onTextInputFocus = useCallback(
+    (evt: FocusEvent<HTMLInputElement>) => {
+      evt.stopPropagation();
+      focusTarget(argumentsListState, argumentItem.key);
+      setIsCurrentlyEditing(true);
+      setInputValue(currentValue);
+      updateSelectionIndex(evt.currentTarget);
+    },
+    [argumentItem.key, argumentsListState, currentValue, updateSelectionIndex]
   );
 
   const onKeyDownCapture = useCallback(
@@ -612,6 +769,30 @@ function InternalInput({
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
+      if (isFilterParameter) {
+        const {newValue, newCursorIndex} = replaceConditionalFilterClause(
+          inputValue,
+          selectionIndex,
+          option.value
+        );
+        setCurrentValue(newValue);
+        setInputValue(newValue);
+        setIsCurrentlyEditing(true);
+        setSelectionIndex(newCursorIndex);
+
+        if (isFilterKeySuggestion(option.value)) {
+          requestAnimationFrame(() => {
+            const input = inputRef.current;
+            if (!input) {
+              return;
+            }
+            input.setSelectionRange(newCursorIndex, newCursorIndex);
+            input.focus();
+          });
+        }
+        return;
+      }
+
       setCurrentValue(resolveDisplayLabel(prettifyTagKey(option.value)));
       if (hasNextArgument) {
         focusTarget(
@@ -636,6 +817,7 @@ function InternalInput({
       resetInputValue();
     },
     [
+      isFilterParameter,
       hasNextArgument,
       resolveDisplayLabel,
       resetInputValue,
@@ -647,6 +829,8 @@ function InternalInput({
       functionToken,
       updateAttrsWith,
       functionListState,
+      inputValue,
+      selectionIndex,
     ]
   );
 
@@ -654,8 +838,11 @@ function InternalInput({
     // TODO
   }, []);
 
+  // Free-text value args with no options (e.g. apdex threshold) use a plain input.
+  // `_if` filter args use ComboBox below for attribute-key autocomplete.
   if (
     parameterDefinition?.kind === 'value' &&
+    !isFilterParameter &&
     (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
   ) {
     return (
@@ -671,11 +858,10 @@ function InternalInput({
             onInputChange={onInputChange}
             onInputCommit={onInputCommit}
             onInputEscape={onInputEscape}
-            onInputFocus={onInputFocus}
+            onInputFocus={onTextInputFocus}
             onKeyDown={onKeyDown}
             onKeyDownCapture={onKeyDownCapture}
           />
-          {argumentIndex < functionToken.attributes.length - 1 && ','}
         </ArgumentGridCell>
       </ArgumentGridRow>
     );
@@ -688,30 +874,37 @@ function InternalInput({
           items={items}
           ref={inputRef}
           placeholder={
-            parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
-              ? (argument.label ?? parameterDefinition.placeholder)
-              : resolveDisplayLabel(argument.label)
+            isFilterParameter
+              ? resolveDisplayLabel(argument.label)
+              : parameterDefinition?.kind === 'value' &&
+                  'placeholder' in parameterDefinition
+                ? (argument.label ?? parameterDefinition.placeholder)
+                : resolveDisplayLabel(argument.label)
           }
           inputLabel={
-            parameterDefinition?.kind === 'column'
-              ? t('Select an attribute')
-              : t('Select an option')
+            isFilterParameter
+              ? t('Add a filter')
+              : parameterDefinition?.kind === 'column'
+                ? t('Select an attribute')
+                : t('Select an option')
           }
           inputValue={displayValue}
-          filterValue={filterValue}
+          filterValue={comboBoxFilterValue}
+          keepMenuOpenOnSelect={option => isFilterKeySuggestion(option.value)}
+          shouldFilterResults={shouldFilterComboBoxResults}
           tabIndex={
             argumentItem.key === argumentsListState.selectionManager.focusedKey ? 0 : -1
           }
           shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
           onClick={onClick}
-          onInputBlur={onInputBlur}
+          onInputBlur={isFilterParameter ? onFilterInputBlur : onInputBlur}
           onInputChange={onInputChange}
           onInputCommit={onInputCommit}
           onInputEscape={onInputEscape}
-          onInputFocus={onInputFocus}
+          onInputFocus={isFilterParameter ? onTextInputFocus : onInputFocus}
           onKeyDown={onKeyDown}
           onKeyDownCapture={onKeyDownCapture}
-          onOpenChange={setIsOpen}
+          onKeyUp={isFilterParameter ? onKeyUp : undefined}
           onOptionSelected={onOptionSelected}
           onPaste={onPaste}
           data-test-id={

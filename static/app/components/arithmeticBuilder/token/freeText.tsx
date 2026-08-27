@@ -62,6 +62,8 @@ export function ArithmeticTokenFreeText({
     focusable: true,
   });
 
+  const isCollapsed = !token.text.trim();
+
   return (
     <Row
       {...rowProps}
@@ -69,8 +71,9 @@ export function ArithmeticTokenFreeText({
       tabIndex={-1}
       aria-label={token.text}
       aria-invalid={false}
+      collapsed={isCollapsed}
     >
-      <GridCell {...gridCellProps} onClick={stopPropagation}>
+      <GridCell {...gridCellProps} onClick={stopPropagation} collapsed={isCollapsed}>
         <InternalInput
           showPlaceholder={showPlaceholder}
           nextAllowedTokenKinds={nextAllowedTokenKinds}
@@ -638,7 +641,9 @@ function stopPropagation(evt: MouseEvent<HTMLElement>) {
   evt.stopPropagation();
 }
 
-const GridCell = styled('div')`
+const GridCell = styled('div', {
+  shouldForwardProp: prop => prop !== 'collapsed',
+})<{collapsed?: boolean}>`
   position: relative;
   display: flex;
   align-items: stretch;
@@ -646,8 +651,10 @@ const GridCell = styled('div')`
   width: 100%;
 
   input {
-    padding: 0 ${p => p.theme.space.xs};
-    min-width: 9px;
+    padding: 0 ${p => (p.collapsed ? 0 : p.theme.space.xs)};
+    min-width: ${p => (p.collapsed ? 0 : '9px')};
     width: 100%;
+    height: 100%;
+    min-height: 100%;
   }
 `;

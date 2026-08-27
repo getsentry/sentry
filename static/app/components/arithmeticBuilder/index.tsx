@@ -9,6 +9,7 @@ import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/cont
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
@@ -21,6 +22,10 @@ interface ArithmeticBuilderProps {
   className?: string;
   'data-test-id'?: string;
   disabled?: boolean;
+  /**
+   * Fetches tag values for `_if` combinator filter arguments in equations.
+   */
+  getFilterTagValues?: GetTagValues;
   /**
    * This is used when a user types in a search key and submits the token.
    * The submission happens when the user types a colon or presses enter.
@@ -45,6 +50,7 @@ export function ArithmeticBuilder({
   aggregations,
   functionArguments,
   getFieldDefinition,
+  getFilterTagValues,
   getSuggestedKey,
   className,
   disabled,
@@ -73,6 +79,7 @@ export function ArithmeticBuilder({
       }),
       functionArguments,
       getFieldDefinition,
+      getFilterTagValues,
       getSuggestedKey,
       references,
     };
@@ -82,6 +89,7 @@ export function ArithmeticBuilder({
     aggregations,
     functionArguments,
     getFieldDefinition,
+    getFilterTagValues,
     getSuggestedKey,
     references,
   ]);

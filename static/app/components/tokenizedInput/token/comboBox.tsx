@@ -1,6 +1,7 @@
 import type {
   ChangeEventHandler,
   ClipboardEvent,
+  FocusEvent,
   FocusEventHandler,
   MouseEventHandler,
   Ref,
@@ -36,8 +37,13 @@ interface ComboBoxProps {
   inputValue: string;
   items: Array<SelectOptionOrSectionWithKey<string>>;
   ['data-test-id']?: string;
+  /**
+   * Keep the suggestion menu open after selecting an option. Useful when the
+   * user still needs to pick a follow-up value (e.g. filter key → filter value).
+   */
+  keepMenuOpenOnSelect?: boolean | ((option: SelectOptionWithKey<string>) => boolean);
   onClick?: MouseEventHandler<HTMLInputElement>;
-  onInputBlur?: () => void;
+  onInputBlur?: (evt?: FocusEvent<HTMLInputElement>) => void;
   onInputChange?: ChangeEventHandler<HTMLInputElement>;
   onInputCommit?: (value: string) => void;
   onInputEscape?: () => void;
@@ -55,6 +61,10 @@ interface ComboBoxProps {
    * other elements.
    */
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
+  /**
+   * When false, all items from `items` are shown and filtering is left to the caller.
+   */
+  shouldFilterResults?: boolean;
   tabIndex?: number;
 }
 
@@ -112,17 +122,62 @@ export function ComboBox({
   placeholder,
   tabIndex,
   ref,
+  keepMenuOpenOnSelect,
+  shouldFilterResults = true,
 }: ComboBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const openMenuRef = useRef<(() => void) | null>(null);
+  const closeMenuRef = useRef<(() => void) | null>(null);
+  const suppressAutoOpenRef = useRef(false);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
     filterValue,
     maxOptions: 50,
-    shouldFilterResults: true,
+    shouldFilterResults,
   });
+
+  const hasVisibleItems = items.some(item => {
+    if (itemIsSectionWithKey(item)) {
+      return item.options.some(option => !hiddenOptions.has(option.key));
+    }
+    return !hiddenOptions.has(item.key);
+  });
+
+  const shouldKeepMenuOpenOnSelect = useCallback(
+    (option: SelectOptionWithKey<string>) => {
+      if (typeof keepMenuOpenOnSelect === 'function') {
+        return keepMenuOpenOnSelect(option);
+      }
+      return keepMenuOpenOnSelect ?? false;
+    },
+    [keepMenuOpenOnSelect]
+  );
+
+  const applyOptionSelection = useCallback(
+    (option: SelectOptionWithKey<string>) => {
+      onOptionSelected?.(option);
+      if (shouldKeepMenuOpenOnSelect(option)) {
+        openMenuRef.current?.();
+        return;
+      }
+      if (keepMenuOpenOnSelect === undefined) {
+        return;
+      }
+      // Selecting closes the menu and briefly suppresses auto-open so focus/click
+      // returning to the input does not immediately reopen it.
+      suppressAutoOpenRef.current = true;
+      requestAnimationFrame(() => {
+        closeMenuRef.current?.();
+        requestAnimationFrame(() => {
+          suppressAutoOpenRef.current = false;
+        });
+      });
+    },
+    [keepMenuOpenOnSelect, onOptionSelected, shouldKeepMenuOpenOnSelect]
+  );
 
   const handleValueChange = useCallback(
     (key: Key | null) => {
@@ -134,18 +189,16 @@ export function ComboBox({
         if (itemIsSectionWithKey(item)) {
           const option = item.options.find(child => child.key === key);
           if (option) {
-            onOptionSelected?.(option);
+            applyOptionSelection(option);
             break;
           }
-        } else {
-          if (item.key === key) {
-            onOptionSelected?.(item);
-            break;
-          }
+        } else if (item.key === key) {
+          applyOptionSelection(item);
+          break;
         }
       }
     },
-    [items, onOptionSelected]
+    [applyOptionSelection, items]
   );
 
   const comboBoxProps: Partial<AriaComboBoxProps<SelectOptionOrSectionWithKey<string>>> =
@@ -168,10 +221,15 @@ export function ComboBox({
     shouldCloseOnBlur: false,
     ...comboBoxProps,
   });
+  openMenuRef.current = () => state.open();
+  closeMenuRef.current = () => state.close();
 
   const handleComboBoxFocus: FocusEventHandler<HTMLInputElement> = useCallback(
     evt => {
       onInputFocus?.(evt);
+      if (suppressAutoOpenRef.current) {
+        return;
+      }
       state.open();
     },
     [onInputFocus, state]
@@ -182,19 +240,15 @@ export function ComboBox({
       if (evt.relatedTarget && !shouldCloseOnInteractOutside?.(evt.relatedTarget)) {
         return;
       }
-      onInputBlur?.();
+      onInputBlur?.(evt);
       state.close();
     },
     [onInputBlur, shouldCloseOnInteractOutside, state]
   );
 
-  const totalOptions = items.reduce(
-    (acc, item) => acc + (itemIsSectionWithKey(item) ? item.options.length : 1),
-    0
-  );
-
   // Showing the overlay with nothing to select renders as an empty grey bar
-  const isOpen = state.isOpen && totalOptions > hiddenOptions.size;
+  const isOpen = state.isOpen && hasVisibleItems;
+  const isMenuVisible = isOpen;
 
   const handleComboBoxKeyDown = useCallback(
     (evt: KeyboardEvent) => {
@@ -292,6 +346,9 @@ export function ComboBox({
       evt.stopPropagation();
       inputProps.onClick?.(evt);
       onClick?.(evt);
+      if (suppressAutoOpenRef.current) {
+        return;
+      }
       state.open();
     },
     [inputProps, state, onClick]
@@ -327,7 +384,15 @@ export function ComboBox({
         onKeyDownCapture={onKeyDownCapture}
         data-test-id={dataTestId}
       />
-      <StyledPositionWrapper {...overlayProps} visible={isOpen}>
+      <StyledPositionWrapper
+        {...overlayProps}
+        hidden={!isMenuVisible}
+        visible={isMenuVisible}
+        style={{
+          ...overlayProps.style,
+          display: isMenuVisible ? overlayProps.style?.display : 'none',
+        }}
+      >
         <ListBoxOverlay ref={popoverRef}>
           <ListBox
             {...listBoxProps}
@@ -335,7 +400,7 @@ export function ComboBox({
             listState={state}
             hasSearch={!!filterValue}
             hiddenOptions={hiddenOptions}
-            overlayIsOpen={isOpen}
+            overlayIsOpen={isMenuVisible}
             size="sm"
           />
         </ListBoxOverlay>
