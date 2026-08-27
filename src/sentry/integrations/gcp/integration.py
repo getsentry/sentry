@@ -7,7 +7,7 @@ from typing import Any, TypedDict, cast
 from django.http.request import HttpRequest
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from rest_framework.fields import CharField, ChoiceField, ListField
+from rest_framework.fields import CharField, ListField
 from rest_framework.serializers import Serializer
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
@@ -22,11 +22,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
-from sentry.integrations.gcp.utils import (
-    GCP_CONNECTION_STATUSES,
-    GCP_MCP_URLS,
-    validate_gcp_project_id,
-)
+from sentry.integrations.gcp.utils import GCP_MCP_URLS, validate_gcp_project_id
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -74,7 +70,7 @@ class GcpConfig(TypedDict):
     projects: list[str]
     connection_status: str
     project_statuses: list[GcpProjectVerification]
-    last_verified_at: str
+    last_verified_at: str | None
 
 
 class GcpConfigInputSerializer(CamelSnakeSerializer["GcpConfigInput"]):
@@ -100,12 +96,12 @@ class GcpProjectVerification(TypedDict):
 
 class GcpProjectVerificationSerializer(Serializer[GcpProjectVerification]):
     gcp_project_id = CharField(required=True, max_length=64)
-    connection_status = ChoiceField(choices=GCP_CONNECTION_STATUSES, required=True)
+    connection_status = CharField(required=True)
     error_detail = CharField(required=False, allow_null=True, allow_blank=True, default=None)
 
 
 class GcpVerificationInputSerializer(CamelSnakeSerializer["GcpVerification"]):
-    connection_status = ChoiceField(choices=GCP_CONNECTION_STATUSES, required=True)
+    connection_status = CharField(required=True)
     projects = GcpProjectVerificationSerializer(many=True, required=True, allow_empty=False)
 
 
@@ -328,6 +324,7 @@ class GcpIntegrationProvider(IntegrationProvider):
             integration_id=integration.id,
         )
         verification: GcpVerification | None = extra.get("verification")
+        last_verified_at = timezone.now().isoformat() if verification is not None else None
         if verification is None:
             logger.error(
                 "gcp.post_install_missing_verification",
@@ -354,7 +351,7 @@ class GcpIntegrationProvider(IntegrationProvider):
             "projects": extra["projects"],
             "connection_status": verification["connection_status"],
             "project_statuses": verification["projects"],
-            "last_verified_at": timezone.now().isoformat(),
+            "last_verified_at": last_verified_at,
         }
         org_integration.update(config=gcp_config)
 

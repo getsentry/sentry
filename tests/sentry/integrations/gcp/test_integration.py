@@ -297,15 +297,17 @@ class GcpIntegrationTest(TestCase):
         assert "do not match the configured GCP projects" in result.data["detail"]
         assert "verification" not in state
 
-    def test_verification_serializer_rejects_unknown_status(self) -> None:
+    def test_verification_serializer_accepts_unknown_status(self) -> None:
         serializer = GcpVerificationInputSerializer(
             data={
-                "connectionStatus": "not_a_real_status",
-                "projects": [{"gcpProjectId": "my-gcp-project", "connectionStatus": "connected"}],
+                "connectionStatus": "quota_exceeded",
+                "projects": [
+                    {"gcpProjectId": "my-gcp-project", "connectionStatus": "quota_exceeded"}
+                ],
             }
         )
-        assert not serializer.is_valid()
-        assert "connectionStatus" in serializer.errors
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["connection_status"] == "quota_exceeded"
 
     def test_verification_serializer_requires_at_least_one_project(self) -> None:
         serializer = GcpVerificationInputSerializer(
@@ -507,6 +509,7 @@ class GcpIntegrationTest(TestCase):
             integration_id=integration.id,
         )
         assert org_integration.config["connection_status"] == "error"
+        assert org_integration.config["last_verified_at"] is None
         assert org_integration.config["project_statuses"] == [
             {
                 "gcp_project_id": "my-gcp-project",
