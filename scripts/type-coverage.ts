@@ -57,24 +57,65 @@ function parseArgs(): Options {
   return opts;
 }
 
+function getTypeParameters(type: ts.Type): readonly ts.TypeParameterDeclaration[] {
+  const symbol = type.aliasSymbol ?? type.symbol;
+  const declaration = symbol?.declarations?.find(
+    node =>
+      ts.isClassDeclaration(node) ||
+      ts.isInterfaceDeclaration(node) ||
+      ts.isTypeAliasDeclaration(node)
+  );
+  return declaration?.typeParameters ?? [];
+}
+
+function hasAnyTypeArgument(
+  typeArguments: readonly ts.Type[],
+  typeParameters: readonly ts.TypeParameterDeclaration[],
+  typeChecker: ts.TypeChecker
+): boolean {
+  return typeArguments.some((typeArgument, index) => {
+    if (!(typeArgument.flags & ts.TypeFlags.Any)) {
+      return false;
+    }
+
+    const defaultType = typeParameters[index]?.default;
+    return (
+      !defaultType ||
+      !(typeChecker.getTypeFromTypeNode(defaultType).flags & ts.TypeFlags.Any)
+    );
+  });
+}
+
+function hasDirectAnyTypeArgument(type: ts.Type, typeChecker: ts.TypeChecker): boolean {
+  if (type.aliasTypeArguments) {
+    return hasAnyTypeArgument(
+      type.aliasTypeArguments,
+      getTypeParameters(type),
+      typeChecker
+    );
+  }
+
+  if (
+    type.flags & ts.TypeFlags.Object &&
+    (type as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference
+  ) {
+    const reference = type as ts.TypeReference;
+    return hasAnyTypeArgument(
+      typeChecker.getTypeArguments(reference),
+      getTypeParameters(reference.target),
+      typeChecker
+    );
+  }
+
+  return false;
+}
+
 const isAny = (type: ts.Type, typeChecker: ts.TypeChecker): boolean => {
   if (type.flags & ts.TypeFlags.Any) {
     return true;
   }
 
-  // Check direct type arguments. Nested library types may contain unrelated `any`.
-  const aliasTypeArguments = type.aliasTypeArguments ?? [];
-  const referenceTypeArguments =
-    type.flags & ts.TypeFlags.Object &&
-    (type as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference
-      ? typeChecker.getTypeArguments(type as ts.TypeReference)
-      : [];
-
-  if (
-    [...aliasTypeArguments, ...referenceTypeArguments].some(
-      typeArgument => !!(typeArgument.flags & ts.TypeFlags.Any)
-    )
-  ) {
+  if (hasDirectAnyTypeArgument(type, typeChecker)) {
     return true;
   }
 
@@ -149,11 +190,7 @@ function isContextuallyTypedCallbackParam(
     return false;
   }
 
-  const paramType = typeChecker.getTypeOfSymbolAtLocation(
-    sig.parameters[paramIndex]!,
-    param
-  );
-  return !isAny(paramType, typeChecker);
+  return true;
 }
 
 type AnyHit = {
@@ -277,7 +314,14 @@ function countBindingPatternElements(
       const parentType = parentDeclaration
         ? typeChecker.getTypeAtLocation(parentDeclaration)
         : undefined;
-      if (parentType && !isAny(parentType, typeChecker)) {
+      const isContextuallyTyped =
+        parentDeclaration &&
+        parentKind === 'param(binding)' &&
+        ts.isParameter(parentDeclaration) &&
+        !hasExplicitType(parentDeclaration) &&
+        isContextuallyTypedCallbackParam(parentDeclaration, typeChecker);
+
+      if ((parentType && !isAny(parentType, typeChecker)) || isContextuallyTyped) {
         typed = true;
       }
     } else if (
@@ -294,8 +338,8 @@ function countBindingPatternElements(
       );
 
       if (
-        (hasParentExplicitType || isContextuallyTyped) &&
-        !isAny(parentType, typeChecker)
+        (hasParentExplicitType && !isAny(parentType, typeChecker)) ||
+        (!hasParentExplicitType && isContextuallyTyped)
       ) {
         typed = true;
       }
