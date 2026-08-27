@@ -1,4 +1,4 @@
-import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
@@ -27,11 +27,11 @@ interface ScmProviderPillsProps {
 
 export function ScmProviderPills(props: ScmProviderPillsProps) {
   return (
-    // Declares its own query container: the pills always render on one row and
-    // compact against this wrapper's width when it is tight. The wrapper is
-    // capped well below the page-level container scale, so page-relative keys
-    // would never fire here. The row is a separate component because it reads
-    // this container in JS, and an element can't query itself.
+    // Declares its own query container: the pills compact and wrap against
+    // this wrapper's width when it is tight. The wrapper is capped well below
+    // the page-level container scale, so page-relative keys would never fire
+    // here. The row is a separate component because it reads this container in
+    // JS, and an element can't query itself.
     <Flex justify="start" containerType="inline-size">
       <ScmProviderPillRow {...props} />
     </Flex>
@@ -48,29 +48,15 @@ function ScmProviderPillRow({
   const {primaryProviders, moreProviders} = partitionScmProviders(providers);
   const view = INSTALL_VIEW[analyticsFlow];
 
-  // When the row is tight the pills compact instead of stacking: the xs button
-  // size with matching icons, natural-width tracks, and a tighter gap, all
-  // flipping at the same container threshold.
-  const buttonSize = useResponsivePropValue<'xs' | 'md'>({zero: 'xs', sm: 'md'});
-  const iconSize = buttonSize === 'md' ? 'sm' : 'xs';
-
-  const columnTracks = (providerTrack: string) =>
-    [
-      primaryProviders.length && `repeat(${primaryProviders.length}, ${providerTrack})`,
-      moreProviders.length && 'min-content',
-    ]
-      .filter(Boolean)
-      .join(' ');
+  // When the row is tight the pills compact: the xs button size with matching
+  // icons and a tighter gap. Pills that still do not fit wrap to the next line
+  // instead of overflowing the container.
+  const isCompact = useResponsivePropValue({zero: true, sm: false});
+  const buttonSize = isCompact ? 'xs' : 'md';
+  const iconSize = isCompact ? 'xs' : 'sm';
 
   return (
-    <Grid
-      columns={{
-        zero: columnTracks('auto'),
-        sm: columnTracks('1fr'),
-      }}
-      justify="center"
-      gap={{zero: 'sm', sm: 'md'}}
-    >
+    <Flex wrap="wrap" gap={{zero: 'sm', sm: 'md'}}>
       {primaryProviders.map(provider => (
         <IntegrationContext
           key={provider.key}
@@ -122,6 +108,6 @@ function ScmProviderPillRow({
           }))}
         />
       )}
-    </Grid>
+    </Flex>
   );
 }
