@@ -31,7 +31,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1155_backfill_organizationmemberteam_new_id"),
+        ("sentry", "1158_dashboard_created_by_set_null"),
     ]
 
     operations = [
