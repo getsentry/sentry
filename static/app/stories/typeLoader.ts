@@ -109,7 +109,7 @@ function extractComponentProps(
 /**
  * Extracts documentation from the modules by running the TS compiler and serializing the types
  *
- * @param {LoaderContext<any>} this loader context
+ * @param {LoaderContext} this loader context
  * @param {string} source source file as string
  * @returns {void}
  */
