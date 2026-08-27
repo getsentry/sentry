@@ -431,7 +431,6 @@ class TestMain:
         assert ret == 1
 
     def test_publish_status_source_force_includes_public_api_matrix(self, tmp_path):
-        """Endpoints that declare publish_status must select the Seer public-API matrix."""
         db_path = tmp_path / "coverage.db"
         _create_coverage_db(str(db_path), {})
         output = tmp_path / "output.txt"

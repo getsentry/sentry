@@ -157,12 +157,8 @@ ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/backup/test_validate.py",
 }
 
-# Seer Code Mode's public API auth matrix discovers every endpoint with
-# publish_status = PUBLIC at collection time. Coverage and static imports only
-# see direct callers of the endpoint module, so flipping an endpoint to PUBLIC
-# (or editing publish_status at all) can break master while PR selective testing
-# stays green. Force-include the matrix whenever a changed source file declares
-# publish_status.
+# Seer public-API matrix is discovered at collection time, not via coverage/
+# static imports of endpoint modules. Include it when publish_status is touched.
 PUBLIC_API_MATRIX_TEST = "tests/sentry/seer/endpoints/test_organization_agent_token.py"
 _PUBLISH_STATUS_DECL = re.compile(r"\bpublish_status\b")
 
@@ -178,7 +174,6 @@ def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
 
 
 def _source_declares_publish_status(file_path: str, *, repo_root: Path | None = None) -> bool:
-    """True when a non-test Python source file declares endpoint publish_status."""
     if not file_path.endswith(".py") or _is_test(file_path):
         return False
     path = (repo_root or Path.cwd()) / file_path
@@ -340,9 +335,6 @@ def main() -> int:
             # Always run these tests
             affected_test_files.update(ALWAYS_RUN_TESTS)
 
-            # publish_status edits aren't attributed to the Seer public-API matrix
-            # via coverage/static imports — force it in when any changed source
-            # file still declares publish_status after the change.
             publish_status_sources = _changed_files_declare_publish_status(changed)
             if publish_status_sources:
                 print(
