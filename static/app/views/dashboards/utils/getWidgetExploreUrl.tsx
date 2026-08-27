@@ -343,6 +343,7 @@ function _getWidgetExploreUrl(
       baseQuery: overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
       dashboardFilters,
       widgetType: widget.widgetType,
+      globalFilterFallback: query.globalFilterFallback,
     }),
     sort: sort || undefined,
     interval:
@@ -419,7 +420,13 @@ function _getWidgetExploreUrlForMultipleQueries(
     selection: currentSelection,
     queries: widget.queries.map(query => ({
       chartType: getChartType(widget.displayType),
-      query: applyDashboardFilters({baseQuery: query.conditions, dashboardFilters}) ?? '',
+      query:
+        applyDashboardFilters({
+          baseQuery: query.conditions,
+          dashboardFilters,
+          widgetType: widget.widgetType,
+          globalFilterFallback: query.globalFilterFallback,
+        }) ?? '',
       sortBys: decodeSorts(query.orderby).filter(
         s => s.field !== SpanFields.IS_STARRED_TRANSACTION
       ),

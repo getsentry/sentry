@@ -1,4 +1,3 @@
-import type {GlobalFilterFallback} from 'sentry/views/dashboards/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
@@ -58,7 +57,7 @@ const WARM_START_STANDALONE_OPERATIONS_CONDITION = `${APP_START_STANDALONE_OPERA
 export const WARM_START_TABLE_OPERATIONS_CONDITION = `(${WARM_START_V1_OPERATIONS_CONDITION} OR ${WARM_START_V2_OPERATIONS_CONDITION} OR ${WARM_START_STANDALONE_OPERATIONS_CONDITION})`;
 
 // Screen filters also match `transaction`, so V1 children still appear.
-export const APP_START_SCREEN_FILTER_FALLBACK: GlobalFilterFallback = {
+export const APP_START_SCREEN_FILTER_FALLBACK = {
   attribute: SpanFields.APP_VITALS_START_SCREEN,
   fallbackAttribute: SpanFields.TRANSACTION,
 };

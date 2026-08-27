@@ -20,11 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
-import {
-  dashboardFiltersToString,
-  usesTimeSeriesData,
-} from 'sentry/views/dashboards/utils';
-import {expandGlobalFilterFallbacks} from 'sentry/views/dashboards/utils/expandGlobalFilterFallbacks';
+import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -366,22 +362,17 @@ export function applyDashboardFiltersToWidget(
 
   if (dashboardFilters) {
     const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
 
     filtered.queries.forEach(query => {
-      const filterConditions = expandGlobalFilterFallbacks(
-        dashboardFilterConditions,
-        query.globalFilterFallbacks
-      );
-
-      if (filterConditions) {
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = `${query.conditions} ${filterConditions}`;
+      const nextConditions = applyDashboardFilters({
+        baseQuery: query.conditions,
+        dashboardFilters,
+        widgetType: filtered.widgetType,
+        skipParens,
+        globalFilterFallback: query.globalFilterFallback,
+      });
+      if (nextConditions !== undefined) {
+        query.conditions = nextConditions;
       }
     });
 

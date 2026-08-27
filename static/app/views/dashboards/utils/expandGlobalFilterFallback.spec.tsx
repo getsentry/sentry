@@ -1,13 +1,14 @@
-import {expandGlobalFilterFallbacks} from 'sentry/views/dashboards/utils/expandGlobalFilterFallbacks';
+import {expandGlobalFilterFallback} from 'sentry/views/dashboards/utils/expandGlobalFilterFallback';
 
-const SCREEN_FALLBACK = [
-  {attribute: 'app.vitals.start.screen', fallbackAttribute: 'transaction'},
-];
+const SCREEN_FALLBACK = {
+  attribute: 'app.vitals.start.screen',
+  fallbackAttribute: 'transaction',
+};
 
-describe('expandGlobalFilterFallbacks', () => {
+describe('expandGlobalFilterFallback', () => {
   it('ORs the filtered attribute with its fallback', () => {
     expect(
-      expandGlobalFilterFallbacks(
+      expandGlobalFilterFallback(
         'app.vitals.start.screen:[MainActivity]',
         SCREEN_FALLBACK
       )
@@ -16,7 +17,7 @@ describe('expandGlobalFilterFallbacks', () => {
 
   it('keeps unrelated filters applied to both sides of the OR', () => {
     expect(
-      expandGlobalFilterFallbacks(
+      expandGlobalFilterFallback(
         'os.name:Android app.vitals.start.screen:[MainActivity]',
         SCREEN_FALLBACK
       )
@@ -27,7 +28,7 @@ describe('expandGlobalFilterFallbacks', () => {
 
   it('expands every matching value', () => {
     expect(
-      expandGlobalFilterFallbacks(
+      expandGlobalFilterFallback(
         'app.vitals.start.screen:[MainActivity,DetailActivity]',
         SCREEN_FALLBACK
       )
@@ -37,39 +38,33 @@ describe('expandGlobalFilterFallbacks', () => {
   });
 
   it('leaves conditions without the filtered attribute unchanged', () => {
-    expect(expandGlobalFilterFallbacks('', SCREEN_FALLBACK)).toBe('');
-    expect(expandGlobalFilterFallbacks('os.name:Android', SCREEN_FALLBACK)).toBe(
+    expect(expandGlobalFilterFallback('', SCREEN_FALLBACK)).toBe('');
+    expect(expandGlobalFilterFallback('os.name:Android', SCREEN_FALLBACK)).toBe(
       'os.name:Android'
     );
   });
 
-  it('leaves conditions unchanged without declared fallbacks', () => {
+  it('leaves conditions unchanged without a fallback', () => {
     expect(
-      expandGlobalFilterFallbacks('app.vitals.start.screen:[MainActivity]', undefined)
-    ).toBe('app.vitals.start.screen:[MainActivity]');
-    expect(
-      expandGlobalFilterFallbacks('app.vitals.start.screen:[MainActivity]', [])
+      expandGlobalFilterFallback('app.vitals.start.screen:[MainActivity]', undefined)
     ).toBe('app.vitals.start.screen:[MainActivity]');
   });
 
   it('does not widen has: or negated filters', () => {
     expect(
-      expandGlobalFilterFallbacks('has:app.vitals.start.screen', SCREEN_FALLBACK)
+      expandGlobalFilterFallback('has:app.vitals.start.screen', SCREEN_FALLBACK)
     ).toBe('has:app.vitals.start.screen');
     expect(
-      expandGlobalFilterFallbacks(
-        '!app.vitals.start.screen:MainActivity',
-        SCREEN_FALLBACK
-      )
+      expandGlobalFilterFallback('!app.vitals.start.screen:MainActivity', SCREEN_FALLBACK)
     ).toBe('!app.vitals.start.screen:MainActivity');
     expect(
-      expandGlobalFilterFallbacks('!has:app.vitals.start.screen', SCREEN_FALLBACK)
+      expandGlobalFilterFallback('!has:app.vitals.start.screen', SCREEN_FALLBACK)
     ).toBe('!has:app.vitals.start.screen');
   });
 
   it('leaves value + (no value) combinations unchanged', () => {
     expect(
-      expandGlobalFilterFallbacks(
+      expandGlobalFilterFallback(
         '(app.vitals.start.screen:MainActivity OR !has:app.vitals.start.screen)',
         SCREEN_FALLBACK
       )
