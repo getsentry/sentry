@@ -11,6 +11,9 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_sdk import trace
 
 from sentry.ai_monitoring.models import AIConversationMetadata
+from sentry.models.organization import Organization
+from sentry.options.rollout import in_rollout_group
+from sentry.seer.oneshot import run_oneshot
 from sentry.seer.signed_seer_api import (
     LlmGenerateRequest,
     SeerViewerContext,
@@ -33,6 +36,9 @@ UNTITLED = "Untitled conversation"
 # Matches AIConversationMetadata.conversation_id max_length.
 CONVERSATION_ID_MAX_LENGTH = 2048
 CONVERSATION_ID_TRUNCATE_TO = 2040
+CONVERSATION_TITLE_ONESHOT_ROLLOUT_RATE_OPTION = (
+    "ai-monitoring.conversation-title-generation.oneshot-rollout-rate"
+)
 
 TITLE_RESPONSE_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -264,10 +270,9 @@ def _title_from_seer_content(content: object) -> str | None:
 
 
 @trace
-def generate_title_with_seer(
-    first_user_message: str, viewer_context: SeerViewerContext | None = None
+def _generate_title_with_legacy_seer(
+    first_user_message: str, organization: Organization
 ) -> str | None:
-    """Call Seer LLM proxy; return cleaned title or None on any failure."""
     body = LlmGenerateRequest(
         provider="gemini",
         model="flash-lite",
@@ -284,7 +289,11 @@ def generate_title_with_seer(
         conversation_id=None,
     )
     try:
-        response = make_llm_generate_request(body, timeout=20, viewer_context=viewer_context)
+        response = make_llm_generate_request(
+            body,
+            timeout=20,
+            viewer_context=SeerViewerContext(organization_id=organization.id),
+        )
     except Exception:
         logger.exception("ai_monitoring.conversation_title.seer_request_failed")
         metrics.incr("ai_monitoring.conversation_title.seer", tags={"result": "request_error"})
@@ -313,10 +322,39 @@ def generate_title_with_seer(
     return _finalize_title(title)
 
 
-def generate_conversation_title(
-    first_user_message: str, viewer_context: SeerViewerContext | None = None
-) -> str:
+@trace
+def _generate_title_with_seer_oneshot(
+    first_user_message: str, organization: Organization
+) -> str | None:
+    try:
+        result = run_oneshot(
+            "conversation_title",
+            {"first_user_message": clamp_user_message(first_user_message)},
+            organization,
+            timeout=20,
+        )
+    except Exception:
+        logger.exception("ai_monitoring.conversation_title.seer_request_failed")
+        metrics.incr("ai_monitoring.conversation_title.seer", tags={"result": "request_error"})
+        return None
+
+    title = result.get("title")
+    if not isinstance(title, str) or not title.strip():
+        metrics.incr("ai_monitoring.conversation_title.seer", tags={"result": "empty_content"})
+        return None
+
+    metrics.incr("ai_monitoring.conversation_title.seer", tags={"result": "success"})
+    return _finalize_title(title)
+
+
+def generate_title_with_seer(first_user_message: str, organization: Organization) -> str | None:
+    if in_rollout_group(CONVERSATION_TITLE_ONESHOT_ROLLOUT_RATE_OPTION, organization.id):
+        return _generate_title_with_seer_oneshot(first_user_message, organization)
+    return _generate_title_with_legacy_seer(first_user_message, organization)
+
+
+def generate_conversation_title(first_user_message: str, organization: Organization) -> str:
     """Generate a title via Seer, falling back to truncated message text."""
     return generate_title_with_seer(
-        first_user_message, viewer_context=viewer_context
+        first_user_message, organization
     ) or fallback_title_from_message(first_user_message)
