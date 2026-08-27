@@ -10,12 +10,12 @@ from django.utils import timezone
 
 from sentry import options as real_options
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.tasks.backfill_group_action_log import (
-    GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
     _reset_project,
     backfill_group_action_log_for_all_projects,
     backfill_group_action_log_for_group,
@@ -740,12 +740,12 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         assert project_without_option.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
         mock_coordinator_apply.assert_not_called()
 
-    def test_complete_options_still_advance_cursor(self) -> None:
+    def test_complete_options_do_not_consume_batch(self) -> None:
         complete_project_1 = self.create_project(organization=self.organization)
         complete_project_2 = self.create_project(organization=self.organization)
         incomplete_project = self.create_project(organization=self.organization)
         self._set_backfill_complete(complete_project_1, True)
-        complete_option_2 = self._set_backfill_complete(complete_project_2, True)
+        self._set_backfill_complete(complete_project_2, True)
         self._set_backfill_complete(incomplete_project, False)
 
         with (
@@ -759,10 +759,9 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         ):
             backfill_group_action_log_for_all_projects()
 
-        mock_project_apply.assert_not_called()
-        assert mock_coordinator_apply.call_args.kwargs["kwargs"]["last_project_option_id"] == (
-            complete_option_2.id
-        )
+        mock_project_apply.assert_called_once()
+        assert mock_project_apply.call_args.kwargs["kwargs"]["project_id"] == incomplete_project.id
+        mock_coordinator_apply.assert_not_called()
 
     def test_logs_coordinator_phases(self) -> None:
         project = self.create_project(organization=self.organization)

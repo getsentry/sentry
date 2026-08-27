@@ -11,6 +11,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -21,7 +22,12 @@ type UpdateParams = {
 };
 
 export function update(api: Client, params: UpdateParams) {
-  const endpoint = `/projects/${params.orgId}/${params.projectId}/`;
+  const endpoint = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+    path: {
+      organizationIdOrSlug: params.orgId,
+      projectIdOrSlug: params.projectId,
+    },
+  });
   return api
     .requestPromise(endpoint, {
       method: 'PUT',
@@ -44,7 +50,12 @@ export function transferProject(
   project: Project,
   email: string
 ) {
-  const endpoint = `/projects/${orgId}/${project.slug}/transfer/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/transfer/',
+    {
+      path: {organizationIdOrSlug: orgId, projectIdOrSlug: project.slug},
+    }
+  );
 
   return api
     .requestPromise(endpoint, {
@@ -97,7 +108,16 @@ export function addTeamToProject(
   projectSlug: string,
   team: Team
 ) {
-  const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${team.slug}/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        teamIdOrSlug: team.slug,
+      },
+    }
+  );
 
   addLoadingMessage();
 
@@ -137,7 +157,16 @@ function removeTeamFromProject(
   projectSlug: string,
   teamSlug: string
 ) {
-  const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        teamIdOrSlug: teamSlug,
+      },
+    }
+  );
 
   addLoadingMessage();
 
@@ -189,10 +218,15 @@ export async function removeProject({
   origin: 'onboarding' | 'settings' | 'getting_started';
   projectSlug: Project['slug'];
 }) {
-  const response = await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
-    method: 'DELETE',
-    data: {origin},
-  });
+  const response = await api.requestPromise(
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }),
+    {
+      method: 'DELETE',
+      data: {origin},
+    }
+  );
   ProjectsStore.onDeleteProject(projectSlug);
 
   return response;
@@ -202,7 +236,11 @@ export async function removeProject({
  * Load the counts of my projects and all projects for the current user
  */
 export function fetchProjectsCount(api: Client, orgSlug: string) {
-  return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);
+  return api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/projects-count/', {
+      path: {organizationIdOrSlug: orgSlug},
+    })
+  );
 }
 
 export function projectTeamsApiOptions({

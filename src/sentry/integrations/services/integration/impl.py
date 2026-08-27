@@ -146,6 +146,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization_id: int | None = None,
         organization_integration_id: int | None = None,
         status: int | None = None,
+        using_replica: bool = False,
     ) -> RpcIntegration | None:
         integration_kwargs: dict[str, Any] = {}
         if integration_id is not None:
@@ -163,8 +164,12 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not integration_kwargs:
             return None
 
+        queryset = Integration.objects.all()
+        if using_replica:
+            queryset = Integration.objects.using_replica()
+
         try:
-            integration = Integration.objects.get(**integration_kwargs)
+            integration = queryset.get(**integration_kwargs)
         except Integration.DoesNotExist:
             return None
         except Integration.MultipleObjectsReturned:
@@ -184,6 +189,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         grace_period_expired: bool | None = None,
         limit: int | None = None,
         name: str | None = None,
+        using_replica: bool = False,
     ) -> list[RpcOrganizationIntegration]:
         oi_kwargs: dict[str, Any] = {}
         if org_integration_ids is not None:
@@ -209,8 +215,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not oi_kwargs:
             return []
 
-        ois = OrganizationIntegration.objects.filter(**oi_kwargs).select_related("integration")
+        queryset = OrganizationIntegration.objects.all()
+        if using_replica:
+            queryset = OrganizationIntegration.objects.using_replica()
 
+        ois = queryset.filter(**oi_kwargs).select_related("integration")
         if limit is not None:
             ois = ois[:limit]
 
@@ -584,6 +593,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         from sentry.identity.services.identity.service import identity_service
         from sentry.users.services.user.service import user_service
 
+        # TODO(mark) Add using_replica here
         integration = self.get_integration(
             provider=integration_provider,
             external_id=integration_external_id,

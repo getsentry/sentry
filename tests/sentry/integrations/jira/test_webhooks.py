@@ -160,9 +160,13 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                         "fieldId": "status",
                     },
                     "issue": {
-                        "fields": {"project": {"id": "10000", "key": "APP"}},
+                        "fields": {
+                            "project": {"id": "10000", "key": "APP"},
+                            "updated": "2023-01-01T00:00:00.000+0000",
+                        },
                         "key": "APP-123",
                     },
+                    "provider_event_time": "2023-01-01T00:00:00.000+0000",
                 },
             )
 
