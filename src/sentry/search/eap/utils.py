@@ -6,7 +6,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter, TraceItemFilter
 
@@ -372,12 +372,14 @@ def _attribute_names_request(
     attr_type: AttributeKey.Type.ValueType,
     names: Collection[str],
     value_substring_match: str = "",
+    offset: int = 0,
 ) -> TraceItemAttributeNamesRequest:
     # TODO(wmak): Need to update snuba here so we can pass the list of attributes, snuba currently does a hasAll if we
     # pass names in a OrFilter which means only rows with _all_ attributes will return
     return TraceItemAttributeNamesRequest(
         meta=meta,
         limit=ATTRIBUTE_NAME_LIMIT,
+        page_token=PageToken(offset=offset),
         type=attr_type,
         value_substring_match=value_substring_match,
         match_mode=TraceItemAttributeNamesRequest.MatchMode.MATCH_MODE_ANY,
@@ -411,25 +413,26 @@ def _check_attribute_names_by_type(
     meta: RequestMeta,
     attr_type: AttributeKey.Type.ValueType,
     names: Collection[str],
-) -> tuple[set[str], set[str]]:
-    """Check which of the typed names exist in storage, and which the response can't rule out."""
+) -> set[str]:
+    """Check which of the typed names exist in storage for the meta's window."""
     if not names:
-        return set(), set()
+        return set()
 
     requested_names = set(names)
-    response = snuba_rpc.attribute_names_rpc(
-        _attribute_names_request(meta, attr_type, requested_names)
-    )
-    found = {
-        attribute.name for attribute in response.attributes if attribute.name in requested_names
-    }
-
-    # Names come back alphabetically and capped at the limit, so an org with enough
-    # attributes can page out the very name we filtered on
-    if len(response.attributes) >= ATTRIBUTE_NAME_LIMIT:
-        return found, requested_names - found
-
-    return found, set()
+    found: set[str] = set()
+    offset = 0
+    while True:
+        response = snuba_rpc.attribute_names_rpc(
+            _attribute_names_request(meta, attr_type, requested_names, offset=offset)
+        )
+        found.update(
+            attribute.name for attribute in response.attributes if attribute.name in requested_names
+        )
+        # Names come back alphabetically and capped at the limit, so an org with enough
+        # attributes can page out the very name we filtered on
+        if found == requested_names or len(response.attributes) < ATTRIBUTE_NAME_LIMIT:
+            return found
+        offset += ATTRIBUTE_NAME_LIMIT
 
 
 def check_attribute_names_exist(
@@ -441,7 +444,6 @@ def check_attribute_names_exist(
         return set()
 
     found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
-    truncated: list[tuple[AttributeKey.Type.ValueType, str]] = []
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix="attr_validate",
         max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
@@ -451,16 +453,6 @@ def check_attribute_names_exist(
             for attr_type, names in names_by_type.items()
         }
         for attr_type, future in futures.items():
-            type_found, type_truncated = future.result()
-            found.update((attr_type, name) for name in type_found)
-            truncated.extend((attr_type, name) for name in type_truncated)
-
-    if truncated:
-        with ContextPropagatingThreadPoolExecutor(
-            thread_name_prefix="attr_validate_by_name",
-            max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
-        ) as pool:
-            retries = {key: pool.submit(attribute_name_exists, meta, *key) for key in truncated}
-            found.update(key for key, future in retries.items() if future.result())
+            found.update((attr_type, name) for name in future.result())
 
     return found

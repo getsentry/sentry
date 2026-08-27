@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import snuba_rpc
 
 TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
 
@@ -265,6 +266,48 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert not response.data["valid"]
         assert response.data["field"] == [
             {"error": "Unknown attribute", "name": "zz.fake.tag", "valid": False, "attrType": None}
+        ]
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    @mock.patch(
+        "sentry.search.eap.utils.snuba_rpc.attribute_names_rpc",
+        wraps=snuba_rpc.attribute_names_rpc,
+    )
+    def test_pages_until_the_attribute_names_run_out(
+        self, mock_attribute_names_rpc: mock.MagicMock
+    ) -> None:
+        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT * 3)}
+        tags["zz.custom.tag"] = "hello"
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": tags},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["zz.custom.tag"],
+            }
+        )
+
+        offsets = [
+            call.args[0].page_token.offset for call in mock_attribute_names_rpc.call_args_list
+        ]
+        assert offsets == [
+            offset * TRUNCATED_ATTRIBUTE_NAME_LIMIT for offset in range(len(offsets))
+        ]
+        assert len(offsets) > 2
+        assert response.status_code == 200, response.content
+        assert response.data["field"] == [
+            {"error": None, "name": "zz.custom.tag", "valid": True, "attrType": "string"}
         ]
 
     def test_private_attribute(self) -> None:
