@@ -30,6 +30,7 @@ from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.agent.factory import create_autofix_client
 from sentry.seer.autofix.artifact_schemas import (
     RootCauseArtifact,
     SolutionArtifact,
@@ -381,39 +382,8 @@ def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> in
     return int(metadata["iteration_index"])
 
 
-def get_autofix_agent_client(
-    group: Group,
-    intelligence_level: Literal["low", "medium", "high"] = "medium",
-    reasoning_effort: Literal["low", "medium", "high"] | None = None,
-    enable_coding: bool = False,
-    code_review_enabled: bool = False,
-    enable_bash_tools: bool = False,
-    enable_pr_context_tools: bool = False,
-    user: User | RpcUser | AnonymousUser | None = None,
-) -> SeerAgentClient:
-    from sentry.seer.autofix.on_completion_hook import (
-        AutofixOnCompletionHook,  # nested to avoid circular import
-    )
-
-    return SeerAgentClient(
-        organization=group.organization,
-        project=group.project,
-        group=group,
-        user=user,
-        category_key="autofix",
-        category_value=str(group.id),
-        intelligence_level=intelligence_level,
-        reasoning_effort=reasoning_effort,
-        on_completion_hook=AutofixOnCompletionHook,
-        enable_coding=enable_coding,
-        code_review_enabled=code_review_enabled,
-        enable_bash_tools=enable_bash_tools,
-        enable_pr_context_tools=enable_pr_context_tools,
-    )
-
-
 def get_autofix_run_state(group: Group, run_id: int) -> SeerRunState:
-    client = get_autofix_agent_client(group)
+    client = create_autofix_client(group)
     return _get_group_run_state(client, group, run_id)
 
 
@@ -588,7 +558,7 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    client = get_autofix_agent_client(
+    client = create_autofix_client(
         group,
         enable_bash_tools=enable_bash_tools,
         enable_coding=config.enable_coding,
@@ -873,7 +843,7 @@ def trigger_coding_agent_handoff(
             "failures": [{"error_message": "No repositories configured in project preferences"}],
         }
 
-    client = get_autofix_agent_client(group)
+    client = create_autofix_client(group)
     state = _get_group_run_state(client, group, run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
@@ -946,7 +916,7 @@ def trigger_push_changes(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    client = get_autofix_agent_client(group)
+    client = create_autofix_client(group)
 
     if state is None:
         state = _get_group_run_state(client, group, run_id)

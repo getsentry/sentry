@@ -20,6 +20,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.agent.factory import create_autofix_client
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -59,6 +60,40 @@ class TestSeerAgentClient(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         assert client.organization == self.organization
         assert client.user == self.user
+
+    @patch("sentry.seer.agent.factory.SeerAgentClient")
+    def test_create_autofix_client_configures_client(self, mock_client_class):
+        from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+
+        group = self.create_group(organization=self.organization)
+
+        client = create_autofix_client(
+            group,
+            user=self.user,
+            intelligence_level="high",
+            reasoning_effort="low",
+            enable_coding=True,
+            code_review_enabled=True,
+            enable_bash_tools=True,
+            enable_pr_context_tools=True,
+        )
+
+        assert client == mock_client_class.return_value
+        mock_client_class.assert_called_once_with(
+            organization=self.organization,
+            project=group.project,
+            group=group,
+            user=self.user,
+            category_key="autofix",
+            category_value=str(group.id),
+            intelligence_level="high",
+            reasoning_effort="low",
+            on_completion_hook=AutofixOnCompletionHook,
+            enable_coding=True,
+            code_review_enabled=True,
+            enable_bash_tools=True,
+            enable_pr_context_tools=True,
+        )
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_raises_when_coding_option_disabled(self, mock_access):
