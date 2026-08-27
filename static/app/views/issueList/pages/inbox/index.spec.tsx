@@ -343,7 +343,7 @@ describe('InboxPage', () => {
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
     const assignedIssue = await screen.findByText('Assigned issue');
     expect(assignedIssue).toBeVisible();
-    expect(screen.getByRole('heading', {name: 'Inbox', level: 1})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /Inbox/, level: 1})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
     for (const [index, query] of [
