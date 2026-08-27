@@ -120,6 +120,8 @@ class Integration(DefaultFieldsModelExisting):
         """
         from sentry.integrations.models.organization_integration import OrganizationIntegration
 
+        # We need the organization for a feature flag check. organization is a union type
+        # which includes integers. We need to map the id to an organization instance.
         organization: Organization | RpcOrganization | None
         if isinstance(organization_id, int):
             context = organization_service.get_organization_by_id(
@@ -130,8 +132,6 @@ class Integration(DefaultFieldsModelExisting):
             organization = organization_id
             organization_id = organization_id.id
 
-        # Checked outside the transaction below to avoid holding it open across
-        # an RPC call.
         use_cas_reinstall = organization is not None and features.has(
             "organizations:integrations-deletion-reinstall-cas", organization
         )
@@ -170,13 +170,6 @@ class Integration(DefaultFieldsModelExisting):
 
                     # The deletion task has already claimed the row. Exit early. We
                     # can not honor the re-installation request.
-                    #
-                    # There is a chance that a failed deletion leaves this
-                    # stuck. Deletes are periodically retried but there could
-                    # be significant time delay. Ideally we're not mutating shared
-                    # state in this way. We should be creating new integration rows
-                    # not fighting over the old one. Or just not deleting it at all
-                    # but I don't know enough to determine the side effects.
                     if org_integration.status == ObjectStatus.DELETION_IN_PROGRESS:
                         logger.info(
                             "add-organization-deletion-in-progress",
@@ -186,9 +179,6 @@ class Integration(DefaultFieldsModelExisting):
                                 "organization_integration_id": org_integration.id,
                             },
                         )
-                        # Raise rather than return None: this is transient and
-                        # retryable, and callers that discard the return value
-                        # would otherwise report success having linked nothing.
                         raise IntegrationDeletionInProgressError(
                             "Integration deletion is already in progress. Please try again in a few minutes."
                         )

@@ -18,11 +18,11 @@ def use_cas_deletion_claim(organization_id: int) -> bool:
     context = organization_service.get_organization_by_id(
         id=organization_id, include_projects=False, include_teams=False
     )
-    if context is None:
-        # The organization is already gone; fall back to the legacy behavior
-        # (proceed with deletion) since there is nothing left to reinstall.
-        return False
-    return features.has("organizations:integrations-deletion-reinstall-cas", context.organization)
+    return (
+        features.has("organizations:integrations-deletion-reinstall-cas", context.organization)
+        if context is not None
+        else False
+    )
 
 
 class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegration]):
@@ -37,9 +37,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
 
     def _claim(self, instance: OrganizationIntegration) -> bool:
         if not use_cas_deletion_claim(instance.organization_id):
-            # Legacy behavior: proceed without claiming. `should_proceed` and
-            # `mark_deletion_in_progress` handle the status transition.
-            return True
+            return True  # Legacy delete behavior.
 
         # Compare-and-swap claim. A single UPDATE ... WHERE status IN (...) is
         # atomic, so we never hold a row lock while doing other work (a prior
