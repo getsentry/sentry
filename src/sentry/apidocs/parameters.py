@@ -101,6 +101,13 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
         type=str,
         description="The name of environments to filter by.",
     )
+    REFERRER = OpenApiParameter(
+        name="referrer",
+        location="query",
+        required=False,
+        type=str,
+        description="Internal referrer identifier used for query tracing. Most clients can omit this.",
+    )
     EVENT_ID = OpenApiParameter(
         name="event_id",
         location="path",
@@ -556,6 +563,15 @@ class WorkflowParams:
         required=True,
         type=int,
         description="The ID of the alert you'd like to query.",
+    )
+
+    DETECTOR = OpenApiParameter(
+        name="detector",
+        location="query",
+        required=False,
+        type=int,
+        many=True,
+        description="The IDs of monitors connected to the alerts you'd like to query.",
     )
 
     QUERY = OpenApiParameter(
@@ -1214,6 +1230,58 @@ class DashboardParams:
         required=True,
         type=int,
         description="""The ID of the dashboard you'd like to retrieve.""",
+    )
+
+    FILTER = OpenApiParameter(
+        name="filter",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        enum=[
+            "excludeFavorites",
+            "excludePrebuilt",
+            "onlyFavorites",
+            "onlyPrebuilt",
+            "owned",
+            "shared",
+            "showHidden",
+        ],
+        description="Filter the dashboards returned. Repeat this parameter to apply multiple filters.",
+    )
+
+    PIN = OpenApiParameter(
+        name="pin",
+        location="query",
+        required=False,
+        type=str,
+        enum=["favorites"],
+        description="Pin favorited dashboards to the top of the results.",
+    )
+
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter dashboards by title.",
+    )
+
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. Prefix the value with `-` to sort in descending order.
+
+Available fields are:
+- `title`
+- `dateCreated`
+- `mostPopular`
+- `recentlyViewed`
+- `mydashboards`
+- `myDashboardsAndRecentlyViewed`
+""",
     )
 
 
