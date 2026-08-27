@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import ClassVar
 
-from django.db import models, router, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
@@ -21,6 +21,9 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
+
+# How many times to retry inserting position in the case of concurrent operations
+MAX_STARRED_QUERY_INSERT_ATTEMPTS = 3
 
 
 class DiscoverSavedQueryTypes(TypesClass):
@@ -218,11 +221,13 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
     def get_last_position(self, organization: Organization, user_id: int) -> int:
         """
         Returns the last position of a user's starred queries in an organization.
+
+        Deliberately not filtered on ``starred=True``: the unique position constraint
+        covers every row with a position, so an unstarred row that still holds one would
+        otherwise be invisible here and collide on insert.
         """
         last_starred_query = (
-            self.filter(
-                organization=organization, user_id=user_id, position__isnull=False, starred=True
-            )
+            self.filter(organization=organization, user_id=user_id, position__isnull=False)
             .order_by("-position")
             .first()
         )
@@ -295,21 +300,38 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
 
         Returns:
             True if the query was starred, False if the query was already starred
+
+        Raises:
+            IntegrityError: If a position could not be allocated within
+                MAX_STARRED_QUERY_INSERT_ATTEMPTS attempts
         """
-        with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
-            if self.get_starred_query(organization, user_id, query):
-                return False
+        for _ in range(MAX_STARRED_QUERY_INSERT_ATTEMPTS):
+            try:
+                with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
+                    if self.get_starred_query(organization, user_id, query):
+                        return False
 
-            position = self.get_last_position(organization, user_id) + 1
+                    position = self.get_last_position(organization, user_id) + 1
 
-            self.create(
-                organization=organization,
-                user_id=user_id,
-                discover_saved_query=query,
-                position=position,
-                starred=starred,
-            )
-            return True
+                    self.create(
+                        organization=organization,
+                        user_id=user_id,
+                        discover_saved_query=query,
+                        position=position,
+                        starred=starred,
+                    )
+                    return True
+            except IntegrityError:
+                # If the query exists, then this was a dupe and didn't make it starred
+                # Otherwise a different query took our position, try again
+                if self.get_starred_query(organization, user_id, query):
+                    return False
+
+        raise IntegrityError(
+            "Failed to allocate a starred query position for "
+            f"organization={organization.id} user_id={user_id} after "
+            f"{MAX_STARRED_QUERY_INSERT_ATTEMPTS} attempts"
+        )
 
     def delete_starred_query(
         self, organization: Organization, user_id: int, query: DiscoverSavedQuery
@@ -378,13 +400,18 @@ class DiscoverSavedQueryStarred(DefaultFieldsModel):
     class Meta:
         app_label = "discover"
         db_table = "sentry_discoversavedquerystarred"
-        # Two queries cannot occupy the same position in an organization user's list of queries
         constraints = [
+            # Two queries cannot occupy the same position in an organization user's list of queries
             UniqueConstraint(
                 fields=["user_id", "organization_id", "position"],
                 name="sentry_discoversavedquerystarred_unique_query_position_per_org_user",
                 deferrable=models.Deferrable.DEFERRED,
-            )
+            ),
+            # A query appears at most once in an organization user's list, starred or not
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "discover_saved_query_id"],
+                name="sentry_discoversavedquerystarred_unique_query_per_org_user",
+            ),
         ]
 
 

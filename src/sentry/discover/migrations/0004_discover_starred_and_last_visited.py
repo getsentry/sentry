@@ -114,7 +114,11 @@ class Migration(CheckedMigration):
                         deferrable=django.db.models.constraints.Deferrable["DEFERRED"],
                         fields=("user_id", "organization_id", "position"),
                         name="sentry_discoversavedquerystarred_unique_query_position_per_org_user",
-                    )
+                    ),
+                    models.UniqueConstraint(
+                        fields=("user_id", "organization_id", "discover_saved_query_id"),
+                        name="sentry_discoversavedquerystarred_unique_query_per_org_user",
+                    ),
                 ],
             },
         ),
