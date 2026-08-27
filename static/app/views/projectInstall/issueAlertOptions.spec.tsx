@@ -53,6 +53,17 @@ describe('IssueAlertOptions', () => {
     expect(mockOnChange).toHaveBeenCalledWith('alertSetting', 1);
   });
 
+  it('only offers supported automation intervals for custom alerts', async () => {
+    render(getComponent({alertSetting: RuleAction.CUSTOMIZED_ALERTS}));
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Alert interval'}));
+
+    expect(screen.getByRole('menuitemradio', {name: 'in 5 minutes'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: /one minute/i})
+    ).not.toBeInTheDocument();
+  });
+
   it('should render alert configuration if `Default` or `Custom` alerts are selected', async () => {
     render(getComponent());
 
