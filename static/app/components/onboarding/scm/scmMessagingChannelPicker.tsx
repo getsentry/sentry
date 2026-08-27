@@ -104,24 +104,28 @@ export function ScmMessagingChannelPicker({
     onIntegrationChange,
     integrationOptions,
     integrationDisabled,
-  } = useMessagingIntegrationAlertRule({
-    channel,
-    integration: selectedIntegration,
-    provider: providerKey,
-    setChannel,
-    setIntegration: i => {
-      if (i) {
-        setSelectedIntegrationId(i.id);
-      }
+  } = useMessagingIntegrationAlertRule(
+    {
+      channel,
+      integration: selectedIntegration,
+      provider: providerKey,
+      setChannel,
+      setIntegration: i => {
+        if (i) {
+          setSelectedIntegrationId(i.id);
+        }
+      },
+      setProvider: () => {},
+      providersToIntegrations,
+      actions: [],
+      setActions: () => {},
+      queryError: false,
+      querySuccess: true,
+      shouldRenderSetupButton: false,
     },
-    setProvider: () => {},
-    providersToIntegrations,
-    actions: [],
-    setActions: () => {},
-    queryError: false,
-    querySuccess: true,
-    shouldRenderSetupButton: false,
-  });
+    undefined,
+    {refetchOnWindowFocus: true}
+  );
 
   if (!selectedIntegration) {
     return null;

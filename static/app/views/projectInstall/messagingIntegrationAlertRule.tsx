@@ -53,17 +53,19 @@ export function useMessagingIntegrationAlertRule(
   }: IssueAlertNotificationProps,
   // For project creation, `variant` identifies the SCM or legacy experience.
   // Other flows leave it undefined and do not emit these change events.
-  variant?: 'scm' | 'legacy'
+  variant?: 'scm' | 'legacy',
+  options?: {refetchOnWindowFocus?: boolean}
 ) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const {refetchOnWindowFocus} = options ?? {};
 
   const {
     data: channels,
     isPending,
-    isError: isChannelsError,
-  } = useQuery(
-    apiOptions.as<ChannelListResponse>()(
+    isLoadingError: isChannelsError,
+  } = useQuery({
+    ...apiOptions.as<ChannelListResponse>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
       {
         path:
@@ -73,10 +75,11 @@ export function useMessagingIntegrationAlertRule(
                 integrationId: integration.id,
               }
             : skipToken,
-        staleTime: Infinity,
+        staleTime: refetchOnWindowFocus ? 0 : Infinity,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus,
+  });
 
   const validateChannelOptions = validateChannelQueryOptions({
     organizationSlug: organization.slug,
@@ -86,11 +89,12 @@ export function useMessagingIntegrationAlertRule(
   const validateChannel = useQuery({
     ...validateChannelOptions,
     enabled: !!integration?.id && !!channel?.new,
+    refetchOnWindowFocus,
   });
   const channelError =
     validateChannel.data?.valid === false
       ? (validateChannel.data.detail ?? t('Channel not found or restricted'))
-      : validateChannel.error
+      : validateChannel.isLoadingError
         ? t('Unexpected integration channel validation error')
         : undefined;
   const clearChannelValidation = () =>
