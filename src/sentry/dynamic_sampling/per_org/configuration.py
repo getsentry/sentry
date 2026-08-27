@@ -9,7 +9,10 @@ from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
-from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
+from sentry.dynamic_sampling.per_org.calculations import (
+    RECALIBRATION_DAMPING_GAIN_OPTION,
+    calculate_recalibration_factor,
+)
 from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
 from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.dynamic_sampling.per_org.telemetry import (
@@ -124,6 +127,11 @@ class BaseDynamicSamplingConfiguration(ABC):
             org_volume,
             results.previous_recalibration_factor,
             self.get_sample_rate(),
+            # The gain belongs to the loop, not to the arithmetic: only the factor this
+            # pass serves is fed back into the next one. The comparison logging recomputes
+            # factors from a common seed to tell the two volume sources apart, and damping
+            # those would only move both of them by the same amount.
+            gain=options.get(RECALIBRATION_DAMPING_GAIN_OPTION),
         )
 
 

@@ -2383,6 +2383,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# How much of the recalibration correction one pass applies, as an exponent on the ratio of
+# the target rate to the measured rate. 1.0 applies all of it, which is only stable when the
+# measurement window sees the factor from the previous pass. Below 1.0 the loop converges
+# more slowly but survives a window that still covers the pass before, which otherwise makes
+# it oscillate around the target rather than settle on it.
+register(
+    "dynamic-sampling.recalibration.damping-gain",
+    type=Float,
+    default=1.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.

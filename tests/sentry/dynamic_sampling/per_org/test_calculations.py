@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest.mock import DEFAULT, MagicMock, patch
@@ -166,6 +167,37 @@ class ProjectBalancingCalculationsTest(TestCase):
 
         at_the_boundary = OrganizationDataVolume(org_id=1, total=100, indexed=100)
         assert calculate_recalibration_factor(at_the_boundary, 1.4, 0.5) == pytest.approx(0.7)
+
+    def test_calculate_recalibration_factor_applies_the_whole_correction_by_default(self) -> None:
+        # The default gain has to leave the factor exactly where it was before the gain
+        # existed, so that turning the option down is the only thing that changes behaviour.
+        org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=25)
+
+        assert calculate_recalibration_factor(org_volume, 1.4, 0.5, gain=1.0) == 2.8
+
+    def test_calculate_recalibration_factor_damps_the_correction(self) -> None:
+        # Measured 25% against a 50% target, so the correction is a doubling. A gain of 0.5
+        # takes the square root of it, moving the factor part of the way there instead.
+        org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=25)
+
+        factor = calculate_recalibration_factor(org_volume, 1.4, 0.5, gain=0.5)
+
+        assert factor == pytest.approx(1.4 * math.sqrt(2.0))
+
+    def test_calculate_recalibration_factor_damps_in_both_directions(self) -> None:
+        # A gain applies to a correction that shrinks the factor the same way it applies to
+        # one that grows it, so a damped loop cannot drift in one direction.
+        overshooting = OrganizationDataVolume(org_id=1, total=100, indexed=50)
+        undershooting = OrganizationDataVolume(org_id=1, total=100, indexed=12)
+
+        reduced = calculate_recalibration_factor(overshooting, 1.0, 0.25, gain=0.3)
+        raised = calculate_recalibration_factor(undershooting, 1.0, 0.25, gain=0.3)
+
+        assert reduced is not None and raised is not None
+        # Each stays between the factor it started from and the undamped one it was
+        # heading for.
+        assert 0.5 < reduced < 1.0
+        assert 1.0 < raised < 0.25 / 0.12
 
 
 def _project_transactions(

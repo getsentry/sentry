@@ -9,6 +9,7 @@ import pytest
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org.calculations import RECALIBRATION_DAMPING_GAIN_OPTION
 from sentry.dynamic_sampling.per_org.configuration import (
     AutomaticDynamicSamplingConfiguration,
     BaseDynamicSamplingConfiguration,
@@ -183,8 +184,29 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert configuration.results.recalibration_factor == 0.7
         assert configuration.results.previous_recalibration_factor == 1.4
         mocks[GET_FACTOR].assert_called_once_with(org.id, source="task")
-        mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5)
+        mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5, gain=1.0)
         mocks[SET_FACTOR].assert_not_called()
+
+    def test_subscription_backed_org_recalibrates_with_the_configured_gain(self) -> None:
+        # The gain is what keeps the loop from overshooting when the measurement window
+        # still covers the factor from the pass before, so it has to reach the calculation.
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with self.options({RECALIBRATION_DAMPING_GAIN_OPTION: 0.3}):
+            with patch_configuration(
+                {
+                    BLENDED_SAMPLE_RATE: 0.5,
+                    OUTCOMES_VOLUME: None,
+                    GET_FACTOR: 1.4,
+                    SET_FACTOR: DEFAULT,
+                    CALCULATE_FACTOR: 0.7,
+                }
+            ) as mocks:
+                get_configuration(org.id).recalibrate(org_volume)
+
+        mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5, gain=0.3)
 
     def test_subscription_backed_org_skips_recalibration_without_an_org_volume(self) -> None:
         org = self.create_organization()
@@ -286,7 +308,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
         assert configuration.results.recalibration_factor == 0.9
-        mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.2, 0.3)
+        mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.2, 0.3, gain=1.0)
 
     def test_project_mode_custom_dynamic_sampling_does_not_recalibrate(self) -> None:
         org = self.create_organization()

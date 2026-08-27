@@ -25,11 +25,14 @@ if TYPE_CHECKING:
 
 REBALANCE_INTENSITY = 0.8
 
+RECALIBRATION_DAMPING_GAIN_OPTION = "dynamic-sampling.recalibration.damping-gain"
+
 
 def calculate_recalibration_factor(
     data_volume: OrganizationDataVolume | None,
     previous_factor: float,
     target_sample_rate: float | None,
+    gain: float = 1.0,
 ) -> float | None:
     if (
         target_sample_rate is None
@@ -49,8 +52,17 @@ def calculate_recalibration_factor(
     # Both sides come from the same EAP query, so the stored count cannot exceed the
     # extrapolated total. The clamp keeps a rounded ratio from raising the factor.
     effective_sample_rate = min(1.0, data_volume.indexed / data_volume.total)
-    new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
-    return new_factor
+    # The correction assumes the factor it divides out is the factor that produced the
+    # measurement. When it is not -- because the window still covers traffic sampled under
+    # the pass before it -- applying the whole correction overshoots, and the loop swings
+    # around the target instead of settling on it. The gain is how much of the correction
+    # one pass takes: below 1.0 the loop converges more slowly but tolerates that delay,
+    # and it passes less of the measurement's spread through to the served rate.
+    #
+    # A gain of 1.0 is the whole correction, and leaves the factor exactly where it was
+    # before the gain existed.
+    correction = target_sample_rate / effective_sample_rate
+    return previous_factor * correction**gain
 
 
 def run_project_balancing(
