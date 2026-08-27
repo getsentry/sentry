@@ -44,12 +44,12 @@ export function CardHeader({
   return (
     <Grid columns={{zero: '1fr', md: '1fr max-content'}} align="center" gap="md">
       <Stack gap="2xs">
-        <KeyName>
+        <Flex align="center" gap="md">
           {name}
           {description && (
             <QuestionTooltip position="top" size="sm" title={description} />
           )}
-        </KeyName>
+        </Flex>
         <DateCreated>
           {tct('Created on [date]', {date: <DateTime date={created} />})}
         </DateCreated>
@@ -90,13 +90,6 @@ export function CardHeader({
     </Grid>
   );
 }
-
-const KeyName = styled('div')`
-  grid-template-columns: repeat(2, max-content);
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const DateCreated = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
