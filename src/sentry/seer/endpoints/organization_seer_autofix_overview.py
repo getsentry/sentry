@@ -374,10 +374,10 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         include_project_config = "projectConfig" in expand
         environments = self.get_environments(request, organization)
 
-        sort = request.GET.get("sort")
+        sort = request.GET.get("sort", "")
 
         latest_run_per_group = self._latest_run_per_group(organization, project_ids, start, end)
-        sort_by = _ISSUE_SORT_TO_SEARCH.get(sort) if sort is not None else None
+        sort_by = _ISSUE_SORT_TO_SEARCH.get(sort)
         if sort_by == "recommended" and features.has(
             "organizations:issue-stream-recommended-sort-experimental",
             organization,

@@ -215,6 +215,25 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
             plain.qualified_short_id,
         ]
 
+    def test_sort_recommended_keeps_candidates_without_window_events_sorted_last(self):
+        # `stale` has no events inside the requested window, so it is absent from
+        # the scored search results and must be appended last rather than dropped.
+        stale = self._group_with_events("stale", events=1, minutes_ago=120)
+        active = self._group_with_events("active", events=1)
+        self._run_for_group(stale, "stale")
+        self._run_for_group(active, "active")
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            resp = self.get_success_response(
+                self.organization.slug,
+                qs_params={"sort": "recommended", "statsPeriod": "1h"},
+            )
+
+        assert self._root_cause_short_ids(resp) == [
+            active.qualified_short_id,
+            stale.qualified_short_id,
+        ]
+
     def test_sort_recommended_uses_v2_scorer_and_viewer_actor(self):
         group = self._group_with_events("boom", events=1)
         self._run_for_group(group, "boom")
