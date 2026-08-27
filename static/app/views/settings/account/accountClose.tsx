@@ -20,6 +20,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
@@ -114,7 +115,7 @@ function AccountClose() {
     mutationFn: (orgs: string[]) =>
       fetchMutation({
         method: 'DELETE',
-        url: '/users/me/',
+        url: getApiUrl('/users/$userId/', {path: {userId: 'me'}}),
         data: {organizations: orgs},
       }),
     onMutate: () => {

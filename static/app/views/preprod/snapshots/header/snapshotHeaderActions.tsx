@@ -32,6 +32,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -92,7 +93,15 @@ export function SnapshotHeaderActions({
     });
     setIsApproving(true);
     clientRef.current.request(
-      `/organizations/${organizationSlug}/preprodartifacts/${data.head_artifact_id}/approve/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/preprodartifacts/$artifactId/approve/',
+        {
+          path: {
+            organizationIdOrSlug: organizationSlug,
+            artifactId: data.head_artifact_id,
+          },
+        }
+      ),
       {
         method: 'POST',
         data: {feature_type: 'snapshots'},
@@ -115,7 +124,15 @@ export function SnapshotHeaderActions({
 
   const handleRerunStatusChecks = useCallback(() => {
     clientRef.current.request(
-      `/organizations/${organizationSlug}/preprod-artifact/rerun-status-checks/${data.head_artifact_id}/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/preprod-artifact/rerun-status-checks/$headArtifactId/',
+        {
+          path: {
+            organizationIdOrSlug: organizationSlug,
+            headArtifactId: data.head_artifact_id,
+          },
+        }
+      ),
       {
         method: 'POST',
         data: {check_types: ['snapshots']},
@@ -132,7 +149,15 @@ export function SnapshotHeaderActions({
 
   const handleRerunComparison = useCallback(() => {
     clientRef.current.request(
-      `/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/recompare/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/recompare/',
+        {
+          path: {
+            organizationIdOrSlug: organizationSlug,
+            snapshotId: data.head_artifact_id,
+          },
+        }
+      ),
       {
         method: 'POST',
         success: () => {

@@ -49,6 +49,7 @@ import type {
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -362,7 +363,11 @@ function useSaveSentryApp({
   const saveSentryAppMutation = useMutation({
     mutationFn: (data: SaveSentryAppPayload) =>
       fetchMutation<SentryApp>({
-        url: app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/',
+        url: app
+          ? getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+              path: {sentryAppIdOrSlug: app.slug},
+            })
+          : getApiUrl('/sentry-apps/'),
         method: app ? 'PUT' : 'POST',
         data,
       }),
@@ -803,7 +808,9 @@ function SentryAppEditForm({
   const addTokenMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
       fetchMutation<NewInternalAppApiToken>({
-        url: `/sentry-apps/${sentryAppSlug}/api-tokens/`,
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
+          path: {sentryAppIdOrSlug: sentryAppSlug},
+        }),
         method: 'POST',
       }),
     onMutate: () => {
@@ -820,7 +827,9 @@ function SentryAppEditForm({
   const removeTokenMutation = useMutation({
     mutationFn: ({sentryAppSlug, tokenId}: {sentryAppSlug: string; tokenId: string}) =>
       fetchMutation({
-        url: `/sentry-apps/${sentryAppSlug}/api-tokens/${tokenId}/`,
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/$apiTokenId/', {
+          path: {sentryAppIdOrSlug: sentryAppSlug, apiTokenId: tokenId},
+        }),
         method: 'DELETE',
       }),
     onMutate: () => {
@@ -837,7 +846,9 @@ function SentryAppEditForm({
   const rotateClientSecretMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
       fetchMutation<RotateSecretResponse>({
-        url: `/sentry-apps/${sentryAppSlug}/rotate-secret/`,
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/rotate-secret/', {
+          path: {sentryAppIdOrSlug: sentryAppSlug},
+        }),
         method: 'POST',
       }),
   });

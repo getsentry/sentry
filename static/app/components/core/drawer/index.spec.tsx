@@ -341,4 +341,51 @@ describe('GlobalDrawer', () => {
     expect(closeSpy).toHaveBeenCalled();
     expect(drawer).not.toBeInTheDocument();
   });
+
+  it('applies drawerWidth and drawerMaxWidth as CSS custom properties', async () => {
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">width</DrawerBody>
+          ),
+          options: {
+            ariaLabel,
+            drawerKey: 'drawer-test-width',
+            drawerWidth: '80%',
+            drawerMaxWidth: '1600px',
+          },
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+
+    const drawer = screen.getByRole('complementary', {name: ariaLabel});
+
+    expect(drawer.style.getPropertyValue('--drawer-width')).toBe('80%');
+    expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('min(85%, 1600px)');
+  });
+
+  it('falls back to the default max width when drawerMaxWidth is omitted', async () => {
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">width</DrawerBody>
+          ),
+          options: {ariaLabel, drawerKey: 'drawer-test-default-width'},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+
+    const drawer = screen.getByRole('complementary', {name: ariaLabel});
+
+    expect(drawer.style.getPropertyValue('--drawer-width')).toBe('50%');
+    expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('85%');
+  });
 });
