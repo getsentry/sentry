@@ -3,6 +3,7 @@ import type {ComponentType, ReactNode} from 'react';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {
+  IconChat,
   IconCode,
   IconCompass,
   IconDashboard,
@@ -23,6 +24,7 @@ import {isSafeHref} from 'sentry/utils/marked/marked';
  * Every data type Seer surfaces as a resource link
  */
 export type ResourceKind =
+  | 'conversation'
   | 'log'
   | 'trace'
   | 'profiling'
@@ -38,6 +40,7 @@ export type ResourceKind =
   | 'dashboard';
 
 export const RESOURCE_KIND_ICON: Record<ResourceKind, ComponentType<SVGIconProps>> = {
+  conversation: IconChat,
   log: IconList,
   trace: IconSpan,
   profiling: IconProfiling,
