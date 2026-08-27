@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
@@ -300,8 +301,9 @@ function OnboardingContent({
                     })}
                     {jsFrameworkDocs?.platformOptions && (
                       <PlatformOptionDropdown
-                        platformOptions={pickPlatformOptions(
-                          jsFrameworkDocs.platformOptions
+                        platformOptions={omit(
+                          jsFrameworkDocs.platformOptions,
+                          'installationMode'
                         )}
                         disabled={setupMode === 'jsLoader'}
                       />
