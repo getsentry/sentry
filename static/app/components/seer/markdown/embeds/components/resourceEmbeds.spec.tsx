@@ -97,7 +97,10 @@ describe('Seer resource embeds', () => {
       level: 'block',
     });
 
-    expect(await screen.findByText('Errors')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {name: 'Application health'}, {timeout: 5_000})
+    ).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Latency')).toBeInTheDocument();
     expect(screen.getByText('Users')).toBeInTheDocument();
     expect(screen.getByText('Throughput')).toBeInTheDocument();
