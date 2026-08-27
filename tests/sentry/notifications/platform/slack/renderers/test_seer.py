@@ -330,7 +330,7 @@ class SeerSlackRendererAgentTest(TestCase):
         expected_url = self.organization.absolute_url(
             f"/organizations/{self.organization.slug}/explore/agents/conversations/{conversation_id}/"
         )
-        assert run_id_text == f"Run ID: <{expected_url}|{conversation_id}>"
+        assert run_id_text == f"Agent Trace: <{expected_url}|{conversation_id}>"
 
     def test_render_agent_response_without_seer_run_mirror(self) -> None:
         data = self._create_agent_response(
