@@ -11,8 +11,8 @@ interface SuggestedAvatarStackProps extends Omit<
 > {
   owners: Actor[];
   /**
-   * Render owners in their original order when true and reversed when false.
-   * The first owner remains visually on top in either direction.
+   * Render the first owner at the leading edge when true and next to following
+   * content when false. The first owner remains visually on top in either direction.
    */
   reverse?: boolean;
 }
@@ -32,11 +32,14 @@ export function SuggestedAvatarStack({
   const visibleOwners = owners
     .slice(0, MAX_SUGGESTIONS)
     .map((owner, index) => ({index, owner}));
-  const orderedOwners = reverse ? visibleOwners : visibleOwners.toReversed();
 
-  if (orderedOwners.length === 0) {
+  if (visibleOwners.length === 0) {
     return null;
   }
+
+  const orderedOwners = reverse
+    ? visibleOwners
+    : [...visibleOwners.slice(1), visibleOwners[0]!];
 
   return (
     <Tooltip title={tooltip} {...tooltipOptions} skipWrapper>

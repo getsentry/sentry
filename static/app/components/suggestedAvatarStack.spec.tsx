@@ -24,10 +24,10 @@ describe('SuggestedAvatarStack', () => {
     expect(getRenderedInitials()).toEqual(['A', 'B', 'C']);
   });
 
-  it('renders owners in reverse order when reverse is false', () => {
+  it('renders the first owner last when reverse is false', () => {
     render(<SuggestedAvatarStack owners={OWNERS.slice(0, 3)} reverse={false} />);
 
-    expect(getRenderedInitials()).toEqual(['C', 'B', 'A']);
+    expect(getRenderedInitials()).toEqual(['B', 'C', 'A']);
   });
 
   it('renders at most three owners', () => {
@@ -37,7 +37,7 @@ describe('SuggestedAvatarStack', () => {
   });
 
   it('renders nothing when there are no owners', () => {
-    render(<SuggestedAvatarStack owners={[]} />);
+    render(<SuggestedAvatarStack owners={[]} reverse={false} />);
 
     expect(screen.queryByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
   });
