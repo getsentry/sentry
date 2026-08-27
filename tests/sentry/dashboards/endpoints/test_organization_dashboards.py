@@ -1068,7 +1068,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
                 },
                 {
                     "displayType": "bar",
@@ -1083,7 +1083,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:error",
                         }
                     ],
-                    "layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 1, "y": 0, "w": 1, "h": 2, "minH": 2},
                 },
             ],
         }
@@ -1105,6 +1105,123 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             queries = actual_widget.dashboardwidgetquery_set.all()
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
+
+    def test_post_derives_widget_min_height(self) -> None:
+        data = {
+            "title": "Dashboard with derived minimum heights",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Minimum height omitted",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 3, "h": 2},
+                },
+                {
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "title": "Caller minimum height ignored",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                    "layout": {"x": 3, "y": 0, "w": 3, "h": 2, "minH": 5},
+                },
+            ],
+        }
+
+        response = self.do_request("post", self.url, data=data)
+
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["layout"] == {
+            "x": 0,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "minH": 2,
+        }
+        assert response.data["widgets"][1]["layout"] == {
+            "x": 3,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "minH": 2,
+        }
+
+    def test_post_rejects_widget_height_below_minimum(self) -> None:
+        data = {
+            "title": "Dashboard with short widget",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Short line chart",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 3, "h": 1, "minH": 1},
+                }
+            ],
+        }
+
+        response = self.do_request("post", self.url, data=data)
+
+        assert response.status_code == 400, response.data
+        assert str(response.data["widgets"][0]["layout"]["h"]) == (
+            "Height must be at least 2 for line widgets."
+        )
+
+    def test_post_allows_short_widget_display_type_at_height_one(self) -> None:
+        data = {
+            "title": "Dashboard with big number",
+            "widgets": [
+                {
+                    "displayType": "big_number",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2},
+                }
+            ],
+        }
+
+        response = self.do_request("post", self.url, data=data)
+
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["layout"] == {
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 1,
+            "minH": 1,
+        }
 
     def test_post_widget_with_camel_case_layout_keys_returns_camel_case(self) -> None:
         data = {
@@ -1217,7 +1334,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "conditions": "event.type:transaction",
                 }
             ],
-            "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+            "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
         }
         data: dict[str, Any] = {
             "title": "Dashboard from Post",
@@ -1659,7 +1776,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
                 },
             ],
         }
@@ -1697,7 +1814,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
                 }
                 for i in range(Dashboard.MAX_WIDGETS + 1)
             ],
@@ -2025,7 +2142,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "is:unresolved",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
                     "widgetType": "error-events",
                 },
             ],

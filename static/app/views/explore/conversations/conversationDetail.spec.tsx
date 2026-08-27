@@ -145,8 +145,8 @@ describe('ConversationDetailPage breadcrumbs', () => {
     mockApis();
   });
 
-  it('renders the parent link, conversation id heading, and copy action with the migration flag on', async () => {
-    renderPage(['ui-migration-breadcrumbs']);
+  it('renders the parent link, conversation id heading, and copy action', async () => {
+    renderPage();
 
     const topBar = screen.getByRole('banner');
 

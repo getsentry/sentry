@@ -43,7 +43,12 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    DashboardParams,
+    GlobalParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
@@ -416,7 +421,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="listOrganizationDashboards",
         summary="List an Organization's Custom Dashboards",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            DashboardParams.FILTER,
+            DashboardParams.QUERY,
+            DashboardParams.SORT,
+            DashboardParams.PIN,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(

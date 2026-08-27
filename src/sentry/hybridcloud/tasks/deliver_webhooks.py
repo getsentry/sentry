@@ -803,39 +803,6 @@ def _discard_if_stale(
     return True
 
 
-def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
-    """Extract GitHub event and action from payload for delivery_time_ms metric tags.
-
-    Returns a single tag github_event_and_action as "<event>.<action>", using "unknown"
-    when the request body has no action (e.g. push, ping).
-    """
-    if payload.provider != "github":
-        return {}
-    event_type: str | None = None
-    try:
-        headers = orjson.loads(payload.request_headers)
-    except orjson.JSONDecodeError:
-        return {}
-    if isinstance(headers, dict):
-        for key, value in headers.items():
-            if key.upper() == "X-GITHUB-EVENT" and isinstance(value, str) and value:
-                event_type = value
-                break
-    if not event_type:
-        return {}
-    action = "unknown"
-    try:
-        body = orjson.loads(payload.request_body)
-    except orjson.JSONDecodeError:
-        pass
-    else:
-        if isinstance(body, dict):
-            body_action = body.get("action")
-            if isinstance(body_action, str) and body_action:
-                action = body_action
-    return {"github_event_and_action": f"{event_type}.{action}"}
-
-
 def _record_delivery_time_metrics(
     payload: WebhookPayload, *, dispatch_tags: Mapping[str, str]
 ) -> None:
@@ -852,10 +819,9 @@ def _record_delivery_time_metrics(
         **dispatch_tags,
         "region_sent_to": payload.cell_name,
         "provider": provider,
-        # Bounded, and the unit delivery queues by — unlike github_event_and_action,
-        # which slices below the mailbox and grows with every action GitHub adds.
+        # The unit delivery queues by, and bounded to one value per mailbox shape.
         "event_type": event_type_from_mailbox(provider, payload.mailbox_name),
-    } | _get_github_delivery_time_tags(payload)
+    }
     metrics.distribution(
         "hybridcloud.deliver_webhooks.delivery_time_ms",
         # e.g. 0.123 seconds → 123 milliseconds

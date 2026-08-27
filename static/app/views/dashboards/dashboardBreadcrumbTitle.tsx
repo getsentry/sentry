@@ -141,7 +141,7 @@ export function DashboardBreadcrumbTitle({
     onAction: openDashboardRevisions,
   };
   const editItem = {
-    key: 'edit',
+    key: 'dashboard-edit',
     label: t('Edit'),
     leadingItems: <IconEdit />,
     disabled: hasUnsavedFilters || isSaving,
