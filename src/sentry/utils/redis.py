@@ -4,7 +4,7 @@ import importlib.resources
 import logging
 from copy import deepcopy
 from threading import Lock
-from typing import Any, Literal, TypeGuard, TypeVar, overload
+from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
@@ -38,17 +38,20 @@ _pool_cache: dict[str, ConnectionPool] = {}
 _pool_lock = Lock()
 
 
-def add_transaction_checks(client: Any) -> Any:
+def add_transaction_checks(
+    client: RedisCluster[T] | StrictRedis[T],
+) -> RedisCluster[T] | StrictRedis[T]:
     if not in_test_environment():
         return client
 
-    execute_command = client.execute_command
+    mutable_client = cast(Any, client)
+    execute_command = mutable_client.execute_command
 
     def execute_command_outside_transaction(*args: Any, **kwargs: Any) -> Any:
         in_test_assert_no_transaction("Redis commands must run outside database transactions")
         return execute_command(*args, **kwargs)
 
-    pipeline_factory = client.pipeline
+    pipeline_factory = mutable_client.pipeline
 
     def pipeline(*args: Any, **kwargs: Any) -> Any:
         redis_pipeline = pipeline_factory(*args, **kwargs)
@@ -63,8 +66,8 @@ def add_transaction_checks(client: Any) -> Any:
         redis_pipeline.execute = execute_pipeline_outside_transaction
         return redis_pipeline
 
-    client.execute_command = execute_command_outside_transaction
-    client.pipeline = pipeline
+    mutable_client.execute_command = execute_command_outside_transaction
+    mutable_client.pipeline = pipeline
     return client
 
 
@@ -204,31 +207,30 @@ class RedisClusterManager:
         def cluster_factory() -> (
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
-            client: Any
             if is_redis_cluster:
-                client = RetryingRedisCluster(
-                    # Intentionally copy hosts here because redis-cluster-py
-                    # mutates the inner dicts and this closure can be run
-                    # concurrently, as SimpleLazyObject is not threadsafe. This
-                    # is likely triggered by RetryingRedisCluster running
-                    # reset() after startup
-                    #
-                    # https://github.com/Grokzen/redis-py-cluster/issues/287
-                    startup_nodes=deepcopy(hosts_list),
-                    decode_responses=decode_responses,
-                    skip_full_coverage_check=True,
-                    max_connections=16,
-                    max_connections_per_node=True,
-                    readonly_mode=readonly_mode,
-                    **client_args,
+                return add_transaction_checks(
+                    RetryingRedisCluster(
+                        # Intentionally copy hosts here because redis-cluster-py
+                        # mutates the inner dicts and this closure can be run
+                        # concurrently, as SimpleLazyObject is not threadsafe. This
+                        # is likely triggered by RetryingRedisCluster running
+                        # reset() after startup
+                        #
+                        # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                        startup_nodes=deepcopy(hosts_list),
+                        decode_responses=decode_responses,
+                        skip_full_coverage_check=True,
+                        max_connections=16,
+                        max_connections_per_node=True,
+                        readonly_mode=readonly_mode,
+                        **client_args,
+                    )
                 )
-            else:
-                assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
-                host = dict(hosts_list[0])
-                host["decode_responses"] = decode_responses
-                client = FailoverRedis(**host, **client_args)
 
-            return add_transaction_checks(client)
+            assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
+            host = dict(hosts_list[0])
+            host["decode_responses"] = decode_responses
+            return add_transaction_checks(FailoverRedis(**host, **client_args))
 
         # losing some type safety: SimpleLazyObject acts like the underlying type
         return SimpleLazyObject(cluster_factory)
