@@ -259,3 +259,43 @@ class HandleProcessingErrorsTest(TestCase):
                 error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID.value],
             ),
         )
+
+    def test_throttled_types_are_not_stored(self) -> None:
+        monitor = self.create_monitor()
+        item = build_checkin_item(
+            message_overrides={"project_id": self.project.id},
+            payload_overrides={"monitor_slug": monitor.slug},
+        )
+
+        handle_processing_errors(
+            item,
+            ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED}], monitor=monitor
+            ),
+        )
+        handle_processing_errors(
+            item,
+            ProcessingErrorsException(
+                [{"type": ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED}], monitor=monitor
+            ),
+        )
+
+        assert get_errors_for_monitor(monitor) == []
+
+    def test_throttled_type_alongside_a_real_error_is_stored(self) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException(
+                [
+                    {"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED},
+                    {"type": ProcessingErrorType.CHECKIN_INVALID_GUID},
+                ],
+                monitor=monitor,
+            ),
+        )
+
+        assert len(get_errors_for_monitor(monitor)) == 1

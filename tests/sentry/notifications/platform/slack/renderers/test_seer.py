@@ -307,6 +307,9 @@ class SeerSlackRendererAgentTest(TestCase):
         )
 
     def test_render_agent_response_with_summary(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=MOCK_RUN_ID
+        )
         data = self._create_agent_response(
             summary="Found a spike in 500 errors from the auth service."
         )
@@ -321,8 +324,25 @@ class SeerSlackRendererAgentTest(TestCase):
         assert "Found a spike in 500 errors from the auth service." in blocks[0].text
 
         assert isinstance(blocks[1], ContextBlock)
-        assert isinstance(blocks[1].elements[0], PlainTextObject)
-        assert f"Run ID: {MOCK_RUN_ID}" in blocks[1].elements[0].text
+        assert isinstance(blocks[1].elements[0], MarkdownTextObject)
+        run_id_text = blocks[1].elements[0].text
+        conversation_id = str(seer_run.uuid)
+        expected_url = self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/explore/agents/conversations/{conversation_id}/"
+        )
+        assert run_id_text == f"Agent Trace: <{expected_url}|{conversation_id}>"
+
+    def test_render_agent_response_without_seer_run_mirror(self) -> None:
+        data = self._create_agent_response(
+            summary="Found a spike in 500 errors from the auth service."
+        )
+        with self.feature("organizations:seer-run-id-in-slack"):
+            renderable = SeerSlackRenderer._render_agent_response(data)
+
+        assert renderable["text"] == "Seer Agent has finished"
+        blocks = renderable["blocks"]
+        assert len(blocks) == 1
+        assert isinstance(blocks[0], MarkdownBlock)
 
     def test_render_agent_response_without_run_id_flag(self) -> None:
         data = self._create_agent_response(
