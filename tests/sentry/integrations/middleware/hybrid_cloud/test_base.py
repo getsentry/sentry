@@ -17,7 +17,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.types.cell import Cell
+
+SHED_INBOUND_OPTION = "hybridcloud.webhookpayload.shed_inbound"
 
 
 def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResponse:
@@ -152,6 +155,90 @@ class BaseRequestParserTest(TestCase):
             "slack:us:0",
             "slack:eu:0",
         }
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
+    @override_options({SHED_INBOUND_OPTION: ["other_provider", "test_provider:98765"]})
+    def test_shed_inbound_ignores_unmatched_targets(self, mock_trigger: MagicMock) -> None:
+        parser = ExampleRequestParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(
+            cells=self.region_config, integration_id=12345
+        )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert WebhookPayload.objects.count() == 2
+        assert mock_trigger.call_count == 2
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
+    @override_options({SHED_INBOUND_OPTION: ["test_provider"]})
+    def test_shed_inbound_by_provider(self, mock_incr: MagicMock, mock_trigger: MagicMock) -> None:
+        parser = ExampleRequestParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(
+            cells=self.region_config, integration_id=12345
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert response["Retry-After"] == "60"
+        assert not WebhookPayload.objects.exists()
+        assert not mock_trigger.called
+        mock_incr.assert_called_once_with(
+            "hybridcloud.webhookpayload.shed",
+            tags={"provider": "test_provider"},
+            sample_rate=1.0,
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
+    @override_options({SHED_INBOUND_OPTION: ["test_provider"]})
+    def test_shed_inbound_by_provider_without_integration_id(self, mock_trigger: MagicMock) -> None:
+        parser = ExampleRequestParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(cells=self.region_config)
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert not WebhookPayload.objects.exists()
+        assert not mock_trigger.called
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
+    @override_options({SHED_INBOUND_OPTION: ["test_provider:12345"]})
+    def test_shed_inbound_by_integration(self, mock_trigger: MagicMock) -> None:
+        parser = ExampleRequestParser(self.request, self.response_handler)
+
+        shed_response = parser.get_response_from_webhookpayload(
+            cells=self.region_config, integration_id=12345
+        )
+
+        assert shed_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert not WebhookPayload.objects.exists()
+        assert not mock_trigger.called
+
+        # A sibling integration on the same provider is untouched.
+        passed_response = parser.get_response_from_webhookpayload(
+            cells=self.region_config, integration_id=54321
+        )
+
+        assert passed_response.status_code == status.HTTP_202_ACCEPTED
+        assert WebhookPayload.objects.count() == 2
+        assert mock_trigger.call_count == 2
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_options(
+        {SHED_INBOUND_OPTION: ["", ":12345", "test_provider:", "test_provider:not_an_id"]}
+    )
+    def test_shed_inbound_ignores_malformed_targets(self) -> None:
+        parser = ExampleRequestParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(
+            cells=self.region_config, integration_id=12345
+        )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert WebhookPayload.objects.count() == 2
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_organizations_from_integration_success(self) -> None:

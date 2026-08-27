@@ -11,6 +11,7 @@ from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
+from sentry import options
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
@@ -36,6 +37,8 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
+
+SHED_RETRY_AFTER_SECONDS = 60
 
 
 def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
@@ -170,6 +173,10 @@ class BaseRequestParser(ABC):
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
+        shed_response = self.get_shed_response(integration_id=integration_id)
+        if shed_response is not None:
+            return shed_response
+
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
@@ -190,6 +197,37 @@ class BaseRequestParser(ABC):
             maybe_trigger_drain(mailbox_name)
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
+
+    def get_shed_response(self, integration_id: int | None = None) -> HttpResponse | None:
+        """
+        Break glass valve for inbound floods. A shed webhook costs the control primary
+        nothing: no payload rows, no push trigger. Shedding drops the webhook — the 429
+        asks the sender to back off, but whatever it does not redeliver is lost.
+        """
+        shed_targets = options.get("hybridcloud.webhookpayload.shed_inbound")
+        if not shed_targets:
+            return None
+
+        # Membership is the whole parse: an entry that matches neither form is inert,
+        # so a malformed target cannot shed traffic it was not meant to name.
+        if self.provider not in shed_targets and (
+            integration_id is None or f"{self.provider}:{integration_id}" not in shed_targets
+        ):
+            return None
+
+        metrics.incr(
+            "hybridcloud.webhookpayload.shed",
+            tags={"provider": self.provider},
+            sample_rate=1.0,
+        )
+        logger.info(
+            "hybridcloud.webhookpayload.shed",
+            extra={"provider": self.provider, "integration_id": integration_id},
+        )
+
+        response = HttpResponse(status=status.HTTP_429_TOO_MANY_REQUESTS)
+        response["Retry-After"] = str(SHED_RETRY_AFTER_SECONDS)
+        return response
 
     def get_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
