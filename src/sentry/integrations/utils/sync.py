@@ -21,7 +21,7 @@ from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbo
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
 from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.group import Group
-from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupassignee import GroupAssignee, GroupAssignmentState
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -88,7 +88,7 @@ def _handle_deassign(
     return groups_deassigned
 
 
-def _assignment_succeeded(assignment: dict[str, bool], group: Group, user: RpcUser) -> bool:
+def _assignment_succeeded(assignment: GroupAssignmentState, group: Group, user: RpcUser) -> bool:
     if assignment["new_assignment"] or assignment["updated_assignment"]:
         return True
     return GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
