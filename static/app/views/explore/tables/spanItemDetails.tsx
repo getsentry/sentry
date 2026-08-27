@@ -97,38 +97,62 @@ export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
     [data?.attributes]
   );
 
-  return (
-    <Container background="primary" border="primary" radius="md" padding="md">
-      {isFetching ? (
+  if (isFetching) {
+    return (
+      <SpanItemDetailsContainer>
         <Flex align="center" justify="center" minHeight="100px">
           <LoadingIndicator />
         </Flex>
-      ) : isError || !canLoadDetails ? (
+      </SpanItemDetailsContainer>
+    );
+  }
+
+  if (isError || !canLoadDetails) {
+    return (
+      <SpanItemDetailsContainer>
         <LoadingError
           message={t('Failed to load span details')}
           onRetry={canLoadDetails ? () => void refetch() : undefined}
         />
-      ) : visibleAttributes.length > 0 ? (
-        <AttributesTree<SpanAttributesRendererExtra>
-          attributes={visibleAttributes}
-          getCustomActions={getActions}
-          renderers={renderers}
-          rendererExtra={{
-            location,
-            navigate,
-            organization,
-            projectSlug,
-            spanId,
-            theme,
-            timestamp,
-            traceItemMeta: data?.meta,
-          }}
-        />
-      ) : (
+      </SpanItemDetailsContainer>
+    );
+  }
+
+  if (visibleAttributes.length === 0) {
+    return (
+      <SpanItemDetailsContainer>
         <Flex align="center" justify="center" padding="xl">
           <Text variant="muted">{t('No attributes found for this span')}</Text>
         </Flex>
-      )}
+      </SpanItemDetailsContainer>
+    );
+  }
+
+  return (
+    <SpanItemDetailsContainer>
+      <AttributesTree<SpanAttributesRendererExtra>
+        attributes={visibleAttributes}
+        getCustomActions={getActions}
+        renderers={renderers}
+        rendererExtra={{
+          location,
+          navigate,
+          organization,
+          projectSlug,
+          spanId,
+          theme,
+          timestamp,
+          traceItemMeta: data?.meta,
+        }}
+      />
+    </SpanItemDetailsContainer>
+  );
+}
+
+function SpanItemDetailsContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Container background="primary" border="primary" radius="md" padding="md">
+      {children}
     </Container>
   );
 }
