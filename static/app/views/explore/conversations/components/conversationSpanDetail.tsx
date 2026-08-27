@@ -9,7 +9,6 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -137,9 +136,15 @@ export function ConversationSpanDetail({
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <AiSpanStatusIcon node={node} />
-          <InfoText title={title} mode="overflowOnly" size="lg" bold>
-            {title}
-          </InfoText>
+          <Stack flex="1" minWidth="0">
+            <InfoText title={title} mode="overflowOnly" size="lg" bold>
+              {title}
+            </InfoText>
+            <TraceDrawerComponents.SubtitleWithCopyButton
+              subTitle={`ID: ${node.id}`}
+              clipboardText={node.id}
+            />
+          </Stack>
         </Flex>
         {onClose ? (
           <Button
@@ -238,30 +243,15 @@ function SpanMetadata({
   attributes: SpanAttributes;
   node: AITraceSpanNode;
 }) {
-  const rows: Array<{name: string; value: React.ReactNode}> = [
-    {
-      name: t('Span ID'),
-      value: (
-        <Flex align="center" gap="xs" minWidth="0">
-          <Text size="md" monospace ellipsis>
-            {node.id}
-          </Text>
-          <CopyToClipboardButton
-            variant="transparent"
-            size="zero"
-            text={node.id}
-            aria-label={t('Copy span ID to clipboard')}
-            tooltipProps={{disabled: true}}
-          />
-        </Flex>
-      ),
-    },
-    ...getHighlightedSpanAttributes({
-      op: node.op,
-      spanId: node.id,
-      attributes: attributes ?? node.attributes,
-    }),
-  ];
+  const rows = getHighlightedSpanAttributes({
+    op: node.op,
+    spanId: node.id,
+    attributes: attributes ?? node.attributes,
+  });
+
+  if (rows.length === 0) {
+    return null;
+  }
 
   return (
     <Grid columns="max-content minmax(0, 1fr)" gap="lg" align="center">
@@ -505,9 +495,12 @@ function EmptyTab({message}: {message: string}) {
 function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
   return (
     <SpanDetailCard embedded={embedded}>
-      <Flex align="center" gap="lg" flexShrink={0}>
+      <Flex align="center" gap="md" flexShrink={0}>
         <Placeholder height="16px" width="16px" />
-        <Placeholder height="16px" width="180px" />
+        <Stack gap="xs">
+          <Placeholder height="16px" width="180px" />
+          <Placeholder height="12px" width="120px" />
+        </Stack>
       </Flex>
       <Stack gap="md" flexShrink={0}>
         <Placeholder height="16px" width="60px" />
