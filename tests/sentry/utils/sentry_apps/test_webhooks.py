@@ -471,6 +471,44 @@ class ClaudeRoutineTextSummaryTest(TestCase):
 
         assert "text" not in body
 
+    @with_feature("organizations:sentry-apps-claude-routine-webhooks")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_routine_signature_matches_sent_body(self, mock_safe_urlopen):
+        """The signature must verify against the text-summary body we actually send.
+
+        Regression: reading the Request-ID before include_text_summary was set
+        cached sentry_headers' signature over the pre-summary body.
+        """
+        sentry_app = self.create_sentry_app(
+            name="RoutineSigApp",
+            organization=self.organization,
+            webhook_url=self.ROUTINE_URL,
+            published=True,
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"issue": {"id": "123"}},
+        )
+        mock_response = Mock(spec=Response)
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_safe_urlopen.return_value = mock_response
+
+        send_and_save_webhook_request(sentry_app, event)
+
+        sent_body = mock_safe_urlopen.call_args.kwargs["data"]
+        sent_headers = mock_safe_urlopen.call_args.kwargs["headers"]
+        # The text summary is part of the signed body...
+        assert "text" in orjson.loads(sent_body)
+        # ...and the signature verifies against that exact body.
+        assert sent_headers["Sentry-Hook-Signature"] == sentry_app.build_signature(sent_body)
+
 
 @cell_silo_test
 class WebhookRequestIdAndDurationTest(TestCase):

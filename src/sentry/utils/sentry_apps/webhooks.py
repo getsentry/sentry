@@ -322,7 +322,6 @@ def send_and_save_webhook_request(
 
         assert url is not None
 
-        request_id = app_platform_event.sentry_headers["Request-ID"]
         subject_id, subject_type = extract_webhook_subject(
             app_platform_event.resource, event, app_platform_event.data
         )
@@ -344,6 +343,10 @@ def send_and_save_webhook_request(
             if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, lifecycle):
                 return Response()
 
+            # Read the Request-ID only after include_text_summary is set above.
+            # sentry_headers is a cached_property that signs the body on first access,
+            # so an earlier read would sign the pre-summary body.
+            request_id = app_platform_event.sentry_headers["Request-ID"]
             with circuit_breaker_tracking(circuit_breaker):
                 response = _send_webhook_request(url, app_platform_event)
 
