@@ -490,7 +490,7 @@
   },
   {
     "name": "alert",
-    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. Include the API-provided name when available. Never use a markdown link for alert references.",
+    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. Include the API-provided name when available. Inline: renders a compact link. Block: renders alert conditions and configured actions, plus monitored data, ongoing issues, or recent check-ins when applicable. Do not duplicate those details as text. Never use a markdown link for alert references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -526,6 +526,22 @@
         "data": {
           "id": "881",
           "kind": "issue"
+        }
+      },
+      {
+        "label": "Uptime alert",
+        "data": {
+          "id": "774",
+          "kind": "uptime",
+          "name": "Checkout availability"
+        }
+      },
+      {
+        "label": "Cron alert",
+        "data": {
+          "id": "9931",
+          "kind": "cron",
+          "name": "nightly-sync"
         }
       }
     ]

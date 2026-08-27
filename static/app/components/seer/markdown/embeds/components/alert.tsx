@@ -1,3 +1,6 @@
+import {lazy} from 'react';
+
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {
   defineSeerEmbed,
@@ -8,6 +11,8 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+
+const LazyAlertBlock = lazy(() => import('./alertBlock'));
 
 function AlertLink({id, kind, name}: EmbedOutput<'alert'>) {
   const organization = useOrganization();
@@ -24,7 +29,10 @@ function AlertLink({id, kind, name}: EmbedOutput<'alert'>) {
 
 export const Alert = defineSeerEmbed({
   name: 'alert',
-  render(props) {
+  render(props, level) {
+    if (level === 'block') {
+      return <LazyLoad LazyComponent={LazyAlertBlock} {...props} />;
+    }
     return <AlertLink {...props} />;
   },
 });
