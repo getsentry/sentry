@@ -5,6 +5,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.deletions.tasks.nodestore import (
+    DELETE_EVENTS_TASK_KEY,
     delete_events_for_groups_from_nodestore_and_eventstore,
     fetch_events_from_eventstore,
 )
@@ -15,8 +16,6 @@ from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawne
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.utils.snuba import UnqualifiedQueryError
-
-_TASK_KEY = "delete_events_from_nodestore_and_eventstore"
 
 
 class NodestoreDeletionTaskTest(TestCase):
@@ -49,11 +48,11 @@ class NodestoreDeletionTaskTest(TestCase):
             last_event_timestamp=last_event_timestamp,
         )
 
-    def run_deletion_task(self) -> None:
+    def run_deletion_task(self, group_id: int = 1) -> None:
         delete_events_for_groups_from_nodestore_and_eventstore(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            group_ids=[1],
+            group_ids=[group_id],
             times_seen=[1],
             transaction_id="transaction-id",
             dataset_str=Dataset.Events.value,
@@ -105,20 +104,15 @@ class NodestoreDeletionTaskTest(TestCase):
     def test_selfchain_skips_when_already_spawned(self, mock_current_task: MagicMock) -> None:
         activation_id = "nodestore-delete-act-skip"
         mock_current_task.return_value = SimpleNamespace(id=activation_id)
-        mark_spawned(_TASK_KEY, activation_id)
+        mark_spawned(DELETE_EVENTS_TASK_KEY, activation_id)
 
-        with (
-            patch(
-                "sentry.deletions.tasks.nodestore.fetch_events_from_eventstore"
-            ) as mock_fetch_events,
-            patch.object(
-                delete_events_for_groups_from_nodestore_and_eventstore, "apply_async"
-            ) as mock_apply_async,
-        ):
+        with patch(
+            "sentry.deletions.tasks.nodestore.fetch_events_from_eventstore",
+            side_effect=AssertionError("duplicate activation should not fetch events"),
+        ) as mock_fetch_events:
             self.run_deletion_task()
 
         mock_fetch_events.assert_not_called()
-        mock_apply_async.assert_not_called()
 
     @patch("sentry.deletions.tasks.nodestore.current_task")
     def test_selfchain_marks_and_dedupes_across_deliveries(
@@ -126,26 +120,18 @@ class NodestoreDeletionTaskTest(TestCase):
     ) -> None:
         activation_id = "nodestore-delete-act-dedupe"
         mock_current_task.return_value = SimpleNamespace(id=activation_id)
-        events = [SimpleNamespace(event_id="event-id", timestamp="2025-01-01T00:00:00")]
+        event = self.create_n_events_with_group(n_events=1)[0]
+        assert event.group_id is not None
 
-        with (
-            patch(
-                "sentry.deletions.tasks.nodestore.fetch_events_from_eventstore",
-                return_value=events,
-            ) as mock_fetch_events,
-            patch("sentry.deletions.tasks.nodestore.delete_events_from_nodestore"),
-            patch("sentry.deletions.tasks.nodestore.delete_dangling_attachments_and_user_reports"),
-            patch.object(
-                delete_events_for_groups_from_nodestore_and_eventstore, "apply_async"
-            ) as mock_apply_async,
-        ):
-            self.run_deletion_task()
+        with patch.object(
+            delete_events_for_groups_from_nodestore_and_eventstore, "apply_async"
+        ) as mock_apply_async:
+            self.run_deletion_task(event.group_id)
             assert mock_apply_async.call_count == 1
-            assert already_spawned(_TASK_KEY, activation_id) is True
+            assert already_spawned(DELETE_EVENTS_TASK_KEY, activation_id) is True
 
-            self.run_deletion_task()
+            self.run_deletion_task(event.group_id)
 
-        assert mock_fetch_events.call_count == 1
         assert mock_apply_async.call_count == 1
 
     @patch("sentry.deletions.tasks.nodestore.mark_spawned")
@@ -153,20 +139,13 @@ class NodestoreDeletionTaskTest(TestCase):
     def test_selfchain_is_inert_without_activation(
         self, mock_current_task: MagicMock, mock_mark_spawned: MagicMock
     ) -> None:
-        events = [SimpleNamespace(event_id="event-id", timestamp="2025-01-01T00:00:00")]
+        event = self.create_n_events_with_group(n_events=1)[0]
+        assert event.group_id is not None
 
-        with (
-            patch(
-                "sentry.deletions.tasks.nodestore.fetch_events_from_eventstore",
-                return_value=events,
-            ),
-            patch("sentry.deletions.tasks.nodestore.delete_events_from_nodestore"),
-            patch("sentry.deletions.tasks.nodestore.delete_dangling_attachments_and_user_reports"),
-            patch.object(
-                delete_events_for_groups_from_nodestore_and_eventstore, "apply_async"
-            ) as mock_apply_async,
-        ):
-            self.run_deletion_task()
+        with patch.object(
+            delete_events_for_groups_from_nodestore_and_eventstore, "apply_async"
+        ) as mock_apply_async:
+            self.run_deletion_task(event.group_id)
 
         assert mock_apply_async.call_count == 1
         mock_mark_spawned.assert_not_called()

@@ -43,7 +43,7 @@ EVENT_CHUNK_SIZE = 10000
 ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
 
 # Identifies this task in the self-chain idempotency guard.
-_TASK_KEY = "delete_events_from_nodestore_and_eventstore"
+DELETE_EVENTS_TASK_KEY = "delete_events_from_nodestore_and_eventstore"
 
 
 class RetryTask(Exception):
@@ -114,7 +114,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
     # page and spawn another child.
     task_state = current_task()
     activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_TASK_KEY, activation_id):
+    if activation_id and already_spawned(DELETE_EVENTS_TASK_KEY, activation_id):
         logger.info(
             "delete_events_for_groups_from_nodestore_and_eventstore.duplicate_redelivery.skipped",
             extra={
@@ -123,7 +123,9 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
                 "activation_id": activation_id,
             },
         )
-        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
+        metrics.incr(
+            "taskworker.selfchain.duplicate_skipped", tags={"task": DELETE_EVENTS_TASK_KEY}
+        )
         return
 
     kwargs_to_schedule_next_task = {
@@ -165,7 +167,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
                 },
             )
             if activation_id:
-                mark_spawned(_TASK_KEY, activation_id)
+                mark_spawned(DELETE_EVENTS_TASK_KEY, activation_id)
         else:
             logger.info(f"{prefix}.completed", extra=extra)
             # The fetch request for the nodestore uses the eventstore to determine what IDs to delete
