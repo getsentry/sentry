@@ -59,6 +59,7 @@ import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -275,7 +276,7 @@ export function GlobalCommandPaletteActions() {
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: '/auth/superuser/',
+        url: getApiUrl('/auth/superuser/'),
         method: 'DELETE',
       }),
     onSuccess: () => window.location.reload(),

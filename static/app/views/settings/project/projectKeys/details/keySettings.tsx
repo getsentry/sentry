@@ -56,7 +56,16 @@ export function KeySettings({
   const api = useApi();
 
   const {keyId, projectId} = params;
-  const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
+  const apiEndpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectId,
+        keyId,
+      },
+    }
+  );
 
   const mutationOptions = {
     mutationFn: (fieldData: Partial<ProjectKey>) =>
