@@ -26,7 +26,7 @@ class SentryAppRequestService(RpcService):
     def get_buffer_requests_for_cell(
         self,
         *,
-        sentry_app_id: str,
+        sentry_app_id: int,
         cell_name: str,
         filter: SentryAppRequestFilterArgs | None = None,
     ) -> list[RpcSentryAppRequest] | None:
