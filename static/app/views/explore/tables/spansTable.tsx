@@ -149,19 +149,16 @@ export function SpansTable({
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </DataTable.Status>
           ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => {
-              const spanKey = getSpanKey(row, i);
-              return (
-                <SpanSampleRow
-                  key={`${expansionResetKey}:${spanKey}`}
-                  canExpandSpanDetails={canExpandSpanDetails}
-                  columns={columnsFromEventView}
-                  data={row}
-                  fields={visibleFields}
-                  meta={meta}
-                />
-              );
-            })
+            result.data?.map((row, i) => (
+              <SpanSampleRow
+                key={`${expansionResetKey}:${getSpanKey(row, i)}`}
+                canExpandSpanDetails={canExpandSpanDetails}
+                columns={columnsFromEventView}
+                data={row}
+                fields={visibleFields}
+                meta={meta}
+              />
+            ))
           ) : (
             <DataTable.Status>
               <EmptyStateWarning>
@@ -195,19 +192,10 @@ function SpanSampleRow({
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  function toggleExpanded() {
-    const expanded = !isExpanded;
-    setIsExpanded(expanded);
-    trackAnalytics('trace_explorer.toggle_span_details', {
-      organization,
-      expanded,
-    });
-  }
-
   return (
     <Fragment>
       <DataTable.Row>
-        {canExpandSpanDetails && (
+        {canExpandSpanDetails ? (
           <SpanDetailsToggleCell>
             <Button
               aria-expanded={isExpanded}
@@ -215,10 +203,16 @@ function SpanSampleRow({
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               size="zero"
               variant="transparent"
-              onClick={toggleExpanded}
+              onClick={() => {
+                setIsExpanded(e => !e);
+                trackAnalytics('trace_explorer.toggle_span_details', {
+                  organization,
+                  expanded: !isExpanded,
+                });
+              }}
             />
           </SpanDetailsToggleCell>
-        )}
+        ) : null}
         {fields.map((field, index) => (
           <DataTable.Cell key={field}>
             <FieldRenderer
@@ -230,13 +224,13 @@ function SpanSampleRow({
           </DataTable.Cell>
         ))}
       </DataTable.Row>
-      {canExpandSpanDetails && isExpanded && (
+      {canExpandSpanDetails && isExpanded ? (
         <DataTable.Row>
           <SpanDetailsCell>
             <SpanItemDetails dataRow={data} />
           </SpanDetailsCell>
         </DataTable.Row>
-      )}
+      ) : null}
     </Fragment>
   );
 }
