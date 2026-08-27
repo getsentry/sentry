@@ -24,7 +24,10 @@ from compute_sentry_selected_tests import (
     EXTRA_DIR_TO_TEST_MAPPING,
     EXTRA_FILE_TO_TEST_MAPPING,
     FULL_SUITE_TRIGGERS,
+    PUBLIC_API_MATRIX_TEST,
+    _changed_files_declare_publish_status,
     _query_coverage,
+    _source_declares_publish_status,
     main,
 )
 
@@ -427,6 +430,100 @@ class TestMain:
         ret = _run(["--coverage-db", "/nonexistent/coverage.db", "--changed-files", "foo.py"])
         assert ret == 1
 
+    def test_publish_status_source_force_includes_public_api_matrix(self, tmp_path):
+        """Endpoints that declare publish_status must select the Seer public-API matrix."""
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(str(db_path), {})
+        output = tmp_path / "output.txt"
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        endpoint = tmp_path / "src" / "sentry" / "api" / "endpoints" / "views.py"
+        endpoint.parent.mkdir(parents=True)
+        endpoint.write_text(
+            "class ViewsEndpoint:\n"
+            "    publish_status = {\n"
+            '        "POST": ApiPublishStatus.PUBLIC,\n'
+            "    }\n"
+        )
+
+        with mock.patch("compute_sentry_selected_tests.Path.cwd", return_value=tmp_path):
+            with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
+                _run(
+                    [
+                        "--coverage-db",
+                        str(db_path),
+                        "--changed-files",
+                        "src/sentry/api/endpoints/views.py",
+                        "--output",
+                        str(output),
+                        "--github-output",
+                    ],
+                    {"GITHUB_OUTPUT": str(gh_output)},
+                )
+
+        selected = set(output.read_text().splitlines())
+        assert PUBLIC_API_MATRIX_TEST in selected
+        assert selected == ALWAYS_RUN_TESTS | {PUBLIC_API_MATRIX_TEST}
+        assert "has-selected-tests=true" in gh_output.read_text()
+
+    def test_non_publish_status_source_does_not_force_public_api_matrix(self, tmp_path):
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(str(db_path), {})
+        output = tmp_path / "output.txt"
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        source = tmp_path / "src" / "sentry" / "utils" / "thing.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("VALUE = 1\n")
+
+        with mock.patch("compute_sentry_selected_tests.Path.cwd", return_value=tmp_path):
+            with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
+                _run(
+                    [
+                        "--coverage-db",
+                        str(db_path),
+                        "--changed-files",
+                        "src/sentry/utils/thing.py",
+                        "--output",
+                        str(output),
+                        "--github-output",
+                    ],
+                    {"GITHUB_OUTPUT": str(gh_output)},
+                )
+
+        assert set(output.read_text().splitlines()) == ALWAYS_RUN_TESTS
+        assert PUBLIC_API_MATRIX_TEST not in output.read_text()
+
+
+class TestPublishStatusDetection:
+    def test_detects_publish_status_declaration(self, tmp_path):
+        path = tmp_path / "endpoint.py"
+        path.write_text('publish_status = {"GET": ApiPublishStatus.PUBLIC}\n')
+        assert _source_declares_publish_status("endpoint.py", repo_root=tmp_path)
+
+    def test_ignores_test_files_and_missing_paths(self, tmp_path):
+        test_path = tmp_path / "tests" / "sentry" / "test_endpoint.py"
+        test_path.parent.mkdir(parents=True)
+        test_path.write_text("publish_status = {}\n")
+        assert not _source_declares_publish_status(
+            "tests/sentry/test_endpoint.py", repo_root=tmp_path
+        )
+        assert not _source_declares_publish_status("missing.py", repo_root=tmp_path)
+
+    def test_changed_files_filter(self, tmp_path):
+        endpoint = tmp_path / "src" / "sentry" / "api" / "endpoint.py"
+        other = tmp_path / "src" / "sentry" / "utils" / "x.py"
+        endpoint.parent.mkdir(parents=True)
+        other.parent.mkdir(parents=True)
+        endpoint.write_text("publish_status = {}\n")
+        other.write_text("x = 1\n")
+        assert _changed_files_declare_publish_status(
+            ["src/sentry/api/endpoint.py", "src/sentry/utils/x.py"],
+            repo_root=tmp_path,
+        ) == ["src/sentry/api/endpoint.py"]
+
 
 class TestConfigPaths:
     """Assert every literal path in the selective testing config still exists on disk.
@@ -440,7 +537,7 @@ class TestConfigPaths:
     def test_full_suite_triggers_exist(self, trigger: str) -> None:
         assert (_REPO_ROOT / trigger).exists(), _stale_msg(trigger)
 
-    @pytest.mark.parametrize("path", sorted(ALWAYS_RUN_TESTS))
+    @pytest.mark.parametrize("path", sorted(ALWAYS_RUN_TESTS | {PUBLIC_API_MATRIX_TEST}))
     def test_always_run_tests_exist(self, path: str) -> None:
         assert (_REPO_ROOT / path).exists(), _stale_msg(path, "test file")
 

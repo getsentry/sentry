@@ -157,6 +157,15 @@ ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/backup/test_validate.py",
 }
 
+# Seer Code Mode's public API auth matrix discovers every endpoint with
+# publish_status = PUBLIC at collection time. Coverage and static imports only
+# see direct callers of the endpoint module, so flipping an endpoint to PUBLIC
+# (or editing publish_status at all) can break master while PR selective testing
+# stays green. Force-include the matrix whenever a changed source file declares
+# publish_status.
+PUBLIC_API_MATRIX_TEST = "tests/sentry/seer/endpoints/test_organization_agent_token.py"
+_PUBLISH_STATUS_DECL = re.compile(r"\bpublish_status\b")
+
 
 def _is_test(path: str) -> bool:
     return any(path.startswith(d) for d in TEST_DIRS)
@@ -166,6 +175,24 @@ def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
     if isinstance(trigger, re.Pattern):
         return trigger.search(file_path) is not None
     return file_path == trigger
+
+
+def _source_declares_publish_status(file_path: str, *, repo_root: Path | None = None) -> bool:
+    """True when a non-test Python source file declares endpoint publish_status."""
+    if not file_path.endswith(".py") or _is_test(file_path):
+        return False
+    path = (repo_root or Path.cwd()) / file_path
+    try:
+        contents = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return _PUBLISH_STATUS_DECL.search(contents) is not None
+
+
+def _changed_files_declare_publish_status(
+    changed_files: list[str], *, repo_root: Path | None = None
+) -> list[str]:
+    return [f for f in changed_files if _source_declares_publish_status(f, repo_root=repo_root)]
 
 
 def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]:
@@ -312,6 +339,17 @@ def main() -> int:
 
             # Always run these tests
             affected_test_files.update(ALWAYS_RUN_TESTS)
+
+            # publish_status edits aren't attributed to the Seer public-API matrix
+            # via coverage/static imports — force it in when any changed source
+            # file still declares publish_status after the change.
+            publish_status_sources = _changed_files_declare_publish_status(changed)
+            if publish_status_sources:
+                print(
+                    "Including public API matrix test due to publish_status in: "
+                    + ", ".join(publish_status_sources)
+                )
+                affected_test_files.add(PUBLIC_API_MATRIX_TEST)
 
     # Filter to sentry tests only (drop any getsentry tests from coverage)
     affected_test_files = {f for f in affected_test_files if _is_test(f)}
