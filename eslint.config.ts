@@ -1530,6 +1530,14 @@ export default typescript.config([
               message:
                 'Scraps components must use useTranslation() instead of importing from sentry/locale',
             },
+            // Track Scraps interactions through the injected tracking context
+            // instead of coupling components to Sentry's analytics module.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {file: {path: 'static/app/utils/analytics.tsx'}}},
+              message:
+                'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
+            },
           ],
         },
       ],

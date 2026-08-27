@@ -3,8 +3,6 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
-
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 export interface BreadcrumbItemLinkProps {
@@ -18,10 +16,6 @@ export interface BreadcrumbItemLinkProps {
 }
 
 export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLinkProps) {
-  function handleClick() {
-    trackAnalytics('breadcrumbs.link.clicked', {organization: null});
-  }
-
   return (
     <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
@@ -31,7 +25,8 @@ export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLi
         {styleProps => (
           <Link
             to={to}
-            onClick={handleClick}
+            analyticsEventKey="breadcrumbs.link.clicked"
+            analyticsEventName="Breadcrumbs: Link Clicked"
             data-test-id="breadcrumb-link"
             {...styleProps}
           >
