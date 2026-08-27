@@ -554,6 +554,7 @@ class SlackActionEndpoint(Endpoint):
         return self.respond(response)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
+        # TODO(mark) Add using_replica here
         organization_integrations = integration_service.get_organization_integrations(
             integration_id=slack_request.integration.id, limit=1
         )

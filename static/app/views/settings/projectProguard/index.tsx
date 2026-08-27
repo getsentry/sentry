@@ -12,6 +12,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -67,9 +68,12 @@ export default function ProjectProguard() {
       setLoading(true);
       try {
         await api.requestPromise(
-          `/projects/${
-            organization.slug
-          }/${project.slug}/files/dsyms/?id=${encodeURIComponent(id)}`,
+          `${getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          })}?id=${encodeURIComponent(id)}`,
           {
             method: 'DELETE',
           }

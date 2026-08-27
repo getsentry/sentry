@@ -16,6 +16,7 @@ import {
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -154,13 +155,23 @@ function renderView(
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/seer/investigation/investigation-1/',
+        pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
       },
-      route: '/organizations/:orgId/seer/investigation/:investigationId/',
+      route: '/organizations/:orgId/explore/investigations/:investigationId/',
     },
   });
 
   return {...result, queryClient};
+}
+
+async function chooseCellAction(
+  cellTitle: string,
+  action: 'Delete' | 'Refine' | 'Rerun'
+) {
+  await userEvent.click(
+    await screen.findByRole('button', {name: `Cell actions for ${cellTitle}`})
+  );
+  await userEvent.click(await screen.findByRole('menuitemradio', {name: action}));
 }
 
 describe('Investigation detail', () => {
@@ -168,6 +179,7 @@ describe('Investigation detail', () => {
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
+    ConfigStore.set('customerDomain', null);
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -180,16 +192,29 @@ describe('Investigation detail', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Cell actions for Summary')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Ask Seer about Summary'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Ask Seer about Latency query'})
-    ).toBeInTheDocument();
+      screen.queryByRole('button', {name: /Ask Seer about/})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Rerun/})).not.toBeInTheDocument();
     expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
     expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Cell actions for Summary'));
+    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Rerun'})).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(screen.getByLabelText('Cell actions for Latency query'));
+    expect(screen.getByRole('menuitemradio', {name: 'Rerun'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
   });
 
   it('opens feedback scoped to the investigation', async () => {
@@ -457,7 +482,7 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('shows running and dependency-waiting states for auto-run cells', async () => {
+  it('shows active auto-run cells, hides waiting cells, and opens agent steps', async () => {
     const investigation = InvestigationDetailFixture({
       template: {key: 'breached_metric', version: 1},
     });
@@ -512,12 +537,32 @@ describe('Investigation detail', () => {
         error: null,
       },
     });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-2/executions/execution-2/`,
+      body: {
+        id: 'execution-2',
+        status: 'pending',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
 
     renderView();
 
-    expect(await screen.findAllByText('Seer is working on this cell…')).toHaveLength(2);
-    expect(screen.getByText('Waiting for previous cells…')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Ask Seer about Synthesis'})).toBeDisabled();
+    expect(await screen.findAllByRole('button', {name: 'Close Seer panel'})).toHaveLength(
+      2
+    );
+    expect(screen.getByTestId('investigation-cell-block-1')).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-cell-block-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-cell-block-3')).not.toBeInTheDocument();
+    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   });
 
   it('keeps polling while an auto-run cell is waiting to start', async () => {
@@ -546,7 +591,8 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    expect(await screen.findByText('Waiting for previous cells…')).toBeInTheDocument();
+    await screen.findByText('Initial notes');
+    expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {timeout: 3000});
   });
 
@@ -622,10 +668,13 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    expect(
-      await screen.findByText('Cancelled because a previous cell failed.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Waiting for previous cells…')).toBeInTheDocument();
+    expect(await screen.findByTestId('investigation-cell-block-2')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.queryByTestId('investigation-cell-block-4')).not.toBeInTheDocument();
+    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('investigation-execution-failed')
     ).not.toBeInTheDocument();
@@ -638,11 +687,7 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Ask Seer about Latency query',
-      })
-    );
+    await chooseCellAction('Latency query', 'Refine');
 
     const prompt = screen.getByLabelText('Instructions for Seer');
     expect(screen.getByText('Ask Seer to refine')).toBeInTheDocument();
@@ -717,8 +762,8 @@ describe('Investigation detail', () => {
       'data-cell-variant',
       'bordered'
     );
-    expect(screen.getByTestId('query-cell-header')).toContainElement(
-      screen.getByRole('button', {name: 'Ask Seer about Database latency'})
+    expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
+      screen.getByRole('button', {name: 'Cell actions for Database latency'})
     );
     expect(screen.getByTestId('investigation-cell-block-1')).toHaveAttribute(
       'data-has-divider',
@@ -742,6 +787,47 @@ describe('Investigation detail', () => {
     await userEvent.click(screen.getByTestId('query-cell-title'));
     expect(screen.queryByText('820ms')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Toggle Database latency'}));
+    expect(screen.getByText('820ms')).toBeVisible();
+  });
+
+  it('starts generated query evidence collapsed', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        config: {autoRun: true},
+        outputStatus: 'completed',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown: '| p95 |\n| --- |\n| 820ms |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+        currentExecution: {
+          id: 'execution-completed',
+          status: 'completed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: null,
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('820ms')).not.toBeInTheDocument();
+    expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
+      screen.getByRole('button', {name: 'Cell actions for Latency query'})
+    );
+
+    await userEvent.click(toggle);
+
     expect(screen.getByText('820ms')).toBeVisible();
   });
 
@@ -882,12 +968,15 @@ describe('Investigation detail', () => {
     expect(
       within(chartHeader).getByText(/3:57pm–4:12pm PST\s+\|\s+363 Total Events/)
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Ask Seer about Latency query'})
-    ).toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Ask Seer about Latency query'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Rerun Latency query'})
+    ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Rerun Latency query'}));
+    await chooseCellAction('Latency query', 'Rerun');
     await waitFor(() =>
       expect(rerunRequest).toHaveBeenCalledWith(
         runUrl,
@@ -910,8 +999,7 @@ describe('Investigation detail', () => {
     });
 
     renderView(organization, queryClient);
-    await userEvent.click(await screen.findByLabelText('Cell actions for Latency query'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    await chooseCellAction('Latency query', 'Delete');
     expect(deleteRequest).not.toHaveBeenCalled();
     renderGlobalModal();
     act(() => {
@@ -935,6 +1023,34 @@ describe('Investigation detail', () => {
       )
     );
     expect(screen.queryByDisplayValue('Latency query')).not.toBeInTheDocument();
+  });
+
+  it('deletes a text cell from its actions menu', async () => {
+    const investigation = InvestigationDetailFixture();
+    const block = investigation.blocks[0]!;
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/${block.id}/`,
+      method: 'DELETE',
+    });
+
+    renderView();
+    await chooseCellAction('Summary', 'Delete');
+    expect(deleteRequest).not.toHaveBeenCalled();
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(deleteRequest).toHaveBeenCalledWith(
+        `${detailUrl}blocks/${block.id}/`,
+        expect.objectContaining({
+          data: {investigationVersion: 1, version: 1},
+        })
+      )
+    );
+    expect(
+      screen.queryByTestId(`investigation-cell-${block.id}`)
+    ).not.toBeInTheDocument();
   });
 
   it('adds text and query cells and starts a never-run cell from its stored prompt', async () => {
@@ -962,7 +1078,9 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(await screen.findByRole('button', {name: 'Text cell'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Add text cell (debug only)'})
+    );
     await userEvent.type(screen.getByLabelText('Cell title'), 'Working theory');
     await userEvent.type(
       screen.getByLabelText('Cell instructions'),
@@ -985,7 +1103,7 @@ describe('Investigation detail', () => {
     );
     expect(
       await screen.findByRole('button', {
-        name: 'Ask Seer about Working theory',
+        name: 'Cell actions for Working theory',
       })
     ).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Working theory')).not.toBeInTheDocument();
@@ -1001,7 +1119,9 @@ describe('Investigation detail', () => {
       method: 'POST',
       body: queryBlock,
     });
-    await userEvent.click(screen.getByRole('button', {name: 'Query cell'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Add query cell (debug only)'})
+    );
     await userEvent.type(screen.getByLabelText('Cell title'), 'Error volume');
     await userEvent.type(
       screen.getByLabelText('Cell instructions'),
@@ -1052,9 +1172,7 @@ describe('Investigation detail', () => {
         error: null,
       },
     });
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Ask Seer about Error volume'})
-    );
+    await chooseCellAction('Error volume', 'Refine');
     expect(screen.getByLabelText('Instructions for Seer')).toHaveValue(
       'Show errors over the last 24 hours'
     );
@@ -1202,7 +1320,7 @@ describe('Investigation detail', () => {
 
     renderView();
     expect(await screen.findByText('Previous successful result')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Ask Seer about Summary'}));
+    await chooseCellAction('Summary', 'Refine');
     expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
     const promptInput = screen.getByLabelText('Instructions for Seer');
     await userEvent.type(promptInput, 'Compare against deploys');
@@ -1280,9 +1398,7 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
-    );
+    await chooseCellAction('Summary', 'Refine');
     await userEvent.type(
       screen.getByLabelText('Instructions for Seer'),
       'Try another angle'
@@ -1343,9 +1459,6 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
-    );
     expect(
       await screen.findByText('Which environment should I inspect?')
     ).toBeInTheDocument();
@@ -1568,12 +1681,17 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        '/organizations/org-slug/seer/investigation/investigation-2/'
+        '/organizations/org-slug/explore/investigations/investigation-2/'
       )
     );
   });
 
   it('copies the link from the title menu', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {writeText},
@@ -1590,7 +1708,7 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/seer/investigation/investigation-1/`
+        `${window.location.origin}/explore/investigations/investigation-1/`
       )
     );
   });

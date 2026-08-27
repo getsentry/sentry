@@ -128,7 +128,9 @@ function OrganizationAuthTokensIndex() {
   >({
     mutationFn: ({token}) =>
       api.requestPromise(
-        `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
+          path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
+        }),
         {
           method: 'DELETE',
         }

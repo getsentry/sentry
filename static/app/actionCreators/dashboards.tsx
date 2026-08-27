@@ -31,7 +31,9 @@ export function fetchDashboards(
   query?: {filter?: DashboardFilter; sort?: string}
 ) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       method: 'GET',
       query: {sort: 'myDashboardsAndRecentlyViewed', ...query},
@@ -62,7 +64,9 @@ export function createDashboard(
     newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       method: 'POST',
       data: {
@@ -139,7 +143,9 @@ export function updateDashboardVisit(
   dashboardId: string | string[]
 ): Promise<void> {
   const promise = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/visit/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/visit/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: String(dashboardId)},
+    }),
     {
       method: 'POST',
     }
@@ -157,7 +163,15 @@ export async function updateDashboardFavorite(
 ): Promise<void> {
   try {
     await api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/${dashboardId}/favorite/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/favorite/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            dashboardId: String(dashboardId),
+          },
+        }
+      ),
       {
         method: 'PUT',
         data: {
@@ -190,7 +204,9 @@ export function fetchDashboard(
   dashboardId: string
 ): Promise<DashboardDetails> {
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId},
+    }),
     {
       method: 'GET',
     }
@@ -248,7 +264,9 @@ export function updateDashboard(
   }
 
   const promise = fetchMutation<DashboardDetails>({
-    url: `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
     method: 'PUT',
     data,
     options: {
@@ -291,7 +309,9 @@ export function deleteDashboard(
   organization: Organization
 ): Promise<undefined> {
   const promise: Promise<undefined> = api.requestPromise(
-    `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: organization.slug, dashboardId},
+    }),
     {
       method: 'DELETE',
     }
@@ -351,7 +371,9 @@ export function updateDashboardPermissions(
     permissions,
   };
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
     {
       method: 'PUT',
       data,

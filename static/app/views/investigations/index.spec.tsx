@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
 import {
@@ -76,6 +77,7 @@ describe('Explore Investigations', () => {
   beforeEach(() => {
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    ConfigStore.set('customerDomain', null);
   });
 
   it('shows the standard feature-disabled state without the feature', () => {
@@ -110,6 +112,11 @@ describe('Explore Investigations', () => {
   });
 
   it('renders loading and populated table states without unsupported controls', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [InvestigationFixture()],
@@ -120,7 +127,7 @@ describe('Explore Investigations', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/investigation/1/');
+    ).toHaveAttribute('href', '/explore/investigations/1/');
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -252,7 +259,7 @@ describe('Explore Investigations', () => {
     );
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/seer/investigation/1/'
+      '/organizations/org-slug/explore/investigations/1/'
     );
     expect(queryClient.getQueryData(unrelatedOptions.queryKey)?.json).toBe(
       unrelatedDetail
@@ -434,7 +441,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/seer/investigation/1/`
+        `${window.location.origin}/organizations/org-slug/explore/investigations/1/`
       )
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(

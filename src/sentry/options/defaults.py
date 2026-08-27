@@ -349,6 +349,13 @@ register(
 )
 
 register(
+    "deletions.nodestore.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "unmerge.killswitch-projects",
     default=[],
     type=Any,
@@ -1260,12 +1267,26 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Serves 304 responses from endpoints using ConditionalGetResponseMixin.
+register(
+    "api.conditional_get.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
 # on conversation id. Requires organizations:gen-ai-conversation-title-generation.
 # 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
 register(
     "ai-monitoring.conversation-title-generation.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Deterministic % of organizations that use Seer's one-shot title generator.
+register(
+    "ai-monitoring.conversation-title-generation.oneshot-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1335,6 +1356,12 @@ register(
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.read_path_checks.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "issues.backfill_group_action_log.killswitch",
@@ -2391,6 +2418,30 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
+# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
+# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
+# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
+# An org switches over as a whole:
+# until a pass has stored its project sample rates, rule generation serves all of its
+# values from the legacy caches, and from then on all of them from the per-org ones.
+register(
+    "dynamic-sampling.per_org.serving-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations rule generation serves from the per-org caches, whatever
+# dynamic-sampling.per_org.serving-rollout-rate selects. Names a single org to pilot
+# before a rate group exists.
+register(
+    "dynamic-sampling.per_org.serving-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
 # (status counters, org_status counters, duration timer). 1.0 emits every
 # event; lower values drop events proportionally. Use this to reduce metric
@@ -2523,11 +2574,6 @@ register(
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "hybridcloud.webhookpayload.push_drain_trigger",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Remove the rows a claim-bounded drain finishes with — delivered, attempts
 # exhausted, or stale — in batches instead of one DELETE per row. Such a drain
 # stays inside a claim reserved for its whole run, so deferring deletes cannot
@@ -2555,6 +2601,14 @@ register(
         "gitlab",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Dispatch skip-on-failure providers' mailboxes from their oldest due record
+# instead of gating on the absolute head, so one record in retry backoff cannot
+# hide every due record behind it. Strict-ordering providers keep the gate.
+register(
+    "hybridcloud.webhookpayload.dispatch_from_due_head",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Drops GitHub check webhooks that reference no pull request based in their own
 # repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape
