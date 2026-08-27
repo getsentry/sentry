@@ -833,8 +833,18 @@ const platformKeys = platforms.map(p => p.id);
 // Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
 export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   ...platformKeys.filter(
+    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+  ),
+  'bun',
+  'deno',
+];
+
+// Feature flag platforms to show the issue details distribution drawer for.
+export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
+  ...platformKeys.filter(
     id =>
       id.startsWith('apple') ||
+      // Matches 'javascript*' as well as 'java*'.
       id.startsWith('java') ||
       id.startsWith('node') ||
       id.startsWith('python')
@@ -844,15 +854,6 @@ export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   'dart',
   'deno',
   'react-native',
-];
-
-// Feature flag platforms to show the issue details distribution drawer for.
-export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
-  ...platformKeys.filter(
-    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
-  ),
-  'bun',
-  'deno',
 ];
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
