@@ -255,10 +255,9 @@ export function SeerExplorerContent({
 
   // Auto-submit the initial query forwarded from the command palette, but only
   // if the session is still empty (don't clobber an active run) unless the
-  // caller explicitly asked to add to the open run. The ref dedupes within a
-  // single mount; each *new* forward remounts this component (the drawer via
-  // `openDrawer`, the sidebar via a `key` on the forward nonce), which resets
-  // the ref and re-arms the submit.
+  // caller asked to add to the open run. The ref dedupes within a single mount;
+  // each *new* forward remounts this component (the drawer via `openDrawer`, the
+  // sidebar via a `key` on the forward nonce), which re-arms the submit.
   const lastAutoSubmittedQueryRef = useRef<string | null>(null);
   useEffect(() => {
     const query = initialQuery?.trim();
@@ -272,10 +271,8 @@ export function SeerExplorerContent({
     sendMessage(query, blocks.length);
   }, [initialQuery, appendInitialQuery, isEmptyState, sendMessage, blocks.length]);
 
-  // What `AutofixChatProvider` hands to anything rendered inside the chat. The
-  // panel is already open here, so the default appends to the running
-  // conversation; `newChat` forces a new run instead (`sendMessage` treats an
-  // explicit `null` run id as "start fresh").
+  // The panel is already open here, so append by default; a `null` run id is how
+  // `sendMessage` starts a fresh one.
   const postMessage = useCallback(
     (query: string, options?: SendMessageOptions) => {
       if (options?.newChat) {

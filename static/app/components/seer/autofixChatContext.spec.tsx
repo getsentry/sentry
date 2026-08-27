@@ -11,9 +11,8 @@ import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplor
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 /**
- * Stands in for a button somewhere else in the app — issue details, say — that
- * wants to hand the agent a message. It renders outside the chat, so it only
- * ever sees the provider mounted by `SeerExplorerContextProvider`.
+ * A button elsewhere in the app. It renders outside the chat, so it only sees
+ * the provider mounted by `SeerExplorerContextProvider`.
  */
 function AskSeerButton({query, newChat}: {query: string; newChat?: boolean}) {
   const {sendMessage} = useAutofixChat();
@@ -94,7 +93,6 @@ describe('AutofixChatProvider', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'ask-seer'}));
 
-    // The chat itself opens, and the message goes out as a real request.
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     await waitFor(() => {
       expect(postChat).toHaveBeenCalledWith(
@@ -108,9 +106,8 @@ describe('AutofixChatProvider', () => {
   });
 
   it('adds to the run already in progress by default', async () => {
-    // Put a run in progress: the chat state restores its run id from session
-    // storage on mount, which is what makes this an *open* conversation rather
-    // than a fresh one.
+    // The chat state restores its run id from session storage on mount, which is
+    // what makes this an open conversation rather than a fresh one.
     sessionStorage.setItem('seer-explorer-run-id', '7');
     MockApiClient.addMockResponse({
       url: `${chatUrl}7/`,

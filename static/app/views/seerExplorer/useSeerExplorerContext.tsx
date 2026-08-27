@@ -61,10 +61,7 @@ type SeerExplorerContextValue = {
    * Query to auto-submit into the sidebar content, forwarded from the command
    * palette. Only meaningful in sidebar mode.
    */
-  /**
-   * Whether `sidebarInitialQuery` should go into the run already open rather
-   * than only an empty one. Only meaningful in sidebar mode.
-   */
+  /** Whether `sidebarInitialQuery` goes into the open run. Sidebar mode only. */
   sidebarAppendInitialQuery: boolean;
   /**
    * Ref attached by the sidebar layout to its measuring container, so the
@@ -194,10 +191,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           appendToOpenRun,
         } = drawerOptions ?? {};
         if (initialQuery) {
-          // A forwarded query starts a fresh session so it auto-submits into an
-          // empty conversation, even if the sidebar is already open with a run —
-          // unless the caller asked to add to that run instead. Bump the nonce
-          // either way so re-forwarding the same query submits again.
+          // A forwarded query starts a fresh session unless the caller asked to
+          // add to the open run. Bump the nonce either way so re-forwarding the
+          // same query submits again.
           if (!appendToOpenRun) {
             dispatch({type: 'set run id', payload: null});
           }
@@ -219,15 +215,11 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     [pipWindow, isSidebarMode, dispatch, openSidebar, openSeerExplorerDrawer]
   );
 
-  // What "post a message into the chat" means outside the chat itself: open the
-  // Explorer on that message. `SeerExplorerContent` mounts its own
-  // `AutofixChatProvider` which shadows this one, so a caller rendered inside
-  // the chat appends to the live session instead of starting a fresh one.
+  // Outside the chat, "post a message" means opening the Explorer on it;
+  // `SeerExplorerContent` shadows this provider for callers inside the chat.
   const openChatWithMessage = useCallback(
     (query: string, options?: SendMessageOptions) => {
-      // Default to adding to whatever conversation is already going, so a
-      // caller keeps the context that run has built up. `newChat` opts into the
-      // older behavior of replacing it with a fresh session.
+      // Append by default so the caller keeps the context the run has built up.
       openSeerExplorer({initialQuery: query, appendToOpenRun: !options?.newChat});
     },
     [openSeerExplorer]
