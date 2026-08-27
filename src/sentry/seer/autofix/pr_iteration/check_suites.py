@@ -20,7 +20,15 @@ from pydantic import BaseModel, Field, ValidationError
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
-from scm.types import ActionResult, GetPullRequestProtocol, ListCheckRunsForRefProtocol, PullRequest
+from scm.types import (
+    ActionResult,
+    CheckRun,
+    GetPullRequestProtocol,
+    ListCheckRunsForRefProtocol,
+    PaginatedActionResult,
+    PaginationParams,
+    PullRequest,
+)
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -599,6 +607,47 @@ class CheckRunsSweep:
         return self.incomplete == 0 and self.failed == 0
 
 
+@dataclass
+class _SweepCost:
+    requests: int = 0
+    rate_limit_remaining: int | None = None
+    rate_limit_limit: int | None = None
+
+    def observe(self, page: PaginatedActionResult[list[CheckRun]]) -> None:
+        headers = page["raw"]["headers"] or {}
+        self.rate_limit_remaining = _header_int(headers, "x-ratelimit-remaining")
+        self.rate_limit_limit = _header_int(headers, "x-ratelimit-limit")
+
+    def log_extra(self) -> dict[str, object]:
+        return {
+            "sweep_requests": self.requests,
+            "rate_limit_remaining": self.rate_limit_remaining,
+            "rate_limit_limit": self.rate_limit_limit,
+        }
+
+    def record(self, *, outcome: str) -> None:
+        metrics.distribution(
+            "autofix.pr_iteration.check_runs_sweep.requests",
+            self.requests,
+            tags={"outcome": outcome},
+        )
+        if self.rate_limit_remaining is not None:
+            metrics.gauge(
+                "autofix.pr_iteration.check_runs_sweep.rate_limit_remaining",
+                self.rate_limit_remaining,
+            )
+
+
+def _header_int(headers: Mapping[str, str], name: str) -> int | None:
+    raw = headers.get(name)
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
 def sweep_check_runs(
     scm: SourceCodeManager, head_sha: str, *, log_extra: Mapping[str, object]
 ) -> CheckRunsSweep | None:
@@ -613,24 +662,30 @@ def sweep_check_runs(
         )
         return None
 
+    cost = _SweepCost()
+
+    def fetch(pagination: PaginationParams) -> PaginatedActionResult[list[CheckRun]]:
+        cost.requests += 1
+        page = scm_actions.list_check_runs_for_ref(scm, head_sha, pagination=pagination)
+        cost.observe(page)
+        return page
+
     total = incomplete = failed = 0
     try:
-        for page in iter_all_pages(
-            lambda pagination: scm_actions.list_check_runs_for_ref(
-                scm, head_sha, pagination=pagination
-            )
-        ):
+        for page in iter_all_pages(fetch):
             total += len(page["data"])
             incomplete += sum(1 for run in page["data"] if run["status"] != "completed")
             failed += sum(1 for run in page["data"] if run.get("conclusion") in FAILURE_CONCLUSIONS)
     except Exception:
+        cost.record(outcome="failed")
         logger.warning(
             "autofix.pr_iteration.check_runs_sweep.list_check_runs_failed",
-            extra={**log_extra, "head_sha": head_sha},
+            extra={**log_extra, "head_sha": head_sha, **cost.log_extra()},
             exc_info=True,
         )
         return None
 
+    cost.record(outcome="swept")
     sweep = CheckRunsSweep(total=total, incomplete=incomplete, failed=failed)
     logger.info(
         "autofix.pr_iteration.check_runs_sweep.swept",
@@ -640,6 +695,7 @@ def sweep_check_runs(
             "check_run_count": sweep.total,
             "incomplete_count": sweep.incomplete,
             "failed_count": sweep.failed,
+            **cost.log_extra(),
         },
     )
     return sweep
