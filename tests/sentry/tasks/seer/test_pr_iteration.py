@@ -446,8 +446,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_reaction: MagicMock,
     ) -> None:
         # `@sentry stop iterating` already stopped this run, so consume would
-        # drop anything queued here. The comment is answered with the stop rather
-        # than the :eyes: that promises an iteration.
+        # drop anything queued here. Nothing is queued and nothing is written to
+        # the PR: an :eyes: would promise an iteration that never comes.
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )
@@ -458,18 +458,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
 
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
-        mock_reaction.assert_called_once_with(
-            self.mock_make_scm.return_value,
-            source_type="github-pr-comment",
-            pr_number=7,
-            comment_id=999,
-            reaction="+1",
-        )
-        self.mock_actions.create_pull_request_comment.assert_called_once_with(
-            self.mock_make_scm.return_value,
-            "7",
-            ALREADY_PAUSED_PR_ITERATION_COMMENT,
-        )
+        mock_reaction.assert_not_called()
+        self.mock_actions.create_pull_request_comment.assert_not_called()
 
     @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}._add_comment_reaction")
@@ -618,13 +608,15 @@ class PausePrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    def test_second_stop_comment_pauses_again(
+    def test_second_stop_comment_reports_already_paused(
         self,
         mock_get_state: MagicMock,
         mock_has_access: MagicMock,
         mock_reaction: MagicMock,
         mock_metrics: MagicMock,
     ) -> None:
+        # The stop is idempotent, so the second comment is acknowledged — but as
+        # the state it found, not as a stop it performed.
         mock_get_state.return_value = self._agent_state()
 
         self._call()
@@ -632,6 +624,13 @@ class PausePrIterationFromCommentTest(TestCase):
 
         assert is_pr_iteration_paused(run_id=67890, organization_id=self.organization.id) is True
         assert mock_reaction.call_count == 2
+        bodies = [
+            call.args[2] for call in self.mock_actions.create_pull_request_comment.call_args_list
+        ]
+        assert bodies == [STOPPED_PR_ITERATION_COMMENT, ALREADY_PAUSED_PR_ITERATION_COMMENT]
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.stop_command", tags={"outcome": "already_paused"}
+        )
 
     @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}._add_comment_reaction")

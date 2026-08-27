@@ -107,6 +107,8 @@ STOP_PR_ITERATION_FAILED_COMMENT = (
     "Seer could not stop iteration on this Autofix run. Close this pull request to stop the work."
 )
 
+# Answers a repeat `@sentry stop iterating`. Feedback that lands on a stopped run
+# gets no reply at all — the stop asked Seer to go quiet, not to keep talking.
 ALREADY_PAUSED_PR_ITERATION_COMMENT = "Iteration was already paused."
 
 # One explanatory comment per PR; further pings still get a :confused: reaction.
@@ -849,23 +851,13 @@ def trigger_pr_iteration_from_comment(
     agent_state = resolved.agent_state
     if is_pr_iteration_paused(run_id=agent_state.run_id, organization_id=organization_id):
         # `@sentry stop iterating` already stopped this run, and nothing restarts
-        # it, so consume would drop whatever we queued here. Say that outright
-        # instead of reacting :eyes: — an ack of work that will never run reads
-        # as a promise to do it.
+        # it, so consume would drop whatever we queued here. Write nothing at all:
+        # a reaction on feedback that will never be read is an ack of work that
+        # won't happen, and the stop asked Seer to go quiet on this PR.
         record_pause_blocked("comment_trigger")
         logger.info(
             "autofix.pr_iteration.comment_trigger.paused",
             extra={"organization_id": organization_id, "run_id": agent_state.run_id},
-        )
-        _ack_pr_command(
-            resolved.scm,
-            organization_id=organization_id,
-            pr_number=pr_number,
-            comment_id=comment.id,
-            source_type=source.type,
-            reaction="+1",
-            body=ALREADY_PAUSED_PR_ITERATION_COMMENT,
-            log_prefix="autofix.pr_iteration.comment_trigger",
         )
         return None
 
@@ -953,8 +945,27 @@ def pause_pr_iteration_from_comment(
         metrics.incr("autofix.pr_iteration.stop_command", tags={"outcome": resolved.value})
         return None
 
+    run_id = resolved.agent_state.run_id
+    if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+        # `pause_pr_iteration` is idempotent and reports success either way, so
+        # ask first — repeating the stop confirmation would credit this comment
+        # with a stop it didn't perform. Nothing resumes a run, so a paused run
+        # stays paused and this is not a race worth locking.
+        metrics.incr("autofix.pr_iteration.stop_command", tags={"outcome": "already_paused"})
+        _ack_pr_command(
+            resolved.scm,
+            organization_id=organization_id,
+            pr_number=pr_number,
+            comment_id=comment_id,
+            source_type="github-pr-comment",
+            reaction="+1",
+            body=ALREADY_PAUSED_PR_ITERATION_COMMENT,
+            log_prefix="autofix.pr_iteration.stop_command",
+        )
+        return None
+
     paused = pause_pr_iteration(
-        run_id=resolved.agent_state.run_id,
+        run_id=run_id,
         organization_id=organization_id,
         actor_user_id=resolved.actor_user.id if resolved.actor_user else None,
     )
@@ -966,7 +977,7 @@ def pause_pr_iteration_from_comment(
         # The run predates SeerRun mirroring, so the stop marker has no row to land on.
         logger.warning(
             "autofix.pr_iteration.stop_command.pause_failed",
-            extra={"organization_id": organization_id, "run_id": resolved.agent_state.run_id},
+            extra={"organization_id": organization_id, "run_id": run_id},
         )
         metrics.incr(
             "autofix.pr_iteration.stop_command",
