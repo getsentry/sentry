@@ -184,6 +184,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     data,
     projectConfig,
     projectConfigPending,
+    issueStatsPending,
     isPending,
     isError,
     dataSettled,
@@ -299,7 +300,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     );
   };
 
-  const resultsPending = isPending || projectConfigPending;
+  const resultsPending = isPending || projectConfigPending || issueStatsPending;
   const populatedKeys = populatedSections.map(section => section.key);
   const allCollapsed =
     populatedKeys.length > 0 && populatedKeys.every(key => collapsedGroups.includes(key));
