@@ -31,6 +31,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -42,6 +43,7 @@ import {
 } from 'sentry/utils/members/shared';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -145,6 +147,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useUser();
+  const breakpoints = useBreakpoints();
   useOverviewSeerDrawer();
   const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
     'seer-autofix-overview:collapsed-groups',
@@ -300,6 +303,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   const populatedKeys = populatedSections.map(section => section.key);
   const allCollapsed =
     populatedKeys.length > 0 && populatedKeys.every(key => collapsedGroups.includes(key));
+  const toggleAllLabel = allCollapsed ? t('Expand All') : t('Collapse All');
 
   const toggleAllGroups = () => {
     setCollapsedGroups(previous =>
@@ -369,14 +373,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
-        <Flex marginLeft="auto">
-          <Button
-            onClick={toggleAllGroups}
-            disabled={!resultsPending && populatedSections.length === 0}
-          >
-            {allCollapsed ? t('Expand All') : t('Collapse All')}
-          </Button>
-        </Flex>
       </Flex>
       {isError ? (
         <LoadingError onRetry={refetch} />
@@ -399,22 +395,34 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             />
           ) : (
             <Fragment>
-              <Tabs
-                value={view}
-                onChange={next => {
-                  trackFilterChanged('view_tab', next);
-                  setQueryParam('view', next === 'all' ? undefined : next);
-                }}
-              >
-                <TabList>
-                  <TabList.Item key="all">
-                    {t('All Runs (%s)', assigneeRuns.length)}
-                  </TabList.Item>
-                  <TabList.Item key="in_progress">
-                    {t('In Progress (%s)', inProgressCount)}
-                  </TabList.Item>
-                </TabList>
-              </Tabs>
+              <Flex justify="between" align="center" gap="md">
+                <Tabs
+                  value={view}
+                  onChange={next => {
+                    trackFilterChanged('view_tab', next);
+                    setQueryParam('view', next === 'all' ? undefined : next);
+                  }}
+                >
+                  <TabList>
+                    <TabList.Item key="all">
+                      {t('All Runs (%s)', assigneeRuns.length)}
+                    </TabList.Item>
+                    <TabList.Item key="in_progress">
+                      {t('In Progress (%s)', inProgressCount)}
+                    </TabList.Item>
+                  </TabList>
+                </Tabs>
+                <Button
+                  size="sm"
+                  variant="link"
+                  onClick={toggleAllGroups}
+                  disabled={!resultsPending && populatedSections.length === 0}
+                  aria-label={toggleAllLabel}
+                  icon={<IconChevron isDouble direction={allCollapsed ? 'down' : 'up'} />}
+                >
+                  {breakpoints.xs ? toggleAllLabel : null}
+                </Button>
+              </Flex>
               {populatedSections.length === 0 ? (
                 <EmptyState
                   padding="3xl"
