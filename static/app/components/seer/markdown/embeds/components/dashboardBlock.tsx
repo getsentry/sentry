@@ -96,7 +96,7 @@ function DashboardWidgetPreview({
   );
 }
 
-export function DashboardPreview({
+function DashboardPreview({
   dashboard,
   href,
 }: {
