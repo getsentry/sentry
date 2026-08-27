@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {
   ExplorerAutofixBlockFixture,
   ExplorerAutofixResponseFixture,
@@ -10,8 +11,10 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {clearIndicators} from 'sentry/actionCreators/indicator';
+import Indicators from 'sentry/components/indicators';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {ProgressState} from 'sentry/types/group';
+import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 
 import {IssuePreview} from './issuePreview';
 
@@ -19,8 +22,59 @@ describe('IssuePreview', () => {
   const organization = OrganizationFixture({features: ['gen-ai-features']});
   const project = ProjectFixture({id: '1'});
   const group = GroupFixture({id: '101', project, hasSeen: true});
+  const fixAppliedGroup = GroupFixture({
+    ...group,
+    derivedData: {
+      hasOpenFixPr: false,
+      hasRootCause: true,
+      isAssigned: true,
+      lastProgressedAt: '2026-07-20T12:00:00Z',
+      progress: ProgressState.FIX_APPLIED,
+      status: 'open',
+      viewCount: 1,
+    },
+  });
+  const resolvedFixAppliedGroup = GroupFixture({
+    id: group.id,
+    project,
+    hasSeen: true,
+    derivedData: fixAppliedGroup.derivedData,
+    status: GroupStatus.RESOLVED,
+    statusDetails: {},
+    substatus: null,
+  });
+
+  function mockFixAppliedPreview(getGroup: () => Group = () => fixAppliedGroup) {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: getGroup,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '10',
+              externalUrl: 'https://github.com/org/repository/pull/10',
+            }),
+            attribution: {id: 'seer', type: 'seer'},
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'merged',
+          },
+        ],
+      },
+    });
+  }
 
   beforeEach(() => {
+    clearIndicators();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -274,70 +328,19 @@ describe('IssuePreview', () => {
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
 
-  it('offers to resolve a fix applied issue instead of viewing its merged PR', async () => {
-    const fixAppliedGroup = GroupFixture({
-      ...group,
-      derivedData: {
-        hasOpenFixPr: false,
-        hasRootCause: true,
-        isAssigned: true,
-        lastProgressedAt: '2026-07-20T12:00:00Z',
-        progress: ProgressState.FIX_APPLIED,
-        status: 'open',
-        viewCount: 1,
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/`,
-      body: fixAppliedGroup,
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-      body: ExplorerAutofixResponseFixture({
-        autofix: ExplorerAutofixStateFixture({
-          coding_agents: {
-            'agent-1': {
-              id: 'agent-1',
-              name: 'Cursor',
-              provider: 'cursor_background_agent',
-              started_at: '2024-01-01T00:00:00Z',
-              status: 'completed',
-              results: [
-                {
-                  description: 'Fixed',
-                  repo_full_name: 'org/repository',
-                  repo_provider: 'github',
-                  pr_number: 10,
-                  pr_url: 'https://github.com/org/repository/pull/10',
-                },
-              ],
-            },
-          },
-        }),
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
-      body: {
-        pullRequests: [
-          {
-            ...PullRequestFixture({
-              id: '10',
-              externalUrl: 'https://github.com/org/repository/pull/10',
-            }),
-            attribution: {id: 'seer', type: 'seer'},
-            checksStatus: null,
-            dateLinked: '2026-07-20T12:00:00Z',
-            reviewStatus: null,
-            status: 'merged',
-          },
-        ],
-      },
-    });
+  it('resolves a fix applied issue and offers to undo it', async () => {
+    let currentGroup = fixAppliedGroup;
+    mockFixAppliedPreview(() => currentGroup);
     const resolveRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/issues/`,
       method: 'PUT',
-      body: {...fixAppliedGroup, status: 'resolved'},
+      body: (_url: string, options: {data: Pick<Group, 'status'>}) => {
+        currentGroup =
+          options.data.status === GroupStatus.RESOLVED
+            ? resolvedFixAppliedGroup
+            : fixAppliedGroup;
+        return currentGroup;
+      },
     });
 
     render(<IssuePreview groupId={group.id} />, {organization});
@@ -358,5 +361,39 @@ describe('IssuePreview', () => {
         data: {status: 'resolved', statusDetails: {}, substatus: null},
       })
     );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Unresolve'}));
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+    expect(resolveRequest).toHaveBeenLastCalledWith(
+      `/projects/${organization.slug}/${project.slug}/issues/`,
+      expect.objectContaining({
+        data: {status: 'unresolved', statusDetails: {}, substatus: 'ongoing'},
+      })
+    );
+  });
+
+  it('does not report success when resolving fails', async () => {
+    mockFixAppliedPreview();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/issues/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+
+    render(
+      <Fragment>
+        <IssuePreview groupId={group.id} />
+        <Indicators />
+      </Fragment>,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+    expect(
+      await screen.findByText('Unable to update events. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
   });
 });
