@@ -180,11 +180,8 @@ def get_errors_for_projects(projects: list[Project]) -> list[CheckinProcessingEr
     return _get_for_entities([build_project_identifier(project.id) for project in projects])
 
 
-# Error types produced by a guard that drops a check-in before any work is done. These say
-# nothing a single entry would not, and the entities producing them do so thousands of times a
-# minute, so storing each one costs far more than it is worth: two cache lookups, a json dump of
-# the whole check-in, and two redis round trips, all inside the serial per monitor environment
-# loop. Only `MAX_ERRORS_PER_SET` are ever retained anyway.
+# Dropped by a guard before any work is done, at a volume that makes storing each one cost more
+# than it is worth. Only `MAX_ERRORS_PER_SET` are retained anyway.
 THROTTLED_ERROR_TYPES = frozenset(
     {
         ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED,
@@ -194,7 +191,6 @@ THROTTLED_ERROR_TYPES = frozenset(
 
 
 def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException):
-    # Still counted, just not stored. See `THROTTLED_ERROR_TYPES`.
     if all(
         process_error["type"] in THROTTLED_ERROR_TYPES for process_error in error.processing_errors
     ):

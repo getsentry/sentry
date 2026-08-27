@@ -261,11 +261,6 @@ class HandleProcessingErrorsTest(TestCase):
         )
 
     def test_throttled_types_are_not_stored(self) -> None:
-        """
-        Guards that drop a check-in before doing any work fire thousands of times a minute for a
-        single monitor environment. Storing each one costs two cache lookups and two redis round
-        trips inside the serial processing loop, for data capped at `MAX_ERRORS_PER_SET` anyway.
-        """
         monitor = self.create_monitor()
         item = build_checkin_item(
             message_overrides={"project_id": self.project.id},
