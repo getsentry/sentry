@@ -13,7 +13,6 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   buildTraceMetricAggregate,
   extractTraceMetricFromColumn,
@@ -84,12 +83,9 @@ export function MetricSelectRow({
     state.yAxis,
     state.fields
   );
-  const aggregateIndex = aggregateSource?.indexOf(field) ?? -1;
-  const selectedAggregateIndex = aggregateIndex === -1 ? index : aggregateIndex;
-
-  const traceMetric = extractTraceMetricFromColumn(
-    aggregateSource?.[selectedAggregateIndex] ?? field
-  ) ?? {name: '', type: ''};
+  const traceMetric = (aggregateSource?.[index]
+    ? extractTraceMetricFromColumn(aggregateSource[index])
+    : undefined) ?? {name: '', type: ''};
 
   // Dashboards is visualization-first: once Heat Map is chosen, restrict the
   // metric picker to distributions (the only type a heat map can render).
@@ -111,39 +107,13 @@ export function MetricSelectRow({
         return;
       }
 
-      const actionType = getTraceMetricAggregateActionType(state.displayType);
-      if (
-        actionType === BuilderStateAction.SET_FIELDS &&
-        field.kind === FieldValueKind.FIELD
-      ) {
-        const aggregate =
-          DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
-          OPTIONS_BY_TYPE[newTraceMetric.type]?.[0]?.value;
-        if (!aggregate) {
-          return;
-        }
-
-        dispatch({
-          type: actionType,
-          payload: (state.fields ?? []).map((currentField, fieldIndex) =>
-            fieldIndex === index
-              ? buildTraceMetricAggregate(
-                  aggregate as AggregationKeyWithAlias,
-                  newTraceMetric
-                )
-              : currentField
-          ),
-        });
-        return;
-      }
-
       let updatedAggregates: Column[] | undefined;
       if (hasMultiMetricSelection) {
         updatedAggregates =
           field.kind === FieldValueKind.FUNCTION
             ? getUpdatedAggregatesMultiMetric(
                 aggregateSource ?? [],
-                selectedAggregateIndex,
+                index,
                 newTraceMetric
               )
             : (() => {
@@ -154,7 +124,7 @@ export function MetricSelectRow({
                   return;
                 }
                 const nextAggregates = [...(aggregateSource ?? [])];
-                nextAggregates[selectedAggregateIndex] = buildTraceMetricAggregate(
+                nextAggregates[index] = buildTraceMetricAggregate(
                   aggregate as AggregationKeyWithAlias,
                   newTraceMetric
                 );
@@ -162,7 +132,7 @@ export function MetricSelectRow({
               })();
       } else {
         const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
-        updatedAggregates = (aggregateSource ?? []).map((f, currentAggregateIndex) => {
+        updatedAggregates = (aggregateSource ?? []).map((f, aggregateIndex) => {
           if (f.kind === 'function' && f.function?.[0]) {
             const aggregate = f.function[0];
             const isValid = validAggregateOptions.some(opt => opt.value === aggregate);
@@ -177,7 +147,7 @@ export function MetricSelectRow({
 
             return buildTraceMetricAggregate(aggregate, newTraceMetric);
           }
-          if (currentAggregateIndex === selectedAggregateIndex) {
+          if (aggregateIndex === index) {
             const aggregate =
               DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
               validAggregateOptions[0]?.value;
@@ -199,29 +169,11 @@ export function MetricSelectRow({
       // Sort fixup is handled by the dispatch handlers
       // (SET_Y_AXIS, SET_FIELDS, SET_CATEGORICAL_AGGREGATE)
       dispatch({
-        type: actionType,
-        payload:
-          actionType === BuilderStateAction.SET_FIELDS
-            ? (state.fields ?? []).map(currentField => {
-                const currentAggregateIndex =
-                  aggregateSource?.indexOf(currentField) ?? -1;
-                return currentAggregateIndex === -1
-                  ? currentField
-                  : updatedAggregates[currentAggregateIndex]!;
-              })
-            : updatedAggregates,
+        type: getTraceMetricAggregateActionType(state.displayType),
+        payload: updatedAggregates,
       });
     },
-    [
-      selectedAggregateIndex,
-      aggregateSource,
-      dispatch,
-      field,
-      hasMultiMetricSelection,
-      index,
-      state.displayType,
-      state.fields,
-    ]
+    [aggregateSource, dispatch, field, hasMultiMetricSelection, index, state.displayType]
   );
 
   const onSelectField = useCallback(() => {
@@ -230,13 +182,13 @@ export function MetricSelectRow({
     }
 
     setShouldAutoSelectFirstColumn(true);
-    const newFields = [...(state.fields ?? [])];
+    const newFields = [...(aggregateSource ?? [])];
     newFields[index] = {kind: FieldValueKind.FIELD, field: ''};
     dispatch({
       type: getTraceMetricAggregateActionType(state.displayType),
       payload: newFields,
     });
-  }, [dispatch, index, state.displayType, state.fields]);
+  }, [aggregateSource, dispatch, index, state.displayType]);
 
   useEffect(() => {
     if (field.kind !== FieldValueKind.FIELD) {

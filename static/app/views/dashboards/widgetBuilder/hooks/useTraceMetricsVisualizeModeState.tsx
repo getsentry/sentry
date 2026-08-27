@@ -22,7 +22,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   getTraceMetricAggregateActionType,
-  getTraceMetricAggregateSource,
+  getTraceMetricAggregates,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStableLabels';
@@ -69,7 +69,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
     if (state.dataset !== WidgetType.TRACEMETRICS) {
       return false;
     }
-    const aggregateSource = getTraceMetricAggregateSource(
+    const aggregateSource = getTraceMetricAggregates(
       state.displayType,
       state.yAxis,
       state.fields
@@ -155,7 +155,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
     if (!snapshot) {
       // If no equation snapshot state, then we need to derive the first state to
       // update the widget builder
-      const aggregateSource = getTraceMetricAggregateSource(
+      const aggregateSource = getTraceMetricAggregates(
         state.displayType,
         state.yAxis,
         state.fields
@@ -221,7 +221,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
   // Detect an equation yAxis and restore the cached equation mode if
   // the user was in equation mode when they left.
   const onChangeDatasetToTraceMetrics = useEffectEvent(() => {
-    const aggregateSource = getTraceMetricAggregateSource(
+    const aggregateSource = getTraceMetricAggregates(
       state.displayType,
       state.yAxis,
       state.fields
@@ -257,7 +257,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         const currentFields =
           actionType === BuilderStateAction.SET_FIELDS
             ? state.fields
-            : getTraceMetricAggregateSource(state.displayType, state.yAxis, state.fields);
+            : getTraceMetricAggregates(state.displayType, state.yAxis, state.fields);
         seriesSnapshot.current = {
           fields: currentFields ? structuredClone(currentFields) : [],
           legendAlias: currentLegendAlias,

@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -10,7 +11,6 @@ import type {
 import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {sortSelectedFirst} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   buildTraceMetricAggregate,
   getTraceMetricAggregateActionType,
@@ -44,7 +44,11 @@ export function AggregateSelector({
     [traceMetric?.type]
   );
 
-  const aggregateValue = field.kind === 'function' ? (field.function?.[0] ?? '') : '';
+  const aggregateValue = useMemo(() => {
+    return aggregateSource?.[index]?.kind === 'function'
+      ? (aggregateSource?.[index]?.function?.[0] ?? '')
+      : '';
+  }, [aggregateSource, index]);
 
   return (
     <AggregateCompactSelect
@@ -56,20 +60,14 @@ export function AggregateSelector({
       position="bottom-start"
       onChange={option => {
         if (field.kind === 'function') {
-          const updatedAggregate = buildTraceMetricAggregate(
+          const newAggregates = cloneDeep(aggregateSource) ?? [];
+          newAggregates[index] = buildTraceMetricAggregate(
             option.value as AggregationKeyWithAlias,
             traceMetric
           );
           dispatch({
             type: actionType,
-            payload:
-              actionType === BuilderStateAction.SET_FIELDS
-                ? (state.fields ?? []).map((currentField, fieldIndex) =>
-                    fieldIndex === index ? updatedAggregate : currentField
-                  )
-                : (aggregateSource ?? []).map(currentField =>
-                    currentField === field ? updatedAggregate : currentField
-                  ),
+            payload: newAggregates,
           });
         }
       }}
