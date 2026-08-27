@@ -198,7 +198,6 @@ def _process_batch(
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         return len(entries) == batch_size
 
-    # QuerySet.update bypasses auto_now, so stamp date_updated explicitly.
     now = timezone.now()
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
@@ -416,7 +415,6 @@ def invalidate_group_derived_data(
         # Bumping ``generated_at`` reuses ``promote_to_live``'s SUPERSEDED
         # CAS path — pre-invalidation snapshots can't win over the null-hash
         # row.
-        # QuerySet.update bypasses auto_now, so stamp date_updated explicitly.
         affected = qs.update(
             pipeline_hash=None, generated_at=timezone.now(), date_updated=timezone.now()
         )
