@@ -15,11 +15,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
-from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.factory import create_dashboard_generation_client
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -195,14 +194,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
             on_page_context = CREATE_ON_PAGE_CONTEXT
 
         try:
-            client = SeerAgentClient(
-                organization,
-                request.user,
-                on_completion_hook=DashboardOnCompletionHook,
-                category_key="dashboard_generate",
-                category_value=str(organization.id),
-                reasoning_effort="medium",
-            )
+            client = create_dashboard_generation_client(organization, request.user)
             run = client.start_run(
                 prompt=prompt,
                 on_page_context=on_page_context,

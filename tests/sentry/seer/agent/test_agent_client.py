@@ -20,7 +20,13 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.agent.factory import create_autofix_client
+from sentry.seer.agent.factory import (
+    create_autofix_client,
+    create_dashboard_generation_client,
+    create_investigation_execution_client,
+    create_investigation_title_client,
+    create_operator_client,
+)
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -93,6 +99,106 @@ class TestSeerAgentClient(TestCase):
             code_review_enabled=True,
             enable_bash_tools=True,
             enable_pr_context_tools=True,
+        )
+
+    @patch("sentry.seer.agent.factory.SeerAgentClient")
+    def test_create_dashboard_generation_client_configures_client(self, mock_client_class):
+        from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
+
+        client = create_dashboard_generation_client(self.organization, self.user)
+
+        assert client == mock_client_class.return_value
+        mock_client_class.assert_called_once_with(
+            self.organization,
+            self.user,
+            on_completion_hook=DashboardOnCompletionHook,
+            category_key="dashboard_generate",
+            category_value=str(self.organization.id),
+            reasoning_effort="medium",
+        )
+
+    @patch("sentry.seer.agent.factory.SeerAgentClient")
+    def test_create_operator_client_configures_client(self, mock_client_class):
+        from sentry.seer.entrypoints.operator import SeerOperatorCompletionHook
+
+        client = create_operator_client(
+            self.organization,
+            self.user,
+            category_key="slack_thread",
+            category_value="thread-123",
+            enable_code_mode_tools="only",
+        )
+
+        assert client == mock_client_class.return_value
+        mock_client_class.assert_called_once_with(
+            organization=self.organization,
+            user=self.user,
+            category_key="slack_thread",
+            category_value="thread-123",
+            on_completion_hook=SeerOperatorCompletionHook,
+            is_interactive=True,
+            enable_coding=False,
+            enable_code_mode_tools="only",
+            enable_embeds=False,
+        )
+
+    @patch("sentry.seer.agent.factory.SeerAgentClient")
+    def test_create_investigation_query_client_configures_client(self, mock_client_class):
+        from sentry.investigations.agent import InvestigationAgentCompletionHook
+
+        client = create_investigation_execution_client(self.organization, self.user, is_query=True)
+
+        assert client == mock_client_class.return_value
+        mock_client_class.assert_called_once_with(
+            self.organization,
+            self.user,
+            on_completion_hook=InvestigationAgentCompletionHook,
+            is_interactive=True,
+            enable_code_mode_tools="only",
+            enable_coding=False,
+            enable_bash_tools=False,
+            enable_embeds=True,
+            enable_streaming=True,
+            max_iterations=20,
+        )
+
+    @patch("sentry.seer.agent.factory.SeerAgentClient")
+    def test_create_investigation_text_client_configures_client(self, mock_client_class):
+        from sentry.investigations.agent import InvestigationAgentCompletionHook
+
+        client = create_investigation_execution_client(self.organization, self.user, is_query=False)
+
+        assert client == mock_client_class.return_value
+        mock_client_class.assert_called_once_with(
+            self.organization,
+            self.user,
+            on_completion_hook=InvestigationAgentCompletionHook,
+            is_interactive=False,
+            enable_code_mode_tools="off",
+            enable_coding=False,
+            enable_bash_tools=False,
+            enable_embeds=False,
+            enable_streaming=True,
+            max_iterations=5,
+        )
+
+    @patch("sentry.seer.agent.factory.SeerAgentClient")
+    def test_create_investigation_title_client_configures_client(self, mock_client_class):
+        from sentry.investigations.agent import InvestigationAgentCompletionHook
+
+        client = create_investigation_title_client(self.organization, self.user)
+
+        assert client == mock_client_class.return_value
+        mock_client_class.assert_called_once_with(
+            self.organization,
+            self.user,
+            on_completion_hook=InvestigationAgentCompletionHook,
+            enable_code_mode_tools="only",
+            enable_coding=False,
+            enable_bash_tools=False,
+            enable_embeds=False,
+            enable_streaming=True,
+            max_iterations=3,
         )
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")

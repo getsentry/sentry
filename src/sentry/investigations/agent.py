@@ -47,6 +47,10 @@ from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
 from sentry.seer.agent.client_utils import AgentUpdateRequest, make_agent_update_request
+from sentry.seer.agent.factory import (
+    create_investigation_execution_client,
+    create_investigation_title_client,
+)
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
@@ -174,15 +178,7 @@ def start_execution_run(
 ) -> None:
     is_query = execution.block.kind == InvestigationBlockKind.QUERY
     if client is None:
-        client = SeerAgentClient(organization, user)
-    client.on_completion_hook = InvestigationAgentCompletionHook
-    client.is_interactive = is_query
-    client.enable_code_mode_tools = "only" if is_query else "off"
-    client.enable_coding = False
-    client.enable_bash_tools = False
-    client.enable_embeds = is_query
-    client.enable_streaming = True
-    client.max_iterations = 20 if is_query else 5
+        client = create_investigation_execution_client(organization, user, is_query=is_query)
     dispatch_won: bool | None = None
 
     def mark_dispatched(run: Any) -> None:
@@ -977,17 +973,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     if investigation.summary is not None and investigation.summary_description is not None:
         return
     user = user_service.get_user(user_id=user_id) if user_id else None
-    client = SeerAgentClient(
-        investigation.organization,
-        user,
-        on_completion_hook=InvestigationAgentCompletionHook,
-        enable_code_mode_tools="only",
-        enable_coding=False,
-        enable_bash_tools=False,
-        enable_embeds=False,
-        enable_streaming=True,
-        max_iterations=3,
-    )
+    client = create_investigation_title_client(investigation.organization, user)
     block_context = "\n".join(_completion_block_context(block) for block in blocks)
     prompt = (
         "Describe a completed Sentry investigation. Do not use tools. Return exactly one raw JSON "

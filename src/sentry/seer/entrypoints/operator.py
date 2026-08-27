@@ -9,9 +9,9 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.agent.factory import create_operator_client
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -521,20 +521,12 @@ class SeerAgentOperator[CachePayloadT]:
                 enable_code_mode_tools = "only"
 
             try:
-                # RpcUser is not in SeerAgentClient's type signature but works at runtime
-                client = SeerAgentClient(
+                client = create_operator_client(
                     organization=organization,
                     user=user,
                     category_key=category_key,
                     category_value=category_value,
-                    on_completion_hook=SeerOperatorCompletionHook,
-                    is_interactive=True,
-                    enable_coding=False,
                     enable_code_mode_tools=enable_code_mode_tools,
-                    # Entrypoints (e.g. Slack) render responses as plain markdown and
-                    # can't display embed widgets, so the raw Markdoc tags would leak as
-                    # text. Don't ask the agent to emit them in the first place.
-                    enable_embeds=False,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(

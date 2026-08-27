@@ -28,7 +28,7 @@ from sentry.investigations.services import (
     mark_block_execution_dispatch_failed,
 )
 from sentry.models.organization import Organization
-from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.factory import create_investigation_execution_client
 from sentry.utils import metrics
 
 
@@ -65,7 +65,11 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
         else:
             project_ids = []
 
-        client = SeerAgentClient(organization, request.user)
+        client = create_investigation_execution_client(
+            organization,
+            request.user,
+            is_query=block.kind == InvestigationBlockKind.QUERY,
+        )
         try:
             execution, created = create_block_execution(
                 block=block,
