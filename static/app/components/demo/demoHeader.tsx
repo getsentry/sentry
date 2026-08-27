@@ -2,7 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {LogoSentry} from 'sentry/components/logoSentry';
@@ -43,22 +44,32 @@ export function DemoHeader() {
       borderBottom="primary"
     >
       <StyledLogoSentry />
-      <DocsButton
-        onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
-        href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
-        external
-      >
-        {t('Documentation')}
-      </DocsButton>
-      <NewRequestDemoBtn
-        onClick={() =>
-          trackAnalytics('growth.demo_click_request_demo', {organization: null})
-        }
-        href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
-        external
-      >
-        {t('Request a Demo')}
-      </NewRequestDemoBtn>
+      <Container display={{zero: 'none', xl: 'block'}}>
+        {containerProps => (
+          <LinkButton
+            {...containerProps}
+            onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
+            href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
+            external
+          >
+            {t('Documentation')}
+          </LinkButton>
+        )}
+      </Container>
+      <Container display={{zero: 'none', sm: 'none'}}>
+        {containerProps => (
+          <LinkButton
+            {...containerProps}
+            onClick={() =>
+              trackAnalytics('growth.demo_click_request_demo', {organization: null})
+            }
+            href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
+            external
+          >
+            <Text uppercase>{t('Request a Demo')}</Text>
+          </LinkButton>
+        )}
+      </Container>
       <FreeTrialButton
         variant="primary"
         onClick={() => {
@@ -114,20 +125,6 @@ const FreeTrialTextShort = styled('span')`
 `;
 
 const FreeTrialTextLong = styled('span')``;
-
-const NewRequestDemoBtn = styled(LinkButton)`
-  text-transform: uppercase;
-  @container (max-width: ${p => p.theme.container.xl}) {
-    display: none;
-  }
-`;
-
-const DocsButton = styled(LinkButton)`
-  text-transform: uppercase;
-  @container (max-width: ${p => p.theme.container.sm}) {
-    display: none;
-  }
-`;
 
 const FreeTrialButton = styled(Button)`
   text-transform: uppercase;
