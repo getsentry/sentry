@@ -7,6 +7,7 @@ from sentry.integrations.types import (
     ExternalProviders,
 )
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
@@ -18,24 +19,24 @@ from sentry.notifications.platform.types import (
 )
 from sentry.notifications.utils.participants import ParticipantMap
 from sentry.types.actor import ActorType
-from sentry.users.services.user.service import user_service
+from sentry.utils.email.manager import get_email_addresses
 
 
 def get_targets_from_participant_map(
-    participant_map: ParticipantMap, *, organization_id: int
+    participant_map: ParticipantMap, *, organization_id: int, project: Project | None = None
 ) -> list[NotificationTarget]:
     """
     Converts legacy ParticipantMap types to the platform's new NotificationTarget list.
     Note: For simplicity, we ignore SLACK_STAGING and MSTEAMS since they are not available in prod.
     """
     return [
-        *_get_email_targets(participant_map, organization_id=organization_id),
+        *_get_email_targets(participant_map, organization_id=organization_id, project=project),
         *_get_slack_targets(participant_map, organization_id=organization_id),
     ]
 
 
 def _get_email_targets(
-    participant_map: ParticipantMap, organization_id: int
+    participant_map: ParticipantMap, organization_id: int, project: Project | None = None
 ) -> list[NotificationTarget]:
     user_ids: set[int] = set()
     team_ids: set[int] = set()
@@ -57,17 +58,15 @@ def _get_email_targets(
     if not user_ids:
         return []
 
-    users = user_service.get_many_by_id(ids=list(user_ids))
+    email_map = get_email_addresses(user_ids, project=project)
     targets: list[NotificationTarget] = []
-    for user in users:
-        if not user.email:
-            continue
+    for user_id, email in email_map.items():
         targets.append(
             GenericNotificationTarget(
                 provider_key=NotificationProviderKey.EMAIL,
                 resource_type=NotificationTargetResourceType.EMAIL,
-                resource_id=user.email,
-                specific_data={"user_id": user.id},
+                resource_id=email,
+                specific_data={"user_id": user_id},
             )
         )
     return targets

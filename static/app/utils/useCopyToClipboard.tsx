@@ -9,7 +9,7 @@ type CopyCallback = (
    * Pass `null` to disable any toast messages.
    */
   options?: {errorMessage?: React.ReactNode; successMessage?: React.ReactNode} | null
-) => Promise<string>;
+) => Promise<string | void>;
 
 export function copyToClipboard(
   text: string,
@@ -35,11 +35,10 @@ export function copyToClipboard(
       }
       return text;
     })
-    .catch(error => {
+    .catch(_error => {
       if (errorMessage) {
         addErrorMessage(errorMessage);
       }
-      throw error;
     });
 
   return promise;

@@ -9,7 +9,6 @@ import {Link} from '@sentry/scraps/link';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
 import {ORDER, WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import type {
@@ -27,8 +26,6 @@ type Coordinates = {
   y: number;
 };
 
-type WebVitalsLabelCoordinates = Partial<Record<WebVitals, Coordinates>>;
-
 type ProjectData = {
   'p75(browser.web_vital.cls.value)': number;
   'p75(browser.web_vital.fcp.value)': number;
@@ -44,17 +41,13 @@ type Props = {
   text: React.ReactNode;
   autoSize?: boolean;
   barWidth?: number;
-  differenceToPreviousPeriod?: ProjectScore;
   height?: number;
-  hideWebVitalLabels?: boolean;
   inPerformanceWidget?: boolean;
   labelHeightPadding?: number;
   projectData?: ProjectData[];
   radiusPadding?: number;
   size?: number;
-  webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
   width?: number;
-  x?: number;
   y?: number;
 };
 
@@ -65,9 +58,7 @@ type WebVitalLabelProps = {
   onHover: (webVital: WebVitals) => void;
   onUnHover: () => void;
   webVital: WebVitals;
-  differenceToPreviousPeriod?: ProjectScore;
   projectData?: ProjectData[];
-  webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
 };
 
 function WebVitalLabel({
@@ -76,14 +67,10 @@ function WebVitalLabel({
   coordinates,
   onHover,
   onUnHover,
-  webVitalLabelCoordinates,
   inPerformanceWidget,
   projectData,
-  differenceToPreviousPeriod,
 }: WebVitalLabelProps) {
   const moduleURL = useModuleURL('vital');
-  const xOffset = webVitalLabelCoordinates?.[webVital]?.x ?? 0;
-  const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
     webVital === 'cls'
       ? Math.round(
@@ -92,8 +79,6 @@ function WebVitalLabel({
       : getFormattedDuration(
           projectData?.[0]?.[`p75(${WEB_VITAL_TO_FIELD[webVital]})`]! / 1000
         );
-
-  const diffValue = differenceToPreviousPeriod?.[`${webVital}Score`];
 
   return (
     <Link
@@ -108,30 +93,13 @@ function WebVitalLabel({
       onMouseLeave={() => onUnHover()}
       disabled={!inPerformanceWidget}
     >
-      <ProgressRingText
-        isLink={inPerformanceWidget}
-        x={coordinates.x + xOffset}
-        y={coordinates.y + yOffset}
-      >
+      <ProgressRingText isLink={inPerformanceWidget} x={coordinates.x} y={coordinates.y}>
         {webVital}
       </ProgressRingText>
       {inPerformanceWidget && (
-        <ProgressRingSubText x={coordinates.x + xOffset} y={coordinates.y + yOffset + 15}>
+        <ProgressRingSubText x={coordinates.x} y={coordinates.y + 15}>
           {webvitalInfo}
         </ProgressRingSubText>
-      )}
-      {inPerformanceWidget && diffValue !== undefined && (
-        <ProgressRingDiffSubText
-          value={diffValue}
-          x={coordinates.x + xOffset}
-          y={coordinates.y + yOffset + 30}
-        >
-          {diffValue > 0
-            ? `+${diffValue.toFixed(1)}%`
-            : diffValue < 0
-              ? `${diffValue.toFixed(1)}%`
-              : '-'}
-        </ProgressRingDiffSubText>
       )}
     </Link>
   );
@@ -143,23 +111,19 @@ export function PerformanceScoreRingWithTooltips({
   ringBackgroundColors,
   ringSegmentColors,
   text,
-  differenceToPreviousPeriod,
-  webVitalLabelCoordinates,
   autoSize = false,
   width = 220,
   height = 200,
   barWidth = 16,
-  hideWebVitalLabels = false,
   inPerformanceWidget = false,
   size = 140,
-  x = 40,
   y: yProp,
   labelHeightPadding = 14,
   radiusPadding = 4,
 }: Props) {
+  const x = 40;
   const y = yProp ?? (autoSize ? (height - size) / 2 : 25);
   const theme = useTheme();
-  const organization = useOrganization();
   const location = useLocation();
   const [mousePosition, setMousePosition] = useState({x: 0, y: 0});
   const elem = useRef<HTMLDivElement>(null);
@@ -190,14 +154,11 @@ export function PerformanceScoreRingWithTooltips({
   const weights = getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]));
 
   const commonWebVitalLabelProps = {
-    organization,
     location,
     inPerformanceWidget,
-    webVitalLabelCoordinates,
     projectData,
     onHover: (webVital: WebVitals) => setLabelHovered(webVital),
     onUnHover: () => setLabelHovered(null),
-    differenceToPreviousPeriod,
   };
 
   const coordinates = calculateLabelCoordinates(
@@ -246,25 +207,23 @@ export function PerformanceScoreRingWithTooltips({
         width={autoSize ? '100%' : width}
         viewBox={`0 0 ${width} ${height}`}
       >
-        {!hideWebVitalLabels && (
-          <Fragment>
-            {Object.keys(weights).map((key, index) => {
-              const webVital = key as WebVitals;
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              if (weights[key] > 0 && coordinates[webVital] !== undefined) {
-                return (
-                  <WebVitalLabel
-                    {...commonWebVitalLabelProps}
-                    key={`webVitalLabel-${key}-${index}`}
-                    webVital={webVital}
-                    coordinates={coordinates[webVital]}
-                  />
-                );
-              }
-              return null;
-            })}
-          </Fragment>
-        )}
+        <Fragment>
+          {Object.keys(weights).map((key, index) => {
+            const webVital = key as WebVitals;
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            if (weights[key] > 0 && coordinates[webVital] !== undefined) {
+              return (
+                <WebVitalLabel
+                  {...commonWebVitalLabelProps}
+                  key={`webVitalLabel-${key}-${index}`}
+                  webVital={webVital}
+                  coordinates={coordinates[webVital]}
+                />
+              );
+            }
+            return null;
+          })}
+        </Fragment>
         <PerformanceScoreRing
           values={[
             {
@@ -372,15 +331,6 @@ const ProgressRingSubText = styled('text')`
   font-size: ${p => p.theme.font.size.sm};
   fill: ${p => p.theme.tokens.content.secondary};
   text-anchor: middle;
-`;
-
-const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
-  fill: ${p =>
-    p.value < 0
-      ? p.theme.colors.green400
-      : p.value > 0
-        ? p.theme.colors.red400
-        : p.theme.tokens.content.secondary};
 `;
 
 // Hover element on mouse

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import io
+from unittest.mock import MagicMock, patch
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, PngImagePlugin
 
 from sentry.preprod.snapshots.image_diff.compare import compare_images, compare_images_batch
 
@@ -91,6 +92,23 @@ class TestCompareImages:
         assert result is not None
         assert result.changed_pixels == 0
         assert result.total_pixels == 30 * 30
+
+    def test_rejects_oversized_comparison_before_decoding(self) -> None:
+        before = io.BytesIO()
+        after = io.BytesIO()
+        _make_solid_image(10, 1, (0, 0, 0, 255)).save(before, format="PNG")
+        _make_solid_image(1, 10, (0, 0, 0, 255)).save(after, format="PNG")
+        server = MagicMock()
+
+        with (
+            patch("sentry.preprod.snapshots.image_diff.compare.MAX_DIFF_PIXELS", 50),
+            patch.object(PngImagePlugin.PngImageFile, "load") as load,
+        ):
+            result = compare_images_batch([(before.getvalue(), after.getvalue())], server=server)[0]
+
+        assert result is None
+        load.assert_not_called()
+        server.compare.assert_not_called()
 
 
 class TestCompareImagesBatch:

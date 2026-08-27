@@ -17,7 +17,7 @@ class SentryAppActionHandler(ActionHandler):
         "description": "The configuration schema for a Sentry App Action",
         "type": "object",
         "properties": {
-            "target_identifier": {"type": ["string"]},
+            "target_identifier": {"type": ["string"], "pattern": "^[0-9]+$"},
             "target_display": {"type": ["string", "null"]},
             "target_type": {
                 "type": ["integer"],

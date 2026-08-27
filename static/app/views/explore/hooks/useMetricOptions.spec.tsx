@@ -50,9 +50,9 @@ describe('useMetricOptions', () => {
   it('fetches metric options from tracemetrics dataset', async () => {
     const mockData = {
       data: [
-        {['metric.name']: 'metric.c', ['metric.type']: 'counter'},
-        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.b', ['metric.type']: 'distribution'},
+        {'metric.name': 'metric.c', 'metric.type': 'counter'},
+        {'metric.name': 'metric.a', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.b', 'metric.type': 'distribution'},
       ],
     };
 
@@ -80,9 +80,9 @@ describe('useMetricOptions', () => {
 
     await waitFor(() =>
       expect(result.current.data?.data).toEqual([
-        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.b', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.c', ['metric.type']: 'counter'},
+        {'metric.name': 'metric.a', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.b', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.c', 'metric.type': 'counter'},
       ])
     );
   });
@@ -90,9 +90,9 @@ describe('useMetricOptions', () => {
   it('sorts metrics alphabetically by name', async () => {
     const mockData = {
       data: [
-        {['metric.name']: 'metric.z', ['metric.type']: 'counter'},
-        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.m', ['metric.type']: 'gauge'},
+        {'metric.name': 'metric.z', 'metric.type': 'counter'},
+        {'metric.name': 'metric.a', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.m', 'metric.type': 'gauge'},
       ],
     };
 
@@ -126,9 +126,9 @@ describe('useMetricOptions', () => {
     );
     await waitFor(() =>
       expect(result.current.data?.data).toEqual([
-        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.m', ['metric.type']: 'gauge'},
-        {['metric.name']: 'metric.z', ['metric.type']: 'counter'},
+        {'metric.name': 'metric.a', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.m', 'metric.type': 'gauge'},
+        {'metric.name': 'metric.z', 'metric.type': 'counter'},
       ])
     );
   });

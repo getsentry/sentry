@@ -10,9 +10,9 @@ import {
   useScrapsForm,
   type BoundFieldComponents,
 } from '@sentry/scraps/form/scrapsForm';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import {t} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -166,12 +166,11 @@ interface AutoSaveFormProps<
 export function AutoSaveForm<
   TData,
   TContext,
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof SchemaInput<TSchema>, string>,
 >(props: AutoSaveFormProps<TData, TContext, TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
+  const {t} = useTranslation();
   const id = useId();
   const mutation = useMutation(mutationOptions);
   // Track pending confirmation to prevent duplicate modals

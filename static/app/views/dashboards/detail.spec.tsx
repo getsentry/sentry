@@ -21,13 +21,16 @@ import * as dashboardActions from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {UNSAVED_FILTERS_MESSAGE} from 'sentry/views/dashboards/constants';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
+import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -37,6 +40,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
+
+function StarredDashboardTitle() {
+  const {data: dashboards = []} = useGetStarredDashboards();
+  return <span aria-label="Starred dashboard title">{dashboards[0]?.title}</span>;
+}
 
 class MockIntersectionObserver {
   constructor(callback: IntersectionObserverCallback) {
@@ -291,6 +299,20 @@ describe('Dashboards > Detail', () => {
     let mockScrollIntoView!: jest.Mock;
 
     beforeEach(() => {
+      registerOverride(
+        'component:dashboards-limit-provider',
+        () =>
+          function DashboardLimitProvider({children}) {
+            return typeof children === 'function'
+              ? children({
+                  dashboardsLimit: 0,
+                  hasReachedDashboardLimit: false,
+                  isLoading: false,
+                  limitMessage: null,
+                })
+              : children;
+          }
+      );
       window.confirm = jest.fn();
       initialData = initializeOrg({
         organization,
@@ -517,6 +539,56 @@ describe('Dashboards > Detail', () => {
       expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
+    it('updates the starred dashboard title after renaming', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [DashboardFixture([], {id: '1', title: 'Custom Errors'})],
+        match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
+      });
+
+      render(
+        <OrganizationContext value={initialData.organization}>
+          <StarredDashboardTitle />
+          <ViewEditDashboard />
+        </OrganizationContext>,
+        makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {},
+        })
+      );
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
+          'Custom Errors'
+        );
+      });
+
+      await activateDashboardEditMode();
+      const titleInput = screen.getByRole('textbox');
+      await userEvent.clear(titleInput);
+      await userEvent.type(titleInput, 'Renamed Dashboard');
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture(widgets, {id: '1', title: 'Renamed Dashboard'}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [DashboardFixture([], {id: '1', title: 'Renamed Dashboard'})],
+        match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
+          'Renamed Dashboard'
+        );
+      });
+    });
+
     it('appends dashboard-level filters to series request', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -603,7 +675,11 @@ describe('Dashboards > Detail', () => {
     it('renders the redesigned dashboard breadcrumb in the top bar (flag on)', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: [
+          ...organization.features,
+          'dashboards-import',
+          'ui-migration-breadcrumbs',
+        ],
       });
 
       render(
@@ -632,10 +708,206 @@ describe('Dashboards > Detail', () => {
         screen.getByRole('heading', {name: 'Custom Errors', level: 1})
       ).toBeInTheDocument();
       expect(within(breadcrumbs).queryByText('Custom Errors')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      expect(await screen.findByRole('menuitemradio', {name: 'Edit'})).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Star'})).toBeVisible();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show version history'})
+      ).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Export'})).toBeVisible();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Duplicate'})
+      ).not.toBeInTheDocument();
+
       // The redesigned BreadcrumbList hides its slash dividers from the a11y tree
       // (unlike the legacy breadcrumbs, whose divider surfaced as a visible img),
       // so there are no visible imgs in this view-only crumb.
       expect(within(breadcrumbs).queryAllByRole('img')).toHaveLength(0);
+    });
+
+    it('keeps supported breadcrumb actions on prebuilt dashboards', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+              title: 'Prebuilt Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+
+      expect(await screen.findByRole('menuitemradio', {name: 'Star'})).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+      expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show version history'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('explains why breadcrumb duplicate is disabled at the dashboard limit', async () => {
+      registerOverride(
+        'component:dashboards-limit-provider',
+        () =>
+          function DashboardLimitProvider({children}) {
+            return typeof children === 'function'
+              ? children({
+                  dashboardsLimit: 1,
+                  hasReachedDashboardLimit: true,
+                  isLoading: false,
+                  limitMessage: 'You have reached your dashboard limit.',
+                })
+              : children;
+          }
+      );
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+              title: 'Prebuilt Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+      const duplicate = await screen.findByRole('menuitemradio', {name: 'Duplicate'});
+      expect(duplicate).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(duplicate);
+      expect(
+        await screen.findByText('You have reached your dashboard limit.')
+      ).toBeVisible();
+    });
+
+    it('shows access controls to org managers without dashboard edit access', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        access: ['org:read', 'org:write'],
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              createdBy: UserFixture({id: 'another-user'}),
+              permissions: {
+                isEditableByEveryone: false,
+                teamsWithEditAccess: [],
+              },
+              title: 'Restricted Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      expect(await screen.findByText('Editors:')).toBeVisible();
+    });
+
+    it('disables the breadcrumb edit action with unsaved filters', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              projects: [1],
+              title: 'Custom Errors',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/dashboard/1/',
+              query: {project: '2'},
+            },
+          },
+          organization: pageFrameOrganization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+      const edit = await screen.findByRole('menuitemradio', {name: 'Edit'});
+      expect(edit).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(edit);
+      expect(await screen.findByText(UNSAVED_FILTERS_MESSAGE)).toBeVisible();
+    });
+
+    it('does not show breadcrumb actions in dashboard preview', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.PREVIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Preview Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Preview Dashboard', level: 1})
+      ).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Go Back'})).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Save and Finish'})).toBeVisible();
+      expect(
+        screen.queryByRole('button', {name: 'Dashboard actions'})
+      ).not.toBeInTheDocument();
     });
 
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
@@ -2227,11 +2499,11 @@ describe('Dashboards > Detail', () => {
 
         // The update action is called with the updated widget
         expect(mockUpdateDashboard).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.anything(),
+          'org-slug',
           expect.objectContaining({
             widgets: [expect.objectContaining({title: 'Updated Widget Title'})],
-          })
+          }),
+          {revisionSource: undefined}
         );
         expect(mockScrollIntoView).toHaveBeenCalled();
       });
@@ -2282,11 +2554,11 @@ describe('Dashboards > Detail', () => {
 
         // The update action is called with the new widget
         expect(mockUpdateDashboard).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.anything(),
+          'org-slug',
           expect.objectContaining({
             widgets: [expect.objectContaining({title: 'Totally new widget'})],
-          })
+          }),
+          {revisionSource: undefined}
         );
         await waitFor(() => {
           expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');

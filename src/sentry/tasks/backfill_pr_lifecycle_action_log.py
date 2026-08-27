@@ -9,7 +9,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_long_tasks, issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
 
@@ -23,6 +23,7 @@ _TASK_KEY = "backfill_pr_lifecycle_action_log_for_project"
         "sentry.tasks.backfill_pr_lifecycle_action_log.backfill_pr_lifecycle_action_log_for_group"
     ),
     namespace=issues_tasks,
+    alias_namespace=issues_long_tasks,
     silo_mode=SiloMode.CELL,
 )
 def backfill_pr_lifecycle_action_log_for_group(
@@ -67,6 +68,7 @@ def backfill_pr_lifecycle_action_log_for_group(
         "sentry.tasks.backfill_pr_lifecycle_action_log.backfill_pr_lifecycle_action_log_for_project"
     ),
     namespace=issues_tasks,
+    alias_namespace=issues_long_tasks,
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )
@@ -134,7 +136,7 @@ def _backfill_project(
     activation_id: str | None = None,
 ) -> None:
     from sentry.issues.action_log.backfill import backfill_group_pr_lifecycle
-    from sentry.issues.derived.tasks import process_project_derived_data
+    from sentry.issues.derived.tasks import generate_project_derived_data
 
     batch_size: int = options.get("issues.backfill_pr_lifecycle_action_log.batch_size")
     inter_batch_delay_s: int = options.get(
@@ -165,7 +167,7 @@ def _backfill_project(
             "backfill_pr_lifecycle_action_log.project_completed",
             extra={"project_id": project.id},
         )
-        process_project_derived_data.delay(project_id=project.id)
+        generate_project_derived_data.delay(project_id=project.id)
         return
 
     total_created = 0
@@ -202,4 +204,4 @@ def _backfill_project(
             "backfill_pr_lifecycle_action_log.project_completed",
             extra={"project_id": project.id},
         )
-        process_project_derived_data.delay(project_id=project.id)
+        generate_project_derived_data.delay(project_id=project.id)

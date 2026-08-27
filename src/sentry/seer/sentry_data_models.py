@@ -471,6 +471,8 @@ class EventDetailsResponse(_DictProxyMixin):
     event_trace_id: str | None
     project_id: int
     project_slug: str
+    # shared-formatter text; populated when the RPC is called with a `format`, else None
+    formatted: str | None = None
 
 
 class IssueDetailsResponse(_DictProxyMixin):
@@ -544,6 +546,17 @@ class TeamMembersResponse(_DictProxyMixin):
     team_slug: str
     team_name: str
     members: list[IssueOwner]
+
+
+class UserIdentity(BaseModel):
+    id: int
+    username: str
+
+
+class GroupAssigneesResponse(_DictProxyMixin):
+    # Dict keys are int issue IDs, but JSON serializes them as strings, so make that explicit.
+    # Consumer will convert back to int.
+    assignees: dict[str, UserIdentity]
 
 
 class TransactionsForProjectResponse(BaseModel):

@@ -67,7 +67,10 @@ export const useTransactionsDeprecationWarning = ({
     return createExploreUrl(widget.exploreUrls[0]!, selection, organization);
   }, [organization, widget.widgetType, widget.exploreUrls, selection]);
 
-  if (!exploreUrl) {
+  if (
+    !exploreUrl ||
+    !organization.features.includes('performance-transaction-deprecation-banner')
+  ) {
     return null;
   }
 
@@ -152,6 +155,26 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
             {
               columns: allWarnings.join(', '),
             }
+          )}
+        </StyledText>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+export const useDiscoverSplitWarning = (widget: Widget): React.JSX.Element | null => {
+  // make sure there's widget queries so we know it's not a text widget
+  if (
+    (widget.widgetType === WidgetType.DISCOVER || !widget.widgetType) &&
+    widget.queries.length > 0
+  ) {
+    return (
+      <div>
+        <StyledText as="p">
+          {t(
+            "We're splitting up the Discover dataset to be either Errors or Transactions. This widget's dataset will be adjusted."
           )}
         </StyledText>
       </div>
@@ -291,11 +314,11 @@ export function getMenuOptions(
         const {timeSeries, label, seriesName, widgetQuery} = transformed;
 
         const baseQuery =
-          applyDashboardFilters(
-            widgetQuery?.conditions,
+          applyDashboardFilters({
+            baseQuery: widgetQuery?.conditions,
             dashboardFilters,
-            widget.widgetType
-          ) ?? '';
+            widgetType: widget.widgetType,
+          }) ?? '';
 
         // Add group-by values as filters to the alert query
         const search = new MutableSearch(baseQuery);

@@ -90,12 +90,13 @@ export function SupergroupDetailDrawer({
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
           <FeedbackButton
+            variant="secondary"
             size="xs"
             feedbackOptions={{
               formTitle: t('Give feedback on Issue Groups'),
               messagePlaceholder: t('How can we make Issue Groups better for you?'),
               tags: {
-                ['feedback.source']: 'supergroup_drawer',
+                'feedback.source': 'supergroup_drawer',
               },
             }}
             tooltipProps={{title: t('Give feedback on Issue Groups')}}
@@ -220,7 +221,7 @@ function SupergroupIssueList({
   const sortedGroupIds = useMemo(
     () =>
       filterWithCurrentSearch
-        ? [...groupIds].sort(
+        ? groupIds.toSorted(
             (a, b) =>
               Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
           )

@@ -22,13 +22,14 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.types.activity import ActivityType
 
 
 class WebhookTest(GitLabTestCase):
@@ -41,6 +42,7 @@ class WebhookTest(GitLabTestCase):
 
     def assert_pull_request(self, pull: PullRequest, author: CommitAuthor) -> None:
         assert pull.title
+        assert pull.external_id == 90
         assert pull.message
         assert pull.date_added
         assert pull.author == author
@@ -538,6 +540,89 @@ class WebhookTest(GitLabTestCase):
         assert pull.merged_at == merged_at
         assert pull.closed_at == closed_at
 
+    def _post_merge_event(self, payload: dict) -> None:
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+    def test_merge_event_stale_update_after_merge_does_not_regress_state(self) -> None:
+        # An `update` hook that failed its first delivery is retried minutes later,
+        # landing after the `merge` it preceded. Its object_attributes still
+        # describe an open merge request, so replaying it would rewrite the merged
+        # row back to open. The older snapshot must be dropped wholesale.
+        self.create_gitlab_repo("getsentry/sentry")
+
+        merge_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        merge_payload["object_attributes"]["state"] = "merged"
+        merge_payload["object_attributes"]["action"] = "merge"
+        merge_payload["object_attributes"]["updated_at"] = "2017-09-28T12:23:42.365Z"
+        merge_payload["object_attributes"]["merged_at"] = "2017-09-28T12:23:42.365Z"
+        merge_payload["object_attributes"]["merge_commit_sha"] = "abc123"
+        self._post_merge_event(merge_payload)
+
+        stale_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        stale_payload["object_attributes"]["action"] = "update"
+        stale_payload["object_attributes"]["state"] = "opened"
+        stale_payload["object_attributes"]["updated_at"] = "2017-09-28T12:20:00.000Z"
+        stale_payload["object_attributes"]["title"] = "Stale title"
+        self._post_merge_event(stale_payload)
+
+        pull = PullRequest.objects.get()
+        assert pull.state == PullRequestLifecycleState.MERGED
+        assert pull.merged_at == datetime(2017, 9, 28, 12, 23, 42, 365000, tzinfo=timezone.utc)
+        assert pull.closed_at == pull.merged_at
+        assert pull.merge_commit_sha == "abc123"
+        assert pull.title != "Stale title"
+
+    def test_merge_event_stale_update_after_close_does_not_reopen(self) -> None:
+        # Same reordering, but the merge request was closed unmerged. `close` ->
+        # `reopen` is a legitimate transition, so only the payload timestamp can
+        # tell the stale replay from a real reopen.
+        self.create_gitlab_repo("getsentry/sentry")
+
+        close_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        close_payload["object_attributes"]["state"] = "closed"
+        close_payload["object_attributes"]["action"] = "close"
+        close_payload["object_attributes"]["updated_at"] = "2017-09-28T12:23:42.365Z"
+        self._post_merge_event(close_payload)
+
+        stale_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        stale_payload["object_attributes"]["action"] = "update"
+        stale_payload["object_attributes"]["state"] = "opened"
+        stale_payload["object_attributes"]["updated_at"] = "2017-09-28T12:20:00.000Z"
+        self._post_merge_event(stale_payload)
+
+        pull = PullRequest.objects.get()
+        assert pull.state == PullRequestLifecycleState.CLOSED
+        assert pull.closed_at == datetime(2017, 9, 28, 12, 23, 42, 365000, tzinfo=timezone.utc)
+
+    def test_merge_event_reopen_after_close_is_applied(self) -> None:
+        # The guard rejects only *older* snapshots: a genuine reopen carries a
+        # later updated_at and must still land.
+        self.create_gitlab_repo("getsentry/sentry")
+
+        close_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        close_payload["object_attributes"]["state"] = "closed"
+        close_payload["object_attributes"]["action"] = "close"
+        close_payload["object_attributes"]["updated_at"] = "2017-09-28T12:23:42.365Z"
+        self._post_merge_event(close_payload)
+
+        reopen_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        reopen_payload["object_attributes"]["state"] = "opened"
+        reopen_payload["object_attributes"]["action"] = "reopen"
+        reopen_payload["object_attributes"]["updated_at"] = "2017-09-28T12:30:00.000Z"
+        self._post_merge_event(reopen_payload)
+
+        pull = PullRequest.objects.get()
+        assert pull.state == PullRequestLifecycleState.OPEN
+        assert pull.closed_at is None
+        assert pull.provider_updated_at == datetime(2017, 9, 28, 12, 30, tzinfo=timezone.utc)
+
     def test_update_repo_path(self) -> None:
         repo_out_of_date_path = self.create_gitlab_repo(
             name="Cool Group / Sentry", url="http://example.com/cool-group/sentry"
@@ -763,7 +848,10 @@ class TestIssuesEventWebhookStatusSync(GitLabTestCase):
         assert mock_sync_status.called
         call_args = mock_sync_status.call_args
         assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
-        assert call_args[0][1] == {"action": "close"}
+        assert call_args[0][1] == {
+            "action": "close",
+            "provider_event_time": "2023-01-01 00:00:00 UTC",
+        }
 
     @patch("sentry.integrations.gitlab.integration.GitlabIntegration.sync_status_inbound")
     def test_reopen_event_triggers_sync(self, mock_sync_status: MagicMock) -> None:
@@ -779,7 +867,10 @@ class TestIssuesEventWebhookStatusSync(GitLabTestCase):
         assert mock_sync_status.called
         call_args = mock_sync_status.call_args
         assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
-        assert call_args[0][1] == {"action": "reopen"}
+        assert call_args[0][1] == {
+            "action": "reopen",
+            "provider_event_time": "2023-01-01 00:00:00 UTC",
+        }
 
     @patch("sentry.integrations.gitlab.integration.GitlabIntegration.sync_status_inbound")
     def test_open_event_does_not_trigger_sync(self, mock_sync_status: MagicMock) -> None:
@@ -809,3 +900,43 @@ class TestIssuesEventWebhookStatusSync(GitLabTestCase):
         call_args = mock_sync_status.call_args
         assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
         assert call_args[0][1]["action"] == "close"
+
+    def test_close_delivered_after_reopen_does_not_resolve(self) -> None:
+        # A close/reopen pair delivered in reverse order must not resolve the group.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            org_integration.update(config={"sync_status_reverse": True})
+
+        group = self.create_group(project=self.project)
+        self.create_integration_external_issue(
+            group=group,
+            integration=self.integration,
+            key="example.gitlab.com/group-x:cool-group/sentry#23",
+        )
+
+        reopened = orjson.loads(ISSUE_REOPENED_EVENT)
+        reopened["object_attributes"]["updated_at"] = "2023-01-01 00:00:03 UTC"
+        closed = orjson.loads(ISSUE_CLOSED_EVENT)
+        closed["object_attributes"]["updated_at"] = "2023-01-01 00:00:00 UTC"
+
+        features = [
+            "organizations:integrations-issue-sync",
+            "organizations:integrations-gitlab-project-management",
+        ]
+        with self.feature(features), self.tasks():
+            for payload in (reopened, closed):
+                response = self.client.post(
+                    self.url,
+                    data=orjson.dumps(payload),
+                    content_type="application/json",
+                    HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+                    HTTP_X_GITLAB_EVENT="Issue Hook",
+                )
+                assert response.status_code == 204
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+        # The reopen was applied, so the close really did reach the guard.
+        assert group.activity_set.filter(type=ActivityType.SET_UNRESOLVED.value).exists()
+        assert not group.activity_set.filter(type=ActivityType.SET_RESOLVED.value).exists()

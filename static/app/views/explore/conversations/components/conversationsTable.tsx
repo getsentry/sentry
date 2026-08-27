@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -14,16 +14,17 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
+  COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -31,7 +32,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   useConversations,
@@ -84,7 +84,7 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
   messages: {name: t('Messages'), width: 120},
   errors: {name: t('Errors'), width: 100},
   cost: {name: t('Cost'), width: 120},
-  tools: {name: t('Tools'), width: 300},
+  tools: {name: t('Tools'), width: 220},
   age: {name: t('Age'), width: 110},
 };
 
@@ -105,6 +105,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
     normalizeUserField(user.email) ||
     normalizeUserField(user.username) ||
     normalizeUserField(user.ip_address) ||
+    normalizeUserField(user.id) ||
     null
   );
 }
@@ -125,6 +126,28 @@ export function UserNotInstrumentedTooltip() {
   );
 }
 
+/**
+ * When no conversation on the page has tools, the tools column only ever renders
+ * a placeholder, so collapse it to the grid's minimum width and let the flexible
+ * conversation column absorb the freed space. This only kicks in while the column
+ * is still at its default width — once the user has resized it we respect their
+ * choice and leave it alone. The passed-in resize state is never mutated, so the
+ * column returns to its default width once a page with tools loads.
+ */
+export function collapseToolsColumnWhenUnused(
+  columnOrder: Array<GridColumnOrder<ColumnKey>>,
+  hasNoTools: boolean
+): Array<GridColumnOrder<ColumnKey>> {
+  const toolsColumn = columnOrder.find(column => column.key === 'tools');
+  const toolsColumnAtDefault = toolsColumn?.width === COLUMN_DEFAULTS.tools.width;
+  if (!hasNoTools || !toolsColumnAtDefault) {
+    return columnOrder;
+  }
+  return columnOrder.map(column =>
+    column.key === 'tools' ? {...column, width: COL_WIDTH_MINIMUM} : column
+  );
+}
+
 export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -134,22 +157,33 @@ export function ConversationsTable() {
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
-  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize<
-    GridColumnOrder<ColumnKey>
-  >({
-    columns: () =>
-      COLUMN_ORDER.map(key => ({
-        key,
-        name: COLUMN_DEFAULTS[key].name,
-        width: COLUMN_DEFAULTS[key].width,
-      })),
-  });
+  const [columnOrder, setColumnOrder] = useState<Array<GridColumnOrder<ColumnKey>>>(() =>
+    COLUMN_ORDER.map(key => ({
+      key,
+      name: COLUMN_DEFAULTS[key].name,
+      width: COLUMN_DEFAULTS[key].width,
+    }))
+  );
 
-  const showMissingMessagesAlert =
-    !isFetching &&
-    !error &&
-    data.length > 0 &&
-    data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+      setColumnOrder(current =>
+        current.map((column, index) => (index === columnIndex ? nextColumn : column))
+      );
+    },
+    []
+  );
+
+  const hasNoTools = useMemo(
+    () =>
+      data.length > 0 && data.every(conversation => conversation.toolNames.length === 0),
+    [data]
+  );
+
+  const displayedColumns = useMemo(
+    () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
+    [columnOrder, hasNoTools]
+  );
 
   const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
@@ -160,8 +194,24 @@ export function ConversationsTable() {
   };
 
   const handleRowClick = useCallback(
-    (dataRow: Conversation) => {
-      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
+    (dataRow: Conversation, _key: number, event: React.MouseEvent) => {
+      const url = getConversationDetailUrl(
+        organization.slug,
+        dataRow,
+        selection.projects
+      );
+      // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
+      // opens a new tab (no features string) and Shift+click opens a new window
+      // (a features string makes browsers open a window rather than a tab).
+      if (event.shiftKey) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (isCtrlKeyPressed(event)) {
+        window.open(url, '_blank');
+        return;
+      }
+      navigate(url);
     },
     [navigate, organization.slug, selection.projects]
   );
@@ -191,37 +241,34 @@ export function ConversationsTable() {
   );
 
   return (
-    <Fragment>
-      {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
-      <Stack gap="lg">
-        <FixedRowHeightGrid>
-          <GridEditable
-            isLoading={isFetching}
-            error={error}
-            data={data}
-            columnOrder={columnOrder}
-            columnSortBy={[]}
-            stickyHeader
-            // GridEditable's Panel body has a default bottom margin; drop it so
-            // the Stack's `lg` gap is the only spacing before the pagination.
-            bodyStyle={{marginBottom: 0}}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-              onResizeColumn: handleResizeColumn,
-            }}
-            onRowClick={handleRowClick}
-            isRowClickable={() => true}
-            onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
-            onRowMouseOut={() => setHighlightedRowKey(undefined)}
-            highlightedRowKey={highlightedRowKey}
-          />
-        </FixedRowHeightGrid>
-        {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
-            only spacing between the table and the controls. */}
-        <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
-      </Stack>
-    </Fragment>
+    <Stack gap="lg">
+      <FixedRowHeightGrid>
+        <GridEditable
+          isLoading={isFetching}
+          error={error}
+          data={data}
+          columnOrder={displayedColumns}
+          columnSortBy={[]}
+          stickyHeader
+          // GridEditable's Panel body has a default bottom margin; drop it so
+          // the Stack's `lg` gap is the only spacing before the pagination.
+          bodyStyle={{marginBottom: 0}}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+            onResizeColumn: handleResizeColumn,
+          }}
+          onRowClick={handleRowClick}
+          isRowClickable={() => true}
+          onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
+          onRowMouseOut={() => setHighlightedRowKey(undefined)}
+          highlightedRowKey={highlightedRowKey}
+        />
+      </FixedRowHeightGrid>
+      {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
+          only spacing between the table and the controls. */}
+      <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+    </Stack>
   );
 }
 

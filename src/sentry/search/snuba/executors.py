@@ -498,9 +498,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             if group_categories - {GroupCategory.ERROR.value}
             else set()
         )
-        merge_generic_categories = features.has(
-            "organizations:issue-search-merged-generic-query", organization, actor=actor
-        )
         category_filter_groups: list[tuple[list[int], Sequence[SearchFilter]]] = []
         for group_category in sorted(group_categories):
             try:
@@ -512,7 +509,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             except UnsupportedSearchQuery:
                 continue
 
-            if merge_generic_categories and group_category != GroupCategory.ERROR.value:
+            if group_category != GroupCategory.ERROR.value:
                 for grouped_categories, grouped_search_filters in category_filter_groups:
                     if (
                         GroupCategory.ERROR.value not in grouped_categories
@@ -854,15 +851,21 @@ def _recommended_aggregation(
     total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
     spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
 
-    # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
+    # Severity: maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
     severity_weight = options.get("snuba.search.recommended.severity-weight")
-    severity = (
-        "max(multiIf("
+    severity_signal = (
+        "multiIf("
         "equals(level, 'fatal'), 1.0, "
         "equals(level, 'error'), 0.75, "
         "equals(level, 'warning'), 0.5, "
         "equals(level, 'info'), 0.25, "
-        "0.0))"
+        "0.0)"
+    )
+    severity_aggregate = options.get("snuba.search.recommended.severity-aggregate")
+    severity = (
+        f"divide(sum({severity_signal}), count())"
+        if severity_aggregate == "mean"
+        else f"max({severity_signal})"
     )
 
     # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
@@ -1242,9 +1245,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # (degrading to a plain last_seen sort) when there are too many candidates to score
         # the progress rank in memory.
         "progress": "last_seen",
-        # We don't need a corresponding snuba field here, since this sort only happens
-        # in Postgres
-        "inbox": "",
     }
 
     aggregation_defs = {
@@ -1816,9 +1816,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             sentry_sdk.set_tag("search.sort_fallback", sort_by)
             sentry_sdk.set_attribute("search.sort_fallback", sort_by)
             # Keep the original sort only if it maps to a real Snuba aggregation for the
-            # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
-            # sorts like "inbox"), have no aggregation and must fall back to `date` instead
-            # of flowing an empty sort_field into the aggregation lookup.
+            # chunked path. Keys absent from sort_strategies or mapped to an empty string
+            # have no aggregation and must fall back to `date`.
             if not self.sort_strategies.get(sort_by):
                 sort_by = "date"
 

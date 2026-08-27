@@ -112,7 +112,7 @@ export function MetricsVisualize() {
         label: option[TraceMetricKnownFieldKey.METRIC_NAME],
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
-          type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
+          type: option[TraceMetricKnownFieldKey.METRIC_TYPE],
           unit: hasMetricUnitsUI
             ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
             : undefined,

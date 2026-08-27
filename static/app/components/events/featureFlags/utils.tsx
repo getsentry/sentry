@@ -47,7 +47,7 @@ export const enum FlagControlOptions {
 }
 
 const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
-  return [...flags].sort((a, b) => {
+  return flags.toSorted((a, b) => {
     return a.item.key.localeCompare(b.item.key);
   });
 };
@@ -63,9 +63,9 @@ export const sortedFlags = ({
     case OrderBy.A_TO_Z:
       return handleSortAlphabetical(flags);
     case OrderBy.Z_TO_A:
-      return [...handleSortAlphabetical(flags)].reverse();
+      return handleSortAlphabetical(flags).toReversed();
     case OrderBy.OLDEST:
-      return [...flags].reverse();
+      return flags.toReversed();
     default:
       return flags;
   }

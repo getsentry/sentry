@@ -1,13 +1,12 @@
 /* eslint-disable unicorn/filename-case */
-import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,24 +23,22 @@ export function CredentialRow({
   removeCredential?: (data: {id: number}) => void;
 }) {
   return (
-    <Fragment>
-      <Flex align="center" gap="md">
-        {credential.clientId}
-      </Flex>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell gap="md">{credential.clientId}</SimpleTable.RowCell>
 
-      <Flex align="center">
+      <SimpleTable.RowCell>
         <StatusTag statusType={getStatusType(credential)} message={credential.message} />
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex align="center">
+      <SimpleTable.RowCell>
         <TimeSince date={credential.dateAdded} />
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex align="center">
+      <SimpleTable.RowCell>
         {credential.createdByEmail ? credential.createdByEmail : '\u2014'}
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex align="center" justify="end">
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={t('You do not have permission to remove credentials.')}
           disabled={!!removeCredential}
@@ -63,8 +60,8 @@ export function CredentialRow({
             </Button>
           </Confirm>
         </Tooltip>
-      </Flex>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 

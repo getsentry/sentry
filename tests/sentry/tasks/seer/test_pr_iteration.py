@@ -2,6 +2,11 @@ from datetime import timedelta
 from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
+import pytest
+from scm.errors import ResourceNotFound
+from scm.types import ReviewComment
+
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
@@ -19,11 +24,21 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.queue import (
+    QueuedAutofixFeedback,
+    peek_queued_autofix_feedback,
+    try_enqueue_autofix_feedback,
+)
+from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError
+from sentry.seer.models.run import SeerRun
 from sentry.tasks.seer.pr_iteration import (
+    UnsupportedProviderError,
+    _build_review_feedback,
     _delete_own_comment_eyes_reaction,
     _ineligible_pr_iteration_comment_body,
+    _resolve_review_comment_threads,
     consume_queued_autofix_feedback,
     trigger_consume_pr_iteration_feedback,
     trigger_pr_iteration_from_comment,
@@ -32,9 +47,26 @@ from sentry.testutils.cases import TestCase
 
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
+PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
+
+
+class _CommentScmStub:
+    """Spec for the SCM mock so the ``runtime_checkable`` protocol ``isinstance``
+    guards in the task pass (a bare ``MagicMock`` fails them)."""
+
+    def get_pull_request(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def create_pull_request_comment(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get_repository_user_permission(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def create_pull_request_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 class TriggerPrIterationFromCommentTest(TestCase):
+    mock_make_scm: MagicMock
+    mock_actions: MagicMock
+
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -46,6 +78,17 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
         self.comment = {"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}}
         self.feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=self.comment))
+
+        for attr, target in (
+            ("mock_make_scm", "make_scm"),
+            ("mock_actions", "scm_actions"),
+        ):
+            patcher = patch(f"{TASK_PATH}.{target}")
+            setattr(self, attr, patcher.start())
+            self.addCleanup(patcher.stop)
+
+        self.mock_make_scm.return_value = MagicMock(spec=_CommentScmStub)
+        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "555"}}
 
     def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         return SeerRunState(
@@ -71,12 +114,15 @@ class TriggerPrIterationFromCommentTest(TestCase):
             timestamp="2024-01-01T00:00:00Z",
         )
 
-    def _mock_integration(self, pr_id: int | None = 555) -> MagicMock:
-        mock_client = MagicMock()
-        mock_client.get_pull_request.return_value = {"id": pr_id}
-        mock_integration = MagicMock()
-        mock_integration.get_installation.return_value.get_client.return_value = mock_client
-        return mock_integration
+    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+        pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="7",
+        )
+        if external_id is not None:
+            pr.update(external_id=external_id)
+        return pr
 
     def _call(self) -> None:
         trigger_pr_iteration_from_comment(
@@ -88,31 +134,25 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_agent_when_authorized(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         agent_state = self._agent_state()
         mock_get_state.return_value = agent_state
 
         self._call()
 
         mock_has_access.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             "octocat",
         )
         mock_enqueue.assert_called_once()
@@ -136,61 +176,128 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert consume_kwargs["run_state"] is agent_state
 
         mock_reaction.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
             reaction="eyes",
         )
 
-    @patch(f"{TASK_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_resolves_pr_id_from_row_without_calling_github(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # The issue_comment payload carries only the PR number; a stored
+        # ``external_id`` is what keeps that from costing a round-trip.
+        mock_get_state.return_value = None
+        self._stored_pr(external_id=555)
+
+        self._call()
+
+        self.mock_actions.get_pull_request.assert_not_called()
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 555)
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_writes_external_id_back_on_a_miss(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        mock_get_state.return_value = None
+        pr = self._stored_pr()
+
+        self._call()
+
+        self.mock_actions.get_pull_request.assert_called_once_with(
+            self.mock_make_scm.return_value, "7"
+        )
+        pr.refresh_from_db()
+        assert pr.external_id == 555
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_returns_when_the_provider_id_is_not_an_integer(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "not-a-number"}}
+        pr = self._stored_pr()
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        pr.refresh_from_db()
+        assert pr.external_id is None
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_returns_when_get_pull_request_fails(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        self.mock_actions.get_pull_request.side_effect = ResourceNotFound()
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_stops_on_a_repo_whose_provider_is_not_pinned(
+        self,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
+        # instead of the repo, so a GHE repo reaching this task would key its
+        # per-instance repo id into a cache that only github.com ids are unique
+        # in — and ask Seer for a run under the wrong provider. The entry point
+        # rejects GHE before dispatch; this pins that the task does not depend on
+        # it having done so.
+        self.repo.provider = "integrations:github_enterprise"
+        self.repo.save()
+
+        self._call()
+
+        self.mock_make_scm.assert_not_called()
+        mock_get_state.assert_not_called()
+        self.mock_actions.get_pull_request.assert_not_called()
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
+
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_write_access(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
-        mock_make_scm: MagicMock,
     ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
         mock_get_state.return_value = self._agent_state()
 
         self._call()
 
-        mock_has_access.assert_called_once_with(mock_make_scm.return_value, "octocat")
+        mock_has_access.assert_called_once_with(self.mock_make_scm.return_value, "octocat")
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_agent_state(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
         mock_cache: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
         # Missing runs must no-op: webhooks fan out to every region, so the
         # region that doesn't own the Autofix session must not react/comment
         # as if the PR were ineligible.
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
 
         self._call()
@@ -199,34 +306,27 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
         mock_reaction.assert_not_called()
-        mock_make_scm.assert_not_called()
-        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_not_called()
+        self.mock_actions.create_pull_request_comment.assert_not_called()
         mock_cache.get.assert_not_called()
         mock_cache.set.assert_not_called()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_comments_ineligible_when_run_has_no_repo_pr_states(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
         mock_cache: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
         # Found a Seer run (e.g. coding-agent handoff) but no Autofix PRs —
         # this is the case where we still explain ineligibility.
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = SeerRunState(
             run_id=67890,
             blocks=[],
@@ -243,40 +343,34 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
         mock_reaction.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
             reaction="confused",
         )
-        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_called_once_with(
-            self.repo.name,
+        self.mock_actions.create_pull_request_comment.assert_called_once_with(
+            self.mock_make_scm.return_value,
             "7",
-            {"body": _ineligible_pr_iteration_comment_body("octocat")},
+            _ineligible_pr_iteration_comment_body("octocat"),
         )
         mock_cache.set.assert_called_once()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_ineligible_comment_when_already_posted(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
         mock_cache: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = SeerRunState(
             run_id=67890,
             blocks=[],
@@ -290,43 +384,37 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self._call()
 
         mock_reaction.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
             reaction="confused",
         )
-        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_not_called()
+        self.mock_actions.create_pull_request_comment.assert_not_called()
         mock_cache.set.assert_not_called()
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_comment_reaction(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
-        mock_integration = self._mock_integration()
-        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = self._agent_state()
 
         self._call()
 
         mock_enqueue.assert_called_once()
         mock_reaction.assert_called_once_with(
-            mock_make_scm.return_value,
+            self.mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
@@ -334,25 +422,20 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_iterates_past_max_iterations(
         self,
-        mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
-        mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
         # The max-iterations cap only bounds automatic (bot/check-suite) loops; a
         # manual @sentry comment still drives an iteration past the cap.
-        mock_get_integration.return_value = self._mock_integration()
         mock_get_state.return_value = self._agent_state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
         )
@@ -502,6 +585,40 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_returns_and_empties_queue_when_paused(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        try_enqueue_autofix_feedback(
+            run_id=67890,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+            feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
+            referrer=AutofixReferrer.WEB,
+            run_state=self._state(),
+        )
+        with record_run_extras(SeerRun.objects.get(seer_run_state_id=67890)) as extras:
+            extras[PAUSED_EXTRA] = {"paused_at": "2024-01-01T00:00:00+00:00"}
+
+        with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
+            self._call()
+
+        mock_fetch.assert_not_called()
+        mock_pop.assert_not_called()
+        mock_trigger.assert_not_called()
+        assert peek_queued_autofix_feedback(67890) == []
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.paused.blocked", tags={"gate": "consume"}
+        )
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -885,6 +1002,58 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args.kwargs["user_context"] == "top level\n\nui feedback"
 
+    def _commenter_feedback(self, comment_id: int, login: str, user_id: int) -> Feedback:
+        return Feedback(
+            source=GithubPrCommentFeedbackSource(
+                comment={
+                    "id": comment_id,
+                    "body": "@sentry fix it",
+                    "user": {"id": user_id, "login": login},
+                }
+            )
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_commit_author_attributed_to_a_single_commenter(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        octocat = self._commenter_feedback(1001, "octocat", 583231)
+        hubot = self._commenter_feedback(1002, "hubot", 2)
+        mock_fetch.return_value = self._state()
+
+        mock_pop.return_value = [self._queued(octocat)]
+        self._call()
+        assert mock_trigger.call_args.kwargs["commit_author"] == {
+            "name": "octocat",
+            "email": "583231+octocat@users.noreply.github.com",
+        }
+
+        # Two different commenters in one batch: no single author to attribute to.
+        mock_pop.return_value = [self._queued(octocat), self._queued(hubot)]
+        self._call()
+        assert mock_trigger.call_args.kwargs["commit_author"] is None
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_no_commit_author_for_check_suite_feedback(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        assert mock_trigger.call_args.kwargs["commit_author"] is None
+
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
     def _feedback(self) -> Feedback:
@@ -896,6 +1065,27 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
+        )
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_skips_when_paused(self, mock_apply: MagicMock) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(run_id=67890, organization_id=self.organization.id)
+
+        with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
+            trigger_consume_pr_iteration_feedback(
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=self._feedback(),
+                run_state=self._state(),
+                bypass=True,
+            )
+
+        mock_apply.assert_not_called()
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
         )
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -1101,3 +1291,194 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+
+class _ResolveThreadScmProtocols:
+    """Method surface matching the resolve protocols so ``spec`` MagicMocks
+    satisfy the ``@runtime_checkable`` ``isinstance`` guards."""
+
+    def get_thread_id_from_review_comment_unique_id(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def resolve_review_thread(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get_pull_request_review_threads(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
+class ResolveReviewCommentThreadsTest(TestCase):
+    def _scm(self) -> MagicMock:
+        return MagicMock(spec=_ResolveThreadScmProtocols)
+
+    def _thread(
+        self,
+        thread_id: str,
+        comment_unique_ids: list[str],
+        *,
+        is_resolved: bool = False,
+    ) -> dict[str, Any]:
+        return {
+            "id": thread_id,
+            "is_resolved": is_resolved,
+            "comments": [{"unique_id": uid} for uid in comment_unique_ids],
+        }
+
+    def _page(
+        self, threads: list[dict[str, Any]], next_cursor: str | None = None
+    ) -> dict[str, Any]:
+        return {"data": threads, "meta": {"next_cursor": next_cursor}}
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_resolves_matching_threads(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a"]), self._thread("PRRT_2", ["PRRC_b"])]
+        )
+
+        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+
+        assert result.resolved == 1
+        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_1")
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_dedupes_shared_thread(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a", "PRRC_b"])]
+        )
+
+        result = _resolve_review_comment_threads(
+            scm, pr_number=7, comment_unique_ids=["PRRC_a", "PRRC_b"]
+        )
+
+        assert result.resolved == 1
+        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_1")
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_skips_already_resolved(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a"], is_resolved=True)]
+        )
+
+        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+
+        assert result.resolved == 0
+        assert result.already_resolved == 1
+        mock_scm_actions.resolve_review_thread.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_unknown_unique_id_not_found(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a"])]
+        )
+
+        result = _resolve_review_comment_threads(
+            scm, pr_number=7, comment_unique_ids=["PRRC_missing"]
+        )
+
+        assert result.resolved == 0
+        assert result.not_found == 1
+        mock_scm_actions.resolve_review_thread.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_pages_until_exhausted(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        pages = [
+            self._page([self._thread("PRRT_1", ["PRRC_a"])], next_cursor="page-2"),
+            self._page([self._thread("PRRT_2", ["PRRC_b"])]),
+        ]
+
+        # Assert the cursor is threaded across pages, not ignored: the first page
+        # must start at ``after: null`` (empty cursor) and the second at page-1's
+        # next_cursor.
+        def get_threads(scm_arg: Any, pr_number_str: str, pagination: Any) -> dict[str, Any]:
+            if mock_scm_actions.get_pull_request_review_threads.call_count == 1:
+                assert pagination["cursor"] == ""
+                assert pagination["per_page"] == 100
+            else:
+                assert pagination["cursor"] == "page-2"
+            return pages[mock_scm_actions.get_pull_request_review_threads.call_count - 1]
+
+        mock_scm_actions.get_pull_request_review_threads.side_effect = get_threads
+
+        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_b"])
+
+        assert result.resolved == 1
+        assert mock_scm_actions.get_pull_request_review_threads.call_count == 2
+        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_2")
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_raises_for_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
+        # A mock missing one protocol method fails the isinstance guard.
+        scm = MagicMock(
+            spec=["resolve_review_thread", "get_thread_id_from_review_comment_unique_id"]
+        )
+
+        with pytest.raises(UnsupportedProviderError):
+            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+
+        mock_scm_actions.get_pull_request_review_threads.assert_not_called()
+        mock_scm_actions.resolve_review_thread.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_propagates_exceptions(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a"])]
+        )
+        mock_scm_actions.resolve_review_thread.side_effect = RuntimeError("boom")
+
+        with pytest.raises(RuntimeError):
+            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+
+
+class BuildReviewFeedbackTest(TestCase):
+    def _review_comment(self, unique_id: str | None) -> ReviewComment:
+        return {
+            "id": "222",
+            "unique_id": unique_id,
+            "url": "https://example.com/c/222",
+            "file_path": "test.py",
+            "body": "inline feedback",
+            "author": {"id": "1", "username": "octocat"},
+            "created_at": None,
+            "diff_hunk": None,
+            "line": None,
+            "start_line": None,
+            "review_id": "55",
+            "author_association": None,
+            "commit_sha": None,
+            "head": None,
+            "thread_id": None,
+        }
+
+    def test_carries_unique_id_onto_source(self) -> None:
+        feedback = _build_review_feedback(
+            [self._review_comment("PRRC_a")],
+            None,
+            review_id=55,
+            review_html_url=None,
+            review_state=None,
+            review_author=None,
+            author_is_bot=False,
+        )
+
+        assert len(feedback) == 1
+        source = feedback[0].source
+        assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+        assert source.comment.unique_id == "PRRC_a"
+
+    def test_missing_unique_id_is_none(self) -> None:
+        feedback = _build_review_feedback(
+            [self._review_comment(None)],
+            None,
+            review_id=55,
+            review_html_url=None,
+            review_state=None,
+            review_author=None,
+            author_is_bot=False,
+        )
+
+        source = feedback[0].source
+        assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+        assert source.comment.unique_id is None

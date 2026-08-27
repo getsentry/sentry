@@ -12,10 +12,7 @@ describe('ProgressBar', () => {
     expect(elementProperties).toBeInTheDocument();
 
     // check aria attributes
-    expect(elementProperties).toHaveAttribute(
-      'aria-valuenow',
-      progressBarValue.toString()
-    );
+    expect(elementProperties).toHaveValue(progressBarValue);
     expect(elementProperties).toHaveAttribute('aria-valuemin', '0');
     expect(elementProperties).toHaveAttribute('aria-valuemax', '100');
   });

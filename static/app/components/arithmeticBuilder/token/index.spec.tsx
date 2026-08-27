@@ -20,7 +20,7 @@ import {
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
-const aggregations = ['avg', 'sum', 'epm', 'count_unique', 'count_if'];
+const aggregations = ['avg', 'avg_if', 'sum', 'epm', 'count', 'count_unique', 'count_if'];
 
 const functionArguments = [
   {name: 'span.duration', kind: FieldKind.MEASUREMENT},
@@ -123,7 +123,7 @@ describe('token', () => {
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
@@ -146,7 +146,7 @@ describe('token', () => {
       // typing should reduce the options avilable in the autocomplete
       expect(screen.getAllByRole('option')).toHaveLength(aggregations.length + 1);
       await userEvent.type(input, 'avg');
-      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
       expect(
@@ -158,6 +158,22 @@ describe('token', () => {
       await waitFor(() => {
         expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
       });
+    });
+
+    it('fills in every argument when selecting avg_if', async () => {
+      render(<Tokens expression="" />);
+
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg_if');
+      await userEvent.click(screen.getByRole('option', {name: 'avg_if'}));
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(span.duration,span.op,equals,db)',
+        })
+      ).toBeInTheDocument();
     });
 
     it('allows selecting function with no arguments using mouse', async () => {
@@ -690,6 +706,93 @@ describe('token', () => {
       expect(screen.getByRole('option')).toHaveTextContent('span.description');
     });
 
+    it('shows "spans" placeholder for count argument input', async () => {
+      render(<Tokens expression="count(span.duration)" />);
+
+      const input = await screen.findByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      expect(input).toHaveAttribute('placeholder', 'spans');
+    });
+
+    it('shows "span.duration" placeholder for avg argument input', async () => {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      const input = await screen.findByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      expect(input).toHaveAttribute('placeholder', 'span.duration');
+    });
+
+    it('shows "spans" as the dropdown label for count argument', async () => {
+      render(<Tokens expression="count(span.duration)" />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      await userEvent.click(input);
+
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(1);
+      expect(options[0]).toHaveTextContent('spans');
+    });
+
+    it('resolves typed "spans" to "span.duration" for count', async () => {
+      const dispatch = jest.fn();
+      render(<Tokens expression="count(span.duration)" dispatch={dispatch} />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+
+      await userEvent.click(input);
+      await userEvent.clear(input);
+      await userEvent.type(input, 'spans{Enter}');
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'count(span.duration)',
+          })
+        );
+      });
+    });
+
+    it('dispatches span.duration when selecting dropdown option for count', async () => {
+      const dispatch = jest.fn();
+      render(<Tokens expression="count(span.duration)" dispatch={dispatch} />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      await userEvent.click(input);
+      await userEvent.click(screen.getByRole('option', {name: 'spans'}));
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'count(span.duration)',
+          })
+        );
+      });
+    });
+
+    it('shows "span.duration" as the dropdown label for avg argument', async () => {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      await userEvent.click(input);
+
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(2);
+      expect(options[0]).toHaveTextContent('span.duration');
+      expect(options[1]).toHaveTextContent('span.self_time');
+    });
+
     it('skips input when function has no arguments', async () => {
       render(<Tokens expression="epm()" />);
       await waitFor(() => {
@@ -753,6 +856,42 @@ describe('token', () => {
       });
       await userEvent.keyboard('db');
       expect(thirdArg).toHaveValue('db');
+    });
+
+    it('suggests attributes for each argument of avg_if', async () => {
+      render(<Tokens expression="avg_if(span.duration,span.op,equals,queue.process)" />);
+
+      const argumentsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
+
+      const [numberArg, stringArg] = within(argumentsGrid).getAllByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      const conditionArg = within(argumentsGrid).getByRole('combobox', {
+        name: 'Select an option',
+      });
+      const valueArg = within(argumentsGrid).getByRole('textbox', {
+        name: 'Add a value',
+      });
+
+      await userEvent.click(numberArg!);
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'span.duration',
+        'span.self_time',
+      ]);
+
+      await userEvent.click(stringArg!);
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'span.op',
+        'span.description',
+      ]);
+
+      await userEvent.click(conditionArg);
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'is equal to',
+        'is not equal to',
+      ]);
+
+      expect(valueArg).toHaveValue('queue.process');
     });
   });
 

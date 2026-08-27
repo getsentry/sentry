@@ -44,7 +44,9 @@ function OrganizationApiKeys() {
   const removeMutation = useMutation({
     mutationFn: ({removedId}: {removedId: string}) => {
       return api.requestPromise(
-        `/organizations/${organization.slug}/api-keys/${removedId}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
+          path: {organizationIdOrSlug: organization.slug, apiKeyId: removedId},
+        }),
         {
           method: 'DELETE',
           data: {},
@@ -78,10 +80,12 @@ function OrganizationApiKeys() {
 
   const addMutation = useMutation({
     mutationFn: (): Promise<DeprecatedApiKey> => {
-      return api.requestPromise(`/organizations/${organization.slug}/api-keys/`, {
-        method: 'POST',
-        data: {},
-      });
+      return api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {method: 'POST', data: {}}
+      );
     },
     onSuccess: data => {
       if (!data) {

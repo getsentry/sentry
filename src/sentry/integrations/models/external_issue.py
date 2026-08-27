@@ -72,10 +72,14 @@ class ExternalIssue(Model):
     title = models.TextField(null=True)
     description = models.TextField(null=True)
     metadata = LegacyTextJSONField(default=dict, null=True)
-    # GitHub ``issue.updated_at``, GitLab ``object_attributes.updated_at``, Jira
-    # ``issue.fields.updated``. The high-water mark inbound assignee sync compares an
-    # incoming payload against, to drop one describing an older state than the row holds.
-    # `date_added` records arrival time and so cannot detect reordering.
+    # Newest provider-side timestamp inbound status sync has processed for this issue, on
+    # the provider's own clock, so a webhook that lands out of order can be dropped instead
+    # of writing an old status over a newer one. Fed by GitHub's `issue.updated_at`,
+    # GitLab's `object_attributes.updated_at`, VSTS's `System.ChangedDate` and Jira's
+    # `issue.fields.updated`.
+    provider_status_updated_at = models.DateTimeField(null=True)
+    # The same high-water mark for inbound assignee sync, tracked separately so a status
+    # webhook and an assignee webhook cannot mask each other.
     provider_assignee_updated_at = models.DateTimeField(null=True)
 
     objects: ClassVar[ExternalIssueManager] = ExternalIssueManager()

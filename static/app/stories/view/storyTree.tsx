@@ -142,6 +142,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
           'inputgroup',
           'numberinput',
           'numberdraginput',
+          'otpinput',
           'checkbox',
           'radio',
           'switch',
@@ -623,7 +624,7 @@ function Folder(props: {node: StoryTreeNode}) {
   const {storySlug} = useStoryParams();
 
   const hasActiveChild = useMemo(() => {
-    // eslint-disable-next-line unicorn/prefer-array-some
+    // eslint-disable-next-line unicorn/prefer-array-some, e18e/prefer-array-some
     return !!props.node.find(n => n.slug === storySlug);
   }, [storySlug, props.node]);
 
@@ -684,7 +685,7 @@ function File(props: {node: StoryTreeNode}) {
       <FolderLink
         to={{
           pathname: normalizeUrl(
-            `/organizations/${organization.slug}/stories/${props.node.category}/${props.node.slug}/`
+            `/organizations/${organization.slug}/scraps/${props.node.category}/${props.node.slug}/`
           ),
         }}
         aria-current={active ? 'page' : undefined}

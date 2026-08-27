@@ -62,13 +62,14 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const feedbackButton = isXsScreen ? null : (
     <FeedbackButton
+      variant="secondary"
       aria-label={t('Give feedback on the feature flag section')}
       size="xs"
       feedbackOptions={{
         messagePlaceholder: t('How can we make feature flags work better for you?'),
         tags: {
-          ['feedback.source']: 'issue_details_feature_flags',
-          ['feedback.owner']: 'replay',
+          'feedback.source': 'issue_details_feature_flags',
+          'feedback.owner': 'replay',
         },
       }}
     />

@@ -380,13 +380,7 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-APIGW_ASYNC = os.environ.get("SENTRY_APIGW_ASYNC", "").lower() in ("1", "true", "y", "yes")
 APIGW_WARN_REQS = os.environ.get("SENTRY_APIGW_WARN_REQS", "").lower() in ("1", "true", "y", "yes")
-APIGW_MIDDLEWARE = (
-    "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
-    if APIGW_ASYNC
-    else "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"
-)
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
@@ -405,7 +399,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
-    APIGW_MIDDLEWARE,
+    "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -500,6 +494,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.data_secrecy",
     "sentry.workflow_engine",
     "sentry.explore",
+    "sentry.investigations.apps.InvestigationsConfig",
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
@@ -885,6 +880,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -893,6 +889,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.hybridcloud.tasks.webhook_backlog_metrics",
     "sentry.incidents.tasks",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
@@ -920,6 +917,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.action_log.tasks",
     "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
@@ -1019,6 +1017,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
     "sentry.tasks.seer.lightweight_rca_cluster",
+    "sentry.tasks.seer.investigation",
     "sentry.tasks.seer.night_shift.cron",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
@@ -1078,6 +1077,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "deliver-from-outbox": {
         "task": "hybridcloud:sentry.tasks.enqueue_outbox_jobs",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "deliver-group-action-log-outbox": {
+        "task": "issues.action_log:sentry.issues.action_log.tasks.enqueue_group_action_log_outbox_jobs",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "update-user-reports": {
@@ -1161,6 +1164,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
         "schedule": timedelta(seconds=10),
     },
+    "dynamic-sampling-cache-dynamic-sampling-feature-flags": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
+        "schedule": crontab("0", "*", "*", "*", "*"),
+    },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         "schedule": crontab("0", "0", "*", "*", "*"),
@@ -1217,6 +1224,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer.code_review:sentry.pr_metrics.tasks.detect_stale_pull_requests",
         "schedule": crontab("0", "2", "*", "*", "*"),
     },
+    "pr-metrics-sweep-unattributed-activity": {
+        "task": "seer.code_review:sentry.pr_metrics.tasks.sweep_unattributed_pr_activity",
+        # Hourly rather than daily: the sweep has to keep pace with inbound PR
+        # webhooks, and small frequent batches are gentler than one daily surge.
+        "schedule": crontab("20", "*", "*", "*", "*"),
+    },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1235,7 +1248,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "heal-stale-derived-data": {
         "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
 }
 
@@ -1271,6 +1284,14 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "deliver-webhooks-control": {
         "task": "hybridcloud.control:sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
         "schedule": timedelta(seconds=10),
+    },
+    "webhook-backlog-metrics-control": {
+        "task": "hybridcloud.control:sentry.hybridcloud.tasks.webhook_backlog_metrics.record_webhook_backlog_metrics",
+        "schedule": timedelta(seconds=60),
+    },
+    "webhook-mailbox-depth-metrics-control": {
+        "task": "hybridcloud.control:sentry.hybridcloud.tasks.webhook_backlog_metrics.record_mailbox_depth_metrics",
+        "schedule": timedelta(minutes=5),
     },
     "relocation-find-transfer-control": {
         "task": "relocation.control:sentry.relocation.transfer.find_relocation_transfer_control",
@@ -1556,8 +1577,11 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
-# sample rate for the ingest-replay-recordings processing (consumer and task)
+# sample rate for the ingest-replay-recordings task
 SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
+
+# sample rate for the ingest-monitors per-check-in transaction
+SENTRY_MONITORS_CHECKIN_APM_SAMPLING = 1 if DEBUG else 0
 
 # ----
 # end APM config
@@ -2265,7 +2289,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.7.2"
+SELF_HOSTED_STABLE_VERSION = "26.8.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

@@ -1,4 +1,4 @@
-import {Fragment, type RefObject, useMemo, useRef} from 'react';
+import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
@@ -47,19 +47,34 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export function Navigation() {
+function NavigationImpl() {
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
   const ref = useRef<HTMLUListElement | null>(null);
 
-  const {layout} = usePrimaryNavigation();
+  const {layout, activeGroup} = usePrimaryNavigation();
 
   useNavigationTourModal();
 
   const {currentStepId} = useNavigationTour();
+  // The tour forces the sidebar open regardless of `view`, so this — not
+  // `view !== 'expanded'` alone — is the actual collapsed state on screen.
   const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
+
+  useLLMContext({
+    contextHint:
+      "The org's left-hand navigation sidebar — a primary icon rail (Issues, " +
+      'Explore, Dashboards, Insights, Monitors, Settings, ...) plus a secondary ' +
+      'panel for whichever group is active. Child nodes carry each active ' +
+      "secondary panel's own detail (starred views/queries/dashboards, issue " +
+      'counts, settings categories, etc).',
+    activeGroup,
+    isCollapsed,
+  });
 
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -92,7 +107,12 @@ export function Navigation() {
             paddingBottom="md"
           >
             <PrimaryNavigation.FooterItems>
-              <PrimaryNavigationFooterItems />
+              <PrimaryNavigationFooterItems>
+                <ErrorBoundary customComponent={null}>
+                  <PrimaryNavigationWhatsNew />
+                </ErrorBoundary>
+                <PrimaryNavigationHelpMenu />
+              </PrimaryNavigationFooterItems>
             </PrimaryNavigation.FooterItems>
             <PrimaryNavigation.FooterItems>
               <PrimaryNavigationFooterItemsUserDropdown />
@@ -124,6 +144,8 @@ export function Navigation() {
     </Fragment>
   );
 }
+
+export const Navigation = registerLLMContext('navigation', NavigationImpl);
 
 interface PrimaryNavigationItemsProps {
   listRef?: RefObject<HTMLUListElement | null>;
@@ -170,7 +192,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
                 makeNavigationItemProps(
                   'explore',
                   `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
-                  `/${prefix}/explore`
+                  [`/${prefix}/explore`]
                 ),
                 tourProps
               )}
@@ -282,7 +304,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 /**
  * Returns the list of items from the footer of the primary navigation
  */
-export function PrimaryNavigationFooterItems() {
+export function PrimaryNavigationFooterItems({children}: PropsWithChildren) {
   const organization = useOrganization();
 
   return (
@@ -302,10 +324,7 @@ export function PrimaryNavigationFooterItems() {
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationServiceIncidents />
       </ErrorBoundary>
-      <ErrorBoundary customComponent={null}>
-        <PrimaryNavigationWhatsNew />
-      </ErrorBoundary>
-      <PrimaryNavigationHelpMenu />
+      {children}
     </Fragment>
   );
 }

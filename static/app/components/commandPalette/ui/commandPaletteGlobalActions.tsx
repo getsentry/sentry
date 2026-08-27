@@ -59,6 +59,7 @@ import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -75,7 +76,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
@@ -89,6 +90,10 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {
+  toggleXRayMode,
+  useXRayModeEnabled,
+} from 'sentry/views/seerExplorer/xray/xrayModeStore';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -271,7 +276,7 @@ export function GlobalCommandPaletteActions() {
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: '/auth/superuser/',
+        url: getApiUrl('/auth/superuser/'),
         method: 'DELETE',
       }),
     onSuccess: () => window.location.reload(),
@@ -330,6 +335,7 @@ export function GlobalCommandPaletteActions() {
 
   const {supportsNotifications, permission, askNotificationPermission} =
     useNotificationPermission();
+  const xrayModeEnabled = useXRayModeEnabled();
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -425,8 +431,8 @@ export function GlobalCommandPaletteActions() {
           />
           {organization.features.includes('gen-ai-conversations') && (
             <CMDKAction
-              display={{label: t('Conversations')}}
-              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/?referrer=cmdk`}
+              display={{label: t('Agents')}}
+              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
             />
           )}
           <CMDKAction
@@ -701,7 +707,6 @@ export function GlobalCommandPaletteActions() {
                   // some orgs have thousands of projects.
                   // `params.projectId`/`queryProjectIds` bust the cache when
                   // the active project changes (affects "Current" tag display).
-                  // eslint-disable-next-line @tanstack/query/exhaustive-deps
                   cmdkQueryOptions({
                     queryKey: [
                       'project-settings',
@@ -958,7 +963,6 @@ export function GlobalCommandPaletteActions() {
           // TanStack serializes the entire key for cache lookups, and
           // including the full projects array would be too costly —
           // some orgs have thousands of projects.
-
           cmdkQueryOptions({
             queryKey: [
               'cmdk-project-nav',
@@ -966,8 +970,8 @@ export function GlobalCommandPaletteActions() {
               projects.map(p => p.slug).join(','),
             ],
             queryFn: () =>
-              [...projects]
-                .sort((a, b) => a.slug.localeCompare(b.slug))
+              projects
+                .toSorted((a, b) => a.slug.localeCompare(b.slug))
                 .map(project => ({
                   display: {
                     label: project.slug,
@@ -1072,6 +1076,27 @@ export function GlobalCommandPaletteActions() {
             }}
           />
         </CMDKAction>
+
+        {organization.features.includes('seer-xray') && (
+          <CMDKAction
+            display={{
+              label: xrayModeEnabled
+                ? t('Disable Seer XRay Mode')
+                : t('Enable Seer XRay Mode'),
+              icon: <IconSeer />,
+            }}
+            keywords={[
+              'xray',
+              'x-ray',
+              'seer',
+              'llm context',
+              'debug',
+              'inspect',
+              'overlay',
+            ]}
+            onAction={() => toggleXRayMode()}
+          />
+        )}
       </CMDKAction>
 
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (

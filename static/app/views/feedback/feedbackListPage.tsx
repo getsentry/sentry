@@ -35,7 +35,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 const userFeedbackFeedbackOptions = {
   messagePlaceholder: t('How can we improve the User Feedback experience?'),
   tags: {
-    ['feedback.source']: 'feedback-list',
+    'feedback.source': 'feedback-list',
   },
 };
 

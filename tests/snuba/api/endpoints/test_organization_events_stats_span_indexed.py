@@ -32,7 +32,7 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -459,6 +459,43 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
             assert result[1][0]["count"] == expected, "Other"
 
         assert response.data["Other"]["meta"]["dataset"] == "spans"
+
+    def test_top_events_empty_orderby(self) -> None:
+        """Dashboard widgets default to an empty orderby, which arrives as `orderby=`.
+
+        That should mean "no sort" rather than 400ing on a column named "".
+        """
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+            ],
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count(span.duration)",
+                "field": ["transaction", "count(span.duration)"],
+                "orderby": [""],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert {"foo", "bar"} <= set(response.data)
 
     def test_top_events_empty_other(self) -> None:
         self.store_spans(

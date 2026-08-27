@@ -687,7 +687,7 @@ function RenderTraceRow(props: {
     : TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME;
 
   const listColumnStyle: React.CSSProperties = {
-    paddingLeft: TraceTree.Depth(node) * props.manager.row_depth_padding,
+    paddingLeft: TraceTree.depth(node) * props.manager.row_depth_padding,
   };
 
   const rowProps: TraceRowProps<BaseNode> = {

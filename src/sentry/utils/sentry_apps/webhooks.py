@@ -3,11 +3,12 @@ from __future__ import annotations
 import contextlib
 import logging
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Generator, Mapping
 from types import FrameType
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 from urllib.parse import urlparse
 
+import sentry_sdk
 from django.conf import settings
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
@@ -50,7 +51,8 @@ from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
-    from sentry.sentry_apps.services.app.model import RpcSentryApp
+    from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+    from sentry.sentry_apps.services.app.model import RpcSentryApp, RpcSentryAppInstallation
 
 
 TIMEOUT_STATUS_CODE = 0
@@ -197,28 +199,66 @@ def _circuit_breaker_allows_request(
     return False
 
 
-def _send_webhook_request(
-    url: str,
-    app_platform_event: AppPlatformEvent[T],
-) -> Response:
-    # We don't want to use the alarm in CONTROL silo as it's only used for installation webhooks which are v. low volume
-    # Also that we aren't guaranteed to be in main thread
-    context_wrapper: contextlib.AbstractContextManager[None]
+@contextlib.contextmanager
+def _webhook_timeout(
+    installation: SentryAppInstallation | RpcSentryAppInstallation,
+) -> Generator[float]:
+    timeout_seconds = options.get("sentry-apps.webhook.timeout.sec")
+
+    # Installation webhooks are low volume and may not run in the main thread,
+    # so they do not use the signal-based hard timeout or organization overrides.
     if SiloMode.get_current_mode() is SiloMode.CONTROL:
-        context_wrapper = contextlib.nullcontext()
-    else:
-        timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
-        context_wrapper = timeout_alarm(timeout_seconds, _handle_webhook_timeout)
+        yield timeout_seconds
+        return
+
+    hard_timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
+    timeout_overrides = options.get(
+        "sentry-apps.override.organization_ids.webhook.timeouts.sec"
+    ).get(str(installation.organization_id))
 
     # We're using a signal based timeout here because we need to interrupt the blocking
     # socket.connect() operation. See SENTRY-5HA6 for more context. Here we're hanging at
     # the socket.connect() call and the timeout we set in safe_urlopen is not being respected.
-    with context_wrapper:
+    if timeout_overrides is None:
+        with timeout_alarm(hard_timeout_seconds, _handle_webhook_timeout):
+            yield timeout_seconds
+        return
+
+    timeout_override = timeout_overrides.get("webhook_timeout_override", timeout_seconds)
+    hard_timeout_override = timeout_overrides.get("hard_timeout_override", hard_timeout_seconds)
+    if timeout_override > hard_timeout_override:
+        logger.warning(
+            "sentry_app.webhook.invalid_timeout_overrides",
+            extra={
+                "organization_id": installation.organization_id,
+                "webhook_timeout_override": timeout_override,
+                "hard_timeout_override": hard_timeout_override,
+            },
+        )
+        with timeout_alarm(hard_timeout_seconds, _handle_webhook_timeout):
+            yield timeout_seconds
+        return
+
+    with sentry_sdk.start_span(op="sentry-app.webhook.overridden_timeout") as span:
+        span.set_tag("app_slug", installation.sentry_app.slug)
+        span.set_tag("organization_id", installation.organization_id)
+        span.set_tag("timeout_seconds", timeout_override)
+        span.set_tag("hard_timeout_seconds", hard_timeout_override)
+
+        with timeout_alarm(hard_timeout_override, _handle_webhook_timeout):
+            yield timeout_override
+
+
+def _send_webhook_request(
+    url: str,
+    app_platform_event: AppPlatformEvent[T],
+) -> Response:
+    with _webhook_timeout(app_platform_event.install) as timeout_seconds:
         return safe_urlopen(
             url=url,
             data=app_platform_event.body,
             headers=app_platform_event.headers,
-            timeout=options.get("sentry-apps.webhook.timeout.sec"),
+            timeout=timeout_seconds,
         )
 
 

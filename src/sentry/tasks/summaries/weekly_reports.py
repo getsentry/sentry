@@ -76,6 +76,9 @@ class WeeklyReportProgressTracker:
 
     REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
 
+    # 3 days to outlive all possible retries of a weekly report schedule run
+    MIN_ORG_ID_TTL: Final[timedelta] = timedelta(days=3)
+
     def __init__(self, timestamp: float | None = None, duration: int | None = None):
         if timestamp is None:
             # The time that the report was generated
@@ -101,7 +104,7 @@ class WeeklyReportProgressTracker:
         return int(min_org_id_from_redis) if min_org_id_from_redis else None
 
     def set_last_processed_org_id(self, org_id: int) -> None:
-        self._redis_connection.set(self.min_org_id_redis_key, org_id)
+        self._redis_connection.set(self.min_org_id_redis_key, org_id, ex=self.MIN_ORG_ID_TTL)
 
     def delete_min_org_id(self) -> None:
         self._redis_connection.delete(self.min_org_id_redis_key)
@@ -252,11 +255,7 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if (
-            not dry_run
-            and not email_override
-            and features.has("organizations:weekly-report-week-over-week-metric", ctx.organization)
-        ):
+        if not dry_run and not email_override:
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
                 for project_id, project_ctx in ctx.projects_context_map.items():
@@ -883,7 +882,12 @@ def render_template_context(
     def past_issues():
         def all_past_issues():
             for project_ctx in user_projects:
-                for group, count, resolution_label in project_ctx.past_resolved_issues:
+                for (
+                    group,
+                    count,
+                    resolution_label,
+                    resolution_url,
+                ) in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
                     yield {
                         "count": count,
@@ -891,6 +895,7 @@ def render_template_context(
                         "title": display["title"],
                         "message": display["message"],
                         "resolution_label": resolution_label,
+                        "resolution_url": resolution_url,
                         "_relevance": count
                         * (PAST_ISSUES_LINK_BOOST if resolution_label != "Resolved" else 1),
                     }
@@ -1012,9 +1017,6 @@ def render_template_context(
         "errors_discover_query": errors_discover_query,
         "view_all_issues_url": view_all_issues_url,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
-        "show_week_over_week_metric": features.has(
-            "organizations:weekly-report-week-over-week-metric", ctx.organization
-        ),
         "notification_settings_link": "/settings/account/notifications/reports/",
         **top_spans(),
     }

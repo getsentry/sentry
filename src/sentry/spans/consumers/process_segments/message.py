@@ -18,6 +18,7 @@ from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
+from sentry.issue_detection import performance_detection
 from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.span_first.run_detectors import (
     SPAN_FIRST_DETECTORS_BY_GROUPTYPE,
@@ -29,6 +30,7 @@ from sentry.issue_detection.detectors.span_first.span_first_utils import (
     SpanFirstDetectorsRolloutController,
 )
 from sentry.issue_detection.performance_detection import (
+    DETECTOR_TYPE_TO_CLASS_MAP,
     detect_performance_problems,
     get_detection_settings,
 )
@@ -326,8 +328,11 @@ def _create_models(
 def _detect_performance_problems(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
 ) -> None:
-    # Killswitch for all segment-based issue detection
-    if not options.get("spans.process-segments.detect-performance-problems.enable"):
+    enabled_legacy_detector_types = options.get(
+        "spans.process-segments.detect-performance-problems.detectors-enabled"
+    )
+
+    if not enabled_legacy_detector_types:
         return
 
     try:
@@ -335,7 +340,7 @@ def _detect_performance_problems(
         # segment span, produce occurrences from the results
         detection_settings = get_detection_settings(project)
         legacy_detected_problems = _run_legacy_detectors(
-            segment_span, spans, project, detection_settings
+            segment_span, spans, project, enabled_legacy_detector_types, detection_settings
         )
     except Exception:
         logger.exception("segment_consumer_legacy_issue_detectors.error")
@@ -354,17 +359,41 @@ def _run_legacy_detectors(
     segment_span: CompatibleSpan,
     segment: list[CompatibleSpan],
     project: Project,
+    detector_types: list[str],
     detection_settings: dict[DetectorType, dict[str, Any]],
 ) -> list[PerformanceProblem]:
     """
-    Run legacy issue detectors on segment data by first creating a fake transaction event. If the
-    `_performance_issues_spans` flag is set, also create occurrences from the results.
+    Run legacy issue detectors corresponding to the given detector types on segment data by first
+    creating a fake transaction event. If the `_performance_issues_spans` flag is set, also create
+    occurrences from the results.
     """
     # Create a fake transaction event out of the segment data, to match what the legacy detectors
     # are expecting
     event_data = build_shim_event_data(segment_span, segment)
+
+    # Resolve the detector type strings into actual detector classes, and warn if we find anything
+    # weird
+    if detector_types == ["*"]:
+        detector_classes = performance_detection.DETECTOR_CLASSES
+    else:
+        detector_classes = [
+            DETECTOR_TYPE_TO_CLASS_MAP[detector_type]
+            for detector_type in detector_types
+            # They should all be in there, but in case we typo an option value, best to be safe
+            if detector_type in DETECTOR_TYPE_TO_CLASS_MAP
+        ]
+        if len(detector_types) > len(detector_classes):
+            logger.warning(
+                "issue_detection.span_processor.invalid_enablement_option",
+                extra={"option_value": detector_types},
+            )
+
     detected_problems = detect_performance_problems(
-        event_data, project, detection_settings=detection_settings, standalone=True
+        event_data,
+        project,
+        detector_classes=detector_classes,
+        detection_settings=detection_settings,
+        standalone=True,
     )
 
     # This flag is set in Relay, and here enables producing occurrences from the legacy detector
@@ -460,7 +489,12 @@ def _record_signals(
     )
 
     for module in insights_modules(
-        [FilterSpan.from_span_attributes(span.get("attributes") or {}) for span in spans]
+        [
+            FilterSpan.from_span_attributes(
+                span.get("attributes") or {}, is_segment=span.get("is_segment")
+            )
+            for span in spans
+        ]
     ):
         set_project_flag_and_signal(
             project,

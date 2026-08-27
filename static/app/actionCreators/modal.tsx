@@ -15,9 +15,12 @@ import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/pr
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
-import type {Category} from 'sentry/components/platformPicker';
 import {ModalStore} from 'sentry/stores/modalStore';
-import type {CustomRepoType} from 'sentry/types/debugFiles';
+import type {
+  CustomRepo,
+  CustomRepoFormData,
+  CustomRepoType,
+} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
@@ -200,11 +203,11 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
 }
 
 type DebugFileSourceModalOptions = {
-  onSave: (data: Record<string, any>) => Promise<void>;
+  onSave: (data: CustomRepoFormData) => Promise<void>;
   organization: Organization;
   sourceType: CustomRepoType;
   onClose?: () => void;
-  sourceConfig?: Record<string, any>;
+  sourceConfig?: CustomRepo;
 };
 
 export async function openDebugFileSourceModal({
@@ -365,13 +368,6 @@ export async function openNavigateToExternalLinkModal(
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-export async function openProjectCreationModal(options: {defaultCategory: Category}) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/projectCreationModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
-
 export async function openConsoleModal(
   options: ConsoleModalProps & {
     onClose?: () => void;
@@ -382,16 +378,6 @@ export async function openConsoleModal(
   openModal(deps => <Modal {...deps} {...options} />, {
     modalCss,
     onClose: options.onClose,
-  });
-}
-
-export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOptions) {
-  const {BulkEditMonitorsModal, modalCss} =
-    await import('sentry/components/modals/bulkEditMonitorsModal');
-
-  openModal(deps => <BulkEditMonitorsModal {...deps} {...options} />, {
-    modalCss,
-    onClose,
   });
 }
 
