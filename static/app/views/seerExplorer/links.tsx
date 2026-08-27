@@ -213,7 +213,9 @@ export const LINK_RULES: LinkRule[] = [
   ISSUE_RULE,
   {
     id: 'get_trace_waterfall',
-    prefix: /\/trace(?:-meta)?\/\{trace_id\}/,
+    // Modern `/trace/` + `/trace-meta/`, and the older `events-trace*` shapes still seen on some
+    // records. All of them name a trace and open the same waterfall.
+    prefix: /\/(?:events-)?trace(?:-meta|-light)?\/\{trace_id\}/,
     resolve: ({params, title}) => {
       const {span_id, timestamp} = params;
       const traceId = asUrlSegment(params.trace_id);

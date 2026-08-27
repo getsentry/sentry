@@ -496,6 +496,25 @@ describe('project links', () => {
 });
 
 describe('longest path prefix inheritance', () => {
+  it('still opens the waterfall for legacy events-trace routes', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/events-trace/{trace_id}/',
+          params: {trace_id: 'trace1'},
+          title: 'Retrieve a Trace',
+        },
+        ctx
+      )
+    ).toEqual({
+      id: 'get_trace_waterfall',
+      label: 'Retrieve a Trace',
+      url: {pathname: '/organizations/org-slug/explore/traces/trace/trace1/', query: {}},
+    });
+  });
+
   it('links nested issue subresources to the issue page', () => {
     expect(
       resolveLink(
