@@ -267,13 +267,18 @@ class HandleProcessingErrorsTest(TestCase):
             payload_overrides={"monitor_slug": monitor.slug},
         )
 
-        for error_type in (
-            ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED,
-            ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED,
-        ):
-            handle_processing_errors(
-                item, ProcessingErrorsException([{"type": error_type}], monitor=monitor)
-            )
+        handle_processing_errors(
+            item,
+            ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED}], monitor=monitor
+            ),
+        )
+        handle_processing_errors(
+            item,
+            ProcessingErrorsException(
+                [{"type": ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED}], monitor=monitor
+            ),
+        )
 
         assert get_errors_for_monitor(monitor) == []
 
