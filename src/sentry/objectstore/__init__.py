@@ -77,22 +77,35 @@ class SentryMetricsBackend(MetricsBackend):
         sentry_metrics.distribution(name, value, tags=tags, unit=unit)
 
 
-_OBJECTSTORE_CLIENT: Client | None = None
-_ATTACHMENTS_USECASE: ObjectstoreClientUsecase | None = None
-_DEBUG_FILES_USECASE = ObjectstoreClientUsecase(
-    "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
-)
-_PROFILE_ATTACHMENTS_USECASE: ObjectstoreClientUsecase | None = None
-_PREPROD_USECASE = ObjectstoreClientUsecase(
-    "preprod", expiration_policy=TimeToIdle(timedelta(days=30))
-)
-
-
 class UsecaseId(Enum):
     ATTACHMENTS = "attachments"
     DEBUG_FILES = "debug_files"
     PROFILE_ATTACHMENTS = "profile_attachments"
     PREPROD = "preprod"
+
+    def create(self) -> ObjectstoreClientUsecase:
+        match self:
+            case UsecaseId.ATTACHMENTS:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
+                )
+            case UsecaseId.DEBUG_FILES:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    compression="none",
+                    expiration_policy=TimeToIdle(timedelta(days=90)),
+                )
+            case UsecaseId.PROFILE_ATTACHMENTS:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
+                )
+            case UsecaseId.PREPROD:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    expiration_policy=TimeToIdle(timedelta(days=30)),
+                )
 
 
 def create_client() -> Client:
@@ -121,33 +134,17 @@ def create_client() -> Client:
     )
 
 
+_CLIENT: Client | None = None
+
+
 def get_client() -> Client:
-    global _OBJECTSTORE_CLIENT
-    if not _OBJECTSTORE_CLIENT:
-        _OBJECTSTORE_CLIENT = create_client()
-    return _OBJECTSTORE_CLIENT
+    global _CLIENT
+    if not _CLIENT:
+        _CLIENT = create_client()
+    return _CLIENT
 
 
-def _get_attachments_usecase() -> ObjectstoreClientUsecase:
-    global _ATTACHMENTS_USECASE
-    if not _ATTACHMENTS_USECASE:
-        retention = default_attachment_retention()
-        _ATTACHMENTS_USECASE = ObjectstoreClientUsecase(
-            "attachments", expiration_policy=TimeToLive(timedelta(days=retention))
-        )
-    return _ATTACHMENTS_USECASE
-
-
-def _get_profile_attachments_usecase() -> ObjectstoreClientUsecase:
-    # Relay stores raw profiles and their attachments (e.g. Perfetto traces) under
-    # the "profile_attachments" usecase, so we must read them back with the same usecase.
-    global _PROFILE_ATTACHMENTS_USECASE
-    if not _PROFILE_ATTACHMENTS_USECASE:
-        retention = default_attachment_retention()
-        _PROFILE_ATTACHMENTS_USECASE = ObjectstoreClientUsecase(
-            "profile_attachments", expiration_policy=TimeToLive(timedelta(days=retention))
-        )
-    return _PROFILE_ATTACHMENTS_USECASE
+_USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
 def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
@@ -162,15 +159,10 @@ def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None =
         if org is not None and org != org_id:
             raise ValueError("project does not belong to org")
 
-    match usecase:
-        case UsecaseId.ATTACHMENTS:
-            objectstore_usecase = _get_attachments_usecase()
-        case UsecaseId.DEBUG_FILES:
-            objectstore_usecase = _DEBUG_FILES_USECASE
-        case UsecaseId.PROFILE_ATTACHMENTS:
-            objectstore_usecase = _get_profile_attachments_usecase()
-        case UsecaseId.PREPROD:
-            objectstore_usecase = _PREPROD_USECASE
+    objectstore_usecase = _USECASES.get(usecase)
+    if objectstore_usecase is None:
+        objectstore_usecase = usecase.create()
+        _USECASES[usecase] = objectstore_usecase
 
     return get_client().session(objectstore_usecase, org=org_id, project=project_id)
 
