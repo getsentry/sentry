@@ -963,7 +963,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return validate_project_ids(projects, {project.id for project in self.context["projects"]})
 
     def validate_widget_layout_updates(self, widgets: list[dict[str, Any]]) -> None:
-        if not isinstance(self.instance, Dashboard):
+        request = self.context.get("request")
+        if not isinstance(self.instance, Dashboard) or getattr(request, "method", None) != "PUT":
             return
 
         widget_ids = [widget["id"] for widget in widgets if "id" in widget]
