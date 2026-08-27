@@ -148,7 +148,7 @@ export interface CallRecord {
  * Carries a string and no structured payload, because that is all the protocol offers mid-call. The
  * full records arrive on the tool result when the call finishes.
  */
-export interface ProgressEvent {
+interface ProgressEvent {
   progress: number;
   token: string;
   message?: string;
