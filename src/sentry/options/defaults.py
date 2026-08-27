@@ -708,15 +708,6 @@ register(
     default=0.1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# How long (in seconds) an OrganizationIntegration may sit in
-# DELETION_IN_PROGRESS before a re-installation is allowed to rescue it.
-# See Integration.add_organization.
-register(
-    "integrations.stuck-deletion-rescue-threshold-seconds",
-    type=Int,
-    default=6 * 60 * 60,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
