@@ -66,12 +66,9 @@ export function getDiffChangeElements(diffItem: DiffItem): DiffChangeElements {
   return change;
 }
 
-export const DiffTableWithColumns = styled(SimpleTable)<{
-  gridTemplateColumns: string;
-}>`
+export const DiffTableWithColumns = styled(SimpleTable)`
   overflow-x: auto;
   overflow-y: auto;
-  grid-template-columns: ${p => p.gridTemplateColumns};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   border-left: 0px;
   border-right: 0px;
