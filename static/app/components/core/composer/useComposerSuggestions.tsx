@@ -4,8 +4,8 @@ import {Item} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import type {ActiveMention} from './matching';
-import type {MentionSource} from './types';
+import type {ActiveTrigger} from './matching';
+import type {ComposerSource} from './types';
 
 interface SuggestionListItem<T> {
   hideCheck: boolean;
@@ -15,9 +15,9 @@ interface SuggestionListItem<T> {
   textValue: string;
 }
 
-interface UseMentionSuggestionsOptions<T> {
-  activeMention: ActiveMention | null;
-  activeSource: MentionSource<T> | undefined;
+interface UseComposerSuggestionsOptions<T> {
+  activeSource: ComposerSource<T> | undefined;
+  activeTrigger: ActiveTrigger | null;
   inputRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -33,14 +33,14 @@ function getOptionId(listBoxId: string, key: React.Key) {
 }
 
 function useSourceSuggestions<T>(
-  source: MentionSource<T> | undefined,
+  source: ComposerSource<T> | undefined,
   query: string | undefined
 ) {
   const queriedSource = source && 'queryOptions' in source ? source : undefined;
   const suggestionsQuery = useQuery(
     queriedSource && query !== undefined
       ? queriedSource.queryOptions(query)
-      : {queryKey: ['mention-suggestions'], queryFn: skipToken}
+      : {queryKey: ['composer-suggestions'], queryFn: skipToken}
   );
   const suggestions = useMemo(() => {
     if (!source || query === undefined) {
@@ -61,14 +61,14 @@ function useSourceSuggestions<T>(
   };
 }
 
-export function useMentionSuggestions<T>({
-  activeMention,
+export function useComposerSuggestions<T>({
+  activeTrigger,
   activeSource,
   inputRef,
-}: UseMentionSuggestionsOptions<T>) {
+}: UseComposerSuggestionsOptions<T>) {
   const {suggestions, queryStatus} = useSourceSuggestions(
     activeSource,
-    activeMention?.query
+    activeTrigger?.query
   );
 
   const items = useMemo(() => {

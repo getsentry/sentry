@@ -1,21 +1,17 @@
 ---
-title: Mention Input
+title: Composer
 description: A controlled, composable editor for structured inline references.
-source: sentry/components/mentionInput/mentionInput
+category: forms
+source: '@sentry/scraps/composer'
 ---
 
 import * as Storybook from 'sentry/stories';
 
-import {
-  AsyncMentionInputDemo,
-  MentionInputDemo,
-  RestoredMentionInputDemo,
-} from './__stories__/demos';
+import {AsyncComposerDemo, ComposerDemo, RestoredComposerDemo} from './__stories__/demos';
 
-export const documentation =
-  import('!!type-loader!sentry/components/mentionInput/mentionInput');
+export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
 
-`<MentionInput>` keeps editable text and structured references in one controlled value. Sources provide their own data, identity, inserted text, and suggestion presentation.
+`<Composer>` keeps editable text and structured references in one controlled value. Sources provide their own data, identity, inserted text, and suggestion presentation.
 
 ## Compose with multiple sources
 
@@ -24,7 +20,7 @@ This example combines local member and team sources. Selected references remain 
 Suggestion objects stay within their source. The controlled value stores only stable IDs and text ranges.
 
 <Storybook.Demo overflow="visible">
-  <MentionInputDemo />
+  <ComposerDemo />
 </Storybook.Demo>
 
 ## Restore a value
@@ -32,7 +28,7 @@ Suggestion objects stay within their source. The controlled value stores only st
 Persisted text and reference ranges can be supplied together, preserving identity across sessions.
 
 <Storybook.Demo overflow="visible">
-  <RestoredMentionInputDemo />
+  <RestoredComposerDemo />
 </Storybook.Demo>
 
 ## Load queried suggestions
@@ -40,5 +36,5 @@ Persisted text and reference ranges can be supplied together, preserving identit
 Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior.
 
 <Storybook.Demo overflow="visible">
-  <AsyncMentionInputDemo />
+  <AsyncComposerDemo />
 </Storybook.Demo>

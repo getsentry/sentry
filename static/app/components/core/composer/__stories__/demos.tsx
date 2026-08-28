@@ -1,11 +1,8 @@
 import {useState} from 'react';
 import {queryOptions} from '@tanstack/react-query';
 
+import {Composer, type ComposerValue, type ComposerSource} from '@sentry/scraps/composer';
 import {Stack} from '@sentry/scraps/layout';
-
-import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
-import type {MentionInputValue} from 'sentry/components/mentionInput/model';
-import type {MentionSource} from 'sentry/components/mentionInput/types';
 
 interface Suggestion {
   id: string;
@@ -42,7 +39,7 @@ const SOURCES = [
     getId: suggestion => suggestion.id,
     getText: suggestion => suggestion.label,
   },
-] satisfies ReadonlyArray<MentionSource<Suggestion>>;
+] satisfies ReadonlyArray<ComposerSource<Suggestion>>;
 
 const RESTORED_TEXT = 'Continue with @Alice Example on the checkout regression.';
 const RESTORED_MENTION_TEXT = '@Alice Example';
@@ -64,7 +61,7 @@ const REMOTE_SOURCES = [
     trigger: '@',
     queryOptions: (query: string) =>
       queryOptions({
-        queryKey: ['mention-input-story', 'remote-members', query],
+        queryKey: ['composer-story', 'remote-members', query],
         queryFn: async () => {
           await waitForDelay(500);
           return filterSuggestions(PEOPLE, query);
@@ -87,15 +84,15 @@ function waitForDelay(delay: number) {
   return new Promise<void>(resolve => window.setTimeout(resolve, delay));
 }
 
-export function MentionInputDemo() {
-  const [value, setValue] = useState<MentionInputValue>({
+export function ComposerDemo() {
+  const [value, setValue] = useState<ComposerValue>({
     text: 'The regression is isolated to the checkout flow.\nAssign it to ',
     mentions: [],
   });
 
   return (
     <Stack width="100%" maxWidth="720px">
-      <MentionInput
+      <Composer
         aria-label="Comment"
         minHeight={120}
         sources={SOURCES}
@@ -106,15 +103,15 @@ export function MentionInputDemo() {
   );
 }
 
-export function RestoredMentionInputDemo() {
-  const [value, setValue] = useState<MentionInputValue>({
+export function RestoredComposerDemo() {
+  const [value, setValue] = useState<ComposerValue>({
     text: RESTORED_TEXT,
     mentions: RESTORED_MENTIONS,
   });
 
   return (
     <Stack width="100%" maxWidth="720px">
-      <MentionInput
+      <Composer
         aria-label="Restored comment"
         minHeight={100}
         sources={SOURCES}
@@ -125,15 +122,15 @@ export function RestoredMentionInputDemo() {
   );
 }
 
-export function AsyncMentionInputDemo() {
-  const [value, setValue] = useState<MentionInputValue>({
+export function AsyncComposerDemo() {
+  const [value, setValue] = useState<ComposerValue>({
     text: 'Search remote members with ',
     mentions: [],
   });
 
   return (
     <Stack width="100%" maxWidth="720px">
-      <MentionInput
+      <Composer
         aria-label="Remote member search"
         sources={REMOTE_SOURCES}
         value={value}

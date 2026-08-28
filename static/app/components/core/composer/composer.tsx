@@ -6,9 +6,9 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {t, tn} from 'sentry/locale';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
 
@@ -20,13 +20,16 @@ import {
   setEditorSelection,
   writeEditorValue,
 } from './dom';
-import {findActiveMention, getRequestKey, type ActiveMention} from './matching';
-import {type Mention, type MentionInputValue, reconcileMentions} from './model';
-import {CaretAnchor, MentionEditor, SuggestionListBox, SuggestionStatus} from './styles';
-import type {MentionInputProps} from './types';
-import {useMentionSuggestions} from './useMentionSuggestions';
+import {findActiveTrigger, getRequestKey, type ActiveTrigger} from './matching';
+import {type Mention, type ComposerValue, reconcileMentions} from './model';
+import {CaretAnchor, ComposerEditor, SuggestionListBox, SuggestionStatus} from './styles';
+import type {ComposerProps} from './types';
+import {useComposerSuggestions} from './useComposerSuggestions';
 
-function getSuggestionStatusMessage(status: QueryStatus): React.ReactNode {
+function getSuggestionStatusMessage(
+  status: QueryStatus,
+  t: (string: string) => string
+): React.ReactNode {
   switch (status) {
     case 'error':
       return t('Unable to load suggestions');
@@ -40,7 +43,7 @@ function getSuggestionStatusMessage(status: QueryStatus): React.ReactNode {
 /**
  * Keeps the browser-managed contenteditable in sync with the controlled value.
  */
-function useEditorValueSync({mentions, text}: MentionInputValue) {
+function useEditorValueSync({mentions, text}: ComposerValue) {
   const inputRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
   const selectionToRestoreRef = useRef<EditorSelection | null>(null);
@@ -71,13 +74,13 @@ function useEditorValueSync({mentions, text}: MentionInputValue) {
  * Positions the Popper anchor over the active trigger as the editor moves or resizes.
  */
 function useCaretAnchorPosition({
-  activeMention,
+  activeTrigger,
   inputRef,
   trigger,
   updateOverlayPosition,
   value,
 }: {
-  activeMention: ActiveMention | null;
+  activeTrigger: ActiveTrigger | null;
   inputRef: React.RefObject<HTMLDivElement | null>;
   trigger: string | undefined;
   updateOverlayPosition: (() => void) | null | undefined;
@@ -88,12 +91,12 @@ function useCaretAnchorPosition({
     const input = inputRef.current;
     const anchor = anchorRef.current;
     const container = input?.parentElement;
-    if (!input || !anchor || !container || !activeMention || !trigger) {
+    if (!input || !anchor || !container || !activeTrigger || !trigger) {
       return;
     }
 
-    const start = getDOMPoint(input, activeMention.start);
-    const end = getDOMPoint(input, activeMention.start + trigger.length);
+    const start = getDOMPoint(input, activeTrigger.start);
+    const end = getDOMPoint(input, activeTrigger.start + trigger.length);
     const range = document.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
@@ -108,7 +111,7 @@ function useCaretAnchorPosition({
     anchor.style.width = `${Math.max(1, rangeRect.width)}px`;
     anchor.style.height = `${Math.max(1, rangeRect.height)}px`;
     updateOverlayPosition?.();
-  }, [activeMention, inputRef, trigger, updateOverlayPosition]);
+  }, [activeTrigger, inputRef, trigger, updateOverlayPosition]);
 
   useLayoutEffect(() => {
     if (!trigger) {
@@ -133,7 +136,7 @@ function useCaretAnchorPosition({
  * A controlled multiline contenteditable with React Aria suggestion lists.
  * Mention ranges stay separate from the plain text used by forms and drafts.
  */
-export function MentionInput<TSuggestion>({
+export function Composer<TSuggestion>({
   ref,
   value: inputValue,
   sources,
@@ -142,16 +145,17 @@ export function MentionInput<TSuggestion>({
   placeholder,
   style,
   ...editorProps
-}: MentionInputProps<TSuggestion>) {
+}: ComposerProps<TSuggestion>) {
   const {mentions, text: value} = inputValue;
   const theme = useTheme();
+  const {t} = useTranslation();
   const {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef} =
     useEditorValueSync(inputValue);
   const dismissedRequestKeyRef = useRef<string | null>(null);
-  const [activeMention, setActiveMention] = useState<ActiveMention | null>(null);
+  const [activeTrigger, setActiveTrigger] = useState<ActiveTrigger | null>(null);
 
-  const activeSource = activeMention
-    ? sources.find(source => source.id === activeMention.sourceId)
+  const activeSource = activeTrigger
+    ? sources.find(source => source.id === activeTrigger.sourceId)
     : undefined;
   const isOpen = activeSource !== undefined;
 
@@ -166,27 +170,27 @@ export function MentionInput<TSuggestion>({
     listBoxScrollRef,
     listState,
     queryStatus,
-  } = useMentionSuggestions({
-    activeMention,
+  } = useComposerSuggestions({
+    activeTrigger,
     activeSource,
     inputRef,
   });
   const hasSuggestions = queryStatus === 'success' && suggestionCount > 0;
 
-  const updateActiveMention = (nextValue = value) => {
+  const updateActiveTrigger = (nextValue = value) => {
     const input = inputRef.current;
     if (!input) {
-      setActiveMention(null);
+      setActiveTrigger(null);
       return;
     }
 
     const selection = getEditorSelection(input);
-    const nextActiveMention = selection
-      ? findActiveMention(nextValue, selection.start, selection.end, sources)
+    const nextActiveTrigger = selection
+      ? findActiveTrigger(nextValue, selection.start, selection.end, sources)
       : null;
-    const nextRequestKey = getRequestKey(nextActiveMention);
-    setActiveMention(
-      nextRequestKey === dismissedRequestKeyRef.current ? null : nextActiveMention
+    const nextRequestKey = getRequestKey(nextActiveTrigger);
+    setActiveTrigger(
+      nextRequestKey === dismissedRequestKeyRef.current ? null : nextActiveTrigger
     );
   };
 
@@ -202,14 +206,14 @@ export function MentionInput<TSuggestion>({
     offset: 4,
     shouldApplyMinWidth: false,
     isKeyboardDismissDisabled: true,
-    onClose: () => setActiveMention(null),
+    onClose: () => setActiveTrigger(null),
     shouldCloseOnInteractOutside: element => !inputRef.current?.contains(element),
-    onInteractOutside: () => setActiveMention(null),
+    onInteractOutside: () => setActiveTrigger(null),
   });
 
   const {anchorRef: caretAnchorRef, updatePosition: updateSuggestionPosition} =
     useCaretAnchorPosition({
-      activeMention,
+      activeTrigger,
       inputRef,
       trigger: activeSource?.trigger,
       updateOverlayPosition,
@@ -236,7 +240,7 @@ export function MentionInput<TSuggestion>({
   const mergeCaretAnchorRef = useStableMergeRef(caretAnchorRef);
 
   const selectSuggestion = (key: React.Key | null) => {
-    if (!activeMention || !activeSource || key === null) {
+    if (!activeTrigger || !activeSource || key === null) {
       return;
     }
 
@@ -246,24 +250,24 @@ export function MentionInput<TSuggestion>({
     }
 
     const replacement = activeSource.getText(suggestion);
-    const trailingText = /\s/.test(value[activeMention.end] ?? '') ? '' : ' ';
+    const trailingText = /\s/.test(value[activeTrigger.end] ?? '') ? '' : ' ';
     const insertedText = replacement + trailingText;
     const nextValue =
-      value.slice(0, activeMention.start) + insertedText + value.slice(activeMention.end);
+      value.slice(0, activeTrigger.start) + insertedText + value.slice(activeTrigger.end);
     const retainedMentions = reconcileMentions(value, nextValue, mentions);
     const nextMention: Mention = {
       id: activeSource.getId(suggestion),
       sourceId: activeSource.id,
-      start: activeMention.start,
-      end: activeMention.start + replacement.length,
+      start: activeTrigger.start,
+      end: activeTrigger.start + replacement.length,
       text: replacement,
     };
 
-    const nextCaret = activeMention.start + insertedText.length;
+    const nextCaret = activeTrigger.start + insertedText.length;
     const afterSelection = {start: nextCaret, end: nextCaret};
     selectionToRestoreRef.current = afterSelection;
     dismissedRequestKeyRef.current = null;
-    setActiveMention(null);
+    setActiveTrigger(null);
     onChange({
       text: nextValue,
       mentions: [...retainedMentions, nextMention].sort((a, b) => a.start - b.start),
@@ -284,9 +288,9 @@ export function MentionInput<TSuggestion>({
     }
     requestValueSync();
     onChange({text: nextValue, mentions: nextMentions});
-    setActiveMention(
+    setActiveTrigger(
       selection
-        ? findActiveMention(nextValue, selection.start, selection.end, sources)
+        ? findActiveTrigger(nextValue, selection.start, selection.end, sources)
         : null
     );
   };
@@ -310,7 +314,7 @@ export function MentionInput<TSuggestion>({
         !listBoxRef.current?.contains(event.relatedTarget)
       ) {
         dismissedRequestKeyRef.current = null;
-        setActiveMention(null);
+        setActiveTrigger(null);
       }
     },
     onCompositionEnd: () => {
@@ -319,11 +323,11 @@ export function MentionInput<TSuggestion>({
     },
     onCompositionStart: () => {
       isComposingRef.current = true;
-      setActiveMention(null);
+      setActiveTrigger(null);
     },
     onFocus: () => {
       dismissedRequestKeyRef.current = null;
-      updateActiveMention();
+      updateActiveTrigger();
     },
     onInput: (event: React.FormEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {
@@ -353,33 +357,33 @@ export function MentionInput<TSuggestion>({
 
         if (event.key === 'Escape') {
           event.preventDefault();
-          dismissedRequestKeyRef.current = getRequestKey(activeMention);
-          setActiveMention(null);
+          dismissedRequestKeyRef.current = getRequestKey(activeTrigger);
+          setActiveTrigger(null);
         }
       }
     },
     onKeyUp: (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {
-        updateActiveMention();
+        updateActiveTrigger();
       }
     },
     onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {
         dismissedRequestKeyRef.current = null;
-        updateActiveMention();
+        updateActiveTrigger();
       }
     },
     onScroll: updateSuggestionPosition,
     onSelect: (event: React.SyntheticEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {
-        updateActiveMention();
+        updateActiveTrigger();
       }
     },
   });
 
   return (
     <Container position="relative" width="100%" minWidth="0">
-      <MentionEditor {...inputProps} ref={mergeInputRef(ref)} />
+      <ComposerEditor {...inputProps} ref={mergeInputRef(ref)} />
       <CaretAnchor aria-hidden ref={mergeCaretAnchorRef(triggerProps.ref)} />
       {isOpen ? (
         <PositionWrapper
@@ -405,7 +409,7 @@ export function MentionInput<TSuggestion>({
             ) : (
               <Container minWidth="220px" maxWidth="360px">
                 <SuggestionStatus>
-                  {getSuggestionStatusMessage(queryStatus)}
+                  {getSuggestionStatusMessage(queryStatus, t)}
                 </SuggestionStatus>
               </Container>
             )}
@@ -414,7 +418,9 @@ export function MentionInput<TSuggestion>({
       ) : null}
       <VisuallyHidden aria-live="polite">
         {isOpen && hasSuggestions
-          ? tn('%s suggestion available', '%s suggestions available', suggestionCount)
+          ? suggestionCount === 1
+            ? t('%s suggestion available', suggestionCount)
+            : t('%s suggestions available', suggestionCount)
           : null}
       </VisuallyHidden>
     </Container>

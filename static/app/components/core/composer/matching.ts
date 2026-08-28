@@ -1,15 +1,15 @@
-interface MentionMatch {
+interface TriggerMatch {
   end: number;
   query: string;
   start: number;
 }
 
-export interface ActiveMention extends MentionMatch {
+export interface ActiveTrigger extends TriggerMatch {
   sourceId: string;
 }
 
-export function getRequestKey(activeMention: ActiveMention | null): string | null {
-  return activeMention ? `${activeMention.sourceId}\u0000${activeMention.query}` : null;
+export function getRequestKey(activeTrigger: ActiveTrigger | null): string | null {
+  return activeTrigger ? `${activeTrigger.sourceId}\u0000${activeTrigger.query}` : null;
 }
 
 function escapeRegExp(value: string) {
@@ -21,7 +21,7 @@ function findDefaultMatch(
   selectionStart: number,
   selectionEnd: number,
   trigger: string
-): MentionMatch | null {
+): TriggerMatch | null {
   if (selectionStart !== selectionEnd) {
     return null;
   }
@@ -41,13 +41,13 @@ function findDefaultMatch(
   };
 }
 
-export function findActiveMention(
+export function findActiveTrigger(
   text: string,
   selectionStart: number,
   selectionEnd: number,
   sources: ReadonlyArray<{id: string; trigger: string}>
-): ActiveMention | null {
-  let activeMention: ActiveMention | null = null;
+): ActiveTrigger | null {
+  let activeTrigger: ActiveTrigger | null = null;
 
   for (const source of sources) {
     const match = findDefaultMatch(text, selectionStart, selectionEnd, source.trigger);
@@ -55,10 +55,10 @@ export function findActiveMention(
       continue;
     }
 
-    if (!activeMention || match.start > activeMention.start) {
-      activeMention = {...match, sourceId: source.id};
+    if (!activeTrigger || match.start > activeTrigger.start) {
+      activeTrigger = {...match, sourceId: source.id};
     }
   }
 
-  return activeMention;
+  return activeTrigger;
 }
