@@ -12,13 +12,6 @@ from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 
 
-class GroupSearchViewTimeFilters(TypedDict, total=False):
-    start: str | None
-    end: str | None
-    period: str | None
-    utc: bool | None
-
-
 class GroupSearchViewSerializerResponse(TypedDict):
     id: str
     createdBy: UserSerializerResponse | None
@@ -27,7 +20,7 @@ class GroupSearchViewSerializerResponse(TypedDict):
     querySort: SORT_LITERALS
     projects: list[int]
     environments: list[str]
-    timeFilters: GroupSearchViewTimeFilters
+    timeFilters: dict
     lastVisited: str | None
     dateCreated: str
     dateUpdated: str
