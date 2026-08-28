@@ -274,8 +274,8 @@ def run_night_shift_for_org(
 
     When execute_in_task is True, the heavy execution phase (eligibility,
     triage, autofix) is dispatched to a separate task so the caller doesn't
-    block on it. The run record is created synchronously after the quota
-    preflight so callers have a stable handle to an eligible run."""
+    block on it. The run record is created synchronously, except scheduled
+    invocations without quota are skipped before creation."""
     organization = Organization.objects.filter(
         id=organization_id, status=OrganizationStatus.ACTIVE
     ).first()
@@ -287,19 +287,16 @@ def run_night_shift_for_org(
     )
 
     # Free-cohort orgs receive Night Shift without a subscription.
-    if not is_free_cohort_org(organization) and not quotas.backend.check_seer_quota(
+    has_seer_quota = is_free_cohort_org(organization) or quotas.backend.check_seer_quota(
         org_id=organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
-    ):
-        existing_run = (
-            SeerNightShiftRun.objects.filter(
-                organization=organization,
-                workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
-                schedule_id=schedule_id,
-            ).first()
-            if schedule_id is not None
-            else None
-        )
+    )
+    if not has_seer_quota and schedule_id is not None:
+        existing_run = SeerNightShiftRun.objects.filter(
+            organization=organization,
+            workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            schedule_id=schedule_id,
+        ).first()
         if existing_run is None or (
             existing_run.date_completed is None and not existing_run.shards.exists()
         ):
@@ -362,6 +359,11 @@ def run_night_shift_for_org(
             },
         )
         sentry_sdk.metrics.count("night_shift.incomplete_run_resumed", 1)
+
+    if not has_seer_quota and schedule_id is None:
+        logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
+        _record_run_error(run, "No Seer quota available")
+        return run.id
 
     task_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
     if project_ids is not None:

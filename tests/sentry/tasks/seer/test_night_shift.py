@@ -1288,6 +1288,26 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
         }
         assert kwargs["project_ids"] == [project.id]
 
+    def test_no_seer_quota_records_failed_run(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                return_value=False,
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute,
+        ):
+            run_id = run_night_shift_for_org(
+                org.id, options={"source": "manual"}, project_ids=[project.id]
+            )
+
+        assert run_id is not None
+        run = SeerNightShiftRun.objects.get(id=run_id)
+        assert run.extras["error_message"] == "No Seer quota available"
+        mock_execute.assert_not_called()
+
     def test_extras_contain_options_and_target_project_ids(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
