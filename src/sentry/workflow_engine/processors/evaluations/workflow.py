@@ -75,41 +75,19 @@ def _condition_group_artifact(
     }
 
 
-def build_workflow_evaluation_artifact_fields(
-    *,
-    phase: EvaluationPhase,
-    workflow_id: WorkflowId,
-    detector_id: DetectorId | None,
-    detector_type: str | None,
-    project_id: int | None,
-    event_id: str | None,
-    group_id: GroupId,
-    outcome: WorkflowEvaluationOutcome,
-    triggered_action_ids: Sequence[ActionId],
-    trigger_group_id: DataConditionGroupId | None,
-    trigger_group_evaluation: DataConditionGroupEvaluation,
-    filter_group_evaluations: Mapping[DataConditionGroupId, DataConditionGroupEvaluation],
-) -> dict[str, object]:
-    """Build the fields shared by initial and delayed workflow evaluation artifacts."""
-    return {
-        "evaluation_type": EvaluationType.WORKFLOW,
-        "evaluation_phase": phase,
-        "workflow_id": workflow_id,
-        "detector_id": detector_id,
-        "detector_type": detector_type,
-        "project_id": project_id,
-        "event_id": event_id,
-        "group_id": group_id,
-        "outcome": outcome,
-        "triggered_action_ids": list(triggered_action_ids),
-        "trigger_group_evaluation": _condition_group_artifact(
-            trigger_group_id, trigger_group_evaluation
-        ),
-        "filter_group_evaluations": [
-            _condition_group_artifact(condition_group_id, evaluation)
-            for condition_group_id, evaluation in sorted(filter_group_evaluations.items())
-        ],
-    }
+@dataclass(frozen=True, kw_only=True)
+class WorkflowEvaluationArtifact:
+    evaluation_type: EvaluationType
+    evaluation_phase: EvaluationPhase
+    workflow_id: WorkflowId
+    detector_id: DetectorId | None
+    detector_type: str | None
+    event_iid: str | None
+    group_id: GroupId
+    outcome: WorkflowEvaluationOutcome
+    triggered_action_ids: Sequence[ActionId]
+    trigger_group_evaluation: Mapping[DataConditionGroupId, DataConditionGroupEvaluation]
+    filter_group_evaluations: Mapping[DataConditionGroupId, DataConditionGroupEvaluation]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -168,7 +146,12 @@ class WorkflowEvaluation(
             if isinstance(event_data.event, GroupEvent)
             else event_data.event.id
         )
-        artifact = build_workflow_evaluation_artifact_fields(
+
+        trigger_group_id = self.data.get("trigger_group_id")
+        trigger_evaluations = self.data.get("trigger_group_eval", {})
+        filter_evaluations = self.data.get("filter_group_evals", {})
+
+        artifact = WorkflowEvaluationArtifact(
             phase=EvaluationPhase.INITIAL,
             workflow_id=self.workflow_id,
             detector_id=self.detector_id,
@@ -177,13 +160,17 @@ class WorkflowEvaluation(
             event_id=str(event_id) if event_id else None,
             group_id=event_data.group.id,
             outcome=self.outcome,
-            triggered_action_ids=triggered_action_ids,
-            trigger_group_id=self.data["trigger_group_id"],
-            trigger_group_evaluation=self.data["trigger_group_eval"],
-            filter_group_evaluations=self.data["filter_group_evals"],
+            triggered_action_ids=list(triggered_action_ids),
+            trigger_group_evaluation={trigger_group_id: trigger_evaluations.to_artifact()},
+            filter_group_evaluations=[
+                _condition_group_artifact(condition_group_id, evaluation)
+                for condition_group_id, evaluation in sorted(filter_evaluations.items())
+            ],
         )
+
         if deferred is not None:
             artifact["deferred"] = deferred
+
         return artifact
 
 
