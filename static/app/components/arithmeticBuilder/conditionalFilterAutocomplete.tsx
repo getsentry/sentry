@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
@@ -9,8 +10,8 @@ import {
 } from 'sentry/components/arithmeticBuilder/conditionalFilter';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {FieldKind} from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 function useFilterKeyItems(
   attributes: FunctionArgument[]
@@ -56,7 +57,9 @@ function useFilterValueItems({
     () => ['arithmetic-filter-tag-values', tag, valueQuery] as const,
     [tag, valueQuery]
   );
-  const debouncedQueryKey = useDebouncedValue(queryKey);
+  const [debouncedQueryKey] = useDebouncedValue(queryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const debouncedFilterKey = debouncedQueryKey[1].key;
 
   const {data} = useQuery({
