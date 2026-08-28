@@ -7,7 +7,6 @@ import requests
 from django.http import HttpRequest
 from jwt import ExpiredSignatureError, InvalidAlgorithmError, InvalidSignatureError
 
-from sentry import options
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -79,11 +78,7 @@ def get_integration_from_jwt(
     issuer = claims.get("iss")
     # Look up the sharedSecret for the clientKey, as stored
     # by the add-on during the installation handshake
-    integration = integration_service.get_integration(
-        provider=provider,
-        external_id=issuer,
-        using_replica=options.get("integration_service.get_integration.using_replica"),
-    )
+    integration = integration_service.get_integration(provider=provider, external_id=issuer)
     if not integration:
         raise AtlassianConnectValidationError("No integration found")
     # Verify the signature with the sharedSecret and the algorithm specified in the header's
