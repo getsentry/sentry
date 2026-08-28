@@ -946,11 +946,13 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_trigger.assert_called_once()
         mock_logger.info.assert_any_call(
-            "autofix.pr_iteration.consume_feedback.triggered",
+            "autofix.pr_iteration.consume_feedback.trigger_agent",
             extra={
                 "run_id": 67890,
-                "organization_id": self.organization.id,
-                "group_id": self.group.id,
+                "sentry_organization_id": self.organization.id,
+                "sentry_group_id": self.group.id,
+                "outcome": "started",
+                "trigger_id": None,
                 "trigger_source": ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
             },
         )

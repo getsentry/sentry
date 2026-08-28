@@ -1023,6 +1023,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             reason="iteration_finished",
             countdown=None,
             trigger_id=trigger_id,
+            trigger_source=ConsumeTriggerSource.FEEDBACK,
         )
 
     @classmethod

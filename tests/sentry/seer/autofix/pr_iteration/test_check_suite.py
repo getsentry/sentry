@@ -705,12 +705,14 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
             feedback=parked.feedback,
             run_state=resolved.autofix_run.run_state,
             bypass=True,
+            triggered_by="green_check_suite",
         )
         mock_defer.assert_called_once_with(resolved)
         mock_confirm.assert_not_called()
         mock_mark_ready.assert_not_called()
         mock_request_review.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.logger")
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
     @patch(f"{CHECK_PATH}.resolve_green_check_suite")
@@ -719,12 +721,28 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_resolve: MagicMock,
         _mock_peek: MagicMock,
         mock_trigger: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
 
         pr_iteration_from_check_suite_listener(self._event())
 
         mock_trigger.assert_not_called()
+        mock_logger.info.assert_any_call(
+            "autofix.pr_iteration.feedback.trigger",
+            extra={
+                "run_id": 67890,
+                "sentry_organization_id": self.organization.id,
+                "sentry_group_id": self.group.id,
+                "scm_infos": [{"scm_repo_full_name": "owner/repo"}],
+                "triggered_by": "green_check_suite",
+                "outcome": "not_triggered",
+                "reason": "no_parked_feedback",
+                "countdown": None,
+                "trigger_id": None,
+                "bypass": True,
+            },
+        )
 
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")

@@ -41,8 +41,13 @@ from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 logger = logging.getLogger(__name__)
 
 
-def _retrigger_deferred_iteration(resolved: ResolvedGreenCheckSuite) -> None:
+def _retrigger_deferred_iteration(
+    log_ctx: PrIterationLogContext, resolved: ResolvedGreenCheckSuite
+) -> None:
     """Pull forward consume if this head has parked check-suite feedback.
+
+    Same identity as an enqueue/trigger: every gate logs ``feedback.trigger``
+    so a green suite that did not pull the defer forward is searchable.
 
     Bail on rate-limit-sensitive orgs before the peek, since the sweep in
     ``should_defer_pr_iteration`` is the only reason to look; otherwise peek
@@ -54,12 +59,20 @@ def _retrigger_deferred_iteration(resolved: ResolvedGreenCheckSuite) -> None:
     """
     from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 
+    run_state = resolved.autofix_run.run_state
     if is_github_rate_limit_sensitive(resolved.organization.slug):
+        log_ctx.info(
+            "autofix.pr_iteration.feedback.trigger",
+            triggered_by="green_check_suite",
+            outcome="not_triggered",
+            reason="rate_limit_sensitive",
+            countdown=None,
+            trigger_id=None,
+            bypass=True,
+        )
         return
 
-    run_state = resolved.autofix_run.run_state
     head_sha = resolved.event.check_suite.head_sha
-
     parked = next(
         (
             item
@@ -70,16 +83,32 @@ def _retrigger_deferred_iteration(resolved: ResolvedGreenCheckSuite) -> None:
         None,
     )
     if parked is None:
+        log_ctx.info(
+            "autofix.pr_iteration.feedback.trigger",
+            triggered_by="green_check_suite",
+            outcome="not_triggered",
+            reason="no_parked_feedback",
+            countdown=None,
+            trigger_id=None,
+            bypass=True,
+        )
         return
 
     if should_defer_pr_iteration(resolved):
+        log_ctx.info(
+            "autofix.pr_iteration.feedback.trigger",
+            triggered_by="green_check_suite",
+            outcome="not_triggered",
+            reason="still_deferred",
+            countdown=None,
+            trigger_id=None,
+            bypass=True,
+            **parked.feedback.source.log_fields(run_state),
+        )
         return
 
     from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 
-    log_ctx = PrIterationLogContext.for_run(
-        logger, run_state, resolved.organization.id, resolved.autofix_run.group_id
-    )
     trigger_consume_pr_iteration_feedback(
         log_ctx=log_ctx,
         run_id=run_state.run_id,
@@ -87,6 +116,7 @@ def _retrigger_deferred_iteration(resolved: ResolvedGreenCheckSuite) -> None:
         feedback=parked.feedback,
         run_state=run_state,
         bypass=True,
+        triggered_by="green_check_suite",
     )
 
 
@@ -111,17 +141,20 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         if resolved is None:
             return None
 
+        run_state = resolved.autofix_run.run_state
+        log_ctx = PrIterationLogContext.for_run(
+            logger, run_state, resolved.organization.id, resolved.autofix_run.group_id
+        )
         # Peek the queue for parked check-suite feedback on this head, then
         # ``should_defer_pr_iteration`` (GitHub sweep) only if something is
         # waiting. Isolated so a failure cannot swallow undraft / review-request
         # below.
         try:
-            _retrigger_deferred_iteration(resolved)
-        except Exception:
-            logger.warning(
+            _retrigger_deferred_iteration(log_ctx, resolved)
+        except Exception as e:
+            log_ctx.error(
                 "autofix.pr_iteration.green_check_suite.retrigger_deferred_consume_failed",
-                extra=resolved.log_extra,
-                exc_info=True,
+                error_type=type(e).__name__,
             )
 
         if not green_review_side_effects_enabled(resolved):

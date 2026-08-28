@@ -154,12 +154,13 @@ def trigger_consume_pr_iteration_feedback(
     run_state: SeerRunState,
     bypass: bool = False,
     delay: int | None = None,
+    triggered_by: str = "feedback",
 ) -> None:
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by="feedback",
+            triggered_by=triggered_by,
             outcome="not_triggered",
             reason="paused",
             countdown=None,
@@ -208,7 +209,7 @@ def trigger_consume_pr_iteration_feedback(
 
     log_ctx.info(
         "autofix.pr_iteration.feedback.trigger",
-        triggered_by="feedback",
+        triggered_by=triggered_by,
         outcome=outcome,
         reason=decision.reason,
         countdown=countdown,
@@ -292,6 +293,7 @@ def consume_queued_autofix_feedback(
             "autofix.pr_iteration.consume_feedback.started",
             run_status=state.status,
             trigger_id=trigger_id,
+            trigger_source=trigger_source,
             activation_id=task_state.id if task_state else None,
         )
 
@@ -340,6 +342,7 @@ def _drain_queued_autofix_feedback(
             reason="run_processing",
             run_status=state.status,
             trigger_id=trigger_id,
+            trigger_source=trigger_source,
             left_queued_count=count_queued_autofix_feedback(run_id),
         )
         return
@@ -352,6 +355,7 @@ def _drain_queued_autofix_feedback(
             reason="empty_queue",
             run_status=state.status,
             trigger_id=trigger_id,
+            trigger_source=trigger_source,
         )
         return
 
@@ -401,6 +405,7 @@ def _drain_queued_autofix_feedback(
             reason="no_consumable_feedback",
             run_status=state.status,
             trigger_id=trigger_id,
+            trigger_source=trigger_source,
             queued_count=len(queued_items),
             dropped=dropped,
         )
@@ -414,6 +419,7 @@ def _drain_queued_autofix_feedback(
         reason="ok",
         run_status=state.status,
         trigger_id=trigger_id,
+        trigger_source=trigger_source,
         queued_count=len(queued_items),
         consumable_count=len(feedback_items),
         dropped=dropped,
@@ -445,21 +451,16 @@ def _drain_queued_autofix_feedback(
             outcome="skipped",
             reason=type(error).__name__,
             error=str(error),
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
         )
         return
 
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.trigger_agent",
         outcome="started",
-    )
-    logger.info(
-        "autofix.pr_iteration.consume_feedback.triggered",
-        extra={
-            "run_id": run_id,
-            "organization_id": organization_id,
-            "group_id": group_id,
-            "trigger_source": trigger_source or "unknown",
-        },
+        trigger_id=trigger_id,
+        trigger_source=trigger_source,
     )
     metrics.incr(
         "autofix.pr_iteration.consume_feedback.triggered",
