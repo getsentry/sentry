@@ -10,6 +10,11 @@ from django.db.models import F
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_sdk import trace
 
+from sentry.ai_monitoring.message_normalizer import (
+    FILTERED,
+    normalize_to_messages,
+    stringify_message_content,
+)
 from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.models.organization import Organization
 from sentry.options.rollout import in_rollout_group
@@ -21,11 +26,6 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import json, metrics
-from sentry.utils.ai_message_normalizer import (
-    FILTERED,
-    normalize_to_messages,
-    stringify_message_content,
-)
 
 logger = logging.getLogger(__name__)
 
