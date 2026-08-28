@@ -316,8 +316,8 @@ def _detect_performance_problems(
         return
 
     try:
-        # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
-        # segment span, produce occurrences from the results
+        # Run the legacy detectors and, possibly produce occurrences from the results (depending on
+        # conditions explained in `_run_legacy_detectors`)
         detection_settings = get_detection_settings(project)
         legacy_detected_problems = _run_legacy_detectors(
             segment_span, spans, project, enabled_legacy_detector_types, detection_settings
@@ -344,8 +344,8 @@ def _run_legacy_detectors(
 ) -> list[PerformanceProblem]:
     """
     Run legacy issue detectors corresponding to the given detector types on segment data by first
-    creating a fake transaction event. If the `_performance_issues_spans` flag is set, also create
-    occurrences from the results.
+    creating a fake transaction event. If the right conditions hold (see below), create issue
+    occurrences from any detected problems.
     """
     # Create a fake transaction event out of the segment data, to match what the legacy detectors
     # are expecting
