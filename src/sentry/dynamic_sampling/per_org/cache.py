@@ -47,12 +47,6 @@ CachedTransactionSampleRates = dict[int, tuple[dict[str, float], float] | None]
 
 
 def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
-    """Persist what one pass of the per-org pipeline computed.
-
-    Runs once at the end of the pass, so that every cache the new pipeline owns is written
-    from one place out of ``config.results``, rather than by the stage that happens to
-    compute it.
-    """
     org_id = config.organization.id
     wrote_recalibration_factor = write_recalibration_factor(
         org_id, config.results.recalibration_factor
@@ -71,15 +65,6 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
 
 
 def write_recalibration_factor(org_id: int, factor: float | None) -> bool:
-    """Store the recalibration factor this pass computed.
-
-    A factor outside the rebalance bounds clears the stored one, so that a stale factor
-    cannot keep being applied.
-
-    Returns whether the stored factor was written or cleared, which is what makes the
-    organization's rules worth republishing. The stored factor expires quickly, so a
-    rewrite of the same value still counts.
-    """
     if factor is None:
         return False
 
