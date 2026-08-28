@@ -33,7 +33,10 @@ describe('OverviewCardAction', () => {
       groupId: '2',
       shortId: 'PROJ-1',
       title: 'TypeError in checkout cart',
-      rootCause: {oneLineDescription: 'The cart total is read before it is set.'},
+      rootCause: {
+        headline: null,
+        oneLineDescription: 'The cart total is read before it is set.',
+      },
       proposedFix: null,
       seerRunId: 'run-1',
       lastTriggeredAt: '2026-07-14T09:00:00Z',

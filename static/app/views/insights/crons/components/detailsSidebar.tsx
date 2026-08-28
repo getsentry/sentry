@@ -123,13 +123,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         />
         <KeyValueTableRow
           keyName={t('Owner')}
-          value={
-            monitor.owner ? (
-              <ActorAvatar size={24} actor={monitor.owner} />
-            ) : (
-              t('Unassigned')
-            )
-          }
+          value={monitor.owner ? <ActorAvatar actor={monitor.owner} /> : t('Unassigned')}
         />
         <KeyValueTableRow
           keyName={t('Date created')}

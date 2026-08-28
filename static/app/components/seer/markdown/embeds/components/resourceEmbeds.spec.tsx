@@ -1,4 +1,5 @@
 import {CheckInFixture} from 'sentry-fixture/checkIn';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {
   CronDetectorFixture,
   ErrorDetectorFixture,
@@ -6,9 +7,11 @@ import {
   PreprodDetectorFixture,
   UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
+import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -17,6 +20,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 interface RenderEmbedOptions {
   data: Record<string, unknown>;
@@ -44,7 +48,6 @@ function renderMonitor(detector: Detector, data: Record<string, unknown> = {}) {
   return renderEmbed({
     name: 'monitor',
     data: {id: detector.id, name: detector.name, ...data},
-    level: 'block',
   });
 }
 
@@ -62,6 +65,7 @@ describe('Seer resource embeds', () => {
   it('links a dashboard title to the dashboard in the current organization', async () => {
     const {router} = renderEmbed({
       name: 'dashboard',
+      level: 'inline',
       data: {
         id: '123',
         title: 'Application health',
@@ -80,12 +84,59 @@ describe('Seer resource embeds', () => {
       sentryUrl: 'https://sentry.io',
     });
 
-    renderEmbed({name: 'dashboard', data: {id: '456'}});
+    renderEmbed({name: 'dashboard', data: {id: '456'}, level: 'inline'});
 
     expect(screen.getByRole('link', {name: 'Dashboard 456'})).toHaveAttribute(
       'href',
       '/dashboard/456/'
     );
+  });
+
+  it('renders a live preview of the first four dashboard widgets', async () => {
+    const widgets = ['Errors', 'Latency', 'Users', 'Throughput', 'Slow spans'].map(
+      (title, index) =>
+        WidgetFixture({
+          id: String(index + 1),
+          title,
+          displayType: index === 0 ? DisplayType.LINE : DisplayType.TEXT,
+          widgetType: index === 0 ? WidgetType.ERRORS : undefined,
+          description: `${title} details`,
+        })
+    );
+    const dashboardRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/123/',
+      body: DashboardFixture(widgets, {id: '123', title: 'Application health'}),
+    });
+    const widgetDataRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStatsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+
+    const {unmount} = renderEmbed({
+      name: 'dashboard',
+      data: {id: '123'},
+    });
+
+    expect(
+      await screen.findByRole('link', {name: 'Application health'}, {timeout: 5_000})
+    ).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Latency')).toBeInTheDocument();
+    expect(screen.getByText('Users')).toBeInTheDocument();
+    expect(screen.getByText('Throughput')).toBeInTheDocument();
+    expect(screen.queryByText('Slow spans')).not.toBeInTheDocument();
+    expect(screen.getByText('5 widgets')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View 1 more widget'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/'
+    );
+    expect(dashboardRequest).toHaveBeenCalled();
+    await waitFor(() => expect(widgetDataRequest).toHaveBeenCalled());
+    unmount();
   });
 
   it('links a replay to the relevant event timestamp (inline)', async () => {
@@ -128,7 +179,6 @@ describe('Seer resource embeds', () => {
         id: '4c1f2e3d1234567890',
         eventTimestamp: '2026-08-25T16:37:12Z',
       },
-      level: 'block',
     });
 
     await waitFor(() => {
@@ -140,7 +190,6 @@ describe('Seer resource embeds', () => {
     renderEmbed({
       name: 'replay',
       data: {id: 'abcdef1234567890'},
-      level: 'block',
     });
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
@@ -492,6 +541,23 @@ describe('Seer resource embeds', () => {
         {groupBy: 'span.op'},
         {yAxes: ['p95(span.duration)']},
       ]);
+    });
+
+    it('coerces numeric project IDs so agent payloads still render', () => {
+      const href = hrefFor('spansQuery', 'Issue Pageloads (Last 30 Days)', {
+        mode: 'aggregate',
+        query: 'span.op:pageload transaction:*issues*',
+        groupBy: ['transaction'],
+        yAxes: ['count()'],
+        statsPeriod: '30d',
+        projects: [11276],
+        title: 'Issue Pageloads (Last 30 Days)',
+      });
+
+      expect(href).toContain('/organizations/org-slug/explore/traces/');
+      expect(href).toContain('project=11276');
+      expect(href).toContain('statsPeriod=30d');
+      expect(href).toContain('mode=aggregate');
     });
   });
 
