@@ -171,6 +171,33 @@ describe('TableWidgetVisualization', () => {
       expect($cells[0]).toHaveTextContent('relax, soon');
     });
 
+    it('Prettifies typed EAP attribute keys in column headers', () => {
+      render(
+        <TableWidgetVisualization
+          tableData={{
+            data: [{'tags[is_equal,boolean]': 'true', 'count(span.duration)': 1}],
+            meta: {
+              fields: {
+                'tags[is_equal,boolean]': 'string',
+                'count(span.duration)': 'number',
+              },
+              units: {'tags[is_equal,boolean]': null, 'count(span.duration)': null},
+            },
+          }}
+          columns={TabularColumnsFixture([
+            {key: 'tags[is_equal,boolean]'},
+            {key: 'count(span.duration)'},
+          ])}
+        />
+      );
+
+      const $headers = screen.getAllByRole('columnheader');
+      expect($headers[0]).toHaveTextContent('is_equal');
+      expect($headers[0]).not.toHaveTextContent('tags[is_equal,boolean]');
+      // Untyped keys are left exactly as they are.
+      expect($headers[1]).toHaveTextContent('count(span.duration)');
+    });
+
     it('Uses aliases for column names if supplied', () => {
       const aliases = {
         'count(span.duration)': 'span duration count',
