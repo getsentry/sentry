@@ -1,6 +1,8 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 function renderWithTracking(ui: React.ReactElement) {
@@ -17,6 +19,42 @@ function renderWithTracking(ui: React.ReactElement) {
 describe('Button', () => {
   it('renders', () => {
     render(<Button variant="primary">Button</Button>);
+  });
+
+  it('updates its size at container breakpoints', () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    const originalResizeObserver = window.ResizeObserver;
+    window.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeCallback = callback;
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(0);
+
+    try {
+      render(
+        <Container containerType="inline-size">
+          <Button size={{zero: 'xs', lg: 'sm'}}>Button</Button>
+        </Container>
+      );
+
+      const button = screen.getByRole('button', {name: 'Button'});
+      expect(getEmotionRules(button).join('')).toMatch(/height:\s*28px/);
+
+      act(() => {
+        resizeCallback?.(
+          [{contentBoxSize: [{inlineSize: 800}]} as ResizeObserverEntry],
+          {} as ResizeObserver
+        );
+      });
+      expect(getEmotionRules(button).join('')).toMatch(/height:\s*32px/);
+    } finally {
+      window.ResizeObserver = originalResizeObserver;
+      jest.restoreAllMocks();
+    }
   });
 
   it('calls `onClick` callback', async () => {
