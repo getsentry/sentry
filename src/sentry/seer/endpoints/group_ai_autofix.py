@@ -572,6 +572,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             GithubAppPermissionsWarning(
                 repo_name=repo_name,
                 installation_id=info.installation_id,
+                installation_url=info.installation_url,
             ).dict()
             for repo_name, info in missing_perms.items()
         ]

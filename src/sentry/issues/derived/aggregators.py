@@ -197,9 +197,15 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
 
     if state[STATUS] != IssueStatus.OPEN:
         new_progress = None
-    elif (
+    elif entry.type == PullRequestMergedAction.get_type() or (
         current_progress == IssueProgressState.FIX_APPLIED
-        or entry.type == PullRequestMergedAction.get_type()
+        and entry.type
+        # Usually an issue will first close before it regresses, but there are cases where a regression action
+        #  is seen without a resolution action. This handles that case and clears the FIX_APPLIED progress.
+        not in (
+            UnresolveAction.get_type(),
+            SetRegressedAction.get_type(),
+        )
     ):
         new_progress = IssueProgressState.FIX_APPLIED
     elif state[HAS_OPEN_FIX_PR]:

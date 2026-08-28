@@ -29,6 +29,7 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     get_iterations,
     get_latest_iteration_index,
+    should_open_autofix_pr_as_draft,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -46,6 +47,10 @@ from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
+)
+from sentry.seer.autofix.pr_ready_for_review import (
+    emit_pr_ready_for_review,
+    format_pull_requests_payload,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -556,7 +561,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # handled but the expectation is that we only create PRs once
                 # per seer run.
                 webhook_action_type = SeerActionType.PR_CREATED
-                webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
+                webhook_payload["pull_requests"] = format_pull_requests_payload(state)
                 is_pr_created = True
                 analytics.record(
                     AiAutofixPrCreatedCompletedEvent(
@@ -580,7 +585,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
             webhook_action_type = SeerActionType.ITERATION_COMPLETED
             iteration_index = get_latest_iteration_index(state)
-            webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
+            webhook_payload["pull_requests"] = format_pull_requests_payload(state)
             webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
             webhook_payload["iteration_index"] = iteration_index
 
@@ -636,6 +641,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             )
 
+        # If this PR is not opened in draft mode, we should immediately emit the ready signal
+        if is_pr_created and not should_open_autofix_pr_as_draft(organization):
+            # Not a cls method since draft -> ready signal also emits this same signal elsewhere
+            emit_pr_ready_for_review(
+                organization=organization,
+                group=group,
+                sentry_run_id=webhook_payload["sentry_run_id"],
+                state=state,
+            )
+
         if current_step is not None and not is_pr_created:
             referrer = current_referrer.value if current_referrer is not None else None
             iteration_index = get_latest_iteration_index(state)
@@ -676,24 +691,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             ]
             for repo, patches in diffs_by_repo.items()
         }
-
-    @classmethod
-    def _format_pull_requests_payload(
-        cls,
-        state: SeerRunState,
-    ) -> list[dict]:
-        return [
-            {
-                "provider": pull_request.provider or "unknown",
-                "repo_name": pull_request.repo_name,
-                "pull_request": {
-                    "pr_id": pull_request.pr_id,
-                    "pr_number": pull_request.pr_number,
-                    "pr_url": pull_request.pr_url,
-                },
-            }
-            for pull_request in state.repo_pr_states.values()
-        ]
 
     @classmethod
     def _get_current_step(

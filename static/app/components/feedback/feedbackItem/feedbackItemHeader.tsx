@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackActions';
@@ -42,13 +42,15 @@ export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Prop
       <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
         <Flex gap="md" align="center">
           {onBackToList && (
-            <Button
-              variant="primary"
-              icon={<IconArrow direction="left" size="xs" />}
-              onClick={onBackToList}
-              size="zero"
-              aria-label={t('Back to list')}
-            />
+            <Container display={{zero: 'block', '3xl': 'none'}}>
+              <Button
+                variant="primary"
+                icon={<IconArrow direction="left" size="xs" />}
+                onClick={onBackToList}
+                size="zero"
+                aria-label={t('Back to list')}
+              />
+            </Container>
           )}
           <FeedbackShortId feedbackItem={feedbackItem} />
         </Flex>

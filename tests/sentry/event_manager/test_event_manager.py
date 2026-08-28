@@ -2457,7 +2457,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
 
             cache_key = cache_key_for_event(manager.get_data())
-            attachment_cache.set(cache_key, attachments=[a1, a2])
+            attachment_cache.set(cache_key, attachments=[a1, a2], timeout=300)
 
             mock_track_outcome = mock.Mock(wraps=track_outcome)
             with (
@@ -2503,7 +2503,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         a1 = CachedAttachment(name="a1", data=b"hello", type="event.minidump")
         a2 = CachedAttachment(name="a2", data=b"world")
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2])
+        attachment_cache.set(cache_key, attachments=[a1, a2], timeout=300)
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()
@@ -2534,7 +2534,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2])
+        attachment_cache.set(cache_key, attachments=[a1, a2], timeout=300)
 
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with mock.patch(
@@ -2585,7 +2585,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         a3 = CachedAttachment(name="a3", data=b"world")
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
+        attachment_cache.set(cache_key, attachments=[a1, a2, a3], timeout=300)
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()
@@ -2621,7 +2621,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         a3 = CachedAttachment(name="a3", data=b"world")
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
+        attachment_cache.set(cache_key, attachments=[a1, a2, a3], timeout=300)
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()

@@ -4,18 +4,20 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 
-function renderEmbed(
-  name: string,
-  data: Record<string, unknown>,
-  level: 'block' | 'inline' = 'block'
-) {
+interface RenderEmbedOptions {
+  data: Record<string, unknown>;
+  name: string;
+  level?: 'block' | 'inline';
+}
+
+function renderEmbed({name, data, level = 'block'}: RenderEmbedOptions) {
   const tag = `{% ${name} %}${JSON.stringify(data)}{% /${name} %}`;
   const raw = level === 'inline' ? `text ${tag} text` : tag;
   return render(<SeerMarkdown raw={raw} />);
 }
 
 function hrefFor(name: string, label: string, data: Record<string, unknown>) {
-  renderEmbed(name, data, 'inline');
+  renderEmbed({name, data, level: 'inline'});
   return screen.getByRole('link', {name: label}).getAttribute('href') ?? '';
 }
 
@@ -31,9 +33,12 @@ describe('Seer resource embeds', () => {
   });
 
   it('links a dashboard title to the dashboard in the current organization', async () => {
-    const {router} = renderEmbed('dashboard', {
-      id: '123',
-      title: 'Application health',
+    const {router} = renderEmbed({
+      name: 'dashboard',
+      data: {
+        id: '123',
+        title: 'Application health',
+      },
     });
 
     await userEvent.click(screen.getByRole('link', {name: 'Application health'}));
@@ -48,7 +53,7 @@ describe('Seer resource embeds', () => {
       sentryUrl: 'https://sentry.io',
     });
 
-    renderEmbed('dashboard', {id: '456'});
+    renderEmbed({name: 'dashboard', data: {id: '456'}});
 
     expect(screen.getByRole('link', {name: 'Dashboard 456'})).toHaveAttribute(
       'href',
@@ -57,14 +62,14 @@ describe('Seer resource embeds', () => {
   });
 
   it('links a replay to the relevant event timestamp (inline)', async () => {
-    const {router} = renderEmbed(
-      'replay',
-      {
+    const {router} = renderEmbed({
+      name: 'replay',
+      data: {
         id: '4c1f2e3d1234567890',
         eventTimestamp: '2026-08-25T16:37:12Z',
       },
-      'inline'
-    );
+      level: 'inline',
+    });
 
     await userEvent.click(screen.getByRole('link', {name: 'Replay 4c1f2e3d'}));
 
@@ -75,7 +80,11 @@ describe('Seer resource embeds', () => {
   });
 
   it('links a replay without a timestamp to the beginning (inline)', () => {
-    renderEmbed('replay', {id: 'abcdef1234567890'}, 'inline');
+    renderEmbed({
+      name: 'replay',
+      data: {id: 'abcdef1234567890'},
+      level: 'inline',
+    });
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
       'href',
@@ -86,9 +95,12 @@ describe('Seer resource embeds', () => {
   it('renders a replay player preview at block level with a timestamp', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    renderEmbed('replay', {
-      id: '4c1f2e3d1234567890',
-      eventTimestamp: '2026-08-25T16:37:12Z',
+    renderEmbed({
+      name: 'replay',
+      data: {
+        id: '4c1f2e3d1234567890',
+        eventTimestamp: '2026-08-25T16:37:12Z',
+      },
     });
 
     await waitFor(() => {
@@ -97,7 +109,10 @@ describe('Seer resource embeds', () => {
   });
 
   it('falls back to a link at block level without a timestamp', () => {
-    renderEmbed('replay', {id: 'abcdef1234567890'});
+    renderEmbed({
+      name: 'replay',
+      data: {id: 'abcdef1234567890'},
+    });
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
       'href',
@@ -123,7 +138,7 @@ describe('Seer resource embeds', () => {
     });
 
     it('falls back to an id-based label when the API name is missing', () => {
-      renderEmbed('alert', {id: '4521', kind: 'metric'});
+      renderEmbed({name: 'alert', data: {id: '4521', kind: 'metric'}});
       expect(screen.getByRole('link', {name: 'Alert 4521'})).toBeInTheDocument();
     });
   });
@@ -203,7 +218,7 @@ describe('Seer resource embeds', () => {
     });
 
     it('uses a generic label when Seer supplies no title', () => {
-      renderEmbed('issuesQuery', {query: 'is:unresolved'});
+      renderEmbed({name: 'issuesQuery', data: {query: 'is:unresolved'}});
       expect(screen.getByRole('link', {name: 'Issue search'})).toBeInTheDocument();
     });
   });
@@ -254,6 +269,23 @@ describe('Seer resource embeds', () => {
         {groupBy: 'span.op'},
         {yAxes: ['p95(span.duration)']},
       ]);
+    });
+
+    it('coerces numeric project IDs so agent payloads still render', () => {
+      const href = hrefFor('spansQuery', 'Issue Pageloads (Last 30 Days)', {
+        mode: 'aggregate',
+        query: 'span.op:pageload transaction:*issues*',
+        groupBy: ['transaction'],
+        yAxes: ['count()'],
+        statsPeriod: '30d',
+        projects: [11276],
+        title: 'Issue Pageloads (Last 30 Days)',
+      });
+
+      expect(href).toContain('/organizations/org-slug/explore/traces/');
+      expect(href).toContain('project=11276');
+      expect(href).toContain('statsPeriod=30d');
+      expect(href).toContain('mode=aggregate');
     });
   });
 

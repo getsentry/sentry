@@ -246,7 +246,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ALL_PROJECTS_DETECTOR_NAME,
+    ActionInvocation,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
@@ -2650,6 +2654,17 @@ class Factories:
         return Detector.objects.create(
             name=name,
             config=config,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_all_projects_detector(organization_id: int, **kwargs) -> Detector:
+        return Detector.objects.create(
+            name=ALL_PROJECTS_DETECTOR_NAME,
+            config={"organization_id": organization_id},
+            type=IssueStreamGroupType.slug,
+            project=None,
             **kwargs,
         )
 

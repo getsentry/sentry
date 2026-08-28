@@ -17,7 +17,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Attrib
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.models.files.file import File
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.eap.constants import get_preprod_trace_id
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.snapshots.manifest import ComparisonManifest
@@ -151,7 +151,7 @@ def _collect_snapshot_objectstore_keys(
 
         keys.append((org_id, project_id, comparison_key))
         try:
-            session = get_preprod_session(org_id, project_id)
+            session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
             response = session.get(comparison_key)
             if response is None:
                 raise FileNotFoundError("Comparison manifest does not exist in objectstore")
@@ -171,7 +171,7 @@ def _collect_snapshot_objectstore_keys(
 def _delete_objectstore_key(args: tuple[int, int, str]) -> bool:
     org_id, project_id, key = args
     try:
-        get_preprod_session(org_id, project_id).delete(key)
+        get_session(UsecaseId.PREPROD, project_id, org=org_id).delete(key)
         return True
     except Exception:
         logger.exception("preprod.cleanup.objectstore_delete_failed", extra={"key": key})

@@ -136,15 +136,24 @@ export type UserEnrolledAuthenticator = {
 /**
  * XXX(ts): This actually all comes from getsentry. We should definitely
  * refactor this into a more proper 'hook' mechanism in the future
+ * @public
  */
 export type AuthConfig = {
   canRegister: boolean;
-  githubLoginLink: string;
-  googleLoginLink: string;
   hasNewsletter: boolean;
+  pendingMfa: {
+    mfaMethods: Array<{id: 'recovery' | 'sms' | 'totp' | 'u2f'}>;
+    mfaRequired: true;
+  } | null;
   serverHostname: string;
-  vstsLoginLink: string;
+  githubLoginLink?: string;
+  googleLoginLink?: string;
+  loginBanner?: string;
+  vstsLoginLink?: string;
+  warning?: string;
 };
+
+export type AuthConfigResponse = AuthConfig | {nextUri: string};
 
 // Users can have SSO providers of their own (social login with github)
 // and organizations can have SSO configuration for SAML/google domain/okta.
