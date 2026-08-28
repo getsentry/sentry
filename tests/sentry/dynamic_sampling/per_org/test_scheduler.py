@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts
 from sentry.dynamic_sampling.per_org.scheduler import (
     run_calculations_per_org_task,
@@ -62,8 +63,9 @@ def _transaction_volumes(org: Organization, project_id: int) -> list[ProjectTran
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
-    """Tests for the scheduling wrapper: active-org filtering."""
+    """Tests for the scheduling wrapper: rollout gating and active-org filtering."""
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_dispatches_only_active_orgs(self) -> None:
         active = self.create_organization()
         self.create_project(organization=active)
@@ -83,6 +85,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert active.id in org_ids
         assert pending_deletion.id not in org_ids
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_dispatches_only_orgs_with_active_projects(self) -> None:
         org_with_project = self.create_organization()
         self.create_project(organization=org_with_project)
@@ -113,6 +116,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
             queryset = MockScheduler.call_args.kwargs["queryset"]
             return set(queryset.values_list("id", flat=True))
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_queryset_is_filtered_by_the_cached_orgs(self) -> None:
         cached = self.create_organization()
         self.create_project(organization=cached)
@@ -125,6 +129,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert cached.id in org_ids
         assert uncached.id not in org_ids
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_a_cold_cache_falls_back_to_every_candidate_org(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
@@ -134,6 +139,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         assert org.id in org_ids
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_an_empty_cached_set_schedules_nothing(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
@@ -152,6 +158,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
             kwargs = MockScheduler.call_args.kwargs
             return set(kwargs["prevalidate_batch"](list(kwargs["queryset"])))
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_skips_orgs_without_dynamic_sampling(self) -> None:
         with_dynamic_sampling = self.create_organization()
         self.create_project(organization=with_dynamic_sampling)
@@ -164,6 +171,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert with_dynamic_sampling.id in org_ids
         assert without_dynamic_sampling.id not in org_ids
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_raises_when_the_feature_cannot_be_evaluated(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
@@ -174,8 +182,23 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ):
             self._prevalidated_org_ids()
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_org_in_rollout_is_dispatched(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is True
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
+    def test_org_not_in_rollout_is_skipped(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is False
+
 
 class RunCalculationsPerOrgTest(TestCase):
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+        }
+    )
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
@@ -199,6 +222,11 @@ class RunCalculationsPerOrgTest(TestCase):
         _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
         _assert_called_once_with_config(mocks[WRITE_CACHES], org.id)
 
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+        }
+    )
     def test_run_calculations_per_org_skips_transaction_volumes_at_full_sample_rate(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -233,6 +261,7 @@ class RunCalculationsPerOrgTest(TestCase):
         assert config.results.projects_to_balance == []
         _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
@@ -258,6 +287,7 @@ class RunCalculationsPerOrgTest(TestCase):
         mocks[TRANSACTION_VOLUMES].assert_not_called()
         assert config.results.organization_volume is org_volume
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_transaction_volumes(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -286,6 +316,7 @@ class RunCalculationsPerOrgTest(TestCase):
         assert config.results.rebalanced_projects == rebalanced_projects
         assert config.results.transaction_volumes == []
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_project_balancing_for_project_mode(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -324,6 +355,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
     @override_options(
         {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
             "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
@@ -364,6 +396,7 @@ class RunCalculationsPerOrgTest(TestCase):
         )
         mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_project_mode_without_project_rates(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
@@ -392,6 +425,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
     @override_options(
         {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
             "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
@@ -439,6 +473,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
     @override_options(
         {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
             "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
@@ -474,6 +509,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
     @override_options(
         {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
             "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
         }
     )
@@ -505,6 +541,7 @@ class RunCalculationsPerOrgTest(TestCase):
         mocks[SET_FACTOR].assert_not_called()
         _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_still_reports_when_a_stage_raises(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
@@ -528,6 +565,7 @@ class RunCalculationsPerOrgTest(TestCase):
         assert config.results.organization_volume is org_volume
         _assert_called_once_with_config(mocks[WRITE_CACHES], org.id)
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_transaction_sample_rate(self) -> None:
         org = self.create_organization()
 
@@ -538,6 +576,7 @@ class RunCalculationsPerOrgTest(TestCase):
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
         mocks[ORG_VOLUME].assert_not_called()
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_projects(self) -> None:
         org = self.create_organization()
 
@@ -547,6 +586,7 @@ class RunCalculationsPerOrgTest(TestCase):
         assert result == DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
         mocks[ORG_VOLUME].assert_not_called()
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_subscription(self) -> None:
         org = self.create_organization()
 
@@ -559,6 +599,7 @@ class RunCalculationsPerOrgTest(TestCase):
         assert result == DynamicSamplingStatus.NO_SUBSCRIPTION
         mocks[ORG_VOLUME].assert_not_called()
 
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_missing_org(self) -> None:
         with patch_configuration({ORG_VOLUME: DEFAULT}) as mocks:
             result = run_calculations_per_org_task(99999999)

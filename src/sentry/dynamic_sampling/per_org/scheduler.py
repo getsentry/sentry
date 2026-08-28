@@ -19,7 +19,7 @@ from sentry.dynamic_sampling.per_org.feature_cache import (
     candidate_organizations,
     get_orgs_with_dynamic_sampling,
 )
-from sentry.dynamic_sampling.per_org.gate import is_org_in_serving_rollout
+from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout, is_org_in_serving_rollout
 from sentry.dynamic_sampling.per_org.queries import (
     RECALIBRATION_TIME_INTERVAL,
     get_eap_organization_volume,
@@ -124,9 +124,13 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 @track_dynamic_sampling
 def schedule_per_org_calculations() -> None:
     dispatched = 0
+    skipped = 0
 
-    def track_dispatch(org_id: int) -> bool:
-        nonlocal dispatched
+    def validate_and_track(org_id: int) -> bool:
+        nonlocal dispatched, skipped
+        if not is_org_in_rollout(org_id):
+            skipped += 1
+            return False
         dispatched += 1
         return True
 
@@ -157,7 +161,7 @@ def schedule_per_org_calculations() -> None:
         queryset=organizations,
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
-        validate_item=track_dispatch,
+        validate_item=validate_and_track,
         prevalidate_batch=keep_orgs_with_dynamic_sampling,
     )
     scheduler.tick()
@@ -166,4 +170,9 @@ def schedule_per_org_calculations() -> None:
         SCHEDULER_BUCKET_ORG_STATUS_METRIC,
         DynamicSamplingStatus.DISPATCHED,
         amount=dispatched,
+    )
+    emit_status(
+        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+        DynamicSamplingStatus.ROLLOUT_EXCLUDED,
+        amount=skipped,
     )

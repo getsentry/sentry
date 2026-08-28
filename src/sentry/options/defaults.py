@@ -2421,7 +2421,8 @@ register(
 
 # Deterministic % rollout of the recalibration step within the per-org pipeline,
 # keyed on organization id. Recalibration writes the factor that serving applies,
-# so it rolls out separately from the rest of the pipeline.
+# so it rolls out separately from the rest of the pipeline. An org must be in both
+# this group and dynamic-sampling.per_org.rollout-rate for its factor to be updated.
 register(
     "dynamic-sampling.per_org.recalibration-rollout-rate",
     type=Float,
@@ -2431,7 +2432,8 @@ register(
 
 # Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
 # id. Above 0.0, rule generation reads the project, transaction and recalibration sample
-# rates of the selected orgs from the per-org caches instead of the legacy ones.
+# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
+# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
 # An org switches over as a whole:
 # until a pass has stored its project sample rates, rule generation serves all of its
 # values from the legacy caches, and from then on all of them from the per-org ones.
