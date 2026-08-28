@@ -261,12 +261,17 @@ describe('useCreateNotificationAction', () => {
     expect(result.current.notificationProps.shouldRenderSetupButton).toBe(false);
   });
 
-  it('resolves provider, integration, and actions from defaultActions on mount', async () => {
+  it('restores an integration action from a combined workflow on mount', async () => {
     addIntegrationsResponse([slackIntegration]);
 
     // Stable reference: the init effect depends on `defaultActions`, so an
     // inline array (new ref each render) would cause repeated re-runs.
     const defaultActions = [
+      {
+        id: IssueAlertActionType.NOTIFY_EMAIL,
+        targetType: 'IssueOwners',
+        fallthroughType: 'ActiveMembers',
+      },
       {
         id: IssueAlertActionType.SLACK,
         workspace: slackIntegration.id,

@@ -22,6 +22,13 @@ enum MetricValues {
   USERS = 1,
 }
 
+const DEFAULT_CUSTOM_ALERT_ACTION_INTERVAL_MINUTES = 24 * 60;
+const HIGH_PRIORITY_ALERT_ACTION_INTERVAL_MINUTES = 0;
+
+type ProjectCreationAlertConditionType =
+  | IssueAlertConditionType.EVENT_FREQUENCY
+  | IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY;
+
 export enum RuleAction {
   DEFAULT_ALERT = 0,
   CUSTOMIZED_ALERTS = 1,
@@ -40,7 +47,9 @@ function parseRuleAction(val: number | string) {
   throw new RangeError('Supplied alert creation action is not handled');
 }
 
-function metricValueToConditionType(metricValue: MetricValues): IssueAlertConditionType {
+function metricValueToConditionType(
+  metricValue: MetricValues
+): ProjectCreationAlertConditionType {
   switch (metricValue) {
     case MetricValues.ERRORS:
       return IssueAlertConditionType.EVENT_FREQUENCY;
@@ -63,10 +72,17 @@ export const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
   threshold: '10',
 };
 
+type ProjectCreationAlertCondition = {
+  id: ProjectCreationAlertConditionType;
+  interval: string;
+  value: string;
+};
+
 export type RequestDataFragment = Pick<
   IssueAlertRule,
-  'actionMatch' | 'actions' | 'conditions' | 'frequency' | 'name'
+  'actions' | 'frequency' | 'name'
 > & {
+  conditions: ProjectCreationAlertCondition[];
   defaultRules: boolean;
   shouldCreateCustomRule: boolean;
   shouldCreateRule: boolean;
@@ -107,8 +123,10 @@ export function getRequestDataFragment({
         fallthroughType: 'ActiveMembers',
       },
     ],
-    actionMatch: 'all',
-    frequency: 5,
+    frequency:
+      alertSetting === RuleAction.CUSTOMIZED_ALERTS
+        ? DEFAULT_CUSTOM_ALERT_ACTION_INTERVAL_MINUTES
+        : HIGH_PRIORITY_ALERT_ACTION_INTERVAL_MINUTES,
   };
 }
 

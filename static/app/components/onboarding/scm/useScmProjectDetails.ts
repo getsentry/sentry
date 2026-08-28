@@ -162,9 +162,9 @@ export function useScmProjectDetails({
   );
 
   // Provides the messaging-integration notification picker (notificationProps,
-  // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useScmNotificationAction(
+  // rendered in ScmAlertFrequencySection) and resolves its selected action for
+  // the workflow created alongside the project.
+  const {getIntegrationAction, notificationProps} = useScmNotificationAction(
     restoredNotificationSelectionRef.current
   );
 
@@ -410,7 +410,7 @@ export function useScmProjectDetails({
           platform: selectedPlatform,
           team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
           alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-          createNotificationAction,
+          getIntegrationAction,
         })
         .catch(error => {
           trackAnalytics('project_creation.project_details_create_failed', {
@@ -459,7 +459,7 @@ export function useScmProjectDetails({
     accessTeams,
     alertRuleConfig,
     canSubmit,
-    createNotificationAction,
+    getIntegrationAction,
     createProjectAndRules,
     existingProject,
     hasNotificationAction,

@@ -15,7 +15,6 @@ import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
 } from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
-import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
 import {
   IssueAlertActionType,
@@ -228,13 +227,12 @@ type RestoreResolver = (
 
 /**
  * Flow-agnostic base for the messaging-integration notification picker: owns
- * the integrations query, picker state, the once-only restore/auto-select
- * effect, and the create-rule side effect. Callers only supply how to
- * resolve the initial selection via `resolveRestore`.
+ * the integrations query, picker state, the once-only restore/auto-select effect,
+ * and resolution of the selected integration action. Callers only supply how
+ * to resolve the initial selection via `resolveRestore`.
  */
 function useNotificationPicker(resolveRestore: RestoreResolver) {
   const organization = useOrganization();
-  const createProjectRules = useCreateProjectRules();
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [
@@ -322,15 +320,8 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
     setShouldRenderSetupButton(false);
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations, resolveRestore]);
 
-  const createNotificationAction = useCallback(
-    ({
-      shouldCreateRule,
-      projectSlug,
-      name,
-      conditions,
-      actionMatch,
-      frequency,
-    }: Partial<RequestDataFragment> & {projectSlug: string}) => {
+  const getIntegrationAction = useCallback(
+    ({shouldCreateRule}: Partial<RequestDataFragment>) => {
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
@@ -343,20 +334,13 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
         return;
       }
 
-      return createProjectRules.mutateAsync({
-        projectSlug,
-        name,
-        conditions,
-        actions: [integrationAction],
-        actionMatch,
-        frequency,
-      });
+      return integrationAction;
     },
-    [actions, provider, integration, channel, createProjectRules]
+    [actions, provider, integration, channel]
   );
 
   return {
-    createNotificationAction,
+    getIntegrationAction,
     notificationProps: {
       actions,
       provider,
@@ -398,8 +382,10 @@ export function useCreateNotificationAction({
 }: Partial<Pick<RequestDataFragment, 'actions'>> = {}) {
   const resolveRestore = useCallback<RestoreResolver>(
     providersToIntegrations => {
-      const firstAction = defaultActions?.[0];
-      if (!firstAction) {
+      const restoredAction =
+        defaultActions?.find(action => action.id !== IssueAlertActionType.NOTIFY_EMAIL) ??
+        defaultActions?.[0];
+      if (!restoredAction) {
         return {kind: 'auto'};
       }
 
@@ -407,9 +393,10 @@ export function useCreateNotificationAction({
       // by integrationId if present, falling back to the first in the list.
       const matchedProviderKey = Object.keys(providerDetails).find(
         key =>
-          providerDetails[key as keyof typeof providerDetails].action === firstAction.id
+          providerDetails[key as keyof typeof providerDetails].action ===
+          restoredAction.id
       );
-      const integrationId = getIntegrationId(firstAction);
+      const integrationId = getIntegrationId(restoredAction);
       const integrationList = matchedProviderKey
         ? (providersToIntegrations[matchedProviderKey] ?? [])
         : [];
@@ -417,12 +404,12 @@ export function useCreateNotificationAction({
         ? integrationList.find(i => i.id === integrationId)
         : integrationList[0];
 
-      const isIntegrationAction = firstAction.id !== IssueAlertActionType.NOTIFY_EMAIL;
+      const isIntegrationAction = restoredAction.id !== IssueAlertActionType.NOTIFY_EMAIL;
       if (isIntegrationAction && !matchedIntegration) {
         return {kind: 'wait'};
       }
 
-      const restoredChannel = firstAction.channel ?? firstAction.channel_id;
+      const restoredChannel = restoredAction.channel ?? restoredAction.channel_id;
 
       return {
         kind: 'apply',
