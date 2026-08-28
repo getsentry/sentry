@@ -130,7 +130,6 @@ def _create_client() -> Client:
     return Client(
         options["base_url"],
         metrics_backend=SentryMetricsBackend(),
-        propagate_traces=options.get("propagate_traces", False),
         retries=options.get("retries", None),
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get(

@@ -252,7 +252,7 @@ class SyncArtifactBundlesTest(TestCase):
         content_type = "application/x-mach-binary"
         date_created = timezone.now()
         source_storage_path = get_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
-            content, compression="none", content_type=content_type
+            content, compress="none", content_type=content_type
         )
         source_project_debug_file = ProjectDebugFile.objects.create(
             project_id=self.source_proj_foo.id,
@@ -305,7 +305,7 @@ class SyncArtifactBundlesTest(TestCase):
     def test_sync_dual_written_project_debug_files(self) -> None:
         source_project_debug_file = self.create_dif_file(self.source_proj_foo)
         source_storage_path = get_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
-            b"objectstore-backed-debug-file", compression="none"
+            b"objectstore-backed-debug-file", compress="none"
         )
         source_project_debug_file.update(
             storage_path=source_storage_path,

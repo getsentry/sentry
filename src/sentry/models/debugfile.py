@@ -529,7 +529,7 @@ def create_dif_from_file(
             with file.getfile() as source:
                 storage_path = session.put(
                     source,
-                    compression=(
+                    compress=(
                         "zstd"
                         if features.has(
                             "organizations:objectstore-debugfiles-compression", project.organization
@@ -608,7 +608,7 @@ def create_dif_from_fileobj(
             fileobj,
             content_type=content_type,
             filename=get_dif_download_filename(meta),
-            compression=(
+            compress=(
                 "zstd"
                 if features.has(
                     "organizations:objectstore-debugfiles-compression", project.organization
