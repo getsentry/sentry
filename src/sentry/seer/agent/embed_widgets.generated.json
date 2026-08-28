@@ -578,7 +578,7 @@
   },
   {
     "name": "savedIssueView",
-    "description": "The ONLY way to reference a saved Sentry issue view. Use the view ID exactly as the issue-views API returns it. Include the API-provided name when available. Never use a markdown link for issue view references.",
+    "description": "The ONLY way to reference a saved Sentry issue view. Use the view ID exactly as the issue-views API returns it. Include the API-provided name when available. Inline: renders a compact link. Block: loads the saved filters and renders a live preview of matching issues. Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. Never use a markdown link for issue view references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
