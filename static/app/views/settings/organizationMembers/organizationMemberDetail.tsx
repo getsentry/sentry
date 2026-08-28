@@ -279,12 +279,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
         <PanelBody>
           <PanelItem>
-            <Grid
-              columns="minmax(max-content, 2fr) repeat(2, minmax(max-content, 1fr))"
-              gap="xl"
-              overflowX="auto"
-              width="100%"
-            >
+            <Grid columns={{zero: '1fr', xl: '2fr 1fr 1fr'}} gap="xl" width="100%">
               <div>
                 <DetailLabel>{t('Email')}</DetailLabel>
                 <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
