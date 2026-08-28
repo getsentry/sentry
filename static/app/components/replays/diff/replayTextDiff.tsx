@@ -61,7 +61,7 @@ export function ReplayTextDiff() {
         </After>
       </ContentSliderDiff.Header>
       <Flex flexGrow={1} height="0" overflow="auto">
-        <SplitDiff base={leftBody} target={rightBody} type="lines" />
+        <SplitDiff base={leftBody} target={rightBody} />
       </Flex>
     </Stack>
   );

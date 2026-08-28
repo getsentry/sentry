@@ -19,7 +19,7 @@ export default Storybook.story('ReplayPlayer', story => {
           </p>
 
           <NegativeSpaceContainer style={{height: 400}}>
-            <ReplayPlayerMeasurer measure="both">
+            <ReplayPlayerMeasurer>
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>
@@ -45,13 +45,13 @@ export default Storybook.story('ReplayPlayer', story => {
           </p>
 
           <NegativeSpaceContainer style={{height: 200}}>
-            <ReplayPlayerMeasurer measure="both">
+            <ReplayPlayerMeasurer>
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>
           <hr />
           <NegativeSpaceContainer style={{height: 200}}>
-            <ReplayPlayerMeasurer measure="both">
+            <ReplayPlayerMeasurer>
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>

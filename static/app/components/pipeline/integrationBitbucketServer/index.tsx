@@ -15,6 +15,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 const installationConfigSchema = z.object({
   url: z
@@ -59,7 +60,7 @@ function InstallationConfigStep({
 
   useEffect(() => {
     if (advanceError) {
-      setFieldErrors(form, advanceError);
+      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
     }
   }, [advanceError, form]);
 

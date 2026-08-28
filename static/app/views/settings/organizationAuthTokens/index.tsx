@@ -9,7 +9,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
-import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons';
@@ -212,12 +211,10 @@ function OrganizationAuthTokensIndex() {
             }
           >
             {isError && (
-              <SimpleTable.Empty>
-                <LoadingError
-                  message={t('Failed to load organization tokens.')}
-                  onRetry={refetchTokenList}
-                />
-              </SimpleTable.Empty>
+              <SimpleTable.Error
+                message={t('Failed to load organization tokens.')}
+                onRetry={refetchTokenList}
+              />
             )}
             {!isError && isPending && <SimpleTable.Loading />}
             {!isError && !isPending && !tokenList?.length && (
@@ -245,7 +242,7 @@ export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
 }
 
 const ResponsiveSimpleTable = styled(SimpleTable)`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr 1fr;
 
     /* Hide the "Created" and "Last access" columns; the flat nth-child(4n + x)
