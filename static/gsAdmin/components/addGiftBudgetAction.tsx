@@ -65,10 +65,7 @@ function AddGiftBudgetModal({
     const data = {
       freeReservedBudget: {
         apiName: selectedBudget.apiName,
-        // Keep the old target fields while getsentry deployments transition to apiName.
-        id: selectedBudget.id,
         freeBudget: giftAmount * 100, // convert to cents
-        categories: Object.keys(selectedBudget.categories),
       },
       ticketUrl,
       notes,

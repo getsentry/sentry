@@ -49,9 +49,7 @@ describe('addGiftBudgetAction', () => {
           data: {
             freeReservedBudget: {
               apiName: budget.apiName,
-              id: budget.id,
               freeBudget: 500,
-              categories: Object.keys(budget.categories),
             },
             ticketUrl: null,
             notes: 'Support request',
