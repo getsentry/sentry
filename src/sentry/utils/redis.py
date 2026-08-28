@@ -282,6 +282,10 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
             "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
             "sentry.sentry_apps.external_requests.utils.send_and_save_sentry_app_request",
         ),
+        (
+            "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+            "sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request",
+        ),
     }
 )
 

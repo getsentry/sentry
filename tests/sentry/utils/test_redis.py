@@ -168,8 +168,13 @@ class TransactionCheckingRedisTest(SentryTestCase):
             "sentry.ratelimits.redis.RedisRateLimiter.reset",
             "sentry.new_code.reset_rate_limit",
         )
+        existing_webhook_callers = (
+            "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+            "sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request",
+        )
 
         assert _matches_redis_transaction_ratchet(existing_callers)
+        assert _matches_redis_transaction_ratchet(existing_webhook_callers)
         assert not _matches_redis_transaction_ratchet(new_callers)
 
     def test_transaction_callers_include_nested_application_frames(self) -> None:
