@@ -23,7 +23,6 @@ import {ScoreBar} from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
-import {IconFire} from 'sentry/icons/iconFire';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
@@ -249,16 +248,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
         key="countErrors"
         data-test-id="replay-table-column-count-errors"
       >
-        <TabularNumber>
-          {replay.count_errors ? (
-            <Flex gap="xs">
-              <IconFire variant="danger" />
-              {replay.count_errors}
-            </Flex>
-          ) : (
-            0
-          )}
-        </TabularNumber>
+        <TabularNumber>{replay.count_errors ?? 0}</TabularNumber>
         {showDropdownFilters ? (
           <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
         ) : null}

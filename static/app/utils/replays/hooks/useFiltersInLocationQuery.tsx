@@ -13,6 +13,7 @@ export const replayDetailFilterParsers = {
   f_b_type: parseAsStringArray,
   f_c_logLevel: parseAsStringArray,
   f_c_search: parseAsString,
+  f_e_issue: parseAsStringArray,
   f_e_level: parseAsStringArray,
   f_e_project: parseAsStringArray,
   f_e_search: parseAsString,
@@ -75,6 +76,7 @@ const replayDetailFilterKeys = makeReplayDetailFilterKeys({
   array: [
     'f_b_type',
     'f_c_logLevel',
+    'f_e_issue',
     'f_e_level',
     'f_e_project',
     'f_n_method',

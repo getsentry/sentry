@@ -458,6 +458,7 @@ describe('GroupReplays', () => {
 
       const expectedQuery =
         'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-06-30T23%3A29%3A13&query=id%3A%5B346789a703f6454384f1de473b8b9fcc%2Cb05dae9b6be54d21a4d5ad9f8f02b780%5D&referrer=issueReplays';
+      const expectedIssueQuery = `f_e_issue=${mockGroup.id}&groupId=${mockGroup.id}&${expectedQuery}&t_main=errors`;
 
       // Expect the first row to have the correct href
       expect(
@@ -477,6 +478,18 @@ describe('GroupReplays', () => {
       ).toHaveAttribute(
         'href',
         `/organizations/org-slug/explore/replays/${REPLAY_ID_2}/?${expectedQuery}`
+      );
+
+      const issueEventLinks = screen.getAllByRole('link', {
+        name: 'View events for this issue',
+      });
+      expect(issueEventLinks[0]).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/explore/replays/${REPLAY_ID_1}/?${expectedIssueQuery}`
+      );
+      expect(issueEventLinks[1]).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/explore/replays/${REPLAY_ID_2}/?${expectedIssueQuery}`
       );
 
       // Expect the first row to have the correct duration

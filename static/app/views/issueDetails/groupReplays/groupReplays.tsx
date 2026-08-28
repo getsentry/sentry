@@ -4,6 +4,7 @@ import type {Location, Query} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {
@@ -25,6 +26,7 @@ import {
   ReplayOSColumn,
   ReplayPlayPauseColumn,
   ReplaySessionColumn,
+  type ReplayTableColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {replayVideoPlatforms} from 'sentry/data/platformCategories';
@@ -34,12 +36,14 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 
@@ -49,12 +53,50 @@ type Props = {
   group: Group;
 };
 
+const IssueErrorsColumn: ReplayTableColumn = {
+  ...ReplayCountErrorsColumn,
+  Component: props => {
+    const {replay, to} = props;
+    const organization = useOrganization();
+    const {groupId} = useParams<{groupId: string}>();
+
+    if (replay.is_archived) {
+      return null;
+    }
+
+    return (
+      <IssueErrorsLink
+        aria-label={t('View events for this issue')}
+        onClick={event => event.stopPropagation()}
+        title={t('View events for this issue')}
+        to={{
+          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+          query: {
+            ...(typeof to === 'string' ? undefined : to.query),
+            f_e_issue: groupId,
+            groupId,
+            t_main: TabKey.ERRORS,
+          },
+        }}
+      >
+        <ReplayCountErrorsColumn.Component {...props} />
+      </IssueErrorsLink>
+    );
+  },
+};
+
+const IssueErrorsLink = styled(Link)`
+  position: relative;
+  z-index: 1;
+  text-decoration: underline;
+`;
+
 const VISIBLE_COLUMNS = [
   ReplaySessionColumn,
   ReplayOSColumn,
   ReplayBrowserColumn,
   ReplayDurationColumn,
-  ReplayCountErrorsColumn,
+  IssueErrorsColumn,
   ReplayActivityColumn,
   ReplayDetailsLinkColumn,
 ];
@@ -63,7 +105,7 @@ const VISIBLE_COLUMNS_MOBILE = [
   ReplaySessionColumn,
   ReplayOSColumn,
   ReplayDurationColumn,
-  ReplayCountErrorsColumn,
+  IssueErrorsColumn,
   ReplayActivityColumn,
   ReplayDetailsLinkColumn,
 ];
