@@ -3,7 +3,13 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {ScmMessagingActiveRow} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {UNCONFIGURED_SCM_MESSAGING_SETUP} from 'sentry/components/onboarding/scm/scmMessagingSetup';
@@ -196,6 +202,26 @@ describe('ScmMessagingProviderRow', () => {
           variant: 'scm',
         })
       );
+    });
+
+    it('opens the marketplace modal for MS Teams and does not call openPipelineModal', async () => {
+      mockPipeline();
+      const installableMsteams: ScmMessagingResolvedProvider = {
+        providerKey: 'msteams',
+        provider: msteamsProvider,
+        status: 'installable',
+        eligibleIntegrations: [],
+        permissionLimitedIntegration: undefined,
+      };
+      renderGlobalModal({organization});
+      renderRow(installableMsteams);
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+
+      expect(
+        await screen.findByText('Installing Microsoft Teams Integration')
+      ).toBeInTheDocument();
+      expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
     });
   });
 
@@ -398,57 +424,8 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     });
 
-    it('stops spinning when the installed integration resolves to permission-limited', async () => {
-      const {callbacks} = mockPipeline();
-      const installableMsteams: ScmMessagingResolvedProvider = {
-        providerKey: 'msteams',
-        provider: msteamsProvider,
-        status: 'installable',
-        eligibleIntegrations: [],
-        permissionLimitedIntegration: undefined,
-      };
-
-      const {rerender} = render(
-        <ScmMessagingProviderRow
-          resolvedProvider={installableMsteams}
-          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
-          activeRow={null}
-          onActiveRowChange={jest.fn()}
-          onInstallComplete={jest.fn()}
-          onMessagingSetupChange={jest.fn()}
-        />,
-        {organization}
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
-      act(() => callbacks.onComplete?.(msteamsIntegration));
-
-      // Simulate parent refetch starting.
-      rerender(
-        <ScmMessagingProviderRow
-          resolvedProvider={installableMsteams}
-          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
-          activeRow={null}
-          onActiveRowChange={jest.fn()}
-          onInstallComplete={jest.fn()}
-          onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations
-        />
-      );
-
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-
-      // The refetched resolved provider settles to a tenant (permission-limited) result.
-      rerender(
-        <ScmMessagingProviderRow
-          resolvedProvider={permissionLimitedMsteams}
-          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
-          activeRow={null}
-          onActiveRowChange={jest.fn()}
-          onInstallComplete={jest.fn()}
-          onMessagingSetupChange={jest.fn()}
-        />
-      );
+    it('shows the permission-limited state with a disabled Connect button', () => {
+      renderRow(permissionLimitedMsteams);
 
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: /Connect/})).toBeDisabled();
