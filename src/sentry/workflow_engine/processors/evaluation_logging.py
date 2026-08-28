@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Iterable, Mapping
 from logging import Logger
 from typing import TYPE_CHECKING, cast
 
@@ -38,18 +39,19 @@ def _emit_evaluation_artifacts(
     logger: Logger,
     *,
     organization_id: int | None,
-    artifacts: list[dict[str, object]],
+    artifacts: Iterable[Mapping[str, object]],
     log_prefix: str,
 ) -> None:
     direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
     for artifact in artifacts:
+        artifact_with_context = dict(artifact)
         if organization_id is not None:
-            artifact["organization_id"] = organization_id
+            artifact_with_context["organization_id"] = organization_id
 
         if direct_to_sentry:
-            sdk_logger.info(log_prefix, attributes=artifact)
+            sdk_logger.info(log_prefix, attributes=artifact_with_context)
         else:
-            logger.info(log_prefix, extra=artifact)
+            logger.info(log_prefix, extra=artifact_with_context)
 
 
 def emit_detector_evaluation_logs(

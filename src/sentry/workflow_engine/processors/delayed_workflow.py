@@ -701,7 +701,9 @@ def get_groups_to_fire(
                 if if_triggered:
                     groups_to_fire[group_id].add(dcg)
                     if_dcg_passed[workflow_id][group_id][dcg.id] = [
-                        pc.condition.id for pc in if_group.data["condition_evaluations"]
+                        evaluation.condition.id
+                        for evaluation in if_group.data["condition_evaluations"]
+                        if evaluation.triggered
                     ]
                 else:
                     if_dcg_failed[workflow_id][group_id].append(dcg.id)

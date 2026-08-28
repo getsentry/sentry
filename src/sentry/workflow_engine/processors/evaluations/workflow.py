@@ -3,13 +3,11 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import (
-    ActionId,
     DataConditionGroupId,
-    DetectorId,
     GroupId,
     WorkflowEventData,
     WorkflowId,
@@ -51,43 +49,55 @@ class WorkflowEvaluationData(TypedDict):
     """
     Track all of the data that went into evaluating a single workflow.
 
-    # TODO - Should this also include the DetectorWorkflow information?
-
     `trigger_group_id`: The condition group used to trigger the workflow, if present.
-    `trigger_group_eval`: The evaluation of the conditions for triggering a workflow.
-    `filter_group_evals`: Action-filter evaluations keyed by condition group ID.
+    `trigger_group_evaluation`: The workflow's trigger evaluation.
+    `filter_group_evaluations`: Action-filter evaluations keyed by condition group ID.
     `event`: The data that started the workflow's evaluation.
     """
 
     trigger_group_id: DataConditionGroupId | None
-    trigger_group_eval: DataConditionGroupEvaluation
-    filter_group_evals: Mapping[DataConditionGroupId, DataConditionGroupEvaluation]
+    trigger_group_evaluation: DataConditionGroupEvaluation
+    filter_group_evaluations: Mapping[DataConditionGroupId, DataConditionGroupEvaluation]
     event: WorkflowEventData
 
 
-def _condition_group_artifact(
-    condition_group_id: DataConditionGroupId | None,
-    evaluation: DataConditionGroupEvaluation,
-) -> dict[str, object]:
-    return {
-        "condition_group_id": condition_group_id,
-        **evaluation.to_artifact(),
-    }
+class DeferredWorkflowEvaluationArtifact(TypedDict):
+    trigger_group_id: DataConditionGroupId | None
+    filter_group_ids: list[DataConditionGroupId]
+    passing_filter_group_ids: list[DataConditionGroupId]
 
 
-@dataclass(frozen=True, kw_only=True)
-class WorkflowEvaluationArtifact:
+class WorkflowEvaluationArtifactFields(TypedDict):
     evaluation_type: EvaluationType
     evaluation_phase: EvaluationPhase
     workflow_id: WorkflowId
-    detector_id: DetectorId | None
-    detector_type: str | None
-    event_iid: str | None
+    detector_id: int
+    detector_type: str
+    project_id: int
+    event_id: str | None
     group_id: GroupId
     outcome: WorkflowEvaluationOutcome
-    triggered_action_ids: Sequence[ActionId]
-    trigger_group_evaluation: Mapping[DataConditionGroupId, DataConditionGroupEvaluation]
-    filter_group_evaluations: Mapping[DataConditionGroupId, DataConditionGroupEvaluation]
+    triggered_action_ids: list[int]
+    trigger_group_evaluation: dict[str, Any]
+    filter_group_evaluations: list[dict[str, Any]]
+    deferred: NotRequired[DeferredWorkflowEvaluationArtifact]
+
+
+class WorkflowEvaluationArtifact(WorkflowEvaluationArtifactFields):
+    triggered: bool
+    error: str | None
+
+
+class ProcessWorkflowsArtifact(TypedDict):
+    evaluation_type: EvaluationType
+    evaluation_phase: EvaluationPhase
+    outcome: WorkflowEvaluationOutcome
+    project_id: int
+    group_id: GroupId
+    event_id: str | None
+    detector_id: int | None
+    detector_type: str | None
+    error: None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -117,7 +127,7 @@ class WorkflowEvaluation(
         if isinstance(self.result, DeferredWorkflowEvaluationResult):
             return WorkflowEvaluationOutcome.DEFERRED
         if self.error or any(
-            evaluation.error for evaluation in self.data["filter_group_evals"].values()
+            evaluation.error for evaluation in self.data["filter_group_evaluations"].values()
         ):
             return WorkflowEvaluationOutcome.ERROR
         if not self.triggered:
@@ -128,10 +138,10 @@ class WorkflowEvaluation(
         return WorkflowEvaluationOutcome.NO_ACTIONS
 
     @property
-    def artifact_fields(self) -> dict[str, object]:
+    def artifact_fields(self) -> WorkflowEvaluationArtifactFields:
         if isinstance(self.result, DeferredWorkflowEvaluationResult):
             triggered_action_ids: list[int] = []
-            deferred: dict[str, object] | None = {
+            deferred: DeferredWorkflowEvaluationArtifact | None = {
                 "trigger_group_id": self.result.delayed_when_group_id,
                 "filter_group_ids": sorted(self.result.delayed_if_group_ids),
                 "passing_filter_group_ids": sorted(self.result.passing_if_group_ids),
@@ -147,31 +157,39 @@ class WorkflowEvaluation(
             else event_data.event.id
         )
 
-        trigger_group_id = self.data.get("trigger_group_id")
-        trigger_evaluations = self.data.get("trigger_group_eval", {})
-        filter_evaluations = self.data.get("filter_group_evals", {})
-
-        artifact = WorkflowEvaluationArtifact(
-            phase=EvaluationPhase.INITIAL,
-            workflow_id=self.workflow_id,
-            detector_id=self.detector_id,
-            detector_type=self.detector_type,
-            project_id=event_data.event.project_id,
-            event_id=str(event_id) if event_id else None,
-            group_id=event_data.group.id,
-            outcome=self.outcome,
-            triggered_action_ids=list(triggered_action_ids),
-            trigger_group_evaluation={trigger_group_id: trigger_evaluations.to_artifact()},
-            filter_group_evaluations=[
-                _condition_group_artifact(condition_group_id, evaluation)
-                for condition_group_id, evaluation in sorted(filter_evaluations.items())
+        artifact: WorkflowEvaluationArtifactFields = {
+            "evaluation_type": EvaluationType.WORKFLOW,
+            "evaluation_phase": EvaluationPhase.INITIAL,
+            "workflow_id": self.workflow_id,
+            "detector_id": self.detector_id,
+            "detector_type": self.detector_type,
+            "project_id": event_data.event.project_id,
+            "event_id": str(event_id) if event_id else None,
+            "group_id": event_data.group.id,
+            "outcome": self.outcome,
+            "triggered_action_ids": triggered_action_ids,
+            "trigger_group_evaluation": {
+                "condition_group_id": self.data["trigger_group_id"],
+                **self.data["trigger_group_evaluation"].to_artifact(),
+            },
+            "filter_group_evaluations": [
+                {
+                    "condition_group_id": condition_group_id,
+                    **evaluation.to_artifact(),
+                }
+                for condition_group_id, evaluation in sorted(
+                    self.data["filter_group_evaluations"].items()
+                )
             ],
-        )
+        }
 
         if deferred is not None:
             artifact["deferred"] = deferred
 
         return artifact
+
+    def to_artifact(self) -> WorkflowEvaluationArtifact:
+        return cast(WorkflowEvaluationArtifact, super().to_artifact())
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -179,7 +197,7 @@ class ProcessWorkflowsResult:
     evaluations: dict[WorkflowId, WorkflowEvaluation]
     outcome: WorkflowEvaluationOutcome
     project_id: int
-    group_id: int
+    group_id: GroupId
     event_id: str | None
     detector_id: int | None = None
     detector_type: str | None = None
@@ -191,7 +209,7 @@ class ProcessWorkflowsResult:
             for evaluation in self.evaluations.values()
         )
 
-    def to_artifact(self) -> dict[str, object]:
+    def to_artifact(self) -> ProcessWorkflowsArtifact:
         return {
             "evaluation_type": EvaluationType.WORKFLOW,
             "evaluation_phase": EvaluationPhase.INITIAL,

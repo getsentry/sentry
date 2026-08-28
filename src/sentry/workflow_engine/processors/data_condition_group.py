@@ -75,18 +75,10 @@ def evaluate_condition_group_results(
         case DataConditionGroup.Type.ALL:
             triggered, error = DataConditionGroupEvaluation.all(condition_results)
 
-    # When the group didn't trigger, or it's a NONE group (which triggers precisely
-    # when nothing matched), this is empty.
-    passing_evaluations = (
-        [condition_result for condition_result in condition_results if condition_result.triggered]
-        if triggered
-        else []
-    )
-
     return DataConditionGroupEvaluation(
         result=triggered,
         data={
-            "condition_evaluations": passing_evaluations,
+            "condition_evaluations": condition_results,
             "logic_type": logic_type,
         },
         triggered=triggered,
@@ -118,6 +110,7 @@ def evaluate_data_conditions(
 
     for condition, value in conditions_to_evaluate:
         evaluation = condition.evaluate_value(value)
+        condition_evaluations.append(evaluation)
 
         # Check for short-circuiting evaluations
         if evaluation.triggered:
@@ -129,7 +122,7 @@ def evaluate_data_conditions(
                         triggered=True,
                         error=evaluation.error,
                         data={
-                            "condition_evaluations": [evaluation],
+                            "condition_evaluations": condition_evaluations,
                             "logic_type": logic_type,
                         },
                     )
@@ -141,12 +134,10 @@ def evaluate_data_conditions(
                         triggered=False,
                         error=evaluation.error,
                         data={
-                            "condition_evaluations": [],
+                            "condition_evaluations": condition_evaluations,
                             "logic_type": logic_type,
                         },
                     )
-
-        condition_evaluations.append(evaluation)
 
     # Apply the grouping logic to the condition evaluation results.
     return evaluate_condition_group_results(condition_evaluations, logic_type)

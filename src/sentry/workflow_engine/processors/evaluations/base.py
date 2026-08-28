@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any
@@ -69,7 +69,7 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
 
     @property
     @abstractmethod
-    def artifact_fields(self) -> dict[str, Any]:
+    def artifact_fields(self) -> Mapping[str, Any]:
         """The evaluation-specific fields included in the artifact."""
         raise NotImplementedError
 

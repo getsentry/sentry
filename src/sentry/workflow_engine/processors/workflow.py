@@ -493,8 +493,8 @@ def _build_workflow_evaluations(
             ),
             data={
                 "trigger_group_id": workflow.when_condition_group_id,
-                "trigger_group_eval": trigger_eval,
-                "filter_group_evals": filter_evals.get(workflow, {}),
+                "trigger_group_evaluation": trigger_eval,
+                "filter_group_evaluations": filter_evals.get(workflow, {}),
                 "event": event_data,
             },
         )

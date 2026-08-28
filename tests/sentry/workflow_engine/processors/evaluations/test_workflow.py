@@ -73,8 +73,8 @@ class TestWorkflowEvaluationArtifact(TestCase):
             error=error,
             data={
                 "trigger_group_id": 20,
-                "trigger_group_eval": trigger_evaluation,
-                "filter_group_evals": filter_group_evaluations or {},
+                "trigger_group_evaluation": trigger_evaluation,
+                "filter_group_evaluations": filter_group_evaluations or {},
                 "event": self.event_data,
             },
         )
@@ -169,6 +169,43 @@ class TestWorkflowEvaluationArtifact(TestCase):
                 "triggered": False,
                 "error": "action filter failed",
             }
+        ]
+
+    def test_artifact_includes_all_performed_condition_evaluations(self) -> None:
+        failed_condition = self.create_data_condition()
+        passed_condition = self.create_data_condition()
+        condition_evaluations = [
+            DataConditionEvaluation(
+                condition=failed_condition,
+                result=None,
+                triggered=False,
+                data=1,
+            ),
+            DataConditionEvaluation(
+                condition=passed_condition,
+                result=True,
+                triggered=True,
+                data=1,
+            ),
+        ]
+        filter_evaluation = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={
+                "condition_evaluations": condition_evaluations,
+                "logic_type": DataConditionGroup.Type.ANY,
+            },
+        )
+
+        evaluation = self._build_evaluation(
+            triggered=True,
+            filter_group_evaluations={30: filter_evaluation},
+        )
+
+        filter_artifact = evaluation.to_artifact()["filter_group_evaluations"]
+        assert isinstance(filter_artifact, list)
+        assert filter_artifact[0]["condition_evaluations"] == [
+            condition_evaluation.to_artifact() for condition_evaluation in condition_evaluations
         ]
 
     def test_condition_artifact_excludes_raw_input_data(self) -> None:

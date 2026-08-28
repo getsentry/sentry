@@ -9,8 +9,10 @@ __all__ = [
     "EvaluationPhase",
     "EvaluationType",
     "ProcessDetectorsResult",
+    "ProcessWorkflowsArtifact",
     "ProcessWorkflowsResult",
     "WorkflowEvaluation",
+    "WorkflowEvaluationArtifact",
     "WorkflowEvaluationData",
     "WorkflowEvaluationOutcome",
 ]
@@ -26,8 +28,10 @@ from .detector import (
 )
 from .workflow import (
     DeferredWorkflowEvaluationResult,
+    ProcessWorkflowsArtifact,
     ProcessWorkflowsResult,
     WorkflowEvaluation,
+    WorkflowEvaluationArtifact,
     WorkflowEvaluationData,
     WorkflowEvaluationOutcome,
 )

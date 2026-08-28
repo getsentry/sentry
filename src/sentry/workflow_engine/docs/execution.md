@@ -385,7 +385,7 @@ The engine emits metrics for detector lookup/evaluation, condition evaluation, w
 processing, delayed scheduling, caches, and actions. Logging helpers in
 [`utils/log_context.py`](../utils/log_context.py) attach workflow and event context.
 
-[`GroupedWorkflowEvaluationResult`](../processors/evaluations/workflow.py) can produce a
+[`ProcessWorkflowsResult`](../processors/evaluations/workflow.py) can produce a
 structured snapshot of workflow evaluations. Runtime options and feature flags control
 sampling and direct logging.
 
