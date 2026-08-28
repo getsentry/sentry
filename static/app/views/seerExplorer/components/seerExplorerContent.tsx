@@ -322,7 +322,9 @@ export function SeerExplorerContent({
   });
 
   const showReauth =
-    isReauthPending && !!organization?.features.includes('seer-infra-telemetry');
+    isReauthPending &&
+    !!organization?.features.includes('seer-infra-telemetry') &&
+    !!organization?.features.includes('seer-infra-telemetry-user-level-auth');
 
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
