@@ -52,7 +52,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
       .hex();
 
     return (
-      <StyledAvatarButton {...props} size={size} $resolvedSize={size} chonk={avatarChonk}>
+      <StyledAvatarButton {...props} size={size} chonk={avatarChonk}>
         <AvatarContainer size={size} padded={false} chonk={avatarChonk}>
           <StyledLetterAvatar configuration={avatarDefinition.configuration} />
         </AvatarContainer>
@@ -61,12 +61,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
   }
 
   return (
-    <StyledAvatarButton
-      {...props}
-      size={size}
-      $resolvedSize={size}
-      chonk={imageResult?.chonk}
-    >
+    <StyledAvatarButton {...props} size={size} chonk={imageResult?.chonk}>
       <AvatarContainer
         size={size}
         padded={imageResult?.style === 'padded'}
@@ -124,19 +119,19 @@ const AVATAR_BUTTON_ELEVATION: Record<AvatarButtonSize, string> = {
 };
 
 const StyledAvatarButton = styled(Button)<{
-  $resolvedSize: AvatarButtonSize;
   chonk: string | undefined;
 }>`
   padding: 0;
-  width: ${p => p.theme.form[p.$resolvedSize].height};
-  min-width: ${p => p.theme.form[p.$resolvedSize].height};
+  width: ${p => p.theme.form[p.size as AvatarButtonSize].height};
+  min-width: ${p => p.theme.form[p.size as AvatarButtonSize].height};
 
   ${p =>
     p.chonk &&
     css`
       &&::before {
         background: ${p.chonk};
-        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.$resolvedSize]} 0 0px ${p.chonk};
+        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size as AvatarButtonSize]} 0 0px
+          ${p.chonk};
       }
       &&::after {
         border-color: ${p.chonk};
