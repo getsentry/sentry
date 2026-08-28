@@ -453,7 +453,7 @@ describe('ScmMessagingChannelPicker', () => {
     });
 
     it('only shows the integrations it receives — eligibility is enforced upstream', () => {
-      // The row (via the view model) is responsible for filtering to eligibleIntegrations
+      // The row (via the resolved provider) is responsible for filtering to eligibleIntegrations
       // before passing them to the picker. The picker renders whatever it receives.
       const msteamsTeam = OrganizationIntegrationsFixture({
         id: '41',

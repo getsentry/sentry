@@ -28,7 +28,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 type ScmMessagingProviderStatus = 'installable' | 'permission-limited' | 'connected';
 
-export type ScmMessagingProviderViewModel = {
+export type ScmMessagingResolvedProvider = {
   /**
    * Active integrations that can receive Issue Alert actions.
    * Non-empty iff `status === 'connected'`.
@@ -48,7 +48,7 @@ export function useScmMessagingProviders(): {
   isError: boolean;
   isPending: boolean;
   isRefetchingIntegrations: boolean;
-  providers: ScmMessagingProviderViewModel[];
+  providers: ScmMessagingResolvedProvider[];
   refetchIntegrations: () => Promise<QueryObserverResult<OrganizationIntegration[]>>;
   retry: () => void;
 } {
@@ -91,7 +91,7 @@ export function useScmMessagingProviders(): {
   const isPending = integrationsQuery.isPending || providerQueries.isPending;
   const isError = integrationsQuery.isLoadingError || providerQueries.isError;
 
-  const providers = useMemo<ScmMessagingProviderViewModel[]>(() => {
+  const providers = useMemo<ScmMessagingResolvedProvider[]>(() => {
     if (isPending || isError) {
       return [];
     }
