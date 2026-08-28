@@ -63,7 +63,10 @@ type CronDetectorDetailsProps = {
 };
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
-  const environments = detector.dataSources[0].queryObj.environments;
+  const environments = detector.dataSources[0].queryObj?.environments;
+  if (!environments) {
+    return undefined;
+  }
   return getNextCheckInEnv(environments);
 }
 
@@ -83,7 +86,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
     () => ({timezone: timezoneOverride, clockDisplay}),
     [timezoneOverride, clockDisplay]
   );
-  const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
+  const openDocsPanel = useDocsPanel(dataSource.queryObj?.slug, project);
   const queryClient = useQueryClient();
 
   useDetectorQuery<CronDetector>(detector.id, {
@@ -109,8 +112,12 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
     organization,
     projectId: project.id,
-    monitorSlug: dataSource.queryObj.slug,
+    monitorSlug: dataSource.queryObj?.slug,
   });
+
+  if (!dataSource.queryObj) {
+    return null;
+  }
 
   const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
 
@@ -338,14 +345,14 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   );
 }
 
-function useDocsPanel(monitorSlug: string, project: Project) {
+function useDocsPanel(monitorSlug: string | undefined, project: Project) {
   const {openDrawer} = useDrawer();
 
   const contents = (
     <Fragment>
       <DrawerHeader hideBar />
       <DrawerBody>
-        <MonitorQuickStartGuide project={project} monitorSlug={monitorSlug} />
+        <MonitorQuickStartGuide project={project} monitorSlug={monitorSlug ?? ''} />
       </DrawerBody>
     </Fragment>
   );
