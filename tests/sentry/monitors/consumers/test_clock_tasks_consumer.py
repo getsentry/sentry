@@ -575,6 +575,59 @@ class MonitorClockTasksConsumerOrderingTest(TestCase):
         monitor_environment.refresh_from_db()
         assert monitor_environment.status == MonitorStatus.ERROR
 
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_incident_opened_mid_batch_is_seen_by_later_tasks(
+        self, mock_dispatch: mock.MagicMock
+    ) -> None:
+        """
+        The first timeout opens an incident; later tasks in the same group must
+        see it.
+
+        The batch prefetch caches open incidents, but a miss cannot be cached:
+        at prefetch time this environment has no incident at all.
+        """
+        ts = timezone.now().replace(second=0, microsecond=0)
+        monitor_environment = self._create_monitor_environment(ts, "opens-mid-batch")
+        assert monitor_environment.active_incident is None
+
+        checkins = [
+            MonitorCheckIn.objects.create(
+                project_id=monitor_environment.monitor.project_id,
+                monitor=monitor_environment.monitor,
+                monitor_environment=monitor_environment,
+                status=CheckInStatus.IN_PROGRESS,
+                date_added=ts - timedelta(minutes=minutes),
+            )
+            for minutes in (30, 20)
+        ]
+
+        consumer = create_consumer("batched-parallel", {"max_batch_size": 2, "max_workers": 4})
+        for offset, checkin in enumerate(checkins, start=1):
+            send_task(
+                consumer,
+                ts,
+                {
+                    "type": "mark_timeout",
+                    "ts": ts.timestamp(),
+                    "monitor_environment_id": monitor_environment.id,
+                    "checkin_id": checkin.id,
+                },
+                offset=offset,
+            )
+        flush(consumer)
+
+        # One incident, opened by the first task
+        assert (
+            MonitorIncident.objects.filter(
+                monitor_environment=monitor_environment, resolving_checkin=None
+            ).count()
+            == 1
+        )
+
+        # Both tasks dispatched an occurrence. Caching the prefetch miss would
+        # leave the second with no incident and drop its occurrence.
+        assert mock_dispatch.call_count == 2
+
     def test_multiple_timeouts_in_one_group_judged_individually(self) -> None:
         """
         Several timeouts for the SAME environment share one group, and the
@@ -704,7 +757,7 @@ class MonitorClockTasksConsumerOrderingTest(TestCase):
         Without the prefetch each mark_timeout issues its own check-in fetch,
         status write and "newer status-affecting check-in" existence check,
         which measures at a flat ~4 queries per message no matter the batch
-        size. Bulk-loading the two reads brings that to ~2.
+        size. Bulk-loading brings that to ~1.
         """
         ts = timezone.now().replace(second=0, microsecond=0)
 
@@ -726,11 +779,26 @@ class MonitorClockTasksConsumerOrderingTest(TestCase):
                         date_added=ts - timedelta(minutes=5),
                     )
                 )
+                # A backlogged monitor already has an open incident by the time
+                # its timeouts are processed.
+                MonitorIncident.objects.create(
+                    monitor=monitor_environment.monitor,
+                    monitor_environment=monitor_environment,
+                    resolving_checkin=None,
+                    starting_checkin=checkins[-1],
+                    starting_timestamp=ts - timedelta(minutes=5),
+                    grouphash=monitor_environment.build_occurrence_fingerprint(),
+                )
 
             consumer = create_consumer(
                 "batched-parallel", {"max_batch_size": count, "max_workers": 4}
             )
             with ExitStack() as stack:
+                # In production this produces to Kafka and the issue pipeline
+                # runs elsewhere. Inline here it dwarfs everything else.
+                stack.enter_context(
+                    mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+                )
                 captured = [
                     stack.enter_context(CaptureQueriesContext(connections[alias]))
                     for alias in connections
@@ -766,9 +834,9 @@ class MonitorClockTasksConsumerOrderingTest(TestCase):
         # Amortising the bulk loads means a bigger batch costs less per message
         assert large < small, f"queries per message did not improve: {small} -> {large}"
 
-        # Under the ~4/message the unbatched path costs. What remains is the
-        # status UPDATE and `active_incident`, which this does not touch.
-        assert large < 3, f"{large} queries per message"
+        # Well under the flat 4/message the unbatched path costs. What remains
+        # is the per-check-in status UPDATE.
+        assert large < 2, f"{large} queries per message"
 
 
 @mock.patch(

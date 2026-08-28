@@ -718,11 +718,18 @@ class MonitorEnvironment(Model):
             .first()
         )
 
+    _prefetched_active_incident: MonitorIncident | None = None
+
     @property
     def active_incident(self) -> MonitorIncident | None:
         """
         Retrieve the current active incident. If there is no active incident None will be returned.
         """
+        # Only a hit short-circuits: an incident can be opened part way through
+        # a batch, so a miss has to re-query.
+        if self._prefetched_active_incident is not None:
+            return self._prefetched_active_incident
+
         try:
             return MonitorIncident.objects.get(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
