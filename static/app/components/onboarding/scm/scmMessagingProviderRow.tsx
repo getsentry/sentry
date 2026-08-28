@@ -33,7 +33,7 @@ import type {ScmMessagingActiveRow, ScmMessagingSetup} from './scmMessagingSetup
 import type {ScmMessagingResolvedProvider} from './useScmMessagingProviders';
 
 /**
- * The visual state of a single provider row. Derived from the view model,
+ * The visual state of a single provider row. Derived from the resolved provider,
  * the install-flow state machine, and the current messaging setup in session
  * storage.
  */

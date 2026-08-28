@@ -464,7 +464,7 @@ describe('ScmMessagingProviderRow', () => {
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
-      // The refetched view model settles to a tenant (permission-limited) result.
+      // The refetched resolved provider settles to a tenant (permission-limited) result.
       rerender(
         <ScmMessagingProviderRow
           resolvedProvider={permissionLimitedMsteams}
