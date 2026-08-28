@@ -847,6 +847,57 @@ describe('ScmCreateProject', () => {
     });
   });
 
+  it('rolls back the project when Slack workflow creation fails', async () => {
+    mockSlackMessagingIntegration();
+
+    const {project} = mockProjectCreation('python-django', 'python-django');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [IssueStreamDetectorFixture({projectId: project.id})],
+    });
+    const workflowRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Failed to create Slack workflow'},
+      match: [
+        (_url, options) =>
+          options.data?.actionFilters?.[0]?.actions?.some(
+            (action: {type?: string}) => action.type === 'slack'
+          ),
+      ],
+    });
+    const projectDeletionRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'DELETE',
+    });
+
+    render(<ScmCreateProject />, {organization});
+
+    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
+    await userEvent.click(
+      await screen.findByRole('checkbox', {
+        name: 'Integration (Slack, Discord, MS Teams, etc.)',
+      })
+    );
+    await selectEvent.select(await screen.findByLabelText('channel'), '#alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => expect(workflowRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      expect(projectDeletionRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/`,
+        expect.objectContaining({
+          method: 'DELETE',
+          data: {origin: 'getting_started'},
+        })
+      );
+    });
+  });
+
   it('uses default_rules when the messaging integration is not selected', async () => {
     mockSlackMessagingIntegration();
     const {createRequest, project} = mockProjectCreation(
