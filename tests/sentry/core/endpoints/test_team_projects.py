@@ -2,12 +2,14 @@ from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.core.endpoints.organization_projects import DISABLED_FEATURE_ERROR_STRING
 from sentry.ingest import inbound_filters
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.signals import alert_rule_created, project_created
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
@@ -157,6 +159,101 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
 
+    @with_feature({"organizations:team-roles": False})
+    def test_member_can_create_project_on_team_without_team_roles(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "admin")],
+        )
+        self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    @with_feature("organizations:team-roles")
+    def test_member_can_create_project_on_team_with_team_roles(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "contributor")],
+        )
+        self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    @with_feature({"organizations:team-roles": False})
+    def test_member_cannot_create_project_on_other_team_without_team_roles(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=organization, role="member", teams=[])
+        self.login_as(user=user)
+
+        self.get_error_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+    @with_feature("organizations:team-roles")
+    def test_member_cannot_create_project_on_other_team_with_team_roles(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=organization, role="member", teams=[])
+        self.login_as(user=user)
+
+        self.get_error_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+    @with_feature({"organizations:team-roles": False})
+    def test_team_admin_cannot_override_disabled_member_creation_without_team_roles(
+        self,
+    ) -> None:
+        organization = self.create_organization(flags=256)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "admin")],
+        )
+        self.login_as(user=user)
+
+        response = self.get_error_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
+
+    @with_feature("organizations:team-roles")
     def test_disable_member_project_creation(self) -> None:
         test_org = self.create_organization(flags=256)
         test_team = self.create_team(organization=test_org)
