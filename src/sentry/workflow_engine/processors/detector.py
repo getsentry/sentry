@@ -303,7 +303,7 @@ def process_detectors[T](
         with metrics.timer(
             "workflow_engine.process_detectors.evaluate", tags={"detector_type": detector.type}
         ):
-            detector_results = handler.evaluate(data_packet)
+            detector_results = handler._evaluate(data_packet)
 
         emit_detector_evaluation_logs(
             logger,
