@@ -55,7 +55,7 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
     """
     org_id = config.organization.id
     wrote_recalibration_factor = write_recalibration_factor(
-        org_id, config.results.previous_recalibration_factor, config.results.recalibration_factor
+        org_id, config.results.recalibration_factor
     )
     wrote_project_rates = set_project_sample_rates(org_id, config.results.rebalanced_projects)
     wrote_transaction_rates = set_transaction_sample_rates(
@@ -70,14 +70,15 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
     schedule_invalidate_project_config(organization_id=org_id, trigger="dynamic_sampling_per_org")
 
 
-def write_recalibration_factor(org_id: int, previous_factor: float, factor: float | None) -> bool:
+def write_recalibration_factor(org_id: int, factor: float | None) -> bool:
     """Store the recalibration factor this pass computed.
 
     A factor outside the rebalance bounds clears the stored one, so that a stale factor
     cannot keep being applied.
 
-    Returns whether the factor the organization is served with moved, which is what makes
-    its rules worth republishing.
+    Returns whether the stored factor was written or cleared, which is what makes the
+    organization's rules worth republishing. The stored factor expires quickly, so a
+    rewrite of the same value still counts.
     """
     if factor is None:
         return False
@@ -89,12 +90,9 @@ def write_recalibration_factor(org_id: int, previous_factor: float, factor: floa
 
     if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
         set_adjusted_factor(org_id, factor)
-        served_factor = factor
     else:
         delete_adjusted_factor(org_id)
-        served_factor = 1.0
-
-    return not are_equal_with_epsilon(previous_factor, served_factor)
+    return True
 
 
 def generate_recalibrate_orgs_cache_key(org_id: int) -> str:

@@ -145,9 +145,7 @@ class InvalidateProjectConfigsTest(TestCase):
             override_options(self.SERVING_ON),
             patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}),
         ):
-            invalidate = self._write(
-                DynamicSamplingResults(previous_recalibration_factor=1.0, recalibration_factor=1.5)
-            )
+            invalidate = self._write(DynamicSamplingResults(recalibration_factor=1.5))
 
         invalidate.assert_called_once()
 
@@ -157,24 +155,10 @@ class InvalidateProjectConfigsTest(TestCase):
             patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}),
         ):
             invalidate = self._write(
-                DynamicSamplingResults(
-                    previous_recalibration_factor=1.5,
-                    recalibration_factor=MAX_REBALANCE_FACTOR * 2,
-                )
+                DynamicSamplingResults(recalibration_factor=MAX_REBALANCE_FACTOR * 2)
             )
 
         invalidate.assert_called_once()
-
-    def test_an_unchanged_recalibration_factor_does_not_republish(self) -> None:
-        with (
-            override_options(self.SERVING_ON),
-            patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}),
-        ):
-            invalidate = self._write(
-                DynamicSamplingResults(previous_recalibration_factor=1.5, recalibration_factor=1.5)
-            )
-
-        invalidate.assert_not_called()
 
     def test_a_pass_that_wrote_nothing_does_not_republish(self) -> None:
         with override_options(self.SERVING_ON):
