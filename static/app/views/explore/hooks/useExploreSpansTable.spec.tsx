@@ -229,6 +229,7 @@ describe('useExploreSpansTable', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
+            query: {cursor: '0:100:0'},
           },
         },
       }
@@ -244,7 +245,7 @@ describe('useExploreSpansTable', () => {
     expect(filteredFieldsRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.objectContaining({query: expectedQuery}),
+        query: expect.objectContaining({cursor: '', query: expectedQuery}),
       })
     );
     await waitFor(() =>
@@ -262,6 +263,110 @@ describe('useExploreSpansTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({query: expectedQuery}),
       })
+    );
+  });
+
+  it('does not reuse a visible-sample lock after the query changes', async () => {
+    const initialData = [{id: 'aaaaaaaaaaaaaaaa'}];
+    const refreshedData = [{id: 'cccccccccccccccc', 'span.custom': 'fresh value'}];
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: initialData,
+        meta: {dataScanned: 'full', fields: {id: 'string'}},
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return (
+            options.query.query === 'span.op:http' &&
+            !options.query.field.includes('span.custom')
+          );
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{...initialData[0], 'span.custom': 'value'}],
+        meta: {
+          dataScanned: 'full',
+          fields: {id: 'string', 'span.custom': 'string'},
+        },
+      },
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          query: 'span.op:http id:[aaaaaaaaaaaaaaaa]',
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{id: 'bbbbbbbbbbbbbbbb', 'span.custom': 'other value'}],
+        meta: {
+          dataScanned: 'full',
+          fields: {id: 'string', 'span.custom': 'string'},
+        },
+      },
+      method: 'GET',
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+    });
+    const refreshedOriginalQueryRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: refreshedData,
+        meta: {
+          dataScanned: 'full',
+          fields: {id: 'string', 'span.custom': 'string'},
+        },
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return (
+            options.query.query === 'span.op:http' &&
+            options.query.field.includes('span.custom')
+          );
+        },
+      ],
+    });
+
+    const {result, rerender} = renderHookWithProviders(
+      ({query}) => useTestExploreSpansTable(query),
+      {
+        additionalWrapper: Wrapper,
+        initialProps: {query: 'span.op:http'},
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+          },
+        },
+      }
+    );
+
+    await waitFor(() =>
+      expect(result.current.spansTable.result.data).toEqual(initialData)
+    );
+    act(() => result.current.setFields([...result.current.fields, 'span.custom']));
+    await waitFor(() =>
+      expect(result.current.spansTable.result.data).toEqual([
+        {...initialData[0], 'span.custom': 'value'},
+      ])
+    );
+
+    rerender({query: 'span.op:db'});
+    await waitFor(() =>
+      expect(result.current.spansTable.result.data).toEqual([
+        {id: 'bbbbbbbbbbbbbbbb', 'span.custom': 'other value'},
+      ])
+    );
+
+    rerender({query: 'span.op:http'});
+    await waitFor(() => expect(refreshedOriginalQueryRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(result.current.spansTable.result.data).toEqual(refreshedData)
     );
   });
 

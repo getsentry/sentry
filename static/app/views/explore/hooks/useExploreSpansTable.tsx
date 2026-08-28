@@ -24,6 +24,10 @@ interface UseExploreSpansTableOptions {
   queryExtras?: RPCQueryExtras;
 }
 
+interface UseExploreSpansTableImpOptions extends UseExploreSpansTableOptions {
+  cursor?: string;
+}
+
 export interface SpansTableResult {
   eventView: EventView;
   result: ReturnType<typeof useSpansQuery<EventData[]>>;
@@ -114,7 +118,13 @@ export function useExploreSpansTable({
 
   const spansTableResult = useProgressiveQuery<typeof useExploreSpansTableImp>({
     queryHookImplementation: useExploreSpansTableImp,
-    queryHookArgs: {enabled, limit, query: constrainedQuery, queryExtras},
+    queryHookArgs: {
+      cursor: visibleSamples ? '' : undefined,
+      enabled,
+      limit,
+      query: constrainedQuery,
+      queryExtras,
+    },
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
@@ -151,15 +161,20 @@ export function useExploreSpansTable({
       requestState.lastResolved.identityKey !== resolvedSamples.identityKey);
   const shouldLockVisibleSamples =
     visibleSamples !== undefined && requestState.lockedSamples !== visibleSamples;
+  const shouldClearLockedSamples =
+    requestState.lockedSamples !== null &&
+    requestState.lockedSamples.identityKey !== identityKey;
 
-  if (shouldUpdateLastResolved || shouldLockVisibleSamples) {
+  if (shouldUpdateLastResolved || shouldLockVisibleSamples || shouldClearLockedSamples) {
     setRequestState({
       lastResolved: shouldUpdateLastResolved
         ? resolvedSamples
         : requestState.lastResolved,
       lockedSamples: shouldLockVisibleSamples
         ? visibleSamples
-        : requestState.lockedSamples,
+        : shouldClearLockedSamples
+          ? null
+          : requestState.lockedSamples,
     });
   }
 
@@ -181,11 +196,12 @@ export function useExploreSpansTable({
 }
 
 function useExploreSpansTableImp({
+  cursor,
   enabled,
   limit,
   query,
   queryExtras,
-}: UseExploreSpansTableOptions): SpansTableResult {
+}: UseExploreSpansTableImpOptions): SpansTableResult {
   const {selection} = usePageFilters();
 
   const dataset = useSpansDataset();
@@ -221,6 +237,7 @@ function useExploreSpansTableImp({
   }, [dataset, query, selection, sortBys, visibleFields]);
 
   const result = useSpansQuery<EventData[]>({
+    cursor,
     enabled,
     eventView,
     initialData: [],
