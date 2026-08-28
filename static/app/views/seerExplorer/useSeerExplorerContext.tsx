@@ -168,7 +168,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   // Re-open the active surface (sidebar or drawer) whenever the PiP window closes
   // (native controls, dock button, or programmatically) — unless a full close
-  // was requested via `closeSeerExplorer`. Also track enter/leave for usage.
+  // was requested via `closeSeerExplorer`. Entering/leaving PiP is tracked as a
+  // position change (`pip` on enter, restored dock preference on leave).
   const suppressRedockRef = useRef(false);
   const wasPoppedOutRef = useRef(false);
   useEffect(() => {
@@ -179,10 +180,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       return;
     }
 
-    trackAnalytics('seer.explorer.pip.toggled', {
+    trackAnalytics('seer.explorer.sidebar.position_changed', {
       organization,
-      action: isPoppedOut ? 'opened' : 'closed',
-      surface: isSidebarMode ? 'sidebar' : 'drawer',
+      position: isPoppedOut ? 'pip' : sidebarPosition,
       browser_width: window.innerWidth,
       browser_height: window.innerHeight,
     });
@@ -198,7 +198,14 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         openSeerExplorerDrawer();
       }
     }
-  }, [isPoppedOut, isSidebarMode, openSidebar, openSeerExplorerDrawer, organization]);
+  }, [
+    isPoppedOut,
+    isSidebarMode,
+    openSidebar,
+    openSeerExplorerDrawer,
+    organization,
+    sidebarPosition,
+  ]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {

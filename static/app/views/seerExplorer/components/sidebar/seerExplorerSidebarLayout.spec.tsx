@@ -454,10 +454,9 @@ describe('SeerExplorerSidebarLayout', () => {
     await waitFor(() => expect(requestWindow).toHaveBeenCalled());
     await waitFor(() =>
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-        'seer.explorer.pip.toggled',
+        'seer.explorer.sidebar.position_changed',
         expect.objectContaining({
-          action: 'opened',
-          surface: 'sidebar',
+          position: 'pip',
           browser_width: expect.any(Number),
           browser_height: expect.any(Number),
         })

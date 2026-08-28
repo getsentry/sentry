@@ -215,16 +215,6 @@ export type SeerAnalyticsEventsParameters = {
     referrer: string;
     surface: 'global_panel';
   };
-  'seer.explorer.pip.toggled': {
-    /** Whether the user entered or left the document picture-in-picture window. */
-    action: 'opened' | 'closed';
-    /** Current browser viewport height in CSS pixels. */
-    browser_height: number;
-    /** Current browser viewport width in CSS pixels. */
-    browser_width: number;
-    /** Surface the chat was docked to when PiP opened/closed. */
-    surface: 'sidebar' | 'drawer';
-  };
   'seer.explorer.session_copied_to_clipboard': Record<string, unknown>;
   'seer.explorer.session_created': {
     referrer: string;
@@ -236,8 +226,11 @@ export type SeerAnalyticsEventsParameters = {
     browser_height: number;
     /** Current browser viewport width in CSS pixels. */
     browser_width: number;
-    /** Dock preference the user selected. */
-    position: 'auto' | 'right' | 'bottom';
+    /**
+     * Dock preference the user selected, or `pip` when entering document
+     * picture-in-picture. Leaving PiP re-emits the restored dock preference.
+     */
+    position: 'auto' | 'right' | 'bottom' | 'pip';
   };
   'seer.explorer.sidebar.resized': {
     /** Current browser viewport height in CSS pixels. */
@@ -294,7 +287,6 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.global_panel.opened': 'Seer Explorer: Global Panel Opened',
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
   'seer.explorer.message_sent': 'Seer Explorer: Message Sent',
-  'seer.explorer.pip.toggled': 'Seer Explorer: Picture-in-Picture Toggled',
   'seer.explorer.session_created': 'Seer Explorer: Session Created',
   'seer.explorer.session_copied_to_clipboard':
     'Seer Explorer: Session Copied to Clipboard',
