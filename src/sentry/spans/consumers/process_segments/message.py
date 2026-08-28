@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry import options
+from sentry import features, options
 from sentry.ai_monitoring.tasks import spawn_conversation_title_generation
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
@@ -316,8 +316,8 @@ def _detect_performance_problems(
         return
 
     try:
-        # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
-        # segment span, produce occurrences from the results
+        # Run the legacy detectors and, possibly produce occurrences from the results (depending on
+        # conditions explained in `_run_legacy_detectors`)
         detection_settings = get_detection_settings(project)
         legacy_detected_problems = _run_legacy_detectors(
             segment_span, spans, project, enabled_legacy_detector_types, detection_settings
@@ -344,8 +344,8 @@ def _run_legacy_detectors(
 ) -> list[PerformanceProblem]:
     """
     Run legacy issue detectors corresponding to the given detector types on segment data by first
-    creating a fake transaction event. If the `_performance_issues_spans` flag is set, also create
-    occurrences from the results.
+    creating a fake transaction event. If the right conditions hold (see below), create issue
+    occurrences from any detected problems.
     """
     # Create a fake transaction event out of the segment data, to match what the legacy detectors
     # are expecting
@@ -376,40 +376,81 @@ def _run_legacy_detectors(
         standalone=True,
     )
 
-    # This flag is set in Relay, and here enables producing occurrences from the legacy detector
-    # results. For segments derived from transactions, it additionally suppresses the running of
-    # legacy detectors in `save_transaction_events`, thus preventing duplicate occurrences from
-    # being created.
-    if segment_span.get("_performance_issues_spans"):
-        # Prepare a slimmer event payload for the occurrence consumer. This event will be persisted
-        # by the consumer. Once issue detectors can run on standalone spans, we should directly
-        # build a minimal occurrence event payload here, instead.
-        event_data["spans"] = []
-        event_data["timestamp"] = event_data["datetime"]
+    # If we didn't find anything, it's not worth going through all the "can we save occurrences"
+    # checks below, because there's nothing to save
+    if not detected_problems:
+        return []
 
-        for problem in detected_problems:
-            occurrence = IssueOccurrence(
-                id=uuid.uuid4().hex,
-                resource_id=None,
-                project_id=project.id,
-                event_id=event_data["event_id"],
-                fingerprint=[problem.fingerprint],
-                type=problem.type,
-                issue_title=problem.title,
-                subtitle=problem.desc,
-                culprit=event_data["transaction"],
-                evidence_data=problem.evidence_data or {},
-                evidence_display=problem.evidence_display,
-                detection_time=to_datetime(segment_span["end_timestamp"]),
-                level="info",
-            )
+    # Whether or not we create issue occurrences from the problems we've found depends on two
+    # factors:
+    #
+    #  - The `organizations:performance-issues-spans` feature flag, which must be on for occurrences
+    #    to be created.
+    #
+    #  - Whether or not the occurrence might already have been created via
+    #    `save_transaction_events`. If it might have, we don't create the occurrence, because we
+    #    don't want duplicates. (The reason we say "might have" rather than "did" is because there
+    #    are delays built into both the propagation of feature flags to Relay's cache and the
+    #    buffering of segment data, and together those mean that when the relevant feature flags are
+    #    flipped in either direction, checks in Relay and checks in `save_transaction_events` and
+    #    checks here won't give the same answers until all the data sources are reconciled.)
+    #
+    #    In order for it to be possible for a transaction version of this segment's data to have
+    #    already created an occurrence we need the following:
+    #      a) there has to be a transaction,
+    #      b) that transaction has to reach `save_transaction_events`
+    #      c) when it does, `save_transaction_events` has to not skip occurrence creation
+    #    which corresponds to the following conditions:
+    #      a) the segment span has an event id (only exists if copied from a transaction event)
+    #      b) the discard transactions flag is off for the project
+    #      c) the `_performance_issues_spans` flag (set by relay on transaction and segment) is falsy
+    #    And then if those hold, we don't create an occurrence here, because we don't want to have
+    #    duplicate occurrence records.
+    #
+    # To allow us to short circuit and save calls to `features.has`, we check both of the data-based
+    # conditions (event id and `_performance_issues_spans` flag) before checking either of the
+    # feature-flag-based conditions.
 
-            produce_occurrence_to_kafka(
-                payload_type=PayloadType.OCCURRENCE,
-                occurrence=occurrence,
-                event_data=event_data,
-                is_buffered_spans=True,
-            )
+    transaction_occurrence_creation_possible = (
+        segment_span.get("event_id") is not None
+        and not segment_span.get("_performance_issues_spans")
+        and not features.has("projects:discard-transaction", project)
+    )
+
+    if transaction_occurrence_creation_possible or not features.has(
+        "organizations:performance-issues-spans", project.organization
+    ):
+        return detected_problems
+
+    # Prepare a slimmer event payload for the occurrence consumer. This event will be persisted
+    # by the consumer. Once issue detectors can run on standalone spans, we should directly
+    # build a minimal occurrence event payload here, instead.
+    event_data["spans"] = []
+    event_data["timestamp"] = event_data["datetime"]
+
+    for problem in detected_problems:
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            resource_id=None,
+            project_id=project.id,
+            event_id=event_data["event_id"],
+            fingerprint=[problem.fingerprint],
+            type=problem.type,
+            issue_title=problem.title,
+            subtitle=problem.desc,
+            culprit=event_data["transaction"],
+            evidence_data=problem.evidence_data or {},
+            evidence_display=problem.evidence_display,
+            detection_time=to_datetime(segment_span["end_timestamp"]),
+            level="info",
+        )
+
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=event_data,
+            is_buffered_spans=True,
+        )
 
     return detected_problems
 
