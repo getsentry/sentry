@@ -37,6 +37,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils import json, metrics, redis
 
+WATERMARK_PREFIXES = ("tombstone", "row")
+
 
 @dataclass
 class WatermarkBatch:
@@ -68,13 +70,19 @@ def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[
     return lower, transaction_id
 
 
-def set_watermark(
-    prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
+def _write_watermark(
+    prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, transaction_id: str
 ) -> None:
     _get_redis_client().set(
         get_watermark_key(prefix, field),
-        json.dumps((value, sha1(prev_transaction_id.encode("utf8")).hexdigest())),
+        json.dumps((value, transaction_id)),
     )
+
+
+def set_watermark(
+    prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
+) -> None:
+    _write_watermark(prefix, field, value, sha1(prev_transaction_id.encode("utf8")).hexdigest())
     metrics.gauge(
         "deletion.hybrid_cloud.low_bound",
         value,
@@ -83,6 +91,12 @@ def set_watermark(
             watermark=prefix,
         ),
     )
+
+
+def refresh_watermarks(field: HybridCloudForeignKey[Any, Any]) -> None:
+    for prefix in WATERMARK_PREFIXES:
+        low_bound, transaction_id = get_watermark(prefix, field)
+        _write_watermark(prefix, field, low_bound, transaction_id)
 
 
 def _chunk_watermark_batch(
@@ -231,6 +245,8 @@ def _process_hybrid_cloud_foreign_key_cascade(
 
         tombstone_cls = TombstoneBase.class_for_silo_mode(silo_mode)
         assert tombstone_cls, "A tombstone class is required"
+
+        refresh_watermarks(field)
 
         # We rely on the return value of _process_tombstone_reconciliation
         # to short circuit the second half of this `or` so that the terminal batch
