@@ -62,6 +62,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import {IssueListFilters} from './filters';
@@ -925,6 +926,10 @@ function IssueListOverviewInner({
   // Derive from query (URL state) not initialQuery (prop) so the hint
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
+  const selectedProjects = useSelectedProjectsForLLMContext();
+  // Visible rows may span a subset of the page-filter selection; keep those
+  // separate from the hard selected project filter the agent should scope to.
+  const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
 
   useLLMContext({
     contextHint:
@@ -936,13 +941,19 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
+      'isAllProjects true means My Projects / All Projects (no hard single-project filter). ' +
+      'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
       'You can get issue details for aggregate stats, get event details for a specific error event, ' +
       'and search live telemetry for related spans/errors/logs/metrics.',
     viewName: groupSearchView?.name,
     query,
     sort,
     issueCount: queryCount,
-    projectSlugs: [...new Set(groups.map(g => g.project.slug))],
+    projectIds: selectedProjects.projectIds,
+    projectSlugs: selectedProjects.projectSlugs,
+    isAllProjects: selectedProjects.isAllProjects,
+    displayedProjectSlugs,
     environments: selection.environments,
     dateRange: selection.datetime,
     displayedIssues: [

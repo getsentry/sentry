@@ -56,6 +56,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {ReleasesDisplayOption, ReleasesDisplayOptions} from './releasesDisplayOptions';
 import {ReleasesSortOptions} from './releasesSortOptions';
@@ -293,17 +294,24 @@ function ReleasesListInnerPage() {
     forceCheck();
   }, [releases]);
 
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
   useLLMContext({
     contextHint:
       'Sentry releases list page. Shows deployed releases with crash-free rates, adoption, and session/user health. ' +
       'Users can search, sort, filter by status (active/archived), and toggle sessions vs users display. ' +
-      'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days").',
+      'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days"). ' +
+      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
+      'isAllProjects true means My Projects / All Projects (no hard single-project filter).',
     searchQuery: activeQuery,
     activeSort,
     activeDisplay,
     activeStatus,
     selectedTab,
     currentSelectedDateRange: selection.datetime,
+    projectIds: selectedProjects.projectIds,
+    projectSlugs: selectedProjects.projectSlugs,
+    isAllProjects: selectedProjects.isAllProjects,
   });
 
   const handleSearch = useCallback(

@@ -91,3 +91,37 @@ describe('buildResult location header', () => {
     expect(result).not.toContain('Query params:');
   });
 });
+
+describe('buildResult selected projects footnotes', () => {
+  it('includes project slug and id for an explicit selection', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], {
+      isAllProjects: false,
+      projectIds: ['4509062593708032'],
+      projectSlugs: ['mcp-server'],
+      projects: [{id: '4509062593708032', slug: 'mcp-server'}],
+    });
+
+    expect(result).toContain(
+      'This page has the following projects selected: mcp-server (id: 4509062593708032)'
+    );
+  });
+
+  it('states My/All projects when no hard project filter is set', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], {
+      isAllProjects: true,
+      projectIds: [],
+      projectSlugs: [],
+      projects: [],
+    });
+
+    expect(result).toContain(
+      'This page has My Projects / All Projects selected (no hard single-project filter).'
+    );
+  });
+});

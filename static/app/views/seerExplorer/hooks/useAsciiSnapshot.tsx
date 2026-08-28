@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import * as echarts from 'echarts/core';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   aggregateFunctionOutputType,
   parseFunction,
@@ -13,9 +12,12 @@ import {
   formatRate,
 } from 'sentry/utils/formatters';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
-import {useProjects} from 'sentry/utils/useProjects';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {
+  type SelectedProjectsForLLMContext,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 // Types
 type SeriesData = {
@@ -892,9 +894,21 @@ function renderTextNodes(
 export function buildResult(
   gridHelpers: GridHelpers,
   chartTables: string[],
-  projectSlugs: string[],
+  selectedProjects: SelectedProjectsForLLMContext | string[],
   location?: LLMContextLocation
 ): string {
+  // Accept legacy string[] call sites from older tests while the shared helper
+  // shape rolls out; prefer SelectedProjectsForLLMContext going forward.
+  // Empty string[] keeps the old no-footnote behavior — only the object form
+  // can express "My/All Projects" via isAllProjects.
+  const projectSelection: SelectedProjectsForLLMContext = Array.isArray(selectedProjects)
+    ? {
+        isAllProjects: false,
+        projectIds: [],
+        projectSlugs: selectedProjects,
+        projects: selectedProjects.map(slug => ({id: '', slug})),
+      }
+    : selectedProjects;
   // The URL alone leaves the reader to infer what each path segment means. When
   // the caller has the full location, lead with all of it — the route pattern
   // plus params says `123` is a groupId, which a bare URL does not.
@@ -932,17 +946,28 @@ export function buildResult(
 
   let result = header + '\n' + nonBlank.join('\n');
 
-  if (chartTables.length > 0 || projectSlugs.length > 0) {
+  const hasProjectFootnote =
+    projectSelection.projects.length > 0 || projectSelection.isAllProjects;
+
+  if (chartTables.length > 0 || hasProjectFootnote) {
     result += '\n\n=== FOOTNOTES ===\n\n';
 
-    if (projectSlugs.length > 0) {
-      result += `This page has the following projects selected: ${projectSlugs.join(', ')}\n`;
-      if (chartTables.length > 0) {
-        result += '\n';
-      }
+    if (projectSelection.projects.length > 0) {
+      const projectList = projectSelection.projects
+        .map(project =>
+          project.id ? `${project.slug} (id: ${project.id})` : project.slug
+        )
+        .join(', ');
+      result += `This page has the following projects selected: ${projectList}\n`;
+    } else if (projectSelection.isAllProjects) {
+      result +=
+        'This page has My Projects / All Projects selected (no hard single-project filter).\n';
     }
 
     if (chartTables.length > 0) {
+      if (hasProjectFootnote) {
+        result += '\n';
+      }
       chartTables.forEach((table, index) => {
         result += `Chart ${index + 1}:\n${table}\n\n`;
       });
@@ -958,8 +983,7 @@ export function buildResult(
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
 export function useAsciiSnapshot() {
-  const {selection} = usePageFilters();
-  const {projects} = useProjects();
+  const selectedProjects = useSelectedProjectsForLLMContext();
 
   const capture = useCallback(
     (location?: LLMContextLocation) => {
@@ -996,20 +1020,9 @@ export function useAsciiSnapshot() {
       const chartContainers = processCharts(context, chartTables);
       renderTextNodes(context, chartContainers);
 
-      const projectSlugs: string[] = [];
-      if (selection.projects.length > 0) {
-        const projectIdToSlug = new Map(projects.map(p => [parseInt(p.id, 10), p.slug]));
-        for (const projectId of selection.projects) {
-          const slug = projectIdToSlug.get(projectId);
-          if (slug) {
-            projectSlugs.push(slug);
-          }
-        }
-      }
-
-      return buildResult(gridHelpers, chartTables, projectSlugs, location);
+      return buildResult(gridHelpers, chartTables, selectedProjects, location);
     },
-    [selection.projects, projects]
+    [selectedProjects]
   );
 
   return capture;

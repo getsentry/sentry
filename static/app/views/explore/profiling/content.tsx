@@ -47,6 +47,7 @@ import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
@@ -112,14 +113,20 @@ function ProfilingContentInner() {
   }, [selection, projects]);
 
   const tab = decodeTab(location.query.tab);
+  const selectedProjects = useSelectedProjectsForLLMContext();
 
   useLLMContext({
     contextHint:
-      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples.',
+      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples. ' +
+      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
+      'isAllProjects true means My Projects / All Projects (no hard single-project filter).',
     currentTab: tab,
     searchQuery: decodeScalar(location.query.query, ''),
     sort: decodeScalar(location.query.sort, ''),
     currentSelectedDateRange: selection.datetime,
+    projectIds: selectedProjects.projectIds,
+    projectSlugs: selectedProjects.projectSlugs,
+    isAllProjects: selectedProjects.isAllProjects,
   });
 
   const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
