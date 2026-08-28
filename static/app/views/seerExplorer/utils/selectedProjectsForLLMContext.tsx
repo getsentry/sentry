@@ -21,6 +21,10 @@ export type ProjectSelectionMode = 'explicit' | 'my-projects' | 'all-projects';
 
 export type SelectedProjectsForLLMContext = {
   instruction: string;
+  /**
+   * True only for the All Projects sentinel. My Projects is a member subset, so
+   * it is `false` even though ids/slugs stay empty — use `selectionMode`.
+   */
   isAllProjects: boolean;
   projectIds: string[];
   projectSlugs: string[];
@@ -60,7 +64,7 @@ export function getSelectedProjectsForLLMContext(
   if (selectedProjects.length === 0) {
     return {
       selectionMode: 'my-projects',
-      isAllProjects: true,
+      isAllProjects: false,
       projectIds: [],
       projectSlugs: [],
       projects: [],

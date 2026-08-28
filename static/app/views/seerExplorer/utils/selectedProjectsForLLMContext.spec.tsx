@@ -46,7 +46,8 @@ describe('getSelectedProjectsForLLMContext', () => {
   it('treats empty selection as My Projects with a specific agent instruction', () => {
     const result = getSelectedProjectsForLLMContext([], projects);
     expect(result.selectionMode).toBe('my-projects');
-    expect(result.isAllProjects).toBe(true);
+    // My Projects is a member subset — not org-wide All Projects.
+    expect(result.isAllProjects).toBe(false);
     expect(result.projectIds).toEqual([]);
     expect(result.projectSlugs).toEqual([]);
     expect(result.projects).toEqual([]);
@@ -89,7 +90,7 @@ describe('toLLMContextProjectFields', () => {
     expect(toLLMContextProjectFields(selected)).toEqual({
       projectIds: [],
       projectSlugs: [],
-      isAllProjects: true,
+      isAllProjects: false,
       projectSelectionMode: 'my-projects',
       projectSelectionInstruction: selected.instruction,
     });

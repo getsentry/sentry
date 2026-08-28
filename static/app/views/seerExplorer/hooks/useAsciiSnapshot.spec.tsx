@@ -118,7 +118,7 @@ describe('buildResult selected projects footnotes', () => {
 
     const result = buildResult(grid, [], {
       selectionMode: 'my-projects',
-      isAllProjects: true,
+      isAllProjects: false,
       projectIds: [],
       projectSlugs: [],
       projects: [],

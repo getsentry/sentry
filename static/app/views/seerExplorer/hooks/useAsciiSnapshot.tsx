@@ -950,8 +950,9 @@ export function buildResult(
 
   let result = header + '\n' + nonBlank.join('\n');
 
+  // Instruction covers My/All Projects (empty project lists); projects covers pins.
   const hasProjectFootnote =
-    projectSelection.projects.length > 0 || projectSelection.isAllProjects;
+    Boolean(projectSelection.instruction) || projectSelection.projects.length > 0;
 
   if (chartTables.length > 0 || hasProjectFootnote) {
     result += '\n\n=== FOOTNOTES ===\n\n';
