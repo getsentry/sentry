@@ -945,7 +945,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert len(response.data["spans"]) == 1
 
     @patch(
-        "sentry.api.endpoints.organization_ai_conversation_details.fetch_conversation_title",
+        "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.fetch_conversation_title",
         side_effect=Exception("metadata unavailable"),
     )
     def test_survives_a_failing_title_lookup(

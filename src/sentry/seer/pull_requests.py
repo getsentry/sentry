@@ -184,10 +184,11 @@ def record_seer_created_pull_requests(
 ) -> None:
     """Record attribution + a run link for the PRs Seer directly created.
 
-    Attribution is gated on ``organizations:pr-metrics-attribution``; linking is
-    gated only on its own killswitch (checked inside ``link_seer_run_pull_requests``)
-    and always attempted. Both sides are best-effort: any failure is logged and
-    swallowed so the caller's flow is never interrupted.
+    Attribution is gated on ``organizations:pr-metrics``. Linking is a Seer feature in
+    its own right, not part of this pipeline: it is gated only on its own killswitch
+    (checked inside ``link_seer_run_pull_requests``) and always attempted. Both sides
+    are best-effort: any failure is logged and swallowed so the caller's flow is never
+    interrupted.
     """
     log_context = {
         "organization_id": organization.id,
@@ -195,7 +196,7 @@ def record_seer_created_pull_requests(
         "group_id": group_id,
     }
 
-    if features.has("organizations:pr-metrics-attribution", organization):
+    if features.has("organizations:pr-metrics", organization):
         try:
             attribute_seer_created_pull_requests(
                 organization=organization,
@@ -230,7 +231,7 @@ def notify_seer_pr_created(
     This is deliberately independent of the autofix completion hook -- it does no
     sentry-app broadcast, Activity creation, or analytics, and is not gated on
     ``SeerAutofixOperator.has_access``. Attribution and linking keep their own
-    existing gates (the ``organizations:pr-metrics-attribution`` flag and the
+    existing gates (the ``organizations:pr-metrics`` flag and the
     ``seer.pull-request-linking.killswitch.enabled`` killswitch respectively),
     inherited via ``record_seer_created_pull_requests``.
     """

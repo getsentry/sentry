@@ -23,13 +23,13 @@ from django.utils.translation import gettext_lazy as _
 
 from flagpole.conditions import glob_star_match
 from sentry import audit_log, features, options
-from sentry import ratelimits as ratelimiter
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.email_verification import (
     hash_email,
     is_email_verified_by_trusted_provider,
+    is_verification_send_rate_limited,
     send_signup_verification_email,
 )
 from sentry.auth.exceptions import (
@@ -126,14 +126,7 @@ def _sso_verification_required(email: str) -> bool:
     force_emails = options.get("auth.email-verification-at-signup.force-in-experiment") or []
     in_allowlist = any(glob_star_match(p, email) for p in force_emails)
 
-    return features.has("auth:email-verification-at-sso-signup") or in_allowlist
-
-
-def _sso_verification_send_rate_limited(email: str) -> bool:
-    """Throttle verification email sends per email address"""
-    return ratelimiter.backend.is_limited(
-        f"signup-verify-send:email:{hash_email(email)}", limit=5, window=300
-    )
+    return options.get("auth.email-verification-at-signup.sso-enabled") or in_allowlist
 
 
 @dataclass
@@ -352,6 +345,55 @@ class AuthIdentityHandler:
         )
 
         return om
+
+    def _email_verified_via_pending_invite(self) -> bool:
+        """
+        A valid, approved invite token for this org in the session proves the user clicked a
+        link mailed to the invited address, treat that as sufficient proof of email ownership.
+        Not literally the same guarantee as completing the signup verification flow:
+        the invite token's own trust window (INVITE_DAYS_VALID) can outlive a single pipeline session,
+        so a click from days earlier still qualifies.
+
+        Best-effort: this only ever relaxes the verification requirement, so any failure here must fall back to
+        requiring verification as usual rather than block account creation.
+        """
+        try:
+            if self.request.user.is_authenticated:
+                # An existing (logged in) user that is invited to a new org and declines to link to the existing account
+                # ends up here.
+                # In a more complicated scenario (ex: user A is a member of org 1, user B is invited to org 1.
+                # User A's session is still active and they try to accept user B's invite - edge case but possible),
+                # if the existing (logged in) user is already a member of the org that is on the invitation,
+                # _get_invite() (used by invite_helper) looks up the invite by request.user_id first, which returns
+                # the membership for the logged-in user, not the invite that is in the session.
+                # To prevent this mix-up, bail if there is an auth'd user AND that user is already
+                # a member of the org on the invitation.
+                already_a_member = (
+                    organization_service.check_membership_by_id(
+                        user_id=self.request.user.id, organization_id=self.organization.id
+                    )
+                    is not None
+                )
+                if already_a_member:
+                    return False
+
+            invite_helper = ApiInviteHelper.from_session_or_email(
+                request=self.request,
+                organization_id=self.organization.id,
+                email=self.identity["email"],
+                logger=logger,
+            )
+            if (
+                invite_helper is None
+                or not invite_helper.valid_token
+                or not invite_helper.invite_approved
+            ):
+                return False
+            member = invite_helper.invite_context.member
+            return member is not None and member.email.lower() == self.identity["email"].lower()
+        except Exception:
+            logger.exception("sso.login-pipeline.invite-verification-check-failed")
+            return False
 
     def _get_auth_identity(self, **params: Any) -> AuthIdentity | None:
         try:
@@ -581,9 +623,9 @@ class AuthIdentityHandler:
         If rate limited, match the rate limit response in BaseSignupVerificationView.
         """
         if not getattr(state, "verification_email_sent", False):
-            if _sso_verification_send_rate_limited(email):
+            if is_verification_send_rate_limited(email):
                 logger.warning(
-                    "sso_signup.verification_send_rate_limited",
+                    "sso_signup_verification.send_rate_limited",
                     extra={"email_hash": hash_email(email)},
                 )
                 return self._respond(
@@ -704,7 +746,10 @@ class AuthIdentityHandler:
                 messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
-                is_trusted = is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                is_trusted = (
+                    is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                    or self._email_verified_via_pending_invite()
+                )
                 if not is_trusted and _sso_verification_required(self.identity["email"]):
                     return self._send_sso_verification_email_and_redirect(
                         self.identity["email"], state

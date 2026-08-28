@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -50,6 +50,7 @@ function ConnectedProjectRow({projectId}: {projectId: string | null}) {
 }
 
 export function ConnectedProjectsList({automationId}: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 

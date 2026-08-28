@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -61,6 +61,7 @@ export function AutomationHistoryList({automationId, query}: Props) {
   const org = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const getPaginationCaption = useGetPaginationCaption();
 
   const cursor =
     typeof location.query.cursor === 'string' ? location.query.cursor : undefined;

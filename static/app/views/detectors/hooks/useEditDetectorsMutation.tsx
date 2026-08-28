@@ -2,6 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -19,15 +20,20 @@ export function useUpdateDetectorsMutation() {
     {enabled: boolean; ids?: string[]; projects?: number[]; query?: string}
   >({
     mutationFn: params => {
-      return api.requestPromise(`/organizations/${org.slug}/detectors/`, {
-        method: 'PUT',
-        data: {enabled: params.enabled},
-        query: {
-          id: params.ids,
-          query: params.query,
-          project: params.projects,
-        },
-      });
+      return api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
+          path: {organizationIdOrSlug: org.slug},
+        }),
+        {
+          method: 'PUT',
+          data: {enabled: params.enabled},
+          query: {
+            id: params.ids,
+            query: params.query,
+            project: params.projects,
+          },
+        }
+      );
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({

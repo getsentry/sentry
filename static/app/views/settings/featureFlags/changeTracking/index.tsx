@@ -98,7 +98,10 @@ function OrganizationFeatureFlagsChangeTracking() {
   >({
     mutationFn: ({id}) =>
       api.requestPromise(
-        `/organizations/${organization.slug}/flags/signing-secrets/${id}/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
+          {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
+        ),
         {
           method: 'DELETE',
         }
@@ -220,7 +223,7 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
 const ResponsiveSimpleTable = styled(SimpleTable)`
   grid-template-columns: auto auto auto auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr 1fr;
 
     /* Hide "Created" and "Created by"; the flat nth-child(4n + x) form this

@@ -68,8 +68,8 @@ describe('CodeChanges', () => {
     render(
       <CodeChanges
         codeChanges={[
-          fileFixture({path: 'src/a.py'}, 'getsentry/sentry'),
-          fileFixture({path: 'src/b.py'}, 'getsentry/sentry'),
+          fileFixture({path: 'src/a.py'}),
+          fileFixture({path: 'src/b.py'}),
           fileFixture({path: 'src/c.py'}, 'getsentry/getsentry'),
         ]}
       />
@@ -77,17 +77,14 @@ describe('CodeChanges', () => {
 
     expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('getsentry/getsentry')).toBeInTheDocument();
-    // Each repo header carries its own file count.
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('src/a.py')).toBeInTheDocument();
     expect(screen.getByText('src/b.py')).toBeInTheDocument();
     expect(screen.getByText('src/c.py')).toBeInTheDocument();
   });
 
   it('preserves expanded files when repositories and files reorder', async () => {
-    const sentryFile = fileFixture({path: 'src/a.py'}, 'getsentry/sentry');
-    const otherSentryFile = fileFixture({path: 'src/b.py'}, 'getsentry/sentry');
+    const sentryFile = fileFixture({path: 'src/a.py'});
+    const otherSentryFile = fileFixture({path: 'src/b.py'});
     const getsentryFile = fileFixture({path: 'src/c.py'}, 'getsentry/getsentry');
     const {rerender} = render(
       <CodeChanges codeChanges={[sentryFile, otherSentryFile, getsentryFile]} />

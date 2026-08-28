@@ -12,7 +12,7 @@ import devkitCrashesStep5 from 'sentry-images/tempest/devkit-crashes-step5.jpg';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -55,7 +55,7 @@ export function DevKitSettings({organization, project}: Props) {
     <Fragment>
       <Panel>
         <PanelBody>
-          <div>
+          <Container>
             <HeaderWrapper>
               <Title>{t('Get Started with DevKit Crash Monitoring')}</Title>
               <Description>
@@ -63,7 +63,9 @@ export function DevKitSettings({organization, project}: Props) {
                   'Set up your PlayStation development kit to send crash reports to Sentry.'
                 )}
               </Description>
-              <Image src={waitingForEventImg} />
+              <Container display={{zero: 'none', '2xl': 'contents'}}>
+                <Image src={waitingForEventImg} />
+              </Container>
             </HeaderWrapper>
             <Divider />
             <Body>
@@ -227,7 +229,7 @@ export function DevKitSettings({organization, project}: Props) {
                 </GuidedSteps>
               </Setup>
             </Body>
-          </div>
+          </Container>
         </PanelBody>
       </Panel>
     </Fragment>
@@ -266,10 +268,6 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`

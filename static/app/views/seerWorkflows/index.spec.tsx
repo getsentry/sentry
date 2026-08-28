@@ -757,7 +757,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/',
+          pathname: '/organizations/org-slug/issues/autofix/workflows/',
           query: {status: 'failed'},
         },
       },
@@ -796,7 +796,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/',
+          pathname: '/organizations/org-slug/issues/autofix/workflows/',
           query: {status: 'failed'},
         },
       },
@@ -834,7 +834,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/',
+          pathname: '/organizations/org-slug/issues/autofix/workflows/',
           query: {status: 'failed', strategy: 'agentic_triage', period: '7d'},
         },
       },
@@ -973,7 +973,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/',
+          pathname: '/organizations/org-slug/issues/autofix/workflows/',
           query: {expandLatest: 'agentic_triage', status: 'succeeded'},
         },
       },

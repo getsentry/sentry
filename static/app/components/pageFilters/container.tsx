@@ -13,6 +13,8 @@ import {
   updatePersistence,
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
+import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -188,7 +190,22 @@ export function PageFiltersContainer({
       project: [],
     });
     updateDateTime(newDateState, location, navigate);
-  }, [location, navigate, resetPeriodDays, selection.datetime.utc, shouldResetDateTime]);
+
+    // Recorded after the update, which clears any prior datetime adjustment.
+    PageFiltersStore.addAdjustment('datetime', {
+      reason: maxDateRange
+        ? PageFilterAdjustmentReason.MAX_DATE_RANGE
+        : PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
+      days: resetPeriodDays,
+    });
+  }, [
+    location,
+    maxDateRange,
+    navigate,
+    resetPeriodDays,
+    selection.datetime.utc,
+    shouldResetDateTime,
+  ]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
