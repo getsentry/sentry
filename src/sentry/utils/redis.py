@@ -46,19 +46,24 @@ _REDIS_TRANSACTION_ALLOWLIST = frozenset(
         "getsentry.models.billingseatassignment.BillingSeatAssignment.schedule_redis_key_sync.<locals>._sync_redis_key",
         "sentry.dynamic_sampling.rules.helpers.latest_releases.ProjectBoostedReleases.has_boosted_releases",
         "sentry.models.counter.increment_project_counter_in_cache",
+        "sentry.models.counter.refill_cached_short_ids",
         "sentry.notifications.notifications.activity.base.GroupActivityNotification.__init__",
         "sentry.ratelimits.redis.RedisRateLimiter.reset",
         "sentry.rules.actions.integrations.create_ticket.utils.create_issue",
         "sentry.rules.conditions.event_frequency.EventFrequencyCondition.query_hook",
         "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition.query_hook",
         "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition.query_hook",
+        "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
+        "sentry.tasks.assemble.delete_assemble_status",
+        "sentry.uptime.config_producer._send_to_redis",
         "sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",
         "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
     }
 )
 
 
-def _redis_transaction_caller() -> str | None:
+def _redis_transaction_callers() -> tuple[str, ...]:
+    callers = []
     frame = inspect.currentframe()
     while frame is not None:
         module = frame.f_globals.get("__name__", "")
@@ -67,20 +72,22 @@ def _redis_transaction_caller() -> str | None:
             for prefix in ("django.utils.functional", "redis", "rediscluster", "sentry_redis_tools")
         )
         if module and not is_redis_internal:
-            return f"{module}.{frame.f_code.co_qualname}"
+            callers.append(f"{module}.{frame.f_code.co_qualname}")
         frame = frame.f_back
-    return None
+    return tuple(callers)
 
 
 def _assert_redis_transaction_allowed(message: str) -> None:
     try:
         in_test_assert_no_transaction(message)
     except AssertionError:
-        caller = _redis_transaction_caller()
-        if caller is not None and (
-            caller in _REDIS_TRANSACTION_ALLOWLIST
-            or caller.startswith(("getsentry.testutils.", "sentry.testutils.", "tests."))
+        callers = _redis_transaction_callers()
+        caller = callers[0] if callers else None
+        if caller is not None and caller.startswith(
+            ("getsentry.testutils.", "sentry.testutils.", "tests.")
         ):
+            return
+        if not _REDIS_TRANSACTION_ALLOWLIST.isdisjoint(callers):
             return
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
 

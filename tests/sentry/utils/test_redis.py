@@ -136,12 +136,15 @@ class ClusterManagerTestCase(TestCase):
         side_effect=AssertionError,
     )
     @mock.patch(
-        "sentry.utils.redis._redis_transaction_caller",
-        return_value="sentry.models.counter.increment_project_counter_in_cache",
+        "sentry.utils.redis._redis_transaction_callers",
+        return_value=(
+            "sentry.cache.redis.RedisCache.get",
+            "sentry.models.counter.increment_project_counter_in_cache",
+        ),
     )
     def test_grandfathered_transaction_caller_is_allowed(
         self,
-        _redis_transaction_caller: mock.MagicMock,
+        _redis_transaction_callers: mock.MagicMock,
         in_test_assert_no_transaction: mock.MagicMock,
     ) -> None:
         _assert_redis_transaction_allowed("message")
@@ -151,12 +154,12 @@ class ClusterManagerTestCase(TestCase):
         side_effect=AssertionError,
     )
     @mock.patch(
-        "sentry.utils.redis._redis_transaction_caller",
-        return_value="sentry.new_code.unexpected_redis_call",
+        "sentry.utils.redis._redis_transaction_callers",
+        return_value=("sentry.new_code.unexpected_redis_call",),
     )
     def test_new_transaction_caller_is_rejected(
         self,
-        _redis_transaction_caller: mock.MagicMock,
+        _redis_transaction_callers: mock.MagicMock,
         in_test_assert_no_transaction: mock.MagicMock,
     ) -> None:
         with pytest.raises(
