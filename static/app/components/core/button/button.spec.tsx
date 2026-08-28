@@ -61,7 +61,7 @@ describe('Button', () => {
 
       act(() => {
         resizeCallback?.(
-          [{contentBoxSize: [{inlineSize: 800}]} as ResizeObserverEntry],
+          [{contentBoxSize: [{inlineSize: 800}]} as unknown as ResizeObserverEntry],
           {} as ResizeObserver
         );
       });
