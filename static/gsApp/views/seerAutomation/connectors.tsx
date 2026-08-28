@@ -38,6 +38,7 @@ function integrationsQueryOptions(orgSlug: string) {
     '/organizations/$organizationIdOrSlug/integrations/',
     {
       path: {organizationIdOrSlug: orgSlug},
+      query: {includeConfig: 0},
       staleTime: 0,
     }
   );
