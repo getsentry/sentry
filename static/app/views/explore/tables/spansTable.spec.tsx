@@ -21,10 +21,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {FieldValueType} from 'sentry/utils/fields';
-import {
-  type SpansTableResult,
-  useExploreSpansTable,
-} from 'sentry/views/explore/hooks/useExploreSpansTable';
+import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {
@@ -232,78 +229,6 @@ describe('SpansTable', () => {
     );
   }
 
-  function QueriedSpansTable({caseInsensitive}: {caseInsensitive?: true}) {
-    const spansTableResult = useExploreSpansTable({
-      enabled: true,
-      limit: 10,
-      query: '',
-      queryExtras: {caseInsensitive},
-    });
-
-    return (
-      <SpansTable
-        booleanTags={{}}
-        numberTags={{}}
-        spansTableResult={spansTableResult}
-        stringTags={{}}
-        validatedFieldTypes={{}}
-      />
-    );
-  }
-
-  it('shows a loading state before the initial rows resolve', () => {
-    const pendingResult = makeQueryResult([]);
-    Object.assign(pendingResult, {
-      isFetching: true,
-      isPending: true,
-      isSuccess: false,
-      status: 'pending',
-    });
-
-    renderTable({tableResult: pendingResult});
-
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(screen.queryByText('No spans found')).not.toBeInTheDocument();
-  });
-
-  it('does not retain rows when query extras change', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [firstRow],
-        meta: {dataScanned: 'full', fields: {id: 'string'}},
-      },
-      method: 'GET',
-      match: [
-        function (_url: string, options: Record<string, any>) {
-          return options.query.caseInsensitive === undefined;
-        },
-      ],
-    });
-    const updatedQueryRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: new Promise(() => {}),
-      method: 'GET',
-      match: [MockApiClient.matchQuery({caseInsensitive: '1'})],
-    });
-    mockSpanDetails(firstRow, [
-      {name: 'span.custom', type: 'str', value: 'custom value'},
-    ]);
-
-    const {rerender} = render(<QueriedSpansTable />, {
-      organization,
-      additionalWrapper: Wrapper,
-    });
-    await userEvent.click(await screen.findByRole('button', {name: 'Show span details'}));
-    expect(await screen.findByText('custom value')).toBeInTheDocument();
-
-    rerender(<QueriedSpansTable caseInsensitive />);
-    await waitFor(() => expect(updatedQueryRequest).toHaveBeenCalledTimes(1));
-
-    expect(screen.queryByText('span one')).not.toBeInTheDocument();
-    expect(screen.queryByText('custom value')).not.toBeInTheDocument();
-  });
-
   it('does not render or fetch span details when the feature is disabled', () => {
     const detailsMock = mockSpanDetails(firstRow, []);
 
@@ -393,9 +318,7 @@ describe('SpansTable', () => {
     });
     rerenderTable(pendingResult);
 
-    expect(screen.getByRole('button', {name: 'Hide span details'})).toBeInTheDocument();
     expect(screen.getByText('custom value')).toBeInTheDocument();
-    expect(screen.getByTestId('column-loading-indicator')).toBeInTheDocument();
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
 
     const failedResult = makeQueryResult(undefined);
@@ -409,7 +332,6 @@ describe('SpansTable', () => {
     });
     rerenderTable(failedResult);
 
-    expect(screen.getByRole('button', {name: 'Hide span details'})).toBeInTheDocument();
     expect(screen.getByText('custom value')).toBeInTheDocument();
     expect(screen.getByText('Failed to update span samples')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();

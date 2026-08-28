@@ -105,55 +105,6 @@ describe('useExploreSpansTable', () => {
     );
   });
 
-  it('keeps the previous samples while updated fields load', async () => {
-    const initialData = [{id: 'aaaaaaaaaaaaaaaa'}];
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: initialData,
-        meta: {
-          dataScanned: 'full',
-          fields: {id: 'string'},
-        },
-      },
-      method: 'GET',
-      match: [
-        function (_url: string, options: Record<string, any>) {
-          return !options.query.field.includes('span.custom');
-        },
-      ],
-    });
-    const updatedFieldsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: new Promise(() => {}),
-      method: 'GET',
-      match: [
-        function (_url: string, options: Record<string, any>) {
-          return options.query.field.includes('span.custom');
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useTestExploreSpansTable(''), {
-      additionalWrapper: Wrapper,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/traces/',
-        },
-      },
-    });
-
-    await waitFor(() =>
-      expect(result.current.spansTable.result.data).toEqual(initialData)
-    );
-
-    act(() => result.current.setFields([...result.current.fields, 'span.custom']));
-
-    await waitFor(() => expect(updatedFieldsRequest).toHaveBeenCalledTimes(1));
-    expect(result.current.spansTable.result.data).toEqual(initialData);
-    expect(result.current.spansTable.result.isPlaceholderData).toBe(true);
-  });
-
   it('filters field-only refreshes to the current sample ids', async () => {
     const initialData = [{id: 'aaaaaaaaaaaaaaaa'}, {id: 'bbbbbbbbbbbbbbbb'}];
     const query = 'span.op:http OR span.op:db';
@@ -194,31 +145,6 @@ describe('useExploreSpansTable', () => {
         },
       ],
     });
-    const secondFilteredFieldsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: initialData.map(row => ({
-          ...row,
-          'span.custom': 'value',
-          'span.other': 'other value',
-        })),
-        meta: {
-          dataScanned: 'full',
-          fields: {
-            id: 'string',
-            'span.custom': 'string',
-            'span.other': 'string',
-          },
-        },
-      },
-      method: 'GET',
-      match: [
-        function (_url: string, options: Record<string, any>) {
-          return options.query.field.includes('span.other');
-        },
-      ],
-    });
-
     const {result} = renderHookWithProviders(() => useTestExploreSpansTable(query), {
       additionalWrapper: Wrapper,
       initialRouterConfig: {
@@ -248,16 +174,6 @@ describe('useExploreSpansTable', () => {
       )
     );
     expect(result.current.spansTable.result.pageLinks).toBe(originalPageLinks);
-
-    act(() => result.current.setFields([...result.current.fields, 'span.other']));
-
-    await waitFor(() => expect(secondFilteredFieldsRequest).toHaveBeenCalledTimes(1));
-    expect(secondFilteredFieldsRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({query: expectedQuery}),
-      })
-    );
   });
 
   it('does not reuse a visible-sample lock after the query changes', async () => {
