@@ -2394,18 +2394,18 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByRole('link', {name: 'TypeError in checkout cart'})
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Seer setup warning')).not.toBeInTheDocument();
 
     deferred.resolve();
 
     // Once project config resolves, the warning and the cards appear together.
-    expect(await screen.findByText(/Seer isn't set up for/)).toBeInTheDocument();
+    expect(await screen.findByLabelText('Seer setup warning')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
   });
 
-  it('shows the subset warning banner naming only the unconfigured projects', async () => {
+  it('shows the subset warning counting only the unconfigured projects', async () => {
     mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
       projectConfig: [
@@ -2416,12 +2416,13 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    const banner = await screen.findByText(/Seer isn't set up for/);
-    expect(banner).toHaveTextContent(
-      "Seer isn't set up for beta-project. Set it up here."
+    await userEvent.hover(await screen.findByLabelText('Seer setup warning'));
+
+    const tooltip = await screen.findByText(/Seer automation isn't set up for/);
+    expect(tooltip).toHaveTextContent(
+      "Seer automation isn't set up for 1 project in the current filter. Enable automation"
     );
-    expect(banner).not.toHaveTextContent('alpha-project');
-    expect(screen.getByRole('link', {name: 'here'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Enable automation'})).toHaveAttribute(
       'href',
       '/settings/org-slug/seer/'
     );
@@ -2441,7 +2442,7 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: 'Create Plan 1'})
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Seer setup warning')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Set up Seer to start fixing issues')
     ).not.toBeInTheDocument();
