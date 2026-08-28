@@ -45,7 +45,7 @@ describe('MsTeamsConnection modal', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation. Return to this tab when you're done."
+        "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation."
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toHaveAttribute(
@@ -60,7 +60,7 @@ describe('MsTeamsConnection modal', () => {
 
     expect(
       screen.getByText(
-        "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation. Return to this tab when you're done."
+        "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation."
       )
     ).toBeInTheDocument();
     expect(

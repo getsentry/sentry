@@ -7,15 +7,19 @@ import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function MsTeamsConnection({
   Header,
   Body,
   provider,
 }: ModalRenderProps & {provider: IntegrationProvider}) {
+  const organization = useOrganization();
   const externalInstall = provider.metadata.aspects.externalInstall;
 
   return (
@@ -37,6 +41,17 @@ function MsTeamsConnection({
               icon={<IconOpen />}
               href={externalInstall.url}
               external
+              onClick={() => {
+                trackIntegrationAnalytics('integrations.installation_start', {
+                  integration: 'msteams',
+                  integration_type: 'first_party',
+                  is_scm: false,
+                  view: MessagingIntegrationAnalyticsView.ONBOARDING,
+                  variant: 'scm',
+                  already_installed: false,
+                  organization,
+                });
+              }}
             >
               {externalInstall.buttonText}
             </LinkButton>
