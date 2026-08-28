@@ -146,7 +146,7 @@ from sentry.seer.sentry_data_models import (
     OrganizationSlugResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
-    ReportMonitoringProviderHealthResponse,
+    ReportMonitoringProviderConnectionHealthResponse,
     SendSeerWebhookErrorResponse,
     SendSeerWebhookSuccessResponse,
     SpanAttribute,
@@ -970,14 +970,14 @@ def report_monitoring_provider_connection_health(
     provider: str,
     status: str,
     details: list[dict[str, Any]] | None = None,
-) -> ReportMonitoringProviderHealthResponse:
+) -> ReportMonitoringProviderConnectionHealthResponse:
     """Record connection health for an org-level monitoring integration."""
     if not status:
         logger.error(
             "monitoring_provider.health.empty_status",
             extra={"organization_id": organization_id, "provider": provider},
         )
-        return ReportMonitoringProviderHealthResponse(updated=False)
+        return ReportMonitoringProviderConnectionHealthResponse(updated=False)
 
     ctx = integration_service.organization_context(
         organization_id=organization_id, provider=provider
@@ -990,7 +990,7 @@ def report_monitoring_provider_connection_health(
         or integration.status != ObjectStatus.ACTIVE
         or org_integration.status != ObjectStatus.ACTIVE
     ):
-        return ReportMonitoringProviderHealthResponse(updated=False)
+        return ReportMonitoringProviderConnectionHealthResponse(updated=False)
 
     health: ConnectionHealth = {
         "status": status,
@@ -1010,7 +1010,7 @@ def report_monitoring_provider_connection_health(
     integration_service.update_organization_integration(
         org_integration_id=org_integration.id, config=config
     )
-    return ReportMonitoringProviderHealthResponse(updated=True)
+    return ReportMonitoringProviderConnectionHealthResponse(updated=True)
 
 
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or

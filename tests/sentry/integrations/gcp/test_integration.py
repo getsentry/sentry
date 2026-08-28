@@ -474,15 +474,16 @@ class GcpIntegrationTest(TestCase):
             organization_id=self.organization.id,
             integration_id=integration.id,
         )
-        assert org_integration.config["connection_status"] == "permission_denied"
-        assert org_integration.config["project_statuses"] == [
+        health = org_integration.config["connection_health"]
+        assert health["status"] == "permission_denied"
+        assert health["details"] == [
             {
-                "gcp_project_id": "my-gcp-project",
-                "connection_status": "permission_denied",
+                "resource_id": "my-gcp-project",
+                "status": "permission_denied",
                 "error_detail": "IAM roles not granted",
             }
         ]
-        assert org_integration.config["last_verified_at"]
+        assert health["last_checked_at"]
 
     def test_post_install_records_error_when_verification_missing(self) -> None:
         integration = self.create_integration(
@@ -508,12 +509,13 @@ class GcpIntegrationTest(TestCase):
             organization_id=self.organization.id,
             integration_id=integration.id,
         )
-        assert org_integration.config["connection_status"] == "error"
-        assert org_integration.config["last_verified_at"] is None
-        assert org_integration.config["project_statuses"] == [
+        health = org_integration.config["connection_health"]
+        assert health["status"] == "error"
+        assert health["last_checked_at"] is None
+        assert health["details"] == [
             {
-                "gcp_project_id": "my-gcp-project",
-                "connection_status": "error",
+                "resource_id": "my-gcp-project",
+                "status": "error",
                 "error_detail": "Verification failed to run during setup.",
             }
         ]
