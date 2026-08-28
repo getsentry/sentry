@@ -629,9 +629,7 @@ describe('projectPerformance', () => {
       threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
       allowedValues: allowedDurationValues.slice(0, 23),
       defaultValue: 100,
-      // Keep the step delta small — 100 -> 5000 is 17 keypresses and flaked on
-      // the default 5s timeout under CI load.
-      newValue: 500,
+      newValue: 5000,
       sliderIdentifier: {
         label: 'Minimum Time Saved',
         index: 0,
@@ -747,13 +745,15 @@ describe('projectPerformance', () => {
       expect(performanceIssuesGetMock).toHaveBeenCalled();
       expect(slider).toHaveValue(indexOfValue.toString());
 
-      // Slide value on range slider.
-      await userEvent.click(slider);
+      // Per-key presses: hold syntax (`{ArrowRight>N}`) under-steps the scraps
+      // slider. delay:null keeps large deltas under the default 5s timeout.
+      const ue = userEvent.setup({delay: null});
+      await ue.click(slider);
       const indexDelta = newValueIndex - indexOfValue;
       for (let index = 0; index < Math.abs(indexDelta); index++) {
-        await userEvent.keyboard(indexDelta > 0 ? '{ArrowRight}' : '{ArrowLeft}');
+        await ue.keyboard(indexDelta > 0 ? '{ArrowRight}' : '{ArrowLeft}');
       }
-      await userEvent.tab();
+      await ue.tab();
 
       expect(slider).toHaveValue(newValueIndex.toString());
 
