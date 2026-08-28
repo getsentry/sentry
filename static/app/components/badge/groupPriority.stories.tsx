@@ -24,12 +24,14 @@ export const Dropdown = Storybook.story('GroupPriorityDropdown', story => {
     const [value, setValue] = useState(PriorityLevel.MEDIUM);
 
     return (
-      <GroupPriorityDropdown
-        value={value}
-        onChange={setValue}
-        groupId="1"
-        lastEditedBy="system"
-      />
+      <Storybook.SideBySide>
+        <GroupPriorityDropdown
+          value={value}
+          onChange={setValue}
+          groupId="1"
+          lastEditedBy="system"
+        />
+      </Storybook.SideBySide>
     );
   });
 });
