@@ -4,8 +4,9 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -23,19 +24,20 @@ import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxSta
 
 function NoFeedback() {
   return (
-    <Container padding="3xl">
-      <Stack align="center">
-        <img src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
-        <Stack align="center" gap="md">
-          <Text as="div" size="xl" bold variant="secondary" align="center">
-            {t('Inbox Zero')}
-          </Text>
-          <Text as="p" size="md" variant="secondary" align="center">
-            {t('You have two options: take a nap or be productive.')}
-          </Text>
-        </Stack>
-      </Stack>
-    </Container>
+    <EmptyState
+      padding="3xl"
+      align="center"
+      justify="center"
+      illustration={
+        <Image
+          width="auto"
+          src={waitingForEventImg}
+          alt={t('A person waiting for a phone to ring')}
+        />
+      }
+      title={t('Inbox Zero')}
+      description={t('You have two options: take a nap or be productive.')}
+    />
   );
 }
 
