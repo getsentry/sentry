@@ -26,10 +26,7 @@ export function getSelectedProjectsForLLMContext(
   selectedProjects: PageFilters['projects'],
   projects: Project[]
 ): SelectedProjectsForLLMContext {
-  if (
-    selectedProjects.length === 0 ||
-    selectedProjects.includes(ALL_ACCESS_PROJECTS)
-  ) {
+  if (selectedProjects.length === 0 || selectedProjects.includes(ALL_ACCESS_PROJECTS)) {
     return {
       isAllProjects: true,
       projectIds: [],
