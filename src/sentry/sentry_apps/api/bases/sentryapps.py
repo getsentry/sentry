@@ -242,6 +242,8 @@ class SentryAppPermission(SentryPermission):
     }
 
     def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
+        scope_map = self._scopes_for_sentry_app(sentry_app)
+
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -276,9 +278,7 @@ class SentryAppPermission(SentryPermission):
         if sentry_app.is_published and request.method == "GET":
             return True
 
-        return ensure_scoped_permission(
-            request, self._scopes_for_sentry_app(sentry_app).get(request.method)
-        )
+        return ensure_scoped_permission(request, scope_map.get(request.method))
 
     def _scopes_for_sentry_app(self, sentry_app):
         scope_map: Mapping[str, Collection[str]]

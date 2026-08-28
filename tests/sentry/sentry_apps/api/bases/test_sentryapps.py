@@ -60,6 +60,31 @@ class SentryAppPermissionTest(TestCase):
         assert warning.call_args.kwargs["extra"]["scope"] == "event:read"
         assert capture_message.call_count == 1
 
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
+    def test_unpublished_app_uses_runtime_scope_declaration_for_superuser(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        request = drf_request_from_request(
+            self.make_request(user=self.superuser, method="GET", is_superuser=True)
+        )
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint",
+            method="GET",
+            permission_classes=(SentryAppPermission,),
+        ):
+            assert self.permission.has_object_permission(request, APIView(), self.sentry_app)
+            assert not access.DEFAULT.has_scope("org:admin")
+            warning.assert_not_called()
+            capture_message.assert_not_called()
+            assert not access.DEFAULT.has_scope("event:read")
+
+        assert warning.call_count == 1
+        assert warning.call_args.kwargs["extra"]["scope"] == "event:read"
+        assert capture_message.call_count == 1
+
     def test_request_user_is_not_app_owner_fails(self) -> None:
         non_owner = self.create_user()
         self.request = drf_request_from_request(self.make_request(user=non_owner, method="GET"))
