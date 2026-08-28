@@ -247,10 +247,15 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
 
+        snooze_user_filter = (
+            Q(user_id=user.id) | Q(user_id=None)
+            if getattr(user, "is_interactive", True)
+            else Q(user_id=None)
+        )
         rule_snooze_lookup = {
             snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}
             for snooze in RuleSnooze.objects.filter(
-                Q(user_id=user.id) | Q(user_id=None),
+                snooze_user_filter,
                 rule__in=[item.id for item in item_list],
             ).values("rule_id", "user_id", "owner_id")
         }
@@ -348,7 +353,7 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
         if "snooze" in attrs:
             snooze = attrs["snooze"]
             created_by = None
-            if user.id == snooze.get("owner_id"):
+            if getattr(user, "is_interactive", True) and user.id == snooze.get("owner_id"):
                 created_by = "You"
             elif owner_id := snooze.get("owner_id"):
                 creator = user_service.get_user(owner_id)

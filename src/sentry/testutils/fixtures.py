@@ -218,6 +218,12 @@ class Fixtures:
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
 
+    def create_service_account(self, *args, **kwargs):
+        return Factories.create_service_account(*args, **kwargs)
+
+    def create_service_account_auth_token(self, *args, **kwargs):
+        return Factories.create_service_account_auth_token(*args, **kwargs)
+
     def create_member_invite(self, *args, **kwargs):
         return Factories.create_member_invite(*args, **kwargs)
 

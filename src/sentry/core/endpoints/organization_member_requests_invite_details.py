@@ -12,6 +12,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import (
     get_allowed_org_roles,
@@ -60,7 +61,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request_user: User,
+        request_user: User | RpcServiceAccount,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,

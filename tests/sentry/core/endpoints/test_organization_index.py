@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.analytics.events.data_consent_org_creation import (
@@ -15,6 +16,7 @@ from sentry.analytics.events.data_consent_org_creation import (
 from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.services.service_account import service_account_service
 from sentry.models.apitoken import ApiToken
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
@@ -231,6 +233,61 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         assert len(cell_response.data) == 1
 
         assert control_response.data == cell_response.data
+
+    def test_service_account_is_listed_by_typed_membership(self) -> None:
+        organization = self.create_organization(cell="us", owner=self.user)
+        shared_id = 1_000_000
+        account = self.create_service_account(
+            id=shared_id,
+            organization_id=organization.id,
+            name="Deploy bot",
+        )
+        colliding_user = self.create_user(id=shared_id)
+
+        with outbox_runner():
+            self.create_member(
+                organization=organization,
+                service_account_id=account.id,
+                role="owner",
+            )
+            other_organization = self.create_organization(
+                cell="de",
+                owner=colliding_user,
+            )
+            token = service_account_service.create_token(
+                organization_id=organization.id,
+                service_account_id=account.id,
+                name="Production",
+                scopes=["org:admin", "org:read"],
+                expires_at=None,
+            )
+
+        assert token is not None
+        client = APIClient()
+        headers = {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
+
+        for silo_mode in (SiloMode.CELL, SiloMode.CONTROL):
+            with self.subTest(silo_mode=silo_mode.value), assume_test_silo_mode(silo_mode):
+                response = client.get(reverse(self.endpoint), **headers)
+                owner_response = client.get(
+                    reverse(self.endpoint),
+                    {"owner": 1},
+                    **headers,
+                )
+
+            assert response.status_code == 200, response.content
+            assert {int(item["id"]) for item in response.data} == {organization.id}
+            assert other_organization.id not in {int(item["id"]) for item in response.data}
+            assert owner_response.status_code == 403, owner_response.content
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            create_response = client.post(
+                reverse(self.endpoint),
+                data={"name": "Not allowed"},
+                format="json",
+                **headers,
+            )
+        assert create_response.status_code == 403, create_response.content
 
 
 @cell_silo_test(cells=create_test_cells("us", "de"))

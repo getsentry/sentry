@@ -2,11 +2,14 @@ from typing import Any
 from unittest import mock
 
 from django.db.utils import IntegrityError
+from rest_framework.test import APIClient
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.issues.action_log import GroupActionActor
+from sentry.issues.action_log.types import LinkExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -18,6 +21,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -258,6 +262,53 @@ class GroupIntegrationDetailsTest(APITestCase):
             self.assert_correctly_linked(group, "APP-123", integration, org)
 
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
+
+    def test_service_account_link_activity_uses_typed_actor(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:service-account",
+        )
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["event:read", "event:write", "org:read", "project:read"],
+        )
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+            teams=[self.team],
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
+
+        with (
+            self.feature("organizations:integrations-issue-basic"),
+            capture_action_log() as action_log,
+        ):
+            response = APIClient().put(
+                path,
+                data={"externalIssue": "APP-123"},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+            )
+
+        assert response.status_code == 201, response.content
+        activity = Activity.objects.filter(
+            group=self.group,
+            type=ActivityType.CREATE_ISSUE.value,
+        ).latest("id")
+        assert activity.user_id is None
+        action_log.assert_logged(
+            LinkExternalIssueAction,
+            group_id=self.group.id,
+            actor=GroupActionActor.service_account(account.id),
+        )
 
     @mock.patch.object(ExampleIntegration, "get_issue")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")

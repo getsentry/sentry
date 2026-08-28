@@ -6,6 +6,7 @@ from uuid import uuid4
 import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -236,6 +237,34 @@ class DebugFilesTest(DebugFilesTestCases):
         response = self.client.delete(self.url + "?id=" + download_id)
         assert response.status_code == 204, response.content
         assert ProjectDebugFile.objects.count() == 0
+
+    def test_service_account_does_not_inherit_colliding_user_download_role(self) -> None:
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        download_id = response.data[0]["id"]
+        self.organization.update_option("sentry:debug_files_role", "owner")
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["project:read"],
+        )
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+            teams=[self.team],
+        )
+
+        response = APIClient().get(
+            f"{self.url}?id={download_id}",
+            HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+        )
+
+        assert response.status_code == 403, response.content
 
     def test_delete_without_id_returns_404(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)

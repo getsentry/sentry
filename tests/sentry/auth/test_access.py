@@ -9,6 +9,8 @@ from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.services.access.service import access_service
+from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.services.service_account.serial import serialize_service_account
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -50,9 +52,16 @@ def silo_from_user(
 def silo_from_request(request, organization: Organization | None = None, scopes=None) -> Access:
     rpc_user_org_context = None
     if organization:
-        rpc_user_org_context = organization_service.get_organization_by_id(
-            id=organization.id, user_id=request.user.id
-        )
+        if getattr(request.auth, "actor_type", None) == "service_account":
+            rpc_user_org_context = organization_service.get_organization_by_id(
+                id=organization.id,
+                actor_type=request.auth.actor_type,
+                actor_id=request.auth.actor_id,
+            )
+        else:
+            rpc_user_org_context = organization_service.get_organization_by_id(
+                id=organization.id, user_id=request.user.id
+            )
     return access.from_request_org_and_scopes(
         request=request, rpc_user_org_context=rpc_user_org_context, scopes=scopes
     )
@@ -801,6 +810,54 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.has_project_access(project) is False
         assert result.has_project_membership(project) is False
         assert result.has_global_access is False
+
+    def test_service_account_uses_typed_member_and_token_scope(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.org.update(flags=0)
+
+        shared_id = 1_000_000
+        service_account = self.create_service_account(
+            id=shared_id,
+            organization_id=self.org.id,
+            name="Deploy bot",
+        )
+        service_account_member = self.create_member(
+            organization=self.org,
+            service_account_id=service_account.id,
+            role="member",
+            teams=[self.team1],
+        )
+
+        colliding_user = self.create_user(id=shared_id)
+        self.create_member(
+            organization=self.org,
+            user=colliding_user,
+            role="owner",
+            teams=[self.team2],
+        )
+
+        request = self.make_request(
+            user=serialize_service_account(service_account),
+            auth=AuthenticatedToken(
+                kind="api_token",
+                actor_type="service_account",
+                actor_id=service_account.id,
+                organization_id=self.org.id,
+                scopes=["org:read", "project:read"],
+            ),
+        )
+
+        result = self.from_request(request, self.org)
+
+        assert result.role == service_account_member.role
+        assert result.scopes == frozenset({"org:read", "project:read"})
+        assert result.team_ids_with_membership == frozenset({self.team1.id})
+        assert result.has_project_access(self.project1)
+        assert not result.has_project_access(self.project2)
+
+        other_organization = self.create_organization()
+        assert self.from_request(request, other_organization) == NoAccess()
+        assert self.from_request(request) == NoAccess()
 
 
 @all_silo_test

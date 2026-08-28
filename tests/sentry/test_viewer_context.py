@@ -9,6 +9,7 @@ import pytest
 
 from sentry.viewer_context import (
     ActorType,
+    ViewerActor,
     ViewerContext,
     get_viewer_context,
     observe_viewer_context_propagation,
@@ -20,6 +21,7 @@ from sentry.viewer_context import (
 class TestActorType:
     def test_values_are_strings(self):
         assert ActorType.USER == "user"
+        assert ActorType.SERVICE_ACCOUNT == "service_account"
         assert ActorType.SYSTEM == "system"
         assert ActorType.INTEGRATION == "integration"
         assert ActorType.UNKNOWN == "unknown"
@@ -47,6 +49,45 @@ class TestViewerContext:
         assert ctx.organization_id == 10
         assert ctx.user_id == 42
         assert ctx.actor_type is ActorType.SYSTEM
+
+    def test_service_account_actor_round_trip(self):
+        ctx = ViewerContext(
+            organization_id=10,
+            actor=ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=42),
+        )
+
+        assert ctx.user_id is None
+        assert ctx.actor_type is ActorType.SERVICE_ACCOUNT
+        assert ctx.serialize()["actor"] == {"type": "service_account", "id": 42}
+        assert ViewerContext.deserialize(ctx.serialize()) == ctx
+
+    def test_service_account_actor_cannot_carry_user_id(self):
+        with pytest.raises(ValueError, match="cannot carry a user_id"):
+            ViewerContext(
+                user_id=7,
+                actor=ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=42),
+            )
+
+    def test_service_account_type_requires_typed_actor(self):
+        with pytest.raises(ValueError, match="requires a service-account actor"):
+            ViewerContext(actor_type=ActorType.SERVICE_ACCOUNT)
+
+    def test_service_account_type_rejects_user_actor(self):
+        with pytest.raises(ValueError, match="requires a service-account actor"):
+            ViewerContext(
+                actor_type=ActorType.SERVICE_ACCOUNT,
+                actor=ViewerActor(type=ActorType.USER, id=42),
+            )
+
+    def test_legacy_user_fields_populate_typed_actor(self):
+        ctx = ViewerContext(user_id=42, actor_type=ActorType.USER)
+
+        assert ctx.actor == ViewerActor(type=ActorType.USER, id=42)
+
+    def test_delegating_user_does_not_populate_non_user_actor(self):
+        ctx = ViewerContext(user_id=42, actor_type=ActorType.AGENT)
+
+        assert ctx.actor is None
 
 
 class TestViewerContextScope:

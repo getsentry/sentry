@@ -10,9 +10,11 @@ from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
+    _key_id,
     decode_viewer_context,
     encode_viewer_context,
     is_jwt_viewer_context,
+    viewer_context_from_header,
 )
 
 
@@ -109,8 +111,6 @@ class TestDecodeViewerContext(TestCase):
             "exp": time.time() - 60,
             "iss": "sentry",
         }
-        from sentry.viewer_context import _key_id
-
         expired_token = pyjwt.encode(
             payload,
             "test-secret-key",
@@ -149,6 +149,23 @@ class TestDecodeViewerContext(TestCase):
 
         with pytest.raises(ValueError, match="No verification keys available"):
             decode_viewer_context(token)
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_header_rejects_service_account_without_actor(self):
+        payload = {
+            "actor_type": "service_account",
+            "iat": time.time(),
+            "exp": time.time() + 60,
+            "iss": "sentry",
+        }
+        token = pyjwt.encode(
+            payload,
+            "test-secret-key",
+            algorithm="HS256",
+            headers={"kid": _key_id("test-secret-key")},
+        )
+
+        assert viewer_context_from_header(token) is None
 
 
 class TestIsJwtViewerContext(TestCase):

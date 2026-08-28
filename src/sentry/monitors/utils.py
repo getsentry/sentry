@@ -347,7 +347,9 @@ def create_issue_alert_rule(
         source=RuleSource.CRON_MONITOR,
     ).run()
     RuleActivity.objects.create(
-        rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
+        rule=rule,
+        user_id=request.user.id if getattr(request.user, "is_interactive", True) else None,
+        type=RuleActivityType.CREATED.value,
     )
     return rule.id
 
@@ -363,7 +365,7 @@ def create_issue_alert_rule_data(
     :param issue_alert_rule: Dictionary of configurations for an associated Rule
     :return: dict
     """
-    return {
+    data = {
         "actionMatch": "any",
         "actions": [
             {
@@ -381,11 +383,6 @@ def create_issue_alert_rule_data(
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
         ],
-        "createdBy": {
-            "email": user.email,
-            "id": user.id,
-            "name": user.email,
-        },
         "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         "environment": issue_alert_rule.get("environment", None),
         "filterMatch": "all",
@@ -403,6 +400,13 @@ def create_issue_alert_rule_data(
         "projects": [project.slug],
         "snooze": False,
     }
+    if getattr(user, "is_interactive", True):
+        data["createdBy"] = {
+            "email": user.email,
+            "id": user.id,
+            "name": user.email,
+        }
+    return data
 
 
 def update_issue_alert_rule(
@@ -466,7 +470,9 @@ def update_issue_alert_rule(
         ).run()
 
         RuleActivity.objects.create(
-            rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
+            rule=updated_rule,
+            user_id=request.user.id if getattr(request.user, "is_interactive", True) else None,
+            type=RuleActivityType.UPDATED.value,
         )
 
     return issue_alert_rule.id

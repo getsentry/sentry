@@ -33,6 +33,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
 )
 from sentry.auth.services.auth import auth_service
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.auth.superuser import is_active_superuser
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import (
@@ -49,6 +50,7 @@ from sentry.roles import organization_roles, team_roles
 from sentry.users.models.user import User
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
+from sentry.viewer_context import ActorType, get_viewer_context
 
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
@@ -98,7 +100,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request_user: User,
+        request_user: User | RpcServiceAccount,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
@@ -363,7 +365,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user_id == request.user.id and (assigned_org_role != member.role):
+            viewer = get_viewer_context()
+            actor = viewer.actor if viewer is not None else None
+            is_self = (
+                actor is not None
+                and member.actor_type == actor.type.value
+                and member.actor_id == actor.id
+            ) or (actor is None and member.user_id == request.user.id)
+            if is_self and assigned_org_role != member.role:
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
@@ -483,9 +492,15 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         # with superuser read write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser
         if request.user.is_authenticated and not is_active_superuser(request):
+            viewer = get_viewer_context()
+            actor = viewer.actor if viewer is not None else None
+            if actor is not None and actor.type == ActorType.SERVICE_ACCOUNT:
+                actor_filter = {"service_account_id": actor.id}
+            else:
+                actor_filter = {"user_id": request.user.id}
             try:
                 acting_member = OrganizationMember.objects.get(
-                    organization=organization, user_id=request.user.id
+                    organization=organization, **actor_filter
                 )
             except OrganizationMember.DoesNotExist:
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)

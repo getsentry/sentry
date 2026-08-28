@@ -86,6 +86,8 @@ class OrganizationService(RpcService):
         *,
         id: int,
         user_id: int | None = None,
+        actor_type: str | None = None,
+        actor_id: int | None = None,
         slug: str | None = None,
         include_projects: bool | None = True,
         include_teams: bool | None = True,
@@ -99,6 +101,8 @@ class OrganizationService(RpcService):
 
         :param id: The id of the organization to fetch
         :param user_id: The id of the user to fetch membership for.
+        :param actor_type: Typed principal kind for actor-aware callers.
+        :param actor_id: Typed principal id for actor-aware callers.
         :param slug: The slug of the organization to fetch (alternative to id)
         :param include_projects: Whether you want projects in the response.
         :param include_teams: Whether you want teams in the response.
@@ -313,6 +317,8 @@ class OrganizationService(RpcService):
         slug: str,
         only_visible: bool,
         user_id: int | None = None,
+        actor_type: str | None = None,
+        actor_id: int | None = None,
         include_projects: bool | None = True,
         include_teams: bool | None = True,
     ) -> RpcUserOrganizationContext | None:
@@ -328,6 +334,8 @@ class OrganizationService(RpcService):
         org_context = self.get_organization_by_id(
             id=org_id,
             user_id=user_id,
+            actor_type=actor_type,
+            actor_id=actor_id,
             include_projects=include_projects,
             include_teams=include_teams,
         )

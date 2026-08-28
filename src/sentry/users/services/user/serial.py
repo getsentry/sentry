@@ -5,6 +5,7 @@ from typing import Any
 
 from django.utils.functional import LazyObject, empty
 
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -28,6 +29,11 @@ def serialize_generic_user(user: Any) -> RpcUser | None:
             lazy._setup()
         user = lazy._wrapped
     if user is None or user.id is None:
+        return None
+    # A service account is an authenticated actor, but it is not a User. Callers
+    # that accept only an RpcUser must treat it like the absence of a human user
+    # instead of reinterpreting its independently allocated id as User.id.
+    if isinstance(user, RpcServiceAccount):
         return None
     if isinstance(user, RpcUser):
         return user

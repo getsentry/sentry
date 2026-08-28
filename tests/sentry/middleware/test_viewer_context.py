@@ -8,12 +8,16 @@ from django.test import RequestFactory, override_settings
 from rest_framework.request import Request
 
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.viewer_context import ViewerContextMiddleware, _viewer_context_from_request
 from sentry.seer import agent_token
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import (
     ActorType,
+    ViewerActor,
     ViewerContext,
     encode_viewer_context,
     get_viewer_context,
@@ -105,6 +109,34 @@ class ViewerContextFromRequestTest(TestCase):
         assert ctx.organization_id is None
         assert ctx.token is token
 
+    def test_service_account_is_the_typed_actor_not_a_user(self):
+        request = self.factory.get("/")
+        account = RpcServiceAccount(
+            id=123,
+            organization_id=self.organization.id,
+            name="Deploy bot",
+            is_active=True,
+        )
+        token = AuthenticatedToken(
+            scopes=["org:read"],
+            entity_id=456,
+            kind="api_token",
+            organization_id=self.organization.id,
+            actor_type="service_account",
+            actor_id=account.id,
+        )
+        request.user = account
+        request.auth = token
+
+        ctx = _viewer_context_from_request(request)
+
+        assert request.user.id == account.id
+        assert request.user.is_authenticated
+        assert ctx.user_id is None
+        assert ctx.actor == ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=account.id)
+        assert ctx.actor_type is ActorType.SERVICE_ACCOUNT
+        assert ctx.token is token
+
 
 class ViewerContextMiddlewareTest(TestCase):
     def setUp(self):
@@ -149,6 +181,50 @@ class ViewerContextMiddlewareTest(TestCase):
         assert len(captured) == 1
         assert captured[0] is not None
         assert captured[0].user_id == self.user.id
+
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
+    def test_service_account_auth_populates_request_user_and_viewer_actor(self):
+        captured: list[ViewerContext | None] = []
+
+        def get_response(request):
+            captured.append(get_viewer_context())
+            assert request.user.id == account.id
+            assert request.user.get_username() == account.name
+            assert request.user.get_full_name() == account.name
+            assert request.user.get_display_name() == account.name
+            assert str(request.user) == account.name
+            assert request.user.email == ""
+            assert not request.user.has_usable_password()
+            assert not request.user.has_verified_primary_email()
+            assert not request.user.is_interactive
+            return MagicMock(status_code=200)
+
+        account = self.create_service_account(
+            organization_id=self.organization.id,
+            name="Deploy bot",
+        )
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["org:read"])
+        bearer = token.plaintext_token
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            request = self.factory.get(
+                f"/api/0/organizations/{self.organization.slug}/projects/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+            AuthenticationMiddleware(lambda r: MagicMock(status_code=200)).process_request(
+                cast(Request, request)
+            )
+            ViewerContextMiddleware(get_response)(request)
+
+        assert request.user.id == account.id
+        assert request.user.class_name() == "ServiceAccount"
+        assert request.auth.actor_type == "service_account"
+        assert captured[0] is not None
+        assert captured[0].actor == ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=account.id)
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_cleans_up_after_request(self):

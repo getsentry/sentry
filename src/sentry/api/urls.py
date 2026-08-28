@@ -45,6 +45,12 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
+from sentry.api.endpoints.organization_service_accounts import (
+    OrganizationServiceAccountDetailsEndpoint,
+    OrganizationServiceAccountsEndpoint,
+    OrganizationServiceAccountTokenDetailsEndpoint,
+    OrganizationServiceAccountTokensEndpoint,
+)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
@@ -2625,6 +2631,26 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/org-auth-tokens/(?P<token_id>[^/]+)/$",
         OrganizationAuthTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-org-auth-token-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/$",
+        OrganizationServiceAccountsEndpoint.as_view(),
+        name="sentry-api-0-organization-service-accounts",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>[^/]+)/$",
+        OrganizationServiceAccountDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>[^/]+)/tokens/$",
+        OrganizationServiceAccountTokensEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-tokens",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>[^/]+)/tokens/(?P<token_id>[^/]+)/$",
+        OrganizationServiceAccountTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-token-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/stats/$",

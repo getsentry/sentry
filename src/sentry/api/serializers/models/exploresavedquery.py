@@ -70,21 +70,25 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
-        starred_queries = dict(
-            ExploreSavedQueryStarred.objects.filter(
-                explore_saved_query__in=item_list,
-                user_id=user.id,
-                organization=item_list[0].organization if item_list else None,
-                starred=True,
-            ).values_list("explore_saved_query_id", "position")
-        )
-        user_last_visited = dict(
-            ExploreSavedQueryLastVisited.objects.filter(
-                explore_saved_query__in=item_list,
-                user_id=user.id,
-                organization=item_list[0].organization if item_list else None,
-            ).values_list("explore_saved_query_id", "last_visited")
-        )
+        if getattr(user, "is_interactive", True):
+            starred_queries = dict(
+                ExploreSavedQueryStarred.objects.filter(
+                    explore_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=item_list[0].organization if item_list else None,
+                    starred=True,
+                ).values_list("explore_saved_query_id", "position")
+            )
+            user_last_visited = dict(
+                ExploreSavedQueryLastVisited.objects.filter(
+                    explore_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=item_list[0].organization if item_list else None,
+                ).values_list("explore_saved_query_id", "last_visited")
+            )
+        else:
+            starred_queries = {}
+            user_last_visited = {}
 
         service_serialized = user_service.serialize_many(
             filter={

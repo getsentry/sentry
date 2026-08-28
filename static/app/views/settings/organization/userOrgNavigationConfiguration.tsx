@@ -306,6 +306,17 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
       name: t('Developer Settings'),
       items: [
         {
+          path: `${organizationSettingsPathPrefix}/service-accounts/`,
+          title: t('Service Accounts'),
+          keywords: [t('automation'), t('api token'), t('machine user')],
+          description: t('Manage non-human accounts and their API tokens'),
+          id: 'service-accounts',
+          show: ({organization}) =>
+            !!organization &&
+            organization.features.includes('service-accounts') &&
+            organization.access.includes('org:admin'),
+        },
+        {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
           title: t('Organization Tokens'),
           keywords: [

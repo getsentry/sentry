@@ -22,7 +22,7 @@ from sentry.models.organization import Organization
 
 class FlagWebhookSigningSecretResponse(TypedDict):
     createdAt: str
-    createdBy: int
+    createdBy: int | None
     id: int
     provider: str
     secret: str
@@ -89,13 +89,14 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
         has_permission = request.access.has_scope("org:write") or request.access.has_scope(
             "org:admin"
         )
+        is_interactive = getattr(request.user, "is_interactive", True)
 
         try:
             secret = FlagWebHookSigningSecretModel.objects.filter(
                 organization_id=organization.id
             ).get(provider=validator.validated_data["provider"])
             # allow update access if the user created the secret
-            is_creator = request.user.id == secret.created_by
+            is_creator = is_interactive and request.user.id == secret.created_by
         except FlagWebHookSigningSecretModel.DoesNotExist:
             # anyone can post a new secret
             is_creator = True
@@ -105,7 +106,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 provider=validator.validated_data["provider"],
                 defaults={
-                    "created_by": request.user.id,
+                    "created_by": request.user.id if is_interactive else None,
                     "date_added": datetime.now(tz=timezone.utc),
                     "provider": validator.validated_data["provider"],
                     "secret": validator.validated_data["secret"],

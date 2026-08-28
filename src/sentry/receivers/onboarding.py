@@ -99,9 +99,11 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
     scope.set_extra("source", "record_new_project")
     scope.set_attribute("source", "record_new_project")
 
+    if user is not None and not getattr(user, "is_interactive", True):
+        return
     if user_id is not None:
         default_user_id = user_id
-    elif user.is_authenticated:
+    elif user is not None and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
         user_id = default_user_id = get_owner_id(project, user)

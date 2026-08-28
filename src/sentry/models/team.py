@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
+from sentry.auth.services.service_account.model import RpcServiceAccount
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -36,7 +37,7 @@ class TeamManager(BaseManager["Team"]):
     def get_for_user(
         self,
         organization: Organization,
-        user: User | RpcUser | AnonymousUser,
+        user: User | RpcUser | RpcServiceAccount | AnonymousUser,
         scope: str | None = None,
         is_team_admin: bool = False,
     ) -> Sequence[Team]:
@@ -55,8 +56,13 @@ class TeamManager(BaseManager["Team"]):
         if env.request and is_active_superuser(env.request):
             team_list = list(base_team_qs)
         else:
+            member_filter = (
+                {"service_account_id": user.id}
+                if isinstance(user, RpcServiceAccount)
+                else {"user_id": user.id}
+            )
             try:
-                om = OrganizationMember.objects.get(user_id=user.id, organization=organization)
+                om = OrganizationMember.objects.get(organization=organization, **member_filter)
             except OrganizationMember.DoesNotExist:
                 # User is not a member of the organization at all
                 return []

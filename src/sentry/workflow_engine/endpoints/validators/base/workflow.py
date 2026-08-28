@@ -427,7 +427,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 organization_id=organization.id,
                 environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
-                created_by_id=request.user.id,
+                created_by_id=(
+                    request.user.id if getattr(request.user, "is_interactive", True) else None
+                ),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
             )

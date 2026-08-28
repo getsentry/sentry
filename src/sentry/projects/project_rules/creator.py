@@ -38,7 +38,12 @@ class ProjectRuleCreator:
 
             # uncaught errors will rollback the transaction
             workflow = IssueAlertMigrator(
-                self.rule, self.request.user.id if self.request else None
+                self.rule,
+                (
+                    self.request.user.id
+                    if self.request and getattr(self.request.user, "is_interactive", True)
+                    else None
+                ),
             ).run()
             logger.info(
                 "workflow_engine.issue_alert.migrated",

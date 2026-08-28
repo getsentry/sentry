@@ -42,6 +42,8 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        if not getattr(request.user, "is_interactive", True):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         view_id_int = to_valid_int_id("view_id", view_id, raise_404=True)
 

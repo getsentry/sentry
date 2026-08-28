@@ -42,6 +42,9 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         :auth: required
 
         """
+        if not getattr(request.user, "is_interactive", True):
+            return Response([])
+
         try:
             search_type = SearchType(int(request.GET.get("type", 0)))
         except ValueError as e:
@@ -68,6 +71,9 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         return Response(serialize(recent_searches, request.user))
 
     def post(self, request: Request, organization) -> Response:
+        if not getattr(request.user, "is_interactive", True):
+            return Response(status=403)
+
         serializer = RecentSearchSerializer(data=request.data)
 
         if serializer.is_valid():

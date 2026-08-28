@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Collection
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -37,14 +39,12 @@ class DashboardPermissions(Model):
         "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
     )
 
-    def has_edit_permissions(self, user_id):
+    def has_edit_permissions(self, *, user_id: int | None, team_ids: Collection[int]) -> bool:
         if self.is_editable_by_everyone:
             return True
-        if user_id == self.dashboard.created_by_id:
+        if user_id is not None and user_id == self.dashboard.created_by_id:
             return True  # Dashboard creator will always have edit perms
-        return self.teams_with_edit_access.filter(
-            organizationmemberteam__organizationmember__user_id=user_id
-        ).exists()
+        return self.teams_with_edit_access.filter(id__in=team_ids).exists()
 
     class Meta:
         app_label = "sentry"

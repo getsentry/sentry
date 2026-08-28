@@ -6,13 +6,15 @@ from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.test.utils import override_settings
+from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.rule import Rule, RuleSource
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
 from sentry.monitors.utils import get_detector_for_monitor
 from sentry.quotas.base import SeatAssignmentResult
@@ -615,6 +617,74 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         # Verify the detector is linked to the workflow
         assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
+
+    def test_service_account_alert_rule_lifecycle_has_no_user_attribution(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["org:write", "project:write", "alerts:write"],
+        )
+        bearer = token.plaintext_token
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="manager",
+            teams=[self.team],
+        )
+        client = APIClient()
+        create_response = client.post(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            {
+                "project": self.project.slug,
+                "name": "Automation monitor",
+                "type": "cron_job",
+                "config": {"schedule_type": "crontab", "schedule": "@daily"},
+                "alert_rule": {
+                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]
+                },
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {bearer}",
+        )
+
+        assert create_response.status_code == 201, create_response.content
+        monitor = Monitor.objects.get(slug=create_response.data["slug"])
+        rule = Rule.objects.get(id=monitor.config["alert_rule_id"])
+        created = RuleActivity.objects.get(rule=rule, type=RuleActivityType.CREATED.value)
+        assert created.user_id is None
+
+        detail_url = reverse(
+            "sentry-api-0-organization-monitor-details",
+            args=[self.organization.slug, monitor.slug],
+        )
+        update_response = client.put(
+            detail_url,
+            {
+                "name": "Updated automation monitor",
+                "alert_rule": {
+                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]
+                },
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {bearer}",
+        )
+
+        assert update_response.status_code == 200, update_response.content
+        updated = RuleActivity.objects.get(rule=rule, type=RuleActivityType.UPDATED.value)
+        assert updated.user_id is None
+
+        delete_response = client.delete(
+            detail_url,
+            HTTP_AUTHORIZATION=f"Bearer {bearer}",
+        )
+
+        assert delete_response.status_code == 202, delete_response.content
+        deleted = RuleActivity.objects.get(rule=rule, type=RuleActivityType.DELETED.value)
+        assert deleted.user_id is None
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin

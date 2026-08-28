@@ -20,8 +20,9 @@ from sentry.users.api.serializers.user import UserSerializerResponse
 
 
 class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
-    # NOTE: We override users to be required b/c team members will always have
-    # an existing user to be part of a team.
+    # Service accounts are real team members but do not have a User row. The
+    # organization-member serializer provides a user-shaped compatibility object
+    # and marks it with actorType=service_account.
     user: UserSerializerResponse  # type: ignore[misc]
     teamRole: str | None
     teamSlug: str

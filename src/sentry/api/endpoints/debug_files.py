@@ -58,7 +58,6 @@ from sentry.models.debugfile import (
     get_dif_download_filename,
 )
 from sentry.models.files.file import File
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.release import Release, get_artifact_counts
 from sentry.models.releasefile import ReleaseFile
@@ -105,16 +104,11 @@ def has_download_permission(request: Request, project: Project):
         else:
             return request.access.has_scope("project:read")
 
-    try:
-        current_role = (
-            OrganizationMember.objects.filter(organization=organization, user_id=request.user.id)
-            .values_list("role", flat=True)
-            .get()
-        )
-    except OrganizationMember.DoesNotExist:
+    current_role = request.access.get_organization_role()
+    if current_role is None:
         return False
 
-    if organization_roles.can_manage(current_role, required_role):
+    if organization_roles.can_manage(current_role.id, required_role):
         return True
 
     # There's an edge case where a team admin is an org member but the required

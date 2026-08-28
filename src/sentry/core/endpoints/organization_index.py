@@ -58,13 +58,17 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.pagination_factory import PaginatorLike
+from sentry.viewer_context import ActorType, get_viewer_context
 
 logger = logging.getLogger(__name__)
 
 
 class OrganizationIndexPermission(OrganizationPermission):
     def has_permission(self, request: Request, view: APIView) -> bool:
-        if request.method == "POST" and is_agent_auth(request.auth):
+        if request.method == "POST" and (
+            is_agent_auth(request.auth)
+            or getattr(request.auth, "actor_type", None) == ActorType.SERVICE_ACCOUNT.value
+        ):
             return False
         return super().has_permission(request, view)
 
@@ -168,6 +172,14 @@ class OrganizationIndexEndpoint(Endpoint):
         metrics.incr("api.organization_index.get", tags={"silo": "cell"}, sample_rate=1.0)
 
         owner_only = request.GET.get("owner") in ("1", "true")
+        viewer_context = get_viewer_context()
+        service_account_actor = (
+            viewer_context.actor
+            if viewer_context is not None
+            and viewer_context.actor is not None
+            and viewer_context.actor.type == ActorType.SERVICE_ACCOUNT
+            else None
+        )
         agent_organization_id = None
         if is_agent_auth(request.auth):
             agent_organization_id = request.auth.organization_id
@@ -177,6 +189,8 @@ class OrganizationIndexEndpoint(Endpoint):
         queryset = Organization.objects.distinct()
 
         if owner_only and request.user.is_authenticated:
+            if service_account_actor is not None:
+                raise PermissionDenied
             # This is used when closing an account
 
             # also fetches organizations in which you are a member of an owner team
@@ -194,7 +208,14 @@ class OrganizationIndexEndpoint(Endpoint):
 
             return Response(org_results)
 
-        if agent_organization_id is not None:
+        if service_account_actor is not None:
+            if viewer_context is None or viewer_context.organization_id is None:
+                raise PermissionDenied
+            queryset = queryset.filter(
+                id=viewer_context.organization_id,
+                member_set__service_account_id=service_account_actor.id,
+            )
+        elif agent_organization_id is not None:
             queryset = queryset.filter(id=agent_organization_id)
         elif request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
@@ -277,6 +298,14 @@ class OrganizationIndexEndpoint(Endpoint):
         metrics.incr("api.organization_index.get", tags={"silo": "control"}, sample_rate=1.0)
 
         owner_only = request.GET.get("owner") in ("1", "true")
+        viewer_context = get_viewer_context()
+        service_account_actor = (
+            viewer_context.actor
+            if viewer_context is not None
+            and viewer_context.actor is not None
+            and viewer_context.actor.type == ActorType.SERVICE_ACCOUNT
+            else None
+        )
         agent_organization_id = None
         if is_agent_auth(request.auth):
             agent_organization_id = request.auth.organization_id
@@ -290,6 +319,8 @@ class OrganizationIndexEndpoint(Endpoint):
         if owner_only:
             if not request.user.is_authenticated:
                 raise PermissionDenied
+            if service_account_actor is not None:
+                raise PermissionDenied
             return self._get_owned_from_control(
                 request,
                 organization_id=agent_organization_id,
@@ -297,7 +328,16 @@ class OrganizationIndexEndpoint(Endpoint):
 
         queryset = OrganizationMapping.objects.distinct()
 
-        if agent_organization_id is not None:
+        if service_account_actor is not None:
+            if viewer_context is None or viewer_context.organization_id is None:
+                raise PermissionDenied
+            queryset = queryset.filter(
+                organization_id=viewer_context.organization_id,
+                organization_id__in=OrganizationMemberMapping.objects.filter(
+                    service_account_id=service_account_actor.id
+                ).values("organization_id"),
+            )
+        elif agent_organization_id is not None:
             queryset = queryset.filter(organization_id=agent_organization_id)
         elif request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):

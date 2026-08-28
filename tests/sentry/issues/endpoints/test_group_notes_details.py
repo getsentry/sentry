@@ -2,6 +2,7 @@ from functools import cached_property
 from unittest.mock import MagicMock, patch
 
 import responses
+from rest_framework.test import APIClient
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log.types import GroupActionType
@@ -73,6 +74,35 @@ class GroupNotesDetailsTest(APITestCase):
         assert not Activity.objects.filter(id=self.activity.id).exists()
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
+
+    def test_service_account_cannot_mutate_colliding_user_note(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["event:admin"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="owner",
+        )
+        client = APIClient()
+        authorization = f"Bearer {token.plaintext_token}"
+        original_data = self.activity.data.copy()
+
+        update_response = client.put(
+            self.url,
+            {"text": "service account edit"},
+            format="json",
+            HTTP_AUTHORIZATION=authorization,
+        )
+        delete_response = client.delete(self.url, HTTP_AUTHORIZATION=authorization)
+
+        assert update_response.status_code == 403
+        assert delete_response.status_code == 403
+        self.activity.refresh_from_db()
+        assert self.activity.data == original_data
 
     def test_delete_comment_and_subscription(self) -> None:
         """Test that if a user deletes their comment on an issue, we delete the subscription too"""

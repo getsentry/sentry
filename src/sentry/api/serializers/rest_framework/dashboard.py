@@ -1027,7 +1027,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             currentUser = self.context["request"].user
             # managers and owners
             has_write_access = self.context["request"].access.has_scope("org:write")
-            if self.instance.created_by_id != currentUser.id and not has_write_access:
+            is_creator = (
+                getattr(currentUser, "is_interactive", True)
+                and self.instance.created_by_id == currentUser.id
+            )
+            if not is_creator and not has_write_access:
                 raise serializers.ValidationError(
                     "Only the Dashboard Creator may modify Dashboard Edit Access"
                 )
@@ -1092,10 +1096,16 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         Only call save() on this serializer from within a transaction or
         bad things will happen
         """
+        request_user = self.context["request"].user
+        created_by_id = (
+            request_user.id
+            if request_user.is_authenticated and getattr(request_user, "is_interactive", True)
+            else None
+        )
         self.instance = Dashboard.objects.create(
             organization=self.context["organization"],
             title=validated_data["title"],
-            created_by_id=self.context["request"].user.id,
+            created_by_id=created_by_id,
         )
 
         assert self.instance is not None

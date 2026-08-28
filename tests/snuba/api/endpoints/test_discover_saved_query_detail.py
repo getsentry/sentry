@@ -1,5 +1,6 @@
 import pytest
 from django.urls import NoReverseMatch, reverse
+from rest_framework.test import APIClient
 
 from sentry.discover.models import (
     DiscoverSavedQuery,
@@ -212,6 +213,51 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.data
         assert response.data == {"detail": "You do not have permission to perform this action."}
+
+    def test_service_account_does_not_inherit_colliding_creator_ownership(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Human query",
+            query={"fields": ["test"], "conditions": [], "limit": 10},
+        )
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.org.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["org:read", "project:read"],
+        )
+        bearer = token.plaintext_token
+        self.create_member(
+            organization=self.org,
+            service_account_id=account.id,
+            role="member",
+            teams=[],
+        )
+        url = reverse(
+            "sentry-api-0-discover-saved-query-detail",
+            args=[self.org.slug, query.id],
+        )
+        client = APIClient()
+
+        with self.feature(self.feature_name):
+            get_response = client.get(
+                url,
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+            delete_response = client.delete(
+                url,
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+
+        assert get_response.status_code == 403, get_response.content
+        assert delete_response.status_code == 403, delete_response.content
+        assert DiscoverSavedQuery.objects.filter(id=query.id).exists()
 
     def test_put(self) -> None:
         with self.feature(self.feature_name):

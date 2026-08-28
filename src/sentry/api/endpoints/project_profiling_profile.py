@@ -26,7 +26,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -57,12 +56,11 @@ class ProfileChunkAttachmentPermission(ProjectPermission):
             organization.get_option("sentry:attachments_role") or ATTACHMENTS_ROLE_DEFAULT
         )
 
-        try:
-            om = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
-        except OrganizationMember.DoesNotExist:
+        organization_role = request.access.get_organization_role()
+        if organization_role is None:
             return False
 
-        return roles.get(om.role).priority >= roles.get(required_role).priority
+        return organization_role.priority >= roles.get(required_role).priority
 
 
 PROFILE_ID_PATH_PARAM = OpenApiParameter(

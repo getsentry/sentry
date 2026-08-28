@@ -19,6 +19,7 @@ from sentry.analytics.events.internal_integration_created import InternalIntegra
 from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
 from sentry.analytics.events.sentry_app_updated import SentryAppUpdatedEvent
 from sentry.api.helpers.slugs import sentry_slugify
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -120,7 +121,7 @@ class SentryAppUpdater:
     features: list[int] | None = None
     is_disabled: bool | None = None
 
-    def run(self, user: User | RpcUser) -> SentryApp:
+    def run(self, user: User | RpcUser | RpcServiceAccount) -> SentryApp:
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.MANAGEMENT,
             event_type=SentryAppEventType.APP_UPDATE,
@@ -147,7 +148,7 @@ class SentryAppUpdater:
             self.record_analytics(user, new_schema_elements)
             return self.sentry_app
 
-    def _update_features(self, user: User | RpcUser) -> None:
+    def _update_features(self, user: User | RpcUser | RpcServiceAccount) -> None:
         if self.features is not None:
             if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
                 raise ParseError(detail="Cannot update features on a published integration.")
@@ -166,7 +167,7 @@ class SentryAppUpdater:
         if self.author is not None:
             self.sentry_app.author = self.author
 
-    def _update_status(self, user: User | RpcUser) -> None:
+    def _update_status(self, user: User | RpcUser | RpcServiceAccount) -> None:
         # All status changes require elevated permissions (superuser/staff).
         # The publish request endpoint handles its own status change directly.
         if self.status is not None and _is_elevated_user(user):
@@ -270,7 +271,7 @@ class SentryAppUpdater:
         if self.is_alertable is not None:
             self.sentry_app.is_alertable = self.is_alertable
 
-    def _update_is_disabled(self, user: User | RpcUser) -> None:
+    def _update_is_disabled(self, user: User | RpcUser | RpcServiceAccount) -> None:
         if self.is_disabled is not None and _is_elevated_user(user):
             self.sentry_app.is_disabled = self.is_disabled
 
@@ -323,7 +324,7 @@ class SentryAppUpdater:
         self.sentry_app.webhook_headers = resolved
         # Persisted by the sentry_app.save() call at the end of run().
 
-    def _update_popularity(self, user: User | RpcUser) -> None:
+    def _update_popularity(self, user: User | RpcUser | RpcServiceAccount) -> None:
         if self.popularity is not None:
             if _is_elevated_user(user):
                 self.sentry_app.popularity = self.popularity
@@ -353,7 +354,13 @@ class SentryAppUpdater:
                     type=element["type"], sentry_app_id=self.sentry_app.id, schema=element
                 )
 
-    def record_analytics(self, user: User | RpcUser, new_schema_elements: set[str] | None) -> None:
+    def record_analytics(
+        self,
+        user: User | RpcUser | RpcServiceAccount,
+        new_schema_elements: set[str] | None,
+    ) -> None:
+        if not getattr(user, "is_interactive", True):
+            return
         created_alert_rule_ui_component = "alert-rule-action" in (new_schema_elements or set())
         analytics.record(
             SentryAppUpdatedEvent(

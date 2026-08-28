@@ -41,9 +41,13 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
-        favorites = DashboardFavoriteUser.objects.get_favorite_dashboards(
-            organization=organization, user_id=request.user.id
-        ).select_related("dashboard")
+        favorites = (
+            DashboardFavoriteUser.objects.get_favorite_dashboards(
+                organization=organization, user_id=request.user.id
+            ).select_related("dashboard")
+            if getattr(request.user, "is_interactive", True)
+            else DashboardFavoriteUser.objects.none()
+        )
 
         if favorites.filter(position__isnull=True).exists():
             # Commit the order of the dashboards of this current response if there are any
@@ -82,6 +86,8 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        if not getattr(request.user, "is_interactive", True):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)

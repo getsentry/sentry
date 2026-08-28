@@ -169,6 +169,17 @@ class TestResolveActionActor(TestCase):
         request = self._request(auth=auth)
         assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
 
+    def test_service_account_token(self) -> None:
+        auth = AuthenticatedToken(
+            kind="api_token",
+            actor_type="service_account",
+            actor_id=42,
+            organization_id=self.organization.id,
+        )
+        request = self._request(auth=auth)
+
+        assert resolve_action_actor(request) == GroupActionActor.service_account(42)
+
     def test_org_auth_token(self) -> None:
         auth = AuthenticatedToken(kind="org_auth_token", organization_id=self.organization.id)
         request = self._request(auth=auth)

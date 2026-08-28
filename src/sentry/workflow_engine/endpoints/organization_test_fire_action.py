@@ -105,9 +105,10 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
 
         qs = Project.objects.filter(
             organization=organization,
-            teams__organizationmember__user_id=request.user.id,
             status=ObjectStatus.ACTIVE,
         ).order_by("slug")
+        if not request.access.has_global_access:
+            qs = qs.filter(id__in=request.access.accessible_project_ids)
 
         project_slug = data.get("project_slug")
         if project_slug:

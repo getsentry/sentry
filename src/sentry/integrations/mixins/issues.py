@@ -247,7 +247,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 self.org_integration = org_integration
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
-        if user_persisted_fields:
+        if user_persisted_fields and getattr(user, "is_interactive", True):
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(key="issue:defaults", project_id=project.id)
             options = user_option_service.get_many(
@@ -268,6 +268,9 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 str(project.id), {}
             )
         )
+
+        if not getattr(user, "is_interactive", True):
+            return project_defaults
 
         user_option_value = get_option_from_list(
             user_option_service.get_many(

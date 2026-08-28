@@ -186,11 +186,12 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 
-        ExploreSavedQueryLastVisited.objects.update_or_create(
-            organization=organization,
-            user_id=request.user.id,
-            explore_saved_query=query,
-            defaults={"last_visited": timezone.now()},
-        )
+        if getattr(request.user, "is_interactive", True):
+            ExploreSavedQueryLastVisited.objects.update_or_create(
+                organization=organization,
+                user_id=request.user.id,
+                explore_saved_query=query,
+                defaults={"last_visited": timezone.now()},
+            )
 
         return Response(status=204)

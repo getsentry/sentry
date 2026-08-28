@@ -286,6 +286,7 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
                 "organizations:dashboards-user-last-visited", organization, actor=request.user
             )
             and request.user.is_authenticated
+            and getattr(request.user, "is_interactive", True)
         ):
             DashboardLastVisited.objects.update_or_create(
                 user_id=request.user.id,
@@ -316,6 +317,8 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
 
         if not request.user.is_authenticated:
             return Response(status=401)
+        if not getattr(request.user, "is_interactive", True):
+            return Response(status=403)
 
         should_favorite = request.data.get("shouldFavorite", request.data.get("isFavorited"))
 

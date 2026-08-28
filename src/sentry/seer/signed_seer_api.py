@@ -12,6 +12,8 @@ from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 from sentry.utils.tracing import trace
 from sentry.viewer_context import (
+    ActorType,
+    ViewerActor,
     ViewerContext,
     encode_viewer_context,
     get_viewer_context,
@@ -131,6 +133,11 @@ def _resolve_viewer_context(
         project_id=None if has_mismatch else (vc.project_id if vc else None),
         user_id=user_id,
         actor_type=vc.actor_type,
+        actor=(
+            ViewerActor(type=ActorType.USER, id=user_id)
+            if vc.actor_type == ActorType.USER and user_id is not None
+            else vc.actor
+        ),
         token=None if has_mismatch else vc.token,
     )
 

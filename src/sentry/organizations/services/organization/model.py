@@ -125,6 +125,7 @@ class RpcOrganizationMemberSummary(RpcModel):
     id: int = -1
     organization_id: int = -1
     user_id: int | None = None  # This can be null when the user is deleted.
+    service_account_id: int | None = None
     flags: RpcOrganizationMemberFlags = Field(default_factory=lambda: RpcOrganizationMemberFlags())
 
 
@@ -338,6 +339,10 @@ class RpcUserOrganizationContext(RpcModel):
 
     # user_id is None iff the get_organization_by_id call is not provided a user_id context.
     user_id: int | None = None
+    # Additive typed-principal bridge. New actor-aware paths use these fields;
+    # existing user callsites can continue to pass/read ``user_id``.
+    actor_type: str | None = None
+    actor_id: int | None = None
     # The organization is always non-null because the null wrapping is around this object instead.
     # A None organization => a None RpcUserOrganizationContext
     organization: RpcOrganization = Field(default_factory=lambda: RpcOrganization())
@@ -349,6 +354,8 @@ class RpcUserOrganizationContext(RpcModel):
         # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
+        if self.actor_type == "service_account" and self.member is not None:
+            assert self.actor_id == self.member.service_account_id
 
 
 class RpcUserInviteContext(RpcUserOrganizationContext):
@@ -414,7 +421,7 @@ class RpcOrganizationDeleteResponse(RpcModel):
 
 class RpcAuditLogEntryActor(RpcModel):
     actor_label: str | None
-    actor_id: int
+    actor_id: int | None
     actor_key: str | None
     ip_address: str | None
 

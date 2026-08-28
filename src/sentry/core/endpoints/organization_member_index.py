@@ -409,11 +409,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         if is_member and members_can_only_invite_to_members_teams and has_teams:
             requester_teams = set(
-                OrganizationMember.objects.filter(
-                    organization=organization,
-                    user_id=request.user.id,
-                    user_is_active=True,
-                ).values_list("teams__slug", flat=True)
+                Team.objects.filter(id__in=request.access.team_ids_with_membership).values_list(
+                    "slug", flat=True
+                )
             )
             team_slugs = list(
                 set(
@@ -451,7 +449,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=assigned_org_role,
-                inviter_id=request.user.id,
+                inviter_id=(
+                    request.user.id if getattr(request.user, "is_interactive", True) else None
+                ),
             )
 
             if settings.SENTRY_ENABLE_INVITES:
@@ -471,7 +471,10 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             referrer = request.query_params.get("referrer")
             om.send_invite_email(referrer)
             member_invited.send_robust(
-                member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
+                member=om,
+                user=request.user if getattr(request.user, "is_interactive", True) else None,
+                sender=self,
+                referrer=request.data.get("referrer"),
             )
 
         self.create_audit_entry(

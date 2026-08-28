@@ -5,8 +5,10 @@ from typing import Any
 from unittest.mock import patch
 
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry import audit_log
+from sentry.auth.services.service_account import service_account_service
 from sentry.dashboards.endpoints.organization_dashboards import (
     PREBUILT_DASHBOARDS,
     PrebuiltDashboardId,
@@ -15,7 +17,9 @@ from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
     DashboardLastVisited,
+    DashboardRevision,
 )
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -1016,6 +1020,122 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             target_object=dashboard.id,
             data=dashboard.get_audit_log_data(),
         )
+
+    def test_service_account_does_not_claim_user_attribution(self) -> None:
+        service_accounts_url = f"/api/0/organizations/{self.organization.slug}/service-accounts/"
+        with self.feature("organizations:service-accounts"):
+            service_account_response = self.client.post(
+                service_accounts_url,
+                data={
+                    "name": "Dashboard automation",
+                    "role": "owner",
+                    "tokenName": "Dashboard token",
+                    "scopes": ["org:read"],
+                },
+                format="json",
+            )
+        assert service_account_response.status_code == 201, service_account_response.content
+
+        client = APIClient()
+        authorization = f"Bearer {service_account_response.data['token']}"
+        response = client.post(
+            self.url,
+            data={"title": "Automated dashboard"},
+            format="json",
+            HTTP_AUTHORIZATION=authorization,
+        )
+        assert response.status_code == 201, response.content
+        assert response.data["createdBy"] is None
+
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Automated dashboard"
+        )
+        assert dashboard.created_by_id is None
+
+        response = client.put(
+            f"{self.url}{dashboard.id}/",
+            data={"title": "Updated automated dashboard"},
+            format="json",
+            HTTP_AUTHORIZATION=authorization,
+        )
+        assert response.status_code == 200, response.content
+        revision = DashboardRevision.objects.get(dashboard=dashboard)
+        assert revision.created_by_id is None
+
+    def test_service_account_uses_typed_dashboard_access_and_no_personal_state(self) -> None:
+        shared_id = 1_000_000
+        colliding_user = self.create_user(id=shared_id)
+        team = self.create_team(organization=self.organization)
+        account = self.create_service_account(
+            id=shared_id,
+            organization_id=self.organization.id,
+            name="Dashboard bot",
+        )
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+            teams=[team],
+        )
+        token = service_account_service.create_token(
+            organization_id=self.organization.id,
+            service_account_id=account.id,
+            name="Dashboard token",
+            scopes=["org:read"],
+            expires_at=None,
+        )
+        assert token is not None
+
+        colliding_dashboard = self.create_dashboard(
+            organization=self.organization,
+            created_by=colliding_user,
+            title="Colliding user dashboard",
+        )
+        DashboardPermissions.objects.create(
+            dashboard=colliding_dashboard,
+            is_editable_by_everyone=False,
+        )
+        self.create_dashboard_favorite_user(
+            dashboard=colliding_dashboard,
+            user=colliding_user,
+            favorited=True,
+        )
+
+        team_dashboard = self.create_dashboard(
+            organization=self.organization,
+            created_by=self.user,
+            title="Team dashboard",
+        )
+        team_permissions = DashboardPermissions.objects.create(
+            dashboard=team_dashboard,
+            is_editable_by_everyone=False,
+        )
+        team_permissions.teams_with_edit_access.add(team)
+
+        client = APIClient()
+        headers = {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
+        denied = client.put(
+            f"{self.url}{colliding_dashboard.id}/",
+            data={"title": "Not allowed"},
+            format="json",
+            **headers,
+        )
+        allowed = client.put(
+            f"{self.url}{team_dashboard.id}/",
+            data={"title": "Updated by team"},
+            format="json",
+            **headers,
+        )
+        owned = client.get(self.url, {"filter": "owned"}, **headers)
+        favorites = client.get(self.url, {"filter": "onlyFavorites"}, **headers)
+        listed = client.get(self.url, **headers)
+
+        assert denied.status_code == 403, denied.content
+        assert allowed.status_code == 200, allowed.content
+        assert owned.status_code == 200 and owned.data == []
+        assert favorites.status_code == 200 and favorites.data == []
+        serialized = next(row for row in listed.data if row["id"] == str(colliding_dashboard.id))
+        assert serialized["isFavorited"] is False
 
     def test_post_with_integer_title(self) -> None:
         response = self.do_request("post", self.url, data={"title": 12345})

@@ -293,16 +293,20 @@ class GroupSerializerBase(Serializer, ABC):
         prefetch_related_objects(item_list, "project__organization")
 
         if user.is_authenticated and item_list:
-            bookmarks = set(
-                GroupBookmark.objects.filter(user_id=user.id, group__in=item_list).values_list(
-                    "group_id", flat=True
+            if getattr(user, "is_interactive", True):
+                bookmarks = set(
+                    GroupBookmark.objects.filter(user_id=user.id, group__in=item_list).values_list(
+                        "group_id", flat=True
+                    )
                 )
-            )
-            seen_groups = dict(
-                GroupSeen.objects.filter(user_id=user.id, group__in=item_list).values_list(
-                    "group_id", "last_seen"
+                seen_groups = dict(
+                    GroupSeen.objects.filter(user_id=user.id, group__in=item_list).values_list(
+                        "group_id", "last_seen"
+                    )
                 )
-            )
+            else:
+                bookmarks = set()
+                seen_groups = {}
             subscriptions = self._get_subscriptions(item_list, user)
         else:
             bookmarks = set()
@@ -666,6 +670,12 @@ class GroupSerializerBase(Serializer, ABC):
         """
         if not groups:
             return {}
+
+        # Subscriptions and notification preferences belong to interactive users.
+        # A service account can read issue data, but its independently allocated id
+        # must never be used as a User.id in notification services or subscriptions.
+        if not getattr(user, "is_interactive", True):
+            return {group.id: (False, False, None) for group in groups}
 
         groups_by_project = collect_groups_by_project(groups)
         project_ids = list(groups_by_project.keys())

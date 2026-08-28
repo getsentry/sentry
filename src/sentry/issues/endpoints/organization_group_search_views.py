@@ -90,6 +90,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        if not getattr(request.user, "is_interactive", True):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
         if not serializer.is_valid():
@@ -182,6 +184,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        if not getattr(request.user, "is_interactive", True):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         if not features.has("organizations:issue-views", organization, actor=request.user):
             return Response(status=status.HTTP_404_NOT_FOUND)

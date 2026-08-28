@@ -147,6 +147,7 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.serviceaccount import ServiceAccount
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
@@ -574,6 +575,25 @@ class Factories:
             for team in teams:
                 Factories.create_team_membership(team=team, member=om, role=teamRole)
         return om
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_service_account(**kwargs):
+        return ServiceAccount.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_service_account_auth_token(
+        service_account: ServiceAccount,
+        scope_list: list[str] | None = None,
+        **kwargs,
+    ) -> ApiToken:
+        return ApiToken.objects.create(
+            service_account=service_account,
+            scope_list=scope_list or [],
+            token_type=AuthTokenType.USER,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

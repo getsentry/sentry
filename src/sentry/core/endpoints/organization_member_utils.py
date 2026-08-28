@@ -22,6 +22,7 @@ from sentry.organizations.services.organization.model import (
 )
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.viewer_context import ActorType, get_viewer_context
 
 logger = logging.getLogger("sentry.org_roles")
 
@@ -211,10 +212,14 @@ def get_allowed_org_roles(
         return ()
 
     if member is None:
+        viewer = get_viewer_context()
+        actor = viewer.actor if viewer is not None else None
+        if actor is not None and actor.type == ActorType.SERVICE_ACCOUNT:
+            actor_filter = {"service_account_id": actor.id}
+        else:
+            actor_filter = {"user_id": request.user.id}
         try:
-            member = OrganizationMember.objects.get(
-                user_id=request.user.id, organization=organization
-            )
+            member = OrganizationMember.objects.get(organization=organization, **actor_filter)
         except OrganizationMember.DoesNotExist:
             # This can happen if the request was authorized by an app integration
             # token whose proxy user does not have an OrganizationMember object.

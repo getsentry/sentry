@@ -448,6 +448,14 @@ class ExhaustiveFixtures(Fixtures):
         accepted_invites: dict[User, list[User]] | None = None,
     ) -> Organization:
         org = self.create_organization(name=slug, owner=owner)
+        service_account = self.create_service_account(
+            organization_id=org.id, name=f"service-account-{slug}"
+        )
+        self.create_member(
+            organization=org,
+            service_account_id=service_account.id,
+            role="member",
+        )
         owner_id: int = owner.id
         invited = self.create_member(organization=org, user=member, role="member")
         if other_members:

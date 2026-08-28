@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.services.service_account import RpcServiceAccount, service_account_service
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.users.models.user import User
@@ -32,6 +33,9 @@ class OrganizationMemberSerializer(Serializer):
         the organization_members in `item_list`.
         """
         users_set = {member.user_id for member in item_list if member.user_id}
+        service_account_ids = {
+            member.service_account_id for member in item_list if member.service_account_id
+        }
         inviters_set = {member.inviter_id for member in item_list if member.inviter_id}
 
         users_by_id: MutableMapping[str, Any] = {}
@@ -39,6 +43,15 @@ class OrganizationMemberSerializer(Serializer):
         for u in user_service.serialize_many(filter={"user_ids": sorted(users_set | inviters_set)}):
             users_by_id[u["id"]] = u
             email_map[u["id"]] = u["email"]
+
+        service_accounts_by_id: dict[int, RpcServiceAccount] = {}
+        if service_account_ids:
+            organization_id = get_organization_id(item_list)
+            service_accounts_by_id = {
+                detail.account.id: detail.account
+                for detail in service_account_service.list_accounts(organization_id=organization_id)
+                if detail.account.id in service_account_ids
+            }
 
         external_users_map = defaultdict(list)
         if "externalUsers" in self.expand:
@@ -57,6 +70,33 @@ class OrganizationMemberSerializer(Serializer):
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
             user_dct = users_by_id.get(str(item.user_id), None)
+            if item.service_account_id is not None:
+                account = service_accounts_by_id.get(item.service_account_id)
+                name = (
+                    account.name
+                    if account is not None
+                    else f"Service account {item.service_account_id}"
+                )
+                user_dct = {
+                    "id": str(item.service_account_id),
+                    "name": name,
+                    "username": name,
+                    "email": "",
+                    "avatarUrl": "",
+                    "isActive": account.is_active if account is not None else False,
+                    "isSuspended": False,
+                    "hasPasswordAuth": False,
+                    "isManaged": True,
+                    "dateJoined": account.date_added if account is not None else item.date_added,
+                    "lastLogin": None,
+                    "has2fa": False,
+                    "lastActive": account.date_updated if account is not None else None,
+                    "isSuperuser": False,
+                    "isStaff": False,
+                    "experiments": {},
+                    "emails": [],
+                    "actorType": "service_account",
+                }
             user_id = user_dct["id"] if user_dct else ""
             if item.inviter_id is not None:
                 inviter_dct = users_by_id.get(str(item.inviter_id), None)
@@ -80,7 +120,9 @@ class OrganizationMemberSerializer(Serializer):
         **kwargs: Any,
     ) -> OrganizationMemberResponse:
         serialized_user = attrs["user"]
-        if obj.user_id:
+        if obj.service_account_id is not None:
+            email = ""
+        elif obj.user_id:
             # if the OrganizationMember has a user_id, the user has an account
             # `email` on the OrganizationMember will be null, so we need to pull
             # the email address from the user's actual account. When the
@@ -111,6 +153,7 @@ class OrganizationMemberSerializer(Serializer):
             "email": email,
             "name": name,
             "user": attrs["user"],
+            "actorType": obj.actor_type,
             "orgRole": obj.role,
             "pending": obj.is_pending,
             "expired": obj.token_expired,

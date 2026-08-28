@@ -67,6 +67,23 @@ class ProjectIndexEndpoint(Endpoint):
                     queryset = queryset.filter(organization_id=request.auth.organization_id)
                     if not agent_access.has_global_access:
                         queryset = queryset.filter(id__in=agent_access.accessible_project_ids)
+        elif getattr(request.auth, "actor_type", None) == "service_account":
+            if request.auth.organization_id is None or request.auth.actor_id is None:
+                raise PermissionDenied
+            org_context = organization_service.get_organization_by_id(
+                id=request.auth.organization_id,
+                actor_type="service_account",
+                actor_id=request.auth.actor_id,
+                include_projects=False,
+                include_teams=False,
+            )
+            if org_context is None:
+                queryset = queryset.none()
+            else:
+                service_account_access = access.from_rpc_auth(request.auth, org_context)
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
+                if not service_account_access.has_global_access:
+                    queryset = queryset.filter(id__in=service_account_access.accessible_project_ids)
         elif request.auth and not request.user.is_authenticated:
             if request.auth.project_id:
                 queryset = queryset.filter(id=request.auth.project_id)

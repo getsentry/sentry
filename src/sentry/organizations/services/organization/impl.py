@@ -121,12 +121,23 @@ class DatabaseBackedOrganizationService(OrganizationService):
         *,
         id: int,
         user_id: int | None = None,
+        actor_type: str | None = None,
+        actor_id: int | None = None,
         slug: str | None = None,
         include_projects: bool | None = True,
         include_teams: bool | None = True,
     ) -> RpcUserOrganizationContext | None:
+        if actor_type is None and user_id is not None:
+            actor_type = "user"
+            actor_id = user_id
+
         membership: RpcOrganizationMember | None = None
-        if user_id is not None:
+        if actor_type == "service_account" and actor_id is not None:
+            member = OrganizationMember.objects.filter(
+                service_account_id=actor_id, organization_id=id
+            ).first()
+            membership = serialize_member(member) if member is not None else None
+        elif user_id is not None:
             membership = self.check_membership_by_id(organization_id=id, user_id=user_id)
 
         try:
@@ -139,6 +150,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return RpcUserOrganizationContext(
             user_id=user_id,
+            actor_type=actor_type,
+            actor_id=actor_id,
             organization=serialize_rpc_organization(
                 org, include_projects=include_projects, include_teams=include_teams
             ),

@@ -38,6 +38,19 @@ def create_audit_entry(
 ) -> AuditLogEntry:
     auth = getattr(request, "auth", None)
     user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
+    viewer_context = get_viewer_context()
+    if (
+        viewer_context is not None
+        and viewer_context.actor is not None
+        and viewer_context.actor.type == ActorType.SERVICE_ACCOUNT
+    ):
+        user = None
+        kwargs["actor_label"] = request.user.get_display_name()
+        data = {
+            **data,
+            "actor_type": viewer_context.actor.type.value,
+            "actor_id": viewer_context.actor.id,
+        }
     if user is None:
         # An agent token acts on behalf of a member but authenticates as a non-user actor,
         # so attribute the audit entry to the delegating user.

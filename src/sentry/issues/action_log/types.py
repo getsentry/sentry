@@ -22,13 +22,15 @@ class GroupActorType(IntEnum):
     SENTRY_APP = 2
     # An organization-scoped token (OrgAuthToken, or legacy ApiKey); actor_id is the org id.
     ORG = 3
+    SERVICE_ACCOUNT = 4
 
 
 @dataclasses.dataclass(frozen=True)
 class GroupActionActor:
     """
-    Who initiated an action. Use the constructors: user(id) for a human, sentry_app(id) for
-    an integration token, org(id) for an org-scoped token, or SYSTEM_ACTOR for Sentry itself.
+    Who initiated an action. Use the constructors: user(id) for a human, service_account(id)
+    for a service account, sentry_app(id) for an integration token, org(id) for an org-scoped
+    token, or SYSTEM_ACTOR for Sentry itself.
     """
 
     actor_type: GroupActorType
@@ -45,6 +47,10 @@ class GroupActionActor:
     @classmethod
     def org(cls, organization_id: int) -> GroupActionActor:
         return cls(actor_type=GroupActorType.ORG, actor_id=organization_id)
+
+    @classmethod
+    def service_account(cls, service_account_id: int) -> GroupActionActor:
+        return cls(actor_type=GroupActorType.SERVICE_ACCOUNT, actor_id=service_account_id)
 
 
 # Default GroupActionActor for Sentry-initiated actions.

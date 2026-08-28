@@ -7,7 +7,7 @@ from sentry.models.broadcast import Broadcast, BroadcastSeen
 @register(Broadcast)
 class BroadcastSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        if not user.is_authenticated:
+        if not user.is_authenticated or not getattr(user, "is_interactive", True):
             seen = set()
         else:
             seen = set(

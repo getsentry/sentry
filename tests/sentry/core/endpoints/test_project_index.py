@@ -4,6 +4,7 @@ from django.db import router
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.test import APIClient
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.constants import ObjectStatus
@@ -73,6 +74,45 @@ class ProjectsListTest(APITestCase):
 
         assert response.data[0]["id"] == str(project.id)
         assert response.data[0]["organization"]["id"] == str(org.id)
+
+    def test_service_account_is_bound_to_its_typed_membership_and_organization(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        service_account_team = self.create_team(organization=self.organization)
+        service_account_project = self.create_project(
+            organization=self.organization,
+            teams=[service_account_team],
+        )
+        other_organization = self.create_organization(owner=self.user)
+        other_team = self.create_team(organization=other_organization, members=[self.user])
+        other_project = self.create_project(
+            organization=other_organization,
+            teams=[other_team],
+        )
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["project:read"],
+        )
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+            teams=[service_account_team],
+        )
+
+        response = APIClient().get(
+            reverse(self.endpoint),
+            HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert {int(project["id"]) for project in response.data} == {service_account_project.id}
+        assert other_project.id not in {int(project["id"]) for project in response.data}
 
     def test_show_all_with_superuser(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):

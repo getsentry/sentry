@@ -28,6 +28,7 @@ from sentry.api.endpoints.project_rules import ProjectRulesEndpoint
 from sentry.api.endpoints.seer_models import SEER_MODELS_CACHE_KEY
 from sentry.apidocs.hooks import CustomEndpointEnumerator
 from sentry.attachments.base import CachedAttachment
+from sentry.auth.services.service_account import service_account_service
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
 )
@@ -36,6 +37,7 @@ from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATU
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay, mock_replay_viewed
 from sentry.seer import agent_token
@@ -48,6 +50,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -58,6 +61,8 @@ FLAG = "organizations:seer-agent-token-flow"
 class MatrixAuthentication(StrEnum):
     SESSION = "session"
     USER_TOKEN = "user_token"
+    SERVICE_ACCOUNT_TOKEN = "service_account_token"
+    SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN = "scoped_down_service_account_token"
     VIEWER_CONTEXT = "viewer_context"
     AGENT_TOKEN = "agent_token"
     SCOPED_DOWN_AGENT_TOKEN = "scoped_down_agent_token"
@@ -334,6 +339,8 @@ def _matrix_cases() -> tuple[tuple[PublicGetEndpoint, MatrixAuthentication], ...
         for authentication in (
             MatrixAuthentication.SESSION,
             MatrixAuthentication.USER_TOKEN,
+            MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+            MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN,
             MatrixAuthentication.VIEWER_CONTEXT,
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -359,6 +366,8 @@ def _private_helper_get_matrix_cases() -> tuple[
         for authentication in (
             MatrixAuthentication.SESSION,
             MatrixAuthentication.USER_TOKEN,
+            MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+            MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN,
             MatrixAuthentication.VIEWER_CONTEXT,
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -1734,6 +1743,23 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
         return token.plaintext_token
 
+    def _service_account_token(self, scopes: frozenset[str] | None = None) -> str:
+        created = service_account_service.create(
+            organization_id=self.org.id,
+            name=f"Permission matrix {uuid4()}",
+            token_name="Matrix token",
+            scopes=sorted(settings.SENTRY_SCOPES if scopes is None else scopes),
+            expires_at=None,
+        )
+        assert created is not None
+        member = self.create_member(
+            organization=self.org,
+            service_account_id=created.account.id,
+            role=self.member.role,
+        )
+        self.create_team_membership(team=self.team, member=member)
+        return created.token
+
     def _request(
         self,
         path: str,
@@ -1751,6 +1777,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 path,
                 HTTP_AUTHORIZATION=f"Bearer {self._user_token(user_token_scopes)}",
             )
+        if authentication in {
+            MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+            MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN,
+        }:
+            assert agent_bearer is not None
+            return client.get(path, HTTP_AUTHORIZATION=f"Bearer {agent_bearer}")
         if authentication is MatrixAuthentication.VIEWER_CONTEXT:
             viewer_context = encode_viewer_context(
                 ViewerContext(
@@ -1784,6 +1816,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         headers: dict[str, str] = {}
         if authentication is MatrixAuthentication.USER_TOKEN:
             headers["HTTP_AUTHORIZATION"] = f"Bearer {self._user_token(user_token_scopes)}"
+        elif authentication in {
+            MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+            MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN,
+        }:
+            assert agent_bearer is not None
+            headers["HTTP_AUTHORIZATION"] = f"Bearer {agent_bearer}"
         elif authentication is MatrixAuthentication.VIEWER_CONTEXT:
             headers["HTTP_X_VIEWER_CONTEXT"] = encode_viewer_context(
                 ViewerContext(
@@ -1869,6 +1907,17 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         # than the test router trying (and failing) to proxy token creation to a cell.
         agent_bearer = None
         agent_scopes = None
+        service_account_scopes = None
+        if authentication in {
+            MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+            MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN,
+        }:
+            service_account_scopes = (
+                frozenset()
+                if authentication is MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN
+                else None
+            )
+            agent_bearer = self._service_account_token(service_account_scopes)
         if authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -1930,6 +1979,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         with silo_scope, downstream_scope, self.feature(self._feature_flags(endpoint)):
             baseline = self.client.get(path)
             authorization_oracle = baseline
+            if authentication is MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN:
+                authorization_oracle = self._request(
+                    path,
+                    MatrixAuthentication.USER_TOKEN,
+                    user_token_scopes=service_account_scopes,
+                )
             if authentication in {
                 MatrixAuthentication.AGENT_TOKEN,
                 MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -1985,6 +2040,17 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
 
         agent_bearer = None
         agent_scopes = None
+        service_account_scopes = None
+        if authentication in {
+            MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+            MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN,
+        }:
+            service_account_scopes = (
+                frozenset()
+                if authentication is MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN
+                else None
+            )
+            agent_bearer = self._service_account_token(service_account_scopes)
         if authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -2032,6 +2098,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
 
             authorization_oracle = baseline
+            if authentication is MatrixAuthentication.SCOPED_DOWN_SERVICE_ACCOUNT_TOKEN:
+                authorization_oracle = self._rolled_back_mutation_request(
+                    endpoint,
+                    path,
+                    payload,
+                    MatrixAuthentication.USER_TOKEN,
+                    user_token_scopes=service_account_scopes,
+                )
             if authentication in {
                 MatrixAuthentication.AGENT_TOKEN,
                 MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -2057,6 +2131,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     agent_bearer=agent_bearer,
                 )
             )
+
+        if (
+            authentication is MatrixAuthentication.SERVICE_ACCOUNT_TOKEN
+            and endpoint.endpoint_name == "OrganizationDashboardsEndpoint"
+            and endpoint.method == "POST"
+        ):
+            assert response.data["createdBy"] is None
 
         assert baseline.status_code < 500, baseline.content
         outer_status = OUTER_BOUNDARY_MUTATION_STATUSES.get(
@@ -2102,6 +2183,48 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             authorization_oracle.content,
             response.content,
         )
+
+    def test_service_account_issue_alert_does_not_claim_colliding_user(self) -> None:
+        collision_id = self.owner.id + 10_000_000
+        self.create_user(id=collision_id)
+        account = self.create_service_account(
+            id=collision_id,
+            organization_id=self.org.id,
+            name="Colliding service account",
+        )
+        created_token = service_account_service.create_token(
+            organization_id=self.org.id,
+            service_account_id=account.id,
+            name="Collision test",
+            scopes=sorted(settings.SENTRY_SCOPES),
+            expires_at=None,
+        )
+        assert created_token is not None
+        member = self.create_member(
+            organization=self.org,
+            service_account_id=account.id,
+            role=self.member.role,
+        )
+        self.create_team_membership(team=self.team, member=member)
+        endpoint = PRIVATE_HELPER_MUTATION_ENDPOINTS[1]
+
+        with self.feature(self._feature_flags(endpoint)):
+            response = self._mutation_request(
+                endpoint,
+                self._path(endpoint),
+                self._mutation_payload(endpoint),
+                MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+                agent_bearer=created_token.token,
+            )
+
+        assert response.status_code == 200, response.content
+        activity = RuleActivity.objects.get(
+            rule__project=self.project,
+            type=RuleActivityType.CREATED.value,
+        )
+        workflow = AlertRuleWorkflow.objects.get(rule_id=activity.rule_id).workflow
+        assert activity.user_id is None
+        assert workflow.created_by_id is None
 
     def _assert_private_helper_approval_flow(self, endpoint: PublicMutationEndpoint) -> None:
         """Prove the recoverable denial -> user approval -> remint -> success protocol."""

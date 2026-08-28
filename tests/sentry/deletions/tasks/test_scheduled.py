@@ -6,6 +6,7 @@ from unittest.mock import Mock
 
 from django.db.models import QuerySet
 
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.constants import ObjectStatus
 from sentry.db.models import Model
 from sentry.deletions.models.scheduleddeletion import (
@@ -153,6 +154,20 @@ class CellRunScheduleDeletionTest(abc.ABC, TestCase):
 
         pending_delete.disconnect(signal_handler)
         assert signal_handler.call_count == 0
+
+    def test_noninteractive_actor_is_not_stored_as_user(self) -> None:
+        instance = self.create_simple_deletion().get()
+        account = RpcServiceAccount(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Deploy bot",
+            is_active=True,
+        )
+
+        schedule = self.ScheduledDeletion.schedule(instance=instance, actor=account, days=0)
+
+        assert schedule.actor_id is None
+        assert schedule.get_actor() is None
 
     def test_handle_missing_record(self) -> None:
         qs = self.create_simple_deletion()

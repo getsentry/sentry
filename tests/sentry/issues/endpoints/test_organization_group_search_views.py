@@ -3,6 +3,7 @@ from typing import NotRequired, TypedDict
 
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.models.groupsearchview import (
@@ -141,6 +142,26 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
         assert response.data[2]["stars"] == 0
         assert response.data[2]["createdBy"]["id"] == str(self.user.id)
         assert not response.data[2]["starred"]
+
+    def test_service_account_cannot_read_colliding_user_views(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["member:read"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+        )
+
+        response = APIClient().get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+        )
+
+        assert response.status_code == 403
 
     def test_get_views_created_by_others(self) -> None:
         self.login_as(user=self.user)

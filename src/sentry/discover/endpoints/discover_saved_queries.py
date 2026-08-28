@@ -204,6 +204,16 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
+        if (
+            not data["project_ids"]
+            and not getattr(request.user, "is_interactive", True)
+            and not request.access.has_global_access
+            and not request.access.has_scope("org:write")
+        ):
+            return Response(
+                {"detail": "Service accounts with scoped project access must select projects."},
+                status=403,
+            )
         user_selected_dataset = data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
 
         model = DiscoverSavedQuery.objects.create(
@@ -217,7 +227,11 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 if user_selected_dataset
                 else DatasetSourcesTypes.UNKNOWN.value
             ),
-            created_by_id=request.user.id if request.user.is_authenticated else None,
+            created_by_id=(
+                request.user.id
+                if request.user.is_authenticated and getattr(request.user, "is_interactive", True)
+                else None
+            ),
         )
 
         model.set_projects(data["project_ids"])

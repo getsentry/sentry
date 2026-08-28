@@ -2,7 +2,20 @@ from __future__ import annotations
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import Case, Count, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, When
+from django.db.models import (
+    BooleanField,
+    Case,
+    Count,
+    DateTimeField,
+    Exists,
+    F,
+    IntegerField,
+    OrderBy,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -358,6 +371,8 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        is_interactive = getattr(request.user, "is_interactive", True)
+
         try:
             lock = locks.get(
                 f"explore:sync_prebuilt_queries:{organization.id}:{request.user.id}",
@@ -370,7 +385,8 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 # Deletes old prebuilt queries from the database if they should no longer exist.
                 # Stars prebuilt queries for the user if it is the first time they are being fetched by the user.
                 sync_prebuilt_queries(organization)
-                sync_prebuilt_queries_starred(organization, request.user.id)
+                if is_interactive:
+                    sync_prebuilt_queries_starred(organization, request.user.id)
         except UnableToAcquireLock:
             # Another process is already syncing the prebuilt queries. We can skip syncing this time.
             pass
@@ -401,12 +417,16 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        last_visited_query = Subquery(
-            ExploreSavedQueryLastVisited.objects.filter(
-                organization=organization,
-                user_id=request.user.id,
-                explore_saved_query_id=OuterRef("id"),
-            ).values("last_visited")[:1]
+        last_visited_query = (
+            Subquery(
+                ExploreSavedQueryLastVisited.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    explore_saved_query_id=OuterRef("id"),
+                ).values("last_visited")[:1]
+            )
+            if is_interactive
+            else Value(None, output_field=DateTimeField())
         )
         queryset = queryset.annotate(user_last_visited=last_visited_query)
 
@@ -440,13 +460,14 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                     )
 
                 elif sort_by == "myqueries":
-                    order_by.append(
-                        Case(
-                            When(created_by_id=request.user.id, then=-1),
-                            default="created_by_id",
-                            output_field=IntegerField(),
-                        ),
-                    )
+                    if is_interactive:
+                        order_by.append(
+                            Case(
+                                When(created_by_id=request.user.id, then=-1),
+                                default="created_by_id",
+                                output_field=IntegerField(),
+                            ),
+                        )
 
                 elif sort_by == "mostStarred":
                     queryset = queryset.annotate(starred_count=Count("exploresavedquerystarred"))
@@ -454,12 +475,16 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
                 elif sort_by == "starred":
                     queryset = queryset.annotate(
-                        is_starred=Exists(
-                            ExploreSavedQueryStarred.objects.filter(
-                                explore_saved_query_id=OuterRef("id"),
-                                user_id=request.user.id,
-                                starred=True,
+                        is_starred=(
+                            Exists(
+                                ExploreSavedQueryStarred.objects.filter(
+                                    explore_saved_query_id=OuterRef("id"),
+                                    user_id=request.user.id,
+                                    starred=True,
+                                )
                             )
+                            if is_interactive
+                            else Value(False, output_field=BooleanField())
                         )
                     )
                     order_by.append("-is_starred")
@@ -473,31 +498,39 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         exclude = request.query_params.get("exclude")
         if exclude == "shared":
-            queryset = queryset.filter(created_by_id=request.user.id)
+            queryset = (
+                queryset.filter(created_by_id=request.user.id)
+                if is_interactive
+                else queryset.none()
+            )
         elif exclude == "owned":
-            queryset = queryset.exclude(created_by_id=request.user.id)
+            if is_interactive:
+                queryset = queryset.exclude(created_by_id=request.user.id)
 
         starred = request.query_params.get("starred")
 
         if starred == "1":
-            queryset = (
-                queryset.filter(
-                    id__in=ExploreSavedQueryStarred.objects.filter(
-                        organization=organization, user_id=request.user.id, starred=True
-                    ).values_list("explore_saved_query_id", flat=True)
-                )
-                .annotate(
-                    position=Subquery(
-                        ExploreSavedQueryStarred.objects.filter(
-                            explore_saved_query_id=OuterRef("id"),
-                            user_id=request.user.id,
-                            starred=True,
-                        ).values("position")[:1]
+            if is_interactive:
+                queryset = (
+                    queryset.filter(
+                        id__in=ExploreSavedQueryStarred.objects.filter(
+                            organization=organization, user_id=request.user.id, starred=True
+                        ).values_list("explore_saved_query_id", flat=True)
                     )
+                    .annotate(
+                        position=Subquery(
+                            ExploreSavedQueryStarred.objects.filter(
+                                explore_saved_query_id=OuterRef("id"),
+                                user_id=request.user.id,
+                                starred=True,
+                            ).values("position")[:1]
+                        )
+                    )
+                    .order_by("position")
                 )
-                .order_by("position")
-            )
-            order_by = ["position", "-date_added"]
+                order_by = ["position", "-date_added"]
+            else:
+                queryset = queryset.none()
 
         # Entries with null last visited need a deterministic tiebreaker,
         # hence adding id to serve this purpose.
@@ -537,6 +570,8 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        is_interactive = getattr(request.user, "is_interactive", True)
+
         try:
             params = self.get_filter_params(
                 request, organization, project_ids=request.data.get("projects")
@@ -559,13 +594,15 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             dataset=data["dataset"],
-            created_by_id=request.user.id if request.user.is_authenticated else None,
+            created_by_id=(
+                request.user.id if request.user.is_authenticated and is_interactive else None
+            ),
         )
 
         model.set_projects(data["project_ids"])
 
         try:
-            if "starred" in request.data and request.data["starred"]:
+            if is_interactive and "starred" in request.data and request.data["starred"]:
                 ExploreSavedQueryStarred.objects.insert_starred_query(
                     organization, request.user.id, model, starred=True
                 )

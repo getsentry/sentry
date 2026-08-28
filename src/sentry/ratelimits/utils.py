@@ -113,7 +113,11 @@ def get_rate_limit_key(
                 id = ip_address
         else:
             category = "user"
-            id = request_auth.user_id
+            if request_auth.actor_type == "service_account":
+                assert request_auth.actor_id is not None
+                id = f"service_account:{request_auth.actor_id}"
+            else:
+                id = request_auth.user_id
 
     elif (
         not isinstance(request_auth, ApiKey)

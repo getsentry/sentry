@@ -586,8 +586,17 @@ class OrganizationReleaseDetailsEndpoint(
                     status=400,
                 )
             fetch_commits = not commit_list
+            if fetch_commits and not getattr(request.user, "is_interactive", True):
+                return Response(
+                    {"refs": ["Service accounts cannot fetch commits from repository refs"]},
+                    status=400,
+                )
             try:
-                release.set_refs(refs, request.user.id, fetch=fetch_commits)
+                release.set_refs(
+                    refs,
+                    request.user.id if getattr(request.user, "is_interactive", True) else None,
+                    fetch=fetch_commits,
+                )
             except InvalidRepository as e:
                 scope.set_tag("failure_reason", "InvalidRepository")
                 scope.set_attribute("failure_reason", "InvalidRepository")
