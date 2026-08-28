@@ -53,10 +53,15 @@ def is_org_in_recalibration_rollout(org_id: int) -> bool:
     return in_rollout_group(RECALIBRATION_ROLLOUT_RATE_OPTION, org_id)
 
 
+def is_org_in_serving_org_ids(org_id: int) -> bool:
+    """The explicitly listed orgs, which also get debug logs during rule generation."""
+    return org_id in _org_ids(SERVING_ORG_IDS_OPTION)
+
+
 def is_org_in_serving_rollout(org_id: int) -> bool:
     if is_killswitch_engaged():
         return False
-    return org_id in _org_ids(SERVING_ORG_IDS_OPTION) or in_rollout_group(
+    return is_org_in_serving_org_ids(org_id) or in_rollout_group(
         SERVING_ROLLOUT_RATE_OPTION, org_id
     )
 
