@@ -1,42 +1,40 @@
-import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 
 import type {ProjectConfig} from './types';
-
-const MAX_NAMES = 3;
 
 interface Props {
   orgSlug: string;
   unconfiguredProjects: ProjectConfig[];
 }
 
-function formatProjectNames(slugs: string[]) {
-  const visible = slugs.slice(0, MAX_NAMES);
-  const remaining = slugs.length - visible.length;
-
-  if (remaining > 0) {
-    return `${visible.join(', ')}, ${tn('and %s other', 'and %s others', remaining)}`;
-  }
-
-  return oxfordizeArray(visible);
-}
-
 export function ProjectSetupWarning({unconfiguredProjects, orgSlug}: Props) {
   const breakpoints = useBreakpoints();
-  const names = breakpoints.xs
-    ? formatProjectNames(unconfiguredProjects.map(project => project.slug))
-    : tn('%s project', '%s projects', unconfiguredProjects.length);
+  const count = tn('%s project', '%s projects', unconfiguredProjects.length);
+
+  if (!breakpoints.sm) {
+    return null;
+  }
 
   return (
-    <Alert variant="warning" showIcon>
-      {tct("Seer isn't set up for [names]. Set it up [link].", {
-        names,
-        link: <Link to={`/settings/${orgSlug}/seer/`}>{t('here')}</Link>,
-      })}
-    </Alert>
+    <Flex align="center" flex="0 0 auto">
+      <Tooltip
+        isHoverable
+        title={tct(
+          "Seer automation isn't set up for [count] in the current filter. [link]",
+          {
+            count,
+            link: <Link to={`/settings/${orgSlug}/seer/`}>{t('Enable automation')}</Link>,
+          }
+        )}
+      >
+        <IconWarning variant="warning" aria-label={t('Seer setup warning')} />
+      </Tooltip>
+    </Flex>
   );
 }
