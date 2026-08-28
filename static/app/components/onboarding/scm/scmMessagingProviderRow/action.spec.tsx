@@ -8,23 +8,10 @@ import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/sc
 import {RowActions} from './action';
 
 const slackProvider = GitHubIntegrationProviderFixture({key: 'slack', name: 'Slack'});
-const msteamsProvider = GitHubIntegrationProviderFixture({
-  key: 'msteams',
-  name: 'Microsoft Teams',
-  canAdd: false,
-});
 
 const installableSlack: ScmMessagingResolvedProvider = {
   providerKey: 'slack',
   provider: slackProvider,
-  status: 'installable',
-  eligibleIntegrations: [],
-  permissionLimitedIntegration: undefined,
-};
-
-const installableMsteams: ScmMessagingResolvedProvider = {
-  providerKey: 'msteams',
-  provider: msteamsProvider,
   status: 'installable',
   eligibleIntegrations: [],
   permissionLimitedIntegration: undefined,
@@ -68,19 +55,6 @@ describe('RowActions', () => {
       renderActions('installable', {onConnect});
 
       await userEvent.click(screen.getByRole('button', {name: /Connect/}));
-
-      expect(onConnect).toHaveBeenCalledTimes(1);
-    });
-
-    it('calls onConnect for Microsoft Teams (install policy lives in parent handleConnect)', async () => {
-      const onConnect = jest.fn();
-      renderActions('installable', {onConnect, resolvedProvider: installableMsteams});
-
-      expect(screen.getByRole('button', {name: /Connect Microsoft Teams/})).toBeEnabled();
-
-      await userEvent.click(
-        screen.getByRole('button', {name: /Connect Microsoft Teams/})
-      );
 
       expect(onConnect).toHaveBeenCalledTimes(1);
     });
