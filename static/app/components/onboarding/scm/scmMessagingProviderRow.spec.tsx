@@ -8,12 +8,12 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import type {ScmMessagingActiveRow} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {UNCONFIGURED_SCM_MESSAGING_SETUP} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
-import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
-import {ScmMessagingProviderRow} from '.';
+import {ScmMessagingProviderRow} from './scmMessagingProviderRow';
+import type {ScmMessagingResolvedProvider} from './useScmMessagingProviders';
 
 const organization = OrganizationFixture();
 
@@ -167,6 +167,16 @@ describe('ScmMessagingProviderRow', () => {
   afterEach(() => jest.restoreAllMocks());
 
   describe('installable state', () => {
+    it('renders provider name, description, and Connect button', () => {
+      renderRow(installableSlack);
+
+      expect(screen.getByText('Slack')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Get real-time alerts and triage issues without leaving Slack/)
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Connect Slack/})).toBeInTheDocument();
+    });
+
     it('opens the install flow when Connect is clicked', async () => {
       const {callbacks} = mockPipeline();
 
@@ -201,6 +211,20 @@ describe('ScmMessagingProviderRow', () => {
 
   describe('install-forbidden state', () => {
     const noAccessOrg = OrganizationFixture({access: []});
+
+    it('renders the description and a disabled Connect button', () => {
+      renderRow(installableSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+        organization: noAccessOrg,
+      });
+
+      expect(
+        screen.getByText(/Get real-time alerts and triage issues without leaving Slack/)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Ask an organization admin to connect Slack.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Connect Slack/})).toBeDisabled();
+    });
 
     it('does not open the install pipeline when Connect is clicked', async () => {
       mockPipeline();
@@ -451,6 +475,7 @@ describe('ScmMessagingProviderRow', () => {
       );
 
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByText(/tenant-level connection/)).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /Connect/})).toBeDisabled();
     });
 
@@ -518,13 +543,29 @@ describe('ScmMessagingProviderRow', () => {
     });
   });
 
+  describe('permission-limited state', () => {
+    it('shows workspace name, an explanation, and a disabled Connect button', () => {
+      renderRow(permissionLimitedMsteams);
+
+      expect(screen.getByText('Microsoft Teams')).toBeInTheDocument();
+      expect(screen.getByText('Contoso Teams')).toBeInTheDocument();
+      expect(screen.getByText(/tenant-level connection/)).toBeInTheDocument();
+
+      const addBtn = screen.getByRole('button', {name: /Connect/});
+      expect(addBtn).toBeDisabled();
+    });
+  });
+
   describe('choose-destination state (connected, not yet configured)', () => {
-    it('shows the Connected tag without opening the picker', () => {
+    it('shows the Connected tag and Choose destination CTA without opening the picker', () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
       expect(screen.getByText('Connected')).toBeInTheDocument();
       expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: /Choose destination/})
+      ).toBeInTheDocument();
       expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
     });
 
@@ -691,6 +732,16 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('configured state', () => {
+    it('shows workspace / channel and Edit + Remove buttons', () => {
+      renderRow(connectedSlack, selectedSlackSetup);
+
+      expect(screen.getByText('Slack')).toBeInTheDocument();
+      expect(screen.getByText('test-workspace')).toBeInTheDocument();
+      expect(screen.getByText('#alerts')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Remove/})).toBeInTheDocument();
+    });
+
     it('shows the Destination added tag', () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
@@ -714,6 +765,20 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('removing state', () => {
+    it('shows a confirmation when Remove is clicked', async () => {
+      renderRow(connectedSlack, selectedSlackSetup);
+
+      await userEvent.click(screen.getByRole('button', {name: /Remove/}));
+
+      expect(screen.getByText('Remove this destination?')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'This removes the destination from project setup. The integration stays connected to your organization.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Cancel/})).toBeInTheDocument();
+    });
+
     it('returns to configured when Cancel is clicked', async () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
