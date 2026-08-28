@@ -2,7 +2,7 @@ import {Navigate} from 'react-router-dom';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -120,7 +120,7 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
   return (
     <Stack gap="xl">
       <form.AppForm form={form}>
-        <Stack gap="md" align="start">
+        <Stack gap="xl" align="start">
           <Text as="p">
             {tct('The [name] organization is currently scheduled for deletion.', {
               name: <Text bold>{organization.slug}</Text>,
@@ -131,9 +131,15 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
               'Would you like to cancel this process and restore the organization back to the original state?'
             )}
           </Text>
-          <form.SubmitButton data-test-id="form-submit">
-            {t('Restore Organization')}
-          </form.SubmitButton>
+          <Flex
+            width="100%"
+            justify="end"
+            borderTop="secondary"
+            paddingTop="xl"
+            paddingBottom="xl"
+          >
+            <form.SubmitButton>{t('Restore Organization')}</form.SubmitButton>
+          </Flex>
         </Stack>
       </form.AppForm>
       <Text as="p">

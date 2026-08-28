@@ -45,7 +45,9 @@ describe('OrganizationRestore', () => {
     const text = await screen.findByText(/currently scheduled for deletion/);
     expect(mockGet).toHaveBeenCalled();
     expect(text).toBeInTheDocument();
-    expect(screen.getByTestId('form-submit')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Restore Organization'})
+    ).toBeInTheDocument();
   });
 
   it('submits update requests', async () => {
@@ -66,7 +68,7 @@ describe('OrganizationRestore', () => {
       },
     });
 
-    const button = await screen.findByTestId('form-submit');
+    const button = await screen.findByRole('button', {name: 'Restore Organization'});
     await userEvent.click(button);
 
     expect(mockUpdate).toHaveBeenCalledWith(
@@ -106,7 +108,9 @@ describe('OrganizationRestore', () => {
       },
     });
 
-    await userEvent.click(await screen.findByTestId('form-submit'));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Restore Organization'})
+    );
 
     await waitFor(() =>
       expect(addErrorMessage).toHaveBeenCalledWith(
@@ -137,6 +141,8 @@ describe('OrganizationRestore', () => {
       /organization is currently in progress of being deleted/
     );
     expect(text).toBeInTheDocument();
-    expect(screen.queryByTestId('form-submit')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Restore Organization'})
+    ).not.toBeInTheDocument();
   });
 });
