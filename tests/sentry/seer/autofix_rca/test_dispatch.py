@@ -62,7 +62,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         # completions continue through the Autofix completion flow.
         assert payload["on_completion_hook"] == {
             "module_path": AutofixOnCompletionHook.get_module_path(),
-            "call_on_failure": False,
+            "call_on_failure": True,
         }
         assert run_kwargs["extras"] == {
             "referrer": AutofixReferrer.NIGHT_SHIFT.value,

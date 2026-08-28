@@ -166,10 +166,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
     - Continuing the automated pipeline if stopping_point hasn't been reached
-
-    Keep dispatching this hook without ``call_on_failure`` until the failure
-    handling below is fully deployed: a mixed rollout that fired this hook on
-    error used to continue the pipeline as if the step succeeded.
+    - No-op'ing when the run did not complete (errors / timeouts), so Seer can
+      invoke this hook with ``call_on_failure=True`` without advancing the pipeline
     """
 
     @classmethod
