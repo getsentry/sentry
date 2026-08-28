@@ -105,7 +105,13 @@ export function DefaultOrderedList({children}: {children: ReactNode}) {
 }
 
 export function DefaultListItem({children}: {children: ReactNode; checked?: boolean}) {
-  return <Container as="li">{children}</Container>;
+  // Match DefaultParagraph so tight list items (inline-only content, no nested
+  // <p>) keep md body size instead of inheriting a smaller parent size.
+  return (
+    <Text size="md" density="comfortable">
+      {({className}) => <li className={className}>{children}</li>}
+    </Text>
+  );
 }
 
 export function DefaultTaskList({children}: {children: ReactNode}) {
