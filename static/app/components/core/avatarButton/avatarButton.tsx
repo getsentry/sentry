@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import color from 'color';
+import type {DistributedOmit} from 'type-fest';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
@@ -118,20 +119,26 @@ const AVATAR_BUTTON_ELEVATION: Record<AvatarButtonSize, string> = {
   xs: '1px',
 };
 
-const StyledAvatarButton = styled(Button)<{
+type ResolvedAvatarButtonProps = DistributedOmit<ButtonProps, 'size'> & {
   chonk: string | undefined;
-}>`
+  size: AvatarButtonSize;
+};
+
+function ResolvedAvatarButton({chonk: _chonk, ...props}: ResolvedAvatarButtonProps) {
+  return <Button {...props} />;
+}
+
+const StyledAvatarButton = styled(ResolvedAvatarButton)`
   padding: 0;
-  width: ${p => p.theme.form[p.size as AvatarButtonSize].height};
-  min-width: ${p => p.theme.form[p.size as AvatarButtonSize].height};
+  width: ${p => p.theme.form[p.size].height};
+  min-width: ${p => p.theme.form[p.size].height};
 
   ${p =>
     p.chonk &&
     css`
       &&::before {
         background: ${p.chonk};
-        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size as AvatarButtonSize]} 0 0px
-          ${p.chonk};
+        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size]} 0 0px ${p.chonk};
       }
       &&::after {
         border-color: ${p.chonk};
