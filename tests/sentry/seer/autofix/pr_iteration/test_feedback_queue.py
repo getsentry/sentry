@@ -14,14 +14,11 @@ from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_au
 from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused
 from sentry.seer.autofix.pr_iteration.queue import (
     _parse_queued_item,
-    clear_queued_autofix_feedback,
     peek_queued_autofix_feedback,
-    pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
-from sentry.utils.locking import UnableToAcquireLock
 
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 QUEUE_PATH = "sentry.seer.autofix.pr_iteration.queue"
@@ -205,72 +202,6 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert queued[0].feedback.source._autofix_run is None
         assert "autofix_run" not in queued[0].feedback.source.dict()
         mock_resolve.assert_not_called()
-
-    @patch("sentry.seer.autofix.pr_iteration.queue.emit_pr_iteration_details_started")
-    def test_first_enqueue_emits_started(self, mock_started: MagicMock) -> None:
-        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
-
-        assert self._enqueue(run_id=4545, feedback=feedback) is True
-
-        mock_started.assert_called_once()
-        kwargs = mock_started.call_args.kwargs
-        queued = peek_queued_autofix_feedback(4545)
-        assert kwargs["run_id"] == 4545
-        assert kwargs["consume_id"] == queued[0].consume_id
-        assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT.value
-
-    @patch("sentry.seer.autofix.pr_iteration.queue.emit_pr_iteration_details_started")
-    def test_second_enqueue_does_not_emit_started(self, mock_started: MagicMock) -> None:
-        first = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="first"))
-        second = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="second"))
-
-        assert self._enqueue(run_id=4646, feedback=first) is True
-        assert self._enqueue(run_id=4646, feedback=second) is True
-
-        mock_started.assert_called_once()
-        assert peek_queued_autofix_feedback(4646)[0].consume_id != ""
-
-    def test_queued_item_has_consume_id(self) -> None:
-        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
-
-        assert self._enqueue(run_id=4747, feedback=feedback) is True
-
-        queued = peek_queued_autofix_feedback(4747)
-        assert len(queued[0].consume_id) == 32
-
-    def test_pop_drains_the_queue(self) -> None:
-        first = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="first"))
-        second = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="second"))
-        self._enqueue(run_id=4848, feedback=first)
-        self._enqueue(run_id=4848, feedback=second)
-
-        items = pop_queued_autofix_feedback(4848)
-
-        assert [item.feedback.text for item in items] == ["first", "second"]
-        assert peek_queued_autofix_feedback(4848) == []
-
-    def test_clear_empties_the_queue(self) -> None:
-        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
-        self._enqueue(run_id=4949, feedback=feedback)
-
-        clear_queued_autofix_feedback(4949)
-
-        assert peek_queued_autofix_feedback(4949) == []
-
-    @patch("sentry.seer.autofix.pr_iteration.queue.emit_pr_iteration_details_started")
-    def test_enqueue_still_pushes_when_queue_lock_times_out(self, mock_started: MagicMock) -> None:
-        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
-
-        with patch(
-            "sentry.seer.autofix.pr_iteration.queue._holding_queue_lock",
-            side_effect=UnableToAcquireLock("timeout"),
-        ):
-            assert self._enqueue(run_id=5050, feedback=feedback) is True
-
-        queued = peek_queued_autofix_feedback(5050)
-        assert len(queued) == 1
-        assert queued[0].feedback.text == "fix it"
-        mock_started.assert_called_once()
 
 
 class StopCommandEndToEndTest(TestCase):

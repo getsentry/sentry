@@ -439,7 +439,6 @@ def _drain_queued_autofix_feedback(
             feedback=feedback_items,
             actor_user_id=actor_user_id,
             commit_author=commit_author_for_feedback(feedback_items, organization_id),
-            consume_id=queued_items[0].consume_id,
         )
     except (
         PrIterationNoPullRequestException,
