@@ -3,6 +3,7 @@ import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {IconCompass} from 'sentry/icons/iconCompass';
@@ -434,8 +435,8 @@ function getBashEvidenceProps({
     label,
     tooltip: (
       <Stack>
-        <p>{label}</p>
-        {commandText && <p>{commandText}</p>}
+        <Text>{label}</Text>
+        {commandText && <Text>{commandText}</Text>}
       </Stack>
     ),
   };
