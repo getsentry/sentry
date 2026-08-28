@@ -402,11 +402,21 @@ def attribute_name_exists(
     attr_type: AttributeKey.Type.ValueType,
     name: str,
 ) -> bool:
-    """Check a single typed attribute name, matching on the name itself so it can't be paged out."""
-    response = snuba_rpc.attribute_names_rpc(
-        _attribute_names_request(meta, attr_type, [name], value_substring_match=name)
-    )
-    return any(attribute.name == name for attribute in response.attributes)
+    """Check a single typed attribute name, matching on the name to narrow what we page through."""
+    offset = 0
+    while True:
+        response = snuba_rpc.attribute_names_rpc(
+            _attribute_names_request(
+                meta, attr_type, [name], value_substring_match=name, offset=offset
+            )
+        )
+        if any(attribute.name == name for attribute in response.attributes):
+            return True
+        # The substring match still returns every name containing this one, so a
+        # short enough name can page itself out
+        if len(response.attributes) < ATTRIBUTE_NAME_LIMIT:
+            return False
+        offset += ATTRIBUTE_NAME_LIMIT
 
 
 def _attribute_names_page(
