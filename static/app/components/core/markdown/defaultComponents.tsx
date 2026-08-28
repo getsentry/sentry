@@ -216,6 +216,32 @@ export const DefaultTableCell = styled('td')<{align?: Align}>`
  */
 const reportedUnhandledTags = new Set<string>();
 
+function reportUnhandledTag(
+  name: string,
+  level: 'block' | 'inline',
+  attrs: Record<string, string>
+) {
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.warn(`[Markdown] no renderer for tag: ${name}`, attrs);
+    return;
+  }
+
+  if (reportedUnhandledTags.has(name)) {
+    return;
+  }
+  reportedUnhandledTags.add(name);
+
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('markdown.tag', name);
+    scope.setTag('markdown.tag_level', level);
+    scope.setExtra('attrs', attrs);
+    scope.setFingerprint(['markdown-unhandled-tag', name]);
+    Sentry.captureException(new Error(`[Markdown] no renderer for tag: ${name}`));
+  });
+}
+
 /**
  * Fallback for `<tag>` tokens that no `components.Tag` renderer handled. The
  * tag's content is dropped from the rendered output, so report it rather than
@@ -231,24 +257,6 @@ export function DefaultTag({
   level: 'block' | 'inline';
   name: string;
 }) {
-  if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.warn(`[Markdown] no renderer for tag: ${name}`, attrs);
-    return null;
-  }
-
-  if (!reportedUnhandledTags.has(name)) {
-    reportedUnhandledTags.add(name);
-
-    Sentry.withScope(scope => {
-      scope.setLevel('warning');
-      scope.setTag('markdown.tag', name);
-      scope.setTag('markdown.tag_level', level);
-      scope.setExtra('attrs', attrs);
-      scope.setFingerprint(['markdown-unhandled-tag', name]);
-      Sentry.captureException(new Error(`[Markdown] no renderer for tag: ${name}`));
-    });
-  }
-
+  reportUnhandledTag(name, level, attrs);
   return null;
 }
