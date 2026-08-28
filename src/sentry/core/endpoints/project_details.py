@@ -660,6 +660,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
+        if "isBookmarked" in result and not getattr(request.user, "is_interactive", True):
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=403,
+            )
+
         if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(project.organization)):
             return Response(
                 {"detail": "dynamicSamplingBiases is not a valid field"},

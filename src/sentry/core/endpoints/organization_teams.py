@@ -33,6 +33,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.search.utils import tokenize_query
 from sentry.signals import team_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
+from sentry.viewer_context import ActorType, get_viewer_context
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
@@ -221,9 +222,15 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     organization=organization, user=request.user, team=team, sender=self.__class__
                 )
             if self.should_add_creator_to_team(request):
+                viewer = get_viewer_context()
+                actor = viewer.actor if viewer is not None else None
+                if actor is not None and actor.type == ActorType.SERVICE_ACCOUNT:
+                    member_filter = {"service_account_id": actor.id}
+                else:
+                    member_filter = {"user_id": request.user.id}
                 try:
                     member = OrganizationMember.objects.get(
-                        user_id=request.user.id, organization=organization
+                        organization=organization, **member_filter
                     )
                 except OrganizationMember.DoesNotExist:
                     pass

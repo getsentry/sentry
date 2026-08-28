@@ -32,6 +32,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.objectstore import parse_accept_encoding
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
+from sentry.viewer_context import ActorType, get_viewer_context
 
 ATTACHMENT_ID_PARAM = OpenApiParameter(
     name="attachment_id",
@@ -74,8 +75,15 @@ class EventAttachmentDetailsPermission(ProjectPermission):
             organization.get_option("sentry:attachments_role") or ATTACHMENTS_ROLE_DEFAULT
         )
 
+        viewer = get_viewer_context()
+        actor = viewer.actor if viewer is not None else None
+        if actor is not None and actor.type == ActorType.SERVICE_ACCOUNT:
+            actor_filter = {"service_account_id": actor.id}
+        else:
+            actor_filter = {"user_id": request.user.id}
+
         try:
-            om = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
+            om = OrganizationMember.objects.get(organization=organization, **actor_filter)
         except OrganizationMember.DoesNotExist:
             return False
 

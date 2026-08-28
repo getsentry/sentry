@@ -10,6 +10,7 @@ from django.http.response import HttpResponseBase
 from sentry.seer.agent_token import is_agent_auth
 from sentry.viewer_context import (
     ActorType,
+    ViewerActor,
     ViewerContext,
     viewer_context_from_header,
     viewer_context_scope,
@@ -45,7 +46,7 @@ def ViewerContextMiddleware(
         request_ctx = _viewer_context_from_request(request)
         jwt_ctx = _viewer_context_from_jwt_header(request)
 
-        if jwt_ctx is not None and request_ctx.user_id is not None:
+        if jwt_ctx is not None and request_ctx.actor is not None:
             # Direct user or agent authentication is authoritative when both are present.
             if (
                 jwt_ctx.organization_id is not None
@@ -83,6 +84,7 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
     auth = getattr(request, "auth", None)
 
     user_id: int | None = None
+    actor: ViewerActor | None = None
     if user.is_authenticated:
         user_id = user.id
 
@@ -95,12 +97,25 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
     if auth is not None and is_agent_auth(auth):
         actor_type = ActorType.AGENT
         user_id = auth.user_id
+        if auth.actor_id is not None:
+            actor = ViewerActor(type=actor_type, id=auth.actor_id)
+    elif (
+        auth is not None
+        and getattr(auth, "actor_type", None) == ActorType.SERVICE_ACCOUNT.value
+        and getattr(auth, "actor_id", None) is not None
+    ):
+        actor_type = ActorType.SERVICE_ACCOUNT
+        user_id = None
+        actor = ViewerActor(type=actor_type, id=auth.actor_id)
     else:
         actor_type = ActorType.USER
+        if user_id is not None:
+            actor = ViewerActor(type=actor_type, id=user_id)
 
     return ViewerContext(
         user_id=user_id,
         organization_id=organization_id,
         actor_type=actor_type,
+        actor=actor,
         token=auth,
     )

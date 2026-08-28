@@ -40,10 +40,35 @@ https://www.notion.so/sentry/RFC-Unified-ViewerContext-via-ContextVar-32f8b10e4b
 
 class ActorType(enum.StrEnum):
     USER = "user"
+    SERVICE_ACCOUNT = "service_account"
     SYSTEM = "system"
     INTEGRATION = "integration"
     AGENT = "agent"
     UNKNOWN = "unknown"
+
+
+@dataclasses.dataclass(frozen=True)
+class ViewerActor:
+    """A typed identity.
+
+    IDs are only unique within an actor type, so callers must carry this pair
+    together rather than treating every integer as a ``User.id``.
+    """
+
+    type: ActorType
+    id: int
+
+    def serialize(self) -> dict[str, Any]:
+        return {"type": self.type.value, "id": self.id}
+
+    @classmethod
+    def deserialize(cls, data: Mapping[str, Any]) -> ViewerActor | None:
+        try:
+            actor_type = ActorType(data["type"])
+            actor_id = int(data["id"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        return cls(type=actor_type, id=actor_id)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -61,14 +86,38 @@ class ViewerContext:
     project_id: int | None = None
     user_id: int | None = None
     actor_type: ActorType = ActorType.UNKNOWN
+    actor: ViewerActor | None = None
 
     # Carries scopes/kind for in-process permission checks.
     # NOT propagated across process/service boundaries.
     token: AuthenticatedToken | None = None
 
+    def __post_init__(self) -> None:
+        actor = self.actor
+        if self.actor_type == ActorType.SERVICE_ACCOUNT and (
+            actor is None or actor.type != ActorType.SERVICE_ACCOUNT
+        ):
+            raise ValueError("A service-account ViewerContext requires a service-account actor")
+        if (
+            actor is not None
+            and actor.type == ActorType.SERVICE_ACCOUNT
+            and self.user_id is not None
+        ):
+            raise ValueError("A service-account ViewerContext cannot carry a user_id")
+
+        if actor is None and self.user_id is not None and self.actor_type == ActorType.USER:
+            actor = ViewerActor(type=ActorType.USER, id=self.user_id)
+            object.__setattr__(self, "actor", actor)
+        elif actor is not None:
+            object.__setattr__(self, "actor_type", actor.type)
+            if actor.type == ActorType.USER:
+                object.__setattr__(self, "user_id", actor.id)
+
     def serialize(self) -> dict[str, Any]:
         """Serialize to a dict for cross-service headers (e.g. X-Viewer-Context)."""
         result: dict[str, Any] = {"actor_type": self.actor_type.value}
+        if self.actor is not None:
+            result["actor"] = self.actor.serialize()
         if self.organization_id is not None:
             result["organization_id"] = self.organization_id
         if self.project_id is not None:
@@ -84,11 +133,14 @@ class ViewerContext:
             actor_type = ActorType(data.get("actor_type", "unknown"))
         except ValueError:
             actor_type = ActorType.UNKNOWN
+        actor_data = data.get("actor")
+        actor = ViewerActor.deserialize(actor_data) if isinstance(actor_data, Mapping) else None
         return cls(
             organization_id=data.get("organization_id"),
             project_id=data.get("project_id"),
             user_id=data.get("user_id"),
             actor_type=actor_type,
+            actor=actor,
         )
 
 

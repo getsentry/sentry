@@ -203,6 +203,9 @@ class OrganizationMember(ReplicatedCellModel):
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
+    service_account_id = HybridCloudForeignKey(
+        "sentry.ServiceAccount", on_delete="CASCADE", null=True, blank=True
+    )
     # This email indicates the invite state of this membership -- it will be cleared when the user is set.
     # it does not necessarily represent the final email of the user associated with the membership, see user_email.
     email = models.EmailField(null=True, blank=True, max_length=75)
@@ -243,8 +246,20 @@ class OrganizationMember(ReplicatedCellModel):
         app_label = "sentry"
         db_table = "sentry_organizationmember"
         unique_together = (("organization", "user_id"), ("organization", "email"))
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "service_account_id"),
+                condition=models.Q(service_account_id__isnull=False),
+                name="sentry_orgmember_org_service_account_unique",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(user_id__isnull=True)
+                | models.Q(service_account_id__isnull=True),
+                name="sentry_orgmember_not_user_and_service_account",
+            ),
+        ]
 
-    __repr__ = sane_repr("organization_id", "user_id", "email", "role")
+    __repr__ = sane_repr("organization_id", "user_id", "service_account_id", "email", "role")
 
     def save(self, *args, **kwargs):
         if self.id is not None:
@@ -275,7 +290,7 @@ class OrganizationMember(ReplicatedCellModel):
         self.refresh_expires_at()
 
     def payload_for_update(self) -> dict[str, Any] | None:
-        return dict(user_id=self.user_id)
+        return dict(user_id=self.user_id, service_account_id=self.service_account_id)
 
     def refresh_expires_at(self):
         now = timezone.now()
@@ -304,7 +319,19 @@ class OrganizationMember(ReplicatedCellModel):
 
     @property
     def is_pending(self):
-        return self.user_id is None
+        return self.user_id is None and self.service_account_id is None
+
+    @property
+    def actor_id(self) -> int | None:
+        return self.service_account_id or self.user_id
+
+    @property
+    def actor_type(self) -> str | None:
+        if self.service_account_id is not None:
+            return "service_account"
+        if self.user_id is not None:
+            return "user"
+        return None
 
     @property
     def token_expired(self):
@@ -436,6 +463,8 @@ class OrganizationMember(ReplicatedCellModel):
         msg.send_async([email])
 
     def get_display_name(self):
+        if self.service_account_id is not None:
+            return f"Service account {self.service_account_id}"
         if self.user_id:
             user = user_service.get_user(user_id=self.user_id)
             if user:
@@ -443,6 +472,8 @@ class OrganizationMember(ReplicatedCellModel):
         return self.email
 
     def get_label(self):
+        if self.service_account_id is not None:
+            return f"Service account {self.service_account_id}"
         if self.user_id:
             user = user_service.get_user(user_id=self.user_id)
             if user:
@@ -485,6 +516,7 @@ class OrganizationMember(ReplicatedCellModel):
         return {
             "email": self.get_email(),
             "user": self.user_id,
+            "service_account": self.service_account_id,
             "teams": [t["id"] for t in teams],
             "teams_slugs": [t["slug"] for t in teams],
             "has_global_access": self.has_global_access,

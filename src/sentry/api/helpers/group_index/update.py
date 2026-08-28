@@ -187,7 +187,12 @@ def update_groups(
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
-    acting_user = user if user and user.is_authenticated else None
+    is_noninteractive_actor = bool(
+        user and user.is_authenticated and not getattr(user, "is_interactive", True)
+    )
+    acting_user = (
+        user if user and user.is_authenticated and getattr(user, "is_interactive", True) else None
+    )
     data = data or request.data
 
     # so we won't have to requery for each group
@@ -210,6 +215,11 @@ def update_groups(
         return Response(status=500)
 
     result = dict(serializer.validated_data)
+
+    if is_noninteractive_actor and any(
+        key in result for key in ("hasSeen", "isBookmarked", "isSubscribed")
+    ):
+        return Response({"detail": "This operation requires a user."}, status=403)
 
     discard = result.get("discard")
     if discard:

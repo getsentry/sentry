@@ -84,6 +84,8 @@ def resolve_action_actor(request: Request | HttpRequest) -> GroupActionActor:
                 if auth.user_id is not None:
                     return GroupActionActor.user(auth.user_id)
             elif auth.kind == "api_token":
+                if auth.actor_type == "service_account" and auth.actor_id is not None:
+                    return GroupActionActor.service_account(auth.actor_id)
                 user = request.user
                 # Gate on is_sentry_app (the app's proxy user), not application_id: an OAuth client
                 # acting for a user (e.g. the MCP) also has an application_id but stays USER.

@@ -131,6 +131,16 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
+        if (
+            not data["project_ids"]
+            and not getattr(request.user, "is_interactive", True)
+            and not request.access.has_global_access
+            and not request.access.has_scope("org:write")
+        ):
+            return Response(
+                {"detail": "Service accounts with scoped project access must select projects."},
+                status=403,
+            )
         user_selected_dataset = data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
 
         query.update(

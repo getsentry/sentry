@@ -25,7 +25,10 @@ from sentry.users.services.user.service import user_service
 
 class UserPermission(DemoSafePermission):
     def has_permission(self, request: Request, view: APIView) -> bool:
-        if agent_token.is_agent_auth(request.auth):
+        if (
+            agent_token.is_agent_auth(request.auth)
+            or getattr(request.auth, "actor_type", None) == "service_account"
+        ):
             return False
         return super().has_permission(request, view)
 

@@ -44,6 +44,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
+from sentry.viewer_context import ActorType, get_viewer_context
 
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
 
@@ -197,7 +198,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not request.user.is_authenticated:
             return False
 
-        if request.user.id == member.user_id:
+        viewer_context = get_viewer_context()
+        if (
+            viewer_context is not None
+            and viewer_context.actor is not None
+            and viewer_context.actor.type == ActorType.SERVICE_ACCOUNT
+        ):
+            if viewer_context.actor.id == member.service_account_id:
+                return True
+        elif request.user.id == member.user_id:
             return True
 
         # There is an edge case where org owners/managers cannot remove a member from a team they
@@ -216,7 +225,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not created:
             return
 
-        requester = request.user.id if request.user.id != member.user_id else None
+        requester = (
+            request.user.id
+            if getattr(request.user, "is_interactive", True) and request.user.id != member.user_id
+            else None
+        )
         if requester:
             omt.update(requester_id=requester)
 

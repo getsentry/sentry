@@ -625,13 +625,19 @@ class OrganizationMemberAccess(DbAccess):
         permissions: Iterable[str],
         scopes_upper_bound: Iterable[str] | None,
     ) -> None:
-        auth_state = access_service.get_user_auth_state(
-            organization_id=member.organization_id,
-            is_superuser=False,
-            is_staff=False,
-            org_member=summarize_member(member),
-            user_id=member.user_id,
-        )
+        if member.service_account_id is not None:
+            auth_state = RpcAuthState(
+                permissions=[],
+                sso_state=RpcMemberSsoState(is_required=False, is_valid=True),
+            )
+        else:
+            auth_state = access_service.get_user_auth_state(
+                organization_id=member.organization_id,
+                is_superuser=False,
+                is_staff=False,
+                org_member=summarize_member(member),
+                user_id=member.user_id,
+            )
         sso_state = auth_state.sso_state
         has_global_access = (
             bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
@@ -933,6 +939,11 @@ def from_request_org_and_scopes(
             return DEFAULT
         return from_agent_auth(request.auth, rpc_user_org_context)
 
+    if getattr(request.auth, "actor_type", None) == "service_account":
+        if rpc_user_org_context is None:
+            return DEFAULT
+        return from_rpc_auth(request.auth, rpc_user_org_context)
+
     is_staff = is_active_staff(request)
 
     if not rpc_user_org_context:
@@ -1033,6 +1044,11 @@ def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
     if is_agent_auth(request.auth):
+        if organization is None:
+            return DEFAULT
+        return from_auth(request.auth, organization)
+
+    if getattr(request.auth, "actor_type", None) == "service_account":
         if organization is None:
             return DEFAULT
         return from_auth(request.auth, organization)
@@ -1185,8 +1201,17 @@ def from_rpc_member(
     is_staff: bool = False,
     auth_state: RpcAuthState | None = None,
 ) -> Access:
-    if rpc_user_organization_context.user_id is None:
+    if (
+        rpc_user_organization_context.user_id is None
+        and rpc_user_organization_context.actor_id is None
+    ):
         return DEFAULT
+
+    if auth_state is None and rpc_user_organization_context.actor_type == "service_account":
+        auth_state = RpcAuthState(
+            permissions=[],
+            sso_state=RpcMemberSsoState(is_required=False, is_valid=True),
+        )
 
     return RpcBackedAccess(
         rpc_user_organization_context=rpc_user_organization_context,
@@ -1218,6 +1243,17 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
                 member.organization = organization
                 access = from_member(member, scopes=auth.get_scopes())
         return access
+    if getattr(auth, "actor_type", None) == "service_account":
+        if auth.organization_id != organization.id or auth.actor_id is None:
+            return DEFAULT
+        try:
+            member = OrganizationMember.objects.get(
+                service_account_id=auth.actor_id, organization_id=organization.id
+            )
+        except OrganizationMember.DoesNotExist:
+            return DEFAULT
+        member.organization = organization
+        return from_member(member, scopes=auth.get_scopes())
     auth_organization_id = auth.organization_id
     if auth_organization_id is not None and auth_organization_id == organization.id:
         return OrganizationGlobalAccess(
@@ -1237,6 +1273,21 @@ def from_rpc_auth(
         # org-global access an org token gets. Dispatched here so the cap holds at the
         # shared userless-auth choke, not only in determine_access.
         return from_agent_auth(auth, rpc_user_org_context)
+    if getattr(auth, "actor_type", None) == "service_account":
+        if (
+            auth.organization_id != rpc_user_org_context.organization.id
+            or auth.actor_id != rpc_user_org_context.actor_id
+            or rpc_user_org_context.member is None
+        ):
+            return DEFAULT
+        return from_rpc_member(
+            rpc_user_org_context,
+            scopes=auth.get_scopes(),
+            auth_state=RpcAuthState(
+                permissions=[],
+                sso_state=RpcMemberSsoState(is_required=False, is_valid=True),
+            ),
+        )
     if auth.organization_id == rpc_user_org_context.organization.id:
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,

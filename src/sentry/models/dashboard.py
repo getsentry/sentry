@@ -520,7 +520,9 @@ class DashboardRevision(DefaultFieldsModel):
         """
         revision = cls.objects.create(
             dashboard=dashboard,
-            created_by_id=user.id if user.is_authenticated else None,
+            created_by_id=(
+                user.id if user.is_authenticated and getattr(user, "is_interactive", True) else None
+            ),
             title=dashboard.title,
             source=source,
             snapshot=snapshot,

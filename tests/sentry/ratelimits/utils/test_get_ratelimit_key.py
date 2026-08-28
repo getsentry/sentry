@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.auth.system import SystemToken
 from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
 from sentry.models.apitoken import ApiToken
@@ -129,6 +130,31 @@ class GetRateLimitKeyTest(TestCase):
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
             == f"user:default:APITestEndpoint:GET:{self.user.id}"
+        )
+
+    def test_service_account_token_has_a_distinct_principal_key(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Deploy bot",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["event:read", "org:read"],
+        )
+        self.request.auth = AuthenticatedToken.from_token(token)
+        self.request.user = RpcServiceAccount(
+            id=account.id,
+            organization_id=self.organization.id,
+            name=account.name,
+            is_active=True,
+        )
+
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"user:default:APITestEndpoint:GET:service_account:{account.id}"
         )
 
     def test_api_token_replica(self) -> None:

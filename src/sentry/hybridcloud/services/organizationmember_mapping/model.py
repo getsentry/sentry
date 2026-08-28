@@ -18,6 +18,7 @@ class RpcOrganizationMemberMapping(RpcModel):
 
     role: str = ""
     user_id: int | None = None
+    service_account_id: int | None = None
     email: str | None = None
     inviter_id: int | None = None
     invite_status: int | None = None
@@ -26,6 +27,7 @@ class RpcOrganizationMemberMapping(RpcModel):
 class RpcOrganizationMemberMappingUpdate(RpcModel):
     role: str
     user_id: int | None
+    service_account_id: int | None
     email: str | None
     inviter_id: int | None
     invite_status: int | None

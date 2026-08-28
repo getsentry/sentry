@@ -4,6 +4,7 @@ from django.core import mail
 from django.db.models import F
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
@@ -44,6 +45,31 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert response.data["orgRole"] == "owner"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["email"] == self.user.email
+
+    def test_service_account_me_uses_typed_membership(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["member:read"],
+        )
+        service_account_member = self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+        )
+
+        response = APIClient().get(
+            reverse(self.endpoint, args=[self.organization.slug, "me"]),
+            HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(service_account_member.id)
+        assert response.data["actorType"] == "service_account"
 
     def test_get_by_id(self) -> None:
         user = self.create_user("dummy@example.com")
@@ -197,6 +223,46 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
     def test_invalid_id(self) -> None:
         self.get_error_response(self.organization.slug, "trash", reinvite=1, status_code=404)
+
+    def test_service_account_me_updates_its_own_membership(self) -> None:
+        human_member = OrganizationMember.objects.get(
+            organization=self.organization,
+            user_id=self.user.id,
+        )
+        human_team = self.create_team(organization=self.organization, slug="human-team")
+        self.create_team_membership(member=human_member, team=human_team)
+        human_team_ids = set(human_member.teams.values_list("id", flat=True))
+        service_account_team = self.create_team(
+            organization=self.organization,
+            slug="service-account-team",
+        )
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["member:read", "member:write", "member:admin"],
+        )
+        service_account_member = self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="owner",
+        )
+
+        response = APIClient().put(
+            reverse(self.endpoint, args=[self.organization.slug, "me"]),
+            data={"teams": [service_account_team.slug]},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert set(service_account_member.teams.values_list("id", flat=True)) == {
+            service_account_team.id
+        }
+        assert set(human_member.teams.values_list("id", flat=True)) == human_team_ids
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_reinvite_pending_member(self, mock_send_invite_email: MagicMock) -> None:

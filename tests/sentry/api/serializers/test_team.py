@@ -6,10 +6,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectSerializer
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.app import env
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.models.avatars.team_avatar import TeamAvatar
 from sentry.models.files.file import File
 from sentry.models.organizationmember import InviteStatus
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import ActorType, ViewerActor, ViewerContext, viewer_context_scope
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
@@ -149,6 +151,48 @@ class TeamSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is True
         assert result["teamRole"] == TEAM_CONTRIBUTOR["id"]
+
+    def test_service_account_uses_typed_membership_not_colliding_user_state(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization()
+        organization.flags.allow_joinleave = False
+        organization.save()
+        human_team = self.create_team(organization=organization)
+        service_account_team = self.create_team(organization=organization)
+
+        self.create_member(user=user, organization=organization, teams=[human_team])
+        self.create_service_account(
+            id=user.id,
+            organization_id=organization.id,
+            name="Deploy bot",
+        )
+        service_account_member = self.create_member(
+            organization=organization,
+            service_account_id=user.id,
+            teams=[service_account_team],
+        )
+        account = RpcServiceAccount(
+            id=user.id,
+            organization_id=organization.id,
+            name="Deploy bot",
+            is_active=True,
+        )
+
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=organization.id,
+                actor=ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=account.id),
+            )
+        ):
+            result = serialize([human_team, service_account_team], account)
+
+        by_id = {item["id"]: item for item in result}
+        assert by_id[str(human_team.id)]["isMember"] is False
+        assert by_id[str(human_team.id)]["hasAccess"] is False
+        assert by_id[str(service_account_team.id)]["isMember"] is True
+        assert by_id[str(service_account_team.id)]["hasAccess"] is True
+        assert by_id[str(service_account_team.id)]["teamRole"] == TEAM_CONTRIBUTOR["id"]
+        assert service_account_member.user_id is None
 
     def test_member_with_team_role(self) -> None:
         user = self.create_user(username="foo")

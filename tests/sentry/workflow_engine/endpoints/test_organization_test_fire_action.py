@@ -1,6 +1,8 @@
 from unittest import mock
 
 import sentry_sdk
+from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.pagerduty.client import PagerDutyClient
@@ -288,6 +290,61 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             project_slug="nonexistent-project",
         )
         assert response.status_code == 400
+
+    @mock.patch("sentry.workflow_engine.endpoints.organization_test_fire_action.test_fire_actions")
+    def test_service_account_uses_typed_project_membership_when_user_id_collides(
+        self, mock_test_fire_actions: mock.MagicMock
+    ) -> None:
+        mock_test_fire_actions.return_value = (None, None)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        human_team = self.create_team(organization=self.organization, members=[self.user])
+        human_project = self.create_project(organization=self.organization, teams=[human_team])
+        service_account_team = self.create_team(organization=self.organization)
+        service_account_project = self.create_project(
+            organization=self.organization, teams=[service_account_team]
+        )
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["alerts:write"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+            teams=[service_account_team],
+        )
+        client = APIClient()
+        headers = {"HTTP_AUTHORIZATION": f"Bearer {token.plaintext_token}"}
+        actions = [
+            {
+                "type": Action.Type.EMAIL.value,
+                "data": {},
+                "config": {"target_type": "issue_owners"},
+            }
+        ]
+
+        denied = client.post(
+            reverse(self.endpoint, args=(self.organization.slug,)),
+            data={"actions": actions, "projectSlug": human_project.slug},
+            format="json",
+            **headers,
+        )
+        assert denied.status_code == 400
+        mock_test_fire_actions.assert_not_called()
+
+        allowed = client.post(
+            reverse(self.endpoint, args=(self.organization.slug,)),
+            data={"actions": actions, "projectSlug": service_account_project.slug},
+            format="json",
+            **headers,
+        )
+        assert allowed.status_code == 200, allowed.content
+        mock_test_fire_actions.assert_called_once()
+        _, selected_project = mock_test_fire_actions.call_args.args
+        assert selected_project == service_account_project
 
     def test_deprecated_plugin_returns_400(self) -> None:
         self.project.update_option("twilio:enabled", True)

@@ -3,7 +3,9 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 from requests.exceptions import HTTPError
+from rest_framework.test import APIClient
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -22,6 +24,30 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
     def test_connect_requires_feature_flag(self) -> None:
         response = self.get_response(self.organization.slug, "datadog")
         assert response.status_code == 404
+
+    def test_service_account_cannot_link_colliding_user_identity(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["org:read"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+        )
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = APIClient().post(
+                reverse(self.endpoint, args=[self.organization.slug, "datadog_pat"]),
+                {"access_token": "pat-abc", "site": "datadoghq.com"},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert not Identity.objects.filter(user=self.user).exists()
 
     @patch(
         "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
@@ -435,6 +461,39 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
     def test_disconnect_requires_feature_flag(self) -> None:
         response = self.get_response(self.organization.slug, "datadog")
         assert response.status_code == 404
+
+    def test_service_account_cannot_delete_colliding_user_identity(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-123",
+            data={"access_token": "token"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["org:read"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+        )
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = APIClient().delete(
+                reverse(self.endpoint, args=[self.organization.slug, "datadog"]),
+                HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert OrganizationIdentity.objects.filter(
+            organization_id=self.organization.id,
+            identity=identity,
+        ).exists()
 
     def test_disconnect_deletes_identity_datadog(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")

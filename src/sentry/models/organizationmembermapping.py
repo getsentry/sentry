@@ -34,6 +34,13 @@ class OrganizationMemberMapping(Model):
     user = FlexibleForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="orgmembermapping_set"
     )
+    service_account = FlexibleForeignKey(
+        "sentry.ServiceAccount",
+        null=True,
+        blank=True,
+        related_name="orgmembermapping_set",
+        on_delete=models.CASCADE,
+    )
     email = models.EmailField(null=True, blank=True, max_length=75)
     inviter = FlexibleForeignKey(
         settings.AUTH_USER_MODEL,
@@ -55,7 +62,17 @@ class OrganizationMemberMapping(Model):
 
         indexes = (
             models.Index(fields=("organization_id", "user")),
+            models.Index(fields=("organization_id", "service_account")),
             models.Index(fields=("organization_id", "email")),
         )
 
-    __repr__ = sane_repr("organization_id", "organizationmember_id", "user_id", "role")
+        constraints = (
+            models.CheckConstraint(
+                condition=models.Q(user__isnull=True) | models.Q(service_account__isnull=True),
+                name="sentry_orgmembermapping_not_user_and_service_account",
+            ),
+        )
+
+    __repr__ = sane_repr(
+        "organization_id", "organizationmember_id", "user_id", "service_account_id", "role"
+    )

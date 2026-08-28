@@ -10,6 +10,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.sentry_apps.services.app import app_service
+from sentry.viewer_context import ActorType, get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -84,7 +85,13 @@ def granular_permissions_turned_off(organization: Organization) -> bool:
 
 def get_org_member(organization: Organization, request: HttpRequest) -> OrganizationMember | None:
     """Get the OrganizationMember for the request user, or None if not a member."""
+    viewer = get_viewer_context()
+    actor = viewer.actor if viewer is not None else None
+    if actor is not None and actor.type == ActorType.SERVICE_ACCOUNT:
+        principal_filter = {"service_account_id": actor.id}
+    else:
+        principal_filter = {"user_id": request.user.id}
     try:
-        return OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
+        return OrganizationMember.objects.get(organization=organization, **principal_filter)
     except OrganizationMember.DoesNotExist:
         return None

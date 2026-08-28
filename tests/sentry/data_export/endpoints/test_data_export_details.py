@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
@@ -122,6 +123,26 @@ class DataExportDetailsTest(APITestCase):
         url = reverse(self.endpoint, args=[self.organization.slug, self.data_export.id])
         response = self.client.get(f"{url}?download")
         assert response.status_code == 404
+
+    def test_service_account_cannot_alias_colliding_user_export(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["event:read"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+        )
+
+        response = APIClient().get(
+            reverse(self.endpoint, args=[self.organization.slug, self.data_export.id]),
+            HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+        )
+
+        assert response.status_code == 404, response.content
 
     def test_content_errors(self) -> None:
         self.data_export = ExportedData.objects.create(

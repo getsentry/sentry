@@ -27,6 +27,7 @@ from sentry_relay.exceptions import UnpackError
 
 from sentry import features, options
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.services.service_account import RpcServiceAccount, service_account_service
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, compare_signature
@@ -189,11 +190,11 @@ class QuietBasicAuthentication(BasicAuthentication):
 
     def transform_auth(
         self,
-        user: int | User | RpcUser | None | AnonymousUser,
+        user: int | User | RpcUser | RpcServiceAccount | None | AnonymousUser,
         request_auth: Any,
         entity_id_tag: str | None = None,
         **tags,
-    ) -> tuple[RpcUser | AnonymousUser, AuthenticatedToken | None]:
+    ) -> tuple[RpcUser | RpcServiceAccount | AnonymousUser, AuthenticatedToken | None]:
         if isinstance(user, int):
             user = user_service.get_user(user_id=user)
         elif isinstance(user, User):
@@ -493,15 +494,15 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         else:
             try:
                 # Try to find the token by its hashed value first
-                return ApiToken.objects.select_related("user", "application").get(
-                    hashed_token=hashed_token
-                )
+                return ApiToken.objects.select_related(
+                    "user", "service_account", "application"
+                ).get(hashed_token=hashed_token)
             except ApiToken.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
-                    api_token = ApiToken.objects.select_related("user", "application").get(
-                        token=token_str
-                    )
+                    api_token = ApiToken.objects.select_related(
+                        "user", "service_account", "application"
+                    ).get(token=token_str)
                 except ApiToken.DoesNotExist:
                     # If the token does not exist by plaintext either, it is not a valid token
                     raise AuthenticationFailed("Invalid token")
@@ -528,7 +529,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not agent_token.is_agent_token_string(token_str)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        user: AnonymousUser | User | RpcUser | None = AnonymousUser()
+        user: AnonymousUser | User | RpcUser | RpcServiceAccount | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
             request, token_str
@@ -539,10 +540,29 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if not token:
             token = self._find_or_update_token_by_hash(token_str)
             if isinstance(token, ApiTokenReplica):  # we're running as a CELL silo
-                user = user_service.get_user(user_id=token.user_id)
+                if token.service_account_id is not None:
+                    user = service_account_service.get_for_token(
+                        organization_id=token.organization_id or -1,
+                        service_account_id=token.service_account_id,
+                        token_id=token.apitoken_id,
+                    )
+                    if user is None:
+                        raise AuthenticationFailed("Service account or token inactive or deleted")
+                elif token.user_id is not None:
+                    user = user_service.get_user(user_id=token.user_id)
                 application_is_inactive = not token.application_is_active
             else:  # the token returned is an ApiToken from the CONTROL silo
-                user = token.user
+                if token.service_account_id is not None:
+                    user = RpcServiceAccount(
+                        id=token.service_account.id,
+                        organization_id=token.service_account.organization_id,
+                        name=token.service_account.name,
+                        is_active=token.service_account.is_active,
+                        date_added=token.service_account.date_added,
+                        date_updated=token.service_account.date_updated,
+                    )
+                else:
+                    user = token.user
                 application_is_inactive = (
                     token.application is not None and not token.application.is_active
                 )
@@ -557,6 +577,8 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Token expired")
 
         if not isinstance(token, SystemToken) and user and not user.is_active:
+            if getattr(token, "service_account_id", None) is not None:
+                raise AuthenticationFailed("Service account inactive or deleted")
             raise AuthenticationFailed("User inactive or deleted")
 
         if not isinstance(token, SystemToken) and user and getattr(user, "is_suspended", False):

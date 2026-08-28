@@ -185,6 +185,12 @@ class SentryPermission(ScopedPermission):
         from sentry.api.base import logger
 
         user_id = request.user.id if request.user else None
+        actor_type: str | None = None
+        actor_id: int | None = None
+        if getattr(request.auth, "actor_type", None) == "service_account":
+            actor_type = "service_account"
+            actor_id = request.auth.actor_id
+            user_id = None
         agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
 
         org_context: RpcUserOrganizationContext | None
@@ -192,7 +198,10 @@ class SentryPermission(ScopedPermission):
             org_context = organization
         else:
             org_context = organization_service.get_organization_by_id(
-                id=extract_id_from(organization), user_id=user_id
+                id=extract_id_from(organization),
+                user_id=user_id,
+                actor_type=actor_type,
+                actor_id=actor_id,
             )
 
         if org_context is None:

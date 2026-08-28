@@ -700,7 +700,7 @@ def record_team_created(
     if team_id is None:
         team_id = team.id
 
-    if user_id is None and user and user.is_authenticated:
+    if user_id is None and user and user.is_authenticated and getattr(user, "is_interactive", True):
         user_id = user.id
     if user_id is None:
         default_user_id = organization.get_default_owner().id

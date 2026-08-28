@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
@@ -403,6 +404,82 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         names = sorted(item["name"] for item in response.data)
         assert names == ["Outsider's all-projects query"]
         assert response.data[0]["id"] == str(own_query.id)
+
+    def test_service_account_list_does_not_use_colliding_user_ownership(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.org.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["org:read", "project:read"],
+        )
+        self.create_member(
+            organization=self.org,
+            service_account_id=account.id,
+            role="member",
+            teams=[],
+        )
+        DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Human all-projects query",
+            query={"fields": ["test"], "conditions": [], "limit": 10},
+            version=1,
+        )
+
+        with self.feature(self.feature_name):
+            response = APIClient().get(
+                self.url,
+                HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
+
+    def test_scoped_service_account_must_select_projects(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        team = self.create_team(organization=self.org)
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.org.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["org:read", "project:read"],
+        )
+        self.create_member(
+            organization=self.org,
+            service_account_id=account.id,
+            role="member",
+            teams=[team],
+        )
+        self.create_project(organization=self.org, teams=[team])
+
+        with self.feature(self.feature_name):
+            response = APIClient().post(
+                self.url,
+                data={
+                    "name": "All projects",
+                    "projects": [-1],
+                    "conditions": [],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "orderby": "time",
+                },
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert response.data == {
+            "detail": "Service accounts with scoped project access must select projects."
+        }
 
     def test_post(self) -> None:
         with self.feature(self.feature_name):

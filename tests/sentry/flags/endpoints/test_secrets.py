@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.flags.models import FlagWebHookSigningSecretModel
 from sentry.testutils.cases import APITestCase
@@ -269,6 +270,43 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
         assert len(models) == 1
         assert models[0].secret == "31271af8b9804cd99a4c787a28274993"
+
+    def test_service_account_does_not_inherit_colliding_user_creator(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["org:read"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+            teams=[self.team],
+        )
+        client = APIClient()
+        headers = {"HTTP_AUTHORIZATION": f"Bearer {token.plaintext_token}"}
+
+        denied = client.post(
+            self.url,
+            data={"secret": "41271af8b9804cd99a4c787a28274991", "provider": "launchdarkly"},
+            **headers,
+        )
+        assert denied.status_code == 403
+        self.obj.refresh_from_db()
+        assert self.obj.secret == "123456123456"
+        assert self.obj.created_by == self.user.id
+
+        created = client.post(
+            self.url,
+            data={"secret": "41271af8b9804cd99a4c787a28274991", "provider": "generic"},
+            **headers,
+        )
+        assert created.status_code == 201, created.content
+        secret = FlagWebHookSigningSecretModel.objects.get(
+            organization=self.organization, provider="generic"
+        )
+        assert secret.created_by is None
 
 
 class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):

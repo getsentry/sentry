@@ -161,6 +161,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
                 "\n".join(api_token.allowed_origins) if api_token.allowed_origins else None
             ),
             user_id=api_token.user_id,
+            service_account_id=api_token.service_account_id,
             scoping_organization_id=api_token.scoping_organization_id,
         )
         handle_replication(ApiToken, destination)

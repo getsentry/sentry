@@ -47,6 +47,7 @@ from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
 from sentry.utils.tracing import set_span_data, start_span
+from sentry.viewer_context import ActorType, get_viewer_context
 
 
 class NoProjects(Exception):
@@ -86,6 +87,12 @@ class OrganizationPermission(DemoSafePermission):
         self, request: Request, organization: RpcOrganization | Organization
     ) -> bool:
         if not organization.flags.require_2fa:
+            return False
+
+        # Non-interactive actors cannot enroll in 2FA. Their credential lifecycle
+        # is enforced independently, while authorization still comes from the
+        # ordinary member role and token scope intersection.
+        if not getattr(request.user, "is_interactive", True):
             return False
 
         if request.user.is_authenticated and request.user.has_2fa():
@@ -300,15 +307,23 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             if subdomain is not None and subdomain != organization_id_or_slug:
                 raise ResourceDoesNotExist
 
+        if getattr(request.auth, "actor_type", None) == "service_account":
+            context_kwargs: dict[str, Any] = {
+                "actor_type": "service_account",
+                "actor_id": request.auth.actor_id,
+            }
+        else:
+            context_kwargs = {"user_id": request.user.id}
+
         if str(organization_id_or_slug).isdecimal():
             # It is ok that `get_organization_by_id` doesn't check for visibility as we
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
-                id=int(organization_id_or_slug), user_id=request.user.id
+                id=int(organization_id_or_slug), **context_kwargs
             )
         else:
             organization_context = organization_service.get_organization_by_slug(
-                slug=str(organization_id_or_slug), only_visible=False, user_id=request.user.id
+                slug=str(organization_id_or_slug), only_visible=False, **context_kwargs
             )
         if organization_context is None:
             raise ResourceDoesNotExist
@@ -841,7 +856,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         key = None
         if not is_agent_auth(request.auth):
             if request.user.is_authenticated:
-                actor_id = "user:%s" % request.user.id
+                viewer_context = get_viewer_context()
+                if (
+                    viewer_context is not None
+                    and viewer_context.actor is not None
+                    and viewer_context.actor.type == ActorType.SERVICE_ACCOUNT
+                ):
+                    actor_id = f"service_account:{viewer_context.actor.id}"
+                else:
+                    actor_id = f"user:{request.user.id}"
             elif request.auth is not None:
                 actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:

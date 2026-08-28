@@ -33,7 +33,8 @@ class RpcApiKey(RpcModel):
 
 class RpcApiToken(RpcModel):
     id: int = -1
-    user_id: int = -1
+    user_id: int | None = None
+    service_account_id: int | None = None
     organization_id: int | None = None
     application_id: int | None = None
     application_is_active: bool = False
@@ -62,6 +63,10 @@ class AuthenticatedToken(RpcModel):
     entity_id: int | None = None
     kind: str = "system"
     user_id: int | None = None  # only relevant for ApiToken
+    # A typed principal is required because user and service-account primary keys
+    # occupy independent integer namespaces and can collide.
+    actor_type: str | None = None
+    actor_id: int | None = None
     organization_id: int | None = None
     application_id: int | None = None  # only relevant for ApiToken
     project_id: int | None = None  # only relevant for ProjectKey
@@ -112,6 +117,8 @@ class AuthenticatedToken(RpcModel):
             entity_id=entity_id,
             kind=kind,
             user_id=getattr(token, "user_id", None),
+            actor_type=getattr(token, "actor_type", None),
+            actor_id=getattr(token, "actor_id", None),
             organization_id=getattr(token, "organization_id", None),
             application_id=getattr(token, "application_id", None),
             project_id=getattr(token, "project_id", None),

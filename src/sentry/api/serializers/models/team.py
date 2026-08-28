@@ -32,6 +32,7 @@ from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.viewer_context import ActorType, get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.api.serializers import SCIMMeta
@@ -57,10 +58,19 @@ def _get_team_memberships(
             if member is not None
         }
 
+    if not getattr(user, "is_interactive", True):
+        viewer = get_viewer_context()
+        actor = viewer.actor if viewer is not None else None
+        if actor is None or actor.type != ActorType.SERVICE_ACCOUNT or actor.id != user.id:
+            return {}
+        member_filter = {"organizationmember__service_account_id": actor.id}
+    else:
+        member_filter = {"organizationmember__user_id": user.id}
+
     return {
         team_id: team_role
         for (team_id, team_role) in OrganizationMemberTeam.objects.filter(
-            organizationmember__user_id=user.id, team__in=team_list
+            team__in=team_list, **member_filter
         ).values_list("team__id", "role")
     }
 
@@ -102,11 +112,20 @@ def get_org_roles(
             }
         return {}
 
+    if not getattr(user, "is_interactive", True):
+        viewer = get_viewer_context()
+        actor = viewer.actor if viewer is not None else None
+        if actor is None or actor.type != ActorType.SERVICE_ACCOUNT or actor.id != user.id:
+            return {}
+        member_filter = {"service_account_id": actor.id}
+    else:
+        member_filter = {"user_id": user.id}
+
     # map of org id to role
     return {
         om["organization_id"]: om["role"]
         for om in OrganizationMember.objects.filter(
-            user_id=user.id, organization__in=set(org_ids)
+            organization__in=set(org_ids), **member_filter
         ).values("role", "organization_id")
     }
 
@@ -114,7 +133,7 @@ def get_org_roles(
 def get_access_requests(
     item_list: Sequence[Team], user: User | RpcUser | AnonymousUser
 ) -> frozenset[int]:
-    if user.is_authenticated:
+    if user.is_authenticated and getattr(user, "is_interactive", True):
         return frozenset(
             OrganizationAccessRequest.objects.filter(
                 team__in=item_list, member__user_id=user.id

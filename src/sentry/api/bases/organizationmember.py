@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermissionMixin
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -18,6 +19,7 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.users.models.user import User
+from sentry.viewer_context import ActorType, get_viewer_context
 
 from .organization import OrganizationEndpoint, OrganizationPermission
 
@@ -77,6 +79,7 @@ class MemberSerializer(serializers.Serializer[dict[str, int | Literal["me"]]]):
 
 class _FilterKwargs(TypedDict):
     organization: Organization
+    service_account_id: NotRequired[int]
     user_id: NotRequired[int]
     user_is_active: NotRequired[bool]
     id: NotRequired[int | str]
@@ -111,7 +114,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
 
     def _get_member(
         self,
-        request_user: User,
+        request_user: User | RpcServiceAccount,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
@@ -119,8 +122,13 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         kwargs: _FilterKwargs = {"organization": organization}
 
         if member_id == "me":
-            kwargs["user_id"] = request_user.id
-            kwargs["user_is_active"] = True
+            viewer = get_viewer_context()
+            actor = viewer.actor if viewer is not None else None
+            if actor is not None and actor.type == ActorType.SERVICE_ACCOUNT:
+                kwargs["service_account_id"] = actor.id
+            else:
+                kwargs["user_id"] = request_user.id
+                kwargs["user_is_active"] = True
         else:
             kwargs["id"] = member_id
             kwargs["organization_id"] = organization.id

@@ -187,7 +187,13 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 if rule:
                     rule.update(status=ObjectStatus.PENDING_DELETION)
                     RuleActivity.objects.create(
-                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                        rule=rule,
+                        user_id=(
+                            request.user.id
+                            if getattr(request.user, "is_interactive", True)
+                            else None
+                        ),
+                        type=RuleActivityType.DELETED.value,
                     )
                     scheduled_rule = CellScheduledDeletion.schedule(
                         rule, days=0, actor=request.user

@@ -34,6 +34,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import to_single_line_str
+from sentry.viewer_context import ActorType, get_viewer_context
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
@@ -244,8 +245,14 @@ class SentryAppPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
+        viewer = get_viewer_context()
+        actor = viewer.actor if viewer is not None else None
+        if actor is not None and actor.type == ActorType.SERVICE_ACCOUNT:
+            actor_kwargs = {"actor_type": actor.type.value, "actor_id": actor.id}
+        else:
+            actor_kwargs = {"user_id": request.user.id}
         owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+            id=sentry_app.owner_id, **actor_kwargs
         )
         assert owner_app, f"owner organization for {sentry_app.name} was not found"
         self.determine_access(request, owner_app)
@@ -253,21 +260,31 @@ class SentryAppPermission(SentryPermission):
         if superuser_has_permission(request):
             return True
 
-        organizations = (
-            user_service.get_organizations(user_id=request.user.id)
-            if request.user.id is not None
-            else ()
-        )
-        # if app is unpublished, user must be in the Org who owns the app.
-        if not sentry_app.is_published:
-            if not any(sentry_app.owner_id == org.id for org in organizations):
-                raise SentryAppError(
-                    message="User must be in the app owner's organization for unpublished apps",
-                    status_code=403,
-                    public_context={
-                        "user_organizations": [org.slug for org in organizations],
-                    },
-                )
+        # If an app is unpublished, the actor must be in its owning organization.
+        # Preserve the existing human-user response (including public context), while
+        # using the typed organization context for non-user actors.
+        if actor is not None and actor.type == ActorType.SERVICE_ACCOUNT:
+            has_owner_membership = owner_app.member is not None
+            public_context: dict[str, Any] = {}
+        else:
+            organizations = (
+                user_service.get_organizations(user_id=request.user.id)
+                if request.user.id is not None
+                else ()
+            )
+            has_owner_membership = any(
+                sentry_app.owner_id == organization.id for organization in organizations
+            )
+            public_context = {
+                "user_organizations": [organization.slug for organization in organizations]
+            }
+
+        if not sentry_app.is_published and not has_owner_membership:
+            raise SentryAppError(
+                message="User must be in the app owner's organization for unpublished apps",
+                status_code=403,
+                public_context=public_context,
+            )
 
         # TODO(meredith): make a better way to allow for public
         # endpoints. we can't use ensure_scoped_permission now

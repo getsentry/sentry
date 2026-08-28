@@ -47,7 +47,12 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
         serializer = DRFTempestCredentialsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            credentials = serializer.save(created_by_id=request.user.id, project=project)
+            credentials = serializer.save(
+                created_by_id=(
+                    request.user.id if getattr(request.user, "is_interactive", True) else None
+                ),
+                project=project,
+            )
             # Make initial call to determine the latest item ID
             fetch_latest_item_id.delay(credentials.id)
         except IntegrityError:

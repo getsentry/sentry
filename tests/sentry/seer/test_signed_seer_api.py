@@ -9,7 +9,7 @@ from sentry.seer.signed_seer_api import (
     _resolve_viewer_context,
     make_signed_seer_api_request,
 )
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import ActorType, ViewerActor, ViewerContext, viewer_context_scope
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
@@ -185,6 +185,18 @@ class TestResolveViewerContext:
         assert result.organization_id == 42
         assert result.user_id == 99
         assert result.actor_type == ActorType.USER
+        assert result.actor == ViewerActor(type=ActorType.USER, id=99)
+
+    def test_legacy_user_id_does_not_replace_service_account_actor(self) -> None:
+        actor = ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=99)
+        ctx = ViewerContext(organization_id=42, actor=actor)
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=100))
+
+        assert result is not None
+        assert result.actor == actor
+        assert result.actor_type == ActorType.SERVICE_ACCOUNT
+        assert result.user_id is None
 
     @patch("sentry.seer.signed_seer_api.metrics")
     @patch("sentry.seer.signed_seer_api.logger")

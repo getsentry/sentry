@@ -38,17 +38,21 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         prefetch_related_objects(item_list, "projects")
         attrs: MutableMapping[Any, Any] = {}
 
-        last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            organization=self.organization,
-            user_id=user.id,
-            group_search_view_id__in=[item.id for item in item_list],
-        )
-        user_starred_view_ids = set(
-            GroupSearchViewStarred.objects.filter(
+        if getattr(user, "is_interactive", True):
+            last_visited_views = GroupSearchViewLastVisited.objects.filter(
                 organization=self.organization,
                 user_id=user.id,
-            ).values_list("group_search_view_id", flat=True)
-        )
+                group_search_view_id__in=[item.id for item in item_list],
+            )
+            user_starred_view_ids = set(
+                GroupSearchViewStarred.objects.filter(
+                    organization=self.organization,
+                    user_id=user.id,
+                ).values_list("group_search_view_id", flat=True)
+            )
+        else:
+            last_visited_views = []
+            user_starred_view_ids = set()
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
 
         serialized_users = {

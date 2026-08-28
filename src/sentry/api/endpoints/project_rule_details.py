@@ -201,6 +201,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         report_used_legacy_models()
+        legacy_user_id = request.user.id if getattr(request.user, "is_interactive", True) else None
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
@@ -271,7 +272,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                     analytics.record(
                         RuleReenableEdit(
                             rule_id=rule.id,
-                            user_id=request.user.id,
+                            user_id=legacy_user_id,
                             organization_id=project.organization.id,
                         )
                     )
@@ -313,7 +314,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             ).run()
 
             RuleActivity.objects.create(
-                rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
+                rule=updated_rule, user_id=legacy_user_id, type=RuleActivityType.UPDATED.value
             )
             self.create_audit_entry(
                 request=request,
@@ -384,6 +385,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
          - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        legacy_user_id = request.user.id if getattr(request.user, "is_interactive", True) else None
         with transaction.atomic(router.db_for_write(Workflow)):
             rule.update(status=ObjectStatus.PENDING_DELETION)
             scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
@@ -407,7 +409,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 legacy_rule.update(status=ObjectStatus.PENDING_DELETION)
                 RuleActivity.objects.create(
                     rule=legacy_rule,
-                    user_id=request.user.id,
+                    user_id=legacy_user_id,
                     type=RuleActivityType.DELETED.value,
                 )
                 scheduled = CellScheduledDeletion.schedule(legacy_rule, days=0, actor=request.user)

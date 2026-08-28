@@ -918,6 +918,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
+        legacy_user_id = request.user.id if getattr(request.user, "is_interactive", True) else None
 
         if not data.get("actions", []):
             return Response(
@@ -980,7 +981,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "conditions": conditions,
             "actions": data.get("actions", []),
             "frequency": data.get("frequency"),
-            "user_id": request.user.id,
+            "user_id": legacy_user_id,
         }
         duplicate_rule = find_duplicate_rule(project=project, rule_data=kwargs)
         if duplicate_rule:
@@ -1033,7 +1034,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         ).run()
 
         RuleActivity.objects.create(
-            rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
+            rule=rule, user_id=legacy_user_id, type=RuleActivityType.CREATED.value
         )
         duplicate_rule = request.query_params.get("duplicateRule")
         wizard_v3 = request.query_params.get("wizardV3")

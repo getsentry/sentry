@@ -27,6 +27,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
@@ -171,8 +172,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            assert isinstance(request.user, (User, RpcUser)), (
-                "User must be authenticated to update a Sentry App"
+            assert isinstance(request.user, (User, RpcUser, RpcServiceAccount)), (
+                "Actor must be authenticated to update a Sentry App"
             )
             updated_app = SentryAppUpdater(
                 sentry_app=sentry_app,

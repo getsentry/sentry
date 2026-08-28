@@ -49,6 +49,9 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
         """Connect a monitoring provider."""
+        if not getattr(request.user, "is_interactive", True):
+            return Response({"detail": "This operation requires a user."}, status=403)
+
         if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
 
@@ -67,6 +70,9 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
         """Reauthenticate an existing monitoring provider connection."""
+        if not getattr(request.user, "is_interactive", True):
+            return Response({"detail": "This operation requires a user."}, status=403)
+
         if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
 
@@ -166,6 +172,9 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     def delete(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
+        if not getattr(request.user, "is_interactive", True):
+            return Response({"detail": "This operation requires a user."}, status=403)
+
         if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
 

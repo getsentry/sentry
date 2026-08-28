@@ -42,6 +42,7 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
         id=member.id,
         organization_id=member.organization_id,
         user_id=member.user_id if member.user_id is not None else None,
+        service_account_id=member.service_account_id,
         role=member.role,
         has_global_access=member.has_global_access,
         scopes=list(member.get_scopes()),
@@ -83,6 +84,7 @@ def summarize_member(member: OrganizationMember) -> RpcOrganizationMemberSummary
         id=member.id,
         organization_id=member.organization_id,
         user_id=member.user_id,
+        service_account_id=member.service_account_id,
         flags=_serialize_member_flags(member),
     )
 

@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.silo.base import SiloMode
@@ -137,3 +140,36 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             ).count()
             == 0
         )
+
+    def test_service_account_cannot_update_colliding_user_visit(self) -> None:
+        last_visited = timezone.now() - timedelta(days=1)
+        GroupSearchViewLastVisited.objects.create_or_update(
+            organization=self.organization,
+            user_id=self.user.id,
+            group_search_view=self.view,
+            values={"last_visited": last_visited},
+        )
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["org:read"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+        )
+
+        response = APIClient().post(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+        )
+
+        assert response.status_code == 403
+        visit = GroupSearchViewLastVisited.objects.get(
+            organization=self.organization,
+            user_id=self.user.id,
+            group_search_view=self.view,
+        )
+        assert visit.last_visited == last_visited

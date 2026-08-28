@@ -2,7 +2,7 @@ import logging
 import random
 import string
 from email.headerregistry import Address
-from typing import Any, TypedDict, TypeIs
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -63,6 +63,7 @@ from sentry.signals import project_created, team_created
 from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.users.models.user import User
 from sentry.utils.snowflake import MaxSnowflakeRetryError
+from sentry.viewer_context import ActorType, get_viewer_context
 
 ERR_INVALID_STATS_PERIOD = (
     "Invalid stats_period. Valid choices are '', '1h', '24h', '7d', '14d', '30d', and '90d'"
@@ -177,7 +178,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         dataset = get_dataset(datasetName)
 
         queryset: QuerySet[Project]
-        if is_agent_auth(request.auth):
+        if (
+            is_agent_auth(request.auth)
+            or getattr(request.auth, "actor_type", None) == "service_account"
+        ):
             queryset = Project.objects.filter(organization=organization)
             if not request.access.has_global_access:
                 queryset = queryset.filter(id__in=request.access.accessible_project_ids)
@@ -198,7 +202,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         order_by = ["slug"]
 
-        if request.user.is_authenticated:
+        if (
+            request.user.is_authenticated
+            and getattr(request.auth, "actor_type", None) != "service_account"
+        ):
             queryset = queryset.extra(
                 select={
                     "is_bookmarked": """exists (
@@ -294,8 +301,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 paginator_cls=OffsetPaginator,
             )
 
-    def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
-        return user.is_authenticated
+    def should_add_creator_to_team(self, user: User | AnonymousUser) -> bool:
+        return bool(user.is_authenticated)
 
     @extend_schema(
         tags=["Projects"],
@@ -345,18 +352,28 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         ):
             raise PermissionDenied(detail=DISABLED_FEATURE_ERROR_STRING)
 
-        # parse the email to retrieve the username before the "@"
-        parsed_email = fetch_slugifed_email_username(request.user.email)
+        viewer = get_viewer_context()
+        if (
+            viewer is not None
+            and viewer.actor is not None
+            and viewer.actor.type == ActorType.SERVICE_ACCOUNT
+        ):
+            parsed_email = slugify(request.user.name) or f"service-account-{viewer.actor.id}"
+            member_filter = {"service_account_id": viewer.actor.id}
+        else:
+            # Human accounts historically derive their personal team slug from email.
+            parsed_email = fetch_slugifed_email_username(request.user.email)
+            member_filter = {"user_id": request.user.id}
 
         project_name = result["name"]
-        default_team_slug = f"team-{parsed_email}"
+        default_team_slug = f"team-{parsed_email}"[:50]
         suffixed_team_slug = default_team_slug
 
         # attempt to a maximum of 5 times to add a suffix to team slug until it is unique
         for _ in range(5):
             if not Team.objects.filter(organization=organization, slug=suffixed_team_slug).exists():
                 break
-            suffixed_team_slug = f"{default_team_slug}-{_generate_suffix()}"
+            suffixed_team_slug = f"{default_team_slug[:46]}-{_generate_suffix()}"
         else:
             raise ConflictError(
                 {
@@ -373,9 +390,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     idp_provisioned=result.get("idp_provisioned", False),
                     organization=organization,
                 )
-                member = OrganizationMember.objects.get(
-                    user_id=request.user.id, organization=organization
-                )
+                member = OrganizationMember.objects.get(organization=organization, **member_filter)
                 OrganizationMemberTeam.objects.create(
                     team=team,
                     organizationmember=member,
@@ -475,6 +490,10 @@ class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()
-        my_projects = queryset.filter(teams__organizationmember__user_id=request.user.id).count()
+        my_projects = (
+            queryset.filter(teams__id__in=request.access.team_ids_with_membership)
+            .distinct()
+            .count()
+        )
 
         return Response({"allProjects": all_projects, "myProjects": my_projects})

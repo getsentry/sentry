@@ -533,8 +533,11 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         prefetch_related_objects(item_list, "projects__organization")
 
         organization = (kwargs.get("context") or {}).get("organization")
-        use_user_last_visited = organization is not None and features.has(
-            "organizations:dashboards-user-last-visited", organization, actor=user
+        is_interactive = getattr(user, "is_interactive", True)
+        use_user_last_visited = (
+            is_interactive
+            and organization is not None
+            and features.has("organizations:dashboards-user-last-visited", organization, actor=user)
         )
         user_last_visited_map: dict[int, datetime] = {}
         if use_user_last_visited:
@@ -548,10 +551,14 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 
-        favorited_dashboard_ids = set(
-            DashboardFavoriteUser.objects.filter(
-                user_id=user.id, dashboard_id__in=item_dict.keys(), favorited=True
-            ).values_list("dashboard_id", flat=True)
+        favorited_dashboard_ids = (
+            set(
+                DashboardFavoriteUser.objects.filter(
+                    user_id=user.id, dashboard_id__in=item_dict.keys(), favorited=True
+                ).values_list("dashboard_id", flat=True)
+            )
+            if is_interactive
+            else set()
         )
 
         permissions = DashboardPermissions.objects.filter(
@@ -681,21 +688,26 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             ),
             user=user,
         )
-
-        creator_ids = [d.created_by_id for d in item_list if d.created_by_id is not None]
-        serialized_creators = (
-            user_service.serialize_many(filter={"user_ids": creator_ids}) if creator_ids else []
-        )
-        serialized_users = {u["id"]: u for u in serialized_creators}
+        serialized_users = {
+            serialized_user["id"]: serialized_user
+            for serialized_user in user_service.serialize_many(
+                filter={
+                    "user_ids": [
+                        dashboard.created_by_id
+                        for dashboard in item_list
+                        if dashboard.created_by_id
+                    ]
+                },
+                as_user=user,
+            )
+        }
 
         for dashboard in item_list:
             dashboard_widgets = [w for w in widgets if w and w["dashboardId"] == str(dashboard.id)]
-            created_by = (
-                serialized_users.get(str(dashboard.created_by_id))
-                if dashboard.created_by_id is not None
-                else None
-            )
-            result[dashboard] = {"widgets": dashboard_widgets, "created_by": created_by}
+            result[dashboard] = {
+                "widgets": dashboard_widgets,
+                "created_by": serialized_users.get(str(dashboard.created_by_id)),
+            }
 
         return result
 
@@ -706,11 +718,13 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": attrs.get("created_by"),
+            "createdBy": attrs["created_by"],
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
-            "isFavorited": user.id in obj.favorited_by,
+            "isFavorited": bool(
+                getattr(user, "is_interactive", True) and user.id in obj.favorited_by
+            ),
             "projects": page_filters.get("projects", []),
             "environment": page_filters.get("environment", []),
             "prebuiltId": obj.prebuilt_id,

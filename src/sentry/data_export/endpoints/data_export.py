@@ -354,6 +354,8 @@ class DataExportEndpoint(OrganizationEndpoint):
         Create a new asynchronous or sync file export task depending on requested file size,
         and email user upon completion.
         """
+        if not getattr(request.user, "is_interactive", True):
+            return Response({"detail": "Data exports require a user."}, status=403)
 
         extra = {
             "organization_id": organization.id,

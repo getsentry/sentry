@@ -1,5 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.status import HTTP_403_FORBIDDEN
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -29,6 +30,9 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         """
         Retrieve a list of starred views for the current organization member.
         """
+
+        if not getattr(request.user, "is_interactive", True):
+            return Response(status=HTTP_403_FORBIDDEN)
 
         assert request.user.id is not None
         starred_views = GroupSearchViewStarred.objects.filter(

@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.api.authentication import (
     ApiKeyAuthentication,
@@ -109,6 +110,34 @@ class DataExportTest(APITestCase):
         # Without project permissions, the endpoint should 403
         with self.feature("organizations:discover-query"):
             self.get_error_response(self.org.slug, status_code=403, **modified_payload)
+
+    def test_service_account_cannot_alias_colliding_user_export(self) -> None:
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.org.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(
+            account,
+            scope_list=["org:read", "project:read"],
+        )
+        self.create_member(
+            organization=self.org,
+            service_account_id=account.id,
+            role="member",
+            teams=[self.team],
+        )
+
+        with self.feature("organizations:discover-query"):
+            response = APIClient().post(
+                reverse(self.endpoint, args=[self.org.slug]),
+                self.make_payload("issue"),
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert not ExportedData.objects.filter(organization=self.org).exists()
 
     def test_new_export(self) -> None:
         """

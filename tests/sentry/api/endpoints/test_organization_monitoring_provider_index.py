@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from django.urls import reverse
+from rest_framework.test import APIClient
+
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -144,3 +147,33 @@ class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
 
         providers = {p["provider"]: p for p in response.data["providers"]}
         assert providers["datadog"]["connected"] is False
+
+    def test_service_account_does_not_inherit_colliding_user_connections(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-123",
+            data={"access_token": "token"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["org:read"])
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+        )
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = APIClient().get(
+                reverse(self.endpoint, args=[self.organization.slug]),
+                HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}",
+            )
+
+        assert response.status_code == 200, response.content
+        assert all(not provider["connected"] for provider in response.data["providers"])

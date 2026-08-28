@@ -42,12 +42,16 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
         if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
 
-        connected_providers = set(
-            OrganizationIdentity.objects.filter(
-                organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
-                identity__idp__type__in=MONITORING_PROVIDERS.keys(),
-            ).values_list("identity__idp__type", flat=True)
+        connected_providers = (
+            set(
+                OrganizationIdentity.objects.filter(
+                    organization_id=organization.id,
+                    identity__user_id=request.user.id,  # type: ignore[misc]
+                    identity__idp__type__in=MONITORING_PROVIDERS.keys(),
+                ).values_list("identity__idp__type", flat=True)
+            )
+            if getattr(request.user, "is_interactive", True)
+            else set()
         )
 
         providers = []

@@ -9,8 +9,10 @@ from unittest import mock
 import orjson
 from django.db import router
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry import audit_log
+from sentry.auth.services.service_account import service_account_service
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -311,6 +313,44 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
+
+    def test_service_account_cannot_mutate_colliding_user_bookmark(self) -> None:
+        shared_id = 1_000_000
+        user = self.create_user(id=shared_id)
+        self.create_project_bookmark(project=self.project, user=user)
+        account = self.create_service_account(
+            id=shared_id,
+            organization_id=self.project.organization_id,
+            name="Deploy bot",
+        )
+        self.create_member(
+            organization=self.project.organization,
+            service_account_id=account.id,
+            teams=list(self.project.teams.all()),
+        )
+        token = service_account_service.create_token(
+            organization_id=self.project.organization_id,
+            service_account_id=account.id,
+            name="Project token",
+            scopes=["project:read"],
+            expires_at=None,
+        )
+        assert token is not None
+
+        response = APIClient().put(
+            self.url,
+            data={"name": "Changed", "isBookmarked": False},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403, response.content
+        self.project.refresh_from_db()
+        assert self.project.name != "Changed"
+        assert ProjectBookmark.objects.filter(
+            project=self.project,
+            user_id=user.id,
+        ).exists()
 
     def test_admin_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(

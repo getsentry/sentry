@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.testutils.cases import APITestCase
@@ -121,3 +122,29 @@ class ProjectProfilingChunkAttachmentTest(APITestCase):
         with self.feature(self.features):
             response = self.client.get(self.get_url(), {"download": "1"})
         assert response.status_code == 403
+
+    def test_service_account_uses_its_role_when_user_id_collides(self) -> None:
+        self.organization.update_option("sentry:attachments_role", "owner")
+        account = self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Automation",
+        )
+        token = self.create_service_account_auth_token(account, scope_list=["project:read"])
+        service_account_member = self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+            role="member",
+            teams=[self.team],
+        )
+        client = APIClient()
+        headers = {"HTTP_AUTHORIZATION": f"Bearer {token.plaintext_token}"}
+
+        with self.feature(self.features):
+            denied = client.get(self.get_url(), **headers)
+        assert denied.status_code == 403
+
+        service_account_member.update(role="owner")
+        with self.feature(self.features):
+            allowed = client.get(self.get_url(), **headers)
+        assert allowed.status_code == 200

@@ -15,7 +15,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0005_increase_flag_max_length
 
-hybridcloud: 0034_drop_webhookpayload_priority_index
+hybridcloud: 0035_add_service_account_token_replica
 
 insights: 0001_squashed_0002_backfill_team_starred
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0032_add_extras_to_seer_run_milestone
 
-sentry: 1159_organizationmemberteam_new_id_unique_not_null
+sentry: 1160_add_service_accounts
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

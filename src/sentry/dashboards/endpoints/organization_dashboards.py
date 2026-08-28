@@ -393,14 +393,17 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             is_superuser = is_active_superuser(request)
             # allow strictly for Owners and superusers, this allows them to delete dashboards
             # of users that no longer have access to the organization
-            if is_superuser or request.access.has_role_in_organization(
-                role=roles.get_top_dog().id, organization=obj.organization, user_id=request.user.id
-            ):
+            if is_superuser or request.access.role == roles.get_top_dog().id:
                 return True
 
             # check if user is restricted from editing dashboard
             if hasattr(obj, "permissions"):
-                return obj.permissions.has_edit_permissions(request.user.id)
+                return obj.permissions.has_edit_permissions(
+                    user_id=(
+                        request.user.id if getattr(request.user, "is_interactive", True) else None
+                    ),
+                    team_ids=request.access.team_ids_with_membership,
+                )
 
             # if no permissions are assigned, it is considered accessible to all users
             return True
@@ -456,6 +459,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         has_dashboards_starred = features.has(
             "organizations:dashboards-starred", organization, actor=request.user
         )
+        is_interactive = getattr(request.user, "is_interactive", True)
 
         if features.has(
             "organizations:dashboards-prebuilt-insights-dashboards",
@@ -476,7 +480,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             except Exception as err:
                 sentry_sdk.capture_exception(err)
 
-            if has_dashboards_starred:
+            if has_dashboards_starred and is_interactive:
                 try:
                     favorite_lock = locks.get(
                         f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{request.user.id}",
@@ -495,19 +499,28 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         dashboards = Dashboard.objects.filter(organization_id=organization.id)
         for f in filters:
             if f == "onlyFavorites":
-                dashboards = dashboards.filter(
-                    dashboardfavoriteuser__user_id=request.user.id,
-                    dashboardfavoriteuser__favorited=True,
-                )
+                if is_interactive:
+                    dashboards = dashboards.filter(
+                        dashboardfavoriteuser__user_id=request.user.id,
+                        dashboardfavoriteuser__favorited=True,
+                    )
+                else:
+                    dashboards = dashboards.none()
             elif f == "excludeFavorites":
-                dashboards = dashboards.exclude(
-                    dashboardfavoriteuser__user_id=request.user.id,
-                    dashboardfavoriteuser__favorited=True,
-                )
+                if is_interactive:
+                    dashboards = dashboards.exclude(
+                        dashboardfavoriteuser__user_id=request.user.id,
+                        dashboardfavoriteuser__favorited=True,
+                    )
             elif f == "owned":
-                dashboards = dashboards.filter(created_by_id=request.user.id)
+                dashboards = (
+                    dashboards.filter(created_by_id=request.user.id)
+                    if is_interactive
+                    else dashboards.none()
+                )
             elif f == "shared":
-                dashboards = dashboards.exclude(created_by_id=request.user.id)
+                if is_interactive:
+                    dashboards = dashboards.exclude(created_by_id=request.user.id)
             elif f == "excludePrebuilt":
                 dashboards = dashboards.exclude(prebuilt_id__isnull=False)
             elif f == "onlyPrebuilt":
@@ -539,7 +552,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
 
         # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
-        use_user_last_visited = features.has(
+        use_user_last_visited = is_interactive and features.has(
             "organizations:dashboards-user-last-visited", organization, actor=request.user
         )
 
@@ -580,7 +593,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         elif sort_by == "recentlyViewed":
             # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
-            if use_user_last_visited:
+            if not is_interactive:
+                order_by = ["title"]
+            elif use_user_last_visited:
                 order_by = [
                     F("user_last_visited").asc(nulls_last=True)
                     if desc
@@ -612,25 +627,30 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     output_field=CharField(),
                 )
             )
-            order_by = [
-                Case(
-                    When(created_by_id=request.user.id, then=-1),
-                    default=1,
-                    output_field=IntegerField(),
-                ),
-                "-user_name" if desc else "user_name",
-                "-date_added",
-            ]
+            order_by = []
+            if is_interactive:
+                order_by.append(
+                    Case(
+                        When(created_by_id=request.user.id, then=-1),
+                        default=1,
+                        output_field=IntegerField(),
+                    )
+                )
+            order_by.extend(["-user_name" if desc else "user_name", "-date_added"])
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
             # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
-            order_by = [
-                Case(When(created_by_id=request.user.id, then=-1), default=1),
-                F("user_last_visited").desc(nulls_last=True)
-                if use_user_last_visited
-                else "-last_visited",
-            ]
-        elif "onlyFavorites" in filters and has_dashboards_starred:
+            if not is_interactive:
+                order_by = ["title"]
+            else:
+                order_by = []
+                order_by.append(Case(When(created_by_id=request.user.id, then=-1), default=1))
+                order_by.append(
+                    F("user_last_visited").desc(nulls_last=True)
+                    if use_user_last_visited
+                    else "-last_visited"
+                )
+        elif "onlyFavorites" in filters and has_dashboards_starred and is_interactive:
             favorite_dashboards = DashboardFavoriteUser.objects.get_favorite_dashboards(
                 organization, request.user.id
             ).filter(dashboard_id=OuterRef("id"))
@@ -647,7 +667,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             order_by.append("-id")
 
         pin_by = request.query_params.get("pin")
-        if pin_by == "favorites":
+        if pin_by == "favorites" and is_interactive:
             favorited_by_subquery = DashboardFavoriteUser.objects.filter(
                 dashboard=OuterRef("pk"), user_id=request.user.id, favorited=True
             )

@@ -1039,6 +1039,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'service-accounts/',
+      name: t('Service Accounts'),
+      component: make(() => import('sentry/views/settings/organizationServiceAccounts')),
+    },
+    {
       path: 'auth-tokens/',
       name: t('Organization Tokens'),
       children: [

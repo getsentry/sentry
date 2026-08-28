@@ -4,6 +4,7 @@ from django.http.request import HttpRequest
 from sentry import audit_log
 from sentry.audit_log.metadata import AGENT_DELEGATION_DATA_KEY, SEER_AGENT_DELEGATION
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.deletedproject import DeletedProject
@@ -18,7 +19,7 @@ from sentry.utils.audit import (
     create_audit_entry_from_user,
     create_system_audit_entry,
 )
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import ActorType, ViewerActor, ViewerContext, viewer_context_scope
 
 username = "hello" * 20
 
@@ -105,6 +106,32 @@ class CreateAuditEntryTest(TestCase):
 
         assert entry.actor_id == self.user.id
         assert entry.data[AGENT_DELEGATION_DATA_KEY] == SEER_AGENT_DELEGATION
+
+    def test_audit_entry_records_service_account_without_user_fk(self) -> None:
+        account = RpcServiceAccount(
+            id=self.user.id,
+            organization_id=self.org.id,
+            name="Deploy bot",
+            is_active=True,
+        )
+        req = fake_http_request(account)
+
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=self.org.id,
+                actor=ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=account.id),
+            )
+        ):
+            entry = create_audit_entry(
+                req,
+                organization_id=self.org.id,
+                data={"name": "Updated organization"},
+            )
+
+        assert entry.actor_id is None
+        assert entry.actor_label == account.name
+        assert entry.data["actor_type"] == "service_account"
+        assert entry.data["actor_id"] == account.id
 
     def test_audit_entry_frontend(self) -> None:
         org = self.create_organization()

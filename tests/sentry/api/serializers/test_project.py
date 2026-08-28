@@ -19,6 +19,7 @@ from sentry.api.serializers.models.project import (
     bulk_fetch_project_latest_releases,
 )
 from sentry.app import env
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.features.base import ProjectFeature
 from sentry.models.deploy import Deploy
@@ -32,6 +33,7 @@ from sentry.snuba import metrics_enhanced_performance
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
+from sentry.viewer_context import ActorType, ViewerActor, ViewerContext, viewer_context_scope
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
@@ -73,6 +75,50 @@ class ProjectSerializerTest(TestCase):
         assert result["access"] == TEAM_CONTRIBUTOR["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
+
+    def test_service_account_uses_typed_membership_not_colliding_user_state(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        service_account_team = self.create_team(organization=self.organization)
+        service_account_project = self.create_project(
+            organization=self.organization, teams=[service_account_team]
+        )
+
+        self.create_member(user=self.user, organization=self.organization, teams=[self.team])
+        self.create_project_bookmark(project=self.project, user=self.user)
+        self.create_service_account(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Deploy bot",
+        )
+        service_account_member = self.create_member(
+            organization=self.organization,
+            service_account_id=self.user.id,
+            teams=[service_account_team],
+        )
+        account = RpcServiceAccount(
+            id=self.user.id,
+            organization_id=self.organization.id,
+            name="Deploy bot",
+            is_active=True,
+        )
+
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=self.organization.id,
+                actor=ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=account.id),
+            )
+        ):
+            result = serialize([self.project, service_account_project], account)
+
+        by_id = {item["id"]: item for item in result}
+        assert by_id[str(self.project.id)]["isMember"] is False
+        assert by_id[str(self.project.id)]["hasAccess"] is False
+        assert by_id[str(self.project.id)]["isBookmarked"] is False
+        assert by_id[str(service_account_project.id)]["isMember"] is True
+        assert by_id[str(service_account_project.id)]["hasAccess"] is True
+        assert by_id[str(service_account_project.id)]["access"] == TEAM_CONTRIBUTOR["scopes"]
+        assert service_account_member.user_id is None
 
     @with_feature("organizations:team-roles")
     def test_member_with_team_role(self) -> None:
