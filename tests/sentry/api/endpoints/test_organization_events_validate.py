@@ -276,15 +276,16 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         "sentry.search.eap.utils.snuba_rpc.attribute_names_rpc",
         wraps=snuba_rpc.attribute_names_rpc,
     )
-    def test_pages_until_the_attribute_names_run_out(
+    def test_resolves_a_narrowed_tag_without_paging(
         self, mock_attribute_names_rpc: mock.MagicMock
     ) -> None:
-        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT * 3)}
-        tags["zz.custom.tag"] = "hello"
+        noisy = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        noisy["aa.custom.tag"] = "hello"
         self.store_spans(
             [
+                self.create_span({"tags": noisy}, start_ts=before_now(days=0, minutes=10)),
                 self.create_span(
-                    {"tags": tags},
+                    {"tags": {"zz.custom.tag": "hello"}},
                     start_ts=before_now(days=0, minutes=10),
                 ),
             ],
@@ -294,21 +295,55 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
             {
                 "project": [self.project.id],
                 "dataset": "spans",
-                "field": ["zz.custom.tag"],
+                "field": ["aa.custom.tag", "zz.custom.tag"],
             }
         )
 
         offsets = [
             call.args[0].page_token.offset for call in mock_attribute_names_rpc.call_args_list
         ]
-        assert offsets == [
-            offset * TRUNCATED_ATTRIBUTE_NAME_LIMIT for offset in range(len(offsets))
-        ]
-        assert len(offsets) > 2
+        assert offsets == [0, 0]
         assert response.status_code == 200, response.content
         assert response.data["field"] == [
-            {"error": None, "name": "zz.custom.tag", "valid": True, "attrType": "string"}
+            {"error": None, "name": "aa.custom.tag", "valid": True, "attrType": "string"},
+            {"error": None, "name": "zz.custom.tag", "valid": True, "attrType": "string"},
         ]
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    @mock.patch(
+        "sentry.search.eap.utils.snuba_rpc.attribute_names_rpc",
+        wraps=snuba_rpc.attribute_names_rpc,
+    )
+    def test_does_not_scale_requests_with_the_number_of_attributes(
+        self, mock_attribute_names_rpc: mock.MagicMock
+    ) -> None:
+        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        tags["zz.custom.tag"] = "hello"
+        self.store_spans(
+            [
+                self.create_span({"tags": tags}, start_ts=before_now(days=0, minutes=10)),
+            ],
+        )
+
+        def call_count_for(unknown: int) -> int:
+            mock_attribute_names_rpc.reset_mock()
+            self.do_request(
+                {
+                    "project": [self.project.id],
+                    "dataset": "spans",
+                    "field": ["zz.custom.tag"] + [f"zz.fake.tag.{i:03}" for i in range(unknown)],
+                }
+            )
+            return mock_attribute_names_rpc.call_count
+
+        assert call_count_for(20) == call_count_for(1)
 
     def test_private_attribute(self) -> None:
         response = self.do_request(

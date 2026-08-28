@@ -409,6 +409,23 @@ def attribute_name_exists(
     return any(attribute.name == name for attribute in response.attributes)
 
 
+def _attribute_names_page(
+    meta: RequestMeta,
+    attr_type: AttributeKey.Type.ValueType,
+    names: Collection[str],
+    offset: int = 0,
+) -> tuple[set[str], bool]:
+    """One page of typed names matching the filter, and whether more pages remain."""
+    requested_names = set(names)
+    response = snuba_rpc.attribute_names_rpc(
+        _attribute_names_request(meta, attr_type, requested_names, offset=offset)
+    )
+    found = {
+        attribute.name for attribute in response.attributes if attribute.name in requested_names
+    }
+    return found, len(response.attributes) >= ATTRIBUTE_NAME_LIMIT
+
+
 def _check_attribute_names_by_type(
     meta: RequestMeta,
     attr_type: AttributeKey.Type.ValueType,
@@ -419,18 +436,24 @@ def _check_attribute_names_by_type(
         return set()
 
     requested_names = set(names)
-    found: set[str] = set()
-    offset = 0
+    found, more = _attribute_names_page(meta, attr_type, requested_names)
+    if found == requested_names or not more:
+        return found
+
+    # Names come back alphabetically and capped at the limit, so an org with enough
+    # attributes can page out the very name we filtered on
+    filter_names = requested_names - found
+    if filter_names != requested_names:
+        retry_found, more = _attribute_names_page(meta, attr_type, filter_names)
+        found |= retry_found
+        if found == requested_names or not more:
+            return found
+
+    offset = ATTRIBUTE_NAME_LIMIT
     while True:
-        response = snuba_rpc.attribute_names_rpc(
-            _attribute_names_request(meta, attr_type, requested_names, offset=offset)
-        )
-        found.update(
-            attribute.name for attribute in response.attributes if attribute.name in requested_names
-        )
-        # Names come back alphabetically and capped at the limit, so an org with enough
-        # attributes can page out the very name we filtered on
-        if found == requested_names or len(response.attributes) < ATTRIBUTE_NAME_LIMIT:
+        page_found, more = _attribute_names_page(meta, attr_type, filter_names, offset=offset)
+        found |= page_found
+        if found == requested_names or not more:
             return found
         offset += ATTRIBUTE_NAME_LIMIT
 
