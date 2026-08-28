@@ -37,7 +37,7 @@ export function useMonitorProcessingErrors({
         api,
         organization.slug,
         projectId,
-        monitorSlug,
+        monitorSlug ?? '',
         errortype
       );
       await refetchErrors();

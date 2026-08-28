@@ -65,7 +65,7 @@ type CronDetectorDetailsProps = {
 function getLatestCronMonitorEnv(detector: CronDetector) {
   const environments = detector.dataSources[0].queryObj?.environments;
   if (!environments) {
-    return undefined;
+    return;
   }
   return getNextCheckInEnv(environments);
 }
@@ -115,6 +115,17 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
     monitorSlug: dataSource.queryObj?.slug,
   });
 
+  // Only display the unknown legend when there are visible unknown check-ins
+  // in the timeline
+  const [showUnknownLegend, setShowUnknownLegend] = useState(false);
+
+  const checkHasUnknown = useCallback((stats: MonitorBucket[]) => {
+    const hasUnknown = stats.some(bucket =>
+      Object.values(bucket[1]).some(envBucket => Boolean(envBucket.unknown))
+    );
+    setShowUnknownLegend(hasUnknown);
+  }, []);
+
   if (!dataSource.queryObj) {
     return null;
   }
@@ -158,17 +169,6 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   }
 
   const intervalSeconds = getIntervalSecondsFromEnv(monitorEnv);
-
-  // Only display the unknown legend when there are visible unknown check-ins
-  // in the timeline
-  const [showUnknownLegend, setShowUnknownLegend] = useState(false);
-
-  const checkHasUnknown = useCallback((stats: MonitorBucket[]) => {
-    const hasUnknown = stats.some(bucket =>
-      Object.values(bucket[1]).some(envBucket => Boolean(envBucket.unknown))
-    );
-    setShowUnknownLegend(hasUnknown);
-  }, []);
 
   return (
     <DateTimeProvider value={dateTime}>
