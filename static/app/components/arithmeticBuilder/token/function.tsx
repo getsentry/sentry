@@ -1,5 +1,5 @@
 import type {ChangeEvent, FocusEvent, MouseEvent, RefObject} from 'react';
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaGridListOptions} from '@react-aria/gridlist';
@@ -367,10 +367,30 @@ function InternalInput({
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
   const [selectionIndex, setSelectionIndex] = useState(0);
   const skipBlurFlushRef = useRef(false);
+  // Apply after React commits the controlled value. A lone rAF + focus() races in
+  // Chrome and resets the caret before (or when) focus returns from the listbox.
+  const pendingCaretRef = useRef<{pos: number; value: string} | null>(null);
 
   const isFilterParameter = isSearchFilterParameter(parameterDefinition);
 
   const displayValue = isCurrentlyEditing ? inputValue : currentValue;
+
+  useLayoutEffect(() => {
+    const pendingCaret = pendingCaretRef.current;
+    if (pendingCaret === null) {
+      return;
+    }
+    const input = inputRef.current;
+    if (input?.value !== pendingCaret.value) {
+      return;
+    }
+    pendingCaretRef.current = null;
+    if (document.activeElement !== input) {
+      input.focus();
+    }
+    input.setSelectionRange(pendingCaret.pos, pendingCaret.pos);
+    setSelectionIndex(pendingCaret.pos);
+  }, [inputValue]);
 
   const {
     comboBoxFilterValue,
@@ -575,16 +595,15 @@ function InternalInput({
     [parameterDefinition]
   );
 
-  // Persist free-text filter edits on blur. Skip REPLACE_TOKEN while focus stays inside
-  // the arguments grid — that remounts the function and steals focus from the next arg.
-  // Pending edits are flushed via onArgumentsBlur when focus finally leaves the grid.
+  // Persist free-text filter edits on blur. Empty input becomes `` so clearing the filter
+  // updates argsRef (otherwise the prior value is kept and commitArgumentsIfChanged no-ops).
+  // Skip REPLACE_TOKEN while focus stays inside the arguments grid — that remounts the
+  // function and steals focus from the next arg. Pending edits flush via onArgumentsBlur.
   const onFilterInputBlur = useCallback(
     (evt?: FocusEvent<HTMLInputElement>) => {
-      const value = inputValue ? ensureSearchFilterArgument(inputValue) : null;
-      if (value) {
-        setCurrentValue(unwrapSearchFilterArgument(value));
-        onArgumentsChange(argumentIndex, value);
-      }
+      const value = ensureSearchFilterArgument(inputValue);
+      setCurrentValue(unwrapSearchFilterArgument(value));
+      onArgumentsChange(argumentIndex, value);
       resetInputValue();
       setIsCurrentlyEditing(false);
       flushArgumentsIfLeavingGrid(evt);
@@ -797,21 +816,13 @@ function InternalInput({
           selectionIndex,
           option.value
         );
+        if (isFilterKeySuggestion(option.value)) {
+          pendingCaretRef.current = {pos: newCursorIndex, value: newValue};
+        }
         setCurrentValue(newValue);
         setInputValue(newValue);
         setIsCurrentlyEditing(true);
         setSelectionIndex(newCursorIndex);
-
-        if (isFilterKeySuggestion(option.value)) {
-          requestAnimationFrame(() => {
-            const input = inputRef.current;
-            if (!input) {
-              return;
-            }
-            input.setSelectionRange(newCursorIndex, newCursorIndex);
-            input.focus();
-          });
-        }
         return;
       }
 

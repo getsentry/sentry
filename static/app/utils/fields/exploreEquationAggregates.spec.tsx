@@ -71,6 +71,18 @@ describe('Explore equation conditional aggregates', () => {
     ]);
   });
 
+  it('keeps EAP filter-first params for EAP-only _if without backticks', () => {
+    expect(getFieldDefinition('sum_if', 'span')).toBeNull();
+
+    const definition = getExploreEquationFieldDefinition('sum_if', undefined, true, [
+      'span.duration',
+    ]);
+    expect(definition?.parameters?.map(parameter => parameter.name)).toEqual([
+      'filter',
+      'column',
+    ]);
+  });
+
   it('keeps Discover count_if unless the feature is on', () => {
     const ungated = getFieldDefinition('count_if', 'span');
     expect(ungated?.parameters?.map(parameter => parameter.name)).toEqual([

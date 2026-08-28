@@ -853,6 +853,10 @@ describe('token', () => {
 
       expect(filterArg).toHaveValue('span.op:');
       expect(filterArg).toHaveFocus();
+      // Caret must sit after the colon so value suggestions kick in (Chrome used to
+      // reset this when focus returned from the listbox).
+      expect(filterArg).toHaveProperty('selectionStart', 'span.op:'.length);
+      expect(filterArg).toHaveProperty('selectionEnd', 'span.op:'.length);
     });
 
     it('switches to value suggestions after selecting a filter key', async () => {
@@ -1203,6 +1207,36 @@ describe('token', () => {
           expect.objectContaining({
             type: 'REPLACE_TOKEN',
             text: 'avg_if(`span.op:db`,span.duration)',
+          })
+        );
+      });
+    });
+
+    it('clears _if filter on blur when the filter input is emptied', async () => {
+      const dispatch = jest.fn();
+      render(
+        <Tokens expression="avg_if(`span.op:db`,span.duration)" dispatch={dispatch} />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.clear(filterArg);
+      await userEvent.click(getLastInput());
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'avg_if(``,span.duration)',
           })
         );
       });

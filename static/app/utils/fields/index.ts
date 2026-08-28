@@ -3936,6 +3936,7 @@ export const getFieldDefinition = (
  *
  * Existing Discover-style calls (`avg_if(span.duration,span.op,equals,db)`) keep the
  * Discover definition so editing them does not reinterpret the first column as a filter.
+ * EAP-only `_if`s without a Discover definition keep the filter-first signature.
  */
 export function getExploreEquationFieldDefinition(
   key: string,
@@ -3947,7 +3948,10 @@ export function getExploreEquationFieldDefinition(
     const conditionalDefinition = SPAN_CONDITIONAL_AGGREGATION_FIELDS[key];
     if (conditionalDefinition) {
       if (usesDiscoverStyleConditionalAggregateArgs(attributeTexts)) {
-        return getFieldDefinition(key, 'span', kind);
+        // Only Discover-defined `_if`s (`avg_if`/`count_if`) should stay on the Discover
+        // arity. EAP-only combinators (`sum_if`, …) have no Discover definition — keep
+        // the filter-first signature even when the first arg is not backtick-wrapped yet.
+        return getFieldDefinition(key, 'span', kind) ?? conditionalDefinition;
       }
       return conditionalDefinition;
     }
