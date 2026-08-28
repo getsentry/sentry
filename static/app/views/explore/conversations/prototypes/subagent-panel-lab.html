@@ -1,0 +1,1020 @@
+<title>Sub-Agent Panel Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap">
+
+<style>
+/* Tokens lifted from static/app/utils/theme/scraps — light values on :root,
+   dark values re-declared for both the system default and the explicit stamp. */
+:root{
+  --text-success:#008900;
+  --bg-page:#F8F8F9;            /* neutral.light.opaque100 */
+  --bg-primary:#FFFFFF;         /* background.primary */
+  --bg-secondary:#F8F8F9;       /* background.secondary */
+  --bg-tertiary:#F0F0F2;        /* background.tertiary */
+  --border-primary:#DAD9DE;     /* neutral.light.opaque400 */
+  --border-secondary:#E6E6E9;   /* neutral.light.opaque300 */
+  --text-primary:#302E36;       /* neutral.light.opaque1500 */
+  --text-heading:#181225;       /* neutral.light.opaque1600 */
+  --text-secondary:#6A6772;     /* neutral.light.opaque1100 */
+  --text-muted:#878490;         /* neutral.light.opaque900 */
+  --text-accent:#653DE9;        /* blue.light.opaque1100 */
+  --text-danger:#D50000;        /* red.light.opaque1100 */
+  --text-warning:#A45200;       /* yellow.light.opaque1100 */
+  --accent-vibrant:#7553FF;     /* blue.light.opaque1000 */
+  --border-accent:#B7B2FF;      /* blue.light.opaque600 */
+  --bg-accent-muted:#0008F012;  /* blue.light.transparent200 */
+  --bg-danger-muted:#F828081C;  /* red.light.transparent200 */
+  --hover:#0000200F;            /* neutral.light.transparent200 */
+  --focus:#7553FF;
+  --cat-blurple:#7553FF; --cat-pink:#F0369A; --cat-green:#67C800; --cat-orange:#FF9838;
+  --track:#E6E6E9;
+  --shadow:0 2px 4px rgba(43,34,51,.04), 0 8px 24px -12px rgba(43,34,51,.12);
+  --spine-shadow:-8px 0 16px -12px rgba(43,34,51,.35);
+  --t:260ms;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg-page:#1B1821; --bg-primary:#2E2936; --bg-secondary:#24202B; --bg-tertiary:#1B1821;
+    --border-primary:#141119; --border-secondary:#1B1821;
+    --text-primary:#E7E5EA; --text-heading:#F9F8F9; --text-secondary:#B5B0BD; --text-muted:#958E9F;
+    --text-accent:#ABA8F8; --text-danger:#F6938C; --text-warning:#FFCE00; --text-success:#5ECE73;
+    --accent-vibrant:#7553FF; --border-accent:#7553FF;
+    --bg-accent-muted:#4828B894; --bg-danger-muted:#F8000033;
+    --hover:#C0A8F81A;
+    --track:#393442;
+    --shadow:0 2px 4px rgba(0,0,0,.3), 0 10px 28px -12px rgba(0,0,0,.6);
+    --spine-shadow:-8px 0 18px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg-page:#1B1821; --bg-primary:#2E2936; --bg-secondary:#24202B; --bg-tertiary:#1B1821;
+  --border-primary:#141119; --border-secondary:#1B1821;
+  --text-primary:#E7E5EA; --text-heading:#F9F8F9; --text-secondary:#B5B0BD; --text-muted:#958E9F;
+  --text-accent:#ABA8F8; --text-danger:#F6938C; --text-warning:#FFCE00; --text-success:#5ECE73;
+  --accent-vibrant:#7553FF; --border-accent:#7553FF;
+  --bg-accent-muted:#4828B894; --bg-danger-muted:#F8000033;
+  --hover:#C0A8F81A;
+  --track:#393442;
+  --shadow:0 2px 4px rgba(0,0,0,.3), 0 10px 28px -12px rgba(0,0,0,.6);
+  --spine-shadow:-8px 0 18px -12px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg-page); color:var(--text-primary);
+  font-family:Rubik,"Avenir Next",-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:14px; line-height:1.4; -webkit-font-smoothing:antialiased;
+}
+code, .mono{font-family:"Roboto Mono",Monaco,Consolas,"Courier New",monospace; font-weight:400}
+.tab-num{font-variant-numeric:tabular-nums}
+
+.wrap{max-width:1160px; margin:0 auto; padding:40px 24px 56px}
+
+/* ---------- page header ---------- */
+.kicker{font-size:12px; color:var(--text-secondary); margin:0 0 10px}
+.kicker b{color:var(--text-accent); font-weight:500}
+h1{
+  font-weight:500; font-size:clamp(28px,3.6vw,40px); line-height:1.2; letter-spacing:-.02em;
+  color:var(--text-heading); margin:0 0 12px; max-width:24ch; text-wrap:balance;
+}
+.lede{max-width:68ch; color:var(--text-secondary); font-size:16px; line-height:1.5; margin:0}
+.lede strong{color:var(--text-primary); font-weight:500}
+
+/* ---------- app header (mirrors the conversation detail page) ---------- */
+.appbar{
+  flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:7px 14px;
+  border-bottom:1px solid var(--border-primary); background:var(--bg-secondary);
+}
+.crumbs-app{display:flex; align-items:center; gap:8px; min-width:0}
+.c-muted{font-size:14px; color:var(--text-secondary)}
+.c-sep{font-size:14px; color:var(--text-muted)}
+.c-now{
+  font-size:14px; color:var(--text-primary); text-decoration:underline;
+  text-underline-offset:3px; text-decoration-color:var(--border-primary);
+}
+.appbar-actions{margin-left:auto; display:flex; align-items:center; gap:6px}
+.icon-only{padding:5px}
+
+.apphead{
+  flex:0 0 auto; display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap;
+  padding:14px 16px 15px; border-bottom:1px solid var(--border-primary); background:var(--bg-primary);
+}
+.apptitle{
+  margin:0 0 8px; font-size:20px; font-weight:500; line-height:1.2;
+  letter-spacing:-.01em; color:var(--text-heading);
+}
+.appsub{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+.proj{display:flex; align-items:center; gap:7px; font-size:14px; color:var(--text-primary)}
+.pavatar{
+  width:18px; height:18px; border-radius:4px; flex:0 0 auto; font-style:normal;
+  background:linear-gradient(140deg,#7553FF,#F0369A); color:#fff;
+  font-size:10px; font-weight:500; display:flex; align-items:center; justify-content:center;
+}
+.meta-i{display:flex; align-items:center; gap:6px; font-size:14px; color:var(--text-secondary); font-variant-numeric:tabular-nums}
+.meta-i .ico{width:13px; height:13px; color:var(--text-muted)}
+.link{font-size:14px; color:var(--text-accent); text-decoration:none}
+.link:hover{text-decoration:underline}
+.stats{margin-left:auto; display:flex; gap:26px; flex-wrap:wrap}
+.stat{display:flex; flex-direction:column; align-items:flex-end; gap:1px}
+.stat span{font-size:13px; color:var(--text-secondary); white-space:nowrap}
+.stat b{font-size:24px; font-weight:500; line-height:1.2; color:var(--text-heading); font-variant-numeric:tabular-nums}
+.stat.bad b{color:var(--text-danger)}
+
+/* ---------- pattern switcher ---------- */
+.switcher{margin:30px 0 0; display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+@media (max-width:860px){ .switcher{grid-template-columns:1fr} }
+.sw{
+  appearance:none; text-align:left; cursor:pointer; font:inherit; color:var(--text-secondary);
+  background:var(--bg-primary); border:1px solid var(--border-primary); border-radius:6px;
+  padding:11px 13px 12px; transition:border-color 120ms, background 120ms;
+}
+.sw:hover{background:var(--bg-secondary)}
+.sw:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+.sw s{display:block; text-decoration:none; font-size:11px; color:var(--text-muted); margin-bottom:3px}
+.sw b{display:block; font-size:14px; font-weight:500; color:var(--text-heading); margin-bottom:3px}
+.sw p{margin:0; font-size:12px; line-height:1.4}
+.sw[aria-pressed="true"]{border-color:var(--border-accent); background:var(--bg-accent-muted)}
+.sw[aria-pressed="true"] s{color:var(--text-accent)}
+
+/* ---------- stage ---------- */
+.stage{
+  margin:10px 0 0; height:700px; border:1px solid var(--border-primary); border-radius:8px;
+  background:var(--bg-primary); overflow:hidden; position:relative; box-shadow:var(--shadow);
+  display:flex; flex-direction:column;
+}
+.stage-head{
+  flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 14px;
+  border-bottom:1px solid var(--border-primary); background:var(--bg-secondary);
+}
+.tabs{display:flex; gap:4px}
+.tab{
+  appearance:none; font:inherit; cursor:pointer; border:0; background:none;
+  padding:6px 14px; border-radius:6px; font-size:14px; color:var(--text-secondary);
+}
+.tab:hover{color:var(--text-primary); background:var(--hover)}
+.tab:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+.tab[aria-selected="true"]{color:var(--text-accent); font-weight:500; background:var(--bg-accent-muted)}
+.hint{font-size:12px; color:var(--text-muted); margin-left:auto; text-align:right}
+.stage-body{flex:1 1 auto; min-height:0; position:relative}
+.variant{position:absolute; inset:0; display:none}
+.variant.on{display:block}
+
+/* ---------- panel shell ---------- */
+.pnl{
+  position:absolute; top:0; bottom:0; right:0; background:var(--bg-primary);
+  display:flex; flex-direction:column; overflow:hidden;
+  transition:transform var(--t) cubic-bezier(.32,.72,0,1), opacity var(--t) ease;
+  will-change:transform;
+}
+.pnl.deep{box-shadow:var(--spine-shadow); border-left:1px solid var(--border-primary)}
+.phead{
+  flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:9px 12px;
+  border-bottom:1px solid var(--border-primary); min-height:44px;
+}
+.ptitle{display:flex; align-items:center; gap:8px; min-width:0}
+.ptitle .nm{font-size:14px; font-weight:500; color:var(--text-heading); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ptitle .md{font-size:12px; color:var(--text-secondary); white-space:nowrap}
+.pmeta{margin-left:auto; display:flex; align-items:center; gap:12px; flex:0 0 auto}
+.pmeta .st{font-size:12px; color:var(--text-secondary)}
+.pbody{flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden}
+
+/* buttons (scraps Button, size xs) */
+.btn{
+  appearance:none; font:inherit; cursor:pointer; font-size:12px; line-height:1;
+  padding:5px 8px; border-radius:6px; border:1px solid var(--border-primary);
+  background:var(--bg-primary); color:var(--text-primary); white-space:nowrap;
+  display:inline-flex; align-items:center; gap:5px; transition:background 120ms;
+}
+.btn:hover{background:var(--bg-secondary)}
+.btn:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+.btn.ghost{border-color:transparent; background:none; color:var(--text-secondary); padding:5px 6px}
+.btn.ghost:hover{background:var(--hover); color:var(--text-primary)}
+.ico{width:14px; height:14px; flex:0 0 auto; display:block}
+
+/* status marks */
+.dot{flex:0 0 auto; width:8px; height:8px; border-radius:2px; background:var(--k)}
+.dot.agent{border-radius:50%; width:9px; height:9px}
+.warn{color:var(--text-danger); flex:0 0 auto; display:flex}
+.warn .ico{width:13px; height:13px}
+
+/* ---------- timeline (trace) rows ---------- */
+.rows{padding:4px 0 14px}
+.row{
+  display:grid; grid-template-columns:1fr 152px 68px; align-items:center; gap:12px;
+  padding:7px 12px; border:0; background:none; width:100%; text-align:left; font:inherit;
+  color:var(--text-primary);
+}
+.row.tappable{cursor:pointer}
+.row.tappable:hover{background:var(--hover)}
+.row:focus-visible{outline:2px solid var(--focus); outline-offset:-2px}
+.rid{display:flex; align-items:center; gap:8px; min-width:0}
+.rname{font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.rname.agent{font-weight:500}
+.rmeta{font-size:12px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.chev{margin-left:auto; flex:0 0 auto; color:var(--text-muted); display:flex; padding-left:4px}
+.row.tappable:hover .chev{color:var(--text-accent)}
+.track{height:6px; border-radius:3px; background:var(--track); position:relative; overflow:hidden}
+.fill{position:absolute; top:0; bottom:0; border-radius:3px; min-width:2px; background:var(--k)}
+.dur{font-size:12px; text-align:right; color:var(--text-secondary); font-variant-numeric:tabular-nums}
+.tag{
+  font-size:11px; border-radius:3px; padding:1px 6px; white-space:nowrap; flex:0 0 auto;
+  background:var(--bg-tertiary); color:var(--text-secondary);
+}
+.tag.danger{background:var(--bg-danger-muted); color:var(--text-danger)}
+@media (max-width:760px){ .row{grid-template-columns:1fr 68px} .row .track{display:none} }
+
+/* ---------- inline details ---------- */
+.sel{outline:2px solid var(--focus); outline-offset:-2px}
+.detail{
+  margin:0 12px 8px; padding:9px 11px; border-radius:5px;
+  background:var(--bg-secondary); border:1px solid var(--border-secondary);
+  display:flex; flex-direction:column; gap:6px;
+}
+.script .detail{margin:0}
+.drow{display:flex; gap:10px; align-items:baseline; font-size:12px}
+.drow>b{flex:0 0 76px; font-weight:400; color:var(--text-muted)}
+.drow>span{color:var(--text-primary); min-width:0; overflow-wrap:anywhere; white-space:pre-line}
+.drow>span.mono{font-size:11.5px}
+.drow>span.danger{color:var(--text-danger)}
+.drow>span.ok{color:var(--text-success,#008900)}
+
+/* ---------- transcript ---------- */
+.script{padding:14px 14px 22px; display:flex; flex-direction:column; gap:12px}
+.turn{display:flex; gap:12px; align-items:flex-start}
+.turn.user{justify-content:flex-end}
+.bubble{max-width:640px; padding:8px 10px; border-radius:4px; font-size:14px; line-height:1.5}
+.turn.user .bubble{background:var(--bg-tertiary); color:var(--text-primary)}
+.turn.assistant .bubble{background:var(--bg-accent-muted); color:var(--text-primary); cursor:pointer}
+.turn.assistant .bubble:hover{opacity:.85}
+.bubble code{font-size:12.5px; background:var(--bg-primary); border:1px solid var(--border-secondary); border-radius:3px; padding:0 4px}
+.turn.user .bubble code{background:var(--bg-primary)}
+.tmeta{
+  flex:0 0 auto; margin-left:auto; display:flex; align-items:center; justify-content:flex-end; gap:5px;
+  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums; padding-top:9px;
+}
+
+.toolrow{
+  cursor:pointer; border-radius:5px; padding:6px 8px; display:flex; flex-direction:column; gap:4px;
+  background:var(--bg-secondary); border:1px solid var(--border-secondary);
+}
+.toolrow.bad{background:var(--bg-danger-muted); border-color:transparent}
+.toolrow .tl{display:flex; align-items:center; gap:8px; min-width:0}
+.toolrow .tn{font-size:13px; font-weight:500}
+.toolrow .ta{font-size:12px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.toolrow .td{margin-left:auto; font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums; flex:0 0 auto}
+.toolrow .to{font-size:12px; color:var(--text-secondary); padding-left:16px; white-space:pre-line}
+.toolrow.bad .to{color:var(--text-danger)}
+
+/* sub-agent card — mirrors subAgentCard.tsx: chevron expands, button opens panel */
+.subcard{
+  max-width:640px; border-radius:6px; background:var(--bg-secondary); border:1px solid transparent;
+  padding:8px; display:flex; flex-direction:column; gap:8px;
+}
+.subcard.bad{background:var(--bg-danger-muted)}
+.subcard.active{border-color:var(--border-accent); background:var(--bg-accent-muted)}
+.sc-head{display:flex; align-items:center; gap:10px}
+.sc-toggle{
+  appearance:none; font:inherit; cursor:pointer; border:0; background:none; padding:0; margin:0;
+  display:flex; align-items:center; gap:8px; min-width:0; flex:1 1 auto; color:var(--text-primary);
+  text-align:left;
+}
+.sc-toggle:focus-visible{outline:2px solid var(--focus); outline-offset:2px; border-radius:3px}
+.sc-caret{flex:0 0 auto; display:flex; color:var(--text-muted); transition:transform 180ms ease}
+.sc-caret.open{transform:rotate(90deg)}
+.sc-name{font-size:14px; font-weight:500; color:var(--text-heading); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.subcard.bad .sc-name{color:var(--text-danger)}
+.sc-model{font-size:12px; color:var(--text-secondary); white-space:nowrap}
+.sc-steps{font-size:12px; color:var(--text-secondary); flex:0 0 auto; font-variant-numeric:tabular-nums}
+.sc-content{display:none; flex-direction:column; gap:8px; padding-left:20px}
+.sc-content.open{display:flex}
+.sc-sec{display:flex; flex-direction:column; gap:2px}
+.sc-sec b{font-size:12px; font-weight:500; color:var(--text-heading)}
+.sc-sec span{font-size:12px; color:var(--text-secondary); line-height:1.5}
+.sc-sec span.danger{color:var(--text-danger)}
+
+/* ---------- A: side-scrolling columns ---------- */
+#host-slide{
+  position:absolute; inset:0; display:flex; align-items:stretch;
+  overflow-x:auto; overflow-y:hidden; scrollbar-width:thin;
+}
+#host-slide::-webkit-scrollbar{height:8px}
+#host-slide::-webkit-scrollbar-thumb{background:var(--border-primary); border-radius:4px}
+.pnl.col{
+  position:relative; top:auto; bottom:auto; right:auto; left:auto;
+  height:100%; flex:0 0 auto; box-shadow:none;
+  transition:width var(--t) cubic-bezier(.32,.72,0,1), opacity var(--t) ease;
+}
+.pnl.col + .pnl.col{border-left:1px solid var(--border-primary)}
+
+/* ---------- B: spine rail (SPINE_WIDTH = 40) ---------- */
+.rail{position:absolute; left:0; top:0; bottom:0; display:flex; z-index:5}
+.spine{
+  appearance:none; font:inherit; cursor:pointer; flex:0 0 auto; width:40px; overflow:hidden;
+  border:0; border-right:1px solid var(--border-primary); background:var(--bg-secondary);
+  display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 0;
+  transition:width var(--t) cubic-bezier(.32,.72,0,1), background 120ms;
+}
+.spine:hover{background:var(--hover)}
+.spine:focus-visible{outline:2px solid var(--focus); outline-offset:-3px}
+.spine .sn{
+  writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; font-size:12px; color:var(--text-secondary);
+  flex:1 1 auto; min-height:0;
+}
+.spine .sd{
+  writing-mode:vertical-rl; transform:rotate(180deg); font-size:11px; color:var(--text-muted);
+  font-variant-numeric:tabular-nums; flex:0 0 auto;
+}
+
+/* ---------- C: breadcrumbs ---------- */
+.crumbbar{
+  position:absolute; left:0; right:0; top:0; height:38px; z-index:5;
+  display:flex; align-items:center; gap:2px; padding:0 12px; overflow-x:auto;
+  border-bottom:1px solid var(--border-primary); background:var(--bg-secondary);
+}
+.crumb{
+  appearance:none; font:inherit; cursor:pointer; flex:0 0 auto; background:none;
+  border:1px solid transparent; border-radius:5px; padding:3px 7px; font-size:13px;
+  color:var(--text-secondary); display:flex; align-items:center; gap:6px;
+}
+.crumb:hover{color:var(--text-primary); background:var(--hover)}
+.crumb:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+.crumb.now{color:var(--text-heading); font-weight:500; background:var(--bg-primary); border-color:var(--border-primary); cursor:default}
+.crumb .cd{font-size:11px; color:var(--text-muted); font-weight:400; font-variant-numeric:tabular-nums}
+.csep{flex:0 0 auto; color:var(--text-muted); display:flex}
+.crumbhost{position:absolute; left:0; right:0; top:38px; bottom:0; overflow:hidden}
+
+.legend{display:flex; gap:18px; flex-wrap:wrap; margin:14px 0 0; align-items:center}
+.lg{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-secondary)}
+.lg i{width:8px; height:8px; border-radius:2px; display:block}
+.lg.ag i{border-radius:50%; width:9px; height:9px}
+
+@media (prefers-reduced-motion:reduce){ *{transition-duration:1ms !important} }
+</style>
+
+<div class="wrap">
+  <p class="kicker"><b>Agents</b> · sub-agent drill-down · interaction study</p>
+  <h1>Three ways to open a sub-agent without losing the trace</h1>
+  <p class="lede">One Seer autofix run, three panel navigation models, built on the <strong>scraps</strong> tokens and the sub-agent card and spine already in <code class="mono">explore/conversations</code>. The <strong>Transcript</strong> / <strong>Timeline</strong> toggle switches every open panel at once, so each pattern can be judged against both the reading task and the timing task.</p>
+
+  <div class="switcher" id="switcher"></div>
+
+  <div class="stage">
+    <div class="appbar">
+      <div class="crumbs-app">
+        <span class="c-muted">Agents</span>
+        <span class="c-sep">/</span>
+        <span class="c-now">Conversation 4f1c8a92</span>
+        <button class="btn ghost icon-only" type="button" aria-label="Copy conversation ID" id="copy-id"></button>
+      </div>
+      <div class="appbar-actions">
+        <button class="btn" type="button" id="ask-seer">Ask Seer</button>
+      </div>
+    </div>
+
+    <div class="apphead">
+      <div>
+        <h3 class="apptitle">TypeError: Cannot read properties of undefined (reading 'duration')</h3>
+        <div class="appsub">
+          <span class="proj"><i class="pavatar">S</i>seer</span>
+          <span class="meta-i" id="users"></span>
+          <a class="link" href="#" onclick="return false">Trace</a>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="stage-head">
+      <div class="tabs" role="tablist" aria-label="Panel content">
+        <button class="tab" type="button" role="tab" data-view="transcript" aria-selected="true">Transcript</button>
+        <button class="tab" type="button" role="tab" data-view="trace" aria-selected="false">Timeline</button>
+      </div>
+      <span class="hint" id="stage-hint"></span>
+      <button class="btn" type="button" id="copy-transcript">Copy Transcript</button>
+    </div>
+
+    <div class="stage-body">
+      <div class="variant" data-v="slide"><div id="host-slide"></div></div>
+      <div class="variant" data-v="spine">
+        <div style="position:absolute;inset:0;overflow:hidden">
+          <div class="rail" id="rail-spine"></div>
+          <div id="host-spine" style="position:absolute;inset:0"></div>
+        </div>
+      </div>
+      <div class="variant" data-v="crumb">
+        <div class="crumbbar" id="bar-crumb"></div>
+        <div class="crumbhost" id="host-crumb"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="lg ag"><i style="background:var(--cat-blurple)"></i>Agent</span>
+    <span class="lg"><i style="background:var(--cat-pink)"></i>LLM call</span>
+    <span class="lg"><i style="background:var(--cat-green)"></i>Tool</span>
+    <span class="lg"><i style="background:var(--text-danger)"></i>Error</span>
+  </div>
+
+</div>
+
+<script>
+/* ---------- icons (sentry/icons shapes, 14px) ---------- */
+const I = {
+  chevronRight:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8L6 12.5"/></svg>',
+  chevronLeft:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8L10 12.5"/></svg>',
+  close:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+  copy:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 3.2A1.7 1.7 0 0 0 8.8 2H3.7A1.7 1.7 0 0 0 2 3.7v5.1c0 .77.51 1.42 1.2 1.63"/></svg>',
+  user:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="5.2" r="2.7"/><path d="M2.9 13.6a5.1 5.1 0 0 1 10.2 0"/></svg>',
+  warning:'<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.6c.4 0 .77.22.96.57l6 11A1.1 1.1 0 0 1 14 14.8H2a1.1 1.1 0 0 1-.96-1.63l6-11c.19-.35.56-.57.96-.57Zm0 3.6a.8.8 0 0 0-.8.85l.2 3.2a.6.6 0 0 0 1.2 0l.2-3.2A.8.8 0 0 0 8 5.2Zm0 5.6a.85.85 0 1 0 0 1.7.85.85 0 0 0 0-1.7Z"/></svg>'
+};
+
+/* ================= data: one Seer autofix run ================= */
+const CS = {
+  name:"code_search_agent", kind:"agent", t:8100, dur:9200, model:"claude-sonnet-5", tokens:"31.8k",
+  meta:"5 spans",
+  task:"Find every call site of useTransactionSummary and note which ones guard on the loading state.",
+  ret:"12 call sites; 3 read data.duration without an isPending guard. Same pattern exists in useSpanMetrics.",
+  c:[
+    {name:"repo.grep", kind:"tool", t:8180, dur:640, meta:"pattern: useTransactionSummary"},
+    {name:"file.read ×12", kind:"tool", t:8850, dur:1210, meta:"static/app/views/performance/"},
+    {name:"messages.create", kind:"llm", t:10100, dur:3300, meta:"claude-sonnet-5 · 18.9k in / 1.2k out"},
+    {name:"embeddings.search", kind:"tool", t:13450, dur:880, meta:"top_k=24 · repo index"},
+    {name:"messages.create", kind:"llm", t:14400, dur:2800, meta:"claude-sonnet-5 · 9.1k in / 740 out"}
+  ],
+  msgs:[
+    {r:"user", text:"Find every call site of <code>useTransactionSummary</code> and note which ones guard on the loading state before reading <code>transaction.duration</code>."},
+    {r:"tool", name:"repo.grep", arg:"pattern: useTransactionSummary", dur:640, out:"14 matches in 12 files"},
+    {r:"tool", name:"file.read ×12", arg:"static/app/views/performance/", dur:1210, out:"read 12 files · 4.1k lines"},
+    {r:"assistant", text:"12 call sites. Nine destructure <code>{ data, isPending }</code> and early-return on <code>isPending</code>. Three read <code>data.duration</code> directly: <code>transactionSummary/header.tsx</code>, <code>widgets/durationChart.tsx</code>, and <code>vitalDetail/table.tsx</code>.", cost:"$0.041", dur:3300},
+    {r:"tool", name:"embeddings.search", arg:"top_k=24 · repo index", dur:880, out:"2 similar unguarded hooks"},
+    {r:"assistant", text:"The same shape exists in <code>useSpanMetrics</code>. It isn't on this stack trace, so I'd flag it as a follow-up rather than widen the fix.", cost:"$0.019", dur:2800}
+  ]
+};
+const RCA = {
+  name:"root_cause_agent", kind:"agent", t:3600, dur:18400, model:"claude-opus-5", tokens:"62.1k",
+  meta:"4 spans · 1 sub-agent",
+  task:"Establish the root cause of the undefined duration read in useTransactionSummary.",
+  ret:"#82640 removed the empty-object default. header.tsx reads data.duration unguarded. Confidence: high.",
+  c:[
+    {name:"search_issues", kind:"tool", t:3720, dur:210, meta:"project:javascript · 14 results"},
+    {name:"messages.create", kind:"llm", t:3950, dur:4100, meta:"claude-opus-5 · 12.4k in / 880 out"},
+    CS,
+    {name:"messages.create", kind:"llm", t:17400, dur:4500, meta:"claude-opus-5 · 21.7k in / 1.4k out"}
+  ],
+  msgs:[
+    {r:"user", text:"Establish the root cause of <code>TypeError: Cannot read properties of undefined (reading 'duration')</code> in <code>useTransactionSummary</code>. Stack trace and the last 20 commits touching the file are attached."},
+    {r:"tool", name:"search_issues", arg:"project:javascript · is:unresolved", dur:210, out:"14 results · 2 related"},
+    {r:"assistant", text:"Two related issues, both filed after <code>#82640</code> landed. That PR switched the hook to a suspense-free fetch, so <code>data</code> is now <code>undefined</code> on first render instead of an empty object. Next I need to know which call sites don't guard for that.", cost:"$0.088", dur:4100},
+    {r:"sub", ref:"code_search_agent"},
+    {r:"assistant", text:"Root cause confirmed. <code>#82640</code> removed the empty-object default; three call sites read <code>data.duration</code> without checking <code>isPending</code>, and <code>header.tsx</code> is the one on the reported stack. First event is 14 minutes after that deploy.", cost:"$0.164", dur:4500}
+  ]
+};
+const TRA = {
+  name:"test_runner_agent", kind:"agent", t:40000, dur:6900, model:"claude-sonnet-5", tokens:"14.7k",
+  meta:"3 spans · 1 failure",
+  task:"Run pytest -k autofix against the patch and fix anything it broke.",
+  err:"exit 1 · 2 tests failed on first run",
+  c:[
+    {name:"pytest -k autofix", kind:"tool", t:40100, dur:4200, meta:"2 failed, 47 passed", err:"exit 1"},
+    {name:"messages.create", kind:"llm", t:44400, dur:1900, meta:"claude-sonnet-5 · 6.8k in / 520 out"},
+    {name:"pytest -k autofix", kind:"tool", t:46400, dur:440, meta:"49 passed"}
+  ],
+  msgs:[
+    {r:"user", text:"Run <code>pytest -k autofix</code> against the patch on <code>seer/fix-4f1c8a</code> and fix anything it broke."},
+    {r:"tool", name:"pytest -k autofix", arg:"49 tests collected", dur:4200, err:true, out:"2 failed, 47 passed\ntest_summary_header_pending — expected null, got <Loading />\ntest_duration_chart_pending — expected null, got <Loading />"},
+    {r:"assistant", text:"Both failures are fixture expectations, not the patch. They assert the old behavior where an unresolved query rendered <code>null</code>; the guard now renders a loading placeholder, which is the intended change. Updating both assertions.", cost:"$0.012", dur:1900},
+    {r:"tool", name:"pytest -k autofix", arg:"rerun after fixture update", dur:440, out:"49 passed in 0.44s"}
+  ]
+};
+const SOL = {
+  name:"solution_agent", kind:"agent", t:22200, dur:9800, model:"claude-opus-5", tokens:"38.6k",
+  meta:"4 spans · 1 retry",
+  task:"Propose the minimal fix for the unguarded duration read.",
+  ret:"Guard the three call sites on isPending, plus one regression test each. Rejected restoring the hook default.",
+  c:[
+    {name:"messages.create", kind:"llm", t:22300, dur:5200, meta:"claude-opus-5 · 24.1k in / 2.0k out"},
+    {name:"sentry.trace.fetch", kind:"tool", t:27600, dur:740, meta:"429 too many requests", err:"429"},
+    {name:"sentry.trace.fetch", kind:"tool", t:28500, dur:690, meta:"retry 1 · 200 ok"},
+    {name:"messages.create", kind:"llm", t:29300, dur:2600, meta:"claude-opus-5 · 11.2k in / 900 out"}
+  ],
+  msgs:[
+    {r:"user", text:"Root cause is confirmed. Propose the minimal fix — three unguarded reads of <code>data.duration</code> after <code>#82640</code> removed the default."},
+    {r:"assistant", text:"Two options. <b>A</b>: restore the empty-object default in the hook — one line, but it hides genuinely missing data behind <code>duration: undefined</code> at every call site. <b>B</b>: guard the three call sites on <code>isPending</code> — more edits, keeps the hook honest. I want a real trace to confirm only these three paths are hit.", cost:"$0.201", dur:5200},
+    {r:"tool", name:"sentry.trace.fetch", arg:"event 8a41c0e2 · full trace", dur:740, err:true, out:"429 too many requests · retry-after 0.5s"},
+    {r:"tool", name:"sentry.trace.fetch", arg:"retry 1 · event 8a41c0e2", dur:690, out:"200 ok · 61 spans"},
+    {r:"assistant", text:"The trace confirms only <code>header.tsx</code> renders on the reported path. Recommending option B, scoped to the three call sites, plus a regression test that renders each one with a pending query.", cost:"$0.094", dur:2600}
+  ]
+};
+const COD = {
+  name:"coding_agent", kind:"agent", t:32200, dur:15300, model:"claude-opus-5", tokens:"54.3k",
+  meta:"3 spans · 1 sub-agent",
+  task:"Implement option B and get the suite green.",
+  ret:"4 files changed, +38 −6. Suite green after one fixture update.",
+  c:[
+    {name:"repo.checkout", kind:"tool", t:32300, dur:1400, meta:"branch: seer/fix-4f1c8a"},
+    {name:"messages.create", kind:"llm", t:33800, dur:6100, meta:"claude-opus-5 · 28.4k in / 3.1k out"},
+    TRA
+  ],
+  msgs:[
+    {r:"user", text:"Implement option B: guard the three call sites on <code>isPending</code>, add a regression test per site, keep the suite green."},
+    {r:"tool", name:"repo.checkout", arg:"branch: seer/fix-4f1c8a", dur:1400, out:"clean tree at 9f2ab41"},
+    {r:"assistant", text:"Three edits, all the same shape — early-return a loading placeholder while <code>isPending</code> is true, before any read of <code>data</code>. One test per call site rendering with an unresolved query. Handing off to the test runner.", cost:"$0.312", dur:6100},
+    {r:"sub", ref:"test_runner_agent"}
+  ]
+};
+const T = {
+  name:"seer.autofix", kind:"agent", t:0, dur:48210, model:"claude-opus-5", tokens:"186.4k",
+  meta:"3 sub-agents", task:"Root-cause and fix JAVASCRIPT-2X41.",
+  ret:"PR #82914 opened · 4 files, +38 −6.",
+  c:[
+    {name:"messages.create", kind:"llm", t:120, dur:3410, meta:"claude-opus-5 · 8.2k in / 610 out"},
+    RCA, SOL, COD,
+    {name:"github.create_pr", kind:"tool", t:47600, dur:580, meta:"PR #82914 opened"}
+  ],
+  msgs:[
+    {r:"user", text:"<b>JAVASCRIPT-2X41</b> — <code>TypeError: Cannot read properties of undefined (reading 'duration')</code> in <code>useTransactionSummary</code>. 1,284 events in 24h, first seen 3 days ago, 214 users affected. Root-cause it and open a PR if you're confident."},
+    {r:"assistant", text:"Starting with root cause. The stack trace points at a hook and the event spike lines up with a deploy three days ago, so I'll have the root-cause agent correlate the two before anyone proposes a patch.", cost:"$0.072", dur:3410},
+    {r:"sub", ref:"root_cause_agent"},
+    {r:"assistant", text:"Root cause is <code>#82640</code> removing the empty-object default. Now I need a fix that doesn't paper over missing data."},
+    {r:"sub", ref:"solution_agent"},
+    {r:"assistant", text:"Going with the scoped guard on three call sites plus regression tests. Handing to the coding agent."},
+    {r:"sub", ref:"coding_agent"},
+    {r:"tool", name:"github.create_pr", arg:"seer/fix-4f1c8a → master", dur:580, out:"PR #82914 opened · 4 files, +38 −6"}
+  ]
+};
+const BY_NAME = {};
+[T, RCA, CS, SOL, COD, TRA].forEach(a => BY_NAME[a.name] = a);
+
+/* ================= helpers ================= */
+const KC = {agent:"var(--cat-blurple)", llm:"var(--cat-pink)", tool:"var(--cat-green)"};
+const kids = s => s.c || [];
+const isAgent = s => s.kind === "agent";
+const fmt = ms => ms < 1000 ? ms + "ms" : (ms / 1000).toFixed(2) + "s";
+const el = (tag, cls, html) => { const n = document.createElement(tag); if(cls) n.className = cls; if(html != null) n.innerHTML = html; return n; };
+function walk(s, fn, d = 0){ fn(s, d); kids(s).forEach(k => walk(k, fn, d + 1)); }
+function hasErrDeep(s){ let bad = false; walk(s, x => { if(x.err) bad = true; }); return bad; }
+function stepCount(a){ return kids(a).length; }
+const warnIcon = () => el("span", "warn", I.warning);
+
+/* ================= details ================= */
+// Stable pseudo span id so the details block reads like a real span inspector.
+function spanId(seed){
+  let h = 0x811c9dc5;
+  for(let i = 0; i < seed.length; i++){ h ^= seed.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return (h.toString(16) + (h * 2654435761 >>> 0).toString(16)).slice(0, 16);
+}
+function detail(rows){
+  const d = el("div", "detail");
+  rows.forEach(([k, v, cls]) => {
+    if(v == null || v === "") return;
+    const r = el("div", "drow");
+    r.appendChild(el("b", null, k));
+    r.appendChild(el("span", cls || null, v));
+    d.appendChild(r);
+  });
+  return d;
+}
+const KIND_LABEL = {agent:"Agent", llm:"LLM call", tool:"Tool call"};
+
+/* ================= Timeline tab ================= */
+function traceView(agent, ctx){
+  const box = el("div", "rows");
+  kids(agent).forEach((s, i) => {
+    const key = "s" + i;
+    const drill = isAgent(s) && kids(s).length;
+    const wrap = el("div");
+    const r = el("button", "row tappable" + (ctx.sel === key ? " sel" : ""));
+    r.type = "button";
+    r.style.setProperty("--k", KC[s.kind]);
+    const id = el("div", "rid");
+    id.appendChild(el("span", "dot " + s.kind));
+    id.appendChild(el("span", "rname" + (isAgent(s) ? " agent" : ""), s.name));
+    if(s.err) id.appendChild(el("span", "tag danger", s.err));
+    id.appendChild(el("span", "rmeta", s.meta));
+    if(drill) id.appendChild(el("span", "chev", I.chevronRight));
+    r.appendChild(id);
+    const tr = el("div", "track"), fl = el("div", "fill");
+    const left = ((s.t - agent.t) / agent.dur) * 100;
+    fl.style.left = Math.max(0, Math.min(left, 99)) + "%";
+    fl.style.width = Math.min(Math.max((s.dur / agent.dur) * 100, 1), 100 - Math.max(0, left)) + "%";
+    if(s.err) fl.style.background = "var(--text-danger)";
+    tr.appendChild(fl); r.appendChild(tr);
+    r.appendChild(el("div", "dur", fmt(s.dur)));
+    // A drill-down opens the sub-agent; anything else opens its details in place.
+    r.addEventListener("click", () => drill ? ctx.onOpen(s) : ctx.onSelect(key));
+    wrap.appendChild(r);
+    if(ctx.sel === key){
+      wrap.appendChild(detail([
+        ["Span ID", spanId(s.name + s.t), "mono"],
+        ["Type", KIND_LABEL[s.kind]],
+        ["Start", "+" + fmt(s.t - agent.t) + " into this agent"],
+        ["Duration", fmt(s.dur)],
+        ["Status", s.err ? s.err : "ok", s.err ? "danger" : "ok"],
+        ["Detail", s.meta],
+        isAgent(s) ? ["Model", s.model] : null,
+        isAgent(s) ? ["Tokens", s.tokens] : null
+      ].filter(Boolean)));
+    }
+    box.appendChild(wrap);
+  });
+  return box;
+}
+
+/* ================= Transcript tab ================= */
+function transcriptView(agent, ctx){
+  const box = el("div", "script");
+  (agent.msgs || []).forEach((m, i) => {
+    const key = "m" + i;
+    const on = ctx.sel === key;
+
+    if(m.r === "tool"){
+      const c = el("div", "toolrow" + (m.err ? " bad" : "") + (on ? " sel" : ""));
+      const line = el("div", "tl");
+      line.style.setProperty("--k", m.err ? "var(--text-danger)" : KC.tool);
+      line.appendChild(el("span", "dot"));
+      line.appendChild(el("span", "tn", m.name));
+      line.appendChild(el("span", "ta", m.arg));
+      line.appendChild(el("span", "td", fmt(m.dur)));
+      c.appendChild(line);
+      c.appendChild(el("div", "to", m.out));
+      c.addEventListener("click", () => ctx.onSelect(key));
+      box.appendChild(c);
+      if(on) box.appendChild(detail([
+        ["Span ID", spanId(m.name + i + agent.name), "mono"],
+        ["Type", "Tool call"],
+        ["Tool", m.name],
+        ["Arguments", m.arg, "mono"],
+        ["Duration", fmt(m.dur)],
+        ["Status", m.err ? "error" : "ok", m.err ? "danger" : "ok"],
+        ["Output", m.out, m.err ? "danger" : null]
+      ]));
+      return;
+    }
+
+    if(m.r === "sub"){
+      box.appendChild(subAgentCard(BY_NAME[m.ref], ctx));
+      return;
+    }
+
+    const turn = el("div", "turn " + m.r);
+    const bub = el("div", "bubble" + (m.r === "assistant" && on ? " sel" : ""), m.text);
+    turn.appendChild(bub);
+    if(m.r === "assistant"){
+      bub.addEventListener("click", () => ctx.onSelect(key));
+      const meta = el("div", "tmeta");
+      if(m.cost){ meta.appendChild(el("span", null, m.cost)); meta.appendChild(el("span", null, "•")); }
+      if(m.dur) meta.appendChild(el("span", null, fmt(m.dur)));
+      turn.appendChild(meta);
+    }
+    box.appendChild(turn);
+    if(m.r === "assistant" && on) box.appendChild(detail([
+      ["Span ID", spanId("msg" + i + agent.name), "mono"],
+      ["Type", "LLM call"],
+      ["Model", agent.model],
+      ["Duration", m.dur ? fmt(m.dur) : null],
+      ["Cost", m.cost],
+      ["Status", "ok", "ok"]
+    ]));
+  });
+  return box;
+}
+
+/* sub-agent card: chevron expands Task/Return, button pushes the panel */
+function subAgentCard(a, ctx){
+  const bad = hasErrDeep(a);
+  const open = ctx.open.has(a.name);
+  const card = el("div", "subcard" + (bad ? " bad" : "") + (ctx.active === a.name ? " active" : ""));
+  const head = el("div", "sc-head");
+  const toggle = el("button", "sc-toggle");
+  toggle.type = "button";
+  toggle.setAttribute("aria-expanded", String(open));
+  const caret = el("span", "sc-caret" + (open ? " open" : ""), I.chevronRight);
+  toggle.appendChild(caret);
+  if(bad) toggle.appendChild(warnIcon());
+  toggle.appendChild(el("span", "sc-name", a.name));
+  toggle.appendChild(el("span", "sc-model", a.model));
+  toggle.addEventListener("click", () => ctx.onToggle(a.name));
+  head.appendChild(toggle);
+  head.appendChild(el("span", "sc-steps", stepCount(a) + (stepCount(a) === 1 ? " step" : " steps")));
+  const btn = el("button", "btn", "Transcript");
+  btn.type = "button";
+  btn.setAttribute("aria-label", "Open transcript for " + a.name);
+  btn.addEventListener("click", () => ctx.onOpen(a));
+  head.appendChild(btn);
+  card.appendChild(head);
+
+  const content = el("div", "sc-content" + (open ? " open" : ""));
+  const sec = (label, value, danger) => {
+    const w = el("div", "sc-sec");
+    w.appendChild(el("b", null, label));
+    w.appendChild(el("span", danger ? "danger" : null, value));
+    return w;
+  };
+  content.appendChild(sec("Task:", a.task));
+  content.appendChild(bad && a.err ? sec("Return:", a.err, true) : sec("Return:", a.ret));
+  card.appendChild(content);
+  return card;
+}
+
+/* ================= panel shell ================= */
+let view = "transcript";
+
+function panel(agent, opts = {}){
+  const p = el("div", "pnl");
+  // The root panel's identity already lives in the trace summary at the top of
+  // the page; only pushed sub-agent panels carry their own header.
+  const h = opts.root ? null : el("div", "phead");
+  if(h){
+    if(opts.back) h.appendChild(opts.back);
+    const ttl = el("div", "ptitle");
+    if(hasErrDeep(agent)) ttl.appendChild(warnIcon());
+    ttl.appendChild(el("span", "nm", agent.name));
+    ttl.appendChild(el("span", "md", agent.model));
+    h.appendChild(ttl);
+    const meta = el("div", "pmeta");
+    meta.appendChild(el("span", "st", stepCount(agent) + " steps · " + fmt(agent.dur) + " · " + agent.tokens + " tokens"));
+    if(opts.close) meta.appendChild(opts.close);
+    h.appendChild(meta);
+    p.appendChild(h);
+  }
+
+  const body = el("div", "pbody");
+  // Which sub-agent card reads as selected — set by the column stack as you
+  // drill in, so every visible panel shows the path you took through it.
+  p._active = opts.activeName || null;
+  p._sel = null;              // span or message whose details are open
+  p._open = new Set();        // sub-agent cards expanded in place
+
+  const ctx = {
+    onSelect: key => { p._sel = p._sel === key ? null : key; p._render(); },
+    onToggle: name => { p._open.has(name) ? p._open.delete(name) : p._open.add(name); p._render(); },
+    // Drilling into a sub-agent supersedes whatever detail was open here.
+    onOpen: a => { p._sel = null; p._render(); if(opts.onOpen) opts.onOpen(a); }
+  };
+  p._render = () => {
+    ctx.sel = p._sel; ctx.open = p._open; ctx.active = p._active;
+    body.innerHTML = "";
+    body.appendChild(view === "trace"
+      ? traceView(agent, ctx) : transcriptView(agent, ctx));
+  };
+  p._render();
+  p.appendChild(body);
+  return p;
+}
+function iconBtn(html, label, fn, cls){
+  const b = el("button", "btn " + (cls || "ghost"), html);
+  b.type = "button"; b.setAttribute("aria-label", label);
+  b.addEventListener("click", fn);
+  return b;
+}
+function backBtn(name, fn){
+  const b = el("button", "btn ghost", I.chevronLeft + "<span>" + name + "</span>");
+  b.type = "button"; b.setAttribute("aria-label", "Back to " + name);
+  b.addEventListener("click", fn);
+  return b;
+}
+
+/* ================= A · side-scrolling columns ================= */
+const hostA = document.getElementById("host-slide");
+const COL = 420;
+let stackA = [T];
+
+// Nothing collapses and nothing is covered: the first drill-down narrows every
+// column to a fixed width and the stage starts scrolling sideways instead.
+function layoutA(){
+  const cols = [...hostA.children].filter(c => !c._dead);
+  const solo = cols.length === 1;
+  cols.forEach((c, i) => {
+    c.style.width = solo ? "100%" : COL + "px";
+    // Each column highlights the card whose panel sits to its right.
+    const next = stackA[i + 1];
+    const name = next ? next.name : null;
+    if(c._active !== name){ c._active = name; c._render(); }
+  });
+}
+function scrollEndA(){
+  setTimeout(() => hostA.scrollTo && hostA.scrollTo({left: hostA.scrollWidth, behavior: "smooth"}), 60);
+}
+function pushA(agent){
+  if(stackA[stackA.length - 1] === agent) return;
+  // Capture this column's own index: closing it drops this column and every
+  // column to its right, not just whatever happens to be last at click time.
+  const depth = stackA.length;
+  stackA.push(agent);
+  const p = panel(agent, {onOpen: pushA, close: iconBtn(I.close, "Close panel", () => popToA(depth - 1))});
+  p.classList.add("col");
+  p.style.width = "0px";
+  p.style.opacity = "0";
+  hostA.appendChild(p);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    p.style.opacity = "1";
+    layoutA();
+    scrollEndA();
+  }));
+}
+function popToA(depth){
+  const cols = [...hostA.children].filter(c => !c._dead);
+  for(let i = cols.length - 1; i > depth; i--){
+    const out = cols[i];
+    out._dead = true;
+    stackA.pop();
+    out.style.width = "0px";
+    out.style.opacity = "0";
+    out.style.pointerEvents = "none";
+    setTimeout(() => out.remove(), 280);
+  }
+  layoutA();
+}
+function popA(){ popToA(Math.max(0, stackA.length - 2)); }
+function resetA(){
+  hostA.innerHTML = ""; stackA = [T];
+  const p = panel(T, {onOpen: pushA, root: true});
+  p.classList.add("col");
+  hostA.appendChild(p);
+  layoutA();
+}
+
+/* ================= B · stacking spines (SPINE_WIDTH 40) ================= */
+const hostB = document.getElementById("host-spine");
+const railB = document.getElementById("rail-spine");
+const SPINE = 40;
+let stackB = [T];
+
+function spineFor(agent, depth){
+  const b = el("button", "spine");
+  b.type = "button";
+  b.title = agent.name;
+  b.setAttribute("aria-label", "Back to " + agent.name);
+  if(hasErrDeep(agent)) b.appendChild(warnIcon());
+  b.appendChild(el("span", "sn", agent.name));
+  b.appendChild(el("span", "sd", fmt(agent.dur)));
+  b.addEventListener("click", () => popToB(depth));
+  return b;
+}
+function pushB(agent){
+  if(stackB[stackB.length - 1] === agent) return;
+  const depth = stackB.length - 1;
+  const sp = spineFor(stackB[depth], depth);
+  sp.style.width = "0px";
+  railB.appendChild(sp);
+  requestAnimationFrame(() => { sp.style.width = SPINE + "px"; });
+
+  stackB.push(agent);
+  const p = panel(agent, {onOpen: pushB, close: iconBtn(I.close, "Close panel", () => popToB(depth))});
+  p.style.left = ((depth + 1) * SPINE) + "px";
+  p.style.transform = "translateX(100%)";
+  p.classList.add("deep");
+  hostB.appendChild(p);
+  requestAnimationFrame(() => requestAnimationFrame(() => { p.style.transform = "translateX(0)"; }));
+}
+function popToB(depth){
+  while(stackB.length - 1 > depth){
+    const out = hostB.lastElementChild;
+    const sp = railB.lastElementChild;
+    stackB.pop();
+    out.style.transform = "translateX(100%)";
+    out.style.opacity = "0";
+    out.style.pointerEvents = "none";
+    setTimeout(() => out.remove(), 280);
+    if(sp){ sp.style.width = "0px"; setTimeout(() => sp.remove(), 280); }
+  }
+}
+function resetB(){
+  hostB.innerHTML = ""; railB.innerHTML = ""; stackB = [T];
+  const p = panel(T, {onOpen: pushB, root: true});
+  p.style.left = "0px";
+  hostB.appendChild(p);
+}
+
+/* ================= C · breadcrumb ================= */
+const hostC = document.getElementById("host-crumb");
+const barC = document.getElementById("bar-crumb");
+let stackC = [T];
+
+function renderCrumbs(){
+  barC.innerHTML = "";
+  stackC.forEach((a, i) => {
+    if(i) barC.appendChild(el("span", "csep", I.chevronRight));
+    const now = i === stackC.length - 1;
+    const b = el("button", "crumb" + (now ? " now" : ""));
+    b.type = "button";
+    if(hasErrDeep(a)) b.appendChild(warnIcon());
+    b.appendChild(el("span", null, a.name));
+    b.appendChild(el("span", "cd", fmt(a.dur)));
+    if(!now) b.addEventListener("click", () => goC(i));
+    barC.appendChild(b);
+  });
+  if(barC.scrollTo) barC.scrollTo({left: barC.scrollWidth, behavior: "smooth"});
+}
+function swapC(dir){
+  const old = hostC.querySelector(".pnl");
+  const cur = stackC[stackC.length - 1];
+  const p = panel(cur, {onOpen: pushC, root: cur === T});
+  p.style.left = "0px";
+  p.style.transform = "translateX(" + (dir > 0 ? 16 : -16) + "px)";
+  p.style.opacity = "0";
+  hostC.appendChild(p);
+  requestAnimationFrame(() => requestAnimationFrame(() => { p.style.transform = "translateX(0)"; p.style.opacity = "1"; }));
+  if(old){
+    old.style.transform = "translateX(" + (dir > 0 ? -16 : 16) + "px)";
+    old.style.opacity = "0";
+    old.style.pointerEvents = "none";
+    setTimeout(() => old.remove(), 280);
+  }
+  renderCrumbs();
+}
+function pushC(agent){
+  if(stackC[stackC.length - 1] === agent) return;
+  stackC.push(agent); swapC(1);
+}
+function goC(i){ if(i === stackC.length - 1) return; stackC = stackC.slice(0, i + 1); swapC(-1); }
+function resetC(){ hostC.innerHTML = ""; stackC = [T]; swapC(1); }
+
+/* ================= patterns + chrome ================= */
+const V = [
+  {
+    id:"slide", tag:"Pattern A", name:"Side-scrolling columns",
+    blurb:"Every level stays open as its own column. The stage scrolls sideways.",
+    hint:"Click any span for details · a sub-agent opens a new column · Esc closes the last",
+    reset:resetA
+  },
+  {
+    id:"spine", tag:"Pattern B", name:"Stacking spines",
+    blurb:"Every level you open leaves a 40px spine — name, duration, error state.",
+    hint:"Click any span for details · click a spine to jump back · Esc goes back one",
+    reset:resetB
+  },
+  {
+    id:"crumb", tag:"Pattern C", name:"Breadcrumb trail",
+    blurb:"One full-width panel. The whole path lives in a trail across the top.",
+    hint:"Click any span for details · click a crumb to jump to that level · Esc goes back",
+    reset:resetC
+  }
+];
+
+const sw = document.getElementById("switcher");
+let active = "slide";
+
+function setVariant(id){
+  active = id;
+  const v = V.find(x => x.id === id);
+  [...sw.children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.id === id)));
+  document.querySelectorAll(".variant").forEach(n => n.classList.toggle("on", n.dataset.v === id));
+  document.getElementById("stage-hint").textContent = v.hint;
+  v.reset();
+}
+V.forEach(v => {
+  const b = el("button", "sw");
+  b.type = "button"; b.dataset.id = v.id;
+  b.innerHTML = "<s>" + v.tag + "</s><b>" + v.name + "</b><p>" + v.blurb + "</p>";
+  b.addEventListener("click", () => setVariant(v.id));
+  sw.appendChild(b);
+});
+
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  view = t.dataset.view;
+  document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", String(x.dataset.view === view)));
+  document.querySelectorAll(".pnl").forEach(p => p._render && p._render());
+}));
+
+document.addEventListener("keydown", e => {
+  if(e.key !== "Escape") return;
+  if(active === "slide") popA();
+  if(active === "spine") popToB(Math.max(0, stackB.length - 2));
+  if(active === "crumb") goC(Math.max(0, stackC.length - 2));
+});
+
+let spans = 0, agents = 0, depth = 0, errs = 0, llm = 0, cost = 0;
+walk(T, (s, d) => {
+  spans++;
+  if(isAgent(s)) agents++;
+  if(s.kind === "llm") llm++;
+  depth = Math.max(depth, d);
+  if(s.err) errs++;
+});
+Object.values(BY_NAME).forEach(a => (a.msgs || []).forEach(m => {
+  if(m.cost) cost += parseFloat(m.cost.slice(1));
+}));
+
+const statBox = document.getElementById("stats");
+[
+  ["Duration", fmt(T.dur), false],
+  ["Agents", agents, false],
+  ["LLM Calls", llm, false],
+  ["Errors", errs, errs > 0],
+  ["Tokens", T.tokens.toUpperCase(), false],
+  ["Cost", "$" + cost.toFixed(2), false]
+].forEach(([label, value, bad]) => {
+  const c = el("div", "stat" + (bad ? " bad" : ""));
+  c.appendChild(el("span", null, label));
+  c.appendChild(el("b", null, String(value)));
+  statBox.appendChild(c);
+});
+
+document.getElementById("users").innerHTML = I.user + "<span>214</span>";
+document.getElementById("copy-id").innerHTML = I.copy;
+document.getElementById("copy-transcript").innerHTML = I.copy + "<span>Copy Transcript</span>";
+
+setVariant("slide");
+</script>
