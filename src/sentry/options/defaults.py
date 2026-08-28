@@ -2625,14 +2625,11 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Operator break glass for inbound floods: listed targets are DROPPED before any
-# WebhookPayload row is written, so a flood stops costing control primary writes
-# without a deploy. This is data loss by design — senders get a 429 and whatever
-# they do not redeliver is gone. An entry is either a provider name ("jira"),
-# which sheds everything for that provider, or "provider:integration_id"
-# ("jira:12345"), which sheds a single integration.
+# Break glass for inbound webhook floods. Matching webhooks are dropped with a
+# 429 before any WebhookPayload row is written, and whatever the sender does not
+# redeliver is lost. Conditions are documented in sentry.killswitches.
 register(
-    "hybridcloud.webhookpayload.shed_inbound",
+    "hybridcloud.webhookpayload.shed-inbound",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

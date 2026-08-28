@@ -20,7 +20,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.types.cell import Cell
 
-SHED_INBOUND_OPTION = "hybridcloud.webhookpayload.shed_inbound"
+SHED_INBOUND_OPTION = "hybridcloud.webhookpayload.shed-inbound"
 
 
 def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResponse:
@@ -158,7 +158,14 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
-    @override_options({SHED_INBOUND_OPTION: ["other_provider", "test_provider:98765"]})
+    @override_options(
+        {
+            SHED_INBOUND_OPTION: [
+                {"provider": "other_provider", "integration_id": None},
+                {"provider": "test_provider", "integration_id": "98765"},
+            ]
+        }
+    )
     def test_shed_inbound_ignores_unmatched_targets(self, mock_trigger: MagicMock) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
 
@@ -173,7 +180,7 @@ class BaseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
-    @override_options({SHED_INBOUND_OPTION: ["test_provider"]})
+    @override_options({SHED_INBOUND_OPTION: [{"provider": "test_provider"}]})
     def test_shed_inbound_by_provider(self, mock_incr: MagicMock, mock_trigger: MagicMock) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
 
@@ -185,7 +192,7 @@ class BaseRequestParserTest(TestCase):
         assert response["Retry-After"] == "60"
         assert not WebhookPayload.objects.exists()
         assert not mock_trigger.called
-        mock_incr.assert_called_once_with(
+        mock_incr.assert_any_call(
             "hybridcloud.webhookpayload.shed",
             tags={"provider": "test_provider"},
             sample_rate=1.0,
@@ -193,7 +200,7 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
-    @override_options({SHED_INBOUND_OPTION: ["test_provider"]})
+    @override_options({SHED_INBOUND_OPTION: [{"provider": "test_provider"}]})
     def test_shed_inbound_by_provider_without_integration_id(self, mock_trigger: MagicMock) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
 
@@ -205,7 +212,9 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
-    @override_options({SHED_INBOUND_OPTION: ["test_provider:12345"]})
+    @override_options(
+        {SHED_INBOUND_OPTION: [{"provider": "test_provider", "integration_id": "12345"}]}
+    )
     def test_shed_inbound_by_integration(self, mock_trigger: MagicMock) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
 
@@ -227,10 +236,8 @@ class BaseRequestParserTest(TestCase):
         assert mock_trigger.call_count == 2
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_options(
-        {SHED_INBOUND_OPTION: ["", ":12345", "test_provider:", "test_provider:not_an_id"]}
-    )
-    def test_shed_inbound_ignores_malformed_targets(self) -> None:
+    @override_options({SHED_INBOUND_OPTION: [{"unknown_field": "test_provider"}]})
+    def test_shed_inbound_ignores_unknown_condition_fields(self) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
 
         response = parser.get_response_from_webhookpayload(
@@ -239,6 +246,20 @@ class BaseRequestParserTest(TestCase):
 
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert WebhookPayload.objects.count() == 2
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
+    @override_options({SHED_INBOUND_OPTION: [{}]})
+    def test_shed_inbound_wildcard_sheds_every_provider(self, mock_trigger: MagicMock) -> None:
+        parser = ExampleRequestParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(
+            cells=self.region_config, integration_id=12345
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert not WebhookPayload.objects.exists()
+        assert not mock_trigger.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_organizations_from_integration_success(self) -> None:

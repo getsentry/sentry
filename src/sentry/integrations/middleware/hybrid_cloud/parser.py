@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from abc import ABC
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -11,7 +12,6 @@ from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
-from sentry import options
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
@@ -27,6 +27,7 @@ from sentry.integrations.middleware.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.killswitches import killswitch_matches_context
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
@@ -38,7 +39,9 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
 
+SHED_INBOUND_KILLSWITCH = "hybridcloud.webhookpayload.shed-inbound"
 SHED_RETRY_AFTER_SECONDS = 60
+SHED_LOG_SAMPLE_RATE = 0.1
 
 
 def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
@@ -200,18 +203,19 @@ class BaseRequestParser(ABC):
 
     def get_shed_response(self, integration_id: int | None = None) -> HttpResponse | None:
         """
-        Break glass valve for inbound floods. A shed webhook costs the control primary
-        nothing: no payload rows, no push trigger. Shedding drops the webhook — the 429
-        asks the sender to back off, but whatever it does not redeliver is lost.
-        """
-        shed_targets = options.get("hybridcloud.webhookpayload.shed_inbound")
-        if not shed_targets:
-            return None
+        Break glass valve for inbound floods. Drops the webhook with a 429 before the
+        WebhookPayload INSERT and the push trigger, the writes that make a flood
+        expensive. Callers reach here after their integration and cell lookups, so
+        those reads still happen. Returns None to handle the request normally.
 
-        # Membership is the whole parse: an entry that matches neither form is inert,
-        # so a malformed target cannot shed traffic it was not meant to name.
-        if self.provider not in shed_targets and (
-            integration_id is None or f"{self.provider}:{integration_id}" not in shed_targets
+        Targets come from the hybridcloud.webhookpayload.shed-inbound killswitch, whose
+        conditions are documented in sentry.killswitches. A shed webhook is lost unless
+        the sender redelivers it.
+        """
+        if not killswitch_matches_context(
+            SHED_INBOUND_KILLSWITCH,
+            {"provider": self.provider, "integration_id": integration_id},
+            emit_metrics=False,
         ):
             return None
 
@@ -220,10 +224,11 @@ class BaseRequestParser(ABC):
             tags={"provider": self.provider},
             sample_rate=1.0,
         )
-        logger.info(
-            "hybridcloud.webhookpayload.shed",
-            extra={"provider": self.provider, "integration_id": integration_id},
-        )
+        if random.random() < SHED_LOG_SAMPLE_RATE:
+            logger.info(
+                "hybridcloud.webhookpayload.shed",
+                extra={"provider": self.provider, "integration_id": integration_id},
+            )
 
         response = HttpResponse(status=status.HTTP_429_TOO_MANY_REQUESTS)
         response["Retry-After"] = str(SHED_RETRY_AFTER_SECONDS)

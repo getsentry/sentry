@@ -27,6 +27,7 @@ cell = Cell("us", 1, "https://us.testserver")
 cell_config = (cell,)
 
 DROP_NO_OWN_REPO_PR_OPTION = "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr"
+SHED_INBOUND_OPTION = "hybridcloud.webhookpayload.shed-inbound"
 
 
 @control_silo_test
@@ -751,6 +752,34 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
             mailbox_name=f"github:{integration.id}:23:check_suite",
             cell_names=[cell.name],
         )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @patch("sentry.middleware.integrations.parsers.github.metrics")
+    @override_options({SHED_INBOUND_OPTION: [{"provider": "github"}]})
+    def test_shed_inbound_is_not_counted_as_forwarded(self, mock_metrics: Mock) -> None:
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert response["Retry-After"] == "60"
+        assert_no_webhook_payloads()
+        forwarded_calls = [
+            call
+            for call in mock_metrics.incr.call_args_list
+            if call.args and call.args[0] == "github.webhook.forwarded_event"
+        ]
+        assert forwarded_calls == []
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)

@@ -250,6 +250,24 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to halt merge for.",
         },
     ),
+    "hybridcloud.webhookpayload.shed-inbound": KillswitchInfo(
+        description="""
+        Drop inbound integration webhooks before a WebhookPayload row is written.
+
+        Break glass for an inbound flood: matching senders get a 429 with a
+        Retry-After instead of having their webhook queued, so the flood stops
+        costing the control primary payload INSERTs and push triggers.
+
+        Leaving `integration_id` unset sheds a whole provider; leaving both fields
+        unset is a wildcard that sheds *every* inbound webhook.
+
+        Shed webhooks are gone unless the sender redelivers them.
+        """,
+        fields={
+            "provider": "An integration provider slug, e.g. github or jira.",
+            "integration_id": "An integration ID, to shed a single integration.",
+        },
+    ),
 }
 
 
