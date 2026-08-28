@@ -12,7 +12,7 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
-from sentry.db.postgres.transactions import enforce_constraints, in_test_hide_transaction_boundary
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.types.cell import CellContextError, get_local_cell
 from sentry.utils import redis
 
@@ -164,12 +164,11 @@ def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tu
         # We are decreasing the value by 1 each time since the incr operation in redis
         # initializes the counter at 1. For our cell sequences, we want the value to
         # be from 0-15 and not 1-16
-        with in_test_hide_transaction_boundary():
-            sequence_value = cluster.incr(timestamp_redis_key)
-            sequence_value -= 1
+        sequence_value = cluster.incr(timestamp_redis_key)
+        sequence_value -= 1
 
-            if sequence_value == 0:
-                cluster.expire(timestamp_redis_key, int(_TTL.total_seconds()))
+        if sequence_value == 0:
+            cluster.expire(timestamp_redis_key, int(_TTL.total_seconds()))
 
         if sequence_value < MAX_AVAILABLE_CELL_SEQUENCES:
             return timestamp, sequence_value

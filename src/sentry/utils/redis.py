@@ -58,6 +58,7 @@ _REDIS_TRANSACTION_ALLOWLIST = frozenset(
         "sentry.tasks.assemble.delete_assemble_status",
         "sentry.uptime.config_producer._send_to_redis",
         "sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",
+        "sentry.utils.snowflake.get_sequence_value_from_redis",
         "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
     }
 )
