@@ -503,6 +503,26 @@ class _ClientConfig:
         }
 
 
+def get_user_theme_class(request: HttpRequest | None = None) -> str:
+    """
+    Body class for UI theme, matching the React shell (`theme-light|dark|system`).
+
+    Used by Django HTML layouts (including auth templates) so first paint and
+    non-SPA pages follow the same preference React uses: authenticated users'
+    `theme` option, otherwise `system` (OS prefers-color-scheme).
+    """
+    theme = "system"
+    if request is not None and getattr(request, "user", None) is not None:
+        user = request.user
+        if getattr(user, "is_authenticated", False):
+            from sentry.users.models.user_option import UserOption
+
+            value = UserOption.objects.get_value(user=user, key="theme", default="system")
+            if value in ("light", "dark", "system"):
+                theme = value
+    return f"theme-{theme}"
+
+
 def get_client_config(
     request=None, org_context: RpcUserOrganizationContext | None = None
 ) -> Mapping[str, Any]:

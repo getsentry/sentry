@@ -34,7 +34,22 @@ body {
 
 body.narrow {
   padding: 0;
+  // Default light chrome for auth/narrow pages. Prefer theme-* when present so
+  // Django auth matches React (user option / system prefers-color-scheme).
   background: #fff;
+
+  &.theme-dark {
+    // theme.tokens.background.primary
+    background: #2f2937;
+    color: #e9e5eb;
+  }
+
+  &.theme-system {
+    @media (prefers-color-scheme: dark) {
+      background: #2f2937;
+      color: #e9e5eb;
+    }
+  }
 
   &.body-sidebar {
     padding-left: @sidebar-expanded-width;
@@ -321,6 +336,19 @@ body.auth {
   bottom: 0;
   z-index: -1;
   opacity: 0.4;
+}
+
+// Match React global.tsx dark treatment so Django auth pattern isn't washed out.
+body.theme-dark .pattern-bg {
+  opacity: 1;
+  filter: invert(1) brightness(0.6);
+}
+
+body.theme-system .pattern-bg {
+  @media (prefers-color-scheme: dark) {
+    opacity: 1;
+    filter: invert(1) brightness(0.6);
+  }
 }
 
 /**

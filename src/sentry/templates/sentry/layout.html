@@ -5,6 +5,7 @@
 {% load sentry_helpers %}
 {% load sentry_status %}
 {% get_sentry_version %}
+{% load sentry_react %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,7 +78,7 @@
 </head>
 
 
-<body class="{% block wrapperclass %}{% endblock %}">
+<body class="{% user_theme_class %} {% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
     {% if request.superuser.is_active %}

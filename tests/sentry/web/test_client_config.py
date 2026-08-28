@@ -37,7 +37,8 @@ from sentry.testutils.silo import (
     no_silo_test,
 )
 from sentry.types import cell
-from sentry.web.client_config import get_client_config
+from sentry.users.models.user_option import UserOption
+from sentry.web.client_config import get_client_config, get_user_theme_class
 
 
 @request_factory
@@ -95,6 +96,30 @@ multiregion_client_config_test = control_silo_test(
 def test_client_config_default() -> None:
     cfg = get_client_config()
     assert cfg["sentryMode"] == "SELF_HOSTED"
+
+
+@control_silo_test
+@django_db_all
+def test_get_user_theme_class_anonymous_defaults_to_system() -> None:
+    assert get_user_theme_class(None) == "theme-system"
+    request, _user = make_request()
+    assert get_user_theme_class(request) == "theme-system"
+
+
+@control_silo_test
+@django_db_all
+def test_get_user_theme_class_respects_user_option() -> None:
+    request, user = make_user_request()
+    assert get_user_theme_class(request) == "theme-system"
+
+    UserOption.objects.set_value(user=user, key="theme", value="dark")
+    assert get_user_theme_class(request) == "theme-dark"
+
+    UserOption.objects.set_value(user=user, key="theme", value="light")
+    assert get_user_theme_class(request) == "theme-light"
+
+    UserOption.objects.set_value(user=user, key="theme", value="not-a-theme")
+    assert get_user_theme_class(request) == "theme-system"
 
 
 @multiregion_client_config_test
