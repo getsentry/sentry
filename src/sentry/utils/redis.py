@@ -45,6 +45,7 @@ _REDIS_TRANSACTION_ALLOWLIST = frozenset(
         "getsentry.billing.usagebuffer.redis.RedisUsageBuffer.fetch_pop",
         "getsentry.models.billingseatassignment.BillingSeatAssignment.schedule_redis_key_sync.<locals>._sync_redis_key",
         "sentry.dynamic_sampling.rules.helpers.latest_releases.ProjectBoostedReleases.has_boosted_releases",
+        "sentry.event_manager._get_severity_metadata_for_group",
         "sentry.models.counter.increment_project_counter_in_cache",
         "sentry.models.counter.refill_cached_short_ids",
         "sentry.notifications.notifications.activity.base.GroupActivityNotification.__init__",
