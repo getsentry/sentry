@@ -26,6 +26,7 @@ import {
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {eapAttributeDataType} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {
@@ -255,7 +256,7 @@ function getPrimaryFieldOptions(
           // We have numeric and string tags which have the same
           // display name, but one is used for aggregates and the other
           // is used for grouping.
-          meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
+          meta: {name: tag.key, dataType: eapAttributeDataType(tag.kind)},
         },
       };
       return acc;
@@ -284,7 +285,7 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
   const expectedDataTypes =
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
-      ? new Set(['number', 'string'])
+      ? new Set(['number', 'string', 'boolean'])
       : new Set(['number']);
 
   if ('dataType' in option.value.meta) {
