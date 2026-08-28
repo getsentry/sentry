@@ -4,7 +4,13 @@ import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   OnboardingContextProvider,
@@ -135,6 +141,7 @@ describe('ScmMessaging', () => {
   });
 
   afterEach(() => {
+    cleanup();
     MockApiClient.clearMockResponses();
     // Context-backed tests persist onboarding state to session storage, and
     // useSessionStorage prefers a stored value over initialValue.
@@ -216,6 +223,100 @@ describe('ScmMessaging', () => {
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
     );
     await waitFor(() => expect(screen.queryByText(warning)).not.toBeInTheDocument());
+  });
+
+  it('Continue stays enabled when revalidation queries fail on a later refetch', async () => {
+    const queryClient = makeTestQueryClient();
+    mockIntegration();
+    mockChannelValidate(true);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ScmMessaging
+          messagingSetup={selectedMessagingSetup}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+        />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+
+    // Both validation queries now return 500 on the next background refetch.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      statusCode: 500,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channel-validate/',
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({channel: '#alerts'})],
+    });
+    await act(async () => {
+      await queryClient.invalidateQueries();
+    });
+
+    // isRefetchError keeps both queries settled; cached {valid: true} stays usable.
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+    // isLoadingError (not isError) gates the danger alert, so it must not appear.
+    expect(
+      screen.queryByText(
+        "We couldn't check the saved destination. Reload the page to try again."
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('Continue stays enabled while a later revalidation refetch is in flight', async () => {
+    const queryClient = makeTestQueryClient();
+    mockIntegration();
+    mockChannelValidate(true);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ScmMessaging
+          messagingSetup={selectedMessagingSetup}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+        />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+
+    // Replace mocks with gated versions so the refetches stay in flight.
+    let releaseGate!: () => void;
+    const gate = new Promise<void>(r => {
+      releaseGate = r;
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15', status: 'active'}),
+      asyncDelay: gate,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channel-validate/',
+      body: {valid: true},
+      asyncDelay: gate,
+      match: [MockApiClient.matchQuery({channel: '#alerts'})],
+    });
+
+    // Kick off refetches without awaiting — both queries are now in flight.
+    act(() => {
+      void queryClient.invalidateQueries();
+    });
+
+    // isValid reads from cached data, not isFetching, so Continue must stay enabled.
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+
+    // Release and confirm Continue stays enabled once the refetches settle.
+    act(() => releaseGate());
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
   });
 
   it('marks the channel stale without resetting session state when channel-validate returns false', async () => {

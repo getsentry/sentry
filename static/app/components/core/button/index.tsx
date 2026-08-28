@@ -1,4 +1,4 @@
-export {Button, type ButtonProps, type ButtonSize} from './button';
+export {Button, type ButtonProps} from './button';
 export {ButtonBar, type ButtonBarProps} from './buttonBar';
 export {LinkButton, type LinkButtonProps} from './linkButton';
 

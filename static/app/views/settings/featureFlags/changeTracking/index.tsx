@@ -223,7 +223,7 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
 const ResponsiveSimpleTable = styled(SimpleTable)`
   grid-template-columns: auto auto auto auto;
 
-  @container (max-width: ${p => p.theme.container.xl}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 
     /* Hide "Created" and "Created by"; the flat nth-child(4n + x) form this

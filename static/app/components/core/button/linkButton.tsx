@@ -3,7 +3,7 @@ import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,7 +15,7 @@ import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
-import type {ButtonSize, DO_NOT_USE_LinkButtonProps as LinkButtonProps} from './types';
+import type {DO_NOT_USE_LinkButtonProps as LinkButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
@@ -27,7 +27,7 @@ export function LinkButton({
   ...props
 }: LinkButtonProps) {
   const contextSize = useSizeContext();
-  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
+  const size = explicitSize ?? contextSize ?? 'md';
   const {hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,
@@ -157,14 +157,14 @@ const StyledLinkButton = styled(
       prop === 'variant' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
-)<Omit<LinkButtonProps, 'size'> & {size: ButtonSize}>`
+)<Omit<LinkButtonProps, 'size'> & {size: NonNullable<LinkButtonProps['size']>}>`
   ${p => getLinkButtonStyles(p, p.theme)}
 `;
 
 const getLinkButtonStyles = (
   p: Omit<LinkButtonProps, 'size'> & {
     shapeVariant: 'rectangular' | 'square';
-    size: ButtonSize;
+    size: NonNullable<LinkButtonProps['size']>;
   },
   theme: Theme
 ) => {
