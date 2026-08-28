@@ -37,11 +37,11 @@ type RetentionOption = {label: string; value: number};
 function getRetentionOptions(currentValue: number | null): RetentionOption[] {
   const options: RetentionOption[] = RETENTION_DAY_CHOICES.map(days => ({
     value: days,
-    label: `${days} days`,
+    label: days === currentValue ? `${days} days (current)` : `${days} days`,
   }));
 
   if (currentValue !== null && !options.some(option => option.value === currentValue)) {
-    options.unshift({value: currentValue, label: `${currentValue} (current)`});
+    options.unshift({value: currentValue, label: `${currentValue} days (current)`});
   }
 
   return options;
