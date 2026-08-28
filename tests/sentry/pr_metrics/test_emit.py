@@ -359,7 +359,9 @@ class PrMetricsEmissionTest(TestCase):
                     select_verdict(self.pull_request, self.organization)
                     == VerdictDeferral.INDETERMINATE
                 )
-        mock_metrics.incr.assert_called_once_with("pr_metrics.select_verdict.activity_disabled")
+        mock_metrics.incr.assert_called_once_with(
+            "pr_metrics.select_verdict.activity_disabled", sample_rate=1.0
+        )
 
     def test_ci_failing_at_close_no_check_activity_is_false(self) -> None:
         assert _ci_failing_at_close(self.pull_request, doc=None) is False
