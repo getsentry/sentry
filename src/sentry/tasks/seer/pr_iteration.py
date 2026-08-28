@@ -972,8 +972,11 @@ def pause_pr_iteration_from_comment(
     if paused:
         metrics.incr("autofix.pr_iteration.stop_command", tags={"outcome": "success"})
     else:
-        # The run predates SeerRun mirroring, so the stop marker has no row to land on.
-        logger.warning(
+        # The run has no SeerRun row for the stop marker to land on, so it
+        # predates mirroring or was deleted mid-command. Logged at error to
+        # raise it in Sentry: the comment below is the user's way out, not a
+        # state we intend to keep serving.
+        logger.error(
             "autofix.pr_iteration.stop_command.pause_failed",
             extra={"organization_id": organization_id, "run_id": run_id},
         )
