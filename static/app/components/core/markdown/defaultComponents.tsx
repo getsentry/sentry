@@ -256,6 +256,7 @@ export function DefaultTag({
   data: unknown;
   level: 'block' | 'inline';
   name: string;
+  raw: string;
 }) {
   reportUnhandledTag(name, level, attrs);
   return null;

@@ -151,15 +151,15 @@ describe('AIContentRenderer', () => {
     }
   );
 
-  it('silently drops Seer-style embed tags without reporting missing renderers', () => {
+  it('renders Seer-style embed tags as plaintext without reporting missing renderers', () => {
     const captureException = jest.spyOn(Sentry, 'captureException');
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const text = 'Before {% issue %}{"id":"PROJ-1"}{% /issue %} after';
-    render(<AIContentRenderer text={text} inline />);
+    const embed = '{% issue %}{"id":"PROJ-1"}{% /issue %}';
+    const text = `Before ${embed} after`;
+    const {container} = render(<AIContentRenderer text={text} inline />);
 
-    expect(screen.getByText(/Before/)).toBeInTheDocument();
-    expect(screen.getByText(/after/)).toBeInTheDocument();
+    expect(container).toHaveTextContent(text);
     expect(captureException).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalledWith(
       expect.stringContaining('[Markdown] no renderer for tag'),
