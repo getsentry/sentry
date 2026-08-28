@@ -451,6 +451,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
             },
         )
+        state.repo_pr_states = {"test-repo": RepoPRState(repo_name="test-repo")}
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_push_changes.assert_called_once()
         mock_consume.assert_not_called()
@@ -463,6 +464,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         """An iteration's push is attributed to the author stored on its opening block."""
         block = pr_iteration_memory_block()
         state = run_state(blocks=[block], metadata={"group_id": self.group.id})
+        state.repo_pr_states = {"test-repo": RepoPRState(repo_name="test-repo")}
         author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)

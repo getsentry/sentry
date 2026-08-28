@@ -21,13 +21,19 @@ CAP_ASSIGN_FLAG = "organizations:autofix-pr-iteration-cap-assign"
 # We should only resolve check suites when certain features are enabled depending on the
 # status of the check suite
 #
-# Green: undraft + review-request, both under one flag.
-GREEN_CHECK_SUITE_FLAGS = (REVIEW_REQUEST_FLAG,)
-
 # Failing: automated iteration, the cap assign flag isn't included:
 # it modifies the hard cap behaviour which only applies after we know the org
 # has iteration enabled
 FAILING_CHECK_SUITE_FLAGS = (ITERATION_FLAG, MANUAL_FLAG)
+
+# Green: undraft + review-request, both under one flag -- plus the iteration
+# flags, because a green suite also releases feedback parked by an earlier
+# failing suite on the same head. That parking happens behind
+# ``FAILING_CHECK_SUITE_FLAGS``, so the same orgs must survive the green gate or
+# their parked feedback sits out the full deferral instead of starting on green.
+# ``green_review_side_effects_enabled`` still holds undraft / review-request to
+# ``REVIEW_REQUEST_FLAG`` alone.
+GREEN_CHECK_SUITE_FLAGS = (REVIEW_REQUEST_FLAG, *FAILING_CHECK_SUITE_FLAGS)
 
 # The only SCM provider PR iteration supports.
 #

@@ -1505,22 +1505,36 @@ class CheckSuiteFlagGateTest(TestCase):
             gate = self._gate(GREEN_CHECK_SUITE_FLAGS)
 
         assert gate.flagged_organization_ids == [self.organization.id]
-        assert gate.organization_ids_by_flag == {REVIEW_REQUEST_FLAG: [self.organization.id]}
+        assert gate.organization_ids_by_flag[REVIEW_REQUEST_FLAG] == [self.organization.id]
+        assert gate.organization_ids_by_flag[ITERATION_FLAG] == []
+        assert gate.organization_ids_by_flag[MANUAL_FLAG] == []
 
     @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
-    def test_branches_do_not_admit_each_other(self, mock_contexts: MagicMock) -> None:
-        # The point of asking per conclusion: an organization that only iterates on
-        # CI failures has nothing to do with a green suite, and one that only
-        # review-requests has nothing to do with a failing one.
+    def test_iteration_flag_admits_a_green_suite(self, mock_contexts: MagicMock) -> None:
+        # A green suite is also what releases feedback parked by an earlier failing
+        # suite, so an org that only iterates on CI failures must survive the green
+        # gate -- otherwise its parked feedback waits out the full deferral.
         mock_contexts.return_value = self._contexts(self.organization.id)
 
-        with self.feature({ITERATION_FLAG: True, MANUAL_FLAG: True}):
-            green = self._gate(GREEN_CHECK_SUITE_FLAGS)
+        with self.feature({ITERATION_FLAG: True}):
+            gate = self._gate(GREEN_CHECK_SUITE_FLAGS)
+
+        assert gate.flagged_organization_ids == [self.organization.id]
+        assert gate.organization_ids_by_flag[ITERATION_FLAG] == [self.organization.id]
+        assert gate.organization_ids_by_flag[REVIEW_REQUEST_FLAG] == []
+
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
+    def test_review_request_alone_does_not_admit_a_failing_suite(
+        self, mock_contexts: MagicMock
+    ) -> None:
+        # The point of asking per conclusion: an organization that only
+        # review-requests has nothing to do with a failing suite. The reverse is
+        # not symmetric -- see ``test_iteration_flag_admits_a_green_suite``.
+        mock_contexts.return_value = self._contexts(self.organization.id)
+
         with self.feature({REVIEW_REQUEST_FLAG: True}):
             failing = self._gate(FAILING_CHECK_SUITE_FLAGS)
 
-        assert green.organization_ids == [self.organization.id]
-        assert green.flagged_organization_ids == []
         assert failing.organization_ids == [self.organization.id]
         assert failing.flagged_organization_ids == []
 

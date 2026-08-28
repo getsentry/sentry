@@ -209,9 +209,11 @@ def resolve_check_suite_flag_gate(
 
     ``flags`` is what the caller's branch can actually act on -- see
     ``GREEN_CHECK_SUITE_FLAGS`` and ``FAILING_CHECK_SUITE_FLAGS``. Asking per
-    branch rather than for PR iteration at large is what lets a green suite be
-    dropped for an installation that only iterates on CI failures, and vice
-    versa; only the flags asked about are evaluated.
+    branch rather than for PR iteration at large is what lets a failing suite be
+    dropped for an installation that only review-requests; only the flags asked
+    about are evaluated. The green branch is the wider of the two on purpose: it
+    both review-requests and releases feedback parked by a failing suite, so it
+    asks about the iteration flags as well.
 
     Deliberately stops at organizations. It reads the installation id straight off
     ``subscription_event["extra"]`` (see ``get_scm_stream_extra`` in
@@ -233,7 +235,7 @@ def resolve_check_suite_flag_gate(
         if installation_id is None:
             tags["outcome"] = "missing_installation_id"
         else:
-            contexts = _github_installation_organization_contexts(installation_id, store=True)
+            contexts = _github_installation_organization_contexts(str(installation_id), store=True)
             organization_ids = [oi.organization_id for oi in contexts.organization_integrations]
 
             for organization_id in organization_ids:
