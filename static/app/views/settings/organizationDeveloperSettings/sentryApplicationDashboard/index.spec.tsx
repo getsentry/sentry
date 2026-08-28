@@ -1,7 +1,13 @@
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookRequest';
 
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import SentryApplicationDashboard from './index';
 
@@ -89,16 +95,75 @@ describe('Sentry Application Dashboard', () => {
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
-    it('shows the request log', async () => {
+    it('shows the request log summary columns', async () => {
       renderDashboard();
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
-      // Make sure that all the info is displayed
-      expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
+      // Make sure that all the summary info is displayed
       expect(requestLog.getByText('400')).toBeInTheDocument();
       expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
       expect(requestLog.getByText('Test Org')).toBeInTheDocument();
+      expect(requestLog.getByText('Issue 42')).toBeInTheDocument();
+      expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
+      // The webhook URL moved into the expandable detail row
+      expect(screen.queryByText('https://example.com/webhook')).not.toBeInTheDocument();
+    });
+
+    it('expands a row to reveal the full request detail', async () => {
+      renderDashboard();
+      const row = await screen.findByTestId('request-item');
+
+      await userEvent.click(within(row).getByRole('button', {name: 'Expand row'}));
+
+      // Detail-only fields, incl. the webhook URL and a copyable Request ID
+      expect(await screen.findByText('https://example.com/webhook')).toBeInTheDocument();
+      expect(screen.getByText('abc-123')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Copy Request ID'})).toBeInTheDocument();
+
+      // Collapsing hides them again
+      await userEvent.click(within(row).getByRole('button', {name: 'Collapse row'}));
+      expect(screen.queryByText('https://example.com/webhook')).not.toBeInTheDocument();
+    });
+
+    it('does not link the subject for a published app', async () => {
+      renderDashboard();
+      const row = await screen.findByTestId('request-item');
+
+      await userEvent.click(within(row).getByRole('button', {name: 'Expand row'}));
+
+      expect(await screen.findByText('https://example.com/webhook')).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'Issue 42'})).not.toBeInTheDocument();
+    });
+
+    it('renders the request body as collapsible JSON', async () => {
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
+        body: [SentryAppWebhookRequestFixture({request_body: '{"foo":"bar"}'})],
+      });
+      renderDashboard();
+      const row = await screen.findByTestId('request-item');
+
+      await userEvent.click(within(row).getByRole('button', {name: 'Expand row'}));
+
+      expect(await screen.findByText('Request Body')).toBeInTheDocument();
+      // The structured viewer surfaces the parsed keys/values, not one raw blob
+      expect(screen.getByText('foo')).toBeInTheDocument();
+      expect(screen.getByText('bar')).toBeInTheDocument();
+    });
+
+    it('labels no-response status codes', async () => {
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
+        body: [
+          SentryAppWebhookRequestFixture({responseCode: 0}),
+          SentryAppWebhookRequestFixture({responseCode: -1}),
+        ],
+      });
+      renderDashboard();
+
+      expect(await screen.findByText('timeout')).toBeInTheDocument();
+      expect(screen.getByText('connection error')).toBeInTheDocument();
     });
 
     it('shows an empty message if there are no requests', async () => {
@@ -184,13 +249,24 @@ describe('Sentry Application Dashboard', () => {
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
-      // Make sure that all the info is displayed
-      expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
+      // Make sure that the summary info is displayed
       expect(requestLog.getByText('400')).toBeInTheDocument();
       expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
+      expect(requestLog.getByText('Issue 42')).toBeInTheDocument();
+      expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
 
       // Does not show the integration views
       expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
+    });
+
+    it('links the subject to its resource for an internal app', async () => {
+      renderDashboard();
+      const row = await screen.findByTestId('request-item');
+
+      await userEvent.click(within(row).getByRole('button', {name: 'Expand row'}));
+
+      const subjectLink = await screen.findByRole('link', {name: 'Issue 42'});
+      expect(subjectLink).toHaveAttribute('href', '/organizations/org-slug/issues/42/');
     });
 
     it('shows an empty message if there are no requests', async () => {

@@ -349,6 +349,7 @@ export type SentryAppWebhookRequest = {
   responseCode: number;
   sentryAppSlug: string;
   webhookUrl: string;
+  durationMs?: number | null;
   error_id?: string | null;
   organization?: {
     id: number;
@@ -356,13 +357,12 @@ export type SentryAppWebhookRequest = {
     slug: string;
   };
   project_id?: number | null;
+  requestId?: string | null;
   request_body?: string | null;
-  /**
-   * Values of custom headers are masked before they reach the buffer, so only
-   * the header names are meaningful for those.
-   */
   request_headers?: Record<string, string> | null;
   response_body?: string | null;
+  subjectId?: string | null;
+  subjectType?: string | null;
 };
 
 /**
