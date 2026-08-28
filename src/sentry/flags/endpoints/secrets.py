@@ -89,7 +89,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
         has_permission = request.access.has_scope("org:write") or request.access.has_scope(
             "org:admin"
         )
-        is_interactive = getattr(request.user, "is_interactive", True)
+        is_interactive = request.actor.is_interactive
 
         try:
             secret = FlagWebHookSigningSecretModel.objects.filter(

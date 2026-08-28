@@ -918,7 +918,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        legacy_user_id = request.user.id if getattr(request.user, "is_interactive", True) else None
+        legacy_user_id = request.user.id if request.actor.is_interactive else None
 
         if not data.get("actions", []):
             return Response(

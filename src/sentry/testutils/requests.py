@@ -12,9 +12,11 @@ from rest_framework.views import APIView
 
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
+from sentry.middleware.viewer_context import _viewer_identity_from_request
 from sentry.testutils.factories import Factories
 from sentry.users.models.user import User
 from sentry.utils.auth import login
+from sentry.viewer_context import NO_VIEWER_ACTOR
 
 RequestFactory = Callable[[], Optional[tuple[HttpRequest, User]]]
 
@@ -68,6 +70,12 @@ def make_user_request_from_org(org=None):
 
 
 def drf_request_from_request(request: HttpRequest) -> Request:
+    if not hasattr(request, "actor"):
+        request.actor = (
+            _viewer_identity_from_request(request)[1]
+            if hasattr(request, "user")
+            else NO_VIEWER_ACTOR
+        ) or NO_VIEWER_ACTOR
     ret = APIView().initialize_request(request)
     # reattach these if missing
     # XXX: technically `HttpRequest` shouldn't have auth but our tests do!)

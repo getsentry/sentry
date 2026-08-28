@@ -22,6 +22,7 @@ from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.viewer_context import get_current_actor
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
@@ -247,10 +248,9 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
 
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
         snooze_user_filter = (
-            Q(user_id=user.id) | Q(user_id=None)
-            if getattr(user, "is_interactive", True)
-            else Q(user_id=None)
+            Q(user_id=user.id) | Q(user_id=None) if actor.is_interactive else Q(user_id=None)
         )
         rule_snooze_lookup = {
             snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}
@@ -353,7 +353,8 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
         if "snooze" in attrs:
             snooze = attrs["snooze"]
             created_by = None
-            if getattr(user, "is_interactive", True) and user.id == snooze.get("owner_id"):
+            actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+            if actor.is_interactive and user.id == snooze.get("owner_id"):
                 created_by = "You"
             elif owner_id := snooze.get("owner_id"):
                 creator = user_service.get_user(owner_id)

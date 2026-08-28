@@ -52,7 +52,7 @@ from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.tracing import set_span_data, start_span
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, get_current_actor
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
@@ -108,10 +108,9 @@ def _get_team_memberships(
     if not user.is_authenticated:
         return []
 
-    if not getattr(user, "is_interactive", True):
-        viewer = get_viewer_context()
-        actor = viewer.actor if viewer is not None else None
-        if actor is None or actor.type != ActorType.SERVICE_ACCOUNT or actor.id != user.id:
+    actor = get_current_actor(legacy_user_id=user.id)
+    if not actor.is_interactive:
+        if actor.type != ActorType.SERVICE_ACCOUNT or actor.id != user.id:
             return []
         member_filter = {"organizationmember__service_account_id": actor.id}
     else:
@@ -392,7 +391,8 @@ class ProjectSerializer(Serializer):
 
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
-            if user.is_authenticated and getattr(user, "is_interactive", True) and item_list:
+            actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+            if user.is_authenticated and actor.is_interactive and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
                         user_id=user.id, project_id__in=project_ids

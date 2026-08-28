@@ -70,6 +70,7 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
 from sentry.utils.safe import get_path
+from sentry.viewer_context import get_current_actor
 
 logger = logging.getLogger("sentry")
 
@@ -99,7 +100,10 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
     scope.set_extra("source", "record_new_project")
     scope.set_attribute("source", "record_new_project")
 
-    if user is not None and not getattr(user, "is_interactive", True):
+    actor = get_current_actor(
+        legacy_user_id=user.id if user is not None and user.is_authenticated else None
+    )
+    if user is not None and user.is_authenticated and not actor.is_interactive:
         return
     if user_id is not None:
         default_user_id = user_id

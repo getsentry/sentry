@@ -6,6 +6,7 @@ from django.db import router
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.constants import SentryAppStatus
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -41,6 +42,21 @@ class TestUpdater(TestCase):
         self.updater.name = "A New Thing"
         self.updater.run(user=self.user)
         assert self.sentry_app.name == "A New Thing"
+
+    @patch("sentry.sentry_apps.logic.analytics.record")
+    def test_service_account_does_not_record_user_analytics(
+        self, record_analytics: MagicMock
+    ) -> None:
+        account = RpcServiceAccount(
+            id=42,
+            organization_id=self.org.id,
+            name="Deploy bot",
+            is_active=True,
+        )
+
+        self.updater.record_analytics(account, None)
+
+        record_analytics.assert_not_called()
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_update_scopes_internal_integration(self, mock_record: MagicMock) -> None:

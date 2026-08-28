@@ -201,7 +201,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         report_used_legacy_models()
-        legacy_user_id = request.user.id if getattr(request.user, "is_interactive", True) else None
+        legacy_user_id = request.user.id if request.actor.is_interactive else None
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
@@ -385,7 +385,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
          - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        legacy_user_id = request.user.id if getattr(request.user, "is_interactive", True) else None
+        legacy_user_id = request.user.id if request.actor.is_interactive else None
         with transaction.atomic(router.db_for_write(Workflow)):
             rule.update(status=ObjectStatus.PENDING_DELETION)
             scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)

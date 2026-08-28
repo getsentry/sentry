@@ -29,7 +29,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
         """
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             return Response(status=404)
 
         try:

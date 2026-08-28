@@ -669,6 +669,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user_id=request.user.id if getattr(request.user, "is_interactive", True) else None,
+            user_id=request.user.id if request.actor.is_interactive else None,
             data=issue_information,
         )

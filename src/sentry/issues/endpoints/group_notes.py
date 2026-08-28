@@ -137,7 +137,7 @@ class GroupNotesEndpoint(GroupEndpoint):
     def post(self, request: Request, group: Group) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to create Note")
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             raise PermissionDenied(detail="Service accounts cannot create notes")
 
         serializer = NoteSerializer(

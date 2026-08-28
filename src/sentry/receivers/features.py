@@ -77,6 +77,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
+from sentry.viewer_context import get_current_actor
 
 UNKNOWN_DEFAULT_USER_ID = "unknown"
 
@@ -700,7 +701,10 @@ def record_team_created(
     if team_id is None:
         team_id = team.id
 
-    if user_id is None and user and user.is_authenticated and getattr(user, "is_interactive", True):
+    actor = get_current_actor(
+        legacy_user_id=user.id if user is not None and user.is_authenticated else None
+    )
+    if user_id is None and user and user.is_authenticated and actor.is_interactive:
         user_id = user.id
     if user_id is None:
         default_user_id = organization.get_default_owner().id

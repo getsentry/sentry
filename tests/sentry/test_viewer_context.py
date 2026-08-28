@@ -8,9 +8,11 @@ from unittest import mock
 import pytest
 
 from sentry.viewer_context import (
+    NO_VIEWER_ACTOR,
     ActorType,
     ViewerActor,
     ViewerContext,
+    get_current_actor,
     get_viewer_context,
     observe_viewer_context_propagation,
     set_viewer_context_organization,
@@ -60,6 +62,11 @@ class TestViewerContext:
         assert ctx.actor_type is ActorType.SERVICE_ACCOUNT
         assert ctx.serialize()["actor"] == {"type": "service_account", "id": 42}
         assert ViewerContext.deserialize(ctx.serialize()) == ctx
+
+    def test_actor_interactivity_is_defined_by_actor_type(self):
+        assert ViewerActor(type=ActorType.USER, id=42).is_interactive
+        assert not ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=42).is_interactive
+        assert not ViewerActor(type=ActorType.AGENT, id=42).is_interactive
 
     def test_service_account_actor_cannot_carry_user_id(self):
         with pytest.raises(ValueError, match="cannot carry a user_id"):
@@ -188,6 +195,26 @@ class TestViewerContextScope:
         set_viewer_context_organization(42)
 
         assert get_viewer_context() is None
+
+    def test_current_actor_prefers_context_actor(self):
+        actor = ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=42)
+
+        with viewer_context_scope(ViewerContext(actor=actor)):
+            assert get_current_actor(legacy_user_id=7) is actor
+
+    def test_current_actor_uses_legacy_user_in_context_without_actor(self):
+        with viewer_context_scope(ViewerContext(organization_id=42)):
+            assert get_current_actor(legacy_user_id=7) == ViewerActor(type=ActorType.USER, id=7)
+
+    @pytest.mark.parametrize(
+        "actor_type", [ActorType.AGENT, ActorType.INTEGRATION, ActorType.SYSTEM]
+    )
+    def test_current_actor_does_not_use_legacy_user_for_non_user_context(self, actor_type):
+        with viewer_context_scope(ViewerContext(actor_type=actor_type)):
+            assert get_current_actor(legacy_user_id=7) is NO_VIEWER_ACTOR
+
+    def test_current_actor_is_unknown_without_identity(self):
+        assert get_current_actor() is NO_VIEWER_ACTOR
 
 
 class TestObserve:

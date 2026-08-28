@@ -34,6 +34,7 @@ from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
 from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.viewer_context import get_current_actor
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 logger = logging.getLogger(__name__)
@@ -348,7 +349,7 @@ def create_issue_alert_rule(
     ).run()
     RuleActivity.objects.create(
         rule=rule,
-        user_id=request.user.id if getattr(request.user, "is_interactive", True) else None,
+        user_id=request.user.id if request.actor.is_interactive else None,
         type=RuleActivityType.CREATED.value,
     )
     return rule.id
@@ -400,7 +401,8 @@ def create_issue_alert_rule_data(
         "projects": [project.slug],
         "snooze": False,
     }
-    if getattr(user, "is_interactive", True):
+    actor = get_current_actor(legacy_user_id=user.id)
+    if actor.is_interactive:
         data["createdBy"] = {
             "email": user.email,
             "id": user.id,
@@ -471,7 +473,7 @@ def update_issue_alert_rule(
 
         RuleActivity.objects.create(
             rule=updated_rule,
-            user_id=request.user.id if getattr(request.user, "is_interactive", True) else None,
+            user_id=request.user.id if request.actor.is_interactive else None,
             type=RuleActivityType.UPDATED.value,
         )
 

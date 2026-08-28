@@ -32,7 +32,7 @@ from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, get_current_actor
 
 if TYPE_CHECKING:
     from sentry.api.serializers import SCIMMeta
@@ -58,10 +58,9 @@ def _get_team_memberships(
             if member is not None
         }
 
-    if not getattr(user, "is_interactive", True):
-        viewer = get_viewer_context()
-        actor = viewer.actor if viewer is not None else None
-        if actor is None or actor.type != ActorType.SERVICE_ACCOUNT or actor.id != user.id:
+    actor = get_current_actor(legacy_user_id=user.id)
+    if not actor.is_interactive:
+        if actor.type != ActorType.SERVICE_ACCOUNT or actor.id != user.id:
             return {}
         member_filter = {"organizationmember__service_account_id": actor.id}
     else:
@@ -112,10 +111,9 @@ def get_org_roles(
             }
         return {}
 
-    if not getattr(user, "is_interactive", True):
-        viewer = get_viewer_context()
-        actor = viewer.actor if viewer is not None else None
-        if actor is None or actor.type != ActorType.SERVICE_ACCOUNT or actor.id != user.id:
+    actor = get_current_actor(legacy_user_id=user.id)
+    if not actor.is_interactive:
+        if actor.type != ActorType.SERVICE_ACCOUNT or actor.id != user.id:
             return {}
         member_filter = {"service_account_id": actor.id}
     else:
@@ -133,7 +131,8 @@ def get_org_roles(
 def get_access_requests(
     item_list: Sequence[Team], user: User | RpcUser | AnonymousUser
 ) -> frozenset[int]:
-    if user.is_authenticated and getattr(user, "is_interactive", True):
+    actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+    if user.is_authenticated and actor.is_interactive:
         return frozenset(
             OrganizationAccessRequest.objects.filter(
                 team__in=item_list, member__user_id=user.id

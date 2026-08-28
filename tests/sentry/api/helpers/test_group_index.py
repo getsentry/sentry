@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.http import QueryDict
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
@@ -152,6 +153,16 @@ class GetSearchReferrerTest(TestCase):
 
 
 class UpdateGroupsTest(TestCase):
+    def test_explicit_user_override_is_interactive_for_anonymous_request(self) -> None:
+        group = self.create_group()
+        http_request = self.make_request(user=AnonymousUser(), method="PUT")
+        request = _wrap_request(http_request, data={"isBookmarked": True})
+
+        response = update_groups(request, [group], user=self.user)
+
+        assert response.status_code == 200
+        assert GroupBookmark.objects.filter(group=group, user_id=self.user.id).exists()
+
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_unresolving_resolved_group(self, send_robust: Mock, send_unresolved: Mock) -> None:

@@ -92,6 +92,10 @@ def _remove_base_cache_decr_incr(ctx: MethodContext) -> Type:
 
 
 _AUTH_TOKEN_TP = "sentry.auth.services.auth.model.AuthenticatedToken"
+_VIEWER_ACTOR_TPS = (
+    "sentry.viewer_context.ViewerActor",
+    "sentry.viewer_context.NoViewerActor",
+)
 
 
 def _has_symbols(api: SemanticAnalyzerPluginInterface, *symbols: str) -> bool:
@@ -108,9 +112,18 @@ def _request_auth_tp(api: SemanticAnalyzerPluginInterface) -> Type:
     return make_optional_type(Instance(st.node, ()))
 
 
+def _request_actor_tp(api: SemanticAnalyzerPluginInterface) -> Type:
+    actor_types: list[Type] = []
+    for fullname in _VIEWER_ACTOR_TPS:
+        symbol = api.lookup_fully_qualified(fullname)
+        assert isinstance(symbol.node, TypeInfo), symbol.node
+        actor_types.append(Instance(symbol.node, ()))
+    return UnionType(actor_types)
+
+
 def _adjust_http_request_members(ctx: ClassDefContext) -> None:
     if ctx.cls.name == "HttpRequest":
-        if not _has_symbols(ctx.api, _AUTH_TOKEN_TP):
+        if not _has_symbols(ctx.api, _AUTH_TOKEN_TP, *_VIEWER_ACTOR_TPS):
             return ctx.api.defer()
 
         # added by sentry.api.base and sentry.web.frontend.base
@@ -118,6 +131,8 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         add_attribute_to_class(ctx.api, ctx.cls, "access", AnyType(TypeOfAny.explicit))
         # added by sentry.middleware.auth
         add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
+        # added by sentry.middleware.viewer_context
+        add_attribute_to_class(ctx.api, ctx.cls, "actor", _request_actor_tp(ctx.api))
         # added by csp.middleware.CSPMiddleware
         add_attribute_to_class(ctx.api, ctx.cls, "csp_nonce", ctx.api.named_type("builtins.str"))
         # added by sudo.middleware.SudoMiddleware
@@ -150,11 +165,13 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
 
 def _adjust_request_members(ctx: ClassDefContext) -> None:
     if ctx.cls.name == "Request":
-        if not _has_symbols(ctx.api, _AUTH_TOKEN_TP):
+        if not _has_symbols(ctx.api, _AUTH_TOKEN_TP, *_VIEWER_ACTOR_TPS):
             return ctx.api.defer()
 
         # sentry.auth.middleware / sentry.api.authentication
         add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
+        # proxied from the underlying HttpRequest by DRF
+        add_attribute_to_class(ctx.api, ctx.cls, "actor", _request_actor_tp(ctx.api))
 
 
 def _adjust_http_response_members(ctx: ClassDefContext) -> None:
@@ -539,7 +556,10 @@ class SentryMypyPlugin(Plugin):
 
     def get_additional_deps(self, file: MypyFile) -> list[tuple[int, str, int]]:
         if file.fullname in {"django.http", "django.http.request", "rest_framework.request"}:
-            return [(PRI_MYPY, "sentry.auth.services.auth.model", -1)]
+            return [
+                (PRI_MYPY, "sentry.auth.services.auth.model", -1),
+                (PRI_MYPY, "sentry.viewer_context", -1),
+            ]
         else:
             return []
 

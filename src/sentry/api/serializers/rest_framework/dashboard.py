@@ -1028,7 +1028,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             # managers and owners
             has_write_access = self.context["request"].access.has_scope("org:write")
             is_creator = (
-                getattr(currentUser, "is_interactive", True)
+                self.context["request"].actor.is_interactive
                 and self.instance.created_by_id == currentUser.id
             )
             if not is_creator and not has_write_access:
@@ -1099,7 +1099,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         request_user = self.context["request"].user
         created_by_id = (
             request_user.id
-            if request_user.is_authenticated and getattr(request_user, "is_interactive", True)
+            if request_user.is_authenticated and self.context["request"].actor.is_interactive
             else None
         )
         self.instance = Dashboard.objects.create(

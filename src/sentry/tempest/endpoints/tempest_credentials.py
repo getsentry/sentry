@@ -48,9 +48,7 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
         serializer.is_valid(raise_exception=True)
         try:
             credentials = serializer.save(
-                created_by_id=(
-                    request.user.id if getattr(request.user, "is_interactive", True) else None
-                ),
+                created_by_id=(request.user.id if request.actor.is_interactive else None),
                 project=project,
             )
             # Make initial call to determine the latest item ID

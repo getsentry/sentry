@@ -660,7 +660,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        if "isBookmarked" in result and not getattr(request.user, "is_interactive", True):
+        if "isBookmarked" in result and not request.actor.is_interactive:
             return Response(
                 {"detail": "You do not have permission to perform this action."},
                 status=403,

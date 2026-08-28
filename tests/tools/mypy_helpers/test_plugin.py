@@ -41,6 +41,14 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
         with open(os.path.join(auth_dir, "model.pyi"), "w") as f:
             f.write("class AuthenticatedToken: ...")
 
+        with open(os.path.join(tmpdir, "sentry/viewer_context.pyi"), "w") as f:
+            f.write(
+                "class ViewerActor:\n"
+                "    is_interactive: bool\n"
+                "class NoViewerActor:\n"
+                "    is_interactive: bool\n"
+            )
+
         # stub for rest_framework.response.Response — make it Generic[T] with a
         # body-less overload, mirroring fixtures/stubs-for-mypy/rest_framework/
         # response.pyi. The Response-body-Any plugin hook needs this shape to
@@ -219,6 +227,7 @@ transaction.set_rollback(True, "default")
     "attr",
     (
         pytest.param("access", id="access from sentry.api.base"),
+        pytest.param("actor.is_interactive", id="actor from sentry.middleware.viewer_context"),
         pytest.param("auth", id="auth from sentry.middleware.auth"),
         pytest.param("csp_nonce", id="csp_nonce from csp.middleware"),
         pytest.param("is_sudo", id="is_sudo from sudo.middleware"),
@@ -257,6 +266,28 @@ Success: no issues found in 1 source file
     assert ret == 0
     assert out == expected_no_plugins
 
+    ret, out = call_mypy(src)
+    assert ret == 0
+    assert out == expected_plugins
+
+
+@pytest.mark.parametrize(
+    ("module", "request_class"),
+    (
+        ("django.http.request", "HttpRequest"),
+        ("rest_framework.request", "Request"),
+    ),
+)
+def test_adjusted_request_actor(module: str, request_class: str) -> None:
+    src = f"""\
+from {module} import {request_class}
+x: {request_class}
+reveal_type(x.actor)
+"""
+    expected_plugins = """\
+<string>:3: note: Revealed type is "sentry.viewer_context.ViewerActor | sentry.viewer_context.NoViewerActor"
+Success: no issues found in 1 source file
+"""
     ret, out = call_mypy(src)
     assert ret == 0
     assert out == expected_plugins

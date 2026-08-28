@@ -42,7 +42,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         :auth: required
 
         """
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             return Response([])
 
         try:
@@ -71,7 +71,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         return Response(serialize(recent_searches, request.user))
 
     def post(self, request: Request, organization) -> Response:
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             return Response(status=403)
 
         serializer = RecentSearchSerializer(data=request.data)

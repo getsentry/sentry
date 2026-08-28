@@ -2,12 +2,14 @@ from django.db.models import Count
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.broadcast import Broadcast, BroadcastSeen
+from sentry.viewer_context import get_current_actor
 
 
 @register(Broadcast)
 class BroadcastSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        if not user.is_authenticated or not getattr(user, "is_interactive", True):
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+        if not user.is_authenticated or not actor.is_interactive:
             seen = set()
         else:
             seen = set(

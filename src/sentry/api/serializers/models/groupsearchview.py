@@ -10,6 +10,7 @@ from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import get_current_actor
 
 
 class GroupSearchViewSerializerResponse(TypedDict):
@@ -38,7 +39,8 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         prefetch_related_objects(item_list, "projects")
         attrs: MutableMapping[Any, Any] = {}
 
-        if getattr(user, "is_interactive", True):
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+        if actor.is_interactive:
             last_visited_views = GroupSearchViewLastVisited.objects.filter(
                 organization=self.organization,
                 user_id=user.id,
@@ -51,7 +53,7 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
                 ).values_list("group_search_view_id", flat=True)
             )
         else:
-            last_visited_views = []
+            last_visited_views = GroupSearchViewLastVisited.objects.none()
             user_starred_view_ids = set()
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
 

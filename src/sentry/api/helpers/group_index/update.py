@@ -69,6 +69,8 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
+from sentry.viewer_context import ActorType as ViewerActorType
+from sentry.viewer_context import ViewerActor
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .lookup import get_group_list
@@ -186,13 +188,14 @@ def update_groups(
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
+    viewer_actor = request.actor
+    if user is not None and user.is_authenticated:
+        viewer_actor = ViewerActor(type=ViewerActorType.USER, id=user.id)
     user = user or request.user
     is_noninteractive_actor = bool(
-        user and user.is_authenticated and not getattr(user, "is_interactive", True)
+        user and user.is_authenticated and not viewer_actor.is_interactive
     )
-    acting_user = (
-        user if user and user.is_authenticated and getattr(user, "is_interactive", True) else None
-    )
+    acting_user = user if user and user.is_authenticated and viewer_actor.is_interactive else None
     data = data or request.data
 
     # so we won't have to requery for each group

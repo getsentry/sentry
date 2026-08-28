@@ -50,7 +50,7 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
                     identity__idp__type__in=MONITORING_PROVIDERS.keys(),
                 ).values_list("identity__idp__type", flat=True)
             )
-            if getattr(request.user, "is_interactive", True)
+            if request.actor.is_interactive
             else set()
         )
 

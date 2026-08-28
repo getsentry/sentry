@@ -27,7 +27,7 @@ class GroupSearchViewPermission(OrganizationPermission):
             # The creator can edit their own GroupSearchView
             # Org owners/managers and superusers may edit any GroupSearchView
             if (
-                (getattr(request.user, "is_interactive", True) and request.user.id == obj.user_id)
+                (request.actor.is_interactive and request.user.id == obj.user_id)
                 or request.access.has_scope("org:write")
                 or is_active_superuser(request)
             ):

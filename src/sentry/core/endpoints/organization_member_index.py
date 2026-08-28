@@ -449,9 +449,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=assigned_org_role,
-                inviter_id=(
-                    request.user.id if getattr(request.user, "is_interactive", True) else None
-                ),
+                inviter_id=(request.user.id if request.actor.is_interactive else None),
             )
 
             if settings.SENTRY_ENABLE_INVITES:
@@ -472,7 +470,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om.send_invite_email(referrer)
             member_invited.send_robust(
                 member=om,
-                user=request.user if getattr(request.user, "is_interactive", True) else None,
+                user=request.user if request.actor.is_interactive else None,
                 sender=self,
                 referrer=request.data.get("referrer"),
             )

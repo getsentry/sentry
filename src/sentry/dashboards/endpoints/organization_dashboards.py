@@ -399,9 +399,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             # check if user is restricted from editing dashboard
             if hasattr(obj, "permissions"):
                 return obj.permissions.has_edit_permissions(
-                    user_id=(
-                        request.user.id if getattr(request.user, "is_interactive", True) else None
-                    ),
+                    user_id=(request.user.id if request.actor.is_interactive else None),
                     team_ids=request.access.team_ids_with_membership,
                 )
 
@@ -459,7 +457,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         has_dashboards_starred = features.has(
             "organizations:dashboards-starred", organization, actor=request.user
         )
-        is_interactive = getattr(request.user, "is_interactive", True)
+        is_interactive = request.actor.is_interactive
 
         if features.has(
             "organizations:dashboards-prebuilt-insights-dashboards",

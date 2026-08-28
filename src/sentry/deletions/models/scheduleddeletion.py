@@ -9,12 +9,14 @@ from django.apps import apps
 from django.db import models
 from django.utils import timezone
 
+from sentry.auth.services.service_account import RpcServiceAccount
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, control_silo_model
 from sentry.deletions import RELOCATED_MODELS
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import get_current_actor
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -71,6 +73,10 @@ class BaseScheduledDeletion(Model):
             )
 
         model_name = model.__name__
+        legacy_user_id = (
+            actor.id if actor is not None and not isinstance(actor, RpcServiceAccount) else None
+        )
+        viewer_actor = get_current_actor(legacy_user_id=legacy_user_id)
         record, created = cls.objects.update_or_create(
             app_label=instance._meta.app_label,
             model_name=model_name,
@@ -78,9 +84,7 @@ class BaseScheduledDeletion(Model):
             defaults={
                 "date_scheduled": timezone.now() + timedelta(days=days, hours=hours),
                 "data": data or {},
-                "actor_id": (
-                    actor.id if actor and getattr(actor, "is_interactive", True) else None
-                ),
+                "actor_id": actor.id if actor and viewer_actor.is_interactive else None,
             },
         )
 

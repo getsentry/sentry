@@ -35,6 +35,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
+from sentry.viewer_context import get_current_actor
 
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
@@ -533,7 +534,8 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         prefetch_related_objects(item_list, "projects__organization")
 
         organization = (kwargs.get("context") or {}).get("organization")
-        is_interactive = getattr(user, "is_interactive", True)
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+        is_interactive = actor.is_interactive
         use_user_last_visited = (
             is_interactive
             and organization is not None
@@ -713,6 +715,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
 
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
@@ -722,9 +725,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
-            "isFavorited": bool(
-                getattr(user, "is_interactive", True) and user.id in obj.favorited_by
-            ),
+            "isFavorited": bool(actor.is_interactive and user.id in obj.favorited_by),
             "projects": page_filters.get("projects", []),
             "environment": page_filters.get("environment", []),
             "prebuiltId": obj.prebuilt_id,

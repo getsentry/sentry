@@ -33,6 +33,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+from sentry.viewer_context import get_current_actor
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
@@ -247,7 +248,8 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 self.org_integration = org_integration
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
-        if user_persisted_fields and getattr(user, "is_interactive", True):
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+        if user_persisted_fields and actor.is_interactive:
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(key="issue:defaults", project_id=project.id)
             options = user_option_service.get_many(
@@ -269,7 +271,8 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             )
         )
 
-        if not getattr(user, "is_interactive", True):
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+        if not actor.is_interactive:
             return project_defaults
 
         user_option_value = get_option_from_list(

@@ -16,6 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import (
+    NO_VIEWER_ACTOR,
     ActorType,
     ViewerActor,
     ViewerContext,
@@ -125,7 +126,7 @@ class ViewerContextFromRequestTest(TestCase):
             actor_type="service_account",
             actor_id=account.id,
         )
-        request.user = account
+        request.user = account  # type: ignore[assignment]  # Django's stub excludes auth proxies.
         request.auth = token
 
         ctx = _viewer_context_from_request(request)
@@ -161,6 +162,24 @@ class ViewerContextMiddlewareTest(TestCase):
 
         assert len(captured) == 1
         assert captured[0] is None
+        assert request.actor.is_interactive
+
+    @override_settings(
+        SENTRY_VIEWER_CONTEXT_ENABLED=True,
+        ANONYMOUS_STATIC_PREFIXES=("/static/",),
+    )
+    def test_static_request_has_anonymous_actor_without_loading_user(self):
+        captured: list[ViewerContext | None] = []
+
+        def get_response(request):
+            captured.append(get_viewer_context())
+            return MagicMock(status_code=200)
+
+        request = self.factory.get("/static/app.js")
+        ViewerContextMiddleware(get_response)(request)
+
+        assert request.actor is NO_VIEWER_ACTOR
+        assert captured == [None]
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_sets_context_during_request(self):
@@ -196,7 +215,7 @@ class ViewerContextMiddlewareTest(TestCase):
             assert request.user.email == ""
             assert not request.user.has_usable_password()
             assert not request.user.has_verified_primary_email()
-            assert not request.user.is_interactive
+            assert not request.actor.is_interactive
             return MagicMock(status_code=200)
 
         account = self.create_service_account(
@@ -220,9 +239,11 @@ class ViewerContextMiddlewareTest(TestCase):
             )
             ViewerContextMiddleware(get_response)(request)
 
-        assert request.user.id == account.id
-        assert request.user.class_name() == "ServiceAccount"
-        assert request.auth.actor_type == "service_account"
+        authenticated_user = cast(RpcServiceAccount, request.user)
+        authenticated_token = cast(AuthenticatedToken, request.auth)
+        assert authenticated_user.id == account.id
+        assert authenticated_user.class_name() == "ServiceAccount"
+        assert authenticated_token.actor_type == "service_account"
         assert captured[0] is not None
         assert captured[0].actor == ViewerActor(type=ActorType.SERVICE_ACCOUNT, id=account.id)
 
@@ -363,6 +384,34 @@ class ViewerContextMiddlewareTest(TestCase):
         ctx = captured[0]
         assert ctx.user_id == self.user.id
         assert ctx.actor_type == ActorType.USER
+
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
+    @override_settings(SEER_API_SHARED_SECRET="test-secret")
+    def test_agent_auth_takes_precedence_over_jwt_without_actor_id(self):
+        jwt = encode_viewer_context(
+            ViewerContext(organization_id=99, actor_type=ActorType.INTEGRATION)
+        )
+        captured: list[ViewerContext | None] = []
+
+        def get_response(request):
+            captured.append(get_viewer_context())
+            return MagicMock(status_code=200)
+
+        request = self.factory.get("/", HTTP_X_VIEWER_CONTEXT=jwt)
+        request.user = AnonymousUser()
+        request.auth = AuthenticatedToken(
+            kind=agent_token.AGENT_TOKEN_KIND,
+            scopes=["org:read"],
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+
+        ViewerContextMiddleware(get_response)(request)
+
+        assert captured[0] is not None
+        assert captured[0].actor_type is ActorType.AGENT
+        assert captured[0].user_id == self.user.id
+        assert captured[0].organization_id == self.organization.id
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")

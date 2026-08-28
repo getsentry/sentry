@@ -12,6 +12,7 @@ from sentry.explore.models import (
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
+from sentry.viewer_context import get_current_actor
 
 
 class MetricResponseTypeOptional(TypedDict, total=False):
@@ -70,7 +71,8 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
-        if getattr(user, "is_interactive", True):
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+        if actor.is_interactive:
             starred_queries = dict(
                 ExploreSavedQueryStarred.objects.filter(
                     explore_saved_query__in=item_list,

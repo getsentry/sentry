@@ -227,7 +227,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         requester = (
             request.user.id
-            if getattr(request.user, "is_interactive", True) and request.user.id != member.user_id
+            if request.actor.is_interactive and request.user.id != member.user_id
             else None
         )
         if requester:

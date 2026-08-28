@@ -75,9 +75,7 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
             analytics.record(
                 RuleReenableExplicit(
                     rule_id=rule.id,
-                    user_id=(
-                        request.user.id if getattr(request.user, "is_interactive", True) else None
-                    ),
+                    user_id=(request.user.id if request.actor.is_interactive else None),
                     organization_id=project.organization.id,
                 )
             )

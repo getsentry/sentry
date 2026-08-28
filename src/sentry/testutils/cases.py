@@ -96,6 +96,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
+from sentry.middleware.viewer_context import _viewer_identity_from_request
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -169,6 +170,7 @@ from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
+from sentry.viewer_context import NO_VIEWER_ACTOR
 
 from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
@@ -301,6 +303,7 @@ class BaseTestCase(Fixtures):
         request.session = self.session
         request.auth = auth
         request.user = user or AnonymousUser()
+        request.actor = _viewer_identity_from_request(request)[1] or NO_VIEWER_ACTOR
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
         request.staff = Staff(request)

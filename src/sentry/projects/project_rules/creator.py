@@ -41,7 +41,7 @@ class ProjectRuleCreator:
                 self.rule,
                 (
                     self.request.user.id
-                    if self.request and getattr(self.request.user, "is_interactive", True)
+                    if self.request and self.request.actor.is_interactive
                     else None
                 ),
             ).run()

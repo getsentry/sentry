@@ -206,7 +206,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
         if (
             not data["project_ids"]
-            and not getattr(request.user, "is_interactive", True)
+            and not request.actor.is_interactive
             and not request.access.has_global_access
             and not request.access.has_scope("org:write")
         ):
@@ -229,7 +229,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ),
             created_by_id=(
                 request.user.id
-                if request.user.is_authenticated and getattr(request.user, "is_interactive", True)
+                if request.user.is_authenticated and request.actor.is_interactive
                 else None
             ),
         )

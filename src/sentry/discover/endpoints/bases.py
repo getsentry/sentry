@@ -34,10 +34,7 @@ class DiscoverSavedQueryPermission(OrganizationPermission):
                 return True
 
             # allow for creator
-            if (
-                getattr(request.user, "is_interactive", True)
-                and request.user.id == obj.created_by_id
-            ):
+            if request.actor.is_interactive and request.user.id == obj.created_by_id:
                 return True
 
             return False
@@ -72,7 +69,7 @@ def filter_to_accessible_discover_queries(
     has_any_project = DiscoverSavedQueryProject.objects.filter(
         discover_saved_query_id=OuterRef("id"),
     )
-    if getattr(request.user, "is_interactive", True):
+    if request.actor.is_interactive:
         queryset = queryset.filter(Exists(has_any_project) | Q(created_by_id=request.user.id))
     else:
         queryset = queryset.filter(Exists(has_any_project))

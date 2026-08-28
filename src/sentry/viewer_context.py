@@ -58,6 +58,10 @@ class ViewerActor:
     type: ActorType
     id: int
 
+    @property
+    def is_interactive(self) -> bool:
+        return self.type == ActorType.USER
+
     def serialize(self) -> dict[str, Any]:
         return {"type": self.type.value, "id": self.id}
 
@@ -69,6 +73,17 @@ class ViewerActor:
         except (KeyError, TypeError, ValueError):
             return None
         return cls(type=actor_type, id=actor_id)
+
+
+@dataclasses.dataclass(frozen=True)
+class NoViewerActor:
+    type: ActorType = ActorType.UNKNOWN
+    id: None = None
+    is_interactive: bool = False
+
+
+NO_VIEWER_ACTOR = NoViewerActor()
+type RequestActor = ViewerActor | NoViewerActor
 
 
 @dataclasses.dataclass(frozen=True)
@@ -161,6 +176,18 @@ def viewer_context_scope(ctx: ViewerContext) -> Generator[None]:
 def get_viewer_context() -> ViewerContext | None:
     """Return the current ``ViewerContext``, or ``None`` if not set."""
     return _viewer_context_var.get()
+
+
+def get_current_actor(*, legacy_user_id: int | None = None) -> RequestActor:
+    ctx = get_viewer_context()
+    if ctx is not None:
+        if ctx.actor is not None:
+            return ctx.actor
+        if ctx.actor_type not in (ActorType.UNKNOWN, ActorType.USER):
+            return NO_VIEWER_ACTOR
+    if legacy_user_id is not None:
+        return ViewerActor(type=ActorType.USER, id=legacy_user_id)
+    return NO_VIEWER_ACTOR
 
 
 def observe_viewer_context_propagation(

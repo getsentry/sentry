@@ -36,7 +36,7 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer = GroupSearchViewStarredOrderSerializer(

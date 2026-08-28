@@ -19,6 +19,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
 from sentry.utils import json
+from sentry.viewer_context import get_current_actor
 
 
 @cell_silo_model
@@ -518,11 +519,10 @@ class DashboardRevision(DefaultFieldsModel):
         Create a revision snapshot for the given dashboard and prune any revisions
         beyond the retention limit. Must be called inside a transaction.atomic block.
         """
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
         revision = cls.objects.create(
             dashboard=dashboard,
-            created_by_id=(
-                user.id if user.is_authenticated and getattr(user, "is_interactive", True) else None
-            ),
+            created_by_id=user.id if user.is_authenticated and actor.is_interactive else None,
             title=dashboard.title,
             source=source,
             snapshot=snapshot,

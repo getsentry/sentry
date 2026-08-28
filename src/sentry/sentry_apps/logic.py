@@ -51,6 +51,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.viewer_context import get_current_actor
 
 Schema = Mapping[str, Any]
 
@@ -359,7 +360,9 @@ class SentryAppUpdater:
         user: User | RpcUser | RpcServiceAccount,
         new_schema_elements: set[str] | None,
     ) -> None:
-        if not getattr(user, "is_interactive", True):
+        legacy_user_id = None if isinstance(user, RpcServiceAccount) else user.id
+        actor = get_current_actor(legacy_user_id=legacy_user_id)
+        if not actor.is_interactive:
             return
         created_alert_rule_ui_component = "alert-rule-action" in (new_schema_elements or set())
         analytics.record(

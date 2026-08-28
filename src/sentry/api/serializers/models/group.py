@@ -64,6 +64,7 @@ from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
 from sentry.utils.tracing import start_span
+from sentry.viewer_context import get_current_actor
 
 if TYPE_CHECKING:
     from sentry.models.groupinbox import InboxDetails
@@ -293,7 +294,8 @@ class GroupSerializerBase(Serializer, ABC):
         prefetch_related_objects(item_list, "project__organization")
 
         if user.is_authenticated and item_list:
-            if getattr(user, "is_interactive", True):
+            actor = get_current_actor(legacy_user_id=user.id)
+            if actor.is_interactive:
                 bookmarks = set(
                     GroupBookmark.objects.filter(user_id=user.id, group__in=item_list).values_list(
                         "group_id", flat=True
@@ -674,7 +676,8 @@ class GroupSerializerBase(Serializer, ABC):
         # Subscriptions and notification preferences belong to interactive users.
         # A service account can read issue data, but its independently allocated id
         # must never be used as a User.id in notification services or subscriptions.
-        if not getattr(user, "is_interactive", True):
+        actor = get_current_actor(legacy_user_id=user.id if user.is_authenticated else None)
+        if not actor.is_interactive:
             return {group.id: (False, False, None) for group in groups}
 
         groups_by_project = collect_groups_by_project(groups)

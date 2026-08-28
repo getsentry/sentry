@@ -321,9 +321,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 config=validated_data.get("config", {}),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
-                created_by_id=(
-                    request.user.id if getattr(request.user, "is_interactive", True) else None
-                ),
+                created_by_id=(request.user.id if request.actor.is_interactive else None),
             )
 
             try:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from unittest.mock import MagicMock, patch
 
 from rest_framework.test import APIClient
 
@@ -216,6 +217,33 @@ class OrganizationServiceAccountsTest(APITestCase):
             organization=self.organization,
             task=OnboardingTask.FIRST_PROJECT,
         ).exists()
+
+    @patch("sentry.tasks.commits.fetch_commits")
+    def test_service_account_release_refs_do_not_use_actor_id_as_user_id(
+        self, fetch_commits: MagicMock
+    ) -> None:
+        team = self.create_team(organization=self.organization)
+        project = self.create_project(organization=self.organization, teams=[team])
+        repository = self.create_repo(project=project, provider="dummy")
+        created = self._create(
+            teams=[team.slug],
+            scopes=["project:read", "project:releases"],
+        )
+
+        response = APIClient().post(
+            f"/api/0/organizations/{self.organization.slug}/releases/",
+            data={
+                "version": "service-account-release",
+                "projects": [project.slug],
+                "refs": [{"commit": "a" * 40, "repository": repository.name}],
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {created.data['token']}",
+        )
+
+        assert response.status_code == 201, response.content
+        fetch_commits.apply_async.assert_called_once()
+        assert fetch_commits.apply_async.call_args.kwargs["kwargs"]["user_id"] is None
 
     def test_service_account_updates_issue_without_user_state(self) -> None:
         team = self.create_team(organization=self.organization)

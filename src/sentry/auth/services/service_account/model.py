@@ -47,10 +47,6 @@ class RpcServiceAccount(RpcModel):
         return False
 
     @property
-    def is_interactive(self) -> bool:
-        return False
-
-    @property
     def email(self) -> str:
         return ""
 

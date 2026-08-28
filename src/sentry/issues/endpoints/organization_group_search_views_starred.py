@@ -31,7 +31,7 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         Retrieve a list of starred views for the current organization member.
         """
 
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             return Response(status=HTTP_403_FORBIDDEN)
 
         assert request.user.id is not None

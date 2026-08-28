@@ -371,7 +371,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
-        is_interactive = getattr(request.user, "is_interactive", True)
+        is_interactive = request.actor.is_interactive
 
         try:
             lock = locks.get(
@@ -570,7 +570,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
-        is_interactive = getattr(request.user, "is_interactive", True)
+        is_interactive = request.actor.is_interactive
 
         try:
             params = self.get_filter_params(

@@ -57,7 +57,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     def delete(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             raise PermissionDenied(detail="Service accounts cannot delete notes")
 
         note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
@@ -139,7 +139,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     def put(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             raise PermissionDenied(detail="Service accounts cannot edit notes")
 
         note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)

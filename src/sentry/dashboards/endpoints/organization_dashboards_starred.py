@@ -45,7 +45,7 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
             DashboardFavoriteUser.objects.get_favorite_dashboards(
                 organization=organization, user_id=request.user.id
             ).select_related("dashboard")
-            if getattr(request.user, "is_interactive", True)
+            if request.actor.is_interactive
             else DashboardFavoriteUser.objects.none()
         )
 
@@ -86,7 +86,7 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         if not self.has_feature(organization, request):

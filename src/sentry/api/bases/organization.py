@@ -92,7 +92,7 @@ class OrganizationPermission(DemoSafePermission):
         # Non-interactive actors cannot enroll in 2FA. Their credential lifecycle
         # is enforced independently, while authorization still comes from the
         # ordinary member role and token scope intersection.
-        if not getattr(request.user, "is_interactive", True):
+        if not request.actor.is_interactive:
             return False
 
         if request.user.is_authenticated and request.user.has_2fa():
@@ -307,10 +307,11 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             if subdomain is not None and subdomain != organization_id_or_slug:
                 raise ResourceDoesNotExist
 
-        if getattr(request.auth, "actor_type", None) == "service_account":
+        request_actor = request.actor
+        if request_actor.type == ActorType.SERVICE_ACCOUNT and request_actor.id is not None:
             context_kwargs: dict[str, Any] = {
                 "actor_type": "service_account",
-                "actor_id": request.auth.actor_id,
+                "actor_id": request_actor.id,
             }
         else:
             context_kwargs = {"user_id": request.user.id}
