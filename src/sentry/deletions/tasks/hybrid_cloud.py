@@ -48,6 +48,7 @@ class WatermarkBatch:
     up: int
     has_more: bool
     transaction_id: str
+    table_max: int = 0
 
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
@@ -131,7 +132,11 @@ def _chunk_watermark_batch(
     )
 
     return WatermarkBatch(
-        low=lower, up=capped, has_more=batch_upper < upper, transaction_id=transaction_id
+        low=lower,
+        up=capped,
+        has_more=batch_upper < upper,
+        transaction_id=transaction_id,
+        table_max=upper,
     )
 
 
@@ -304,6 +309,18 @@ def _process_tombstone_reconciliation(
     )
     has_more = watermark_batch.has_more
     if watermark_batch.low < watermark_batch.up:
+        if not row_after_tombstone and not model._base_manager.exists():
+            # The model table holds no rows, so no tombstone can cascade to
+            # anything. Move the watermark to the top of the tombstone table
+            # instead of walking the range batch by batch.
+            set_watermark(prefix, field, watermark_batch.table_max, watermark_batch.transaction_id)
+            metrics.incr(
+                "deletion.hybrid_cloud.empty_model_skip",
+                tags=dict(field_name=f"{model._meta.db_table}.{field.name}"),
+                sample_rate=1.0,
+            )
+            return False
+
         to_delete_ids, oldest_seen = _get_model_ids_for_tombstone_cascade(
             tombstone_cls=tombstone_cls,
             model=model,
