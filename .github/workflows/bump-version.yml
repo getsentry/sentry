@@ -12,7 +12,7 @@ on:
       pr_options:
         type: string
         default: ''
-        description: additional options for gh pr create, such as for asking for specific reviewers
+        description: space-delimited additional options for gh pr create, such as asking for specific reviewers
 
   # for use in other (cron/scheduled) workflows to bump specific
   # company-internal dependencies on a more aggressive schedule
@@ -76,10 +76,17 @@ jobs:
 
           git push origin HEAD --quiet
 
-          gh pr create --fill ${{ inputs.pr_options }}
+          # Keep caller-provided options as arguments rather than interpolating them into shell source.
+          if [[ -n "$PR_OPTIONS" ]]; then
+            read -r -a PR_OPTION_ARGS <<< "$PR_OPTIONS"
+            gh pr create --fill "${PR_OPTION_ARGS[@]}"
+          else
+            gh pr create --fill
+          fi
         env:
           GH_TOKEN: ${{ steps.getsentry.outputs.token }}
           PACKAGE: ${{ inputs.package }}
           VERSION: ${{ inputs.version }}
+          PR_OPTIONS: ${{ inputs.pr_options }}
           SENDER: ${{ github.event.sender.login }}
           SENDER_ID: ${{ github.event.sender.id }}
