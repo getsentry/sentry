@@ -31,6 +31,7 @@ from sentry.models.dashboard import Dashboard
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
@@ -91,66 +92,68 @@ def reset_watermarks() -> None:
 
 
 @pytest.fixture
-def dashboard_created_by_id_field() -> HybridCloudForeignKey[int, int]:
-    return cast(HybridCloudForeignKey[int, int], Dashboard._meta.get_field("created_by_id"))
+def project_bookmark_user_id_field() -> HybridCloudForeignKey[int, int]:
+    return cast(HybridCloudForeignKey[int, int], ProjectBookmark._meta.get_field("user_id"))
 
 
 @django_db_all
 def test_no_work_is_no_op(
     task_runner: Callable[[], ContextManager[None]],
-    dashboard_created_by_id_field: HybridCloudForeignKey[int, int],
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
     reset_watermarks()
 
     # Transaction id should not change when no processing occurs.  (this would happen if setting the next cursor
     # to the same, previous value.)
-    level, tid = get_watermark("tombstone", dashboard_created_by_id_field)
+    level, tid = get_watermark("tombstone", project_bookmark_user_id_field)
 
     with task_runner():
         schedule_hybrid_cloud_foreign_key_jobs()
 
-    assert get_watermark("tombstone", dashboard_created_by_id_field) == (level, tid)
+    assert get_watermark("tombstone", project_bookmark_user_id_field) == (level, tid)
 
 
 @django_db_all
 def test_watermark_and_transaction_id(
     task_runner: Callable[[], ContextManager[None]],
-    dashboard_created_by_id_field: HybridCloudForeignKey[int, int],
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
-    _, tid1 = get_watermark("tombstone", dashboard_created_by_id_field)
+    _, tid1 = get_watermark("tombstone", project_bookmark_user_id_field)
     # TODO: Add another test to validate the tid is unique per field
 
-    _, tid2 = get_watermark("row", dashboard_created_by_id_field)
+    _, tid2 = get_watermark("row", project_bookmark_user_id_field)
 
     assert tid1
     assert tid2
     assert tid1 != tid2
 
-    set_watermark("tombstone", dashboard_created_by_id_field, 5, tid1)
-    wm, new_tid1 = get_watermark("tombstone", dashboard_created_by_id_field)
+    set_watermark("tombstone", project_bookmark_user_id_field, 5, tid1)
+    wm, new_tid1 = get_watermark("tombstone", project_bookmark_user_id_field)
 
     assert new_tid1 != tid1
     assert wm == 5
 
-    assert get_watermark("tombstone", dashboard_created_by_id_field) == (wm, new_tid1)
+    assert get_watermark("tombstone", project_bookmark_user_id_field) == (wm, new_tid1)
 
 
 @assume_test_silo_mode(SiloMode.MONOLITH)
 def setup_deletable_objects(
     count: int = 1, send_tombstones: bool = True, u_id: int | None = None
-) -> tuple[QuerySet[Dashboard], ControlOutbox]:
+) -> tuple[QuerySet[ProjectBookmark], ControlOutbox]:
     if u_id is None:
         u = Factories.create_user()
         u_id = u.id
         with outbox_context(flush=False):
             u.delete()
 
-    # Dashboard requires an organization; the deleted user is not made a member,
+    # ProjectBookmark requires a project; the deleted user is not made a member,
     # so cell resolution still keys off the user's own (now absent) membership.
     org = Factories.create_organization()
     deleted_owner = User(id=u_id)
-    for i in range(count):
-        Factories.create_dashboard(title=f"d-{i}", organization=org, created_by=deleted_owner)
+    for _ in range(count):
+        # Use unique projects so unique_together (project, user_id) is satisfied.
+        project = Factories.create_project(organization=org)
+        Factories.create_project_bookmark(project=project, user=deleted_owner)
 
     for cell_name in find_cells_for_user(u_id):
         shard = ControlOutbox(
@@ -159,7 +162,7 @@ def setup_deletable_objects(
         if send_tombstones:
             shard.drain_shard()
 
-        return Dashboard.objects.filter(created_by_id=u_id), shard
+        return ProjectBookmark.objects.filter(user_id=u_id), shard
     assert False, "find_cells_for_user could not determine a cell for production."
 
 
@@ -291,6 +294,12 @@ def test_set_null_deletion_behavior(task_runner: Callable[[], ContextManager[Non
     data = setup_deletion_test()
     user = data["user"]
     saved_query = data["saved_query"]
+    organization = data["organization"]
+    dashboard = Factories.create_dashboard(
+        title="keep-me",
+        organization=organization,
+        created_by=user,
+    )
 
     user_id = user.id
     with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
@@ -306,6 +315,10 @@ def test_set_null_deletion_behavior(task_runner: Callable[[], ContextManager[Non
     # Deletion set field to null
     saved_query = DiscoverSavedQuery.objects.get(id=saved_query.id)
     assert saved_query.created_by_id is None
+
+    # Org dashboards must survive creator deletion (incl. internal-integration proxy users).
+    dashboard = Dashboard.objects.get(id=dashboard.id)
+    assert dashboard.created_by_id is None
 
 
 class _IdParams(TypedDict):
