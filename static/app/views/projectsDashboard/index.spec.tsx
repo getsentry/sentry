@@ -53,7 +53,7 @@ describe('ProjectsDashboard', () => {
         screen.getByPlaceholderText('Search for projects by name')
       ).toBeInTheDocument();
       expect(screen.getByText('My Teams')).toBeInTheDocument();
-      expect(await screen.findByTestId('resources')).toBeInTheDocument();
+      expect(await screen.findByAltText('The Sentry Workflow')).toBeInTheDocument();
       expect(await screen.findByTestId('badge-display-name')).toBeInTheDocument();
     });
   });
