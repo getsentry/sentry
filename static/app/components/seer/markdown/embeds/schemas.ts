@@ -469,13 +469,6 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Trace link',
-        data: {
-          traceId: 'a1b2c3d4e5f678901234567890abcdef',
-          timestamp: '2026-08-25T16:37:12Z',
-        },
-      },
-      {
         label: 'Trace waterfall',
         level: 'block',
         data: {
