@@ -80,9 +80,10 @@ By default, the scheduler snapshots PKs in ascending PK order. Set
 preserve_queryset_order=True to retain an explicit, deterministic ordering on
 the queryset instead.
 
-A cycle that snapshots nothing is retried once per cycle_duration rather than on
-every tick, so an empty queryset costs one cycle-start query per cycle instead of
-one per tick interval.
+A new cycle starts no sooner than cycle_duration after the previous one began.
+A set too small to fill every tick finishes early and then waits, so each item is
+dispatched about once per cycle_duration rather than once per pass. An empty
+queryset likewise costs one cycle-start query per cycle instead of one per tick.
 """
 
 from __future__ import annotations
@@ -151,8 +152,8 @@ class CursoredScheduler[M: Model]:
 
     Each call to tick() acquires a lock, fetches the next batch of rows by PK,
     dispatches the configured task for each row's PK, and advances the cursor.
-    When all rows have been processed, the cursor resets and a new cycle
-    begins on the next tick().
+    When all rows have been processed, the cursor resets. A new cycle begins
+    on the first tick() at least cycle_duration after the previous cycle began.
 
     At cycle start, all matching PKs are snapshotted into a Redis list.
     Subsequent ticks read pages from this snapshot via LRANGE, ensuring
@@ -306,7 +307,6 @@ class CursoredScheduler[M: Model]:
             queryset = queryset.order_by("pk")
 
         all_pks = self._prevalidated_pks(queryset)
-        self._update_next_cycle_start(bool(all_pks))
 
         if self.shuffle:
             random.shuffle(all_pks)
@@ -332,7 +332,12 @@ class CursoredScheduler[M: Model]:
             self.tick_interval.total_seconds(),
             self.cache_ttl,
         )
-        cache.set(self.cycle_start_cache_key, time.time(), self.cache_ttl)
+        cache.set(self.cycle_start_cache_key, init_start, self.cache_ttl)
+        cache.set(
+            self.next_cycle_start_cache_key,
+            init_start + self.cycle_duration.total_seconds(),
+            self.cache_ttl,
+        )
 
         metrics.timing(
             "cursored_scheduler.init_duration", time.time() - init_start, tags=self._metric_tags
@@ -340,28 +345,18 @@ class CursoredScheduler[M: Model]:
 
         return batch_size
 
-    def _update_next_cycle_start(self, has_items: bool) -> None:
-        """
-        Hold the next cycle start back by a cycle_duration when a snapshot has no
-        items, so the cycle-start query runs once per cycle instead of once per tick.
-        """
-        if has_items:
-            cache.delete(self.next_cycle_start_cache_key)
-        else:
-            cache.set(
-                self.next_cycle_start_cache_key,
-                time.time() + self.cycle_duration.total_seconds(),
-                self.cache_ttl,
-            )
-
     def _is_cycle_start_due(self) -> bool:
+        """
+        A cycle that finishes early waits out the rest of cycle_duration, so a set
+        smaller than the ticks per cycle is not re-dispatched on every pass.
+        """
         next_start_at = cache.get(self.next_cycle_start_cache_key)
         if next_start_at is None:
             return True
         return time.time() >= float(next_start_at)
 
     def _finalize_cycle(self):
-        """Reset cursor, batch size, and PK list, starting a new cycle on the next tick."""
+        """Reset cursor, batch size, and PK list. The next cycle starts once it is due."""
         self._emit_cycle_duration()
         cache.set(self.cache_key, 0, self.cache_ttl)
         cache.set(self.batch_size_cache_key, 0, self.cache_ttl)

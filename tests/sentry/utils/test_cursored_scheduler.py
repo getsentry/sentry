@@ -13,6 +13,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursored_scheduler import (
     BATCH_SIZE_CACHE_KEY_PREFIX,
     CURSOR_CACHE_KEY_PREFIX,
+    CYCLE_START_CACHE_KEY_PREFIX,
     NEXT_CYCLE_START_CACHE_KEY_PREFIX,
     PK_LIST_CACHE_KEY_PREFIX,
     TICK_INTERVAL_CACHE_KEY_PREFIX,
@@ -74,6 +75,9 @@ class CursoredSchedulerTest(TestCase):
             )
             integrations.append(oi)
         return integrations
+
+    def _make_next_cycle_due(self, scheduler):
+        cache.set(self.next_cycle_start_key, time.time() - 1, scheduler.cache_ttl)
 
     def _make_scheduler(
         self,
@@ -146,6 +150,7 @@ class CursoredSchedulerTest(TestCase):
         assert scheduler.tick() is False
 
         self.mock_task.reset_mock()
+        self._make_next_cycle_due(scheduler)
 
         # New cycle should start from beginning
         scheduler.tick()
@@ -176,22 +181,40 @@ class CursoredSchedulerTest(TestCase):
         scheduler = self._make_scheduler()
         scheduler.tick()
 
-        cache.set(self.next_cycle_start_key, time.time() - 1, scheduler.cache_ttl)
+        self._make_next_cycle_due(scheduler)
         self._create_org_integrations(3)
 
         assert scheduler.tick() is True
         assert self.mock_task.delay.call_count == 1
 
-    def test_a_non_empty_cycle_clears_the_deferred_start(self):
+    def test_small_set_is_not_redispatched_before_the_cycle_elapses(self):
+        """
+        One item over a 3-tick cycle has batch_size 1 and finishes on the first tick.
+        The next cycle waits for the rest of cycle_duration, so the item is dispatched
+        once per cycle_duration, not once every pass.
+        """
+        self._create_org_integrations(1)
         scheduler = self._make_scheduler()
-        scheduler.tick()
-        assert cache.get(self.next_cycle_start_key) is not None
 
-        cache.set(self.next_cycle_start_key, time.time() - 1, scheduler.cache_ttl)
-        self._create_org_integrations(3)
+        assert scheduler.tick() is True
+        assert scheduler.tick() is False
+        for _ in range(5):
+            assert scheduler.tick() is False
+        assert self.mock_task.delay.call_count == 1
+
+        self._make_next_cycle_due(scheduler)
+        assert scheduler.tick() is True
+        assert self.mock_task.delay.call_count == 2
+
+    def test_next_cycle_start_is_measured_from_the_cycle_start(self):
+        """A cycle that finishes early does not push the next start out past cycle_duration."""
+        self._create_org_integrations(1)
+        scheduler = self._make_scheduler(cycle_duration=timedelta(minutes=3))
+
         scheduler.tick()
 
-        assert cache.get(self.next_cycle_start_key) is None
+        cycle_start = float(cache.get(f"{CYCLE_START_CACHE_KEY_PREFIX}:test_scheduler"))
+        assert float(cache.get(self.next_cycle_start_key)) == cycle_start + 180
 
     def test_batch_size_cached_across_ticks(self):
         """Batch size is calculated once at cycle start, not every tick."""
@@ -219,6 +242,7 @@ class CursoredSchedulerTest(TestCase):
         self._create_org_integrations(30)
 
         self.mock_task.reset_mock()
+        self._make_next_cycle_due(scheduler)
 
         scheduler.tick()
         assert self.mock_task.delay.call_count == 20
