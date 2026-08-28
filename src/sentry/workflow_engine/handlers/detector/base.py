@@ -95,7 +95,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType]):
         self.detector = detector
 
     @abc.abstractmethod
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         pass
@@ -139,7 +139,7 @@ class DetectorHandler(
         else:
             self.condition_group = None
 
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         tags = {
@@ -162,8 +162,6 @@ class DetectorHandler(
     ) -> GroupedDetectorEvaluationResult:
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
-
-        TODO - rename this to `evaluate` and change current evaluate to `_evaluate`
         """
         pass
 
