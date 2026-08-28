@@ -7,10 +7,17 @@ import {
   type Dispatch,
   type ReactNode,
 } from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
-import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {
+  SeerExplorerResponse,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
+import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 export type PollingState =
   | 'polling'
@@ -124,7 +131,7 @@ function SeerExplorerChatStatePolling({
   dispatch: Dispatch<ChatStateAction>;
   runId: SeerExplorerRunId | null;
 }) {
-  const {pollingState} = useSeerExplorerPolling({runId});
+  const {pollingState, apiData} = useSeerExplorerPolling({runId});
 
   useLayoutEffect(() => {
     if (runId === null) {
@@ -133,7 +140,51 @@ function SeerExplorerChatStatePolling({
     dispatch({type: 'set polling', payload: {runId, polling: pollingState}});
   }, [dispatch, runId, pollingState]);
 
+  useAdoptSentryRunId({runId, apiData, dispatch});
+
   return children;
+}
+
+/**
+ * Upgrades a legacy integer run id to the run's UUID as soon as a poll reports
+ * one.
+ *
+ * A session can be opened with either form — the endpoint resolves both — but
+ * only the UUID is the `gen_ai.conversation.id` that Explore Agents
+ * conversations are keyed by. Anything built off the integer (the
+ * `/conversations` link, the feedback tags pointing at it) resolves to nothing,
+ * so the id is reconciled once, here, rather than at each link site.
+ *
+ * The response is copied onto the UUID's cache entry first: the run id is part
+ * of the query key, so without it the swap would blank the session until the
+ * first fetch under the new key lands.
+ */
+function useAdoptSentryRunId({
+  runId,
+  apiData,
+  dispatch,
+}: {
+  apiData: SeerExplorerResponse | undefined;
+  dispatch: Dispatch<ChatStateAction>;
+  runId: SeerExplorerRunId | null;
+}) {
+  const organization = useOrganization({allowNull: true});
+  const orgSlug = organization?.slug;
+  const queryClient = useQueryClient();
+  const sentryRunId = apiData?.sentry_run_id;
+
+  useEffect(() => {
+    // Legacy runs predate the SeerRun mirror and have no UUID to adopt.
+    if (typeof runId !== 'number' || !sentryRunId || !orgSlug || !apiData) {
+      return;
+    }
+    setApiQueryData<SeerExplorerResponse>(
+      queryClient,
+      makeSeerExplorerQueryKey(orgSlug, sentryRunId),
+      apiData
+    );
+    dispatch({type: 'set run id', payload: sentryRunId});
+  }, [apiData, dispatch, orgSlug, queryClient, runId, sentryRunId]);
 }
 
 export function useSeerExplorerChatState(): SeerExplorerChatState {

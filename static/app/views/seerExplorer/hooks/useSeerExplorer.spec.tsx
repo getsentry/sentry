@@ -402,6 +402,75 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it('adopts sentry_run_id when a session is opened by its integer run id', async () => {
+      const sentryRunId = 'f00dcafe-0000-0000-0000-000000000000';
+      const session = {
+        blocks: [
+          {
+            id: 'block-1',
+            message: {role: 'assistant', content: 'Existing answer'},
+            timestamp: '2026-08-28T00:00:00Z',
+            loading: false,
+          },
+        ],
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/456/`,
+        method: 'GET',
+        body: {session, sentry_run_id: sentryRunId},
+      });
+      const uuidMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${sentryRunId}/`,
+        method: 'GET',
+        body: {session, sentry_run_id: sentryRunId},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(456);
+      });
+
+      await waitFor(() => {
+        expect(result.current.runId).toBe(sentryRunId);
+      });
+
+      // The response is carried onto the UUID's cache entry, so the session is
+      // served from cache across the key swap rather than blanking while the
+      // refetch under the new key runs.
+      expect(result.current.sessionData?.blocks).toHaveLength(1);
+      await waitFor(() => {
+        expect(uuidMock).toHaveBeenCalled();
+      });
+    });
+
+    it('keeps the integer run id when the run has no sentry_run_id', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/456/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}, sentry_run_id: null},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(456);
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).not.toBeNull();
+      });
+      expect(result.current.runId).toBe(456);
+    });
+
     it('URL-encodes the runId when building explorer-update URLs', async () => {
       // A runId carrying path separators must be encoded so the same-origin
       // POST can't traverse to another endpoint.
