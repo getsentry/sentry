@@ -143,7 +143,7 @@ class TestUptimeHandler(UptimeTestCase):
             source_id=str(sub.id),
             packet=value,
         )
-        evaluation = handler.evaluate(data_packet)
+        evaluation = handler._evaluate(data_packet)
 
         if None not in evaluation:
             return None
