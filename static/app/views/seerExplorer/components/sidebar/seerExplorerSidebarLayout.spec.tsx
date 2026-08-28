@@ -249,6 +249,7 @@ describe('SeerExplorerSidebarLayout', () => {
   });
 
   it('changes and persists the dock position via the dropdown', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     mockWideScreen(false); // auto → bottom
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
@@ -267,12 +268,21 @@ describe('SeerExplorerSidebarLayout', () => {
     await waitFor(() =>
       expect(localStorage.getItem(POSITION_KEY)).toBe(JSON.stringify('right'))
     );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'seer.explorer.sidebar.position_changed',
+      expect.objectContaining({
+        position: 'right',
+        browser_width: expect.any(Number),
+        browser_height: expect.any(Number),
+      })
+    );
   });
 
   it('persists Seer size from a divider resize', async () => {
     // Right dock, available width 1200, default Seer 420 → content seeds to 780.
     // Growing the content pane by one keyboard step (ArrowRight, +10 → 790)
     // shrinks Seer to 1200 − 790 = 410, which is what we persist.
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     mockWideScreen(true);
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
@@ -288,6 +298,16 @@ describe('SeerExplorerSidebarLayout', () => {
 
     await waitFor(() =>
       expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('410')
+    );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'seer.explorer.sidebar.resized',
+      expect.objectContaining({
+        orientation: 'right',
+        seer_size: 410,
+        seer_size_percent: 34,
+        browser_width: expect.any(Number),
+        browser_height: expect.any(Number),
+      })
     );
   });
 

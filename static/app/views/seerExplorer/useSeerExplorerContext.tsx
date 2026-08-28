@@ -127,7 +127,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     undefined
   );
   const [sidebarKey, setSidebarKey] = useState(0);
-  const [sidebarPosition, setSidebarPosition] =
+  const [sidebarPosition, setSidebarPositionState] =
     useLocalStorageState<SeerExplorerSidebarPosition>(
       'seer-explorer-sidebar-position',
       'auto'
@@ -140,6 +140,19 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   const organization = useOrganization({allowNull: true});
   const {getPageReferrer} = usePageReferrer();
+
+  const setSidebarPosition = useCallback(
+    (position: SeerExplorerSidebarPosition) => {
+      setSidebarPositionState(position);
+      trackAnalytics('seer.explorer.sidebar.position_changed', {
+        organization,
+        position,
+        browser_width: window.innerWidth,
+        browser_height: window.innerHeight,
+      });
+    },
+    [organization, setSidebarPositionState]
+  );
 
   const {pipWindow, closePipWindow} = usePictureInPicture();
   const isPoppedOut = pipWindow !== null;

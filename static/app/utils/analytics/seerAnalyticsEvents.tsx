@@ -221,6 +221,26 @@ export type SeerAnalyticsEventsParameters = {
     surface: 'global_panel';
   };
   'seer.explorer.session_link_copied': Record<string, unknown>;
+  'seer.explorer.sidebar.position_changed': {
+    /** Current browser viewport height in CSS pixels. */
+    browser_height: number;
+    /** Current browser viewport width in CSS pixels. */
+    browser_width: number;
+    /** Dock preference the user selected. */
+    position: 'auto' | 'right' | 'bottom';
+  };
+  'seer.explorer.sidebar.resized': {
+    /** Current browser viewport height in CSS pixels. */
+    browser_height: number;
+    /** Current browser viewport width in CSS pixels. */
+    browser_width: number;
+    /** Resolved dock orientation for the resize (not the auto preference). */
+    orientation: 'right' | 'bottom';
+    /** Persisted Seer pane size in CSS pixels (width when right, height when bottom). */
+    seer_size: number;
+    /** Seer pane size as a percent of the available split axis, 0–100. */
+    seer_size_percent: number;
+  };
   'seer.explorer.timed_out': {
     run_id: SeerExplorerRunId | null;
   };
@@ -268,6 +288,8 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.session_copied_to_clipboard':
     'Seer Explorer: Session Copied to Clipboard',
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
+  'seer.explorer.sidebar.position_changed': 'Seer Explorer: Sidebar Position Changed',
+  'seer.explorer.sidebar.resized': 'Seer Explorer: Sidebar Resized',
   'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
   'seer.explorer.update_slack_clicked': 'Seer Explorer: Update Slack Clicked',
 };
