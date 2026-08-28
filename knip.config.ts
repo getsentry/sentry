@@ -14,8 +14,6 @@ const productionEntryPoints = [
   'static/app/components/seer/markdown/embeds/schemas.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
-  // frontend experiemnt framework may be unused when we have no experiemnets
-  'static/app/utils/useExperiment.tsx',
   // --- we should be able to get rid of those: ---
   // TODO: Remove when wired into Seer Explorer
   'static/app/components/core/chat/thinkingBlock.tsx',
