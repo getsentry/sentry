@@ -1,5 +1,7 @@
 import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {getParserServices} from '@typescript-eslint/utils/eslint-utils';
 import type {RuleFix, RuleFixer, Scope} from '@typescript-eslint/utils/ts-eslint';
+import ts from 'typescript';
 
 const NOT_HARDCODED = Symbol('not hardcoded');
 
@@ -140,6 +142,165 @@ function hasDefaults(defaults: FunctionDefaults): boolean {
   return defaults.positional.size > 0 || defaults.objectProperties.size > 0;
 }
 
+function unwrapTypeScriptExpression(node: ts.Expression): ts.Expression {
+  if (
+    ts.isAsExpression(node) ||
+    ts.isTypeAssertionExpression(node) ||
+    ts.isNonNullExpression(node) ||
+    ts.isParenthesizedExpression(node) ||
+    ts.isSatisfiesExpression(node)
+  ) {
+    return unwrapTypeScriptExpression(node.expression);
+  }
+  return node;
+}
+
+function getTypeScriptHardcodedValue(
+  expression: ts.Expression
+): HardcodedValue | typeof NOT_HARDCODED {
+  const node = unwrapTypeScriptExpression(expression);
+
+  if (ts.isStringLiteralLike(node)) {
+    return node.text;
+  }
+  if (ts.isNumericLiteral(node)) {
+    return Number(node.text);
+  }
+  if (ts.isBigIntLiteral(node)) {
+    return BigInt(node.getText().replaceAll('_', '').slice(0, -1));
+  }
+  if (node.kind === ts.SyntaxKind.TrueKeyword) {
+    return true;
+  }
+  if (node.kind === ts.SyntaxKind.FalseKeyword) {
+    return false;
+  }
+  if (node.kind === ts.SyntaxKind.NullKeyword) {
+    return null;
+  }
+  if (ts.isPrefixUnaryExpression(node)) {
+    const operand = getTypeScriptHardcodedValue(node.operand);
+    if (typeof operand === 'number') {
+      if (node.operator === ts.SyntaxKind.MinusToken) {
+        return -operand;
+      }
+      if (node.operator === ts.SyntaxKind.PlusToken) {
+        return operand;
+      }
+    }
+    if (typeof operand === 'bigint' && node.operator === ts.SyntaxKind.MinusToken) {
+      return -operand;
+    }
+  }
+  return NOT_HARDCODED;
+}
+
+function getTypeScriptPropertyName(
+  node: ts.BindingName | ts.PropertyName
+): string | undefined {
+  if (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) {
+    return node.text;
+  }
+  if (ts.isNumericLiteral(node)) {
+    return String(Number(node.text));
+  }
+  return undefined;
+}
+
+function getTypeScriptObjectDefaults(pattern: ts.ObjectBindingPattern) {
+  const defaults = new Map<string, DefaultValue>();
+
+  for (const element of pattern.elements) {
+    if (element.dotDotDotToken || !element.initializer) {
+      continue;
+    }
+
+    const name = getTypeScriptPropertyName(element.propertyName ?? element.name);
+    const value = getTypeScriptHardcodedValue(element.initializer);
+    if (name !== undefined && value !== NOT_HARDCODED) {
+      defaults.set(name, {name, value});
+    }
+  }
+
+  return defaults;
+}
+
+function getTypeScriptFunctionDefaults(
+  node: ts.SignatureDeclarationBase
+): FunctionDefaults {
+  const defaults: FunctionDefaults = {
+    objectProperties: new Map(),
+    positional: new Map(),
+  };
+  let runtimeIndex = 0;
+
+  for (const parameter of node.parameters) {
+    if (ts.isIdentifier(parameter.name) && parameter.name.text === 'this') {
+      continue;
+    }
+
+    if (parameter.initializer && ts.isIdentifier(parameter.name)) {
+      const value = getTypeScriptHardcodedValue(parameter.initializer);
+      if (value !== NOT_HARDCODED) {
+        defaults.positional.set(runtimeIndex, {
+          name: parameter.name.text,
+          value,
+        });
+      }
+    } else if (ts.isObjectBindingPattern(parameter.name)) {
+      const properties = getTypeScriptObjectDefaults(parameter.name);
+      if (properties.size > 0) {
+        defaults.objectProperties.set(runtimeIndex, properties);
+      }
+    }
+
+    runtimeIndex++;
+  }
+
+  return defaults;
+}
+
+function getFunctionLikeDeclaration(
+  declaration: ts.Declaration
+): ts.SignatureDeclarationBase | undefined {
+  if (
+    ts.isFunctionDeclaration(declaration) ||
+    ts.isFunctionExpression(declaration) ||
+    ts.isArrowFunction(declaration)
+  ) {
+    return declaration;
+  }
+  if (!ts.isVariableDeclaration(declaration) || !declaration.initializer) {
+    return undefined;
+  }
+
+  const initializer = unwrapTypeScriptExpression(declaration.initializer);
+  return ts.isFunctionExpression(initializer) || ts.isArrowFunction(initializer)
+    ? initializer
+    : undefined;
+}
+
+function getTypeScriptSymbolDefaults(
+  checker: ts.TypeChecker,
+  symbol: ts.Symbol
+): FunctionDefaults | undefined {
+  const resolvedSymbol =
+    symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+
+  for (const declaration of resolvedSymbol.getDeclarations() ?? []) {
+    const functionDeclaration = getFunctionLikeDeclaration(declaration);
+    if (!functionDeclaration) {
+      continue;
+    }
+
+    const defaults = getTypeScriptFunctionDefaults(functionDeclaration);
+    if (hasDefaults(defaults)) {
+      return defaults;
+    }
+  }
+  return undefined;
+}
+
 function formatHardcodedValue(value: HardcodedValue): string {
   if (typeof value === 'string') {
     return JSON.stringify(value);
@@ -168,8 +329,20 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     },
   },
   create(context) {
+    const parserServices =
+      context.sourceCode.parserServices?.esTreeNodeToTSNodeMap &&
+      context.sourceCode.parserServices.tsNodeToESTreeNodeMap
+        ? getParserServices(context, true)
+        : undefined;
     const defaultsByVariable = new Map<Scope.Variable, FunctionDefaults>();
-    const calls: Array<{node: TSESTree.CallExpression; variable: Scope.Variable}> = [];
+    const typeAwareDefaultsByVariable = new Map<
+      Scope.Variable,
+      FunctionDefaults | null
+    >();
+    const calls: Array<{
+      node: TSESTree.CallExpression;
+      variable: Scope.Variable;
+    }> = [];
     const elements: Array<{
       node: TSESTree.JSXOpeningElement;
       variable: Scope.Variable;
@@ -185,6 +358,37 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         scope = scope.upper;
       }
       return;
+    }
+
+    function getTypeAwareDefaults(
+      identifier: TSESTree.Identifier | TSESTree.JSXIdentifier,
+      variable: Scope.Variable
+    ) {
+      if (typeAwareDefaultsByVariable.has(variable)) {
+        return typeAwareDefaultsByVariable.get(variable);
+      }
+
+      const program = parserServices?.program;
+      if (!program) {
+        typeAwareDefaultsByVariable.set(variable, null);
+        return;
+      }
+
+      const checker = program.getTypeChecker();
+      const typeScriptNode = parserServices.esTreeNodeToTSNodeMap.get(identifier);
+      const symbol = checker.getSymbolAtLocation(typeScriptNode);
+      const defaults = symbol ? getTypeScriptSymbolDefaults(checker, symbol) : undefined;
+      typeAwareDefaultsByVariable.set(variable, defaults ?? null);
+      return defaults;
+    }
+
+    function getDefaults(
+      identifier: TSESTree.Identifier | TSESTree.JSXIdentifier,
+      variable: Scope.Variable
+    ) {
+      return (
+        defaultsByVariable.get(variable) ?? getTypeAwareDefaults(identifier, variable)
+      );
     }
 
     function registerFunction(
@@ -558,7 +762,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           if (!isStable(variable)) {
             continue;
           }
-          const defaults = defaultsByVariable.get(variable);
+          if (node.callee.type !== AST_NODE_TYPES.Identifier) {
+            continue;
+          }
+          const defaults = getDefaults(node.callee, variable);
           if (defaults) {
             checkCall(node, defaults);
           }
@@ -567,7 +774,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           if (!isStable(variable)) {
             continue;
           }
-          const defaults = defaultsByVariable.get(variable);
+          if (node.name.type !== AST_NODE_TYPES.JSXIdentifier) {
+            continue;
+          }
+          const defaults = getDefaults(node.name, variable);
           if (defaults) {
             checkElement(node, defaults);
           }

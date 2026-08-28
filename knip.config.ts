@@ -92,6 +92,10 @@ const config: KnipConfig = {
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
     },
+    'static/eslint/eslintPluginSentry': {
+      // RuleTester resolves these cross-file fixtures by filename.
+      ignoreFiles: ['fixtures/**/*.{ts,tsx}'],
+    },
   },
   ignoreExportsUsedInFile: isProductionMode,
   rules: {
