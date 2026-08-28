@@ -239,7 +239,6 @@ function ManageDashboards() {
         marginBottom="xl"
       >
         <SearchBar
-          defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}

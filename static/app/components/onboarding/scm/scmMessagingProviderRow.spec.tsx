@@ -398,7 +398,6 @@ describe('ScmMessagingProviderRow', () => {
           onActiveRowChange={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />
       );
 
@@ -441,7 +440,6 @@ describe('ScmMessagingProviderRow', () => {
           onActiveRowChange={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />,
         {organization}
       );
@@ -473,7 +471,6 @@ describe('ScmMessagingProviderRow', () => {
           onActiveRowChange={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />
       );
 
@@ -496,7 +493,6 @@ describe('ScmMessagingProviderRow', () => {
           onActiveRowChange={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />,
         {organization}
       );
@@ -528,7 +524,6 @@ describe('ScmMessagingProviderRow', () => {
           onActiveRowChange={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />
       );
 
