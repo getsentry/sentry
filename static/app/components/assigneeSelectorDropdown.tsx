@@ -16,7 +16,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {AssignmentTooltip, type AssignmentDetails} from 'sentry/components/assigneeBadge';
+import {AssignedTooltip, type AssignmentDetails} from 'sentry/components/assigneeBadge';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -150,7 +150,7 @@ function AssigneeAvatar({
         skipWrapper
         title={
           assignmentDetails ? (
-            <AssignmentTooltip
+            <AssignedTooltip
               assignedTo={assignedTo}
               assignmentDetails={assignmentDetails}
             />
