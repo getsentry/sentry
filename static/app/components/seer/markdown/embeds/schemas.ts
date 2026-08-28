@@ -580,9 +580,11 @@ export const SEER_EMBED_SCHEMAS = {
   },
   spansQuery: {
     description:
-      'Link to an Explore > Traces (spans) query. ' +
-      'Use mode "samples" to show individual spans and "aggregate" to group and ' +
-      'chart them. In aggregate mode supply `groupBy` and `yAxes`. ' +
+      'Preview an Explore > Traces (spans) query. ' +
+      'Use mode "samples" for individual spans; inline renders a link and block ' +
+      'renders the first five matching rows. ' +
+      'Use mode "aggregate" for grouped results; supply `groupBy` and `yAxes`, and ' +
+      'the block renders the first five grouped rows. ' +
       '`query` uses span search syntax, e.g. "span.op:http.client".',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
@@ -592,8 +594,10 @@ export const SEER_EMBED_SCHEMAS = {
         data: {
           query: 'span.op:http.client',
           mode: 'samples',
+          fields: ['span.description', 'span.op', 'span.duration', 'timestamp'],
           sort: '-span.duration',
           statsPeriod: '24h',
+          title: 'Slow HTTP spans',
         },
       },
       {
@@ -603,7 +607,9 @@ export const SEER_EMBED_SCHEMAS = {
           mode: 'aggregate',
           groupBy: ['span.op'],
           yAxes: ['p95(span.duration)'],
+          sort: '-p95_span_duration',
           statsPeriod: '7d',
+          title: 'p95 by span op',
         },
       },
     ],
