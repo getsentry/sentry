@@ -133,25 +133,24 @@ export function ConversationSpanDetail({
 
   return (
     <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
-      <Flex align="center" gap="lg" flexShrink={0}>
-        <Flex flex="1" minWidth="0" align="center" gap="md">
-          <AiSpanStatusIcon node={node} />
-          <InfoText title={title} mode="overflowOnly" size="lg" bold>
-            {title}
-          </InfoText>
+      <Container flexShrink={0}>
+        <Flex align="center" gap="lg">
+          <Flex flex="1" minWidth="0" align="center" gap="md">
+            <AiSpanStatusIcon node={node} />
+            <InfoText title={title} mode="overflowOnly" size="lg" bold>
+              {title}
+            </InfoText>
+          </Flex>
+          {onClose ? (
+            <Button
+              size="sm"
+              variant="transparent"
+              icon={<IconClose />}
+              aria-label={t('Close')}
+              onClick={onClose}
+            />
+          ) : null}
         </Flex>
-        {onClose ? (
-          <Button
-            size="sm"
-            variant="transparent"
-            icon={<IconClose />}
-            aria-label={t('Close')}
-            onClick={onClose}
-          />
-        ) : null}
-      </Flex>
-
-      <Container flexShrink={0} minWidth="0">
         <TraceDrawerComponents.SubtitleWithCopyButton
           subTitle={`ID: ${node.id}`}
           clipboardText={node.id}
