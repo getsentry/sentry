@@ -585,7 +585,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         ]
 
 
-class CarryoverMixin(MetricCallsMixin):
+class CarryoverTestBase(MetricCallsMixin, TestCase):
     """Mailbox setup and cache reads shared by the carryover suites."""
 
     def create_mailboxes(self, count: int) -> list[WebhookPayload]:
@@ -613,7 +613,7 @@ class CarryoverMixin(MetricCallsMixin):
 @control_silo_test
 @patch.object(deliver_webhooks, "BATCH_SIZE", 2)
 @patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 4)
-class ScheduleCarryoverTest(CarryoverMixin, TestCase):
+class ScheduleCarryoverTest(CarryoverTestBase):
     """
     Cycles dispatch two mailboxes apiece here, so a third mailbox is the surplus a
     cycle discovers but has no budget to dispatch. A one-head surplus sits exactly
@@ -770,7 +770,7 @@ class ScheduleCarryoverTest(CarryoverMixin, TestCase):
 @control_silo_test
 @patch.object(deliver_webhooks, "BATCH_SIZE", 4)
 @patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 12)
-class ScheduleCarryoverFloorTest(CarryoverMixin, TestCase):
+class ScheduleCarryoverFloorTest(CarryoverTestBase):
     """A surplus under `BATCH_SIZE // 2` is dropped rather than carried."""
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
