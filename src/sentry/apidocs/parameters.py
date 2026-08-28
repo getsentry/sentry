@@ -232,7 +232,7 @@ Valid fields include:
         required=False,
         type=str,
         description=(
-            "Limit results to members matching the given query. Prefixes suggest the field to "
+            "Limit results to members matching the given query. `id, `user.id`, ... are supported prefixes "
             "match on: `id`, `user.id`, `email`, `role`, `scope`, `isInvited`, `ssoLinked`, "
             "`has2fa`, `hasExternalUsers`. For example, `query=user.id:1234`. An unrecognized "
             "field returns no results."
