@@ -80,12 +80,8 @@ cycle below its target by whatever the contention share is. Heads the cycle
 never reaches are handed to the next one (see CARRYOVER_CACHE_KEY) rather than
 rediscovered.
 
-Sized well above BATCH_SIZE because the selection is nearly free next to the
-scan that produces it: the aggregate visits every row either way, and the limit
-only bounds what is materialized. Overselecting is what makes a carried surplus
-survive contention — at 2x, a cycle skipping a fifth of what it walks carries
-less than a batch, and the next cycle then dispatches short of BATCH_SIZE with
-mailboxes still due.
+Set far above BATCH_SIZE because the limit only bounds what the scan
+materializes, and a surplus has to outlast contention to be worth carrying.
 """
 
 
@@ -535,9 +531,8 @@ CARRYOVER_CACHE_KEY = "wh:schedule:carryover"
 CARRYOVER_TTL = 60
 """
 Seconds a carried surplus stays dispatchable. Each cycle re-stores what it did
-not spend, so the TTL does not bound how long a deep backlog defers discovery —
-it is the backstop for a cycle that dies mid-list, keeping a surplus nobody is
-spending from deferring discovery indefinitely.
+not spend, so this bounds only a surplus nobody is spending — not how long a
+deep backlog defers discovery.
 """
 
 
@@ -610,8 +605,7 @@ def schedule_webhook_delivery() -> None:
     one claim attempt: `_claim_and_dispatch` gates every dispatch on the head still
     being due, so a head claimed, delivered, or backed off since discovery claims 0
     rows and is skipped. Mailboxes that arrive while a surplus is being spent are
-    dispatched by their push trigger; the ones with none wait for the surplus to
-    drain, which is the trade a deep backlog is already making.
+    dispatched by their push trigger; the ones with none wait for it to drain.
 
     Triggered frequently by task-scheduler.
     """
@@ -669,18 +663,13 @@ def schedule_webhook_delivery() -> None:
         else:
             dispatched += 1
 
-    # The next cycle takes a carryover in place of discovery, so a short surplus
-    # costs it the rest of its dispatch budget while mailboxes are still due. Half
-    # a batch is where that loss stops being worth the scan it saves; below it the
-    # surplus is dropped, and discovery finds those heads again — they are still
-    # due, and now sort ahead of the newer ones.
+    # A carryover displaces the next cycle's discovery, so a short surplus costs it
+    # the rest of its dispatch budget — below half a batch that outweighs the scan
+    # it saves, and discovery finds those heads again.
     if len(surplus) >= BATCH_SIZE // 2:
         _store_carryover(surplus)
     else:
         if surplus:
-            # Recorded because the carryover distribution only samples surpluses
-            # large enough to keep, so on its own it cannot say how often the
-            # overselect failed to survive a cycle's contention.
             metrics.incr("hybridcloud.schedule_webhook_delivery.carryover.dropped")
         if carryover:
             _clear_carryover()

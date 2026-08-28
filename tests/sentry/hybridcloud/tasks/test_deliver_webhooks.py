@@ -617,8 +617,7 @@ class ScheduleCarryoverTest(CarryoverMixin, TestCase):
     """
     Cycles dispatch two mailboxes apiece here, so a third mailbox is the surplus a
     cycle discovers but has no budget to dispatch. A one-head surplus sits exactly
-    on the `BATCH_SIZE // 2` floor at this batch size, so it is kept --
-    `ScheduleCarryoverFloorTest` runs a wider batch to put a surplus under it.
+    on the `BATCH_SIZE // 2` floor here, so it is kept.
     """
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
@@ -772,19 +771,13 @@ class ScheduleCarryoverTest(CarryoverMixin, TestCase):
 @patch.object(deliver_webhooks, "BATCH_SIZE", 4)
 @patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 12)
 class ScheduleCarryoverFloorTest(CarryoverMixin, TestCase):
-    """
-    A surplus under `BATCH_SIZE // 2` is dropped rather than carried. The next cycle
-    takes a carryover in place of discovery, so a short one would cost it the rest
-    of its budget with mailboxes still due.
-    """
+    """A surplus under `BATCH_SIZE // 2` is dropped rather than carried."""
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_surplus_below_the_floor_is_dropped(
         self, mock_drain: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        # One head past the dispatch budget: carrying it would leave the next cycle
-        # dispatching a single mailbox out of a budget of four.
         self.create_mailboxes(5)
 
         schedule_webhook_delivery()
@@ -814,8 +807,7 @@ class ScheduleCarryoverFloorTest(CarryoverMixin, TestCase):
         schedule_webhook_delivery()
         assert self.carryover() == self.carried(webhooks[4:])
 
-        # Spending the surplus strands one head. It must not linger in the cache: a
-        # stale carryover would displace the next cycle's discovery.
+        # A stale carryover would displace the next cycle's discovery.
         schedule_webhook_delivery()
 
         assert self.carryover() is None
