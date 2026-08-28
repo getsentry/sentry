@@ -106,7 +106,6 @@ function FindOutMoreButton({
       variant="link"
       size="sm"
       href={href}
-      to=""
       analyticsEventName="Subscription Settings: Find Out More Button Clicked"
       analyticsEventKey="subscription_settings.find_out_more_button_clicked"
       analyticsParams={{product: selectedProduct}}

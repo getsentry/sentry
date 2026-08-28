@@ -11,6 +11,10 @@ export function organizationIntegrationsQueryOptions({
     '/organizations/$organizationIdOrSlug/integrations/',
     {
       path: {organizationIdOrSlug: organization.slug},
+      query: {
+        includeConfig: 0,
+      },
+      staleTime: 60_000,
     }
   );
 }

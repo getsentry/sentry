@@ -1,5 +1,3 @@
-import * as qs from 'query-string';
-
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 export const makeAutomationBasePathname = (orgSlug: string) => {
@@ -7,7 +5,7 @@ export const makeAutomationBasePathname = (orgSlug: string) => {
 };
 
 export const makeAutomationCreatePathname = (orgSlug: string) => {
-  return normalizeUrl(`${makeAutomationBasePathname(orgSlug)}new/?${qs.stringify({})}`);
+  return normalizeUrl(`${makeAutomationBasePathname(orgSlug)}new/`);
 };
 
 export const makeAutomationDetailsPathname = (orgSlug: string, automationId: string) => {

@@ -83,9 +83,9 @@ function toAnnualDollars(
     return cents;
   }
   if (billingInterval === 'monthly') {
-    return toDollars(cents * 12, 0);
+    return toDollars(cents * 12);
   }
-  return toDollars(cents, 0);
+  return toDollars(cents);
 }
 
 /**

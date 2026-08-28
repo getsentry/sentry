@@ -11,6 +11,7 @@ export function organizationConfigIntegrationsQueryOptions({
     '/organizations/$organizationIdOrSlug/config/integrations/',
     {
       path: {organizationIdOrSlug: organization.slug},
+      staleTime: 60_000,
     }
   );
 }

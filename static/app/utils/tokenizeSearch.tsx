@@ -361,7 +361,7 @@ export class MutableSearch {
       if (i > 0) {
         this.addOp('OR');
       }
-      this.addFilterValue(key, values[i]!, true);
+      this.addFilterValue(key, values[i]!);
     }
     this.addOp(')');
     return this;
