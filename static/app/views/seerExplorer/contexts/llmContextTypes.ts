@@ -114,7 +114,7 @@ export interface LLMContextOverlayNode {
  */
 export interface LLMContextInternalValue {
   getOverlayNodes: () => LLMContextOverlayNode[];
-  getSnapshot: (fromNodeId?: string) => LLMContextSnapshot;
+  getSnapshot: () => LLMContextSnapshot;
   registerNode: (nodeId: string, nodeType: string, parentId?: string) => void;
   unregisterNode: (nodeId: string) => void;
   updateNodeData: (nodeId: string, data: unknown) => void;

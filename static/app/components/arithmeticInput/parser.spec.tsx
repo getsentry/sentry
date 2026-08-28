@@ -1,5 +1,15 @@
 import {Operation, parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 
+function operation(
+  operator: Operation['operator'],
+  lhs: Operation['lhs'],
+  rhs: Operation['rhs']
+) {
+  const result = new Operation({operator, rhs: rhs!});
+  result.lhs = lhs;
+  return result;
+}
+
 describe('arithmeticInput/parser', () => {
   it('errors on too many operators', () => {
     expect(parseArithmetic('1+1+1+1+1+1+1+1+1+1+1+1').error).toBe(
@@ -16,120 +26,52 @@ describe('arithmeticInput/parser', () => {
   });
 
   it('handles some addition', () => {
-    expect(parseArithmetic('1 + 2').result).toStrictEqual(
-      new Operation({
-        operator: 'plus',
-        lhs: '1',
-        rhs: '2',
-      })
-    );
+    expect(parseArithmetic('1 + 2').result).toStrictEqual(operation('plus', '1', '2'));
   });
 
   it('handles three term addition', () => {
     expect(parseArithmetic('1 + 2 + 3').result).toStrictEqual(
-      new Operation({
-        operator: 'plus',
-        lhs: new Operation({
-          operator: 'plus',
-          lhs: '1',
-          rhs: '2',
-        }),
-        rhs: '3',
-      })
+      operation('plus', operation('plus', '1', '2'), '3')
     );
   });
 
   it('handles some multiplication', () => {
-    expect(parseArithmetic('1 * 2').result).toStrictEqual(
-      new Operation({
-        operator: 'multiply',
-        lhs: '1',
-        rhs: '2',
-      })
-    );
+    expect(parseArithmetic('1 * 2').result).toStrictEqual(operation('multiply', '1', '2'));
   });
 
   it('handles three term multiplication', () => {
     expect(parseArithmetic('1 * 2 * 3').result).toStrictEqual(
-      new Operation({
-        operator: 'multiply',
-        lhs: new Operation({
-          operator: 'multiply',
-          lhs: '1',
-          rhs: '2',
-        }),
-        rhs: '3',
-      })
+      operation('multiply', operation('multiply', '1', '2'), '3')
     );
   });
 
   it('handles brackets', () => {
     expect(parseArithmetic('1 * (2 + 3)').result).toStrictEqual(
-      new Operation({
-        operator: 'multiply',
-        lhs: '1',
-        rhs: new Operation({
-          operator: 'plus',
-          lhs: '2',
-          rhs: '3',
-        }),
-      })
+      operation('multiply', '1', operation('plus', '2', '3'))
     );
 
     expect(parseArithmetic('(1 + 2) / 3').result).toStrictEqual(
-      new Operation({
-        operator: 'divide',
-        lhs: new Operation({
-          operator: 'plus',
-          lhs: '1',
-          rhs: '2',
-        }),
-        rhs: '3',
-      })
+      operation('divide', operation('plus', '1', '2'), '3')
     );
   });
 
   it('handles order of operations', () => {
     expect(parseArithmetic('1 + 2 * 3').result).toStrictEqual(
-      new Operation({
-        operator: 'plus',
-        lhs: '1',
-        rhs: new Operation({
-          operator: 'multiply',
-          lhs: '2',
-          rhs: '3',
-        }),
-      })
+      operation('plus', '1', operation('multiply', '2', '3'))
     );
 
     expect(parseArithmetic('1 / 2 - 3').result).toStrictEqual(
-      new Operation({
-        operator: 'minus',
-        lhs: new Operation({
-          operator: 'divide',
-          lhs: '1',
-          rhs: '2',
-        }),
-        rhs: '3',
-      })
+      operation('minus', operation('divide', '1', '2'), '3')
     );
   });
 
   it('handles fields and functions', () => {
     expect(parseArithmetic('spans.db + measurements.lcp').result).toStrictEqual(
-      new Operation({
-        operator: 'plus',
-        lhs: 'spans.db',
-        rhs: 'measurements.lcp',
-      })
+      operation('plus', 'spans.db', 'measurements.lcp')
     );
 
     expect(parseArithmetic('failure_count() + count_unique(user)').result).toStrictEqual(
-      new Operation({
-        operator: 'plus',
-        lhs: 'failure_count()',
-        rhs: 'count_unique(user)',
-      })
+      operation('plus', 'failure_count()', 'count_unique(user)')
     );
   });
 });

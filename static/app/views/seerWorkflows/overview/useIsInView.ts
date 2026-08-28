@@ -8,10 +8,7 @@ function supportsIntersectionObserver(): boolean {
 
 // Reports whether `ref` has scrolled into view; latches true on first sight so
 // the windowed enrichment fires at most once per card and never thrashes.
-export function useIsInView(
-  ref: React.RefObject<Element | null>,
-  options: Partial<IntersectionObserverInit> = ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS
-): boolean {
+export function useIsInView(ref: React.RefObject<Element | null>): boolean {
   const [inView, setInView] = useState(() => !supportsIntersectionObserver());
 
   useEffect(() => {
@@ -26,10 +23,10 @@ export function useIsInView(
       if (entries.some(entry => entry.isIntersecting)) {
         setInView(true);
       }
-    }, options);
+    }, ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS);
     observer.observe(node);
     return () => observer.disconnect();
-  }, [ref, inView, options]);
+  }, [ref, inView]);
 
   return inView;
 }

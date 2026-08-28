@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import type {LegendComponentOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
@@ -148,14 +147,12 @@ export function axisLabelFormatterUsingAggregateOutputType(
 }
 
 /**
- * Given an array of series and an eCharts legend object,
- * finds the range of y values (min and max) based on which series is selected in the legend.
+ * Given an array of series, finds the range of y values (min and max).
  * Does not assume any ordering of series, will check min/max for all series in multiseries.
  * @param series Array of eCharts series
- * @param legend eCharts legend object
  * @returns
  */
-export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
+export function findRangeOfMultiSeries(series: Series[]) {
   const range: {max: number; min: number} = {
     max: 0,
     min: Infinity,
@@ -166,24 +163,22 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
   }
 
   for (const {seriesName, data} of series) {
-    if (legend?.selected?.[seriesName] !== false) {
-      const max = Math.max(...data.map(({value}) => value).filter(Number.isFinite));
-      const min = Math.min(...data.map(({value}) => value).filter(Number.isFinite));
+    const max = Math.max(...data.map(({value}) => value).filter(Number.isFinite));
+    const min = Math.min(...data.map(({value}) => value).filter(Number.isFinite));
 
-      if (max > range.max) {
-        range.max = max;
-      }
-      if (min < range.min) {
-        range.min = min;
-      }
-      if (min < 0) {
-        Sentry.withScope(scope => {
-          scope.setTag('seriesName', seriesName);
-          scope.setExtra('min', min);
-          scope.setExtra('max', min);
-          Sentry.captureMessage('Found negative min value in multiseries');
-        });
-      }
+    if (max > range.max) {
+      range.max = max;
+    }
+    if (min < range.min) {
+      range.min = min;
+    }
+    if (min < 0) {
+      Sentry.withScope(scope => {
+        scope.setTag('seriesName', seriesName);
+        scope.setExtra('min', min);
+        scope.setExtra('max', min);
+        Sentry.captureMessage('Found negative min value in multiseries');
+      });
     }
   }
   if (range.max === 0 && range.min === Infinity) {

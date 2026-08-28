@@ -8,10 +8,7 @@ import type {FormPanelProps} from './formPanel';
 import {FormPanel} from './formPanel';
 import type {Field, FieldObject, JsonFormObject} from './types';
 
-interface JsonFormProps extends Omit<
-  FormPanelProps,
-  'highlighted' | 'fields' | 'additionalFieldProps'
-> {
+interface JsonFormProps extends Omit<FormPanelProps, 'highlighted' | 'fields'> {
   /**
    * If `forms` is not defined, `title` + `fields` must be required.
    * Allows more fine grain control of title/fields

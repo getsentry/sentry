@@ -1,5 +1,3 @@
-import type {LegendComponentOption} from 'echarts';
-
 import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
@@ -302,34 +300,6 @@ describe('findRangeOfMultiSeries()', () => {
       },
     ];
     expect(findRangeOfMultiSeries(noDataSeries)).toStrictEqual({max: 2300, min: 1900});
-  });
-
-  it('should not find range if no items selected', () => {
-    const legend: LegendComponentOption = {
-      selected: {'p100()': false, 'p95()': false, 'p50()': false},
-    };
-    expect(findRangeOfMultiSeries(series, legend)).toBeUndefined();
-  });
-
-  it('should ignore p100 series if not selected', () => {
-    const legend: LegendComponentOption = {
-      selected: {'p100()': false},
-    };
-    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual({max: 300, min: 50});
-  });
-
-  it('should ignore p50 series if not selected', () => {
-    const legend: LegendComponentOption = {
-      selected: {'p50()': false},
-    };
-    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual({max: 2300, min: 280});
-  });
-
-  it('should display p100 value if selected and in legend object', () => {
-    const legend: LegendComponentOption = {
-      selected: {'p100()': true},
-    };
-    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual({max: 2300, min: 50});
   });
 });
 

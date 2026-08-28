@@ -117,10 +117,9 @@ const isSortEqualToField = (
 const fieldToSort = (
   field: Field,
   tableMeta: MetaType | undefined,
-  kind?: 'desc' | 'asc',
-  useFunctionFormat?: boolean
+  kind?: 'desc' | 'asc'
 ): Sort | undefined => {
-  const sortKey = getSortKeyFromField(field, tableMeta, useFunctionFormat);
+  const sortKey = getSortKeyFromField(field, tableMeta);
 
   if (!sortKey) {
     return void 0;
@@ -134,10 +133,9 @@ const fieldToSort = (
 
 function getSortKeyFromField(
   field: Field,
-  tableMeta?: MetaType,
-  useFunctionFormat?: boolean
+  tableMeta?: MetaType
 ): string | null {
-  const fieldString = useFunctionFormat ? field.field : getAggregateAlias(field.field);
+  const fieldString = getAggregateAlias(field.field);
   return getSortField(fieldString, tableMeta);
 }
 
