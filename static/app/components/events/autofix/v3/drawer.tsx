@@ -16,6 +16,7 @@ import {
 import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
 import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
+import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -26,7 +27,6 @@ import {defined} from 'sentry/utils/defined';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
@@ -45,10 +45,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       organization.features.includes('autofix-pr-iteration') ||
       organization.features.includes('autofix-pr-iteration-manual'),
   });
-  const [enableBashTools, setEnableBashTools] = useLocalStorageState(
-    'autofix-force-bash-mode',
-    false
-  );
+  const [enableBashTools, setEnableBashTools] = useForceBashMode();
 
   const autofix = useMemo(
     () => ({
