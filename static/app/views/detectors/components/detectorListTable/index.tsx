@@ -8,6 +8,7 @@ import {
 } from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueryState} from 'nuqs';
 
 import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
@@ -27,7 +28,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   DetectorsTableActions,
@@ -162,7 +162,7 @@ export function DetectorListTable({
 
   const elementRef = useRef<HTMLTableCellElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 1000);
+  const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
   const {

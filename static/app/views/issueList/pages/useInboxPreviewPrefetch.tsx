@@ -7,6 +7,7 @@ import {explorerAutofixApiOptions} from 'sentry/components/events/autofix/useExp
 import {linkedPullRequestsApiOptions} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -32,7 +33,7 @@ export function useInboxPreviewPrefetch(group: Group) {
         groupApiOptions({
           ...issueParams,
           environments,
-          expandDerivedData: organization.features.includes('issue-inbox'),
+          expandDerivedData: orgHasIssueInbox(organization),
         })
       );
       void queryClient.prefetchQuery({

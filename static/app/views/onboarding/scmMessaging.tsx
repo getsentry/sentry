@@ -89,7 +89,7 @@ export function ScmMessaging({
         isEligibleForIssueAlerts(integration)
     );
     // Drop exclusive if the install never surfaced a usable integration.
-    if (result.isError || !connected) {
+    if (result.isLoadingError || !connected) {
       setActiveRow(null);
     }
   };
@@ -97,7 +97,10 @@ export function ScmMessaging({
   const hasValidationAlert = !!validation.staleReason || validation.isError;
 
   return (
-    <Stack align="center" gap="2xl" flexGrow={1}>
+    // The onboarding flow has no page-level query container (project creation
+    // resolves against `#main`), and the flow's fixed footers preclude one
+    // higher up, so each SCM step declares its own.
+    <Stack align="center" gap="2xl" flexGrow={1} containerType="inline-size">
       <Stack gap="2xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`} width="100%">
         <Stack gap="lg">
           <Heading as="h2" size="3xl">
@@ -195,12 +198,12 @@ export function ScmMessaging({
                 transition={{duration: 0.15}}
                 gap="lg"
               >
-                {providers.map(viewModel =>
+                {providers.map(resolvedProvider =>
                   validatedActiveRow === null ||
-                  validatedActiveRow.providerKey === viewModel.providerKey ? (
+                  validatedActiveRow.providerKey === resolvedProvider.providerKey ? (
                     <ScmMessagingProviderRow
-                      key={viewModel.providerKey}
-                      viewModel={viewModel}
+                      key={resolvedProvider.providerKey}
+                      resolvedProvider={resolvedProvider}
                       messagingSetup={messagingSetup}
                       onMessagingSetupChange={onMessagingSetupChange}
                       onInstallComplete={handleInstallComplete}
@@ -269,16 +272,18 @@ function validateActiveRow(
   if (!activeRow) {
     return null;
   }
-  const viewModel = providers.find(p => p.providerKey === activeRow.providerKey);
-  if (!viewModel) {
+  const resolvedProvider = providers.find(p => p.providerKey === activeRow.providerKey);
+  if (!resolvedProvider) {
     return null;
   }
-  if (viewModel.status === 'connected') {
+  if (resolvedProvider.status === 'connected') {
     if (activeRow.mode === 'removing') {
       const isConfigured =
         messagingSetup.mode === 'selected' &&
         messagingSetup.providerKey === activeRow.providerKey &&
-        viewModel.eligibleIntegrations.some(i => i.id === messagingSetup.integrationId);
+        resolvedProvider.eligibleIntegrations.some(
+          i => i.id === messagingSetup.integrationId
+        );
       if (!isConfigured) {
         return null;
       }
@@ -287,7 +292,7 @@ function validateActiveRow(
   }
   // Post-install: configuring is set before the refetch promotes installable
   // to connected. Keep exclusive so the footer cannot be clicked in between.
-  if (activeRow.mode === 'configuring' && viewModel.status === 'installable') {
+  if (activeRow.mode === 'configuring' && resolvedProvider.status === 'installable') {
     return activeRow;
   }
   return null;

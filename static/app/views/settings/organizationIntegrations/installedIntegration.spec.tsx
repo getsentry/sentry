@@ -14,7 +14,7 @@ describe('InstalledIntegration', () => {
 
   const defaultProps = {
     organization,
-    integration: OrganizationIntegrationsFixture() as any,
+    integration: OrganizationIntegrationsFixture(),
     provider: GitHubIntegrationProviderFixture(),
     onRemove: jest.fn(),
     onDisable: jest.fn(),
