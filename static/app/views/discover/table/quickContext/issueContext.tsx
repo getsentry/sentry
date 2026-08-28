@@ -123,7 +123,6 @@ export function IssueContext(props: BaseContextProps) {
               data-test-id="assigned-avatar"
               actor={issue.assignedTo}
               hasTooltip={false}
-              size={24}
             />
           ) : (
             <StyledIconWrapper>

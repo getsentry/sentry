@@ -83,6 +83,7 @@ describe('AutofixOverview', () => {
     shortId: 'PROJ-1',
     title: 'TypeError in checkout cart',
     rootCause: {
+      headline: null,
       oneLineDescription: 'The cart total is read before it is set.',
     },
     proposedFix: null,
@@ -97,7 +98,10 @@ describe('AutofixOverview', () => {
     groupId: '3',
     shortId: 'PROJ-2',
     title: 'KeyError in proxy handler',
-    rootCause: {oneLineDescription: 'The Authorization header is dropped.'},
+    rootCause: {
+      headline: null,
+      oneLineDescription: 'The Authorization header is dropped.',
+    },
     proposedFix: {
       oneLineSummary: 'Restore the Authorization header as a fallback.',
     },
@@ -715,6 +719,39 @@ describe('AutofixOverview', () => {
     expect(screen.getAllByText('Plan')).toHaveLength(1);
   });
 
+  it('uses the root cause headline as the card title with the issue title beneath', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {
+            ...rootCauseRun,
+            rootCause: {
+              headline: 'Checkout crashes on an empty cart',
+              oneLineDescription: 'The cart total is read before it is set.',
+            },
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    // The generated headline becomes the linked card title.
+    const titleLink = await screen.findByRole('link', {
+      name: 'Checkout crashes on an empty cart',
+    });
+    expect(titleLink).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/2/`
+    );
+    // The raw issue title still shows, beneath the headline.
+    expect(screen.getByText('TypeError in checkout cart')).toBeInTheDocument();
+    // The issue title is not itself a link (only the headline links out).
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+  });
+
   it('shows "0 users" for a card with events but zero affected users', async () => {
     mockOverview({
       base: {
@@ -803,6 +840,7 @@ describe('AutofixOverview', () => {
           {
             ...solutionRun,
             rootCause: {
+              headline: null,
               oneLineDescription: 'The request is passed to `dateutil.parse()`.',
             },
             proposedFix: {
@@ -2356,18 +2394,18 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByRole('link', {name: 'TypeError in checkout cart'})
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Seer setup warning')).not.toBeInTheDocument();
 
     deferred.resolve();
 
     // Once project config resolves, the warning and the cards appear together.
-    expect(await screen.findByText(/Seer isn't set up for/)).toBeInTheDocument();
+    expect(await screen.findByLabelText('Seer setup warning')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
   });
 
-  it('shows the subset warning banner naming only the unconfigured projects', async () => {
+  it('shows the subset warning counting only the unconfigured projects', async () => {
     mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
       projectConfig: [
@@ -2378,12 +2416,13 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    const banner = await screen.findByText(/Seer isn't set up for/);
-    expect(banner).toHaveTextContent(
-      "Seer isn't set up for beta-project. Set it up here."
+    await userEvent.hover(await screen.findByLabelText('Seer setup warning'));
+
+    const tooltip = await screen.findByText(/Seer automation isn't set up for/);
+    expect(tooltip).toHaveTextContent(
+      "Seer automation isn't set up for 1 project in the current filter. Enable automation"
     );
-    expect(banner).not.toHaveTextContent('alpha-project');
-    expect(screen.getByRole('link', {name: 'here'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Enable automation'})).toHaveAttribute(
       'href',
       '/settings/org-slug/seer/'
     );
@@ -2403,7 +2442,7 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: 'Create Plan 1'})
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Seer setup warning')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Set up Seer to start fixing issues')
     ).not.toBeInTheDocument();

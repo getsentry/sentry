@@ -172,7 +172,6 @@ export function ProfilePreview({
         <FoldSection
           title={t('Profile')}
           sectionKey="no_instrumentation_profile"
-          initialCollapse={false}
           actions={
             <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
               {t('Open in Profiling')}

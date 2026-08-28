@@ -33,7 +33,11 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
 import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
-import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import {
+  isMetricSelectorOption,
+  type MetricSelectorItem,
+  type MetricSelectorOption,
+} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
@@ -47,6 +51,7 @@ import {
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
 const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
+const FIELD_OPTION_VALUE = '__field__';
 function maybePortal(element: React.ReactElement, portal?: boolean) {
   return portal ? createPortal(element, document.body) : element;
 }
@@ -86,11 +91,18 @@ export function MetricSelector({
   projectIds,
   environments,
   usePortal,
+  fieldOption,
   getDisabledOptionReason,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   environments?: string[];
+  // A field option is a special option that is injected and used to select a field from the dataset.
+  fieldOption?: {
+    isSelected: boolean;
+    onSelect: () => void;
+    disabledReason?: string;
+  };
   // Returns a tooltip explaining why a metric option should be disabled, or
   // undefined to leave it enabled. Lets callers constrain the selectable
   // metrics to those their context supports (e.g. only distributions for heat
@@ -141,6 +153,7 @@ export function MetricSelector({
     }
 
     return {
+      kind: 'metric',
       label: traceMetric.name,
       value: traceMetricSelectValue,
       metricType: traceMetricType,
@@ -166,9 +179,9 @@ export function MetricSelector({
   // Always show the selected metric at the top of the list so it's easy to
   // find when the dropdown is reopened. Filter it out of the API results to
   // avoid duplication.
-  const metricOptions = useMemo((): MetricSelectorOption[] => {
+  const metricOptions = useMemo((): MetricSelectorItem[] => {
     const seenValues = new Set<string>();
-    const apiOptions =
+    const apiOptions: MetricSelectorOption[] =
       metricOptionsData?.data?.flatMap(option => {
         const metricName = option[TraceMetricKnownFieldKey.METRIC_NAME];
 
@@ -207,6 +220,7 @@ export function MetricSelector({
 
         return [
           {
+            kind: 'metric',
             label: metricName,
             value,
             metricType,
@@ -253,11 +267,28 @@ export function MetricSelector({
         optionFromTraceMetric)
       : null;
 
-    return [
+    const options = [
       ...(selectedOption ? [selectedOption] : []),
       ...selectedApiOptions.filter(o => o.value !== selectedOption?.value),
     ];
+
+    if (!fieldOption) {
+      return options;
+    }
+
+    return [
+      {
+        kind: 'field',
+        label: <em>{t('field')}</em>,
+        textValue: t('field'),
+        value: FIELD_OPTION_VALUE,
+        tooltip: fieldOption.disabledReason,
+        trailingItems: () => null,
+      },
+      ...options,
+    ];
   }, [
+    fieldOption,
     metricOptionsData,
     optionFromTraceMetric,
     traceMetric.name,
@@ -279,12 +310,15 @@ export function MetricSelector({
   // default synchronously (or otherwise closing that gap) so the preview never
   // flashes. See newWidgetBuilder's `isResolving`.
   useEffect(() => {
-    if (traceMetric.name) {
+    if (traceMetric.name || fieldOption?.isSelected) {
       return;
     }
-    const firstSelectable = getDisabledOptionReason
-      ? metricOptions.find(option => !getDisabledOptionReason(option))
-      : metricOptions[0];
+    const firstSelectable = metricOptions.find(
+      (option): option is MetricSelectorOption =>
+        isMetricSelectorOption(option) &&
+        option.value !== FIELD_OPTION_VALUE &&
+        !getDisabledOptionReason?.(option)
+    );
     if (firstSelectable) {
       onChange({
         name: firstSelectable.metricName,
@@ -292,7 +326,13 @@ export function MetricSelector({
         unit: firstSelectable.metricUnit,
       });
     }
-  }, [metricOptions, onChange, traceMetric.name, getDisabledOptionReason]);
+  }, [
+    fieldOption?.isSelected,
+    getDisabledOptionReason,
+    metricOptions,
+    onChange,
+    traceMetric.name,
+  ]);
 
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
@@ -306,7 +346,7 @@ export function MetricSelector({
   // This reserves enough width for the overlay so it doesn't resize as
   // the user scrolls through the virtualized list.
   const longestOption = useMemo(() => {
-    return displayedOptions.reduce<MetricSelectorOption | null>((longest, option) => {
+    return displayedOptions.reduce<MetricSelectorItem | null>((longest, option) => {
       if (typeof option.label !== 'string' || option.label.length === 0) {
         return longest;
       }
@@ -322,25 +362,30 @@ export function MetricSelector({
   // Attach a tooltip to options the caller disables, and collect their keys so
   // the combobox renders them disabled. Both no-op without getDisabledOptionReason.
   const displayedOptionsWithDisabledState = useMemo(() => {
-    if (!getDisabledOptionReason) {
-      return displayedOptions;
-    }
     return displayedOptions.map(option => {
+      if (!isMetricSelectorOption(option)) {
+        return option;
+      }
+      if (!getDisabledOptionReason) {
+        return option;
+      }
       const reason = getDisabledOptionReason(option);
       return reason ? {...option, tooltip: reason} : option;
     });
   }, [displayedOptions, getDisabledOptionReason]);
 
   const disabledOptionKeys = useMemo(() => {
-    if (!getDisabledOptionReason) {
-      return new Set<string>();
-    }
     return new Set(
       displayedOptions
-        .filter(option => getDisabledOptionReason(option))
+        .filter(option => {
+          if (!isMetricSelectorOption(option)) {
+            return Boolean(fieldOption?.disabledReason);
+          }
+          return Boolean(getDisabledOptionReason?.(option));
+        })
         .map(option => option.value)
     );
-  }, [displayedOptions, getDisabledOptionReason]);
+  }, [displayedOptions, fieldOption?.disabledReason, getDisabledOptionReason]);
 
   const displayedOptionsMap = useMemo(
     () =>
@@ -376,8 +421,12 @@ export function MetricSelector({
     });
   }
 
-  const comboBoxState = useComboBoxState<MetricSelectorOption>({
-    children: (item: MetricSelectorOption) => <Item key={item.value}>{item.label}</Item>,
+  const comboBoxState = useComboBoxState<MetricSelectorItem>({
+    children: (item: MetricSelectorItem) => (
+      <Item key={item.value} textValue={item.textValue}>
+        {item.label}
+      </Item>
+    ),
     items: displayedOptionsWithDisabledState,
     disabledKeys: disabledOptionKeys,
     allowsEmptyCollection: true,
@@ -386,7 +435,11 @@ export function MetricSelector({
     defaultFilter: () => true,
     inputValue: searchInputValue,
     onInputChange: setSearchInputValue,
-    value: traceMetric.name ? traceMetricSelectValue : null,
+    value: fieldOption?.isSelected
+      ? FIELD_OPTION_VALUE
+      : traceMetric.name
+        ? traceMetricSelectValue
+        : null,
     // This intentionally uses the legacy callback because selecting the current metric
     // still needs to normalize stale aggregate metadata. `onChange` only fires when the
     // value changes.
@@ -394,8 +447,13 @@ export function MetricSelector({
       if (!key) {
         return;
       }
+      if (String(key) === FIELD_OPTION_VALUE && fieldOption) {
+        fieldOption.onSelect();
+        comboBoxState.toggle();
+        return;
+      }
       const selectedOption = displayedOptionsMap.get(String(key));
-      if (selectedOption) {
+      if (selectedOption && isMetricSelectorOption(selectedOption)) {
         onChange({
           name: selectedOption.metricName,
           type: selectedOption.metricType,
@@ -422,9 +480,7 @@ export function MetricSelector({
     position: 'bottom-start',
     offset: 6,
     isOpen: comboBoxState.isOpen,
-    isDismissable: true,
     isKeyboardDismissDisabled: true,
-    shouldApplyMinWidth: true,
     disableTrigger: isFetching && !traceMetric.name,
     onOpenChange: open => {
       if (open === comboBoxState.isOpen) {
@@ -441,17 +497,16 @@ export function MetricSelector({
     },
   });
 
-  const {inputProps: comboBoxInputProps, listBoxProps} =
-    useComboBox<MetricSelectorOption>(
-      {
-        'aria-labelledby': triggerId,
-        listBoxRef: listElementRef,
-        inputRef: searchRef,
-        popoverRef,
-        shouldFocusWrap: true,
-      },
-      comboBoxState
-    );
+  const {inputProps: comboBoxInputProps, listBoxProps} = useComboBox<MetricSelectorItem>(
+    {
+      'aria-labelledby': triggerId,
+      listBoxRef: listElementRef,
+      inputRef: searchRef,
+      popoverRef,
+      shouldFocusWrap: true,
+    },
+    comboBoxState
+  );
 
   const collectionItems = useMemo(
     () => [...comboBoxState.collection],
@@ -466,9 +521,9 @@ export function MetricSelector({
     overscan: 20,
   });
 
-  const highlightedOption = focusedKey
-    ? (displayedOptionsMap.get(String(focusedKey)) ?? null)
-    : null;
+  const focusedOption = focusedKey ? displayedOptionsMap.get(String(focusedKey)) : null;
+  const highlightedOption =
+    focusedOption && isMetricSelectorOption(focusedOption) ? focusedOption : null;
 
   const {keyboardProps: triggerKeyboardProps} = useKeyboard({
     onKeyDown: e => {
@@ -552,7 +607,9 @@ export function MetricSelector({
 
   const sidePanelAnchorPosition =
     sidePanelAnchorOffset === null ? '0px' : `${sidePanelAnchorOffset}px`;
-  const hasSelectedMetric = Boolean(traceMetric.name);
+  const hasSelectedMetric =
+    Boolean(highlightedOption) ||
+    (!focusedOption && Boolean(traceMetric.name) && !fieldOption?.isSelected);
 
   return (
     <Container width="100%" position="relative">
@@ -560,9 +617,17 @@ export function MetricSelector({
         {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
         disabled={isFetching && !traceMetric.name}
-        tooltipProps={{title: traceMetric.name || t('None')}}
+        tooltipProps={{
+          title: fieldOption?.isSelected ? t('field') : traceMetric.name || t('None'),
+        }}
       >
-        <Text ellipsis>{traceMetric.name || t('None')}</Text>
+        {fieldOption?.isSelected ? (
+          <Text ellipsis italic>
+            {t('field')}
+          </Text>
+        ) : (
+          <Text ellipsis>{traceMetric.name || t('None')}</Text>
+        )}
       </OverlayTrigger.Button>
       {maybePortal(
         <PositionWrapper

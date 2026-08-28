@@ -1,5 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -208,11 +209,54 @@ export const DefaultTableCell = styled('td')<{align?: Align}>`
   text-align: ${p => p.align ?? 'left'};
 `;
 
-export function DefaultTag(_props: {
+/**
+ * Markdown re-lexes and re-renders on every streamed chunk, so an unhandled tag
+ * would otherwise report once per chunk. Report each tag only once per page
+ * load.
+ */
+const reportedUnhandledTags = new Set<string>();
+
+function reportUnhandledTag(
+  name: string,
+  level: 'block' | 'inline',
+  attrs: Record<string, string>
+) {
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.warn(`[Markdown] no renderer for tag: ${name}`, attrs);
+    return;
+  }
+
+  if (reportedUnhandledTags.has(name)) {
+    return;
+  }
+  reportedUnhandledTags.add(name);
+
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('markdown.tag', name);
+    scope.setTag('markdown.tag_level', level);
+    scope.setExtra('attrs', attrs);
+    scope.setFingerprint(['markdown-unhandled-tag', name]);
+    Sentry.captureException(new Error(`[Markdown] no renderer for tag: ${name}`));
+  });
+}
+
+/**
+ * Fallback for `<tag>` tokens that no `components.Tag` renderer handled. The
+ * tag's content is dropped from the rendered output, so report it rather than
+ * failing silently.
+ */
+export function DefaultTag({
+  attrs,
+  level,
+  name,
+}: {
   attrs: Record<string, string>;
   data: unknown;
   level: 'block' | 'inline';
   name: string;
 }) {
+  reportUnhandledTag(name, level, attrs);
   return null;
 }

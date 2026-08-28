@@ -7,6 +7,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -35,6 +36,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+const REPLAY_COLUMNS: TableColumnConfig[] = [
+  {key: 'replay', width: '1fr'},
+  {key: 'duration', width: 'max-content'},
+];
 
 interface Props {
   queryOptions: QueryKeyEndpointOptions | undefined;
@@ -199,6 +205,7 @@ function ReplayPreviewTable({
 }) {
   return (
     <SimpleTableWithTwoColumns
+      columns={REPLAY_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Replay')}</SimpleTable.HeaderCell>
@@ -281,8 +288,6 @@ function Title({children, project}: {children: React.ReactNode; project: Project
 }
 
 const SimpleTableWithTwoColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr max-content;
-
   max-height: calc(100vh - 315px);
   min-height: 200px;
   overflow-y: auto;

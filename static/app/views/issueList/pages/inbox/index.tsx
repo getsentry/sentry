@@ -28,6 +28,7 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
@@ -43,6 +44,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseActorString} from 'sentry/utils/parseActorString';
+import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
@@ -305,6 +307,10 @@ function AssignmentTabs({
 }
 
 function InboxContent() {
+  // Temporarily record all replays for the issue inbox
+  // Remove this once we roll out to more users
+  useReplayForCriticalFlow({flowName: 'issue_inbox', sampleRate: 1});
+
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
   const {layout} = usePrimaryNavigation();
@@ -357,7 +363,15 @@ function InboxContent() {
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
-      <Layout.Title>{TITLE}</Layout.Title>
+      <Layout.Title>
+        {TITLE}
+        <PageHeadingQuestionTooltip
+          docsUrl="https://docs.sentry.io/product/issues/inbox/"
+          title={t(
+            'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
+          )}
+        />
+      </Layout.Title>
       <Grid
         flex={1}
         minHeight={0}
@@ -757,7 +771,6 @@ function InboxIssueCard({
                 <ActorAvatar
                   actor={group.assignedTo}
                   size={18}
-                  hasTooltip
                   tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />
