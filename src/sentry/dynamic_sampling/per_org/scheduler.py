@@ -100,11 +100,6 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             config, results.project_volumes, results.transaction_volumes
         )
 
-        # Each pass corrects the stored factor by how far the org's effective sample rate is
-        # from its target. Relay applies the per-org factor only for served orgs, so for any
-        # other org the correction never reaches the volume it is measured against, and the
-        # factor compounds pass after pass. Such an org then enters the serving rollout with
-        # a factor that has run away.
         if is_org_in_serving_rollout(org_id):
             config.recalibrate(results.organization_volume)
 
