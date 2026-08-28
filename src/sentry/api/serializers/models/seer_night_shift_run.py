@@ -159,17 +159,18 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         extras = obj.extras or {}
         # A dispatch failure records on the run; per-shard delivery failures record
         # on the shard, so surface either so a failed shard doesn't read as healthy.
-        shard_error: Mapping[str, Any] = next(
-            (
-                s.extras
-                for s in obj.shards.all()
-                if (s.extras or {}).get("error_message") or (s.extras or {}).get("error_type")
-            ),
-            {},
-        )
-        error_message = extras.get("error_message") or shard_error.get("error_message")
-        raw_error_type = extras.get("error_type") or shard_error.get("error_type")
-        error_type = _resolve_error_type(raw_error_type, error_message)
+        error_details: Mapping[str, Any] = extras
+        if not error_details.get("error_message") and not error_details.get("error_type"):
+            error_details = next(
+                (
+                    s.extras
+                    for s in obj.shards.all()
+                    if (s.extras or {}).get("error_message") or (s.extras or {}).get("error_type")
+                ),
+                {},
+            )
+        error_message = error_details.get("error_message")
+        error_type = _resolve_error_type(error_details.get("error_type"), error_message)
         status = _get_status(error_type)
         group_titles_by_id = attrs.get("group_titles_by_id", {})
         group_short_ids_by_id = attrs.get("group_short_ids_by_id", {})
