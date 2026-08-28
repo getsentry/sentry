@@ -110,7 +110,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             category = GroupCategory.METRIC.value
 
         class MockConditionDetectorHandler(ConditionDetectorHandler[dict[str, Any], int]):
-            def evaluate_impl(
+            def evaluate(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
@@ -145,7 +145,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 return data_packet.packet.get("dedupe", 0)
 
         class MockConditionDetectorWithUpdateHandler(ConditionDetectorHandler[dict[str, Any], int]):
-            def evaluate_impl(
+            def evaluate(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
                 status_change = StatusChangeMessage(

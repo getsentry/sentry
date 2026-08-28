@@ -147,7 +147,7 @@ class ConditionDetectorHandler(
             "result": "unknown",
         }
         try:
-            value = self.evaluate_impl(data_packet)
+            value = self.evaluate(data_packet)
             tags["result"] = "tainted" if value.tainted else "success"
             metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
             return value.result
@@ -157,9 +157,7 @@ class ConditionDetectorHandler(
             raise
 
     @abc.abstractmethod
-    def evaluate_impl(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> GroupedDetectorEvaluationResult:
+    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
         """
