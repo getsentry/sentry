@@ -71,7 +71,7 @@ but not at the timeout threshold
 BATCH_SIZE = 1000
 """The number of mailboxes a scheduler cycle aims to dispatch drains for."""
 
-BATCH_SELECT_LIMIT = BATCH_SIZE * 2
+BATCH_SELECT_LIMIT = BATCH_SIZE * 10
 """
 How many due mailbox heads a scheduler cycle selects to reach BATCH_SIZE
 dispatches. Push triggers and concurrent cycles claim heads out of the selected
@@ -79,6 +79,13 @@ list before the loop reaches them, so selecting exactly BATCH_SIZE shrinks the
 cycle below its target by whatever the contention share is. Heads the cycle
 never reaches are handed to the next one (see CARRYOVER_CACHE_KEY) rather than
 rediscovered.
+
+Sized well above BATCH_SIZE because the selection is nearly free next to the
+scan that produces it: the aggregate visits every row either way, and the limit
+only bounds what is materialized. Overselecting is what makes a carried surplus
+survive contention — at 2x, a cycle skipping a fifth of what it walks carries
+less than a batch, and the next cycle then dispatches short of BATCH_SIZE with
+mailboxes still due.
 """
 
 
@@ -527,11 +534,10 @@ CARRYOVER_CACHE_KEY = "wh:schedule:carryover"
 
 CARRYOVER_TTL = 60
 """
-Seconds a carried surplus stays dispatchable. A cycle either walks the surplus to
-its end or spends a full dispatch batch of it, so a surplus of at most
-BATCH_SELECT_LIMIT drains within a couple of cycles on its own; the TTL is the
-backstop for a cycle that dies mid-list, keeping an unspent surplus from deferring
-discovery — the only thing that finds mailboxes no push trigger woke.
+Seconds a carried surplus stays dispatchable. Each cycle re-stores what it did
+not spend, so the TTL does not bound how long a deep backlog defers discovery —
+it is the backstop for a cycle that dies mid-list, keeping a surplus nobody is
+spending from deferring discovery indefinitely.
 """
 
 
@@ -604,8 +610,8 @@ def schedule_webhook_delivery() -> None:
     one claim attempt: `_claim_and_dispatch` gates every dispatch on the head still
     being due, so a head claimed, delivered, or backed off since discovery claims 0
     rows and is skipped. Mailboxes that arrive while a surplus is being spent are
-    dispatched by their push trigger, and CARRYOVER_TTL bounds how long discovery
-    can be deferred for the ones that have none.
+    dispatched by their push trigger; the ones with none wait for the surplus to
+    drain, which is the trade a deep backlog is already making.
 
     Triggered frequently by task-scheduler.
     """
@@ -663,10 +669,21 @@ def schedule_webhook_delivery() -> None:
         else:
             dispatched += 1
 
-    if surplus:
+    # The next cycle takes a carryover in place of discovery, so a short surplus
+    # costs it the rest of its dispatch budget while mailboxes are still due. Half
+    # a batch is where that loss stops being worth the scan it saves; below it the
+    # surplus is dropped, and discovery finds those heads again — they are still
+    # due, and now sort ahead of the newer ones.
+    if len(surplus) >= BATCH_SIZE // 2:
         _store_carryover(surplus)
-    elif carryover:
-        _clear_carryover()
+    else:
+        if surplus:
+            # Recorded because the carryover distribution only samples surpluses
+            # large enough to keep, so on its own it cannot say how often the
+            # overselect failed to survive a cycle's contention.
+            metrics.incr("hybridcloud.schedule_webhook_delivery.carryover.dropped")
+        if carryover:
+            _clear_carryover()
 
 
 @instrumented_task(

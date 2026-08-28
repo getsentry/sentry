@@ -48,6 +48,7 @@ SCHEDULER_SKIPPED_METRIC = "hybridcloud.deliver_webhooks.scheduler.skipped"
 CYCLE_METRIC = "hybridcloud.schedule_webhook_delivery.cycle"
 CARRYOVER_METRIC = "hybridcloud.schedule_webhook_delivery.carryover"
 CARRYOVER_ERROR_METRIC = "hybridcloud.schedule_webhook_delivery.carryover.error"
+CARRYOVER_DROPPED_METRIC = "hybridcloud.schedule_webhook_delivery.carryover.dropped"
 
 
 class MetricCallsMixin:
@@ -584,14 +585,8 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         ]
 
 
-@control_silo_test
-@patch.object(deliver_webhooks, "BATCH_SIZE", 2)
-@patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 4)
-class ScheduleCarryoverTest(MetricCallsMixin, TestCase):
-    """
-    Cycles dispatch two mailboxes apiece here, so a third mailbox is the surplus a
-    cycle discovers but has no budget to dispatch.
-    """
+class CarryoverMixin(MetricCallsMixin):
+    """Mailbox setup and cache reads shared by the carryover suites."""
 
     def create_mailboxes(self, count: int) -> list[WebhookPayload]:
         return [
@@ -610,6 +605,21 @@ class ScheduleCarryoverTest(MetricCallsMixin, TestCase):
 
     def dispatched_ids(self, mock_drain: MagicMock) -> list[int]:
         return [call[0][0] for call in mock_drain.delay.call_args_list]
+
+    def carried(self, webhooks: list[WebhookPayload]) -> list[dict[str, Any]]:
+        return [{"id": w.id, "mailbox_name": w.mailbox_name} for w in webhooks]
+
+
+@control_silo_test
+@patch.object(deliver_webhooks, "BATCH_SIZE", 2)
+@patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 4)
+class ScheduleCarryoverTest(CarryoverMixin, TestCase):
+    """
+    Cycles dispatch two mailboxes apiece here, so a third mailbox is the surplus a
+    cycle discovers but has no budget to dispatch. A one-head surplus sits exactly
+    on the `BATCH_SIZE // 2` floor at this batch size, so it is kept --
+    `ScheduleCarryoverFloorTest` runs a wider batch to put a surplus under it.
+    """
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -756,6 +766,60 @@ class ScheduleCarryoverTest(MetricCallsMixin, TestCase):
         assert self.carryover() is None
         assert self.distribution_calls(mock_metrics, CARRYOVER_METRIC) == []
         assert self.tags_for(mock_metrics, CYCLE_METRIC) == [{"source": "discovery"}]
+
+
+@control_silo_test
+@patch.object(deliver_webhooks, "BATCH_SIZE", 4)
+@patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 12)
+class ScheduleCarryoverFloorTest(CarryoverMixin, TestCase):
+    """
+    A surplus under `BATCH_SIZE // 2` is dropped rather than carried. The next cycle
+    takes a carryover in place of discovery, so a short one would cost it the rest
+    of its budget with mailboxes still due.
+    """
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_surplus_below_the_floor_is_dropped(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # One head past the dispatch budget: carrying it would leave the next cycle
+        # dispatching a single mailbox out of a budget of four.
+        self.create_mailboxes(5)
+
+        schedule_webhook_delivery()
+
+        assert self.carryover() is None
+        assert self.tags_for(mock_metrics, CARRYOVER_DROPPED_METRIC) == [{}]
+        assert self.distribution_calls(mock_metrics, CARRYOVER_METRIC) == []
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_surplus_at_the_floor_is_carried(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhooks = self.create_mailboxes(6)
+
+        schedule_webhook_delivery()
+
+        assert self.carryover() == self.carried(webhooks[4:])
+        assert self.tags_for(mock_metrics, CARRYOVER_DROPPED_METRIC) == []
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_carryover_spent_below_the_floor_is_cleared(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhooks = self.create_mailboxes(9)
+        schedule_webhook_delivery()
+        assert self.carryover() == self.carried(webhooks[4:])
+
+        # Spending the surplus strands one head. It must not linger in the cache: a
+        # stale carryover would displace the next cycle's discovery.
+        schedule_webhook_delivery()
+
+        assert self.carryover() is None
+        assert self.tags_for(mock_metrics, CARRYOVER_DROPPED_METRIC) == [{}]
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
