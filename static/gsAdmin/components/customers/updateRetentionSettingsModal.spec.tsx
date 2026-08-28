@@ -8,7 +8,9 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {openUpdateRetentionSettingsModal} from 'admin/components/customers/updateRetentionSettingsModal';
 
@@ -16,8 +18,28 @@ describe('UpdateRetentionSettingsModal', () => {
   const onSuccess = jest.fn();
   const organization = OrganizationFixture();
 
-  function getSpinbutton(name: string) {
-    return screen.getByRole('spinbutton', {name});
+  function getSelect(name: string) {
+    return screen.getByRole('textbox', {name});
+  }
+
+  function getSelectContainer(name: string) {
+    // scope assertions to a single select, since several share option labels
+    return getSelect(name).closest<HTMLElement>('[class$="-container"]')!;
+  }
+
+  function expectSelectValue(name: string, value: string | null) {
+    const container = getSelectContainer(name);
+    expect(within(container).getByText(value ?? 'Plan default')).toBeInTheDocument();
+  }
+
+  async function selectRetention(name: string, option: string) {
+    await selectEvent.select(getSelect(name), option);
+  }
+
+  async function clearRetention(name: string) {
+    await userEvent.click(
+      within(getSelectContainer(name)).getByLabelText('Clear choices')
+    );
   }
 
   async function loadModal() {
@@ -59,14 +81,91 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    expect(getSpinbutton('Spans Standard')).toHaveValue(90);
-    expect(getSpinbutton('Spans Downsampled')).toHaveValue(30);
-    expect(getSpinbutton('Logs Standard')).toHaveValue(45);
-    expect(getSpinbutton('Logs Downsampled')).toHaveValue(15);
-    expect(getSpinbutton('Org Retention')).toHaveValue(1234567);
+    expectSelectValue('Spans Standard', '90 days');
+    expectSelectValue('Spans Downsampled', '30 days');
+    // values that are not multiples of 30 are preserved as-is
+    expectSelectValue('Logs Standard', '45 (current)');
+    expectSelectValue('Logs Downsampled', '15 (current)');
+    expectSelectValue('Org Retention', '1234567 (current)');
 
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Update Settings'})).toBeInTheDocument();
+  });
+
+  it('only offers multiples of 30 up to 390', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        spans: MetricHistoryFixture({
+          retention: {
+            standard: 90,
+            downsampled: 30,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    await selectEvent.openMenu(getSelect('Spans Standard'));
+
+    const options = screen
+      .getAllByRole('menuitemradio')
+      .map(option => option.textContent);
+
+    expect(options).toEqual([
+      '30 days',
+      '60 days',
+      '90 days',
+      '120 days',
+      '150 days',
+      '180 days',
+      '210 days',
+      '240 days',
+      '270 days',
+      '300 days',
+      '330 days',
+      '360 days',
+      '390 days',
+    ]);
+  });
+
+  it('offers zero for downsampled fields', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        spans: MetricHistoryFixture({
+          retention: {
+            standard: 90,
+            downsampled: 30,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    await selectEvent.openMenu(getSelect('Spans Downsampled'));
+
+    expect(screen.getAllByRole('menuitemradio')[0]).toHaveTextContent(
+      '0 (same as standard)'
+    );
   });
 
   it('prefills the form with existing AM2 retention values', async () => {
@@ -81,8 +180,8 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
         logBytes: MetricHistoryFixture({
           retention: {
-            standard: 45,
-            downsampled: 15,
+            standard: 60,
+            downsampled: 30,
           },
         }),
       },
@@ -97,10 +196,10 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    expect(getSpinbutton('Transactions Standard')).toHaveValue(90);
-    expect(getSpinbutton('Transactions Downsampled')).toHaveValue(30);
-    expect(getSpinbutton('Logs Standard')).toHaveValue(45);
-    expect(getSpinbutton('Logs Downsampled')).toHaveValue(15);
+    expectSelectValue('Transactions Standard', '90 days');
+    expectSelectValue('Transactions Downsampled', '30 days');
+    expectSelectValue('Logs Standard', '60 days');
+    expectSelectValue('Logs Downsampled', '30 days');
 
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Update Settings'})).toBeInTheDocument();
@@ -135,11 +234,11 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    expect(getSpinbutton('Org Retention')).toHaveValue(null);
-    expect(getSpinbutton('Spans Standard')).toHaveValue(90);
-    expect(getSpinbutton('Spans Downsampled')).toHaveValue(null);
-    expect(getSpinbutton('Logs Standard')).toHaveValue(30);
-    expect(getSpinbutton('Logs Downsampled')).toHaveValue(null);
+    expectSelectValue('Org Retention', null);
+    expectSelectValue('Spans Standard', '90 days');
+    expectSelectValue('Spans Downsampled', null);
+    expectSelectValue('Logs Standard', '30 days');
+    expectSelectValue('Logs Downsampled', null);
   });
 
   it('calls api with correct data when updating all fields', async () => {
@@ -155,12 +254,12 @@ describe('UpdateRetentionSettingsModal', () => {
         logBytes: MetricHistoryFixture({
           retention: {
             standard: 30,
-            downsampled: 7,
+            downsampled: 30,
           },
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: 123, downsampled: null},
+      orgRetention: {standard: 120, downsampled: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -177,20 +276,11 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    await userEvent.clear(getSpinbutton('Org Retention'));
-    await userEvent.type(getSpinbutton('Org Retention'), '456');
-
-    await userEvent.clear(getSpinbutton('Spans Standard'));
-    await userEvent.type(getSpinbutton('Spans Standard'), '120');
-
-    await userEvent.clear(getSpinbutton('Spans Downsampled'));
-    await userEvent.type(getSpinbutton('Spans Downsampled'), '60');
-
-    await userEvent.clear(getSpinbutton('Logs Standard'));
-    await userEvent.type(getSpinbutton('Logs Standard'), '60');
-
-    await userEvent.clear(getSpinbutton('Logs Downsampled'));
-    await userEvent.type(getSpinbutton('Logs Downsampled'), '14');
+    await selectRetention('Org Retention', '390 days');
+    await selectRetention('Spans Standard', '120 days');
+    await selectRetention('Spans Downsampled', '60 days');
+    await selectRetention('Logs Standard', '60 days');
+    await selectRetention('Logs Downsampled', '30 days');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
@@ -201,7 +291,7 @@ describe('UpdateRetentionSettingsModal', () => {
           method: 'POST',
           data: {
             orgRetention: {
-              standard: 456,
+              standard: 390,
               downsampled: null,
             },
             retentions: {
@@ -211,7 +301,7 @@ describe('UpdateRetentionSettingsModal', () => {
               },
               logBytes: {
                 standard: 60,
-                downsampled: 14,
+                downsampled: 30,
               },
             },
           },
@@ -235,7 +325,7 @@ describe('UpdateRetentionSettingsModal', () => {
         logBytes: MetricHistoryFixture({
           retention: {
             standard: 30,
-            downsampled: 7,
+            downsampled: 30,
           },
         }),
       },
@@ -257,19 +347,10 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    await userEvent.clear(getSpinbutton('Org Retention'));
-
-    await userEvent.clear(getSpinbutton('Transactions Standard'));
-    await userEvent.type(getSpinbutton('Transactions Standard'), '120');
-
-    await userEvent.clear(getSpinbutton('Transactions Downsampled'));
-    await userEvent.type(getSpinbutton('Transactions Downsampled'), '60');
-
-    await userEvent.clear(getSpinbutton('Logs Standard'));
-    await userEvent.type(getSpinbutton('Logs Standard'), '60');
-
-    await userEvent.clear(getSpinbutton('Logs Downsampled'));
-    await userEvent.type(getSpinbutton('Logs Downsampled'), '14');
+    await selectRetention('Transactions Standard', '120 days');
+    await selectRetention('Transactions Downsampled', '60 days');
+    await selectRetention('Logs Standard', '60 days');
+    await selectRetention('Logs Downsampled', '30 days');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
@@ -290,7 +371,7 @@ describe('UpdateRetentionSettingsModal', () => {
               },
               logBytes: {
                 standard: 60,
-                downsampled: 14,
+                downsampled: 30,
               },
             },
           },
@@ -301,7 +382,7 @@ describe('UpdateRetentionSettingsModal', () => {
     expect(onSuccess).toHaveBeenCalled();
   });
 
-  it('calls api with null downsampled values when fields are empty', async () => {
+  it('calls api with null values when fields are cleared', async () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
@@ -314,12 +395,12 @@ describe('UpdateRetentionSettingsModal', () => {
         logBytes: MetricHistoryFixture({
           retention: {
             standard: 30,
-            downsampled: 7,
+            downsampled: 30,
           },
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: 123, downsampled: null},
+      orgRetention: {standard: 120, downsampled: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -336,16 +417,10 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    await userEvent.clear(getSpinbutton('Org Retention'));
-
-    await userEvent.clear(getSpinbutton('Spans Standard'));
-
-    await userEvent.clear(getSpinbutton('Spans Downsampled'));
-
-    await userEvent.clear(getSpinbutton('Logs Standard'));
-    await userEvent.type(getSpinbutton('Logs Standard'), '30');
-
-    await userEvent.clear(getSpinbutton('Logs Downsampled'));
+    await clearRetention('Org Retention');
+    await clearRetention('Spans Standard');
+    await clearRetention('Spans Downsampled');
+    await clearRetention('Logs Downsampled');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
@@ -390,7 +465,7 @@ describe('UpdateRetentionSettingsModal', () => {
         logBytes: MetricHistoryFixture({
           retention: {
             standard: 30,
-            downsampled: 7,
+            downsampled: 30,
           },
         }),
       },
@@ -412,19 +487,10 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    await userEvent.clear(getSpinbutton('Org Retention'));
-
-    await userEvent.clear(getSpinbutton('Spans Standard'));
-    await userEvent.type(getSpinbutton('Spans Standard'), '90');
-
-    await userEvent.clear(getSpinbutton('Spans Downsampled'));
-    await userEvent.type(getSpinbutton('Spans Downsampled'), '0');
-
-    await userEvent.clear(getSpinbutton('Logs Standard'));
-    await userEvent.type(getSpinbutton('Logs Standard'), '30');
-
-    await userEvent.clear(getSpinbutton('Logs Downsampled'));
-    await userEvent.type(getSpinbutton('Logs Downsampled'), '0');
+    await selectRetention('Spans Standard', '90 days');
+    await selectRetention('Spans Downsampled', '0 (same as standard)');
+    await selectRetention('Logs Standard', '30 days');
+    await selectRetention('Logs Downsampled', '0 (same as standard)');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
@@ -469,7 +535,7 @@ describe('UpdateRetentionSettingsModal', () => {
         logBytes: MetricHistoryFixture({
           retention: {
             standard: 30,
-            downsampled: 7,
+            downsampled: 30,
           },
         }),
       },
@@ -491,13 +557,8 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    await userEvent.clear(getSpinbutton('Org Retention'));
-
-    await userEvent.clear(getSpinbutton('Spans Standard'));
-    await userEvent.type(getSpinbutton('Spans Standard'), '180');
-
-    await userEvent.clear(getSpinbutton('Spans Downsampled'));
-    await userEvent.type(getSpinbutton('Spans Downsampled'), '90');
+    await selectRetention('Spans Standard', '180 days');
+    await selectRetention('Spans Downsampled', '90 days');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
@@ -518,7 +579,7 @@ describe('UpdateRetentionSettingsModal', () => {
               },
               logBytes: {
                 standard: 30,
-                downsampled: 7,
+                downsampled: 30,
               },
             },
           },
@@ -540,7 +601,7 @@ describe('UpdateRetentionSettingsModal', () => {
         logBytes: MetricHistoryFixture({
           retention: {
             standard: 30,
-            downsampled: 7,
+            downsampled: 30,
           },
         }),
       },
@@ -562,13 +623,8 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    await userEvent.clear(getSpinbutton('Org Retention'));
-
-    await userEvent.clear(getSpinbutton('Logs Standard'));
-    await userEvent.type(getSpinbutton('Logs Standard'), '60');
-
-    await userEvent.clear(getSpinbutton('Logs Downsampled'));
-    await userEvent.type(getSpinbutton('Logs Downsampled'), '30');
+    await selectRetention('Logs Standard', '60 days');
+    await selectRetention('Logs Downsampled', '30 days');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
