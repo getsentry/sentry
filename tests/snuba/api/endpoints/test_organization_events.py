@@ -5678,14 +5678,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_device_class(self) -> None:
         project1 = self.create_project()
-        for i in range(3):
+        # Relay derives ``device.class`` from the device context rather than
+        # trusting a client-supplied tag, so classify via known device models.
+        for model in ("iPhone8,1", "iPhone10,1", "iPhone14,3"):
             self.store_event(
                 data={
                     "event_id": "a" * 32,
                     "transaction": "/example",
                     "message": "how to make fast",
                     "timestamp": self.ten_mins_ago_iso,
-                    "tags": {"device.class": f"{i + 1}"},
+                    "contexts": {"device": {"type": "device", "family": "iPhone", "model": model}},
                 },
                 project_id=project1.id,
             )
@@ -5714,7 +5716,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 "transaction": "/example",
                 "message": "how to make fast",
                 "timestamp": self.ten_mins_ago_iso,
-                "tags": {"device.class": "1"},
+                "contexts": {
+                    "device": {"type": "device", "family": "iPhone", "model": "iPhone8,1"}
+                },
             },
             project_id=project1.id,
         )

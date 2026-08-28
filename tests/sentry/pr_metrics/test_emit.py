@@ -172,7 +172,12 @@ def _doc_suite(
 
 
 @cell_silo_test
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(
+    [
+        "organizations:pr-metrics",
+        "organizations:gen-ai-features",
+    ]
+)
 class PrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -348,7 +353,7 @@ class PrMetricsEmissionTest(TestCase):
         # recording, so an otherwise-clean merge can't be settled deterministically
         # — and isn't a genuine needs-judge ambiguity either, since there's no
         # activity data at all to have found ambiguous.
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             with patch("sentry.pr_metrics.emit.metrics") as mock_metrics:
                 assert (
                     select_verdict(self.pull_request, self.organization)
@@ -1689,9 +1694,8 @@ EXTERNAL_ID = "556677"
 @cell_silo_test
 @with_feature(
     [
-        "organizations:pr-metrics-activity",
+        "organizations:pr-metrics",
         "organizations:gen-ai-features",
-        "organizations:pr-metrics-emit",
     ]
 )
 class MultiOrgEmissionDedupeTest(TestCase):
@@ -1815,39 +1819,14 @@ class MultiOrgEmissionDedupeTest(TestCase):
         assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
         assert mock_record.call_count == 1
 
-    @patch("sentry.analytics.record")
-    def test_emit_disabled_canonical_does_not_suppress_enabled_sibling(
-        self, mock_record: Any
-    ) -> None:
-        # Mid-rollout: the run's-org row (canonical via its link) has pr-metrics-emit
-        # off, the sibling has it on. The sibling must still emit rather than defer to
-        # a canonical that its own emit gate will never let through.
-        with patch(
-            "sentry.pr_metrics.emit.features.has",
-            side_effect=lambda name, org, **kw: not (
-                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
-            ),
-        ):
-            assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
-        assert mock_record.call_count == 1
-
-    @patch("sentry.analytics.record")
-    def test_emit_disabled_row_defers_rather_than_duplicating(self, mock_record: Any) -> None:
-        # The mirror of the above: the run's-org row that lost pr-metrics-emit after
-        # its cooldown was claimed must defer to the enabled sibling, not emit a
-        # duplicate alongside it.
-        with patch(
-            "sentry.pr_metrics.emit.features.has",
-            side_effect=lambda name, org, **kw: not (
-                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
-            ),
-        ):
-            assert emit_pr_metrics_row(pull_request=self.pull_request) is False
-        assert mock_record.call_count == 0
-
 
 @cell_silo_test
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(
+    [
+        "organizations:pr-metrics",
+        "organizations:gen-ai-features",
+    ]
+)
 class DeduplicationKeyTest(TestCase):
     """The same provider PR, fanned out to one row per org, must build the same
     opaque deduplication_key so a consumer can collapse them."""

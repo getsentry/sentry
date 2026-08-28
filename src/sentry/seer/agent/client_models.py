@@ -276,6 +276,24 @@ class SeerRunState(BaseModel):
     class Config:
         extra = "ignore"
 
+    def get_created_pull_request_states(self) -> list[RepoPRState]:
+        """
+        The repos this run actually got a pull request onto.
+
+        ``repo_pr_states`` also holds repos whose push failed, so a plain
+        truthiness check treats a failed run as one that opened PRs — which
+        would, for instance, refuse to re-run a step that stranded nothing.
+
+        ``pr_number`` is what says the PR exists: seer only ever sets it from a
+        created pull request, so an errored state that carries one is a PR that
+        opened and then took a failed push, not a creation that never landed.
+        """
+        return [
+            pr_state
+            for pr_state in self.repo_pr_states.values()
+            if pr_state.pr_creation_status != "error" or pr_state.pr_number is not None
+        ]
+
     def get_artifacts(self) -> dict[str, Artifact]:
         """
         Scan blocks and return the latest artifact for each key.
@@ -385,10 +403,3 @@ class AgentRun(BaseModel):
 
     class Config:
         extra = "allow"
-
-
-class AgentRunWithPrs(AgentRun):
-    """A single agent run record with PR metadata."""
-
-    group_id: int | None = None
-    repo_pr_states: dict[str, RepoPRState] | None = None

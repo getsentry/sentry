@@ -1,13 +1,8 @@
 declare namespace TypeLoader {
   type ComponentDoc = import('react-docgen-typescript').ComponentDoc;
 
-  interface ComponentDocWithFilename extends ComponentDoc {
-    filename: string;
-    module: string;
-  }
-
   interface TypeLoaderResult {
-    props?: Record<string, TypeLoader.ComponentDocWithFilename>;
+    props?: Record<string, TypeLoader.ComponentDoc>;
     exports?: {
       module?: string;
       exports?: Record<string, {name: string; typeOnly: boolean}>;

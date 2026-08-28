@@ -78,6 +78,7 @@ def get_integration_from_jwt(
     issuer = claims.get("iss")
     # Look up the sharedSecret for the clientKey, as stored
     # by the add-on during the installation handshake
+    # TODO(mark) Add using_replica here
     integration = integration_service.get_integration(provider=provider, external_id=issuer)
     if not integration:
         raise AtlassianConnectValidationError("No integration found")

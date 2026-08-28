@@ -1,3 +1,4 @@
+import type {ReactElement} from 'react';
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -6,7 +7,14 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render as renderWithoutContainer,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -14,6 +22,12 @@ import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';
+
+function render(ui: ReactElement) {
+  jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1400);
+
+  return renderWithoutContainer(<Container containerType="inline-size">{ui}</Container>);
+}
 
 describe('UsageOverviewTable', () => {
   const organization = OrganizationFixture();

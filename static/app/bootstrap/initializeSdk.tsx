@@ -160,6 +160,17 @@ export function initializeSdk(config: Config) {
        */
       "NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
       "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
+      /**
+       * ECharts re-shows the last tooltip a tick after every `setOption`,
+       * reusing the series indices it captured before the update. Under
+       * `notMerge: false` (see `chartZoomConfig`) the tooltip component
+       * survives an update that replaces the series, so those indices can
+       * outlive the series they point at and reading them throws.
+       *
+       * Transient and self-healing: the tooltip corrects itself as soon as
+       * the pointer moves.
+       */
+      /Cannot read properties of undefined \(reading 'getDataParams'\)/,
     ],
 
     beforeBreadcrumb(crumb) {

@@ -243,13 +243,13 @@ const ACTIVE_POLL_INTERVAL = 1000;
  */
 const PR_POLL_INTERVAL = 10000;
 
-function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
+export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
       query: {mode: 'explorer', llmFormat: 'markdown'},
-      staleTime: 0,
+      staleTime: 30_000,
     }
   );
 }
@@ -299,16 +299,16 @@ const isActivelyProcessing = (
       codingAgent.status === CodingAgentStatus.RUNNING
   );
 
-  const hasQueuedFeedback = (autofixState.queued_feedback ?? []).length > 0;
-
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
     anyPRCreating ||
-    anyCodingAgentsRunning ||
-    hasQueuedFeedback
+    anyCodingAgentsRunning
   );
 };
+
+const hasQueuedFeedback = (autofixState: ExplorerAutofixState | null): boolean =>
+  (autofixState?.queued_feedback ?? []).length > 0;
 
 const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boolean =>
   Object.values(autofixState?.repo_pr_states ?? {}).some(
@@ -328,7 +328,8 @@ export const getPollInterval = ({
   pollPR?: boolean;
 }): number | false => {
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
-  const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
+  const shouldPollProcessing =
+    isActivelyProcessing(autofixState, runStarted) || hasQueuedFeedback(autofixState);
 
   if (shouldPollProcessing) {
     return ACTIVE_POLL_INTERVAL;
@@ -662,6 +663,10 @@ export function useExplorerAutofix(
       step: AutofixExplorerStep,
       startStepOptions?: {
         /**
+         * Whether to enable bash mode for the autofix run. Defaults to false.
+         */
+        enableBashTools?: boolean;
+        /**
          * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
          */
         insertIndex?: number;
@@ -690,6 +695,10 @@ export function useExplorerAutofix(
 
         if (startStepOptions?.userContext) {
           data.user_context = startStepOptions.userContext;
+        }
+
+        if (defined(startStepOptions?.enableBashTools)) {
+          data.enable_bash_tools = startStepOptions.enableBashTools;
         }
 
         const response = await api.requestPromise(
@@ -991,6 +1000,13 @@ export function useExplorerAutofix(
      * Whether we're actively processing (used for UI indicators).
      */
     isPolling:
+      isActivelyProcessing(runState, waitingForResponse) ||
+      hasQueuedFeedback(runState) ||
+      waitingForCodingAgent,
+    /**
+     * Whether a user-initiated action is actively processing.
+     */
+    isProcessing:
       isActivelyProcessing(runState, waitingForResponse) || waitingForCodingAgent,
     /**
      * Start or continue an autofix step.

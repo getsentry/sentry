@@ -11,6 +11,7 @@ import {defined} from 'sentry/utils/defined';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LogsPageDataProvider,
@@ -77,6 +78,8 @@ interface OurLogsContentProps {
 }
 
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const replayAttributeFilter = MutableSearch.fromQueryObject({
     [`sentry._internal.cooccuring.replay_id.${replayId}`]: ['true'],
   }).formatString();
@@ -86,6 +89,11 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
     useLogItemAttributes({query: replayAttributeFilter}, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({query: replayAttributeFilter}, 'boolean');
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes(
+      {query: replayAttributeFilter, enabled: supportsArrays},
+      'array'
+    );
 
   const {currentTime, setCurrentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -118,9 +126,11 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
       attributeQuery: replayAttributeFilter,
+      arrayAttributes,
       stringAttributes,
       numberAttributes,
       booleanAttributes,
+      arraySecondaryAliases,
       stringSecondaryAliases,
       numberSecondaryAliases,
       booleanSecondaryAliases,

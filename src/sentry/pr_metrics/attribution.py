@@ -303,16 +303,16 @@ def attribute_delegated_agent_pull_request(
     delegated run was launched against, mirroring the field already on
     ``SentryAppSignalDetails``.
 
-    Gated behind ``organizations:pr-metrics-attribution``. Best-effort: callers run
-    this inside the polling/webhook flow, so any failure is logged and swallowed
-    rather than allowed to interrupt that flow.
+    Gated behind ``organizations:pr-metrics``. Best-effort: callers run this inside the
+    polling/webhook flow, so any failure is logged and swallowed rather than allowed to
+    interrupt that flow.
     """
     try:
         organization = Organization.objects.get(id=organization_id, status=ObjectStatus.ACTIVE)
     except Organization.DoesNotExist:
         return
 
-    if not features.has("organizations:pr-metrics-attribution", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return
 
     parsed_pr = parse_pull_request_url(pr_url)

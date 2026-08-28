@@ -643,7 +643,7 @@ describe('useAutofixSectionEvidence', () => {
         message: {
           content: '',
           role: 'assistant',
-          tool_calls: [makeToolCall('telemetry_live_search', {}, 'tc-1')],
+          tool_calls: [makeToolCall('telemetry_live_search', {})],
         },
         tool_results: [
           {
@@ -671,7 +671,7 @@ describe('useAutofixSectionEvidence', () => {
           content: '',
           role: 'assistant',
           tool_calls: [
-            makeToolCall('telemetry_live_search', {}, 'tc-1'),
+            makeToolCall('telemetry_live_search', {}),
             makeToolCall('get_trace_waterfall', {}, 'tc-2'),
           ],
         },
@@ -708,7 +708,7 @@ describe('useAutofixSectionEvidence', () => {
         message: {
           content: '',
           role: 'assistant',
-          tool_calls: [makeToolCall('telemetry_live_search', {}, 'tc-1')],
+          tool_calls: [makeToolCall('telemetry_live_search', {})],
         },
         tool_results: [
           {
@@ -764,7 +764,7 @@ describe('useAutofixSectionEvidence', () => {
         message: {
           content: '',
           role: 'assistant',
-          tool_calls: [makeToolCall('telemetry_live_search', {}, 'tc-1')],
+          tool_calls: [makeToolCall('telemetry_live_search', {})],
         },
       }),
     ]);
@@ -780,7 +780,7 @@ describe('useAutofixSectionEvidence', () => {
         message: {
           content: '',
           role: 'assistant',
-          tool_calls: [makeToolCall('telemetry_live_search', {}, 'tc-1')],
+          tool_calls: [makeToolCall('telemetry_live_search', {})],
         },
         tool_results: [
           {

@@ -15,20 +15,12 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-
-import {OldQueryTokens} from './oldQueryTokens';
 
 const MAX_PROJECT_CHIPS = 3;
 
 export function QueryTokens(props: QueryTokensProps) {
-  const organization = useOrganization();
   const normalizedDateTimeParams = normalizeSeerDateTimeParams(props);
-
-  if (!organization.features.includes('gen-ai-ask-seer-ux-rework')) {
-    return <OldQueryTokens {...props} {...normalizedDateTimeParams} />;
-  }
 
   return <NewQueryTokens {...props} {...normalizedDateTimeParams} />;
 }

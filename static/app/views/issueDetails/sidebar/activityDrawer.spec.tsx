@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -27,13 +26,12 @@ describe('ActivityDrawer', () => {
     });
   });
 
-  function renderDrawer(features: string[] = []) {
+  function renderDrawer() {
     return render(
       <GroupIdProvider groupId={group.id}>
         <ActivityDrawer project={project} />
       </GroupIdProvider>,
       {
-        organization: OrganizationFixture({features}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/issues/1337/activity/',
@@ -43,18 +41,7 @@ describe('ActivityDrawer', () => {
     );
   }
 
-  it('keeps the existing note input when the feature is disabled', async () => {
-    renderDrawer();
-
-    expect(
-      await screen.findByRole('textbox', {name: 'Add a comment'})
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('combobox', {name: 'Add a comment'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('creates a comment with the mention composer when the feature is enabled', async () => {
+  it('creates a comment with the mention composer', async () => {
     const comment = 'A comment from the drawer';
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
@@ -67,7 +54,7 @@ describe('ActivityDrawer', () => {
         user: UserFixture(),
       },
     });
-    renderDrawer(['issue-activity-mention-input']);
+    renderDrawer();
 
     const editor = await screen.findByRole('combobox', {name: 'Add a comment'});
     // user-event does not yet recognize contenteditable="plaintext-only".

@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -9,6 +8,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -59,6 +59,14 @@ import type {
   WorkflowKind,
   WorkflowRow,
 } from 'sentry/views/seerWorkflows/types';
+
+const RUNS_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'min-content'},
+  {key: 'date', width: 'max-content'},
+  {key: 'strategy', width: '1fr'},
+  {key: 'result', width: '2fr'},
+  {key: 'actions', width: 'min-content'},
+];
 
 function SeerWorkflows() {
   const organization = useOrganization();
@@ -332,20 +340,23 @@ function SeerWorkflows() {
                 ) : null}
               </Flex>
             </Container>
-            <RunsTable>
-              <SimpleTable.Header>
-                <SimpleTable.HeaderCell />
-                <SimpleTable.HeaderCell
-                  sort={sortDirection}
-                  handleSortClick={toggleSortDirection}
-                >
-                  {t('Date')}
-                </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Result')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell />
-              </SimpleTable.Header>
-
+            <SimpleTable
+              columns={RUNS_COLUMNS}
+              header={
+                <SimpleTable.HeaderRow>
+                  <SimpleTable.HeaderCell />
+                  <SimpleTable.HeaderCell
+                    sort={sortDirection}
+                    handleSortClick={toggleSortDirection}
+                  >
+                    {t('Date')}
+                  </SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Result')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell />
+                </SimpleTable.HeaderRow>
+              }
+            >
               {sortedRows.length === 0 ? (
                 <SimpleTable.Empty>
                   {rows.length === 0
@@ -412,20 +423,21 @@ function SeerWorkflows() {
 
                       {isExpanded && (
                         <SimpleTable.Row variant="faded">
-                          <Container
+                          <SimpleTable.RowCell
+                            align="stretch"
                             background="secondary"
-                            padding="lg xl"
                             column="1 / -1"
+                            direction="column"
                           >
                             <RunDetail row={row} organizationSlug={organization.slug} />
-                          </Container>
+                          </SimpleTable.RowCell>
                         </SimpleTable.Row>
                       )}
                     </Fragment>
                   );
                 })
               )}
-            </RunsTable>
+            </SimpleTable>
           </Container>
         )}
       </Stack>
@@ -577,7 +589,7 @@ function RunDetail({
             </Flex>
           </Disclosure.Title>
           <Disclosure.Content>
-            <DebugSection row={row} organizationSlug={organizationSlug} />
+            <DebugSection row={row} />
           </Disclosure.Content>
         </Disclosure>
       ) : null}
@@ -634,13 +646,7 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
   );
 }
 
-function DebugSection({
-  row,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  row: WorkflowRow;
-}) {
+function DebugSection({row}: {row: WorkflowRow}) {
   const {
     reasoning_effort,
     intelligence_level,
@@ -705,7 +711,7 @@ function DebugSection({
           {row.errorMessage}
         </Text>
       ) : null}
-      <TriageIssuesDebugAddendum row={row} organizationSlug={organizationSlug} />
+      <TriageIssuesDebugAddendum row={row} />
     </Stack>
   );
 }
@@ -852,13 +858,7 @@ function IssuePullRequestChip({
   );
 }
 
-function TriageIssuesDebugAddendum({
-  row,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  row: WorkflowRow;
-}) {
+function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
   const issues = row.triage?.issues ?? [];
   if (issues.length === 0) {
     return null;
@@ -906,10 +906,7 @@ function TriageIssuesDebugAddendum({
               key={`${issue.id}-explorer`}
               size="xs"
               icon={<IconOpen />}
-              to={{
-                pathname: `/organizations/${organizationSlug}/issues/autofix/`,
-                query: {explorerRunId: issue.seerRunId},
-              }}
+              to={getRelativeExplorerUrl(issue.seerRunId)}
             >
               {t('Explorer')}
             </LinkButton>
@@ -919,10 +916,6 @@ function TriageIssuesDebugAddendum({
     </Stack>
   );
 }
-
-const RunsTable = styled(SimpleTable)`
-  grid-template-columns: min-content max-content 1fr 2fr min-content;
-`;
 
 function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
   const status: RunStatus = run.errorMessage ? 'failed' : 'succeeded';

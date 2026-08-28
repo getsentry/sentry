@@ -13,6 +13,11 @@ class PullRequestFilePayload(TypedDict):
     changeType: str
 
 
+class FailedCheckPayload(TypedDict):
+    name: str
+    url: str | None
+
+
 class PullRequestPayload(TypedDict):
     id: str
     number: int
@@ -22,7 +27,7 @@ class PullRequestPayload(TypedDict):
     reviewStatus: str | None
     repoName: str | None
     files: list[PullRequestFilePayload]
-    failedChecks: list[str]
+    failedCheckDetails: list[FailedCheckPayload]
 
 
 class IssueProjectPayload(TypedDict):
@@ -52,6 +57,7 @@ class ProjectConfigPayload(TypedDict):
     id: str
     slug: str
     hasReposConnected: bool
+    hasNonGithubRepo: bool
 
 
 class CodeChangeFilePayload(TypedDict):
@@ -61,6 +67,7 @@ class CodeChangeFilePayload(TypedDict):
 
 class RootCausePayload(TypedDict):
     oneLineDescription: str | None
+    headline: str | None
 
 
 class ProposedFixPayload(TypedDict):
@@ -85,3 +92,11 @@ class OverviewResponse(TypedDict):
     runsByMilestone: dict[str, list[RunPayload]]
     truncatedMilestones: list[str]
     projectConfig: NotRequired[list[ProjectConfigPayload]]
+
+
+class ScmInfoRunPayload(TypedDict):
+    pullRequests: list[PullRequestPayload]
+
+
+class ScmInfoResponse(TypedDict):
+    scmInfoByRunId: dict[str, ScmInfoRunPayload]

@@ -19,6 +19,7 @@ import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/compon
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
 import {TrialEnded} from './trial/trialEnded';
+import {BillingPlatformMigrationAlert} from './billingPlatformMigrationAlert';
 import {OnDemandDisabled} from './ondemandDisabled';
 import {RecurringCredits} from './recurringCredits';
 import {SubscriptionHeader} from './subscriptionHeader';
@@ -118,6 +119,7 @@ function Overview({subscription}: Props) {
               </Fragment>
             ) : null}
             <OnDemandDisabled organization={organization} subscription={subscription} />
+            <BillingPlatformMigrationAlert subscription={subscription} />
             <UsageAlert subscription={subscription} usage={usage} />
             <UsageOverview
               subscription={subscription}
