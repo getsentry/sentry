@@ -8,6 +8,7 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
@@ -152,7 +153,7 @@ function useHandleOpenSeerAgent({
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
 }): (() => void) | undefined {
   const {openSeerExplorerDrawer} = useSeerExplorerDrawer();
-  const runId = aiAutofix.runState?.run_id;
+  const runId = getAutofixRunId(aiAutofix.runState);
 
   return useMemo(() => {
     if (!defined(runId)) {
