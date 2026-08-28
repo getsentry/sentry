@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import type {GroupTombstone} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
@@ -106,7 +107,6 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           disabled={disabled}
         >
           <Button
-            type="button"
             aria-label={t('Undiscard')}
             tooltipProps={{
               title: disabled
@@ -153,7 +153,16 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
   const handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
     api
       .requestPromise(
-        `/projects/${organization.slug}/${project.slug}/tombstones/${tombstoneId}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/tombstones/$tombstoneId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              tombstoneId,
+            },
+          }
+        ),
         {
           method: 'DELETE',
         }

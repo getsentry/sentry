@@ -10,8 +10,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
@@ -84,17 +82,9 @@ export default function ConsoleSDKInvitesSettings() {
           </SimpleTable.HeaderRow>
         }
       >
-        {isPending && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
-        )}
+        {isPending && <SimpleTable.Loading />}
 
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError onRetry={refetch} />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error onRetry={refetch} />}
 
         {!isPending && !isError && invites?.length === 0 && (
           <SimpleTable.Empty>{t('No invites found')}</SimpleTable.Empty>

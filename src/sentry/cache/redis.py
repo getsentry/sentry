@@ -1,3 +1,4 @@
+from sentry.exceptions import MissingTTL
 from sentry.utils import json
 from sentry.utils.redis import get_cluster_from_options, get_cluster_routing_client, redis_clusters
 
@@ -25,13 +26,18 @@ class CommonRedisCache(BaseCache):
 
     def set(self, key, value, timeout, version=None, raw=False):
         key = self.make_key(key, version=version)
-        v = json.dumps(value) if not raw else value
+        if not timeout:
+            raise MissingTTL(key)
+
+        if raw:
+            v = value
+        else:
+            v = json.dumps(value)
+
         if len(v) > self.max_size:
             raise ValueTooLarge(f"Cache key too large: {key!r} {len(v)!r}")
-        if timeout:
-            self._client(raw=raw).setex(key, int(timeout), v)
-        else:
-            self._client(raw=raw).set(key, v)
+
+        self._client(raw=raw).setex(key, int(timeout), v)
 
         self._mark_transaction("set")
 

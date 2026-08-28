@@ -7,8 +7,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
@@ -101,13 +99,9 @@ export function BilledSeats({
         }
       >
         {seatsError ? (
-          <SimpleTable.Empty>
-            <LoadingError onRetry={refetch} />
-          </SimpleTable.Empty>
+          <SimpleTable.Error onRetry={refetch} />
         ) : seatsLoading ? (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
+          <SimpleTable.Loading />
         ) : billedSeats && billedSeats.length > 0 ? (
           billedSeats.map(seat => (
             <SimpleTable.Row key={seat.id}>

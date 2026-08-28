@@ -113,7 +113,7 @@ function IssueOpenPeriodsList() {
         investigation:
           activity.type === 'opened' && candidate?.status === 'view' ? (
             <Link
-              to={`/organizations/${organization.slug}/seer/investigation/${candidate.investigationId}/`}
+              to={`/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`}
             >
               <Flex as="span" align="center" gap="xs">
                 <IconSeer size="xs" />

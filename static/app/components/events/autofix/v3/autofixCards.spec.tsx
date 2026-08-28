@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {
@@ -631,6 +631,53 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('opens and consumes a requested context prompt without an explanation', async () => {
+      const {router} = render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('   ')]
+          )}
+        />,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {
+                project: '1',
+                seerDrawer: 'true',
+                seerDrawerAction: 'retry_code_changes',
+              },
+            },
+          },
+        }
+      );
+
+      expect(
+        screen.getByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('What additional context should Seer use?')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add context & retry'})
+      ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText(
+            'Add context that could unblock the change, e.g. the repo or files to edit.'
+          )
+        ).toHaveFocus();
+        expect(router.location.query).toEqual({project: '1', seerDrawer: 'true'});
+      });
+    });
+
     it('opens the context prompt from the explanation state', async () => {
       render(
         <CodeChangesCard
@@ -701,7 +748,47 @@ describe('ArtifactCard', () => {
       });
     });
 
-    it('does not open PR iteration feedback when only automated CI iteration is enabled', async () => {
+    it('does not offer a code-changes reset when PR creation failed', () => {
+      const startStepMock = jest.fn();
+      const autofixWithFailedPR: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofixWithRunState,
+        startStep: startStepMock,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {
+            'org/repo': makePR({
+              pr_creation_status: 'error',
+              pr_number: null,
+              pr_url: null,
+            }),
+          },
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithFailedPR}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+          )}
+        />,
+        {organization: manualPrIterationOrganization}
+      );
+
+      expect(screen.getByRole('button', {name: 'Add context & retry'})).toBeDisabled();
+      expect(
+        screen.queryByText('Anything else you want to see on your PR?')
+      ).not.toBeInTheDocument();
+    });
+
+    it('ignores a requested context prompt when reset is ineligible', () => {
       const autofixWithPR: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofixWithRunState,
         runState: {
@@ -724,10 +811,16 @@ describe('ArtifactCard', () => {
             [makeAssistantBlock('The relevant files are not in the connected repo.')]
           )}
         />,
-        {organization: prIterationOrganization}
+        {
+          organization: prIterationOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {seerDrawerAction: 'retry_code_changes'},
+            },
+          },
+        }
       );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
 
       // Reset is ineligible once a PR exists without the manual flag, so neither
       // the PR iteration form nor the free-text reset prompt opens.

@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import NamedTuple, cast
+from typing import Any, NamedTuple, cast
 
 from django.conf import settings
 from redis.exceptions import WatchError
@@ -130,7 +130,7 @@ class OnboardingProgressService:
         token: str,
         user_id: int,
         organization_id: int,
-        update: ProgressUpdate,
+        update: ProgressUpdate[Any],
     ) -> UpdatedRun:
         if len(token) != TOKEN_LENGTH or not token.isalnum():
             raise RunNotFound

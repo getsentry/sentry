@@ -13,6 +13,7 @@ import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CodeOwner, CodeownersFile} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -68,14 +69,31 @@ export function CodeOwnerFileTable({
   const handleSync = (codeowner: CodeOwner) => async () => {
     try {
       const codeownerFile: CodeownersFile = await api.requestPromise(
-        `/organizations/${organization.slug}/code-mappings/${codeowner.codeMappingId}/codeowners/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              configId: codeowner.codeMappingId,
+            },
+          }
+        ),
         {
           method: 'GET',
         }
       );
 
       const data = await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/$codeownersId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              codeownersId: codeowner.id,
+            },
+          }
+        ),
         {
           method: 'PUT',
           data: {raw: codeownerFile.raw},
@@ -91,7 +109,16 @@ export function CodeOwnerFileTable({
   const handleDelete = (codeowner: CodeOwner) => async () => {
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/$codeownersId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              codeownersId: codeowner.id,
+            },
+          }
+        ),
         {
           method: 'DELETE',
         }

@@ -111,7 +111,7 @@ export interface OverviewIssue {
   owners?: Group['owners'];
 }
 
-export type OverviewSort = 'seer' | 'issue' | 'events' | 'users';
+export type OverviewSort = 'recommended' | 'seer' | 'issue' | 'events' | 'users';
 
 // The milestone a run reached, as keyed in the endpoint's `runsByMilestone`.
 export type MilestoneKey =
@@ -192,8 +192,6 @@ export interface OverviewRunIssue {
   project: {
     id: string;
     slug: string;
-    hasNonGithubRepo?: boolean;
-    hasReposConnected?: boolean;
     platform?: PlatformKey;
   };
   substatus: string | null;
@@ -218,6 +216,7 @@ export interface ProjectConfig {
   hasReposConnected: boolean;
   id: string;
   slug: string;
+  hasNonGithubRepo?: boolean;
 }
 
 export interface AutofixOverviewResponse {
@@ -225,3 +224,11 @@ export interface AutofixOverviewResponse {
   projectConfig?: ProjectConfig[];
   truncatedMilestones?: MilestoneKey[];
 }
+
+export interface AutofixScmInfoResponse {
+  scmInfoByRunId: Record<string, {pullRequests: OverviewPullRequest[]}>;
+}
+
+// PR-bearing runs are partitioned by render order into windows of this size; a
+// card scrolling into view fetches its whole window and prefetches the next.
+export const SCM_WINDOW_SIZE = 5;

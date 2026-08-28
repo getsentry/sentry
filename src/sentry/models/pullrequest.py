@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 from urllib.parse import urlsplit
@@ -28,10 +29,13 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.repository import Repository
+from sentry.utils import metrics
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
     from sentry.models.repository import RepoLookup, RepoResolution
+
+logger = logging.getLogger(__name__)
 
 
 class PullRequestLifecycleState(models.TextChoices):
@@ -279,6 +283,67 @@ class PullRequestManager(BaseManager["PullRequest"]):
         )
         return ResolvedPullRequest(pull_request, "resolved", provider_unmappable, resolved_by)
 
+    def get_or_fetch_external_id(
+        self,
+        *,
+        organization_id: int,
+        repository_id: int,
+        key: str,
+        fetch: Callable[[], int | None],
+    ) -> int | None:
+        """The provider-global PR id for this org/repo/number, fetching on a miss.
+
+        Reads ``external_id`` off the existing row. A NULL column calls
+        ``fetch`` and writes the result back — so a later mention does not pay
+        REST again. A missing row also fetches, but the id is returned
+        unpersisted: we do not invent a shell PR. A ``None`` from ``fetch`` is
+        not stored: that is a lost installation, a gone-private repo, or a
+        transient error, and caching it would freeze a recoverable miss.
+
+        ``scm.pull_request.external_id`` is tagged ``result`` (``hit`` /
+        ``fetched`` / ``fetch_empty``) and ``row`` (``present`` / ``absent``)
+        so we can see how often REST is still paid and whether the miss was a
+        shell row or no row at all.
+        """
+        stored = self.filter(
+            organization_id=organization_id,
+            repository_id=repository_id,
+            key=key,
+        ).first()
+        if stored is not None and stored.external_id is not None:
+            metrics.incr(
+                "scm.pull_request.external_id",
+                tags={"result": "hit", "row": "present"},
+            )
+            return stored.external_id
+
+        row = "present" if stored is not None else "absent"
+        logger.info(
+            "scm.pull_request.external_id.miss",
+            extra={
+                "organization_id": organization_id,
+                "repository_id": repository_id,
+                "pr_key": key,
+                "row": row,
+            },
+        )
+        external_id = fetch()
+        if external_id is None:
+            metrics.incr(
+                "scm.pull_request.external_id",
+                tags={"result": "fetch_empty", "row": row},
+            )
+            return None
+
+        if stored is not None:
+            stored.update(external_id=external_id)
+
+        metrics.incr(
+            "scm.pull_request.external_id",
+            tags={"result": "fetched", "row": row},
+        )
+        return external_id
+
     def for_provider_pr(
         self, *, external_id: str, integration_id: int, key: int | str
     ) -> list[PullRequest]:
@@ -314,6 +379,10 @@ class PullRequest(Model):
     repository_id = BoundedPositiveIntegerField()
 
     key = models.CharField(max_length=64)  # example, 5131 on github
+    # Provider-global PR id (GitHub ``pull_request.id``). Distinct from ``key``,
+    # which is the repo-scoped number. Nullable: only set when an SCM webhook
+    # (or a later write-back) actually saw the id.
+    external_id = BoundedBigIntegerField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 

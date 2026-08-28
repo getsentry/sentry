@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboards import PrebuiltDashboardId
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
@@ -28,8 +29,10 @@ from sentry.models.dashboard_widget import (
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardWidgetDatasetSourcesTypes
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
 
@@ -668,16 +671,25 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self) -> None:
-        response = self.do_request("delete", self.url(self.dashboard.id))
+        dashboard_id = self.dashboard.id
+        dashboard_title = self.dashboard.title
+        with outbox_runner():
+            response = self.do_request("delete", self.url(self.dashboard.id))
         assert response.status_code == 204
 
-        assert self.client.get(self.url(self.dashboard.id)).status_code == 404
+        assert self.client.get(self.url(dashboard_id)).status_code == 404
 
-        assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
+        assert not Dashboard.objects.filter(id=dashboard_id).exists()
         assert not DashboardWidget.objects.filter(id=self.widget_1.id).exists()
         assert not DashboardWidget.objects.filter(id=self.widget_2.id).exists()
         assert not DashboardWidgetQuery.objects.filter(widget_id=self.widget_1.id).exists()
         assert not DashboardWidgetQuery.objects.filter(widget_id=self.widget_2.id).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("DASHBOARD_REMOVE"),
+            target_object=dashboard_id,
+            data={"id": dashboard_id, "title": dashboard_title, "prebuilt_id": None},
+        )
 
     def test_delete_permission(self) -> None:
         self.create_user_member_role()
@@ -920,13 +932,24 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert response.status_code == 404, response.data
 
     def test_change_dashboard_title(self) -> None:
-        response = self.do_request(
-            "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
-        )
+        with outbox_runner():
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+            )
         assert response.status_code == 200, response.data
         assert Dashboard.objects.filter(
             title="Dashboard Hello", organization=self.organization, id=self.dashboard.id
         ).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("DASHBOARD_EDIT"),
+            target_object=self.dashboard.id,
+            data={
+                "id": self.dashboard.id,
+                "title": "Dashboard Hello",
+                "prebuilt_id": None,
+            },
+        )
 
     def test_rename_dashboard_title_taken(self) -> None:
         Dashboard.objects.create(
@@ -2267,6 +2290,94 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widgets = response.data["widgets"]
         for widget in widgets:
             assert widget["layout"] == layouts[int(widget["id"])]
+
+    def test_update_widget_layout_allows_height_below_minimum(self) -> None:
+        layout = {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2}
+
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={"widgets": [{"id": self.widget_1.id, "layout": layout}]},
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["layout"] == layout
+
+    def test_update_widget_layout_rejects_new_invalid_height(self) -> None:
+        self.widget_1.detail = {"layout": {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2}}
+        self.widget_1.save()
+
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "id": self.widget_1.id,
+                        "layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2},
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert str(response.data["widgets"][0]["layout"]["h"]) == (
+            "Height must be at least 2 for line widgets."
+        )
+
+    def test_update_widget_display_type_rejects_new_invalid_height(self) -> None:
+        self.widget_1.display_type = DashboardWidgetDisplayTypes.BIG_NUMBER
+        self.widget_1.detail = {"layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1}}
+        self.widget_1.save()
+
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "id": self.widget_1.id,
+                        "displayType": "line",
+                        "layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1},
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert str(response.data["widgets"][0]["layout"]["h"]) == (
+            "Height must be at least 2 for line widgets."
+        )
+
+    def test_update_rejects_new_widget_with_invalid_height(self) -> None:
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "displayType": "line",
+                        "interval": "5m",
+                        "title": "Short line chart",
+                        "queries": [
+                            {
+                                "name": "Transactions",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                                "conditions": "event.type:transaction",
+                            }
+                        ],
+                        "layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2},
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert str(response.data["widgets"][0]["layout"]["h"]) == (
+            "Height must be at least 2 for line widgets."
+        )
 
     def test_update_layout_with_invalid_data_fails(self) -> None:
         response = self.do_request(
