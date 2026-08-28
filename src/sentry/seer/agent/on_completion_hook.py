@@ -12,12 +12,17 @@ class OnCompletionHookDefinition(BaseModel):
     """Definition of an on-completion hook to pass to Seer."""
 
     module_path: str
+    call_on_failure: bool = False
 
 
 class AgentOnCompletionHook(ABC):
     """Base class for the agent on-completion hooks.
 
-    Hooks are called when an agent run completes (regardless of status).
+    Hooks are called when an agent run finishes successfully. Pass
+    ``call_on_failure=True`` to :func:`extract_hook_definition` to also be
+    called when a run errors or times out; such a hook must read the run status
+    itself and handle a failed run, since ``execute`` is not told which outcome
+    it was called for.
 
     Example:
         class MyCompletionHook(AgentOnCompletionHook):
@@ -57,8 +62,15 @@ class AgentOnCompletionHook(ABC):
 
 def extract_hook_definition(
     hook_class: type[AgentOnCompletionHook],
+    *,
+    call_on_failure: bool = False,
 ) -> OnCompletionHookDefinition:
-    """Extract hook definition from an AgentOnCompletionHook class."""
+    """Extract hook definition from an AgentOnCompletionHook class.
+
+    Args:
+        hook_class: The hook to run when the run finishes
+        call_on_failure: Also run the hook when the run errors or times out
+    """
     # Enforce module-level classes only (no nested classes)
     if "." in hook_class.__qualname__:
         raise ValueError(
@@ -66,7 +78,10 @@ def extract_hook_definition(
             f"Nested classes are not supported. (qualname: {hook_class.__qualname__})"
         )
 
-    return OnCompletionHookDefinition(module_path=hook_class.get_module_path())
+    return OnCompletionHookDefinition(
+        module_path=hook_class.get_module_path(),
+        call_on_failure=call_on_failure,
+    )
 
 
 def call_on_completion_hook(

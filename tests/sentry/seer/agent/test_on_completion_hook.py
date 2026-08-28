@@ -18,6 +18,12 @@ class SampleCompletionHook(AgentOnCompletionHook):
         organization.update_option("test_hook_run_id", run_id)
 
 
+class FailureAwareCompletionHook(AgentOnCompletionHook):
+    @classmethod
+    def execute(cls, organization: Organization, run_id: int) -> None:
+        organization.update_option("test_failure_hook_run_id", run_id)
+
+
 class OnCompletionHookTest(TestCase):
     def test_extract_hook_definition(self) -> None:
         """Test extracting hook definition from a hook class."""
@@ -25,6 +31,24 @@ class OnCompletionHookTest(TestCase):
 
         assert isinstance(hook_def, OnCompletionHookDefinition)
         assert hook_def.module_path.endswith("test_on_completion_hook.SampleCompletionHook")
+
+    def test_extract_hook_definition_defaults_to_success_only(self) -> None:
+        """A hook that does not opt in is not called on failure."""
+        assert extract_hook_definition(SampleCompletionHook).call_on_failure is False
+        assert extract_hook_definition(SampleCompletionHook).dict() == {
+            "module_path": SampleCompletionHook.get_module_path(),
+            "call_on_failure": False,
+        }
+
+    def test_extract_hook_definition_propagates_call_on_failure(self) -> None:
+        """A dispatch opting in has the flag carried onto the Seer payload."""
+        hook_def = extract_hook_definition(FailureAwareCompletionHook, call_on_failure=True)
+
+        assert hook_def.call_on_failure is True
+        assert hook_def.dict() == {
+            "module_path": FailureAwareCompletionHook.get_module_path(),
+            "call_on_failure": True,
+        }
 
     def test_extract_hook_definition_nested_class_raises(self) -> None:
         """Test that nested classes are rejected."""
