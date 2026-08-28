@@ -40,10 +40,10 @@ jobs:
     steps:
       - name: getsentry token
         id: getsentry
-        uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app_id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
-          private_key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+          client-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
