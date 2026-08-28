@@ -71,19 +71,21 @@ def _resolve_comment_dispatch(
     organization: Organization,
     integration: RpcIntegration | None,
     log_extra: Mapping[str, Any],
-    log_prefix: str,
+    command: str,
 ) -> CommentDispatchTarget | None:
     """Run the gates that every ``@sentry`` command on a pull request shares.
 
-    Each caller passes its own ``log_prefix`` so the two commands stay separate
-    in the logs.
+    These logs are shared, so each caller names itself with a ``command`` tag
+    rather than a message of its own.
     """
+    log_extra = {**log_extra, "command": command}
+
     if not features.has("organizations:autofix-pr-iteration-manual", organization):
-        logger.info("%s.feature_disabled", log_prefix, extra=log_extra)
+        logger.info("autofix.pr_iteration.comment_trigger.feature_disabled", extra=log_extra)
         return None
 
     if integration is None:
-        logger.info("%s.no_integration", log_prefix, extra=log_extra)
+        logger.info("autofix.pr_iteration.comment_trigger.no_integration", extra=log_extra)
         return None
 
     # GitHub Enterprise inherits this processor (see
@@ -92,14 +94,13 @@ def _resolve_comment_dispatch(
     # later. See ``PR_ITERATION_PROVIDER``.
     if integration.provider != PR_ITERATION_PROVIDER_SLUG:
         logger.info(
-            "%s.unsupported_provider",
-            log_prefix,
+            "autofix.pr_iteration.comment_trigger.unsupported_provider",
             extra={**log_extra, "provider": integration.provider},
         )
         return None
 
     if pr_number is None:
-        logger.info("%s.no_pr_number", log_prefix, extra=log_extra)
+        logger.info("autofix.pr_iteration.comment_trigger.no_pr_number", extra=log_extra)
         return None
 
     if not comment.get("html_url"):
@@ -135,7 +136,7 @@ def _dispatch_autofix_iteration_from_comment(
         organization=organization,
         integration=integration,
         log_extra=log_extra,
-        log_prefix="autofix.pr_iteration.comment_trigger",
+        command="iterate",
     )
     if target is None:
         return None
@@ -169,7 +170,7 @@ def _dispatch_pause_from_comment(
         organization=organization,
         integration=integration,
         log_extra=log_extra,
-        log_prefix="autofix.pr_iteration.stop_command",
+        command="stop",
     )
     if target is None:
         return None

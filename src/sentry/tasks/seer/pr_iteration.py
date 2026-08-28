@@ -557,7 +557,7 @@ def _ack_pr_command(
     source_type: GithubPrCommentFeedbackType,
     reaction: Reaction,
     body: str,
-    log_prefix: str,
+    command: str,
 ) -> None:
     """Answer an ``@sentry`` command with a reaction on it and a reply on the PR.
 
@@ -580,9 +580,12 @@ def _ack_pr_command(
         scm_actions.create_pull_request_comment(scm, str(pr_number), body)
     except Exception:
         logger.warning(
-            "%s.comment_failed",
-            log_prefix,
-            extra={"organization_id": organization_id, "pr_number": pr_number},
+            "autofix.pr_iteration.comment_trigger.comment_failed",
+            extra={
+                "organization_id": organization_id,
+                "pr_number": pr_number,
+                "command": command,
+            },
             exc_info=True,
         )
 
@@ -650,14 +653,14 @@ def _resolve_run_for_pr_comment(
     github_username: str,
     comment_id: int | None,
     source_type: GithubPrCommentFeedbackType,
-    log_prefix: str,
+    command: str,
     explain_ineligible: bool,
     external_id: str | int | None = None,
 ) -> ResolvedPrCommentRun | PrCommentRunOutcome:
     """Resolve the Autofix run behind a PR comment and gate on repo write access.
 
-    The iterate command and the stop command share this gate. Each caller passes
-    its own ``log_prefix`` so that the two commands stay separate in the logs.
+    The iterate command and the stop command share this gate, so these logs name
+    the caller with a ``command`` tag rather than a message of their own.
 
     ``explain_ineligible`` decides whether an ineligible run is answered on the PR
     at all. A cell can only see its own Seer, so it cannot tell "no Autofix
@@ -668,9 +671,8 @@ def _resolve_run_for_pr_comment(
     repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
     if repo is None:
         logger.info(
-            "%s.missing_repo",
-            log_prefix,
-            extra={"organization_id": organization_id, "repo_id": repo_id},
+            "autofix.pr_iteration.comment_trigger.missing_repo",
+            extra={"organization_id": organization_id, "repo_id": repo_id, "command": command},
         )
         return PrCommentRunOutcome.MISSING_REPO
 
@@ -681,12 +683,12 @@ def _resolve_run_for_pr_comment(
         # disagreement between that gate and this task rather than ordinary
         # traffic — hence warning, and hence the provider in `extra`.
         logger.warning(
-            "%s.unsupported_provider",
-            log_prefix,
+            "autofix.pr_iteration.comment_trigger.unsupported_provider",
             extra={
                 "organization_id": organization_id,
                 "repo_id": repo.id,
                 "provider": repo.provider,
+                "command": command,
             },
         )
         return PrCommentRunOutcome.UNSUPPORTED_PROVIDER
@@ -695,18 +697,16 @@ def _resolve_run_for_pr_comment(
         scm = make_scm(organization_id, repo_id, referrer="seer")
     except Exception:
         logger.warning(
-            "%s.scm_init_failed",
-            log_prefix,
-            extra={"organization_id": organization_id, "repo_id": repo_id},
+            "autofix.pr_iteration.comment_trigger.scm_init_failed",
+            extra={"organization_id": organization_id, "repo_id": repo_id, "command": command},
             exc_info=True,
         )
         return PrCommentRunOutcome.SCM_INIT_FAILED
 
     if not isinstance(scm, GetPullRequestProtocol):
         logger.warning(
-            "%s.unsupported_provider",
-            log_prefix,
-            extra={"organization_id": organization_id, "repo_id": repo_id},
+            "autofix.pr_iteration.comment_trigger.unsupported_provider",
+            extra={"organization_id": organization_id, "repo_id": repo_id, "command": command},
         )
         return PrCommentRunOutcome.UNSUPPORTED_PROVIDER
 
@@ -723,9 +723,8 @@ def _resolve_run_for_pr_comment(
         )
     except SCMError:
         logger.warning(
-            "%s.get_pull_request_failed",
-            log_prefix,
-            extra={"organization_id": organization_id, "pr_number": pr_number},
+            "autofix.pr_iteration.comment_trigger.get_pull_request_failed",
+            extra={"organization_id": organization_id, "pr_number": pr_number, "command": command},
             exc_info=True,
         )
         return PrCommentRunOutcome.PR_FETCH_FAILED
@@ -739,9 +738,8 @@ def _resolve_run_for_pr_comment(
         # ineligible — that would false-positive against the region that does
         # own the Autofix run and is iterating successfully.
         logger.info(
-            "%s.no_run",
-            log_prefix,
-            extra={"organization_id": organization_id, "pr_id": pr_id},
+            "autofix.pr_iteration.comment_trigger.no_run",
+            extra={"organization_id": organization_id, "pr_id": pr_id, "command": command},
         )
         return PrCommentRunOutcome.NO_RUN
 
@@ -749,12 +747,12 @@ def _resolve_run_for_pr_comment(
         # Found a Seer run for this PR, but it wasn't created by Autofix
         # (coding-agent handoff is the main case).
         logger.info(
-            "%s.ineligible_run",
-            log_prefix,
+            "autofix.pr_iteration.comment_trigger.ineligible_run",
             extra={
                 "organization_id": organization_id,
                 "pr_id": pr_id,
                 "run_id": agent_state.run_id,
+                "command": command,
             },
         )
         if explain_ineligible:
@@ -771,11 +769,11 @@ def _resolve_run_for_pr_comment(
 
     if not _github_commenter_has_repo_write_access(scm, github_username):
         logger.info(
-            "%s.unauthorized",
-            log_prefix,
+            "autofix.pr_iteration.comment_trigger.unauthorized",
             extra={
                 "organization_id": organization_id,
                 "github_username": github_username,
+                "command": command,
             },
         )
         return PrCommentRunOutcome.UNAUTHORIZED
@@ -839,7 +837,7 @@ def trigger_pr_iteration_from_comment(
         github_username=github_username,
         comment_id=comment.id,
         source_type=source.type,
-        log_prefix="autofix.pr_iteration.comment_trigger",
+        command="iterate",
         explain_ineligible=True,
         external_id=comment.user.id if comment.user else None,
     )
@@ -938,7 +936,7 @@ def pause_pr_iteration_from_comment(
         # An ineligible run means no cell-local Autofix PR, which is also what a
         # non-owning cell sees for a perfectly healthy run. Writing nothing keeps
         # this command's ack coming from one cell.
-        log_prefix="autofix.pr_iteration.stop_command",
+        command="stop",
         explain_ineligible=False,
     )
     if isinstance(resolved, PrCommentRunOutcome):
@@ -960,7 +958,7 @@ def pause_pr_iteration_from_comment(
             source_type="github-pr-comment",
             reaction="+1",
             body=ALREADY_PAUSED_PR_ITERATION_COMMENT,
-            log_prefix="autofix.pr_iteration.stop_command",
+            command="stop",
         )
         return None
 
@@ -994,7 +992,7 @@ def pause_pr_iteration_from_comment(
         source_type="github-pr-comment",
         reaction=reaction,
         body=body,
-        log_prefix="autofix.pr_iteration.stop_command",
+        command="stop",
     )
 
     return None
