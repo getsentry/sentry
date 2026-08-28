@@ -1,8 +1,8 @@
 __all__ = [
     "BaseDetectorHandler",
+    "ConditionDetectorHandler",
     "DataPacketEvaluationType",
     "DataPacketType",
-    "DetectorHandler",
     "DetectorOccurrence",
     "DetectorStateData",
     "GroupedDetectorEvaluationResult",
@@ -11,9 +11,9 @@ __all__ = [
 
 from .base import (
     BaseDetectorHandler,
+    ConditionDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
-    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
