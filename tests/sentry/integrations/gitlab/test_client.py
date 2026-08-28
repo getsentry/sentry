@@ -483,13 +483,13 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path.strip('/'), safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
 
     def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
-        # GitLab blame responses preserve the commit's timezone offset.
         return [
             GitLabFileBlameResponseItem(
                 lines=[],
                 commit=GitLabCommitResponse(
                     id=kwargs.get("id", "1"),
                     message=kwargs.get("message", "test message"),
+                    # GitLab blame responses preserve the commit's timezone offset.
                     committed_date=kwargs.get("committed_date", "2023-01-01T05:30:00.000+05:30"),
                     author_name=kwargs.get("author_name", "Marvin"),
                     author_email=kwargs.get("author_email", "marvin@place.com"),
