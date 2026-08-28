@@ -6,7 +6,12 @@ from datetime import datetime
 from django.db.models import OuterRef, Subquery
 from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MonitorsClockTasks
 
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment
+from sentry.monitors.models import (
+    CheckInStatus,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorIncident,
+)
 
 
 @dataclass
@@ -98,5 +103,14 @@ def prefetch_clock_tasks(
             prefetch.monitor_environments[monitor_environment.id] = (
                 canonical_environments.setdefault(monitor_environment.id, monitor_environment)
             )
+
+    if canonical_environments:
+        for incident in MonitorIncident.objects.filter(
+            monitor_environment_id__in=canonical_environments,
+            resolving_checkin__isnull=True,
+        ):
+            environment = canonical_environments.get(incident.monitor_environment_id)
+            if environment is not None:
+                environment._prefetched_active_incident = incident
 
     return prefetch
