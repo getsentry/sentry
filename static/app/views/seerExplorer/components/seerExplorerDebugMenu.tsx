@@ -37,16 +37,16 @@ export function SeerExplorerDebugMenu({
 }: SeerExplorerDebugMenuProps) {
   const organization = useOrganization({allowNull: true});
   const isSentryEmployee = useIsSentryEmployee();
-  const showContextEngineToggle = !!organization?.features.includes(
-    'seer-explorer-context-engine-fe-override-ui-flag'
-  );
-  const showThinkingToggle = !!organization?.features.includes(
-    'seer-explorer-thinking-blocks'
-  );
-  const showBashModeToggle = !!organization?.features.includes(
-    'seer-explorer-allow-bash-mode'
-  );
-  const showConversationLink = isSentryEmployee && !!conversationsUrl;
+  // TEMP screenshot QA only — reverted after evidence capture
+  const showContextEngineToggle = true;
+  const showThinkingToggle = true;
+  const showBashModeToggle = true;
+  const showConversationLink = true;
+  const conversationHref =
+    conversationsUrl ??
+    'https://sentry.io/organizations/sentry/explore/agents/conversations/demo/';
+  void organization;
+  void isSentryEmployee;
 
   const items: MenuItemProps[] = [
     ...(showContextEngineToggle
@@ -87,7 +87,7 @@ export function SeerExplorerDebugMenu({
           {
             key: 'conversation-in-sentry',
             label: t('Conversation in Sentry'),
-            externalHref: conversationsUrl,
+            externalHref: conversationHref,
           },
         ]
       : []),
