@@ -94,7 +94,6 @@ describe('Seer resource embeds', () => {
     const {unmount} = renderEmbed({
       name: 'dashboard',
       data: {id: '123'},
-      level: 'block',
     });
 
     expect(
