@@ -244,7 +244,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
         storage_path = session.put(
             tmp,
             key=f"legacy.{debug_file.id}",
-            compression=(
+            compress=(
                 "zstd"
                 if features.has(
                     "organizations:objectstore-debugfiles-compression", project.organization

@@ -248,7 +248,7 @@ def _sync_project_debug_file(
                 try:
                     target_storage_path = get_session(UsecaseId.DEBUG_FILES, target_project).put(
                         source_fileobj,
-                        compression=(
+                        compress=(
                             "zstd"
                             if features.has(
                                 "organizations:objectstore-debugfiles-compression", target_org

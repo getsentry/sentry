@@ -872,6 +872,8 @@ describe('SeerExplorerContent', () => {
             onCopyLinkClick={undefined}
             overrideCtxEngEnable
             onOverrideCtxEngEnableToggle={() => {}}
+            overrideBashModeEnabled={false}
+            onOverrideBashModeToggle={() => {}}
             showThinking={false}
             onShowThinkingToggle={() => {}}
             isPipSupported={false}
