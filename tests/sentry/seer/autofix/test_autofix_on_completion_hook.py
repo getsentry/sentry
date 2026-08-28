@@ -655,6 +655,19 @@ class TestPrIterationCompletionHook(TestCase):
 
         mock_broadcast.assert_not_called()
 
+    @patch(f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_no_pr_states_does_not_open_a_new_pr(self, mock_push, mock_consume):
+        """Webhook return is not enough: execute() still reaches the pipeline."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block()], metadata={"group_id": self.group.id}
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_push.assert_not_called()
+        mock_consume.assert_called_once()
+
     @patch(f"{HOOK_PATH}.trigger_push_changes")
     def test_a_pass_that_pushes(self, mock_push):
         state = self._unsynced()

@@ -903,7 +903,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
             log_ctx = cls._iteration_log_context(organization, group, state)
-
             try:
                 emit_pr_iteration_details(
                     organization=organization,
@@ -1130,6 +1129,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         Branched off :meth:`_push_changes`
         """
+        if not state.repo_pr_states:
+            log_ctx.error(
+                "autofix.pr_iteration.push",
+                outcome="not_pushed",
+                reason="no_pull_requests",
+                exc_info=False,
+            )
+            return False
+
         has_changes, is_synced = state.has_code_changes()
 
         if not has_changes:
