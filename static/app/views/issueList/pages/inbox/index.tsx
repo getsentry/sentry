@@ -771,7 +771,6 @@ function InboxIssueCard({
                 <ActorAvatar
                   actor={group.assignedTo}
                   size={18}
-                  hasTooltip
                   tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />

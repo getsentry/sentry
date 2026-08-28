@@ -13,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 export type CreateReleaseIntegrationModalOptions = {
   onCancel: () => void;
@@ -84,7 +85,12 @@ function CreateReleaseIntegrationModal({
         })
         .catch(error => {
           const handled =
-            error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+            error instanceof RequestError
+              ? setFieldErrors(
+                  formApi,
+                  requestErrorToFieldErrors(error, formApi.state.values)
+                )
+              : false;
           if (!handled) {
             addErrorMessage(t('Something went wrong!'));
           }
