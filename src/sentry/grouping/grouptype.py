@@ -16,7 +16,7 @@ from sentry.workflow_engine.types import (
 class ErrorDetectorHandler(BaseDetectorHandler[object]):
     """Placeholder handler for error group types."""
 
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[object]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         return {}
