@@ -646,6 +646,11 @@ describe('utils/tokenizeSearch', () => {
           '( transaction:"Example Transaction" count(span.duration):>100 ) AND is_transaction:1',
       },
       {
+        name: 'preserves grouping parens when a quoted value ends with a backslash',
+        object: new MutableSearch('(key:"value\\\\")'),
+        string: '( key:"value\\\\" )',
+      },
+      {
         name: 'should quote tags with parens and spaces',
         object: new MutableSearch(['release:4.9.0 build (0.0.01)', 'error.handled:0']),
         string: 'release:"4.9.0 build (0.0.01)" error.handled:0',
