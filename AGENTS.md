@@ -133,5 +133,5 @@ Two things a "does this write set an expiry?" review will miss. A bare `SET`, `G
 Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deployed**. A CI check enforces this.
 
 - If your changes touch both frontend and backend, split them into **separate PRs**.
-- Land the backend PR first when the frontend depends on new API changes..
+- Land the backend PR first when the frontend depends on new API changes.
 - Pure test additions alongside `src/` changes are fine in one PR.
