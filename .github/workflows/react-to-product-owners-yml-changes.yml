@@ -9,7 +9,16 @@ jobs:
     runs-on: ubuntu-latest
     name: React to product-owners.yml changes
     steps:
+      - name: getsentry token
+        id: getsentry
+        uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          token: ${{ steps.getsentry.outputs.token }}
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
@@ -25,7 +34,7 @@ jobs:
       - name: React to product-owners.yml changes
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.getsentry.outputs.token }}
           COMMITTER_NAME: getsentry-bot
           COMMITTER_EMAIL: bot@sentry.io
         run: |

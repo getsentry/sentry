@@ -27,17 +27,27 @@ on:
       pr_options:
         type: string
         default: ''
+    secrets:
+      SENTRY_INTERNAL_APP_PRIVATE_KEY:
+        required: true
 
-# disable all permissions -- we use the PAT's permissions instead
+# Disable the default token permissions; the GitHub App token below supplies access.
 permissions: {}
 
 jobs:
   bump-version:
     runs-on: ubuntu-latest
     steps:
+      - name: getsentry token
+        id: getsentry
+        uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          token: ${{ steps.getsentry.outputs.token }}
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
           version: '0.9.28'
@@ -68,7 +78,7 @@ jobs:
 
           gh pr create --fill ${{ inputs.pr_options }}
         env:
-          GH_TOKEN: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          GH_TOKEN: ${{ steps.getsentry.outputs.token }}
           PACKAGE: ${{ inputs.package }}
           VERSION: ${{ inputs.version }}
           SENDER: ${{ github.event.sender.login }}
