@@ -23,7 +23,7 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   # workaround: secrets cannot be directly referenced in `if`
   # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#example-using-secrets
-  SECRET_ACCESS: ${{toJSON(secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY != null)}}
+  SECRET_ACCESS: ${{toJSON(secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY != null)}}
 
 jobs:
   lint:
@@ -39,8 +39,8 @@ jobs:
         uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
         id: token
         with:
-          app_id: ${{ vars.SENTRY_RELEASE_BOT_APP_ID }}
-          private_key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Get changed files
         id: changes
