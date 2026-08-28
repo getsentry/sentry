@@ -74,11 +74,12 @@ export function SpansTable({
     [fields]
   );
 
-  const {result, eventView} = spansTableResult;
+  const {eventView, requestIdentityKey, result} = spansTableResult;
 
   const tableIdentityKey = useMemo(
     () =>
       JSON.stringify([
+        requestIdentityKey,
         cursor,
         eventView.dataset,
         eventView.end,
@@ -90,7 +91,7 @@ export function SpansTable({
         eventView.statsPeriod,
         eventView.utc,
       ]),
-    [cursor, eventView, query, sortBys]
+    [cursor, eventView, query, requestIdentityKey, sortBys]
   );
   const resolvedTable = useMemo<ResolvedSpanTable | null>(() => {
     if (result.isSuccess && !result.isPlaceholderData && result.data) {

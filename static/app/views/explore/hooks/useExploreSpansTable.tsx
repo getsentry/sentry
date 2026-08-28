@@ -31,6 +31,7 @@ interface UseExploreSpansTableImpOptions extends UseExploreSpansTableOptions {
 export interface SpansTableResult {
   eventView: EventView;
   result: ReturnType<typeof useSpansQuery<EventData[]>>;
+  requestIdentityKey?: string;
 }
 
 interface ResolvedSpanSamples {
@@ -182,19 +183,20 @@ export function useExploreSpansTable({
 
   return useMemo(() => {
     if (!visibleSamples) {
-      return spansTableResult;
+      return {...spansTableResult, requestIdentityKey: identityKey};
     }
 
     // The constrained response only describes pagination within the visible IDs.
     // Keep the links from the original response so pagination can leave the lock.
     return {
       ...spansTableResult,
+      requestIdentityKey: identityKey,
       result: {
         ...spansTableResult.result,
         pageLinks: visibleSamples.pageLinks,
       },
     };
-  }, [spansTableResult, visibleSamples]);
+  }, [identityKey, spansTableResult, visibleSamples]);
 }
 
 function useExploreSpansTableImp({
