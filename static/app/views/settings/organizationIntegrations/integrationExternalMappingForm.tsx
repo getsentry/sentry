@@ -7,7 +7,6 @@ import {
   defaultFormValidators,
   AutoSaveForm,
   ScrapsForm,
-  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -300,10 +299,8 @@ function ModalMappingForm({
     onSubmit: ({value, createValidationError}) =>
       mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors(
-            {value, createValidationError},
-            requestErrorToFieldErrors(error, value)
-          );
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
         }
         return;
       }),

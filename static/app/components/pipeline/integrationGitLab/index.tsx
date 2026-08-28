@@ -2,12 +2,7 @@ import {useCallback} from 'react';
 import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {
-  defaultFormValidators,
-  ScrapsForm,
-  toFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -87,10 +82,8 @@ function InstallationConfigStep({
         client_secret: value.clientSecret,
       }).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors(
-            {value, createValidationError},
-            requestErrorToFieldErrors(error, value)
-          );
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
         }
         throw error;
       }),

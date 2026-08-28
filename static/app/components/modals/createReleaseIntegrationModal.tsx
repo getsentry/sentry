@@ -2,12 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {
-  defaultFormValidators,
-  ScrapsForm,
-  toFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -89,12 +84,9 @@ function CreateReleaseIntegrationModal({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            const fieldErrors = toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
-            if (fieldErrors) {
-              return fieldErrors;
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
             }
           }
           addErrorMessage(t('Something went wrong!'));

@@ -2,12 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {
-  defaultFormValidators,
-  ScrapsForm,
-  toFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -133,13 +128,10 @@ function OrganizationCreate() {
       return mutation.mutateAsync(data).catch((error: unknown) => {
         // Surface field-specific errors inline; otherwise show a toast.
         if (error instanceof RequestError) {
-          const fieldErrors = toFieldErrors(
-            {value, createValidationError},
-            requestErrorToFieldErrors(error, value)
-          );
-          if (fieldErrors) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
             clearIndicators();
-            return fieldErrors;
+            return createValidationError({fields});
           }
         }
         const detail =

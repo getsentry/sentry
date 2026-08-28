@@ -6,7 +6,6 @@ import {
   FieldGroup,
   FormSearch,
   ScrapsForm,
-  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -50,12 +49,9 @@ function FingerprintRulesForm({
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
           if (error instanceof RequestError) {
-            const fieldErrors = toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
-            if (fieldErrors) {
-              return fieldErrors;
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
             }
           }
           addErrorMessage(t('Unable to save changes.'));
@@ -154,12 +150,9 @@ function StackTraceRulesForm({
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
           if (error instanceof RequestError) {
-            const fieldErrors = toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
-            if (fieldErrors) {
-              return fieldErrors;
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
             }
           }
           addErrorMessage(t('Unable to save changes.'));

@@ -12,7 +12,6 @@ import {
   FieldGroup,
   FormSearch,
   ScrapsForm,
-  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -183,10 +182,8 @@ function ProjectSlugForm({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
           return;
         }),
@@ -275,10 +272,8 @@ function AutoResolveForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
           return;
         }),
@@ -371,10 +366,8 @@ function SecurityTokenForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
           return;
         }),
@@ -435,10 +428,8 @@ function SecurityTokenHeaderForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
           return;
         }),

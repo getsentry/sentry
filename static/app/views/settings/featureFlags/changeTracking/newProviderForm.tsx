@@ -6,7 +6,6 @@ import {
   defaultFormValidators,
   FormSearch,
   ScrapsForm,
-  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -123,12 +122,9 @@ export function NewProviderForm({
     onSubmit: ({value, createValidationError}) => {
       return mutation.mutateAsync(schema.parse(value)).catch(error => {
         if (error instanceof RequestError) {
-          const fieldErrors = toFieldErrors(
-            {value, createValidationError},
-            requestErrorToFieldErrors(error, value)
-          );
-          if (fieldErrors) {
-            return fieldErrors;
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
           }
         }
         return;

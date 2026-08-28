@@ -6,12 +6,7 @@ import {z} from 'zod';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {
-  defaultFormValidators,
-  ScrapsForm,
-  toFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -65,10 +60,8 @@ function ProjectSelectStep({
     onSubmit: ({value, createValidationError}) =>
       advance({projectId: Number(value.projectId)}).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors(
-            {value, createValidationError},
-            requestErrorToFieldErrors(error, value)
-          );
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
         }
         throw error;
       }),
@@ -170,10 +163,8 @@ function CloudFormationStep({
     onSubmit: ({value, createValidationError}) =>
       advance(value).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors(
-            {value, createValidationError},
-            requestErrorToFieldErrors(error, value)
-          );
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
         }
         throw error;
       }),

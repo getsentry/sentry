@@ -5,12 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {
-  defaultFormValidators,
-  ScrapsForm,
-  toFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import type {CreateValidationErrorFn} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -338,10 +333,8 @@ function useSaveSentryApp({
 
     // Scope and event errors also have dedicated UI below. Other field errors
     // are returned to TanStack Form so they render inline.
-    const fieldErrors = toFieldErrors(
-      context,
-      requestErrorToFieldErrors(error, context.value)
-    );
+    const fields = requestErrorToFieldErrors(error, context.value);
+    const fieldErrors = fields ? context.createValidationError({fields}) : undefined;
 
     if (
       Array.isArray(responseJSON.events) &&

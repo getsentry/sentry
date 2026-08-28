@@ -24,7 +24,6 @@ import {
   AutoSaveForm,
   defaultFormValidators,
   ScrapsForm,
-  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 
@@ -719,16 +718,17 @@ Form listener triggers are `change`, `blur`, `submit`, `mount`, `reset`; fields 
 Two rules combine here:
 
 1. **Scraps does not know about `RequestError`.** Convert a Sentry API error to
-   the Scraps `FieldErrors` contract at the call site with
-   `requestErrorToFieldErrors`, after narrowing the unknown error.
+   the Scraps `FieldErrors` contract with `requestErrorToFieldErrors`, after
+   narrowing the unknown error. It keeps only response keys that exist in the
+   form values, and returns `undefined` when the response carries nothing the
+   form can display.
 2. **Validation errors are returned from `onSubmit`,** not set imperatively.
-   `toFieldErrors` wraps a `FieldErrors` object in the validation error you
-   return.
+   Wrap the field errors with `createValidationError` from the submit context.
 
 ```tsx
 import {useMutation} from '@tanstack/react-query';
 
-import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -743,66 +743,58 @@ function MyForm() {
   const form = useScrapsForm({
     defaultValues: {email: '', username: ''},
     validators: defaultFormValidators(schema),
-    onSubmit: async ({value, createValidationError}) => {
-      try {
-        await mutation.mutateAsync(value);
-      } catch (error) {
+    onSubmit: ({value, createValidationError}) =>
+      mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {
-          const fieldErrors = toFieldErrors(
-            {value, createValidationError},
-            requestErrorToFieldErrors(error, value)
-          );
-
-          if (fieldErrors) {
-            return fieldErrors;
-          }
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
         }
         throw error;
-      }
-    },
+      }),
   });
 
   // ...
 }
 ```
 
-`requestErrorToFieldErrors` keeps only response keys that exist in the form
-values and normalises string and array values to `{message: string}`.
-`toFieldErrors` returns `undefined` when the map is empty, so the
-`if (fieldErrors)` check tells you whether the backend gave you anything
-field-specific.
+When the backend gives you nothing field-specific, `fields` is `undefined` —
+fall back to a toast instead:
+
+```tsx
+.catch(error => {
+  if (error instanceof RequestError) {
+    const fields = requestErrorToFieldErrors(error, value);
+    if (fields) {
+      return createValidationError({fields});
+    }
+  }
+  addErrorMessage(t('Unable to save changes.'));
+  return;
+});
+```
 
 Never hand an API error straight to Scraps:
 
 ```tsx
 // ❌ RequestError is an app type, not a Scraps form error
-return toFieldErrors({value, createValidationError}, error);
+return createValidationError({fields: error.responseJSON});
 
 // ✅ Narrow at the app call site, then convert to the Scraps contract
 if (error instanceof RequestError) {
-  return toFieldErrors(
-    {value, createValidationError},
-    requestErrorToFieldErrors(error, value)
-  );
+  const fields = requestErrorToFieldErrors(error, value);
+  return fields ? createValidationError({fields}) : undefined;
 }
 ```
 
-When the form code itself creates the messages, skip the adapter and return
-`createValidationError` directly:
+When the form code itself creates the messages, skip the adapter:
 
 ```tsx
-onSubmit: async ({value, createValidationError}) => {
-  try {
-    await mutation.mutateAsync(value);
-  } catch (error) {
-    return createValidationError({
-      fields: {
-        email: {message: t('This email is already registered')},
-        'address.city': {message: t('City not found')},
-      },
-    });
-  }
-},
+return createValidationError({
+  fields: {
+    email: {message: t('This email is already registered')},
+    'address.city': {message: t('City not found')},
+  },
+});
 ```
 
 > **Important**: Field paths support dot notation: `'address.city': {message: 'City not found'}`.
@@ -1292,7 +1284,7 @@ When creating a new form:
 - [ ] Use `<form.Field>` for each field, `<form.ArrayField>` for lists of child fields
 - [ ] Read values with `field.value`, not `field.state.value`
 - [ ] Choose appropriate layout (Stack or Row)
-- [ ] For server errors, narrow to `RequestError`, convert with `requestErrorToFieldErrors`, then return `toFieldErrors(...)` from `onSubmit`
+- [ ] For server errors, narrow to `RequestError`, convert with `requestErrorToFieldErrors`, then return `createValidationError({fields})` from `onSubmit`
 - [ ] Add `<form.SubmitButton>` for submission
 - [ ] Call `form.reset()` after successful mutation if the form stays on the page
 - [ ] Wrap settings forms in `<FormSearch route="...">` and run `pnpm run extract-form-fields`
@@ -1310,12 +1302,12 @@ When creating auto-save fields:
 
 ## File References
 
-| File                                               | Purpose                                     |
-| -------------------------------------------------- | ------------------------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`   | Form hook, form components, `toFieldErrors` |
-| `static/app/components/core/form/autoSaveForm.tsx` | Auto-save wrapper                           |
-| `static/app/components/core/form/field/*.tsx`      | Individual field components                 |
-| `static/app/components/core/form/layout/index.tsx` | Layout components                           |
-| `static/app/components/core/form/form.mdx`         | Usage examples (submit forms)               |
-| `static/app/components/core/form/fields.mdx`       | Usage examples (per field component)        |
-| `static/app/components/core/form/autoSaveForm.mdx` | Usage examples (auto-save)                  |
+| File                                               | Purpose                              |
+| -------------------------------------------------- | ------------------------------------ |
+| `static/app/components/core/form/scrapsForm.tsx`   | Form hook and form components        |
+| `static/app/components/core/form/autoSaveForm.tsx` | Auto-save wrapper                    |
+| `static/app/components/core/form/field/*.tsx`      | Individual field components          |
+| `static/app/components/core/form/layout/index.tsx` | Layout components                    |
+| `static/app/components/core/form/form.mdx`         | Usage examples (submit forms)        |
+| `static/app/components/core/form/fields.mdx`       | Usage examples (per field component) |
+| `static/app/components/core/form/autoSaveForm.mdx` | Usage examples (auto-save)           |

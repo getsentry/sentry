@@ -1,12 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {
-  defaultFormValidators,
-  ScrapsForm,
-  toFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -73,12 +68,9 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
         .then(() => formApi.reset())
         .catch(error => {
           if (error instanceof RequestError) {
-            const fieldErrors = toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
-            if (fieldErrors) {
-              return fieldErrors;
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
             }
 
             // Non-field errors can be camelcase or snake case.

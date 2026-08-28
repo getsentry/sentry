@@ -2,7 +2,6 @@
 export {
   useScrapsForm,
   ScrapsForm,
-  toFieldErrors,
   type FieldErrors,
   type CreateValidationErrorFn,
   defaultFormValidators,

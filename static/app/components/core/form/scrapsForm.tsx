@@ -5,7 +5,6 @@ import {
   type CreateValidationErrorFn,
   type DeepKeys,
   type FormErrorTypes,
-  type OnSubmitError,
   type ReactAppFormApi,
 } from '@tanstack/react-form';
 
@@ -172,42 +171,3 @@ export const defaultFormValidators = createValidators([
 export type FieldErrors<TFormData> = Partial<
   Record<DeepKeys<TFormData>, {message: string}>
 >;
-
-type FieldValidationError<TValue> = {fields: FieldErrors<TValue>};
-
-/**
- * Converts field errors from a form submission into a validation error.
- *
- * Return the result from `onSubmit` to attach the errors to the form. Sentry
- * API errors are mapped to the `FieldErrors` contract first — see
- * `requestErrorToFieldErrors`.
- *
- * @returns A validation error when field errors were found, otherwise undefined.
- *
- * @example
- * ```tsx
- * onSubmit: ({value, createValidationError}) =>
- *   mutation.mutateAsync(value).catch(error => {
- *     if (error instanceof RequestError) {
- *       return toFieldErrors(
- *         {value, createValidationError},
- *         requestErrorToFieldErrors(error, value)
- *       );
- *     }
- *     throw error;
- *   }),
- * ```
- */
-export function toFieldErrors<TValue>(
-  context: {
-    createValidationError: CreateValidationErrorFn<TValue>;
-    value: TValue;
-  },
-  errors: FieldErrors<TValue>
-): OnSubmitError<FieldValidationError<TValue>> | undefined {
-  if (Object.keys(errors).length === 0) {
-    return undefined;
-  }
-
-  return context.createValidationError({fields: errors});
-}

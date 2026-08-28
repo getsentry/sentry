@@ -11,7 +11,6 @@ import {
   FieldGroup,
   FormSearch,
   ScrapsForm,
-  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -467,10 +466,8 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
         .then(() => formApi.reset())
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
           return;
         }),

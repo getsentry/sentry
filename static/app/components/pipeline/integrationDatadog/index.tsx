@@ -1,11 +1,6 @@
 import {z} from 'zod';
 
-import {
-  defaultFormValidators,
-  ScrapsForm,
-  toFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -41,10 +36,8 @@ function DatadogCredentialsStep({
       advance({apiKey: value.apiKey, appKey: value.appKey, site: value.site}).catch(
         error => {
           if (error instanceof RequestError) {
-            return toFieldErrors(
-              {value, createValidationError},
-              requestErrorToFieldErrors(error, value)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
           throw error;
         }

@@ -261,7 +261,7 @@ mutationOptions({
 The `mapFormErrors` function transformed API error responses into field-specific errors. Two things changed:
 
 - Scraps does not depend on Sentry's API client types, so convert a `RequestError` with `requestErrorToFieldErrors` at the call site — never pass it to Scraps directly.
-- Validation errors are **returned** from `onSubmit` rather than set imperatively. `toFieldErrors` wraps the converted map; `createValidationError` covers hand-built messages.
+- Validation errors are **returned** from `onSubmit` rather than set imperatively. Wrap the converted map with `createValidationError` from the submit context.
 
 **Old:**
 
@@ -312,34 +312,25 @@ const form = useScrapsForm({
 });
 ```
 
-**Simpler pattern** - For flat error responses, let the adapter do the extraction. It keeps only keys that exist on the form, and `toFieldErrors` returns `undefined` when nothing matched:
+**Simpler pattern** - For flat error responses, let the adapter do the extraction. It keeps only keys that exist on the form and returns `undefined` when nothing matched:
 
 ```tsx
-import {toFieldErrors} from '@sentry/scraps/form';
-
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
-onSubmit: async ({value, createValidationError}) => {
-  try {
-    await mutation.mutateAsync(value);
-  } catch (error) {
+onSubmit: ({value, createValidationError}) =>
+  mutation.mutateAsync(value).catch(error => {
     // API returns {email: ['Already taken'], username: ['Invalid']}
     if (error instanceof RequestError) {
-      const fieldErrors = toFieldErrors(
-        {value, createValidationError},
-        requestErrorToFieldErrors(error, value)
-      );
-
-      if (fieldErrors) {
-        return fieldErrors;
+      const fields = requestErrorToFieldErrors(error, value);
+      if (fields) {
+        return createValidationError({fields});
       }
       addErrorMessage(t('Unable to save changes.'));
       return;
     }
     throw error;
-  }
-},
+  }),
 ```
 
 For `AutoSaveForm`, request error handling is automatic. The Sentry form error
@@ -693,7 +684,7 @@ This pattern is necessary whenever a required field has no meaningful initial va
 - [ ] Replace `extraHelp` → additional JSX in layout
 - [ ] Convert `confirm` object to function: `(value) => message | undefined`
 - [ ] Handle `getData` in mutationFn
-- [ ] For submit forms, narrow to `RequestError`, convert with `requestErrorToFieldErrors`, then return `toFieldErrors(...)` from `onSubmit`
+- [ ] For submit forms, narrow to `RequestError`, convert with `requestErrorToFieldErrors`, then return `createValidationError({fields})` from `onSubmit`
 - [ ] For `AutoSaveForm`, rely on the app-provided request error handling
 - [ ] Keep custom error mapping only when `mapFormErrors` reshaped the API response
 - [ ] Handle `saveMessage` in onSuccess callback

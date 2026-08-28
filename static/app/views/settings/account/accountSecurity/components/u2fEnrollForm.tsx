@@ -5,7 +5,6 @@ import {
   defaultFormValidators,
   FieldGroup as FormPanel,
   ScrapsForm,
-  toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -107,7 +106,7 @@ export function U2fEnrollForm({
             if (fieldErrors.enrollment) {
               formApi.setFieldValue('enrollment', {challenge: '', response: ''});
             }
-            return toFieldErrors({value, createValidationError}, fieldErrors);
+            return createValidationError({fields: fieldErrors});
           }
         }
 

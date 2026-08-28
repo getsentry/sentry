@@ -12,11 +12,7 @@ import {type z} from 'zod';
 
 import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
 import {useFormErrorMapper} from '@sentry/scraps/form/formErrorContext';
-import {
-  toFieldErrors,
-  useScrapsForm,
-  type BoundFieldComponents,
-} from '@sentry/scraps/form/scrapsForm';
+import {useScrapsForm, type BoundFieldComponents} from '@sentry/scraps/form/scrapsForm';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -213,14 +209,7 @@ export function AutoSaveForm<
             const mappedError = mapFormError(error, value, fallbackMessage);
 
             if (mappedError && 'fieldErrors' in mappedError) {
-              const fieldErrors = toFieldErrors(
-                {value, createValidationError},
-                mappedError.fieldErrors
-              );
-
-              if (fieldErrors) {
-                return fieldErrors;
-              }
+              return createValidationError({fields: mappedError.fieldErrors});
             }
 
             const message =

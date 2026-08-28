@@ -1,12 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {
-  defaultFormValidators,
-  ScrapsForm,
-  toFieldErrors,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
@@ -120,12 +115,9 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
         return;
       } catch (error) {
         if (error instanceof RequestError) {
-          const fieldErrors = toFieldErrors(
-            {value, createValidationError},
-            requestErrorToFieldErrors(error, value)
-          );
-          if (fieldErrors) {
-            return fieldErrors;
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
           }
         }
         addErrorMessage('Unable to create OAuth client.');
