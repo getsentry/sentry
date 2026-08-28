@@ -1,23 +1,17 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {TeamAvatar} from '@sentry/scraps/avatar';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
 
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import type {AssignmentDetails} from 'sentry/components/assigneeBadge';
-import type {AssigneeSelectorTrigger} from 'sentry/components/assigneeSelectorDropdown';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -141,15 +135,6 @@ export function GroupHeaderAssigneeSelector({
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
       showLabel={showLabel}
-      trigger={
-        organization.features.includes('issue-priority-assignee-ui')
-          ? makeRedesignedAssigneeTrigger({
-              assignmentDetails,
-              group,
-              showLabel,
-            })
-          : undefined
-      }
       useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
         <MenuComponents.CTAButton
@@ -170,74 +155,6 @@ export function GroupHeaderAssigneeSelector({
     />
   );
 }
-
-function makeRedesignedAssigneeTrigger({
-  assignmentDetails,
-  group,
-  showLabel,
-}: {
-  group: Group;
-  showLabel: boolean;
-  assignmentDetails?: AssignmentDetails;
-}): AssigneeSelectorTrigger {
-  return function redesignedAssigneeTrigger(props, _isOpen, context) {
-    return (
-      <RedesignedAssigneeTrigger
-        {...props}
-        aria-label={t('Modify issue assignee')}
-        showChevron={false}
-        size="zero"
-        variant="transparent"
-      >
-        <RedesignedAssigneeContent align="center" gap="sm" wrap="nowrap">
-          {context.loading ? (
-            <AssigneeLoadingIndicator relative size={24} />
-          ) : (
-            context.renderAvatar({
-              assignmentDetails,
-              label: showLabel ? (
-                <Text ellipsis>
-                  {group.assignedTo
-                    ? `${group.assignedTo.type === 'team' ? '#' : ''}${
-                        group.assignedTo.name
-                      }`
-                    : t('Unassigned')}
-                </Text>
-              ) : undefined,
-            })
-          )}
-          {showLabel && context.loading && <Text ellipsis>{t('Loading…')}</Text>}
-        </RedesignedAssigneeContent>
-      </RedesignedAssigneeTrigger>
-    );
-  };
-}
-
-const RedesignedAssigneeTrigger = styled(OverlayTrigger.Button)`
-  align-items: center;
-  border: none;
-  box-shadow: none;
-  display: inline-flex;
-  height: 24px;
-  justify-content: center;
-  line-height: 0;
-  padding: 0;
-
-  &:hover {
-    background: transparent;
-  }
-`;
-
-const RedesignedAssigneeContent = styled(Flex)`
-  height: 24px;
-  /* Optically align the avatar with the embossed priority button surface. */
-  transform: translateY(2px);
-`;
-
-const AssigneeLoadingIndicator = styled(LoadingIndicator)`
-  height: 24px;
-  margin: 0;
-`;
 
 export function GroupHeaderAssigneeCommandPaletteAction({
   group,

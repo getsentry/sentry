@@ -8,9 +8,8 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {
-  GROUP_PRIORITY_BARS,
+  CompactGroupPriorityDropdown,
   GroupPriorityDropdown,
-  type GroupPriorityTrigger,
 } from 'sentry/components/badge/groupPriority';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
@@ -26,7 +25,12 @@ import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 type GroupDetailsPriorityProps = {
   group: Group;
   onChange?: (priority: PriorityLevel) => void;
-  trigger?: GroupPriorityTrigger;
+};
+
+const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
+  [PriorityLevel.HIGH]: 3,
+  [PriorityLevel.MEDIUM]: 2,
+  [PriorityLevel.LOW]: 1,
 };
 
 const getPriorityUpdateSuccessMessage = (priority: PriorityLevel) =>
@@ -82,21 +86,24 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
   };
 }
 
-export function GroupPriority({group, onChange, trigger}: GroupDetailsPriorityProps) {
+export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
   const onChangePriority = useChangePriority(group, onChange);
+  const organization = useOrganization();
+  const PrioritySelector = organization.features.includes('issue-priority-assignee-ui')
+    ? CompactGroupPriorityDropdown
+    : GroupPriorityDropdown;
 
   // We can assume that when there is not `priorityLockedAt`, there were no
   // user edits to the priority.
   const lastEditedBy = group.priorityLockedAt ? undefined : 'system';
 
   return (
-    <GroupPriorityDropdown
+    <PrioritySelector
       disabled={group.issueType === 'metric_issue'}
       groupId={group.id}
       onChange={onChangePriority}
       value={group.priority ?? PriorityLevel.MEDIUM}
       lastEditedBy={lastEditedBy}
-      trigger={trigger}
     />
   );
 }
@@ -111,7 +118,7 @@ export function GroupPriorityCommandPaletteAction({
     <CMDKAction
       display={{
         label: t('Set Priority'),
-        icon: <IconCellSignal bars={GROUP_PRIORITY_BARS[priority]} />,
+        icon: <IconCellSignal bars={PRIORITY_BARS[priority]} />,
       }}
     >
       <CMDKAction

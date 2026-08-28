@@ -8,7 +8,6 @@ import {
   AssigneeSelectorDropdown,
   type AssignableEntity,
   type AssigneeGroup,
-  type AssigneeSelectorTrigger,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {t} from 'sentry/locale';
@@ -18,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useAssignIssueMutation,
   type AssignedBy,
@@ -39,7 +39,6 @@ interface AssigneeSelectorProps {
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   showLabel?: boolean;
-  trigger?: AssigneeSelectorTrigger;
   useOwnerAssignmentDetails?: boolean;
 }
 
@@ -114,18 +113,30 @@ function getOwnerAssignmentDetails(group: AssigneeGroup): AssignmentDetails | un
 /**
  * Assignee selector used on issue details + issue stream. Uses `AssigneeSelectorDropdown` which controls most of the logic while this is primarily responsible for the design.
  */
-export function AssigneeSelector({
+export function AssigneeSelector(props: AssigneeSelectorProps) {
+  const organization = useOrganization();
+
+  return organization.features.includes('issue-priority-assignee-ui') ? (
+    <AvatarAssigneeSelector {...props} />
+  ) : (
+    <LegacyAssigneeSelector {...props} />
+  );
+}
+
+function useAssigneeSelectorState({
   group,
   memberList,
   assigneeLoading,
-  handleAssigneeChange,
-  owners,
-  additionalMenuFooterItems,
   assignmentDetails,
-  showLabel = false,
-  trigger,
   useOwnerAssignmentDetails = true,
-}: AssigneeSelectorProps) {
+}: Pick<
+  AssigneeSelectorProps,
+  | 'group'
+  | 'memberList'
+  | 'assigneeLoading'
+  | 'assignmentDetails'
+  | 'useOwnerAssignmentDetails'
+>) {
   const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
     ...useProjectMembersQueryOptions([group.project.id]),
     select: resp => selectUsersFromMembers(resp.json),
@@ -140,36 +151,81 @@ export function AssigneeSelector({
     assignmentDetails ??
     (useOwnerAssignmentDetails ? getOwnerAssignmentDetails(group) : undefined);
 
+  return {
+    assignedUser,
+    currentAssignmentDetails,
+    currentMemberList,
+    loading: assigneeLoading || (memberList === undefined && defaultMemberListLoading),
+  };
+}
+
+function AvatarAssigneeSelector(props: AssigneeSelectorProps) {
+  const {
+    additionalMenuFooterItems,
+    group,
+    handleAssigneeChange,
+    owners,
+    showLabel = false,
+  } = props;
+  const {currentAssignmentDetails, currentMemberList, loading} =
+    useAssigneeSelectorState(props);
+
   return (
     <AssigneeSelectorDropdown
       group={group}
-      loading={assigneeLoading || (memberList === undefined && defaultMemberListLoading)}
+      loading={loading}
+      memberList={currentMemberList}
+      owners={owners}
+      assignmentDetails={currentAssignmentDetails}
+      showLabel={showLabel}
+      onAssign={(assignedActor: AssignableEntity | null) =>
+        handleAssigneeChange(assignedActor)
+      }
+      onClear={() => handleAssigneeChange(null)}
+      additionalMenuFooterItems={additionalMenuFooterItems}
+    />
+  );
+}
+
+function LegacyAssigneeSelector(props: AssigneeSelectorProps) {
+  const {
+    additionalMenuFooterItems,
+    assigneeLoading,
+    group,
+    handleAssigneeChange,
+    owners,
+    showLabel = false,
+  } = props;
+  const {assignedUser, currentAssignmentDetails, currentMemberList, loading} =
+    useAssigneeSelectorState(props);
+
+  return (
+    <AssigneeSelectorDropdown
+      group={group}
+      loading={loading}
       memberList={currentMemberList}
       owners={owners}
       onAssign={(assignedActor: AssignableEntity | null) =>
         handleAssigneeChange(assignedActor)
       }
       onClear={() => handleAssigneeChange(null)}
-      trigger={
-        trigger ??
-        ((props, isOpen) => (
-          <StyledTrigger
-            {...props}
-            showChevron={false}
-            aria-label={t('Modify issue assignee')}
-            size="zero"
-          >
-            <AssigneeBadge
-              assignedTo={group.assignedTo ?? undefined}
-              assignedUser={assignedUser}
-              assignmentDetails={currentAssignmentDetails}
-              loading={assigneeLoading}
-              showLabel={showLabel}
-              chevronDirection={isOpen ? 'up' : 'down'}
-            />
-          </StyledTrigger>
-        ))
-      }
+      trigger={(triggerProps, isOpen) => (
+        <StyledTrigger
+          {...triggerProps}
+          showChevron={false}
+          aria-label={t('Modify issue assignee')}
+          size="zero"
+        >
+          <AssigneeBadge
+            assignedTo={group.assignedTo ?? undefined}
+            assignedUser={assignedUser}
+            assignmentDetails={currentAssignmentDetails}
+            loading={assigneeLoading}
+            showLabel={showLabel}
+            chevronDirection={isOpen ? 'up' : 'down'}
+          />
+        </StyledTrigger>
+      )}
       additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );

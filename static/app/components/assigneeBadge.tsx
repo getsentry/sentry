@@ -65,7 +65,7 @@ export function AssigneeBadge({
         isHoverable
         maxWidth={ASSIGNED_TOOLTIP_MAX_WIDTH}
         title={
-          <AssignedAssigneeTooltip
+          <AssignmentTooltip
             assignedTo={assignedTo}
             assignmentDetails={assignmentDetails}
           />
@@ -178,7 +178,7 @@ function AssignedIcon({
   );
 }
 
-export function AssignedAssigneeTooltip({
+export function AssignmentTooltip({
   assignedTo,
   assignmentDetails,
 }: {

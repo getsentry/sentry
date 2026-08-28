@@ -16,14 +16,10 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {
-  AssignedAssigneeTooltip,
-  type AssignmentDetails,
-} from 'sentry/components/assigneeBadge';
+import {AssignmentTooltip, type AssignmentDetails} from 'sentry/components/assigneeBadge';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -67,22 +63,6 @@ export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
   project: Pick<Group['project'], 'id' | 'slug'>;
 };
 
-interface AssigneeSelectorTriggerContext {
-  loading: boolean;
-  renderAvatar: (options?: RenderAssigneeAvatarOptions) => React.ReactNode;
-}
-
-interface RenderAssigneeAvatarOptions {
-  assignmentDetails?: AssignmentDetails;
-  label?: React.ReactNode;
-}
-
-export type AssigneeSelectorTrigger = (
-  props: TriggerProps,
-  isOpen: boolean,
-  context: AssigneeSelectorTriggerContext
-) => React.ReactNode;
-
 interface AssigneeSelectorDropdownProps {
   /**
    * The group (issue) that the assignee selector is for
@@ -97,6 +77,7 @@ interface AssigneeSelectorDropdownProps {
    * Additional items to render in the menu footer
    */
   additionalMenuFooterItems?: React.ReactNode;
+  assignmentDetails?: AssignmentDetails;
   /**
    * Additional styles to apply to the dropdown
    */
@@ -119,6 +100,7 @@ interface AssigneeSelectorDropdownProps {
    * Optional list of suggested owners of the group
    */
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
+  showLabel?: boolean;
   /**
    * Maximum number of teams/users to display in the dropdown
    */
@@ -127,18 +109,18 @@ interface AssigneeSelectorDropdownProps {
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
-  trigger?: AssigneeSelectorTrigger;
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
 }
 
 function AssigneeAvatar({
   assignedTo,
   suggestedActors = [],
   assignmentDetails,
-  label,
+  showLabel = false,
 }: {
   assignedTo?: Actor | null;
   assignmentDetails?: AssignmentDetails;
-  label?: React.ReactNode;
+  showLabel?: boolean;
   suggestedActors?: SuggestedAssignee[];
 }) {
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
@@ -153,6 +135,13 @@ function AssigneeAvatar({
     codeowners: t('Matching Codeowners Rule'),
   };
   const assignedToSuggestion = suggestedActors.find(actor => actor.id === assignedTo?.id);
+  const label = showLabel ? (
+    <Text ellipsis>
+      {assignedTo
+        ? `${assignedTo.type === 'team' ? '#' : ''}${assignedTo.name}`
+        : t('Unassigned')}
+    </Text>
+  ) : null;
 
   if (assignedTo) {
     return (
@@ -161,7 +150,7 @@ function AssigneeAvatar({
         skipWrapper
         title={
           assignmentDetails ? (
-            <AssignedAssigneeTooltip
+            <AssignmentTooltip
               assignedTo={assignedTo}
               assignmentDetails={assignmentDetails}
             />
@@ -218,7 +207,7 @@ function AssigneeAvatar({
         }
       >
         <AssigneeAvatarContent align="center" gap="sm" wrap="nowrap">
-          <SuggestedAvatarStack size={24} owners={suggestedActors} />
+          <CompactSuggestedAvatarStack owners={suggestedActors} />
           {label}
         </AssigneeAvatarContent>
       </Tooltip>
@@ -256,7 +245,41 @@ function AssigneeAvatar({
 }
 
 const AssigneeAvatarContent = styled(Flex)`
+  height: 24px;
   min-width: 0;
+  transform: translateY(2px);
+`;
+
+function CompactSuggestedAvatarStack({owners}: {owners: Actor[]}) {
+  const visibleOwners = owners.slice(0, 3);
+
+  return (
+    <SuggestedAvatarContainer data-test-id="suggested-avatar-stack">
+      {visibleOwners.map((owner, index) => (
+        <SuggestedAvatar
+          actor={owner}
+          hasTooltip={false}
+          key={`${owner.type}:${owner.id}`}
+          size={24}
+          stackOrder={visibleOwners.length - index}
+          suggested
+        />
+      ))}
+    </SuggestedAvatarContainer>
+  );
+}
+
+const SuggestedAvatarContainer = styled('span')`
+  display: inline-flex;
+
+  > * + * {
+    margin-inline-start: -14px;
+  }
+`;
+
+const SuggestedAvatar = styled(ActorAvatar)<{stackOrder: number}>`
+  position: relative;
+  z-index: ${p => p.stackOrder};
 `;
 
 export function AssigneeSelectorDropdown({
@@ -267,6 +290,8 @@ export function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
+  assignmentDetails,
+  showLabel = false,
   sizeLimit = 150,
   trigger,
   additionalMenuFooterItems,
@@ -530,26 +555,14 @@ export function AssigneeSelectorDropdown({
     return options;
   };
 
-  const makeTrigger = (props: TriggerProps, isOpen: boolean) => {
-    const renderAvatar = (options?: RenderAssigneeAvatarOptions) => (
-      <AssigneeAvatar
-        assignedTo={group.assignedTo}
-        suggestedActors={getSuggestedAssignees()}
-        {...options}
-      />
-    );
-
-    if (trigger) {
-      return trigger(props, isOpen, {
-        loading,
-        renderAvatar,
-      });
-    }
-
+  const makeTrigger = (props: TriggerProps) => {
     return (
       <Fragment>
         {loading && (
-          <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
+          <AssigneeAvatarContent align="center" gap="sm" wrap="nowrap">
+            <LoadingIndicator mini relative size={24} style={{height: 24, margin: 0}} />
+            {showLabel && <Text ellipsis>{t('Loading…')}</Text>}
+          </AssigneeAvatarContent>
         )}
         {!loading && (
           <AssigneeTrigger
@@ -558,7 +571,12 @@ export function AssigneeSelectorDropdown({
             data-test-id="assignee-selector"
             {...props}
           >
-            {renderAvatar()}
+            <AssigneeAvatar
+              assignedTo={group.assignedTo}
+              assignmentDetails={assignmentDetails}
+              showLabel={showLabel}
+              suggestedActors={getSuggestedAssignees()}
+            />
           </AssigneeTrigger>
         )}
       </Fragment>
@@ -583,7 +601,7 @@ export function AssigneeSelectorDropdown({
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
-        trigger={makeTrigger}
+        trigger={trigger ?? makeTrigger}
         menuFooter={({closeOverlay}) => (
           <Flex gap="md">
             <MenuComponents.CTAButton
@@ -615,9 +633,19 @@ const AssigneeWrapper = styled('div')`
 `;
 
 const AssigneeTrigger = styled(OverlayTrigger.Button)`
+  align-items: center;
+  border: none;
+  box-shadow: none;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  line-height: 0;
+  padding: 0;
   z-index: 0;
-  padding-left: ${p => p.theme.space.xs};
-  padding-right: ${p => p.theme.space.xs};
+
+  &:hover {
+    background: transparent;
+  }
 `;
 
 const StyledIconUser = styled(IconUser)`

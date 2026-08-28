@@ -33,6 +33,8 @@ import {
   GroupDataContextProvider,
   useGroupData,
 } from 'sentry/views/issueDetails/groupDataContext';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
@@ -48,7 +50,6 @@ import {
   IssuePreviewSeerContent,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {IssuePreviewSelectorControls} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSelectorControls';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 
 interface IssuePreviewProps {
@@ -139,6 +140,9 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
+  const hasRedesignedControls = organization.features.includes(
+    'issue-priority-assignee-ui'
+  );
 
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
@@ -230,7 +234,15 @@ function IssuePreviewContent() {
             event={null}
           />
         )}
-        <IssuePreviewSelectorControls group={group} project={project} />
+        <Flex align="center" wrap="wrap" gap={hasRedesignedControls ? 'md' : 'lg'}>
+          <GroupPriority group={group} />
+          <GroupHeaderAssigneeSelector
+            group={group}
+            project={project}
+            event={null}
+            showLabel={false}
+          />
+        </Flex>
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
       {previewSeer.isLoading || linkedPullRequests.isPending ? (

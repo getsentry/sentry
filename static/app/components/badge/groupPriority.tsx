@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import type {DropdownMenuProps, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -32,24 +32,7 @@ type GroupPriorityDropdownProps = {
   value: PriorityLevel;
   disabled?: boolean;
   lastEditedBy?: 'system' | AvatarUser;
-  trigger?: GroupPriorityTrigger;
 };
-
-type DropdownMenuTriggerProps = Parameters<NonNullable<DropdownMenuProps['trigger']>>[0];
-
-interface GroupPriorityTriggerContext {
-  ariaLabel: string;
-  bars: 1 | 2 | 3;
-  disabled: boolean;
-  priority: PriorityLevel;
-  tooltip: React.ReactNode;
-}
-
-export type GroupPriorityTrigger = (
-  props: DropdownMenuTriggerProps,
-  isOpen: boolean,
-  context: GroupPriorityTriggerContext
-) => React.ReactNode;
 
 type GroupPriorityBadgeProps = {
   priority: PriorityLevel;
@@ -65,7 +48,7 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 
-export const GROUP_PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
+const GROUP_PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
   [PriorityLevel.HIGH]: 3,
   [PriorityLevel.MEDIUM]: 2,
   [PriorityLevel.LOW]: 1,
@@ -207,31 +190,32 @@ function GroupPriorityLearnMore() {
   );
 }
 
-export function GroupPriorityDropdown({
+export function GroupPriorityDropdown(props: GroupPriorityDropdownProps) {
+  return <PriorityDropdown {...props} compact={false} />;
+}
+
+export function CompactGroupPriorityDropdown(props: GroupPriorityDropdownProps) {
+  return <PriorityDropdown {...props} compact />;
+}
+
+function PriorityDropdown({
   groupId,
   value,
   onChange,
   lastEditedBy,
   disabled = false,
-  trigger,
-}: GroupPriorityDropdownProps) {
+  compact,
+}: GroupPriorityDropdownProps & {compact: boolean}) {
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
     [onChange]
   );
-  const triggerContext: GroupPriorityTriggerContext = {
-    ariaLabel: t('Modify issue priority'),
-    bars: GROUP_PRIORITY_BARS[value],
-    disabled,
-    priority: value,
-    tooltip: disabled
-      ? t('You cannot manually update the priority of a metric issue.')
-      : t('Update the priority of this issue.'),
-  };
+  const tooltip = disabled
+    ? t('You cannot manually update the priority of a metric issue.')
+    : t('Update the priority of this issue.');
 
   return (
     <DropdownMenu
-      isDisabled={disabled}
       size="sm"
       menuTitle={
         <Flex align="end" justify="between">
@@ -240,15 +224,23 @@ export function GroupPriorityDropdown({
       }
       minMenuWidth={230}
       trigger={(triggerProps, isOpen) =>
-        trigger ? (
-          trigger(triggerProps, isOpen, triggerContext)
+        compact ? (
+          <Button
+            {...triggerProps}
+            aria-label={t('Modify issue priority')}
+            disabled={disabled}
+            icon={<IconCellSignal bars={GROUP_PRIORITY_BARS[value]} />}
+            size="zero"
+            tooltipProps={{title: tooltip}}
+            variant="secondary"
+          />
         ) : (
           <DropdownButton
             {...triggerProps}
-            aria-label={triggerContext.ariaLabel}
+            aria-label={t('Modify issue priority')}
             size="zero"
-            disabled={triggerContext.disabled}
-            tooltipProps={{title: triggerContext.tooltip}}
+            disabled={disabled}
+            tooltipProps={{title: tooltip}}
           >
             <GroupPriorityBadge showLabel={false} priority={value}>
               <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
