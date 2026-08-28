@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,7 +7,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryStarred
+from sentry.discover.models import (
+    DiscoverSavedQuery,
+    DiscoverSavedQueryStarred,
+)
 from sentry.models.organization import Organization
 
 
@@ -48,7 +52,9 @@ class DiscoverSavedQueryStarredEndpoint(OrganizationEndpoint):
         is_starred = serializer.validated_data["starred"]
 
         try:
-            query = DiscoverSavedQuery.objects.get(id=id, organization=organization)
+            query = DiscoverSavedQuery.objects.get(
+                Q(is_homepage=False) | Q(is_homepage__isnull=True), id=id, organization=organization
+            )
         except DiscoverSavedQuery.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 

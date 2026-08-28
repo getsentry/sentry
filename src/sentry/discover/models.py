@@ -256,14 +256,16 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
         Raises:
             ValueError: If there's a mismatch between existing starred queries and the provided list
         """
-        existing_starred_queries = self.filter(
-            organization=organization,
-            user_id=user_id,
-            position__isnull=False,
-            starred=True,
+        queries_to_update = list(
+            self.filter(
+                organization=organization,
+                user_id=user_id,
+                position__isnull=False,
+                starred=True,
+            )
         )
 
-        existing_query_ids = {query.discover_saved_query.id for query in existing_starred_queries}
+        existing_query_ids = {query.discover_saved_query_id for query in queries_to_update}
         new_query_ids = set(new_query_positions)
 
         if existing_query_ids != new_query_ids:
@@ -271,10 +273,8 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
 
         position_map = {query_id: idx for idx, query_id in enumerate(new_query_positions)}
 
-        queries_to_update = list(existing_starred_queries)
-
         for query in queries_to_update:
-            query.position = position_map[query.discover_saved_query.id]
+            query.position = position_map[query.discover_saved_query_id]
 
         if queries_to_update:
             self.bulk_update(queries_to_update, ["position"])
