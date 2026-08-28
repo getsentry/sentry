@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from unittest import TestCase, mock
 
 import pytest
@@ -9,17 +10,18 @@ from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.utils import imports
 from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
     _add_transaction_checks,
-    _assert_redis_transaction_allowed,
     _matches_redis_transaction_ratchet,
     _redis_transaction_callers,
     _shared_pool,
     check_cluster_versions,
     get_cluster_from_options,
+    redis_clusters,
 )
 from sentry.utils.versioning import Version
 from sentry.utils.warnings import DeprecatedSettingWarning
@@ -96,14 +98,14 @@ class ClusterManagerTestCase(TestCase):
 
 class TransactionCheckingRedisTest(SentryTestCase):
     def test_command_runs_outside_transaction(self) -> None:
-        client = FailoverRedis()
-        with mock.patch.object(
-            client, "execute_command", return_value=mock.sentinel.result
-        ) as execute_command:
-            result = _add_transaction_checks(client).execute_command("GET", "key")
+        client = redis_clusters.get("default")
+        key = f"test:redis-transaction-guard:{uuid.uuid4().hex}"
 
-        assert result is mock.sentinel.result
-        execute_command.assert_called_once_with("GET", "key")
+        try:
+            client.set(key, "value")
+            assert client.get(key) == "value"
+        finally:
+            client.delete(key)
 
     @mock.patch(
         "sentry.utils.redis._redis_transaction_callers",
@@ -112,17 +114,14 @@ class TransactionCheckingRedisTest(SentryTestCase):
     def test_command_is_rejected_inside_transaction(
         self, _redis_transaction_callers: mock.MagicMock
     ) -> None:
-        client = FailoverRedis()
-        with mock.patch.object(client, "execute_command") as execute_command:
-            guarded_client = _add_transaction_checks(client)
-            with transaction.atomic(using="default"):
-                with pytest.raises(
-                    AssertionError,
-                    match="Redis commands must run outside database transactions",
-                ):
-                    guarded_client.execute_command("GET", "key")
+        client = redis_clusters.get("default")
 
-        execute_command.assert_not_called()
+        with transaction.atomic(using="default"):
+            with pytest.raises(
+                AssertionError,
+                match="Redis commands must run outside database transactions",
+            ):
+                client.get("test:redis-transaction-guard")
 
     @mock.patch(
         "sentry.utils.redis._redis_transaction_callers",
@@ -131,44 +130,47 @@ class TransactionCheckingRedisTest(SentryTestCase):
     def test_pipeline_is_rejected_when_executed_inside_transaction(
         self, _redis_transaction_callers: mock.MagicMock
     ) -> None:
-        client = FailoverRedis()
-        pipeline = mock.Mock()
-        execute_pipeline = pipeline.execute
-        with mock.patch.object(client, "pipeline", return_value=pipeline):
-            guarded_pipeline = _add_transaction_checks(client).pipeline()
-            with transaction.atomic(using="default"):
-                with pytest.raises(
-                    AssertionError,
-                    match="Redis pipeline commands must run outside database transactions",
-                ):
-                    guarded_pipeline.execute()
+        pipeline = redis_clusters.get("default").pipeline()
+        pipeline.get("test:redis-transaction-guard")
 
-        execute_pipeline.assert_not_called()
+        with transaction.atomic(using="default"):
+            with pytest.raises(
+                AssertionError,
+                match="Redis pipeline commands must run outside database transactions",
+            ):
+                pipeline.execute()
 
-    @mock.patch("sentry.utils.redis.in_test_assert_no_transaction", side_effect=AssertionError)
+    @use_redis_cluster("transaction-guard-cluster")
     @mock.patch(
         "sentry.utils.redis._redis_transaction_callers",
-        return_value=(
-            "sentry.shared.redis_helper.execute",
+        return_value=("sentry.new_code.unexpected_redis_call",),
+    )
+    def test_cluster_command_is_rejected_inside_transaction(
+        self, _redis_transaction_callers: mock.MagicMock
+    ) -> None:
+        client = redis_clusters.get("transaction-guard-cluster")
+        assert all(info["redis_mode"] == "cluster" for info in client.info("server").values())
+
+        with transaction.atomic(using="default"):
+            with pytest.raises(
+                AssertionError,
+                match="Redis commands must run outside database transactions",
+            ):
+                client.get("test:redis-transaction-guard")
+
+    def test_transaction_ratchet_matches_only_existing_call_path(self) -> None:
+        existing_callers = (
             "sentry.ratelimits.redis.RedisRateLimiter.reset",
             "sentry.auth.twofactor.reset_2fa_rate_limits",
             "sentry.users.web.accounts.recover_confirm",
-        ),
-    )
-    def test_grandfathered_outer_caller_is_allowed(
-        self,
-        _redis_transaction_callers: mock.MagicMock,
-        in_test_assert_no_transaction: mock.MagicMock,
-    ) -> None:
-        _assert_redis_transaction_allowed("message")
-
-    def test_new_caller_of_grandfathered_adapter_is_rejected(self) -> None:
-        callers = (
+        )
+        new_callers = (
             "sentry.ratelimits.redis.RedisRateLimiter.reset",
             "sentry.new_code.reset_rate_limit",
         )
 
-        assert not _matches_redis_transaction_ratchet(callers)
+        assert _matches_redis_transaction_ratchet(existing_callers)
+        assert not _matches_redis_transaction_ratchet(new_callers)
 
     def test_transaction_callers_include_nested_application_frames(self) -> None:
         def outer_caller() -> tuple[str, ...]:
@@ -183,15 +185,6 @@ class TransactionCheckingRedisTest(SentryTestCase):
             f"{__name__}.{outer_caller.__qualname__}.<locals>.shared_helper",
             f"{__name__}.{outer_caller.__qualname__}",
         )
-
-    @mock.patch(
-        "sentry.utils.redis.in_test_assert_no_transaction",
-        side_effect=AssertionError,
-    )
-    def test_direct_test_caller_is_allowed(
-        self, in_test_assert_no_transaction: mock.MagicMock
-    ) -> None:
-        _assert_redis_transaction_allowed("message")
 
 
 def test_get_cluster_from_options_cluster_provided() -> None:
