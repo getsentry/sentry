@@ -307,12 +307,8 @@ class _QueryField extends Component<Props> {
     }
 
     // EAP attributes keep their type in the key, e.g. `tags[foo,boolean]`, and
-    // their options are keyed by the attribute's FieldKind, the same way explore
-    // classifies them. Numbers already resolve through the `measurement:` branch
-    // above; booleans and typed strings would otherwise fall through to the
-    // untyped `tags[...]` handling below, which strips the brackets but leaves
-    // the `,type` suffix and so never matches an option. For untyped keys
-    // `classifyTagKey` returns `tag`, making this the same lookup as below.
+    // their options are keyed by the attribute's FieldKind. `classifyTagKey`
+    // returns `tag` for untyped keys, so this only adds a lookup for typed ones.
     const typedTagName = `${classifyTagKey(name)}:${name}`;
     if (fieldOptions[typedTagName]) {
       return fieldOptions[typedTagName].value;
