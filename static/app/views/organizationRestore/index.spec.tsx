@@ -1,7 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationRestore from 'sentry/views/organizationRestore';
 
@@ -81,6 +82,7 @@ describe('OrganizationRestore', () => {
   });
 
   it('shows the API error when restoring fails', async () => {
+    const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
     MockApiClient.addMockResponse({
       url: `/organizations/${pendingDeleteOrg.slug}/`,
       method: 'GET',
@@ -106,9 +108,11 @@ describe('OrganizationRestore', () => {
 
     await userEvent.click(await screen.findByTestId('form-submit'));
 
-    expect(
-      await screen.findByText('This organization can no longer be restored.')
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        'Unable to restore organization. This organization can no longer be restored.'
+      )
+    );
   });
 
   it('shows message and no form during deletion', async () => {

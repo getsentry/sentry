@@ -1,16 +1,12 @@
 import {Navigate} from 'react-router-dom';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
-import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -45,7 +41,7 @@ type BodyProps = {
 };
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
-  const {isPending, isError, data} = useQuery(
+  const {isPending, isError, data, error, refetch} = useQuery(
     apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: orgSlug},
       staleTime: 0,
@@ -56,11 +52,14 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   }
   if (isError) {
     return (
-      <Alert.Container>
-        <Alert variant="danger" showIcon={false}>
-          {t('There was an error loading your organization.')}
-        </Alert>
-      </Alert.Container>
+      <LoadingError
+        message={
+          error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+            ? error.responseJSON.detail
+            : t('There was an error loading your organization.')
+        }
+        onRetry={refetch}
+      />
     );
   }
   if (data.status.id === 'active') {
@@ -87,11 +86,10 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
   const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
     path: {organizationIdOrSlug: orgSlug},
   });
-  const mutation = useMutation({
+  const {mutateAsync: restoreOrganization} = useMutation({
     mutationFn: (data: {cancelDeletion: number}) =>
       fetchMutation<Organization>({url: endpoint, method: 'PUT', data}),
     onSuccess: () => {
-      clearIndicators();
       addSuccessMessage(t('Organization Restored'));
 
       // Use window.location to ensure page reloads
@@ -99,26 +97,25 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
         normalizeUrl(`/organizations/${organization.slug}/issues/`)
       );
     },
+    onError: error => {
+      const errorMessage =
+        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+          ? error.responseJSON.detail
+          : '';
+
+      addErrorMessage(
+        errorMessage
+          ? t('Unable to restore organization. %s', errorMessage)
+          : t('Unable to restore organization.')
+      );
+    },
   });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {cancelDeletion: 1},
-    onSubmit: ({value}) => {
-      addLoadingMessage(t('Saving changes…'));
-      return mutation.mutateAsync(value).catch(() => {
-        clearIndicators();
-      });
-    },
+    onSubmit: ({value}) => restoreOrganization(value).catch(() => {}),
   });
-
-  const errorDetail =
-    mutation.error instanceof RequestError
-      ? mutation.error.responseJSON?.detail
-      : undefined;
-  const errorMessage =
-    (typeof errorDetail === 'string' ? errorDetail : errorDetail?.message) ??
-    t('Unable to restore organization.');
 
   return (
     <Stack gap="xl">
@@ -134,7 +131,6 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
               'Would you like to cancel this process and restore the organization back to the original state?'
             )}
           </Text>
-          {mutation.isError && <Alert variant="danger">{errorMessage}</Alert>}
           <form.SubmitButton data-test-id="form-submit">
             {t('Restore Organization')}
           </form.SubmitButton>
