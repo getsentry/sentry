@@ -43,7 +43,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         self.registry_patcher.start()
 
         class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
-            def evaluate_impl(
+            def evaluate(
                 self, data_packet: DataPacket[dict[Never, Never]]
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
