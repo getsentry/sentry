@@ -116,7 +116,11 @@ function InvestigationBootstrapPage({investigationId}: {investigationId: string}
   return <InvestigationPageContent investigation={investigation} />;
 }
 
-function InvestigationPageContent({investigation}: {investigation: InvestigationDetail}) {
+export function InvestigationPageContent({
+  investigation,
+}: {
+  investigation: InvestigationDetail;
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
