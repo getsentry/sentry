@@ -21,20 +21,29 @@ describe('Button', () => {
     render(<Button variant="primary">Button</Button>);
   });
 
-  it('updates its size at container breakpoints', () => {
+  describe('responsive sizing', () => {
     let resizeCallback: ResizeObserverCallback | undefined;
-    const originalResizeObserver = window.ResizeObserver;
-    window.ResizeObserver = class {
-      constructor(callback: ResizeObserverCallback) {
-        resizeCallback = callback;
-      }
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
-    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(0);
+    let originalResizeObserver: typeof window.ResizeObserver;
 
-    try {
+    beforeEach(() => {
+      originalResizeObserver = window.ResizeObserver;
+      window.ResizeObserver = class {
+        constructor(callback: ResizeObserverCallback) {
+          resizeCallback = callback;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(0);
+    });
+
+    afterEach(() => {
+      window.ResizeObserver = originalResizeObserver;
+      jest.restoreAllMocks();
+    });
+
+    it('updates its size at container breakpoints', () => {
       render(
         <Container containerType="inline-size">
           <Button size={{zero: 'xs', lg: 'sm'}}>Button</Button>
@@ -51,10 +60,7 @@ describe('Button', () => {
         );
       });
       expect(getEmotionRules(button).join('')).toMatch(/height:\s*32px/);
-    } finally {
-      window.ResizeObserver = originalResizeObserver;
-      jest.restoreAllMocks();
-    }
+    });
   });
 
   it('calls `onClick` callback', async () => {
