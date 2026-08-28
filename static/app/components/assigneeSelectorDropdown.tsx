@@ -136,11 +136,11 @@ function AssigneeAvatar({
   };
   const assignedToSuggestion = suggestedActors.find(actor => actor.id === assignedTo?.id);
   const label = showLabel ? (
-    <Text ellipsis>
+    <AssigneeLabel ellipsis>
       {assignedTo
         ? `${assignedTo.type === 'team' ? '#' : ''}${assignedTo.name}`
         : t('Unassigned')}
-    </Text>
+    </AssigneeLabel>
   ) : null;
 
   if (assignedTo) {
@@ -243,6 +243,10 @@ const AssigneeAvatarContent = styled(Flex)`
   height: 24px;
   min-width: 0;
   transform: translateY(2px);
+`;
+
+const AssigneeLabel = styled(Text)`
+  max-width: 114px;
 `;
 
 function CompactSuggestedAvatarStack({owners}: {owners: Actor[]}) {
