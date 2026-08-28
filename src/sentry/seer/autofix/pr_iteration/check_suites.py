@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, NamedTuple
 
@@ -48,6 +49,36 @@ SEER_GITHUB_PROVIDER = PR_ITERATION_PROVIDER
 # without importing those modules (they import GreenCheckSuiteContext from us).
 READY_FOR_REVIEW_EXTRA = "ready_for_review"
 REVIEW_REQUESTS_EXTRA = "review_requests"
+
+# Per-event memo for ``organization_contexts`` (installation_id → result).
+# The flag gate and repository resolve make the same RPC; without this, flagged
+# suites pay twice on a 10s webhook deadline. Reset at the start of the gate.
+_installation_org_contexts: ContextVar[dict[str, Any]] = ContextVar(
+    "autofix_pr_iteration_installation_org_contexts"
+)
+
+
+def _github_installation_organization_contexts(
+    installation_id: int | str, *, store: bool = False
+) -> Any:
+    key = str(installation_id)
+    try:
+        memo = _installation_org_contexts.get()
+    except LookupError:
+        memo = None
+
+    if memo is not None and key in memo:
+        return memo[key]
+
+    contexts = integration_service.organization_contexts(
+        provider=IntegrationProviderSlug.GITHUB.value,
+        external_id=key,
+    )
+
+    if store and memo is not None:
+        memo[key] = contexts
+    return contexts
+
 
 # Suite/run conclusions we treat as a failure. Values match scm BuildConclusion
 # after GitHub normalization (startup_failure -> failure).
@@ -186,9 +217,12 @@ def resolve_check_suite_flag_gate(
     ``subscription_event["extra"]`` (see ``get_scm_stream_extra`` in
     ``integrations/github/webhook.py``), so it does not even parse the event body,
     and it leaves the ``Repository`` query to whichever branch of the listener
-    survives. Those branches then resolve from scratch: the repeated integration
-    lookup costs less than threading a half-resolved state through both of them.
+    survives. The installation RPC is memoized for this event so that branch
+    does not pay for it a second time.
     """
+    # New event: drop any leftover memo from a prior suite on this worker.
+    _installation_org_contexts.set({})
+
     organization_ids: list[int] = []
     organization_ids_by_flag: dict[str, list[int]] = {flag: [] for flag in flags}
 
@@ -199,10 +233,7 @@ def resolve_check_suite_flag_gate(
         if installation_id is None:
             tags["outcome"] = "missing_installation_id"
         else:
-            contexts = integration_service.organization_contexts(
-                provider=IntegrationProviderSlug.GITHUB.value,
-                external_id=str(installation_id),
-            )
+            contexts = _github_installation_organization_contexts(installation_id, store=True)
             organization_ids = [oi.organization_id for oi in contexts.organization_integrations]
 
             for organization_id in organization_ids:
@@ -249,10 +280,7 @@ def resolve_check_suite_repositories(event: GithubCheckSuiteEvent) -> list[Repos
         )
         return []
 
-    contexts = integration_service.organization_contexts(
-        provider=IntegrationProviderSlug.GITHUB.value,
-        external_id=str(installation_id),
-    )
+    contexts = _github_installation_organization_contexts(installation_id)
     if contexts.integration is None or not contexts.organization_integrations:
         logger.info(
             "autofix.pr_iteration.check_suite.repository.missing_integration",

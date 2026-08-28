@@ -15,6 +15,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     pr_iteration_enabled,
     resolve_check_suite_autofix_run,
     resolve_check_suite_flag_gate,
+    resolve_check_suite_repositories,
     should_defer_pr_iteration,
 )
 from sentry.seer.autofix.pr_iteration.constants import (
@@ -1583,3 +1584,24 @@ class CheckSuiteFlagGateTest(TestCase):
             gate = self._gate(raw={"nonsense": True})
 
         assert gate.flagged_organization_ids == [self.organization.id]
+
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
+    def test_flag_gate_and_repository_resolve_share_one_rpc(self, mock_contexts: MagicMock) -> None:
+        mock_contexts.return_value = self._contexts(self.organization.id)
+        event = GithubCheckSuiteEvent.parse_obj(
+            {
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": "abc",
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                },
+                "repository": {"id": 2, "html_url": "https://github.com/owner/repo"},
+                "installation": {"id": self.INSTALLATION_ID},
+            }
+        )
+
+        self._gate()
+        resolve_check_suite_repositories(event)
+
+        mock_contexts.assert_called_once()
