@@ -47,6 +47,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
     SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
     SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
+    SentryAppEventType.SEER_PR_READY_FOR_REVIEW: ActivityType.SEER_PR_READY_FOR_REVIEW,
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
@@ -625,7 +626,10 @@ def _create_seer_activity(
         solution = event_payload.get("solution")
         if solution:
             activity_data["summary"] = solution.get("one_line_summary")
-    elif event_type == SentryAppEventType.SEER_PR_CREATED:
+    elif event_type in (
+        SentryAppEventType.SEER_PR_CREATED,
+        SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+    ):
         pull_requests = event_payload.get("pull_requests", [])
         if pull_requests:
             activity_data["pull_requests"] = pull_requests

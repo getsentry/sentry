@@ -483,6 +483,7 @@ export default typescript.config([
       '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-flag-comments': 'error',
       '@sentry/no-query-data-type-parameters': 'error',
+      '@sentry/no-redundant-default-argument': 'error',
       '@sentry/no-static-translations': 'error',
       '@sentry/no-raw-css-in-styled': 'error',
       '@sentry/no-styled-shortcut': 'error',
@@ -1529,6 +1530,14 @@ export default typescript.config([
               disallow: {to: {file: {categories: 'sentry-locale'}}},
               message:
                 'Scraps components must use useTranslation() instead of importing from sentry/locale',
+            },
+            // Track Scraps interactions through the injected tracking context
+            // instead of coupling components to Sentry's analytics module.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {file: {path: 'static/app/utils/analytics.tsx'}}},
+              message:
+                'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
             },
           ],
         },

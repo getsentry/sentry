@@ -119,9 +119,7 @@ function MetricsTabBodySection({
   const metricQueries = useMultiMetricsQueryParams();
   const [interval] = useChartInterval();
   const pageFilters = usePageFilters();
-  const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
-    enabled: true,
-  });
+  const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({});
 
   useLLMContext({
     contextHint:

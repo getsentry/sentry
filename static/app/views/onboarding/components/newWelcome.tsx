@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useAgenticProgressInit} from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
@@ -129,6 +130,8 @@ export function NewWelcomeUI(props: StepProps) {
   });
   const hasAgenticSetup = organization.features.includes('onboarding-agentic-setup');
   const [showAgentSetup, setShowAgentSetup] = useState(false);
+
+  useAgenticProgressInit({enabled: hasScmOnboarding && hasAgenticSetup});
 
   useWelcomeAnalyticsEffect();
 

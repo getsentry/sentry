@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -12,6 +12,7 @@ import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   useExplorerAutofix,
+  type AutofixExplorerStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
@@ -27,6 +28,7 @@ import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
@@ -45,28 +47,36 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       organization.features.includes('autofix-pr-iteration') ||
       organization.features.includes('autofix-pr-iteration-manual'),
   });
+  const [enableBashTools, setEnableBashTools] = useLocalStorageState(
+    'autofix-force-bash-mode',
+    false
+  );
 
-  const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
-  const handleRestart = useHandleRestart({aiAutofix});
-  const handleOpenSeerAgent = useHandleOpenSeerAgent({aiAutofix});
+  const autofix = useMemo(
+    () => ({
+      ...aiAutofix,
+      startStep: (
+        step: AutofixExplorerStep,
+        options?: Parameters<ReturnType<typeof useExplorerAutofix>['startStep']>[1]
+      ) =>
+        aiAutofix.startStep(step, {
+          ...options,
+          enableBashTools: enableBashTools || undefined,
+        }),
+    }),
+    [aiAutofix, enableBashTools]
+  );
+
+  const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix: autofix});
+  const handleRestart = useHandleRestart({aiAutofix: autofix});
+  const handleOpenSeerAgent = useHandleOpenSeerAgent({aiAutofix: autofix});
 
   const referrer = useMemo(
     () => getReferrerFromBlocks(aiAutofix.runState?.blocks ?? []),
     [aiAutofix.runState?.blocks]
   );
 
-  // For autoscroll, we only want to turn it on if we ever encounter a processing state.
-  // If not, it indicates the users is viewing an already completed autofix, so we do
-  // not want to enable autoscroll.
-  const enableAutoScroll = useRef(false);
-  if (aiAutofix.runState?.status === 'processing') {
-    enableAutoScroll.current = true;
-  }
-
-  const {containerRef, onScrollHandler} = useAutoScroll({
-    enabled: enableAutoScroll.current,
-    key: aiAutofix.runState,
-  });
+  const {containerRef, onScrollHandler} = useAutoScroll({key: aiAutofix.runState});
 
   return (
     <Stack
@@ -77,7 +87,9 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       background="secondary"
     >
       <SeerDrawerHeader
+        enableBashTools={enableBashTools}
         onCopyMarkdown={handleCopyMarkdown}
+        onEnableBashToolsChange={setEnableBashTools}
         onOpenSeerAgent={handleOpenSeerAgent}
         onReset={handleRestart}
         referrer={referrer}
@@ -91,7 +103,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
             <Placeholder height="15rem" />
           </Stack>
         ) : (
-          <SeerDrawerContent group={group} autofix={aiAutofix} aiConfig={aiConfig} />
+          <SeerDrawerContent group={group} autofix={autofix} aiConfig={aiConfig} />
         )}
       </SeerDrawerBody>
     </Stack>

@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 /**
@@ -18,7 +19,9 @@ export async function linkProjectToRepository({
 }): Promise<void> {
   try {
     await fetchMutation({
-      url: `/projects/${orgSlug}/${projectSlug}/repo/`,
+      url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/', {
+        path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+      }),
       method: 'POST',
       data: {repositoryId},
     });

@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
-import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -333,44 +333,25 @@ export function ScmPlatformFeaturesCore({
     [manualPickerFilter]
   );
 
-  const latestSearchValuesRef = useRef({
-    filter: manualPickerFilter,
-    options: manualPickerFilteredOptions,
-    organization,
-    analyticsFlow,
-  });
-
-  useEffect(() => {
-    latestSearchValuesRef.current = {
-      filter: manualPickerFilter,
-      options: manualPickerFilteredOptions,
-      organization,
-      analyticsFlow,
-    };
-  });
-
-  const debounceManualPickerSearch = useRef(
-    debounce(() => {
-      const {
-        filter,
-        options,
-        organization: currentOrganization,
-        analyticsFlow: flow,
-      } = latestSearchValuesRef.current;
-
-      if (!filter || flow !== 'project-creation') {
+  const debounceManualPickerSearch = useDebouncedCallback(
+    () => {
+      if (!manualPickerFilter || analyticsFlow !== 'project-creation') {
         return;
       }
 
       trackAnalytics('growth.platformpicker_search', {
-        organization: currentOrganization,
-        search: filter.toLowerCase(),
-        num_results: options.length,
+        organization,
+        search: manualPickerFilter.toLowerCase(),
+        num_results: manualPickerFilteredOptions.length,
         source: 'project-creation',
         variant: 'scm',
       });
-    }, DEFAULT_DEBOUNCE_DURATION)
-  ).current;
+    },
+    {
+      wait: DEFAULT_DEBOUNCE_DURATION,
+      onUnmount: debouncer => debouncer.flush(),
+    }
+  );
 
   function handleManualPickerSearch(query: string, {action}: {action: string}) {
     if (action !== 'input-change') {
@@ -420,9 +401,9 @@ export function ScmPlatformFeaturesCore({
     >
       <Flex
         justify="between"
-        align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+        align={{zero: 'start', xl: 'center'}}
         gap="md"
-        direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+        direction={{zero: 'column', xl: 'row'}}
       >
         <Flex align="center" gap="sm">
           <Flex flexShrink={0}>
@@ -444,8 +425,8 @@ export function ScmPlatformFeaturesCore({
         ) : (
           <Grid
             columns={{
-              'screen:xs': '1fr',
-              'screen:md':
+              zero: '1fr',
+              '3xl':
                 resolvedPlatforms.length < 3
                   ? 'repeat(2, minmax(0, 1fr))'
                   : 'repeat(3, minmax(0, 1fr))',

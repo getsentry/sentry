@@ -46,7 +46,6 @@ export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
             </Fragment>
           }
           onConfirm={() => onRemoveEmail(row.hash)}
-          showAuditFields
         >
           <Button size="xs" variant="danger">
             Delete Email

@@ -8,7 +8,7 @@ interface TestProps {
 
 function TestComponent({onSelect}: TestProps) {
   const {isActive, timelineSelector, selectionContainerRef} =
-    useTimelineZoom<HTMLDivElement>({enabled: true, onSelect});
+    useTimelineZoom<HTMLDivElement>({onSelect});
 
   return (
     <div data-test-id="body">

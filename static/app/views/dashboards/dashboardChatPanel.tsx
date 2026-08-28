@@ -106,7 +106,9 @@ export function DashboardChatPanel({
       width="100%"
       background="primary"
       margin="0 auto"
-      style={{zIndex: theme.zIndex.dropdown, marginBottom: '24px'}}
+      // Sit above dashboard widgets/tiles, but below dropdown menus (e.g. Add Widget)
+      // so they aren't hidden behind the chat panel when it overlaps them.
+      style={{zIndex: theme.zIndex.dropdown - 1, marginBottom: '24px'}}
     >
       <Flex justify="between">
         <ChatHistoryToggle

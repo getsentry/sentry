@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQueries, useQuery} from '@tanstack/react-query';
+import {useQueries, useQuery, type QueryObserverResult} from '@tanstack/react-query';
 
 import {
   SCM_MESSAGING_PROVIDER_KEYS,
@@ -49,7 +49,7 @@ export function useScmMessagingProviders(): {
   isPending: boolean;
   isRefetchingIntegrations: boolean;
   providers: ScmMessagingProviderViewModel[];
-  refetchIntegrations: () => void;
+  refetchIntegrations: () => Promise<QueryObserverResult<OrganizationIntegration[]>>;
   retry: () => void;
 } {
   const organization = useOrganization();

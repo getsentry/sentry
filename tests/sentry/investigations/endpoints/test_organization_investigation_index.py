@@ -33,7 +33,8 @@ class OrganizationInvestigationIndexTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_create_manual_and_list(self) -> None:
+    @mock.patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    def test_create_manual_and_list(self, metrics_count: mock.MagicMock) -> None:
         response = self.client.post(
             self.collection_url,
             data={
@@ -47,6 +48,11 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.data["title"] == "Checkout follow-up"
         assert response.data["projectIds"] == [self.project.id]
         assert response.data["blocks"] == []
+        metrics_count.assert_any_call(
+            "investigations.started",
+            1,
+            attributes={"source_type": "manual", "template": "manual"},
+        )
 
         response = self.client.get(self.collection_url)
         assert response.status_code == 200

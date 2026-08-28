@@ -374,6 +374,45 @@ function getGitSearchEvidenceProps({
   return null;
 }
 
+function getReadFileEvidenceProps({
+  toolCall,
+  toolLink,
+}: GetEvidencePropsPayload): EvidenceButtonProps | null {
+  const {path} = parseArgs(toolCall);
+  if (typeof path !== 'string') {
+    return null;
+  }
+  const filename = extractFileName(path);
+  const {code_url, start_line, end_line} = toolLink?.params ?? {};
+
+  if (!defined(filename) || !defined(code_url)) {
+    return null;
+  }
+
+  const lines =
+    start_line && end_line
+      ? start_line === end_line
+        ? `L${start_line}`
+        : `L${start_line}-L${end_line}`
+      : undefined;
+  return {
+    href: lines ? `${code_url}#${lines}` : code_url,
+    icon: <IconFile />,
+    label: t('File: %s%s', truncateText(filename), lines ? ` ${lines}` : ''),
+    tooltip: (
+      <Fragment>
+        {path}
+        {lines && (
+          <Fragment>
+            <br />
+            {lines}
+          </Fragment>
+        )}
+      </Fragment>
+    ),
+  };
+}
+
 export const AUTOFIX_EVIDENCE_PROPS_RESOLVER: Record<
   string,
   (payload: GetEvidencePropsPayload) => EvidenceButtonProps | null
@@ -386,6 +425,7 @@ export const AUTOFIX_EVIDENCE_PROPS_RESOLVER: Record<
   get_profile_flamegraph: getProfileFlamegraphEvidenceProps,
   code_search: getCodeSearchEvidenceProps,
   git_search: getGitSearchEvidenceProps,
+  read_file: getReadFileEvidenceProps,
 };
 
 function parseArgs(toolCall: ToolCall): any {

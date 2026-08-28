@@ -8,6 +8,7 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -23,7 +24,6 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -124,7 +124,9 @@ export function MetricSelector({
 
   const [searchInputValue, setSearchInputValue] = useState('');
   const [sidePanelAnchorOffset, setSidePanelAnchorOffset] = useState<number | null>(null);
-  const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
+  const [debouncedSearch] = useDebouncedValue(searchInputValue, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
     projectIds,
@@ -478,9 +480,7 @@ export function MetricSelector({
     position: 'bottom-start',
     offset: 6,
     isOpen: comboBoxState.isOpen,
-    isDismissable: true,
     isKeyboardDismissDisabled: true,
-    shouldApplyMinWidth: true,
     disableTrigger: isFetching && !traceMetric.name,
     onOpenChange: open => {
       if (open === comboBoxState.isOpen) {

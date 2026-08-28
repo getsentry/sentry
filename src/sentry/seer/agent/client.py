@@ -4,11 +4,12 @@ import logging
 import random
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from datetime import datetime
 from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q, QuerySet
 from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
@@ -24,11 +25,11 @@ from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.agent.client_models import AgentRun, SeerRunState
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
     AgentReposRequest,
-    AgentRunsRequest,
+    AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
     collect_user_org_context,
@@ -37,7 +38,6 @@ from sentry.seer.agent.client_utils import (
     get_proxy_headers,
     make_agent_chat_request,
     make_agent_repos_request,
-    make_agent_runs_request,
     make_agent_update_request,
     poll_until_done,
 )
@@ -57,6 +57,7 @@ from sentry.seer.models import (
     SeerRepoDefinition,
 )
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
+from sentry.seer.runs_search import queryset_for_query
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
@@ -110,12 +111,6 @@ def _trigger_explorer_indexes_if_needed(
         )
         index_org_project_knowledge.apply_async(args=[organization_id])
         build_service_map.apply_async(args=[organization_id])
-
-
-def _has_context_engine(
-    organization: Organization, user: User | RpcUser | AnonymousUser | None
-) -> bool:
-    return True
 
 
 def get_available_monitoring_providers(
@@ -552,8 +547,7 @@ class SeerAgentClient:
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
         referrer: str | None = None,
-        force_ce: bool | None = None,
-        force_frontend_code_search: bool | None = None,
+        agent_run_options: AgentRunOptions | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -571,8 +565,8 @@ class SeerAgentClient:
         flush=False: leave the row for the async outbox runner to drain and
         retry. Use for background callers (e.g. night shift).
 
-        force_ce if set forces context engine on/off, force_frontend_code_search
-        likewise for frontend source code search.
+        Explicit agent_run_options override any options derived from organization
+        configuration.
         """
         user_id = (
             self.user.id
@@ -592,6 +586,10 @@ class SeerAgentClient:
             if on_run_created is not None:
                 on_run_created(run)
 
+        resolved_agent_run_options = self._build_agent_run_options()
+        if agent_run_options is not None:
+            resolved_agent_run_options.update(agent_run_options)
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
@@ -599,10 +597,7 @@ class SeerAgentClient:
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
-                agent_run_options=self._build_agent_run_options(
-                    force_ce=force_ce,
-                    force_frontend_code_search=force_frontend_code_search,
-                ),
+                agent_run_options=resolved_agent_run_options,
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
@@ -637,17 +632,20 @@ class SeerAgentClient:
         override_ce_enable: bool = True,
         force_ce: bool | None = None,
         force_frontend_code_search: bool | None = None,
-    ) -> dict[str, Any]:
+    ) -> AgentRunOptions:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run.
 
         force_ce if set forces context engine on/off, force_frontend_code_search
         likewise for frontend source code search.
         """
-        opts: dict[str, Any] = {}
 
-        if _has_context_engine(self.organization, self.user):
-            if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                opts["is_context_engine_enabled"] = True
+        opts = AgentRunOptions()
+
+        if self.enable_bash_tools:
+            opts["enable_bash_mode"] = True
+
+        if random.random() < options.get("seer.explorer.context-engine-rollout"):
+            opts["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
@@ -798,8 +796,7 @@ class SeerAgentClient:
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
-        if _has_context_engine(self.organization, self.user):
-            agent_run_options["is_context_engine_enabled"] = True
+        agent_run_options["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-agent-source-code-search",
@@ -870,6 +867,25 @@ class SeerAgentClient:
 
         return state
 
+    def get_runs(
+        self,
+        *,
+        accessible_project_ids: Collection[int],
+        query: str = "",
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> QuerySet[SeerRun]:
+        user_id = int(self.user.id) if self.user is not None and self.user.id is not None else None
+        queryset = queryset_for_query(query, self.organization, user_id)
+        queryset = queryset.filter(
+            Q(agent__project_id__isnull=True) | Q(agent__project_id__in=accessible_project_ids)
+        )
+        if start is not None:
+            queryset = queryset.filter(last_triggered_at__gte=start)
+        if end is not None:
+            queryset = queryset.filter(last_triggered_at__lte=end)
+        return queryset
+
     def latest_run(
         self,
         *,
@@ -910,72 +926,6 @@ class SeerAgentClient:
         if run is None:
             return None
         return self.get_run(run.run.seer_run_state_id)
-
-    def get_runs(
-        self,
-        category_key: str | None = None,
-        category_value: str | None = None,
-        offset: int | None = None,
-        limit: int | None = None,
-        project_ids: list[int] | None = None,
-        only_current_user: bool = True,
-        start: datetime | None = None,
-        end: datetime | None = None,
-        query: str | None = None,
-    ) -> list[AgentRun]:
-        """
-        Get a list of Seer Agent runs for the organization with optional filters.
-
-        Args:
-            category_key: Optional category key to filter by (e.g., "bug-fixer")
-            category_value: Optional category value to filter by (e.g., "issue-123")
-            offset: Optional offset for pagination
-            limit: Optional limit for pagination
-            only_current_user: Optional to filter runs by current user
-
-        Returns:
-            List of runs matching the filters, sorted by most recent first.
-
-        Raises:
-            SeerApiError: If the Seer API request fails
-        """
-        runs_body: AgentRunsRequest = AgentRunsRequest(
-            organization_id=self.organization.id,
-        )
-
-        # Add optional filters
-        if (
-            only_current_user
-            and self.user
-            and hasattr(self.user, "id")
-            and self.user.id is not None
-        ):
-            runs_body["user_id"] = int(self.user.id)
-        if category_key is not None:
-            runs_body["category_key"] = category_key
-        if category_value is not None:
-            runs_body["category_value"] = category_value
-        if offset is not None:
-            runs_body["offset"] = offset
-        if project_ids is not None:
-            runs_body["project_ids"] = project_ids
-        if limit is not None:
-            runs_body["limit"] = limit
-        if start is not None:
-            runs_body["start"] = start
-        if end is not None:
-            runs_body["end"] = end
-        if query is not None:
-            runs_body["query"] = query
-
-        response = make_agent_runs_request(runs_body, viewer_context=self.viewer_context)
-
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
-        result = response.json()
-
-        runs = [AgentRun(**run) for run in result.get("data", [])]
-        return runs
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:
         body = AgentReposRequest(
