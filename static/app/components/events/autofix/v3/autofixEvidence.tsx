@@ -1,7 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -85,19 +85,17 @@ export function AutofixEvidence({
   // A tool that produced no navigable resource (e.g. a bash command) renders as a
   // plain chip rather than a link, so the reader still sees it happened.
   return (
-    <LinkButton
+    <Button
       disabled
       icon={icon}
       size="zero"
-      to={{}}
-      external
       tooltipProps={tooltip ? {title: tooltip} : undefined}
     >
       {prefix}
       {': '}
       {truncateText(label)}
       {suffix}
-    </LinkButton>
+    </Button>
   );
 }
 
@@ -379,7 +377,7 @@ function getGitSearchEvidenceProps({
     return {
       href: commits_url,
       icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
-      prefix: t('Commit'),
+      prefix: t('Commits'),
       label: fileName ? fileName : repo_name,
       tooltip: (
         <Fragment>
@@ -436,7 +434,7 @@ function getBashEvidenceProps({
     tooltip: (
       <Stack>
         <Text>{label}</Text>
-        {commandText && <Text>{commandText}</Text>}
+        {descriptionText && <Text>{commandText}</Text>}
       </Stack>
     ),
   };
