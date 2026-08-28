@@ -22,9 +22,6 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
 
-# How many times to retry inserting position in the case of concurrent operations
-MAX_STARRED_QUERY_INSERT_ATTEMPTS = 3
-
 
 class DiscoverSavedQueryTypes(TypesClass):
     DISCOVER = 0
@@ -222,9 +219,8 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
         """
         Returns the last position of a user's starred queries in an organization.
 
-        Deliberately not filtered on ``starred=True``: the unique position constraint
-        covers every row with a position, so an unstarred row that still holds one would
-        otherwise be invisible here and collide on insert.
+        Deliberately not filtered on ``starred=True`` so that an unstarred row still
+        holding a position does not cause the next insert to reuse that position.
         """
         last_starred_query = (
             self.filter(organization=organization, user_id=user_id, position__isnull=False)
@@ -300,38 +296,25 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
 
         Returns:
             True if the query was starred, False if the query was already starred
-
-        Raises:
-            IntegrityError: If a position could not be allocated within
-                MAX_STARRED_QUERY_INSERT_ATTEMPTS attempts
         """
-        for _ in range(MAX_STARRED_QUERY_INSERT_ATTEMPTS):
-            try:
-                with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
-                    if self.get_starred_query(organization, user_id, query):
-                        return False
-
-                    position = self.get_last_position(organization, user_id) + 1
-
-                    self.create(
-                        organization=organization,
-                        user_id=user_id,
-                        discover_saved_query=query,
-                        position=position,
-                        starred=starred,
-                    )
-                    return True
-            except IntegrityError:
-                # If the query exists, then this was a dupe and didn't make it starred
-                # Otherwise a different query took our position, try again
+        try:
+            with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
                 if self.get_starred_query(organization, user_id, query):
                     return False
 
-        raise IntegrityError(
-            "Failed to allocate a starred query position for "
-            f"organization={organization.id} user_id={user_id} after "
-            f"{MAX_STARRED_QUERY_INSERT_ATTEMPTS} attempts"
-        )
+                position = self.get_last_position(organization, user_id) + 1
+
+                self.create(
+                    organization=organization,
+                    user_id=user_id,
+                    discover_saved_query=query,
+                    position=position,
+                    starred=starred,
+                )
+                return True
+        except IntegrityError:
+            # A concurrent request starred the same query first
+            return False
 
     def delete_starred_query(
         self, organization: Organization, user_id: int, query: DiscoverSavedQuery
@@ -401,13 +384,13 @@ class DiscoverSavedQueryStarred(DefaultFieldsModel):
         app_label = "discover"
         db_table = "sentry_discoversavedquerystarred"
         constraints = [
-            # Two queries cannot occupy the same position in an organization user's list of queries
-            UniqueConstraint(
-                fields=["user_id", "organization_id", "position"],
-                name="sentry_discoversavedquerystarred_unique_query_position_per_org_user",
-                deferrable=models.Deferrable.DEFERRED,
-            ),
-            # A query appears at most once in an organization user's list, starred or not
+            # A query appears at most once in an organization user's list, starred or not.
+            #
+            # ``position`` is deliberately NOT unique. Allocating "last position + 1" cannot be
+            # made atomic against a concurrent insert of a row that does not exist yet, so a
+            # uniqueness constraint here turns a benign race between two stars into a 500.
+            # Duplicate positions are harmless: reads tiebreak on ``-date_added``/``-id``, and
+            # the reorder endpoint rewrites the whole list.
             UniqueConstraint(
                 fields=["user_id", "organization_id", "discover_saved_query_id"],
                 name="sentry_discoversavedquerystarred_unique_query_per_org_user",
