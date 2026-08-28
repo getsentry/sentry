@@ -120,10 +120,7 @@ describe('SeerExplorerHeader', () => {
     });
 
     it('shows Conversation in Sentry when Debug flags are on and a run URL exists', async () => {
-      await renderHeader(
-        {conversationsUrl},
-        orgWith('seer-explorer-thinking-blocks')
-      );
+      await renderHeader({conversationsUrl}, orgWith('seer-explorer-thinking-blocks'));
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
