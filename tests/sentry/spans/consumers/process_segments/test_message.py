@@ -32,11 +32,15 @@ from sentry.spans.consumers.process_segments.message import (
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
+from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.spans.consumers.process import build_mock_span
 
 DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
+PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG = "organizations:performance-issues-spans"
+DISCARD_TRANSACTIONS_PROJECT_FEATURE_FLAG = "projects:discard-transaction"
 
 
 def generate_n_plus_one_spans(
@@ -241,9 +245,15 @@ class TestSpansTask(TestCase):
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
 
     @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
+    @with_feature(PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG)
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
-        spans = generate_n_plus_one_spans(self.project)
+        spans = generate_n_plus_one_spans(
+            self.project,
+            # Force segment to create an occurrence so we can examine it
+            has_performance_issues_spans_relay_flag=True,
+        )
+
         with mock.patch("sentry.issues.ingest.should_create_group", return_value=True):
             process_segment(spans)
 
@@ -834,3 +844,69 @@ class TestProcessSegmentCaching(TestCase):
 
         mock_create.assert_not_called()
         mock_bump.assert_not_called()
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    [
+        "incoming_data_is_transaction",
+        "discard_transactions_feature_flag",
+        "performance_issues_spans_relay_flag",
+        "performance_issues_spans_feature_flag",
+        "create_occurrence_calls_expected",
+    ],
+    [
+        # Data received as standalone spans, feature flag on -> segment creates occurrence
+        (False, True, True, True, 1),
+        (False, True, False, True, 1),
+        (False, False, True, True, 1),
+        (False, False, False, True, 1),
+        # Transaction discarded, feature flag on -> segment creates occurrence
+        (True, True, True, True, 1),
+        (True, True, False, True, 1),
+        # Transaction kept, relay flag set, feature flag on -> segment creates occurrence
+        (True, False, True, True, 1),
+        # Transaction kept, relay flag not set -> no segment-based occurrence
+        (True, False, False, True, 0),
+        # Feature flag off -> no segment-based occurrence regardless of other values
+        (True, True, True, False, 0),
+        (True, True, False, False, 0),
+        (True, False, True, False, 0),
+        (True, False, False, False, 0),
+        (False, True, True, False, 0),
+        (False, True, False, False, 0),
+        (False, False, True, False, 0),
+        (False, False, False, False, 0),
+    ],
+)
+def test_issue_detector_occurrence_creation(
+    incoming_data_is_transaction: bool,
+    discard_transactions_feature_flag: bool,
+    performance_issues_spans_relay_flag: bool,
+    performance_issues_spans_feature_flag: bool,
+    create_occurrence_calls_expected: int,
+    default_project: Project,
+) -> None:
+    # Segments only have an event id if it's copied over from a transaction
+    event_id = uuid.uuid4().hex if incoming_data_is_transaction else None
+
+    spans = generate_n_plus_one_spans(
+        default_project,
+        has_performance_issues_spans_relay_flag=performance_issues_spans_relay_flag,
+        event_id=event_id,
+    )
+
+    with (
+        with_feature(
+            {
+                PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG: performance_issues_spans_feature_flag,
+                DISCARD_TRANSACTIONS_PROJECT_FEATURE_FLAG: discard_transactions_feature_flag,
+            }
+        ),
+        override_options({DETECTORS_ENABLED_OPTION: ["*"]}),
+        mock.patch(
+            "sentry.spans.consumers.process_segments.message.produce_occurrence_to_kafka"
+        ) as mock_produce_occurrence,
+    ):
+        process_segment(spans)
+        assert mock_produce_occurrence.call_count == create_occurrence_calls_expected
