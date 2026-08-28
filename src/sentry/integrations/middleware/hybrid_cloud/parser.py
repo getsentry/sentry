@@ -27,7 +27,7 @@ from sentry.integrations.middleware.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.killswitches import killswitch_matches_context
+from sentry.killswitches import get_killswitch_value, value_matches
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
@@ -212,8 +212,17 @@ class BaseRequestParser(ABC):
         conditions are documented in sentry.killswitches. A shed webhook is lost unless
         the sender redelivers it.
         """
-        if not killswitch_matches_context(
+        conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
+        # A condition with no provider matches every provider. There are few enough
+        # providers to name them, so drop those rather than let one option typo shed
+        # all inbound traffic. Counted so an ignored condition is not a silent no-op.
+        targeted = [condition for condition in conditions if condition["provider"] is not None]
+        if len(targeted) != len(conditions):
+            metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
+
+        if not value_matches(
             SHED_INBOUND_KILLSWITCH,
+            targeted,
             {"provider": self.provider, "integration_id": integration_id},
             emit_metrics=False,
         ):

@@ -248,18 +248,20 @@ class BaseRequestParserTest(TestCase):
         assert WebhookPayload.objects.count() == 2
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
-    @override_options({SHED_INBOUND_OPTION: [{}]})
-    def test_shed_inbound_wildcard_sheds_every_provider(self, mock_trigger: MagicMock) -> None:
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
+    @override_options({SHED_INBOUND_OPTION: [{}, {"integration_id": "12345"}]})
+    def test_shed_inbound_ignores_conditions_without_a_provider(self, mock_incr: MagicMock) -> None:
+        """A provider-less condition is an every-provider wildcard, which is more reach
+        than this valve should have. It is dropped, and counted so it is not silent."""
         parser = ExampleRequestParser(self.request, self.response_handler)
 
         response = parser.get_response_from_webhookpayload(
             cells=self.region_config, integration_id=12345
         )
 
-        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert not WebhookPayload.objects.exists()
-        assert not mock_trigger.called
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert WebhookPayload.objects.count() == 2
+        mock_incr.assert_any_call("hybridcloud.webhookpayload.shed_condition_ignored")
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_organizations_from_integration_success(self) -> None:

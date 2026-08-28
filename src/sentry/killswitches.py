@@ -258,8 +258,9 @@ ALL_KILLSWITCH_OPTIONS = {
         Retry-After instead of having their webhook queued, so the flood stops
         costing the control primary payload INSERTs and push triggers.
 
-        Leaving `integration_id` unset sheds a whole provider; leaving both fields
-        unset is a wildcard that sheds *every* inbound webhook.
+        Every condition must name a `provider`; leaving `integration_id` unset sheds
+        that whole provider. A condition without a `provider` would match every one
+        of them, so it is ignored rather than honoured.
 
         Shed webhooks are gone unless the sender redelivers them.
         """,
