@@ -111,13 +111,13 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
         """
         # Preserve compatibility with historical cache keys
         if len(args) == 1:
-            arg_str = str(args[0])
+            arg_str = str(args[0])  # type: ignore[misc]
         else:
             arg_str = json.dumps(args)
 
         # Replace parameters that would overflow the key column, or that memcached
-        # would reject, with a digest of the same parameters.
-        if len(arg_str) + len(self.base_key) > MAX_CACHE_KEY_LENGTH or _UNSAFE_KEY_CHARS.search(
+        # would reject, with a digest of the same parameters. Add 1 for the :
+        if len(arg_str) + len(self.base_key) + 1 > MAX_CACHE_KEY_LENGTH or _UNSAFE_KEY_CHARS.search(
             arg_str
         ):
             arg_str = hashlib.md5(arg_str.encode("utf-8")).hexdigest()
