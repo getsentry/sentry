@@ -8,7 +8,6 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconSearch} from 'sentry/icons';
@@ -228,11 +227,7 @@ export function AutomationListTable({
           </StyledFlex>
         </SimpleTable.Empty>
       )}
-      {isError && (
-        <SimpleTable.Empty>
-          <LoadingError message={t('Error loading alerts')} />
-        </SimpleTable.Empty>
-      )}
+      {isError && <SimpleTable.Error message={t('Error loading alerts')} />}
       {isPending && <LoadingSkeletons />}
       {isSuccess &&
         automations.map(automation => (
