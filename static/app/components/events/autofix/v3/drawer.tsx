@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -28,6 +28,7 @@ import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
@@ -46,7 +47,10 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       organization.features.includes('autofix-pr-iteration') ||
       organization.features.includes('autofix-pr-iteration-manual'),
   });
-  const [enableBashTools, setEnableBashTools] = useState(false);
+  const [enableBashTools, setEnableBashTools] = useLocalStorageState(
+    'autofix-force-bash-mode',
+    false
+  );
 
   const autofix = useMemo(
     () => ({
@@ -54,7 +58,11 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       startStep: (
         step: AutofixExplorerStep,
         options?: Parameters<ReturnType<typeof useExplorerAutofix>['startStep']>[1]
-      ) => aiAutofix.startStep(step, {...options, enableBashTools}),
+      ) =>
+        aiAutofix.startStep(step, {
+          ...options,
+          enableBashTools: enableBashTools || undefined,
+        }),
     }),
     [aiAutofix, enableBashTools]
   );
