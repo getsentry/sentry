@@ -5,11 +5,9 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
@@ -165,15 +163,6 @@ export function ReleasesDrawerTable({
           <Count value={value} />
         );
       }
-      if (column.key === 'date') {
-        return (
-          <Text tabular variant="muted" wrap="nowrap">
-            {({className}) => (
-              <DateTime className={className} date={dataRow.date} seconds timeZone year />
-            )}
-          </Text>
-        );
-      }
       if (!meta?.fields) {
         return dataRow[column.key];
       }
@@ -209,7 +198,6 @@ export function ReleasesDrawerTable({
         data={releaseData ?? []}
         columnOrder={BASE_COLUMNS}
         emptyMessage={tableEmptyMessage}
-        fit="max-content"
         stickyHeader
         scrollable
         grid={{

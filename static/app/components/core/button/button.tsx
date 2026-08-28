@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,10 +12,10 @@ import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
-import type {ButtonSize, DO_NOT_USE_ButtonProps as ButtonProps} from './types';
+import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
-export type {ButtonProps, ButtonSize};
+export type {ButtonProps};
 
 export function Button({
   disabled,
@@ -26,7 +26,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const contextSize = useSizeContext();
-  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
+  const size = explicitSize ?? contextSize ?? 'md';
   const buttonProps = {
     ...props,
     type,
@@ -101,7 +101,7 @@ export function Button({
 const StyledButton = styled('button')<
   Omit<ButtonProps, 'size'> & {
     shapeVariant: 'rectangular' | 'square';
-    size: ButtonSize;
+    size: NonNullable<ButtonProps['size']>;
   }
 >`
   ${p => getButtonStyles(p)}

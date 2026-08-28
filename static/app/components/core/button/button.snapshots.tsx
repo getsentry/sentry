@@ -1,6 +1,6 @@
 import {ThemeProvider} from '@emotion/react';
 
-import {Button, type ButtonProps, type ButtonSize} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {IconEdit} from 'sentry/icons';
 // eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
@@ -17,7 +17,7 @@ const allVariants: Array<ButtonProps['variant']> = [
   'transparent',
 ];
 
-const allSizes: ButtonSize[] = ['zero', 'xs', 'sm', 'md'];
+const allSizes: Array<ButtonProps['size']> = ['zero', 'xs', 'sm', 'md'];
 
 describe('Button', () => {
   describe.each(['light', 'dark'] as const)('%s', themeName => {
