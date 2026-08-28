@@ -5,6 +5,8 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
+  // scraps has all index.tsx file as separate entry points
+  'static/app/components/core/*/index.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
   'static/app/serviceWorker/worker/worker.ts',
@@ -24,13 +26,7 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
-  // TODO: Remove when wired into the React authentication flow
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
-  // React authentication routes are discovered dynamically by the frontend route registry
-  'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
-  // https://github.com/getsentry/sentry/pull/121178
-  'static/app/components/core/table/*.tsx',
-  'static/app/components/core/dragHandle/*.tsx',
 ];
 
 const testingEntryPoints = [
