@@ -93,35 +93,40 @@ describe('buildResult location header', () => {
 });
 
 describe('buildResult selected projects footnotes', () => {
-  it('includes project slug and id for an explicit selection', () => {
+  it('includes the explicit project-selection instruction', () => {
     const grid = createGridHelpers(2, 4);
     grid.writeOverlay(0, 0, 'hi');
 
     const result = buildResult(grid, [], {
+      selectionMode: 'explicit',
       isAllProjects: false,
       projectIds: ['4509062593708032'],
       projectSlugs: ['mcp-server'],
       projects: [{id: '4509062593708032', slug: 'mcp-server'}],
+      instruction:
+        'Page filter pins these projects — scope queries to them unless the user asks otherwise: mcp-server (id: 4509062593708032).',
     });
 
     expect(result).toContain(
-      'This page has the following projects selected: mcp-server (id: 4509062593708032)'
+      'Page filter pins these projects — scope queries to them unless the user asks otherwise: mcp-server (id: 4509062593708032).'
     );
   });
 
-  it('states My/All projects when no hard project filter is set', () => {
+  it('includes the My Projects instruction when no hard project filter is set', () => {
     const grid = createGridHelpers(2, 4);
     grid.writeOverlay(0, 0, 'hi');
 
     const result = buildResult(grid, [], {
+      selectionMode: 'my-projects',
       isAllProjects: true,
       projectIds: [],
       projectSlugs: [],
       projects: [],
+      instruction:
+        'Page filter is My Projects: no hard single-project pin. Scope queries to projects the user is a member of (org default). Empty projectIds/projectSlugs is expected — not missing data. Do not invent a specific project slug unless the user names one.',
     });
 
-    expect(result).toContain(
-      'This page has My Projects / All Projects selected (no hard single-project filter).'
-    );
+    expect(result).toContain('Page filter is My Projects');
+    expect(result).toContain('Empty projectIds/projectSlugs is expected');
   });
 });

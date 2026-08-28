@@ -900,13 +900,17 @@ export function buildResult(
   // Accept legacy string[] call sites from older tests while the shared helper
   // shape rolls out; prefer SelectedProjectsForLLMContext going forward.
   // Empty string[] keeps the old no-footnote behavior — only the object form
-  // can express "My/All Projects" via isAllProjects.
+  // can express "My/All Projects" via selectionMode/instruction.
   const projectSelection: SelectedProjectsForLLMContext = Array.isArray(selectedProjects)
     ? {
+        selectionMode: 'explicit',
         isAllProjects: false,
         projectIds: [],
         projectSlugs: selectedProjects,
         projects: selectedProjects.map(slug => ({id: '', slug})),
+        instruction: selectedProjects.length
+          ? `Page filter pins these projects — scope queries to them unless the user asks otherwise: ${selectedProjects.join(', ')}.`
+          : '',
       }
     : selectedProjects;
   // The URL alone leaves the reader to infer what each path segment means. When
@@ -952,16 +956,16 @@ export function buildResult(
   if (chartTables.length > 0 || hasProjectFootnote) {
     result += '\n\n=== FOOTNOTES ===\n\n';
 
-    if (projectSelection.projects.length > 0) {
+    if (projectSelection.instruction) {
+      result += `${projectSelection.instruction}\n`;
+    } else if (projectSelection.projects.length > 0) {
+      // Legacy string[] path may only have slugs and an empty instruction.
       const projectList = projectSelection.projects
         .map(project =>
           project.id ? `${project.slug} (id: ${project.id})` : project.slug
         )
         .join(', ');
       result += `This page has the following projects selected: ${projectList}\n`;
-    } else if (projectSelection.isAllProjects) {
-      result +=
-        'This page has My Projects / All Projects selected (no hard single-project filter).\n';
     }
 
     if (chartTables.length > 0) {

@@ -42,7 +42,10 @@ import {
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -126,8 +129,8 @@ function MetricsTabBodySection({
   useLLMContext({
     contextHint:
       'Sentry metrics explorer page. Users search and visualize application metrics (counters, gauges, distributions) with filters, grouping, and aggregation functions. You can search live telemetry for metrics, discover metric names via the telemetry index, and query metric data with specific filters and time ranges. ' +
-      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
-      'isAllProjects true means My Projects / All Projects (no hard single-project filter).',
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     metricQueries: metricQueries.map(q => ({
       metric: q.metric?.name,
       label: q.label,
@@ -135,9 +138,7 @@ function MetricsTabBodySection({
     })),
     interval,
     currentSelectedDateRange: pageFilters.selection.datetime,
-    projectIds: selectedProjects.projectIds,
-    projectSlugs: selectedProjects.projectSlugs,
-    isAllProjects: selectedProjects.isAllProjects,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   useMetricsAnalytics({

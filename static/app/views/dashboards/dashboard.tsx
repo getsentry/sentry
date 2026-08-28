@@ -31,7 +31,10 @@ import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
 import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
@@ -132,8 +135,8 @@ function DashboardInner({
   useLLMContext({
     contextHint:
       'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. You can search live telemetry or list telemetry index nodes to fetch data. Based on the user question, data might be needed from multiple widgets. ' +
-      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
-      'isAllProjects true means My Projects / All Projects (no hard single-project filter).',
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
     queryHints: getQueryHintLegend(dashboard.widgets),
@@ -141,9 +144,7 @@ function DashboardInner({
     isEditingDashboard,
     dateRange: selection.datetime,
     environments: selection.environments,
-    projectIds: selectedProjects.projectIds,
-    projectSlugs: selectedProjects.projectSlugs,
-    isAllProjects: selectedProjects.isAllProjects,
+    ...toLLMContextProjectFields(selectedProjects),
   });
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {

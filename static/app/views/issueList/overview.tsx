@@ -62,7 +62,10 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import {IssueListFilters} from './filters';
@@ -941,8 +944,8 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
-      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
-      'isAllProjects true means My Projects / All Projects (no hard single-project filter). ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
       'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
       'You can get issue details for aggregate stats, get event details for a specific error event, ' +
       'and search live telemetry for related spans/errors/logs/metrics.',
@@ -950,9 +953,7 @@ function IssueListOverviewInner({
     query,
     sort,
     issueCount: queryCount,
-    projectIds: selectedProjects.projectIds,
-    projectSlugs: selectedProjects.projectSlugs,
-    isAllProjects: selectedProjects.isAllProjects,
+    ...toLLMContextProjectFields(selectedProjects),
     displayedProjectSlugs,
     environments: selection.environments,
     dateRange: selection.datetime,

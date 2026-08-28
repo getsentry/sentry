@@ -46,7 +46,10 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 const ReplayListPageHeaderHook = OverrideOrDefault({
   overrideName: 'component:replay-list-page-header',
@@ -112,15 +115,13 @@ function useReplayListLLMContextData({
   useLLMContext({
     contextHint:
       'Sentry session replay list page. Users search and filter recorded browser sessions by attributes like error count, rage clicks, dead clicks, browser, OS, and user. You can search events with a replays filter to find sessions matching specific criteria, or look up an individual replay by its ID for full session details. ' +
-      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
-      'isAllProjects true means My Projects / All Projects (no hard single-project filter).',
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery,
     sort: `${sortType.kind === 'desc' ? '-' : ''}${sortType.field}`,
     currentSelectedDateRange: pageFilters.selection.datetime,
     deadRageClickWidgetsVisible: showDeadRageClickCards && widgetIsOpen,
-    projectIds: selectedProjects.projectIds,
-    projectSlugs: selectedProjects.projectSlugs,
-    isAllProjects: selectedProjects.isAllProjects,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 }
 

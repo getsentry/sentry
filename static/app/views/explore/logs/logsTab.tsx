@@ -94,7 +94,10 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -274,8 +277,8 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     contextHint:
       'Sentry logs explorer page. Users search log entries by attributes and view samples or aggregates. ' +
       'You can search live telemetry for logs, get detailed log attributes by trace ID, and discover attribute names via the telemetry index. ' +
-      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
-      'isAllProjects true means My Projects / All Projects (no hard single-project filter).',
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery,
     mode,
     fields,
@@ -283,9 +286,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     groupBys: groupBys.filter(g => g !== ''),
     visualizes: visualizes.map(v => v.yAxis),
     currentSelectedDateRange: pageFilters.selection.datetime,
-    projectIds: selectedProjects.projectIds,
-    projectSlugs: selectedProjects.projectSlugs,
-    isAllProjects: selectedProjects.isAllProjects,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(

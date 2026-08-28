@@ -73,7 +73,10 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-import {useSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -211,17 +214,15 @@ function SpanTabContentSectionInner({
       'Sentry traces explorer page. Users search spans/traces by attributes and view samples, aggregates, or breakdowns. ' +
       'You can search live telemetry for spans/traces/errors/logs/metrics, get a trace waterfall by trace ID, ' +
       'list telemetry index nodes by keyword to discover span/function types, and query node dependencies for upstream/downstream call graphs. ' +
-      'projectSlugs/projectIds are the page-filter selection the user currently has pinned — scope queries to them unless asked otherwise. ' +
-      'isAllProjects true means My Projects / All Projects (no hard single-project filter).',
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery: query,
     activeTab: tab,
     visualizes: visualizes.map(v => v.yAxis),
     groupBys: groupBys.filter(g => g !== ''),
     sortBys: activeSortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     currentSelectedDateRange: selection.datetime,
-    projectIds: selectedProjects.projectIds,
-    projectSlugs: selectedProjects.projectSlugs,
-    isAllProjects: selectedProjects.isAllProjects,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const queryType =
