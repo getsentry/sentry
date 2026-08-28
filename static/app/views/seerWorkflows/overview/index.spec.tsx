@@ -83,6 +83,7 @@ describe('AutofixOverview', () => {
     shortId: 'PROJ-1',
     title: 'TypeError in checkout cart',
     rootCause: {
+      headline: null,
       oneLineDescription: 'The cart total is read before it is set.',
     },
     proposedFix: null,
@@ -97,7 +98,10 @@ describe('AutofixOverview', () => {
     groupId: '3',
     shortId: 'PROJ-2',
     title: 'KeyError in proxy handler',
-    rootCause: {oneLineDescription: 'The Authorization header is dropped.'},
+    rootCause: {
+      headline: null,
+      oneLineDescription: 'The Authorization header is dropped.',
+    },
     proposedFix: {
       oneLineSummary: 'Restore the Authorization header as a fallback.',
     },
@@ -715,6 +719,39 @@ describe('AutofixOverview', () => {
     expect(screen.getAllByText('Plan')).toHaveLength(1);
   });
 
+  it('uses the root cause headline as the card title with the issue title beneath', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {
+            ...rootCauseRun,
+            rootCause: {
+              headline: 'Checkout crashes on an empty cart',
+              oneLineDescription: 'The cart total is read before it is set.',
+            },
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    // The generated headline becomes the linked card title.
+    const titleLink = await screen.findByRole('link', {
+      name: 'Checkout crashes on an empty cart',
+    });
+    expect(titleLink).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/2/`
+    );
+    // The raw issue title still shows, beneath the headline.
+    expect(screen.getByText('TypeError in checkout cart')).toBeInTheDocument();
+    // The issue title is not itself a link (only the headline links out).
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+  });
+
   it('shows "0 users" for a card with events but zero affected users', async () => {
     mockOverview({
       base: {
@@ -803,6 +840,7 @@ describe('AutofixOverview', () => {
           {
             ...solutionRun,
             rootCause: {
+              headline: null,
               oneLineDescription: 'The request is passed to `dateutil.parse()`.',
             },
             proposedFix: {
