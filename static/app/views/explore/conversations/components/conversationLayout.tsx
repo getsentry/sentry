@@ -67,7 +67,6 @@ function MeasuredSplitPanel({
 
   return (
     <SplitPanel
-      orientation="horizontal"
       defaultSize={defaultLeft}
       initialSize={storedSize}
       minSize={LEFT_PANEL_MIN}

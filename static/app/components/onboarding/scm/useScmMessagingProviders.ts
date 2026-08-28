@@ -28,7 +28,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 type ScmMessagingProviderStatus = 'installable' | 'permission-limited' | 'connected';
 
-export type ScmMessagingProviderViewModel = {
+export type ScmMessagingResolvedProvider = {
   /**
    * Active integrations that can receive Issue Alert actions.
    * Non-empty iff `status === 'connected'`.
@@ -48,22 +48,23 @@ export function useScmMessagingProviders(): {
   isError: boolean;
   isPending: boolean;
   isRefetchingIntegrations: boolean;
-  providers: ScmMessagingProviderViewModel[];
+  providers: ScmMessagingResolvedProvider[];
   refetchIntegrations: () => Promise<QueryObserverResult<OrganizationIntegration[]>>;
   retry: () => void;
 } {
   const organization = useOrganization();
 
-  const integrationsQuery = useQuery(
-    apiOptions.as<OrganizationIntegration[]>()(
+  const integrationsQuery = useQuery({
+    ...apiOptions.as<OrganizationIntegration[]>()(
       '/organizations/$organizationIdOrSlug/integrations/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {integrationType: 'messaging'},
-        staleTime: Infinity,
+        staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
 
   const providerQueries = useQueries({
     queries: SCM_MESSAGING_PROVIDER_KEYS.map(providerKey =>
@@ -88,9 +89,9 @@ export function useScmMessagingProviders(): {
   });
 
   const isPending = integrationsQuery.isPending || providerQueries.isPending;
-  const isError = integrationsQuery.isError || providerQueries.isError;
+  const isError = integrationsQuery.isLoadingError || providerQueries.isError;
 
-  const providers = useMemo<ScmMessagingProviderViewModel[]>(() => {
+  const providers = useMemo<ScmMessagingResolvedProvider[]>(() => {
     if (isPending || isError) {
       return [];
     }

@@ -25,26 +25,11 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
-  {
-    key: 'change',
-    label: 'Change',
-  },
-  {
-    key: 'file_path',
-    label: 'File Path',
-  },
-  {
-    key: 'item_type',
-    label: 'Item Type',
-  },
-  {
-    key: 'size',
-    label: 'Size',
-  },
-  {
-    key: 'size_diff',
-    label: 'Size Diff',
-  },
+  {key: 'change', label: 'Change', width: '150px'},
+  {key: 'file_path', label: 'File Path', width: 'minmax(200px, 3fr)'},
+  {key: 'item_type', label: 'Item Type', width: '120px'},
+  {key: 'size', label: 'Size', width: '120px'},
+  {key: 'size_diff', label: 'Size Diff', width: '120px'},
 ];
 
 interface SizeCompareItemDiffTableProps {
@@ -139,7 +124,7 @@ export function SizeCompareItemDiffTable({
   return (
     <Stack gap="md">
       <DiffTableWithColumns
-        gridTemplateColumns="150px minmax(200px, 3fr) 120px 120px 120px"
+        columns={tableHeaders}
         header={
           <DiffTableHeaderRow>
             {tableHeaders.map(header => (

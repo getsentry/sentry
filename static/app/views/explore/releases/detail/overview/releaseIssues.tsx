@@ -333,7 +333,6 @@ export function ReleaseIssues({
           description={t(
             'Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.'
           )}
-          position="top-start"
         >
           {tourProps => (
             <Container {...tourProps} width={{zero: '100%', md: 'max-content'}}>
