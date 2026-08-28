@@ -16,6 +16,7 @@ permissions: {}
 jobs:
   revert:
     runs-on: ubuntu-latest
+    environment: fast-revert
     if: |
       github.event_name == 'workflow_dispatch' || github.event.label.name == 'Trigger: Revert'
     steps:
