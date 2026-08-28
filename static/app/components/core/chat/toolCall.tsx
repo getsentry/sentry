@@ -18,7 +18,7 @@ import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
  * `Trace: a3805648`). Renders as a real link when given `to`, an interactive
  * button when given `onClick`, or a non-interactive display chip otherwise.
  */
-interface ToolCallReference {
+export interface ToolCallReference {
   /**
    * The referenced identifier, emphasized in the chip (e.g. a trace or span id).
    */
