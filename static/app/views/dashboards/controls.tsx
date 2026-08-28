@@ -75,7 +75,9 @@ export function DashboardActionBar({
         </Button>
         <Confirm
           priority="danger"
-          message={t('Are you sure you want to delete this dashboard?')}
+          message={tct('Are you sure you want to delete the [title] dashboard?', {
+            title: <strong>{dashboard.title}</strong>,
+          })}
           onConfirm={onDelete}
         >
           <Button size="sm" variant="danger" data-test-id="dashboard-delete">

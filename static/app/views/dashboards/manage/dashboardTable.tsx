@@ -187,7 +187,9 @@ function DashboardTable({
           onClick={e => {
             e.stopPropagation();
             openConfirmModal({
-              message: t('Are you sure you want to delete this dashboard?'),
+              message: tct('Are you sure you want to delete the [title] dashboard?', {
+                title: <strong>{dataRow[ResponseKeys.NAME]}</strong>,
+              }),
               priority: 'danger',
               onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
             });
