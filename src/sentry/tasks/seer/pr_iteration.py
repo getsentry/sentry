@@ -59,7 +59,10 @@ from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
+    ConsumeTask,
+    ConsumeTriggerSource,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -137,8 +140,14 @@ def trigger_consume_pr_iteration_feedback(
 
     if bypass:
         task: ConsumeTask | None = ConsumeTask.Now
+        trigger_source = ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
     else:
         task = feedback.source.should_trigger(run_state)
+        trigger_source = (
+            ConsumeTriggerSource.TIME_LIMIT_DEFER
+            if isinstance(task, ConsumeTask.Later)
+            else ConsumeTriggerSource.FEEDBACK
+        )
 
     if task is None:
         return
@@ -148,6 +157,7 @@ def trigger_consume_pr_iteration_feedback(
         kwargs={
             "run_id": run_id,
             "organization_id": organization_id,
+            "trigger_source": trigger_source,
         },
         countdown=countdown,
     )
@@ -160,10 +170,15 @@ def trigger_consume_pr_iteration_feedback(
     retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
 )
 def consume_queued_autofix_feedback(
-    run_id: int, organization_id: int, *args: Any, **kwargs: Any
+    run_id: int,
+    organization_id: int,
+    trigger_source: str | None = None,
+    *args: Any,
+    **kwargs: Any,
 ) -> None:
     # Accept unused *args/**kwargs so in-flight activations queued with retired
     # kwargs (e.g. group_id) still deserialize after the signature change.
+    # ``trigger_source`` is None for tasks queued before the kwarg existed.
     lock = locks.get(
         f"autofix:feedback:lock:{run_id}",
         duration=60,
@@ -287,6 +302,21 @@ def consume_queued_autofix_feedback(
                 "autofix.pr_iteration.consume_feedback.skipped",
                 extra={"run_id": run_id, "group_id": group.id, "error": str(error)},
             )
+            return
+
+        logger.info(
+            "autofix.pr_iteration.consume_feedback.triggered",
+            extra={
+                "run_id": run_id,
+                "organization_id": organization_id,
+                "group_id": group_id,
+                "trigger_source": trigger_source or "unknown",
+            },
+        )
+        metrics.incr(
+            "autofix.pr_iteration.consume_feedback.triggered",
+            tags={"trigger_source": trigger_source or "unknown"},
+        )
 
 
 def _github_commenter_has_repo_write_access(

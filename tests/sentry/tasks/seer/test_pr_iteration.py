@@ -14,7 +14,10 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
+    ConsumeTask,
+    ConsumeTriggerSource,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
@@ -570,6 +573,39 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert kwargs["group"].id == self.group.id
         assert [f.text for f in kwargs["feedback"]] == ["fix it"]
 
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_logs_trigger_source_on_consume(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")))
+        ]
+
+        consume_queued_autofix_feedback(
+            run_id=67890,
+            organization_id=self.organization.id,
+            trigger_source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
+        )
+
+        mock_trigger.assert_called_once()
+        mock_logger.info.assert_any_call(
+            "autofix.pr_iteration.consume_feedback.triggered",
+            extra={
+                "run_id": 67890,
+                "organization_id": self.organization.id,
+                "group_id": self.group.id,
+                "trigger_source": ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
+            },
+        )
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -918,6 +954,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert len(mock_trigger.call_args.kwargs["feedback"]) == 2
 
+    @patch(f"{TASK_PATH}.logger")
     @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=PrIterationNoPullRequestException())
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -926,6 +963,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
         _mock_trigger: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         mock_fetch.return_value = self._state()
         mock_pop.return_value = [
@@ -933,6 +971,11 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         ]
 
         self._call()
+
+        assert not any(
+            call.args and call.args[0] == "autofix.pr_iteration.consume_feedback.triggered"
+            for call in mock_logger.info.call_args_list
+        )
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -1098,7 +1141,11 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         )
 
         mock_apply.assert_called_once_with(
-            kwargs={"run_id": 67890, "organization_id": self.organization.id},
+            kwargs={
+                "run_id": 67890,
+                "organization_id": self.organization.id,
+                "trigger_source": ConsumeTriggerSource.FEEDBACK,
+            },
             countdown=None,
         )
 
@@ -1131,7 +1178,11 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             )
 
         mock_apply.assert_called_once_with(
-            kwargs={"run_id": 67890, "organization_id": self.organization.id},
+            kwargs={
+                "run_id": 67890,
+                "organization_id": self.organization.id,
+                "trigger_source": ConsumeTriggerSource.TIME_LIMIT_DEFER,
+            },
             countdown=3600,
         )
 
@@ -1147,7 +1198,14 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
                 bypass=True,
             )
 
-        mock_apply.assert_called_once()
+        mock_apply.assert_called_once_with(
+            kwargs={
+                "run_id": 67890,
+                "organization_id": self.organization.id,
+                "trigger_source": ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
+            },
+            countdown=None,
+        )
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_passes_delay_as_countdown(self, mock_apply: MagicMock) -> None:
