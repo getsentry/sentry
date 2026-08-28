@@ -222,9 +222,9 @@ export type SeerAnalyticsEventsParameters = {
   };
   'seer.explorer.session_link_copied': Record<string, unknown>;
   'seer.explorer.sidebar.position_changed': {
-    /** Current browser viewport height in CSS pixels. */
+    /** Browser viewport height in CSS pixels, rounded to 50px analytics buckets. */
     browser_height: number;
-    /** Current browser viewport width in CSS pixels. */
+    /** Browser viewport width in CSS pixels, rounded to 50px analytics buckets. */
     browser_width: number;
     /**
      * Dock preference the user selected, or `pip` when entering document
@@ -233,13 +233,13 @@ export type SeerAnalyticsEventsParameters = {
     position: 'auto' | 'right' | 'bottom' | 'pip';
   };
   'seer.explorer.sidebar.resized': {
-    /** Current browser viewport height in CSS pixels. */
+    /** Browser viewport height in CSS pixels, rounded to 50px analytics buckets. */
     browser_height: number;
-    /** Current browser viewport width in CSS pixels. */
+    /** Browser viewport width in CSS pixels, rounded to 50px analytics buckets. */
     browser_width: number;
     /** Resolved dock orientation for the resize (not the auto preference). */
     orientation: 'right' | 'bottom';
-    /** Persisted Seer pane size in CSS pixels (width when right, height when bottom). */
+    /** Seer pane size in CSS pixels, rounded to 50px analytics buckets. */
     seer_size: number;
     /** Seer pane size as a percent of the available split axis, 0–100. */
     seer_size_percent: number;

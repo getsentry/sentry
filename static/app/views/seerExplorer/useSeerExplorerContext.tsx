@@ -41,6 +41,7 @@ import type {
   SeerExplorerSidebarPosition,
 } from 'sentry/views/seerExplorer/types';
 import {
+  getSeerExplorerAnalyticsBrowserSize,
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
   useSeerExplorerDeepLink,
@@ -147,8 +148,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       trackAnalytics('seer.explorer.sidebar.position_changed', {
         organization,
         position,
-        browser_width: window.innerWidth,
-        browser_height: window.innerHeight,
+        ...getSeerExplorerAnalyticsBrowserSize(),
       });
     },
     [organization, setSidebarPositionState]
@@ -183,8 +183,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     trackAnalytics('seer.explorer.sidebar.position_changed', {
       organization,
       position: isPoppedOut ? 'pip' : sidebarPosition,
-      browser_width: window.innerWidth,
-      browser_height: window.innerHeight,
+      ...getSeerExplorerAnalyticsBrowserSize(),
     });
 
     if (wasPoppedOut && !isPoppedOut) {

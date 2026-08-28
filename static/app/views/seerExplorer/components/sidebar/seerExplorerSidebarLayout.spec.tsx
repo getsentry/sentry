@@ -305,7 +305,8 @@ describe('SeerExplorerSidebarLayout', () => {
       'seer.explorer.sidebar.resized',
       expect.objectContaining({
         orientation: 'right',
-        seer_size: 410,
+        // Exact persisted size is 410; analytics buckets to nearest 50px.
+        seer_size: 400,
         seer_size_percent: 34,
         browser_width: expect.any(Number),
         browser_height: expect.any(Number),

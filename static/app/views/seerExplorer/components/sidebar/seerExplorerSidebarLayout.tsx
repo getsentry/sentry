@@ -11,6 +11,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
+  getSeerExplorerAnalyticsBrowserSize,
+  roundSeerExplorerAnalyticsPixels,
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
   useIsSeerExplorerSidebarEnabled,
   useSeerExplorerSidebarOrientation,
@@ -100,15 +102,15 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
     if (available <= 0) {
       return;
     }
-    const roundedSeerSize = Math.round(Math.max(minSeer, available - contentEndSize));
-    setSeerSize(roundedSeerSize);
+    const exactSeerSize = Math.round(Math.max(minSeer, available - contentEndSize));
+    setSeerSize(exactSeerSize);
     trackAnalytics('seer.explorer.sidebar.resized', {
       organization,
       orientation,
-      seer_size: roundedSeerSize,
-      seer_size_percent: Math.round((roundedSeerSize / available) * 100),
-      browser_width: window.innerWidth,
-      browser_height: window.innerHeight,
+      // Persist exact size; analytics use coarse buckets for distribution cardinality.
+      seer_size: roundSeerExplorerAnalyticsPixels(exactSeerSize),
+      seer_size_percent: Math.round((exactSeerSize / available) * 100),
+      ...getSeerExplorerAnalyticsBrowserSize(),
     });
   };
 
