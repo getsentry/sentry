@@ -877,7 +877,6 @@ export function useExplorerAutofix(
             error_message: string;
             repo_name: string;
             failure_type?: string;
-            github_installation_id?: string;
             github_installation_url?: string;
           }>;
           successes: unknown[];
