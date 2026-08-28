@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import orjson
@@ -38,6 +39,10 @@ PER_ORG_TRANSACTION_SAMPLE_RATES_CACHE_KEY = (
     "ds::per_org:o:{org_id}:p:{project_id}:transaction_sample_rates"
 )
 
+# Each pass applies its correction on top of the stored factor, so a second pass within
+# one scheduler cycle compounds it. A factor younger than this is left alone.
+MIN_RECALIBRATION_FACTOR_AGE = timedelta(minutes=9)
+
 CachedTransactionSampleRates = dict[int, tuple[dict[str, float], float] | None]
 
 
@@ -65,6 +70,11 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
 
 def write_recalibration_factor(org_id: int, factor: float | None) -> None:
     if factor is None:
+        return
+
+    age = get_adjusted_factor_age(org_id)
+    if age is not None and age < MIN_RECALIBRATION_FACTOR_AGE:
+        metrics.incr("dynamic_sampling.per_org.recalibration.factor_write_skipped")
         return
 
     if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
@@ -118,6 +128,18 @@ def get_adjusted_factor(org_id: int, source: str) -> float:
         tags={"source": source, "result": "hit" if factor is not None else "miss"},
     )
     return 1.0 if factor is None else factor
+
+
+def get_adjusted_factor_age(org_id: int) -> timedelta | None:
+    """How long ago the stored factor was written, derived from its remaining TTL.
+
+    None when there is no stored factor or it has no expiry.
+    """
+    redis_client = get_redis_client_for_ds()
+    remaining_ms = redis_client.pttl(generate_recalibrate_orgs_cache_key(org_id))
+    if remaining_ms < 0:
+        return None
+    return timedelta(milliseconds=adjusted_factor_ttl_ms() - remaining_ms)
 
 
 def delete_adjusted_factor(org_id: int) -> None:
