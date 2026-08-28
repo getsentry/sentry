@@ -8,6 +8,7 @@ from django.db.models import Q
 from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MarkMissing
 
 from sentry.constants import ObjectStatus
+from sentry.monitors.clock_tasks.prefetch import ClockTaskPrefetch
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
@@ -81,8 +82,21 @@ def dispatch_check_missing(ts: datetime) -> None:
         produce_task(payload)
 
 
-def mark_environment_missing(monitor_environment_id: int, ts: datetime) -> None:
+def mark_environment_missing(
+    monitor_environment_id: int, ts: datetime, prefetch: ClockTaskPrefetch | None = None
+) -> None:
     logger.info("mark_missing", extra={"monitor_environment_id": monitor_environment_id})
+
+    if prefetch is not None:
+        monitor_environment = prefetch.monitor_environments.get(monitor_environment_id)
+        # Mirrors the next_checkin_latest filter in the query below.
+        if (
+            monitor_environment is None
+            or monitor_environment.next_checkin_latest is None
+            or monitor_environment.next_checkin_latest > ts
+        ):
+            return None
+        return _mark_environment_missing(monitor_environment, ts)
 
     try:
         monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
@@ -100,6 +114,10 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime) -> None:
         # (or the environment was deleted)
         return None
 
+    return _mark_environment_missing(monitor_environment, ts)
+
+
+def _mark_environment_missing(monitor_environment: MonitorEnvironment, ts: datetime) -> None:
     monitor = monitor_environment.monitor
     # next_checkin must be set, since detecting this monitor as missed means
     # there must have been an initial user check-in.
