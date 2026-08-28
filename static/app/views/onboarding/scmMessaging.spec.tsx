@@ -268,6 +268,57 @@ describe('ScmMessaging', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('Continue stays enabled while a later revalidation refetch is in flight', async () => {
+    const queryClient = makeTestQueryClient();
+    mockIntegration();
+    mockChannelValidate(true);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ScmMessaging
+          messagingSetup={selectedMessagingSetup}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+        />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+
+    // Replace mocks with gated versions so the refetches stay in flight.
+    let releaseGate!: () => void;
+    const gate = new Promise<void>(r => {
+      releaseGate = r;
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15', status: 'active'}),
+      asyncDelay: gate,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channel-validate/',
+      body: {valid: true},
+      asyncDelay: gate,
+      match: [MockApiClient.matchQuery({channel: '#alerts'})],
+    });
+
+    // Kick off refetches without awaiting — both queries are now in flight.
+    act(() => {
+      void queryClient.invalidateQueries();
+    });
+
+    // isValid reads from cached data, not isFetching, so Continue must stay enabled.
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+
+    // Release and confirm Continue stays enabled once the refetches settle.
+    act(() => releaseGate());
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+  });
+
   it('marks the channel stale without resetting session state when channel-validate returns false', async () => {
     // channel-validate/ returns false for both a missing channel and an upstream
     // API error, so a false response is confirm-only: it marks the channel as

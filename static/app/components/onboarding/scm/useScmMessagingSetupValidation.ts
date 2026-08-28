@@ -225,11 +225,9 @@ export function useScmMessagingSetupValidation({
         (integration !== undefined &&
           validateParam !== undefined &&
           channelValidateQuery.isFetching)),
-    isValid:
-      isIntegrationSettled &&
-      integration !== undefined &&
-      isChannelSettled &&
-      !!channelValidateQuery.data?.valid,
+    // Use last known data rather than settled flags so a background refetch
+    // (focus or manual) isn't considered stale/invalid.
+    isValid: integration !== undefined && !!channelValidateQuery.data?.valid,
     staleReason,
   };
 }
