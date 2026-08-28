@@ -49,30 +49,42 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
     compute it.
     """
     org_id = config.organization.id
-    write_recalibration_factor(org_id, config.results.recalibration_factor)
+    wrote_recalibration_factor = write_recalibration_factor(
+        org_id, config.results.previous_recalibration_factor, config.results.recalibration_factor
+    )
     wrote_project_rates = set_project_sample_rates(org_id, config.results.rebalanced_projects)
     wrote_transaction_rates = set_transaction_sample_rates(
         org_id, config.results.rebalanced_transactions
     )
-    if wrote_project_rates or wrote_transaction_rates:
-        if not is_org_in_serving_rollout(org_id):
-            return
-
-        schedule_invalidate_project_config(
-            organization_id=org_id, trigger="dynamic_sampling_per_org"
-        )
-
-
-def write_recalibration_factor(org_id: int, factor: float | None) -> None:
-    if factor is None:
+    if not (wrote_recalibration_factor or wrote_project_rates or wrote_transaction_rates):
         return
+
+    if not is_org_in_serving_rollout(org_id):
+        return
+
+    schedule_invalidate_project_config(organization_id=org_id, trigger="dynamic_sampling_per_org")
+
+
+def write_recalibration_factor(org_id: int, previous_factor: float, factor: float | None) -> bool:
+    """Store the recalibration factor this pass computed.
+
+    A factor outside the rebalance bounds clears the stored one, so that a stale factor
+    cannot keep being applied.
+
+    Returns whether the factor the organization is served with moved, which is what makes
+    its rules worth republishing.
+    """
+    if factor is None:
+        return False
 
     if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
         set_adjusted_factor(org_id, factor)
+        served_factor = factor
     else:
-        # A factor outside the rebalance bounds clears the cached one, so that a stale
-        # factor cannot keep being applied.
         delete_adjusted_factor(org_id)
+        served_factor = 1.0
+
+    return not are_equal_with_epsilon(previous_factor, served_factor)
 
 
 def generate_recalibrate_orgs_cache_key(org_id: int) -> str:
