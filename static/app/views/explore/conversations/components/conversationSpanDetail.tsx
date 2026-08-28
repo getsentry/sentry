@@ -495,11 +495,13 @@ function EmptyTab({message}: {message: string}) {
 function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
   return (
     <SpanDetailCard embedded={embedded}>
-      <Flex align="center" gap="lg" flexShrink={0}>
-        <Placeholder height="16px" width="16px" />
-        <Placeholder height="16px" width="180px" />
-      </Flex>
-      <Placeholder height="14px" width="160px" />
+      <Container flexShrink={0}>
+        <Flex align="center" gap="lg">
+          <Placeholder height="16px" width="16px" />
+          <Placeholder height="16px" width="180px" />
+        </Flex>
+        <Placeholder height="14px" width="160px" />
+      </Container>
       <Stack gap="md" flexShrink={0}>
         <Placeholder height="16px" width="60px" />
         <SpanMetadataSkeleton />
