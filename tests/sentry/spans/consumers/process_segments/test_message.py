@@ -406,24 +406,6 @@ class TestSpansTask(TestCase):
                 extra={"option_value": ["n_plus_one_db", "dogs_are_great"]},
             )
 
-    @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
-    @pytest.mark.skip("temporarily disabled")
-    def test_skip_produce_does_not_track_outcomes(self, mock_track_outcome: mock.MagicMock) -> None:
-        """Test that outcomes are not tracked when skip_produce=True"""
-        spans = self.generate_basic_spans()
-
-        # Process with skip_produce=True
-        process_segment(spans, skip_produce=True)
-
-        # Verify track_outcome was not called
-        mock_track_outcome.assert_not_called()
-
-        # Process with skip_produce=False (default)
-        process_segment(spans, skip_produce=False)
-
-        # Verify track_outcome was called once
-        mock_track_outcome.assert_called_once()
-
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
     def test_record_signals(self, mock_track):
         span = build_mock_span(

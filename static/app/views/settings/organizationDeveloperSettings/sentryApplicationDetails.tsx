@@ -60,6 +60,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -338,7 +339,10 @@ function useSaveSentryApp({
 
     // Scope and event errors also have dedicated UI below. Other field errors
     // are returned to TanStack Form so they render inline.
-    const fieldErrors = toFieldErrors(context, error);
+    const fieldErrors = toFieldErrors(
+      context,
+      requestErrorToFieldErrors(error, context.value)
+    );
 
     if (
       Array.isArray(responseJSON.events) &&

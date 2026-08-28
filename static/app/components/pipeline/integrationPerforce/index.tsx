@@ -17,6 +17,7 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 const AUTH_TYPE_CHOICES = [
   {value: 'password', label: t('Password')},
@@ -86,7 +87,10 @@ function PerforceInstallationConfigStep({
         charset: value.unicodeServer ? 'utf8' : 'none',
       }).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors({value, createValidationError}, error);
+          return toFieldErrors(
+            {value, createValidationError},
+            requestErrorToFieldErrors(error, value)
+          );
         }
         throw error;
       }),

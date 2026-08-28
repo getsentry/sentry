@@ -23,6 +23,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 export type ReprocessEventModalOptions = {
@@ -72,7 +73,10 @@ export function ReprocessingEventModal({
         })
         .catch((error: unknown) => {
           if (error instanceof RequestError) {
-            const fieldErrors = toFieldErrors({value, createValidationError}, error);
+            const fieldErrors = toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
             if (fieldErrors) {
               return fieldErrors;
             }

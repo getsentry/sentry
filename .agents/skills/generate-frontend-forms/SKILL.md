@@ -27,6 +27,10 @@ import {
   toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
+
+// Sentry-side, only when handling API errors:
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 ```
 
 > **Important**: DO NOT import from deeper paths, like '@sentry/scraps/form/field'. You can only use what is part of the PUBLIC interface in the index file in @sentry/scraps/form. Never import from `@tanstack/react-form` directly — an ESLint rule blocks it. If you need a type that the barrel does not export, add the export to `static/app/components/core/form/index.ts` rather than reaching past it.
@@ -712,7 +716,14 @@ Form listener triggers are `change`, `blur`, `submit`, `mount`, `reset`; fields 
 
 ### Server-Side Errors
 
-Validation errors are **returned** from `onSubmit`, not set imperatively. Use `toFieldErrors` to turn a `RequestError` (or a hand-written error map) into a validation error and return it.
+Two rules combine here:
+
+1. **Scraps does not know about `RequestError`.** Convert a Sentry API error to
+   the Scraps `FieldErrors` contract at the call site with
+   `requestErrorToFieldErrors`, after narrowing the unknown error.
+2. **Validation errors are returned from `onSubmit`,** not set imperatively.
+   `toFieldErrors` wraps a `FieldErrors` object in the validation error you
+   return.
 
 ```tsx
 import {useMutation} from '@tanstack/react-query';
@@ -720,6 +731,8 @@ import {useMutation} from '@tanstack/react-query';
 import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 function MyForm() {
   const mutation = useMutation({
@@ -734,9 +747,15 @@ function MyForm() {
       try {
         await mutation.mutateAsync(value);
       } catch (error) {
-        const fieldErrors = toFieldErrors({value, createValidationError}, error);
-        if (fieldErrors) {
-          return fieldErrors;
+        if (error instanceof RequestError) {
+          const fieldErrors = toFieldErrors(
+            {value, createValidationError},
+            requestErrorToFieldErrors(error, value)
+          );
+
+          if (fieldErrors) {
+            return fieldErrors;
+          }
         }
         throw error;
       }
@@ -747,9 +766,29 @@ function MyForm() {
 }
 ```
 
-`toFieldErrors` reads `RequestError.responseJSON`, keeps only keys that exist on the form, and returns `undefined` when nothing matched — so the `if (fieldErrors)` check tells you whether the backend gave you anything field-specific.
+`requestErrorToFieldErrors` keeps only response keys that exist in the form
+values and normalises string and array values to `{message: string}`.
+`toFieldErrors` returns `undefined` when the map is empty, so the
+`if (fieldErrors)` check tells you whether the backend gave you anything
+field-specific.
 
-For manually constructed errors, return `createValidationError` directly:
+Never hand an API error straight to Scraps:
+
+```tsx
+// ❌ RequestError is an app type, not a Scraps form error
+return toFieldErrors({value, createValidationError}, error);
+
+// ✅ Narrow at the app call site, then convert to the Scraps contract
+if (error instanceof RequestError) {
+  return toFieldErrors(
+    {value, createValidationError},
+    requestErrorToFieldErrors(error, value)
+  );
+}
+```
+
+When the form code itself creates the messages, skip the adapter and return
+`createValidationError` directly:
 
 ```tsx
 onSubmit: async ({value, createValidationError}) => {
@@ -845,6 +884,24 @@ The form system automatically shows:
 - **Warning icon** on validation error (with tooltip)
 
 > **Important**: Do NOT use toasts to communicate auto-save status. The built-in inline indicators (spinner, checkmark, warning icon) are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently on every change.
+
+### Auto-Save Request Errors
+
+`AutoSaveForm` gets its app-specific error mapping from the form error context,
+which Sentry installs once through `ScrapsProviders`. Do **not** catch
+`RequestError` or call `requestErrorToFieldErrors` at each `AutoSaveForm` call
+site.
+
+The Sentry provider (`static/app/scrapsProviders/formError.tsx`):
+
+- narrows failed mutations to `RequestError`;
+- uses `requestErrorToFieldErrors` for matching backend field errors;
+- uses `getRequestErrorUserMessage` for request detail and status messages;
+- keeps `Failed to save` as the fallback for everything else.
+
+Scraps stays independent of Sentry's API error type. Outside the Sentry app the
+context falls back to the generic message unless the host supplies its own
+mapper via `FormErrorContextProvider`.
 
 ### Sharing Auto-Save Status
 
@@ -995,7 +1052,7 @@ import {FormSearch} from '@sentry/scraps/form';
 - The `route` must match the settings page URL exactly, including the trailing slash.
 - Wrap the entire form section with a single `FormSearch`, not individual fields.
 - `label` and `hintText` must be plain string literals or `t()` calls — computed strings are skipped by the extractor.
-- After adding or changing fields inside a `FormSearch`, run `pnpm run extract-form-fields` and commit the regenerated `static/app/components/core/form/generatedFieldRegistry.ts`. CI fails if it is out of sync.
+- After adding or changing fields inside a `FormSearch`, run `pnpm run extract-form-fields` and commit the regenerated `static/app/views/settings/fieldRegistry.generated.ts`. CI fails if it is out of sync.
 
 ---
 
@@ -1235,7 +1292,7 @@ When creating a new form:
 - [ ] Use `<form.Field>` for each field, `<form.ArrayField>` for lists of child fields
 - [ ] Read values with `field.value`, not `field.state.value`
 - [ ] Choose appropriate layout (Stack or Row)
-- [ ] Return `toFieldErrors({value, createValidationError}, error)` from `onSubmit` for server errors
+- [ ] For server errors, narrow to `RequestError`, convert with `requestErrorToFieldErrors`, then return `toFieldErrors(...)` from `onSubmit`
 - [ ] Add `<form.SubmitButton>` for submission
 - [ ] Call `form.reset()` after successful mutation if the form stays on the page
 - [ ] Wrap settings forms in `<FormSearch route="...">` and run `pnpm run extract-form-fields`
@@ -1247,6 +1304,7 @@ When creating auto-save fields:
 - [ ] Pass `initialValue` from current data
 - [ ] Configure `mutationOptions` with `mutationFn`
 - [ ] Update cache in `onSuccess` callback
+- [ ] Let the Sentry form error provider handle request errors — do not map them per field
 
 ---
 

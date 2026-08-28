@@ -1,9 +1,20 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
+from enum import StrEnum
 from typing import Any
 
 from sentry.workflow_engine.types import ConditionError
+
+
+class EvaluationType(StrEnum):
+    DETECTOR = "detector"
+    WORKFLOW = "workflow"
+
+
+class EvaluationPhase(StrEnum):
+    INITIAL = "initial"
+    DELAYED = "delayed"
 
 
 def _find_error(

@@ -9,23 +9,23 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 
 ## Feature Mapping
 
-| Old System           | New System          | Notes                                                |
-| -------------------- | ------------------- | ---------------------------------------------------- |
-| `saveOnBlur: true`   | `AutoSaveForm`      | Default behavior                                     |
-| `confirm`            | `confirm` prop      | `string \| ((value) => string \| undefined)`         |
-| `showHelpInTooltip`  | `variant="compact"` | On layout components                                 |
-| `disabledReason`     | `disabled="reason"` | String shows tooltip                                 |
-| `extraHelp`          | JSX in layout       | Render `<Text>` below field                          |
-| `getData`            | `mutationFn`        | Transform data in mutation function                  |
-| `mapFormErrors`      | `toFieldErrors`     | Return the validation error from `onSubmit`          |
-| `saveMessage`        | `onSuccess`         | Show toast in mutation onSuccess callback            |
-| `formatMessageValue` | `onSuccess`         | Control toast content in onSuccess callback          |
-| `resetOnError`       | `catch`             | Call form.reset() when the mutation rejects          |
-| `saveOnBlur: false`  | `useScrapsForm`     | Use regular form with explicit Save button           |
-| (automatic)          | `form.reset()`      | Call after successful mutation if form stays on page |
-| `help`               | `hintText`          | On layout components                                 |
-| `label`              | `label`             | On layout components                                 |
-| `required`           | `required`          | On layout + Zod schema                               |
+| Old System           | New System            | Notes                                                |
+| -------------------- | --------------------- | ---------------------------------------------------- |
+| `saveOnBlur: true`   | `AutoSaveForm`        | Default behavior                                     |
+| `confirm`            | `confirm` prop        | `string \| ((value) => string \| undefined)`         |
+| `showHelpInTooltip`  | `variant="compact"`   | On layout components                                 |
+| `disabledReason`     | `disabled="reason"`   | String shows tooltip                                 |
+| `extraHelp`          | JSX in layout         | Render `<Text>` below field                          |
+| `getData`            | `mutationFn`          | Transform data in mutation function                  |
+| `mapFormErrors`      | Request error adapter | Explicit for submit forms; provided for auto-save    |
+| `saveMessage`        | `onSuccess`           | Show toast in mutation onSuccess callback            |
+| `formatMessageValue` | `onSuccess`           | Control toast content in onSuccess callback          |
+| `resetOnError`       | `catch`               | Call form.reset() when the mutation rejects          |
+| `saveOnBlur: false`  | `useScrapsForm`       | Use regular form with explicit Save button           |
+| (automatic)          | `form.reset()`        | Call after successful mutation if form stays on page |
+| `help`               | `hintText`            | On layout components                                 |
+| `label`              | `label`               | On layout components                                 |
+| `required`           | `required`            | On layout + Zod schema                               |
 
 ## Feature Details
 
@@ -256,9 +256,12 @@ mutationOptions({
 })
 ```
 
-### mapFormErrors → `toFieldErrors`
+### mapFormErrors → `requestErrorToFieldErrors` + `toFieldErrors`
 
-The `mapFormErrors` function transformed API error responses into field-specific errors. In the new system, validation errors are **returned** from `onSubmit` rather than set imperatively. Build them with `toFieldErrors` (which reads `RequestError.responseJSON` for you) or with `createValidationError` when you need a custom mapping.
+The `mapFormErrors` function transformed API error responses into field-specific errors. Two things changed:
+
+- Scraps does not depend on Sentry's API client types, so convert a `RequestError` with `requestErrorToFieldErrors` at the call site — never pass it to Scraps directly.
+- Validation errors are **returned** from `onSubmit` rather than set imperatively. `toFieldErrors` wraps the converted map; `createValidationError` covers hand-built messages.
 
 **Old:**
 
@@ -309,24 +312,40 @@ const form = useScrapsForm({
 });
 ```
 
-**Simpler pattern** - For flat error responses, let `toFieldErrors` do the extraction. It keeps only keys that exist on the form and returns `undefined` when nothing matched:
+**Simpler pattern** - For flat error responses, let the adapter do the extraction. It keeps only keys that exist on the form, and `toFieldErrors` returns `undefined` when nothing matched:
 
 ```tsx
 import {toFieldErrors} from '@sentry/scraps/form';
+
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 onSubmit: async ({value, createValidationError}) => {
   try {
     await mutation.mutateAsync(value);
   } catch (error) {
     // API returns {email: ['Already taken'], username: ['Invalid']}
-    const fieldErrors = toFieldErrors({value, createValidationError}, error);
-    if (fieldErrors) {
-      return fieldErrors;
+    if (error instanceof RequestError) {
+      const fieldErrors = toFieldErrors(
+        {value, createValidationError},
+        requestErrorToFieldErrors(error, value)
+      );
+
+      if (fieldErrors) {
+        return fieldErrors;
+      }
+      addErrorMessage(t('Unable to save changes.'));
+      return;
     }
     throw error;
   }
 },
 ```
+
+For `AutoSaveForm`, request error handling is automatic. The Sentry form error
+provider uses `requestErrorToFieldErrors` for field errors and
+`getRequestErrorUserMessage` for request detail or status messages. Do not add
+the submit-form catch block to each auto-save field.
 
 > **Note**: Field paths support dot notation: `'config.schedule': {message: 'Invalid schedule'}`
 
@@ -674,7 +693,9 @@ This pattern is necessary whenever a required field has no meaningful initial va
 - [ ] Replace `extraHelp` → additional JSX in layout
 - [ ] Convert `confirm` object to function: `(value) => message | undefined`
 - [ ] Handle `getData` in mutationFn
-- [ ] Return `toFieldErrors({value, createValidationError}, error)` from `onSubmit` for backend errors
+- [ ] For submit forms, narrow to `RequestError`, convert with `requestErrorToFieldErrors`, then return `toFieldErrors(...)` from `onSubmit`
+- [ ] For `AutoSaveForm`, rely on the app-provided request error handling
+- [ ] Keep custom error mapping only when `mapFormErrors` reshaped the API response
 - [ ] Handle `saveMessage` in onSuccess callback
 - [ ] Convert `saveOnBlur: false` fields to regular forms with Save button
 - [ ] Call `form.reset()` after successful mutation (for forms that stay on page)

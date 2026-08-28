@@ -21,6 +21,7 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 const installationConfigSchema = z.object({
   url: z
@@ -59,7 +60,10 @@ function InstallationConfigStep({
     onSubmit: ({value, createValidationError}) =>
       advance(installationConfigSchema.parse(value)).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors({value, createValidationError}, error);
+          return toFieldErrors(
+            {value, createValidationError},
+            requestErrorToFieldErrors(error, value)
+          );
         }
         throw error;
       }),

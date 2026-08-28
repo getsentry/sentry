@@ -18,6 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 
 interface Props extends ModalRenderProps {
@@ -74,7 +75,10 @@ export default function AddCredentialsModal({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            const fieldErrors = toFieldErrors({value, createValidationError}, error);
+            const fieldErrors = toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
             if (fieldErrors) {
               return fieldErrors;
             }

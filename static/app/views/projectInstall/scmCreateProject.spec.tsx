@@ -17,6 +17,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
@@ -685,6 +686,67 @@ describe('ScmCreateProject', () => {
       })
     );
     expect(savedState).not.toHaveProperty('selectedRepository');
+  });
+
+  it('creates a project with a custom occurrence alert using a five-minute interval', async () => {
+    const {createRequest, project} = mockProjectCreation(
+      'python-django',
+      'python-django'
+    );
+    const ruleRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/`,
+      method: 'POST',
+      body: {id: 'custom-rule-id'},
+    });
+    render(<ScmCreateProject />, {organization});
+
+    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Custom threshold'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            default_rules: false,
+            name: project.name,
+            platform: project.platform,
+          }),
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(ruleRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/rules/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: project.name,
+            conditions: [
+              {
+                id: IssueAlertConditionType.EVENT_FREQUENCY,
+                interval: '5m',
+                value: '10',
+              },
+            ],
+            actions: [
+              {
+                id: IssueAlertActionType.NOTIFY_EMAIL,
+                targetType: 'IssueOwners',
+                fallthroughType: 'ActiveMembers',
+              },
+            ],
+            actionMatch: 'all',
+            frequency: 5,
+          },
+        })
+      );
+    });
   });
 
   it('creates from an existing integration and detected repository platform', async () => {

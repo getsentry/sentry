@@ -28,6 +28,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -122,7 +123,10 @@ export function NewProviderForm({
     onSubmit: ({value, createValidationError}) => {
       return mutation.mutateAsync(schema.parse(value)).catch(error => {
         if (error instanceof RequestError) {
-          const fieldErrors = toFieldErrors({value, createValidationError}, error);
+          const fieldErrors = toFieldErrors(
+            {value, createValidationError},
+            requestErrorToFieldErrors(error, value)
+          );
           if (fieldErrors) {
             return fieldErrors;
           }

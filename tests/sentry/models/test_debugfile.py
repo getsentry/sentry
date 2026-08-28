@@ -26,7 +26,7 @@ from sentry.models.debugfile import (
     get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
-from sentry.objectstore import get_debug_files_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.skips import requires_objectstore
@@ -249,7 +249,7 @@ class DebugFileObjectstoreTest(TestCase):
     """Tests for Objectstore-backed debug files."""
 
     def _get_session(self):
-        return get_debug_files_session(org=self.organization.id, project=self.project.id)
+        return get_session(UsecaseId.DEBUG_FILES, self.project)
 
     def _create_objectstore_dif(self, content=b"test-content", **kwargs):
         storage_path = self._get_session().put(content, compression="zstd")
@@ -422,7 +422,7 @@ class CreateDebugFileTest(APITestCase):
         assert dif.file_size == len(content)
         assert dif.get_file().read() == content
 
-    @patch("sentry.models.debugfile.get_debug_files_session")
+    @patch("sentry.models.debugfile.get_session")
     def test_exclusive_objectstore_dif_is_idempotent(self, get_session) -> None:
         content = b"objectstore-dif-content"
         get_session.return_value.put.return_value = "storage-path"
@@ -437,7 +437,7 @@ class CreateDebugFileTest(APITestCase):
         get_session.return_value.put.assert_called_once()
 
     @patch("sentry.models.debugfile.ProjectDebugFile.objects.create")
-    @patch("sentry.models.debugfile.get_debug_files_session")
+    @patch("sentry.models.debugfile.get_session")
     def test_exclusive_objectstore_dif_cleans_up_after_database_error(
         self, get_session, create
     ) -> None:
@@ -454,7 +454,7 @@ class CreateDebugFileTest(APITestCase):
 
     @requires_objectstore
     @patch("sentry.utils.retries.time.sleep")
-    @patch("sentry.models.debugfile.get_debug_files_session")
+    @patch("sentry.models.debugfile.get_session")
     def test_exclusive_objectstore_write_failure_does_not_create_file(
         self, get_session, sleep
     ) -> None:
@@ -504,7 +504,7 @@ class CreateDebugFileTest(APITestCase):
         with (
             self.feature("organizations:objectstore-debugfiles-write"),
             patch(
-                "sentry.models.debugfile.get_debug_files_session",
+                "sentry.models.debugfile.get_session",
                 return_value=MagicMock(put=MagicMock(side_effect=RuntimeError)),
             ),
         ):
@@ -530,7 +530,7 @@ class CreateDebugFileTest(APITestCase):
         dif.delete()
 
         assert not File.objects.filter(id=file_id).exists()
-        session = get_debug_files_session(self.organization.id, self.project.id)
+        session = get_session(UsecaseId.DEBUG_FILES, self.project)
         assert session.get(storage_path) is None
 
     @requires_objectstore
@@ -543,7 +543,7 @@ class CreateDebugFileTest(APITestCase):
         assert created
         storage_path = dif.storage_path
         assert storage_path is not None
-        session = get_debug_files_session(self.organization.id, self.project.id)
+        session = get_session(UsecaseId.DEBUG_FILES, self.project)
         session.delete(storage_path)
         replacement_storage_path = session.put(objectstore_content, compression="none")
         dif.storage_path = replacement_storage_path

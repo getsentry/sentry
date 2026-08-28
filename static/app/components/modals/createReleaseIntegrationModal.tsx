@@ -18,6 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 export type CreateReleaseIntegrationModalOptions = {
   onCancel: () => void;
@@ -88,7 +89,10 @@ function CreateReleaseIntegrationModal({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            const fieldErrors = toFieldErrors({value, createValidationError}, error);
+            const fieldErrors = toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
             if (fieldErrors) {
               return fieldErrors;
             }

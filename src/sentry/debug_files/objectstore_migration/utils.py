@@ -21,7 +21,7 @@ from sentry.models.debugfile import (
 )
 from sentry.models.files.file import File
 from sentry.models.project import Project
-from sentry.objectstore import get_debug_files_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 
@@ -194,7 +194,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
     except Project.DoesNotExist:
         return None
 
-    session = get_debug_files_session(project.organization_id, project.id)
+    session = get_session(UsecaseId.DEBUG_FILES, project)
 
     content_type = file.headers.get("Content-Type", "application/octet-stream")
     date_created = file.timestamp

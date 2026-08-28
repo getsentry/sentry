@@ -104,7 +104,7 @@ describe('RadioField', () => {
   });
 
   it('changes value on click', async () => {
-    render(<TestForm label="Priority" defaultValue="low" />);
+    render(<TestForm label="Priority" />);
 
     const radios = screen.getAllByRole('radio');
     expect(radios[0]).toBeChecked(); // low initially
@@ -162,7 +162,7 @@ describe('RadioField auto-save', () => {
   it('shows spinner when auto-save is pending', async () => {
     const mutationFn = jest.fn(() => new Promise<{priority: string}>(() => {}));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="low" />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const radios = screen.getAllByRole('radio');
     await userEvent.click(radios[2]!); // click high
@@ -176,7 +176,7 @@ describe('RadioField auto-save', () => {
   it('shows checkmark when auto-save succeeds', async () => {
     const mutationFn = jest.fn((data: {priority: string}) => Promise.resolve(data));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="low" />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const radios = screen.getAllByRole('radio');
     await userEvent.click(radios[2]!); // click high
@@ -188,7 +188,7 @@ describe('RadioField auto-save', () => {
   it('disables radios while auto-save is pending', async () => {
     const mutationFn = jest.fn(() => new Promise<{priority: string}>(() => {}));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="low" />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const radios = screen.getAllByRole('radio');
     await userEvent.click(radios[2]!); // click high
@@ -203,7 +203,7 @@ describe('RadioField auto-save', () => {
   it('does not trigger mutation when selecting same value', async () => {
     const mutationFn = jest.fn((data: {priority: string}) => Promise.resolve(data));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="low" />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const radios = screen.getAllByRole('radio');
     // Click the already selected option
@@ -234,7 +234,7 @@ describe('RadioField a11y', () => {
   });
 
   it('clicking on label selects the radio', async () => {
-    render(<TestForm label="Priority" defaultValue="low" />);
+    render(<TestForm label="Priority" />);
 
     // Click on the "High" label text
     await userEvent.click(screen.getByText('High'));

@@ -17,6 +17,7 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 const apiKeySchema = z.object({
   apiKey: z.string().min(1, t('API key is required')),
@@ -33,7 +34,10 @@ function CursorApiKeyStep({
     onSubmit: ({value, createValidationError}) =>
       advance({apiKey: value.apiKey}).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors({value, createValidationError}, error);
+          return toFieldErrors(
+            {value, createValidationError},
+            requestErrorToFieldErrors(error, value)
+          );
         }
         throw error;
       }),

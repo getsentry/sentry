@@ -15,8 +15,6 @@ import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
-import {RequestError} from 'sentry/utils/requestError/requestError';
-
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
@@ -170,55 +168,45 @@ export const defaultFormValidators = createValidators([
  * Type for field errors that can be returned after form submission (e.g., from
  * backend validation). Keys are constrained to valid field paths.
  */
-type FieldErrors<TFormData> = Partial<Record<DeepKeys<TFormData>, {message: string}>>;
+export type FieldErrors<TFormData> = Partial<
+  Record<DeepKeys<TFormData>, {message: string}>
+>;
 
 type FieldValidationError<TValue> = {fields: FieldErrors<TValue>};
 
 /**
  * Converts field errors from a form submission into a validation error.
  *
- * Accepts either a `FieldErrors` object for manually constructed errors, or a
- * `RequestError` to automatically extract field errors from `responseJSON`.
- * When given a `RequestError`, only keys matching existing form fields are used.
- * String values are used directly; array values use the first element.
+ * Return the result from `onSubmit` to attach the errors to the form. Sentry
+ * API errors are mapped to the `FieldErrors` contract first — see
+ * `requestErrorToFieldErrors`.
  *
  * @returns A validation error when field errors were found, otherwise undefined.
+ *
+ * @example
+ * ```tsx
+ * onSubmit: ({value, createValidationError}) =>
+ *   mutation.mutateAsync(value).catch(error => {
+ *     if (error instanceof RequestError) {
+ *       return toFieldErrors(
+ *         {value, createValidationError},
+ *         requestErrorToFieldErrors(error, value)
+ *       );
+ *     }
+ *     throw error;
+ *   }),
+ * ```
  */
 export function toFieldErrors<TValue>(
   context: {
     createValidationError: CreateValidationErrorFn<TValue>;
     value: TValue;
   },
-  errors: FieldErrors<TValue> | RequestError
+  errors: FieldErrors<TValue>
 ): OnSubmitError<FieldValidationError<TValue>> | undefined {
-  if (errors instanceof RequestError) {
-    const responseJSON = errors.responseJSON;
-    if (!responseJSON) {
-      return undefined;
-    }
-
-    const formValues = context.value;
-    const fieldErrors: FieldErrors<TValue> = {};
-
-    for (const key of Object.keys(responseJSON)) {
-      if (typeof formValues === 'object' && formValues !== null && key in formValues) {
-        const value = responseJSON[key];
-        if (typeof value === 'string') {
-          fieldErrors[key as DeepKeys<TValue>] = {message: value};
-        } else if (Array.isArray(value) && value.length > 0) {
-          fieldErrors[key as DeepKeys<TValue>] = {
-            message: typeof value[0] === 'string' ? value[0] : String(value[0]),
-          };
-        }
-      }
-    }
-
-    return Object.keys(fieldErrors).length > 0
-      ? context.createValidationError({fields: fieldErrors})
-      : undefined;
+  if (Object.keys(errors).length === 0) {
+    return undefined;
   }
 
-  return Object.keys(errors).length > 0
-    ? context.createValidationError({fields: errors})
-    : undefined;
+  return context.createValidationError({fields: errors});
 }

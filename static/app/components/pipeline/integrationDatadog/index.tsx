@@ -17,6 +17,7 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {DATADOG_SITES, DATADOG_SITE_VALUES} from 'sentry/utils/seer/datadogSites';
 
 const credentialsSchema = z.object({
@@ -40,7 +41,10 @@ function DatadogCredentialsStep({
       advance({apiKey: value.apiKey, appKey: value.appKey, site: value.site}).catch(
         error => {
           if (error instanceof RequestError) {
-            return toFieldErrors({value, createValidationError}, error);
+            return toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
           }
           throw error;
         }

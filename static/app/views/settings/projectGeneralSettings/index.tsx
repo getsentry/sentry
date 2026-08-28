@@ -53,6 +53,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -182,7 +183,10 @@ function ProjectSlugForm({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors({value, createValidationError}, error);
+            return toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
           }
           return;
         }),
@@ -271,7 +275,10 @@ function AutoResolveForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors({value, createValidationError}, error);
+            return toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
           }
           return;
         }),
@@ -364,7 +371,10 @@ function SecurityTokenForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors({value, createValidationError}, error);
+            return toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
           }
           return;
         }),
@@ -425,7 +435,10 @@ function SecurityTokenHeaderForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors({value, createValidationError}, error);
+            return toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
           }
           return;
         }),

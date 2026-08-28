@@ -132,7 +132,7 @@ describe('TextAreaField auto-save', () => {
   it('shows spinner when auto-save is pending', async () => {
     const mutationFn = jest.fn(() => new Promise<{bio: string}>(() => {}));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="" />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');
@@ -146,7 +146,7 @@ describe('TextAreaField auto-save', () => {
   it('shows checkmark when auto-save succeeds', async () => {
     const mutationFn = jest.fn((data: {bio: string}) => Promise.resolve(data));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="" />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');
@@ -162,7 +162,7 @@ describe('TextAreaField auto-save', () => {
   it('disables textarea while auto-save is pending', async () => {
     const mutationFn = jest.fn(() => new Promise<{bio: string}>(() => {}));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="" />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');

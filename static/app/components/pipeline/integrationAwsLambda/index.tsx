@@ -29,6 +29,7 @@ import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -64,7 +65,10 @@ function ProjectSelectStep({
     onSubmit: ({value, createValidationError}) =>
       advance({projectId: Number(value.projectId)}).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors({value, createValidationError}, error);
+          return toFieldErrors(
+            {value, createValidationError},
+            requestErrorToFieldErrors(error, value)
+          );
         }
         throw error;
       }),
@@ -166,7 +170,10 @@ function CloudFormationStep({
     onSubmit: ({value, createValidationError}) =>
       advance(value).catch(error => {
         if (error instanceof RequestError) {
-          return toFieldErrors({value, createValidationError}, error);
+          return toFieldErrors(
+            {value, createValidationError},
+            requestErrorToFieldErrors(error, value)
+          );
         }
         throw error;
       }),

@@ -6,9 +6,11 @@ import {gcpIntegrationPipeline} from '.';
 
 const GcpSaGenerationStep = gcpIntegrationPipeline.steps[0].component;
 const GcpCustomerConfigStep = gcpIntegrationPipeline.steps[1].component;
+const GcpVerificationStep = gcpIntegrationPipeline.steps[2].component;
 
-const makeSaGenerationStepProps = createMakeStepProps({totalSteps: 2});
-const makeCustomerConfigStepProps = createMakeStepProps({totalSteps: 2});
+const makeSaGenerationStepProps = createMakeStepProps({totalSteps: 3});
+const makeCustomerConfigStepProps = createMakeStepProps({totalSteps: 3});
+const makeVerificationStepProps = createMakeStepProps({totalSteps: 3});
 
 describe('GcpSaGenerationStep', () => {
   const sentrySaEmail = 'sentry-org-123@sentry-connectors.iam.gserviceaccount.com';
@@ -137,10 +139,317 @@ describe('GcpCustomerConfigStep', () => {
   });
 });
 
+describe('GcpVerificationStep', () => {
+  const VERIFY_URL =
+    '/organizations/org-slug/monitoring-providers/gcp/verify-connection/';
+
+  const stepData = {
+    customerSaEmail: 'gcp-sentry@my-project.iam.gserviceaccount.com',
+    projects: ['my-project-prod'],
+  };
+
+  const connectedResponse = {
+    connectionStatus: 'connected',
+    projects: [
+      {
+        gcpProjectId: 'my-project-prod',
+        connectionStatus: 'connected',
+        services: [
+          {service: 'logging', status: 'connected'},
+          {service: 'monitoring', status: 'connected'},
+          {service: 'cloudtrace', status: 'connected'},
+        ],
+      },
+    ],
+  };
+
+  const deniedResponse = {
+    connectionStatus: 'permission_denied',
+    projects: [
+      {
+        gcpProjectId: 'my-project-prod',
+        connectionStatus: 'permission_denied',
+        services: [
+          {service: 'logging', status: 'connected'},
+          {
+            service: 'cloudtrace',
+            status: 'permission_denied',
+            errorDetail: 'IAM roles not granted',
+          },
+        ],
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('shows the check running before it has a result, with no way to skip it', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: connectedResponse,
+      asyncDelay: 20,
+    });
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData})} />);
+
+    // The mutation starts idle, so this covers the gap before the effect fires.
+    expect(screen.getByText('Testing your GCP connection...')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Re-test'})).toBeDisabled();
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+  });
+
+  it('cannot be advanced twice while the first advance is in flight', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: connectedResponse,
+    });
+
+    render(
+      <GcpVerificationStep
+        {...makeVerificationStepProps({stepData, isAdvancing: true})}
+      />
+    );
+
+    // Wait for the result, so the check being in flight isn't what disables it.
+    expect(await screen.findByText('my-project-prod')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Re-test'})).toBeDisabled();
+  });
+
+  it('advances with the result when every project is connected', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: connectedResponse,
+    });
+    const advance = jest.fn();
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Continue'}));
+
+    expect(advance).toHaveBeenCalledWith({
+      connectionStatus: 'connected',
+      projects: [
+        {
+          gcpProjectId: 'my-project-prod',
+          connectionStatus: 'connected',
+          errorDetail: null,
+        },
+      ],
+    });
+  });
+
+  it('verifies the connection on mount and shows a connected project', async () => {
+    const verify = MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: connectedResponse,
+    });
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData})} />);
+
+    expect(await screen.findByText('my-project-prod')).toBeInTheDocument();
+    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+
+    expect(verify).toHaveBeenCalledWith(
+      VERIFY_URL,
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          customerSaEmail: stepData.customerSaEmail,
+          gcpProjectIds: stepData.projects,
+        },
+      })
+    );
+  });
+
+  it('shows per-service remediation detail when a project fails', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: deniedResponse,
+    });
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData})} />);
+
+    expect(await screen.findByText('Permission denied')).toBeInTheDocument();
+    expect(screen.getByText('Cloud Trace: IAM roles not granted')).toBeInTheDocument();
+    // Services that passed are not listed.
+    expect(screen.queryByText(/^Cloud Logging:/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue Anyway'})).toBeEnabled();
+  });
+
+  it('advances with the verification result', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: deniedResponse,
+    });
+    const advance = jest.fn();
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Continue Anyway'}));
+
+    // Seer reports the actionable message per service, not per project.
+    expect(advance).toHaveBeenCalledWith({
+      connectionStatus: 'permission_denied',
+      projects: [
+        {
+          gcpProjectId: 'my-project-prod',
+          connectionStatus: 'permission_denied',
+          errorDetail: 'Cloud Trace: IAM roles not granted',
+        },
+      ],
+    });
+  });
+
+  it('rolls several failing services into one detail', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: {
+        connectionStatus: 'error',
+        projects: [
+          {
+            gcpProjectId: 'my-project-prod',
+            connectionStatus: 'error',
+            services: [
+              {service: 'logging', status: 'connected'},
+              {
+                service: 'monitoring',
+                status: 'api_disabled',
+                errorDetail: 'Cloud Monitoring API is disabled',
+              },
+              {service: 'cloudtrace', status: 'project_not_found'},
+            ],
+          },
+        ],
+      },
+    });
+    const advance = jest.fn();
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Continue Anyway'}));
+
+    expect(advance).toHaveBeenCalledWith({
+      connectionStatus: 'error',
+      projects: [
+        {
+          gcpProjectId: 'my-project-prod',
+          connectionStatus: 'error',
+          errorDetail:
+            'Cloud Monitoring: Cloud Monitoring API is disabled; Cloud Trace: Project not found',
+        },
+      ],
+    });
+  });
+
+  it('keeps the project-level detail when the impersonation chain fails', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: {
+        connectionStatus: 'permission_denied',
+        errorDetail: 'SA impersonation chain failed',
+        projects: [
+          {
+            gcpProjectId: 'my-project-prod',
+            connectionStatus: 'permission_denied',
+            errorDetail: 'SA impersonation chain failed',
+            services: [
+              {
+                service: 'logging',
+                status: 'permission_denied',
+                errorDetail: 'SA impersonation chain failed',
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const advance = jest.fn();
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Continue Anyway'}));
+
+    expect(advance).toHaveBeenCalledWith({
+      connectionStatus: 'permission_denied',
+      projects: [
+        {
+          gcpProjectId: 'my-project-prod',
+          connectionStatus: 'permission_denied',
+          errorDetail: 'SA impersonation chain failed',
+        },
+      ],
+    });
+  });
+
+  it('re-tests the connection on demand', async () => {
+    const verify = MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: deniedResponse,
+    });
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData})} />);
+
+    await screen.findByText('Permission denied');
+    expect(verify).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Re-test'}));
+
+    await waitFor(() => expect(verify).toHaveBeenCalledTimes(2));
+  });
+
+  it('lets the customer finish setup when the check cannot be completed', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      statusCode: 502,
+    });
+    const advance = jest.fn();
+
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
+
+    expect(
+      await screen.findByText(
+        'We could not complete the connection test. You can finish setup and re-test from the integration settings page.'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue Anyway'}));
+
+    expect(advance).toHaveBeenCalledWith({
+      connectionStatus: 'error',
+      projects: [
+        {
+          gcpProjectId: 'my-project-prod',
+          connectionStatus: 'error',
+          errorDetail: 'Verification could not be completed.',
+        },
+      ],
+    });
+  });
+});
+
 describe('gcpIntegrationPipeline', () => {
-  it('has two steps in the correct order', () => {
-    expect(gcpIntegrationPipeline.steps).toHaveLength(2);
+  it('has three steps in the correct order', () => {
+    expect(gcpIntegrationPipeline.steps).toHaveLength(3);
     expect(gcpIntegrationPipeline.steps[0].stepId).toBe('gcp_sa_generation');
     expect(gcpIntegrationPipeline.steps[1].stepId).toBe('gcp_customer_config');
+    expect(gcpIntegrationPipeline.steps[2].stepId).toBe('gcp_verification');
   });
 });

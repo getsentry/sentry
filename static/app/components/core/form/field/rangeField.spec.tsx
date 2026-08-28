@@ -139,7 +139,7 @@ describe('RangeField auto-save', () => {
   it('renders within AutoSaveForm context', () => {
     const mutationFn = jest.fn((data: {volume: number}) => Promise.resolve(data));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={50} />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     expect(screen.getByRole('slider')).toBeInTheDocument();
     expect(screen.getByRole('slider')).toHaveValue('50');
@@ -148,7 +148,7 @@ describe('RangeField auto-save', () => {
   it('does not trigger mutation when value unchanged', async () => {
     const mutationFn = jest.fn((data: {volume: number}) => Promise.resolve(data));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={50} />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const slider = screen.getByRole('slider');
     // Just focus and blur without changing the value
@@ -163,7 +163,7 @@ describe('RangeField auto-save', () => {
 
 describe('RangeField props', () => {
   it('supports min/max props', () => {
-    render(<TestForm label="Volume" min={10} max={90} defaultValue={50} />);
+    render(<TestForm label="Volume" min={10} max={90} />);
 
     const slider = screen.getByRole('slider');
     expect(slider).toHaveAttribute('min', '10');
@@ -177,13 +177,7 @@ describe('RangeField props', () => {
   });
 
   it('supports formatOptions prop', () => {
-    render(
-      <TestForm
-        label="Volume"
-        formatOptions={{style: 'unit', unit: 'percent'}}
-        defaultValue={50}
-      />
-    );
+    render(<TestForm label="Volume" formatOptions={{style: 'unit', unit: 'percent'}} />);
 
     // The label shows on hover/focus, just verify the slider renders
     expect(screen.getByRole('slider')).toBeInTheDocument();

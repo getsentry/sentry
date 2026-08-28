@@ -1,11 +1,10 @@
 import {useState} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
 import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import type {SelectValue} from '@sentry/scraps/select';
-
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import {type BaseFieldProps} from './baseField';
 import {SelectField, type SelectFieldProps} from './selectField';
@@ -50,7 +49,7 @@ function SelectAsyncField<TData, TValue>({
 }: SelectAsyncFieldProps<TData, TValue>) {
   // Internal state for search input
   const [inputValue, setInputValue] = useState('');
-  const debouncedInput = useDebouncedValue(inputValue, DEBOUNCE_MS);
+  const [debouncedInput] = useDebouncedValue(inputValue, {wait: DEBOUNCE_MS});
 
   // Fetch options using the provided queryOptions
   const {data: options = [], isPending} = useQuery(queryOptions(debouncedInput));

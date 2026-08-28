@@ -38,6 +38,7 @@ import {
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
@@ -466,7 +467,10 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
         .then(() => formApi.reset())
         .catch(error => {
           if (error instanceof RequestError) {
-            return toFieldErrors({value, createValidationError}, error);
+            return toFieldErrors(
+              {value, createValidationError},
+              requestErrorToFieldErrors(error, value)
+            );
           }
           return;
         }),

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -209,14 +209,16 @@ export function RelocationOnboarding() {
       <Header>
         <LogoSvg />
         {stepIndex !== -1 && (
-          <StyledStepper
-            numSteps={onboardingSteps.length}
-            currentStepIndex={stepIndex}
-            onClick={i => {
-              // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
-              goToStep(onboardingSteps[i]);
-            }}
-          />
+          <Container display={{zero: 'none', md: 'block'}} justifySelf="center">
+            <Stepper
+              numSteps={onboardingSteps.length}
+              currentStepIndex={stepIndex}
+              onClick={i => {
+                // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
+                goToStep(onboardingSteps[i]);
+              }}
+            />
+          </Container>
         )}
       </Header>
     );
@@ -309,28 +311,40 @@ export function RelocationOnboarding() {
   ) : null;
 
   return (
-    <Stack as="main" flexGrow={1} data-test-id="relocation-onboarding">
+    <Stack as="main" flexGrow={1} minWidth="0" width="100%">
       <SentryDocumentTitle title={stepObj.title} />
       {headerView}
-      <Container>
+      <PageContainer>
         {backButtonView}
         {contentView}
-        <AdaptivePageCorners
-          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-        />
+        <Container
+          position="absolute"
+          inset={0}
+          pointerEvents="none"
+          containerType="inline-size"
+        >
+          <AdaptivePageCorners
+            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+          />
+        </Container>
         {errView}
-      </Container>
+      </PageContainer>
     </Stack>
   );
 }
 
-const Container = styled('div')`
+const PageContainer = styled('div')`
+  box-sizing: border-box;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   position: relative;
   background: #faf9fb;
-  padding: 120px ${p => p.theme.space['2xl']};
+  padding: calc(
+      ${p => p.theme.space['3xl']} + ${p => p.theme.space['2xl']} +
+        ${p => p.theme.space.xs}
+    )
+    ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
 
@@ -341,6 +355,7 @@ const Container = styled('div')`
 `;
 
 const Header = styled('header')`
+  container-type: inline-size;
   background: ${p => p.theme.tokens.background.primary};
   padding-left: ${p => p.theme.space['3xl']};
   padding-right: ${p => p.theme.space['3xl']};
@@ -380,21 +395,14 @@ const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) =
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     --corner-scale: 0.5;
-  }
-`;
-
-const StyledStepper = styled(Stepper)`
-  justify-self: center;
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
   }
 `;
 
 const BackMotionDiv = styled(motion.div)`
   position: absolute;
-  top: 40px;
+  top: ${p => p.theme.space.xl};
   left: 20px;
 
   button {

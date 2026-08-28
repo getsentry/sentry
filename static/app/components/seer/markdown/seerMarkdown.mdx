@@ -8,12 +8,9 @@ resources:
 
 import * as Storybook from 'sentry/stories';
 
-import {
-  BasicDemo,
-  EmbedExamples,
-  LinkifyDemo,
-  StreamingEmbedExamples,
-} from './__stories__/components';
+import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
+import {EmbedStory} from './__stories__/embedStory';
+import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
 
 `<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
 
@@ -43,91 +40,91 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 ### timestamp
 
-<EmbedExamples name="timestamp" />
+<EmbedStory name="timestamp" />
 
 ### docs
 
-<EmbedExamples name="docs" />
+<EmbedStory name="docs" />
 
 ### dashboard
 
-<EmbedExamples name="dashboard" />
+<EmbedStory name="dashboard" />
 
 ### dsn
 
-<EmbedExamples name="dsn" />
+<EmbedStory name="dsn" />
 
 ### user
 
-<EmbedExamples name="user" />
+<EmbedStory name="user" />
 
 ### issue
 
-<EmbedExamples name="issue" />
+<EmbedStory name="issue" />
 
 ### issues
 
-<EmbedExamples name="issues" />
+<EmbedStory name="issues" />
 
 ### replay
 
-<EmbedExamples name="replay" />
+<ReplayEmbedStory />
 
 ### chart
 
-<EmbedExamples name="chart" />
+<EmbedStory name="chart" />
 
 ### autofix
 
-<EmbedExamples name="autofix" />
+<EmbedStory name="autofix" />
 
 ### alert
 
-<EmbedExamples name="alert" />
+<EmbedStory name="alert" />
 
 ### monitor
 
-<EmbedExamples name="monitor" />
+<EmbedStory name="monitor" />
 
 ### savedIssueView
 
-<EmbedExamples name="savedIssueView" />
+<EmbedStory name="savedIssueView" />
 
 ### savedQuery
 
-<EmbedExamples name="savedQuery" />
+<EmbedStory name="savedQuery" />
 
 ### trace
 
-<EmbedExamples name="trace" />
+<EmbedStory name="trace" />
 
 ### profile
 
-<EmbedExamples name="profile" />
+<EmbedStory name="profile" />
 
 ### issuesQuery
 
-<EmbedExamples name="issuesQuery" />
+<EmbedStory name="issuesQuery" />
 
 ### errorsQuery
 
-<EmbedExamples name="errorsQuery" />
+<EmbedStory name="errorsQuery" />
 
 ### spansQuery
 
-<EmbedExamples name="spansQuery" />
+<EmbedStory name="spansQuery" />
 
 ### logsQuery
 
-<EmbedExamples name="logsQuery" />
+<EmbedStory name="logsQuery" />
 
 ### replaysQuery
 
-<EmbedExamples name="replaysQuery" />
+<EmbedStory name="replaysQuery" />
 
 ### metricsQuery
 
-<EmbedExamples name="metricsQuery" />
+<EmbedStory name="metricsQuery" />
 
 ## Embed Architecture
 
