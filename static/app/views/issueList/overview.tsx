@@ -44,6 +44,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -221,7 +222,7 @@ function IssueListOverviewInner({
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
-  const hasIssueInbox = organization.features.includes('issue-inbox');
+  const hasIssueInbox = orgHasIssueInbox(organization);
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
@@ -558,7 +559,7 @@ function IssueListOverviewInner({
   useDisableRouteAnalytics(issuesLoading);
   useRouteAnalyticsEventNames('issues.viewed', 'Issues: Viewed');
   useRouteAnalyticsParams({
-    page: parsePageQueryParam(location, 0),
+    page: parsePageQueryParam(location),
     query,
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
@@ -641,7 +642,7 @@ function IssueListOverviewInner({
 
   const getPageCounts = useCallback(() => {
     const links = parseLinkHeader(pageLinks);
-    const queryPageInt = parsePageQueryParam(location, 0);
+    const queryPageInt = parsePageQueryParam(location);
     // Cursor must be present for the page number to be used
     const page = location.query.cursor ? queryPageInt : 0;
 
@@ -739,7 +740,7 @@ function IssueListOverviewInner({
   const onSelectStatsPeriod = (period: string) => {
     if (period !== getGroupStatsPeriod()) {
       const cursor = decodeScalar(location.query.cursor);
-      const queryPageInt = parsePageQueryParam(location, 0);
+      const queryPageInt = parsePageQueryParam(location);
       const page = cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }

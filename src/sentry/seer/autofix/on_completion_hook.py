@@ -47,6 +47,7 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.emit import emit_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
@@ -282,6 +283,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         """Log and count PR-iteration tool calls Seer marked ``is_error``."""
         current_step, _ = cls._get_current_step(state)
         if current_step != AutofixStep.PR_ITERATION:
+            return
+
+        # The hook re-fires after a successful push. Count only on the
+        # agent-completion pass (or a no-diff pass), not the post-push one.
+        has_changes, is_synced = state.has_code_changes()
+        if has_changes and is_synced:
             return
 
         iterations = get_iterations(state)
@@ -1005,6 +1012,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "run_id": run_id,
                 "organization_id": organization.id,
                 "trigger_id": trigger_id,
+                "trigger_source": ConsumeTriggerSource.FEEDBACK,
             }
         )
         log_ctx.info(

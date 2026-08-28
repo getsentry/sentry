@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
@@ -9,6 +10,8 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
+from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused
 from sentry.seer.autofix.pr_iteration.queue import (
     _parse_queued_item,
     clear_queued_autofix_feedback,
@@ -22,6 +25,17 @@ from sentry.utils.locking import UnableToAcquireLock
 
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 QUEUE_PATH = "sentry.seer.autofix.pr_iteration.queue"
+PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
+TASK_PATH = "sentry.tasks.seer.pr_iteration"
+STOP_RUN_ID = 4646
+
+
+class _CommentScmStub:
+    """Spec that lets the mock SCM pass the task's protocol checks."""
+
+    def get_pull_request(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def create_pull_request_comment(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 def _run_state(*, repo_pr_states=None) -> SeerRunState:
@@ -257,6 +271,81 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert len(queued) == 1
         assert queued[0].feedback.text == "fix it"
         mock_started.assert_called_once()
+
+
+class StopCommandEndToEndTest(TestCase):
+    """Drive the webhook processor so the parser and both tasks run for real."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="owner/repo",
+        )
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=STOP_RUN_ID, user_id=self.user.id
+        )
+        self.group = self.create_group(project=self.project)
+
+    def _event(self, body: str) -> dict:
+        return {
+            "action": "created",
+            "comment": {
+                "id": 999,
+                "body": body,
+                "user": {"login": "octocat"},
+                "html_url": "https://github.com/owner/repo/pull/7#issuecomment-999",
+            },
+            "issue": {"number": 7, "pull_request": {"url": "https://example.com/pulls/7"}},
+        }
+
+    def _agent_state(self) -> SeerRunState:
+        return SeerRunState(
+            run_id=STOP_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                )
+            },
+            metadata={"group_id": self.group.id},
+        )
+
+    def _handle(self, body: str) -> None:
+        with self.feature("organizations:autofix-pr-iteration-manual"), self.tasks():
+            handle_issue_comment_for_autofix_iteration(
+                event=self._event(body),
+                organization=self.organization,
+                repo=self.repo,
+                integration=MagicMock(id=42, provider="github"),
+            )
+
+    def test_iterate_comment_after_stop_comment_does_not_consume(self) -> None:
+        with (
+            patch(f"{TASK_PATH}.get_agent_state_from_pr_id", return_value=self._agent_state()),
+            patch(f"{TASK_PATH}.make_scm", return_value=MagicMock(spec=_CommentScmStub)),
+            patch(f"{TASK_PATH}.scm_actions") as mock_actions,
+            patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True),
+            patch(f"{TASK_PATH}._add_comment_reaction"),
+            patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async") as mock_consume,
+            patch(f"{PAUSE_PATH}.metrics") as mock_metrics,
+        ):
+            mock_actions.get_pull_request.return_value = {"data": {"internal_id": "555"}}
+            self._handle("@sentry stop iterating")
+            self._handle("@sentry fix the lint error")
+
+        assert is_pr_iteration_paused(run_id=STOP_RUN_ID, organization_id=self.organization.id)
+        mock_consume.assert_not_called()
+        # The stop is enforced at the trigger task, before the feedback is
+        # queued — the later `trigger_consume` and `consume` gates never see it.
+        assert peek_queued_autofix_feedback(STOP_RUN_ID) == []
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.paused.blocked", tags={"gate": "comment_trigger"}
+        )
 
 
 class ParseQueuedItemTest(TestCase):

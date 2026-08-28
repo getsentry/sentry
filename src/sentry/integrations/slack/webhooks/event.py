@@ -36,6 +36,8 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.entrypoints.slack.analytics import SlackSeerAgentConversation
+from sentry.seer.entrypoints.slack.mention import has_prompt_content
+from sentry.seer.entrypoints.slack.messaging import send_empty_prompt_message
 from sentry.seer.entrypoints.slack.tasks import (
     process_mention_for_slack,
     process_reaction_for_slack,
@@ -426,6 +428,19 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 lifecycle.record_halt(SeerSlackHaltReason.MISSING_EVENT_DATA)
                 return self.respond()
 
+            authorizations = slack_request.data.get("authorizations") or []
+            bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
+
+            if not has_prompt_content(text):
+                lifecycle.record_halt(SeerSlackHaltReason.EMPTY_PROMPT)
+                send_empty_prompt_message(
+                    integration_id=slack_request.integration.id,
+                    slack_user_id=slack_request.user_id,
+                    channel_id=channel_id,
+                    thread_ts=thread_ts or ts,
+                )
+                return self.respond()
+
             try:
                 installation.set_thread_status(
                     channel_id=channel_id,
@@ -442,9 +457,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
                         "thread_ts": thread_ts or ts,
                     },
                 )
-
-            authorizations = slack_request.data.get("authorizations") or []
-            bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
 
             process_mention_for_slack.apply_async(
                 kwargs={

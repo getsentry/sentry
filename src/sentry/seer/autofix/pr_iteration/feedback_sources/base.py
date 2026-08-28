@@ -59,6 +59,19 @@ class TriggerDecision:
     reason: str
 
 
+class ConsumeTriggerSource:
+    """Why ``consume_queued_autofix_feedback`` was scheduled.
+
+    Passed through Celery kwargs so consume can log early-vs-later impact:
+    feedback (webhook / UI / comment), a green check-suite pulling a parked
+    defer forward, or the original 1h time-limit defer firing.
+    """
+
+    FEEDBACK = "feedback"
+    GREEN_CHECK_SUITE_DEFER = "green_check_suite_defer"
+    TIME_LIMIT_DEFER = "time_limit_defer"
+
+
 class FeedbackSourceBase(BaseModel):
     class Config:
         extra = "ignore"

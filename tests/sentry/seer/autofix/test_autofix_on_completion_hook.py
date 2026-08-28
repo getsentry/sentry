@@ -23,6 +23,7 @@ from sentry.seer.autofix.on_completion_hook import (
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
@@ -69,6 +70,7 @@ def root_cause_memory_block(referrer: str | None = None) -> MemoryBlock:
             Artifact(
                 key="root_cause",
                 data={
+                    "headline": "Auth module dereferences a null user",
                     "one_line_description": "Null pointer in auth module",
                     "five_whys": ["Why 1"],
                     "fixability": {
@@ -735,6 +737,7 @@ class TestPrIterationCompletionHook(TestCase):
         assert task_kwargs["run_id"] == 123
         assert task_kwargs["organization_id"] == self.organization.id
         assert task_kwargs["trigger_id"]
+        assert task_kwargs["trigger_source"] == ConsumeTriggerSource.FEEDBACK
 
 
 class TestPipelineConstants(TestCase):

@@ -5,8 +5,11 @@ from unittest.mock import patch
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.seer.agent.client_models import (
+    AgentFilePatch,
+    FilePatch,
     MemoryBlock,
     Message,
+    RepoPRState,
     SeerRunState,
     ToolCall,
     ToolLink,
@@ -62,6 +65,7 @@ def _iteration_block(
     failed: bool = False,
     repos: Sequence[str] = (),
     function: str = "tool",
+    commit_sha: str | None = None,
 ) -> MemoryBlock:
     """An iteration block. When `failed`, holds one errored tool call per repo in
     `repos` (each carrying that repo in its args); with no repos, a single errored
@@ -92,6 +96,16 @@ def _iteration_block(
         timestamp="2023-07-18T12:00:00Z",
         tool_links=tool_links or None,
         tool_results=tool_results or None,
+        merged_file_patches=[
+            AgentFilePatch(
+                repo_name="test-repo",
+                diff="diff --git a/test.py b/test.py",
+                patch=FilePatch(path="test.py", type="M", added=1, removed=0),
+            )
+        ]
+        if commit_sha is not None
+        else None,
+        pr_commit_shas={"test-repo": commit_sha} if commit_sha is not None else None,
     )
 
 
@@ -110,12 +124,17 @@ def _perms(integration_id: int) -> MissingGithubPermissions:
     )
 
 
-def _state(blocks: list[MemoryBlock]) -> SeerRunState:
+def _state(
+    blocks: list[MemoryBlock],
+    *,
+    repo_pr_states: dict[str, RepoPRState] | None = None,
+) -> SeerRunState:
     return SeerRunState(
         run_id=1,
         blocks=blocks,
         status="completed",
         updated_at="2023-07-18T12:00:00Z",
+        repo_pr_states=repo_pr_states or {},
     )
 
 
@@ -260,5 +279,38 @@ class TestRecordFailedToolCalls(TestCase):
         mock_metrics.incr.assert_called_once_with(
             "autofix.pr_iteration.failed_tool_call",
             amount=2,
+            tags={"tool": "get_pr_diff"},
+        )
+
+    def test_skips_after_changes_are_pushed(self, mock_metrics) -> None:
+        """The hook re-fires once the push lands; do not score the same failures again."""
+        self._run(
+            _state(
+                [_iteration_block(0, failed=True, function="get_pr_diff", commit_sha="synced-sha")],
+                repo_pr_states={
+                    "test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")
+                },
+            )
+        )
+
+        mock_metrics.incr.assert_not_called()
+
+    def test_records_before_push(self, mock_metrics) -> None:
+        self._run(
+            _state(
+                [
+                    _iteration_block(
+                        0, failed=True, function="get_pr_diff", commit_sha="iteration-sha"
+                    )
+                ],
+                repo_pr_states={
+                    "test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")
+                },
+            )
+        )
+
+        mock_metrics.incr.assert_called_once_with(
+            "autofix.pr_iteration.failed_tool_call",
+            amount=1,
             tags={"tool": "get_pr_diff"},
         )
