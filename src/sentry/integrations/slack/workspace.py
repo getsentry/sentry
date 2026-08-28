@@ -15,6 +15,7 @@ from typing import Any
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.metrics import translate_slack_api_error
@@ -68,7 +69,9 @@ def has_history_scope(
     """
     if scopes is None:
         integration = integration_service.get_integration(
-            integration_id=integration_id, status=ObjectStatus.ACTIVE
+            integration_id=integration_id,
+            status=ObjectStatus.ACTIVE,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
         if integration is None:
             return False
