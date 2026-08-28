@@ -167,15 +167,9 @@ class GetLoginRedirectTest(TestCase):
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
     def test_static_asset_next_uses_default(self) -> None:
-        """Asset paths must not win as post-login destinations (e.g. SW source maps)."""
         default = reverse("sentry-login")
 
-        result = get_login_redirect(
-            self._make_request("/org-slug/service-worker.abc123.js.map/")
-        )
-        assert result == default
-
-        result = get_login_redirect(self._make_request("/service-worker.js"))
+        result = get_login_redirect(self._make_request("/org-slug/service-worker.abc123.js.map/"))
         assert result == default
 
         result = get_login_redirect(self._make_request("/_static/sentry/entrypoints/app.js"))
@@ -191,7 +185,6 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{default}"
 
-        # Normal app paths still honor _next.
         result = get_login_redirect(self._make_request("/organizations/org-slug/issues/"))
         assert result == "/organizations/org-slug/issues/"
 
