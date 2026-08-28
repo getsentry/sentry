@@ -11,6 +11,7 @@ from sentry.taskworker.namespaces import auth_tasks
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger("sentry.audit.user")
 
 SUPERUSER_WRITE_PERMISSION = "superuser.write"
 
@@ -51,6 +52,17 @@ def _is_privileged_slug(team_slug: str) -> bool:
     )
 
 
+def _audit_permission_change(user_id: int, permission: str | None, *, grant: bool) -> None:
+    audit_logger.info(
+        "user.add-permission" if grant else "user.delete-permission",
+        extra={
+            "actor": "scim",
+            "user_id": user_id,
+            "permission_name": permission,
+        },
+    )
+
+
 def update_privilege(
     user_id: int,
     attrs: dict[str, bool],
@@ -72,9 +84,13 @@ def update_privilege(
                 user_id=user_id, permission=managed_permission
             )
         else:
-            user_service.remove_permission(user_id=user_id, permission=managed_permission)
+            removed = user_service.remove_permission(user_id=user_id, permission=managed_permission)
+            if removed:
+                _audit_permission_change(user_id, managed_permission, grant=False)
 
     if not attrs:
+        if permission_added:
+            _audit_permission_change(user_id, managed_permission, grant=True)
         return
 
     try:
@@ -91,6 +107,9 @@ def update_privilege(
         if permission_added:
             user_service.remove_permission(user_id=user_id, permission=managed_permission)
         raise
+
+    if permission_added:
+        _audit_permission_change(user_id, managed_permission, grant=True)
 
 
 @instrumented_task(
