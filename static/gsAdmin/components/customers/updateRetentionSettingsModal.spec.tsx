@@ -138,7 +138,7 @@ describe('UpdateRetentionSettingsModal', () => {
     ]);
   });
 
-  it('offers zero for downsampled fields', async () => {
+  it('does not offer zero for downsampled fields', async () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
@@ -163,9 +163,38 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await selectEvent.openMenu(getSelect('Spans Downsampled'));
 
-    expect(screen.getAllByRole('menuitemradio')[0]).toHaveTextContent(
-      '0 (same as standard)'
-    );
+    const options = screen
+      .getAllByRole('menuitemradio')
+      .map(option => option.textContent);
+
+    expect(options[0]).toBe('30 days');
+    expect(options).not.toContain('0 (same as standard)');
+  });
+
+  it('keeps an existing zero downsampled value as an option', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        spans: MetricHistoryFixture({
+          retention: {
+            standard: 90,
+            downsampled: 0,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    expectSelectValue('Spans Downsampled', '0 (current)');
   });
 
   it('prefills the form with existing AM2 retention values', async () => {
@@ -442,76 +471,6 @@ describe('UpdateRetentionSettingsModal', () => {
               logBytes: {
                 standard: 30,
                 downsampled: null,
-              },
-            },
-          },
-        })
-      );
-    });
-
-    expect(onSuccess).toHaveBeenCalled();
-  });
-
-  it('calls api with zero for downsampled values when set to 0', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 30,
-            downsampled: 30,
-          },
-        }),
-      },
-      planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: null, downsampled: null},
-    });
-
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/_admin/customers/${organization.slug}/retention-settings/`,
-      method: 'POST',
-      body: {},
-    });
-
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
-
-    await loadModal();
-
-    await selectRetention('Spans Standard', '90 days');
-    await selectRetention('Spans Downsampled', '0 (same as standard)');
-    await selectRetention('Logs Standard', '30 days');
-    await selectRetention('Logs Downsampled', '0 (same as standard)');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
-
-    await waitFor(() => {
-      expect(updateMock).toHaveBeenCalledWith(
-        `/_admin/customers/${organization.slug}/retention-settings/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            orgRetention: {
-              standard: null,
-              downsampled: null,
-            },
-            retentions: {
-              spans: {
-                standard: 90,
-                downsampled: 0,
-              },
-              logBytes: {
-                standard: 30,
-                downsampled: 0,
               },
             },
           },

@@ -30,22 +30,15 @@ const RETENTION_DAY_CHOICES = Array.from(
 type RetentionOption = {label: string; value: number};
 
 /**
- * Retention must be picked from multiples of 30, up to 390. Existing values
+ * Retention must be picked from multiples of 30. Existing values
  * that predate this restriction are kept as an option so they aren't silently
  * dropped when the form is submitted.
  */
-function getRetentionOptions(
-  currentValue: number | null,
-  {allowZero}: {allowZero: boolean}
-): RetentionOption[] {
+function getRetentionOptions(currentValue: number | null): RetentionOption[] {
   const options: RetentionOption[] = RETENTION_DAY_CHOICES.map(days => ({
     value: days,
     label: `${days} days`,
   }));
-
-  if (allowZero) {
-    options.unshift({value: 0, label: '0 (same as standard)'});
-  }
 
   if (currentValue !== null && !options.some(option => option.value === currentValue)) {
     options.unshift({value: currentValue, label: `${currentValue} (current)`});
@@ -59,17 +52,10 @@ type RetentionFieldProps = {
   name: string;
   onChange: (value: number | null) => void;
   value: number | null;
-  allowZero?: boolean;
 };
 
-function RetentionField({
-  name,
-  label,
-  value,
-  onChange,
-  allowZero = false,
-}: RetentionFieldProps) {
-  const [options] = useState(() => getRetentionOptions(value, {allowZero}));
+function RetentionField({name, label, value, onChange}: RetentionFieldProps) {
+  const [options] = useState(() => getRetentionOptions(value));
 
   return (
     <SelectField
@@ -173,12 +159,8 @@ function UpdateRetentionSettingsModal({
         <div>
           <p>
             Update the retention settings for each data category. Retention must be a
-            multiple of 30 days, up to 390. Clearing a field defaults to the plan's
-            retention value for the category.
-          </p>
-          <p>
-            A value of zero for downsampled means that the downsampled retention defaults
-            to the standard retention.
+            multiple of 30 days. Clearing a field defaults to the plan's retention value
+            for the category.
           </p>
         </div>
         <br />
@@ -202,7 +184,6 @@ function UpdateRetentionSettingsModal({
                 label="Logs Downsampled"
                 value={logBytesDownsampled}
                 onChange={setLogBytesDownsampled}
-                allowZero
               />
             </Fragment>
           )}
@@ -220,7 +201,6 @@ function UpdateRetentionSettingsModal({
                 label="Transactions Downsampled"
                 value={transactionsDownsampled}
                 onChange={setTransactionsDownsampled}
-                allowZero
               />
             </Fragment>
           )}
@@ -238,7 +218,6 @@ function UpdateRetentionSettingsModal({
                 label="Spans Downsampled"
                 value={spansDownsampled}
                 onChange={setSpansDownsampled}
-                allowZero
               />
             </Fragment>
           )}
