@@ -222,15 +222,20 @@ def format_missing_base_snapshot_status_check_messages(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     project: Project,
+    *,
+    base_sha: str,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
 
     title = _SNAPSHOT_TITLE_BASE
-    subtitle = str(_("No base snapshots found"))
+    subtitle = str(_("No base snapshot found for %(base_sha)s")) % {"base_sha": base_sha}
 
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
-    summary += "\n\nNo base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
+    summary += (
+        f"\n\nNo base snapshot found for `{base_sha}`. "
+        "Make sure snapshots are uploaded from your main branch."
+    )
 
     settings_url = _get_settings_url(project)
     summary += "\n\n" + _format_configure_link(project, settings_url)

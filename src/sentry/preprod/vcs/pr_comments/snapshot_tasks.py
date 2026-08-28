@@ -157,8 +157,12 @@ def create_preprod_snapshot_pr_comment_task(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
             else:
+                assert commit_comparison.base_sha is not None
                 comment_body = format_missing_base_snapshot_pr_comment(
-                    all_artifacts, snapshot_metrics_map, project=artifact.project
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=artifact.project,
+                    base_sha=commit_comparison.base_sha,
                 )
         else:
             reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)

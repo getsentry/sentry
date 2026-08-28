@@ -237,11 +237,13 @@ def create_preprod_snapshot_status_check_task(
                     },
                 )
             else:
+                assert commit_comparison.base_sha is not None
                 status = StatusCheckStatus.FAILURE
                 title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
                     all_artifacts,
                     snapshot_metrics_map,
                     project=preprod_artifact.project,
+                    base_sha=commit_comparison.base_sha,
                 )
         else:
             status = StatusCheckStatus.SUCCESS

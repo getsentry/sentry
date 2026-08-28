@@ -201,7 +201,6 @@ def _format_solo_table(
 
 _SOLO_MESSAGE = "Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
 _WAITING_MESSAGE = "Waiting for base snapshots to finish uploading. This comment will update automatically within ~10 minutes or fail."
-_MISSING_BASE_MESSAGE = "No base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
 
 
 def _format_solo_comment(
@@ -240,7 +239,10 @@ def format_missing_base_snapshot_pr_comment(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     *,
     project: Project,
+    base_sha: str,
 ) -> str:
-    return _format_solo_comment(
-        artifacts, snapshot_metrics_map, _MISSING_BASE_MESSAGE, project=project
+    message = (
+        f"No base snapshot found for `{base_sha}`. "
+        "Make sure snapshots are uploaded from your main branch."
     )
+    return _format_solo_comment(artifacts, snapshot_metrics_map, message, project=project)
