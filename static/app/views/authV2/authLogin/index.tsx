@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import {IconGithub, IconGoogle, IconLab, IconSentry, IconVsts} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -41,6 +42,7 @@ const AUTH_PROVIDER_CONFIG = {
 export default function AuthLogin() {
   const {orgSlug} = useParams<{orgSlug?: string}>();
   const location = useLocation();
+  const sentryUrl = ConfigStore.get('links').sentryUrl;
   const {setAuthV2Enabled} = useEnableAuthV2();
 
   const returnToLegacyLogin = () => {
@@ -240,7 +242,20 @@ export default function AuthLogin() {
                   )}
                 </Stack>
 
-                {!focusedOrgAuth && (
+                {focusedOrgAuth ? (
+                  <Stack gap="md">
+                    <Grid columns="1fr max-content 1fr" align="center" gap="md">
+                      <Container borderTop="secondary" />
+                      <Text as="div" align="center" variant="muted" size="lg">
+                        {t('or')}
+                      </Text>
+                      <Container borderTop="secondary" />
+                    </Grid>
+                    <LinkButton href={`${sentryUrl}/settings/account/`}>
+                      {t('Account Settings')}
+                    </LinkButton>
+                  </Stack>
+                ) : (
                   <Fragment>
                     <Text as="div" align="center" variant="muted" size="lg">
                       {t('or')}
