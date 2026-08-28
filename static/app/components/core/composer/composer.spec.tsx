@@ -2,18 +2,22 @@ import {useState} from 'react';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
-import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
-import type {MentionSource} from 'sentry/components/mentionInput/types';
+import {
+  Composer,
+  type ComposerPlugin,
+  type Mention,
+  type ComposerValue,
+  type ComposerSource,
+} from '@sentry/scraps/composer';
 
 interface PersonSuggestion {
   id: string;
   label: string;
 }
 
-type TestMentionSource = MentionSource<PersonSuggestion>;
+type TestComposerSource = ComposerSource<PersonSuggestion>;
 
-const MEMBER_SOURCE: TestMentionSource = {
+const MEMBER_SOURCE: TestComposerSource = {
   id: 'members',
   label: 'Members',
   trigger: '@',
@@ -29,25 +33,46 @@ const MEMBER_SOURCE: TestMentionSource = {
   renderSuggestion: suggestion => suggestion.label,
 };
 
-function ControlledMentionInput({
+const TEAM_SOURCE: TestComposerSource = {
+  id: 'teams',
+  label: 'Teams',
+  trigger: '@',
+  getSuggestions: query =>
+    [{id: 'team:3', label: '#infra-alerts'}].filter(suggestion =>
+      suggestion.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+    ),
+  getId: suggestion => suggestion.id,
+  getText: suggestion => suggestion.label,
+};
+
+const MENTION_PLUGIN: ComposerPlugin = {
+  id: 'mentions',
+  getSources: () => [MEMBER_SOURCE],
+};
+
+function makePlugins(sources: readonly TestComposerSource[]): readonly ComposerPlugin[] {
+  return [{id: 'test', getSources: () => sources}];
+}
+
+function ControlledComposer({
   sources = [MEMBER_SOURCE],
   initialValue = '',
   initialMentions = [],
 }: {
   initialMentions?: readonly Mention[];
   initialValue?: string;
-  sources?: readonly TestMentionSource[];
+  sources?: readonly TestComposerSource[];
 }) {
-  const [value, setValue] = useState<MentionInputValue>({
+  const [value, setValue] = useState<ComposerValue>({
     text: initialValue,
     mentions: initialMentions,
   });
 
   return (
     <div>
-      <MentionInput
+      <Composer
         aria-label="Comment"
-        sources={sources}
+        plugins={makePlugins(sources)}
         value={value}
         onChange={setValue}
       />
@@ -65,13 +90,13 @@ function getEditor() {
   return editor;
 }
 
-describe('MentionInput', () => {
+describe('Composer', () => {
   it('keeps the editor aligned with a controlled value that rejects an edit', async () => {
     const onChange = jest.fn();
     render(
-      <MentionInput
+      <Composer
         aria-label="Comment"
-        sources={[MEMBER_SOURCE]}
+        plugins={[MENTION_PLUGIN]}
         value={{text: 'Fixed', mentions: []}}
         onChange={onChange}
       />
@@ -88,9 +113,9 @@ describe('MentionInput', () => {
   it('allows typing with an input method', () => {
     const onChange = jest.fn();
     const renderInput = () => (
-      <MentionInput
+      <Composer
         aria-label="Comment"
-        sources={[MEMBER_SOURCE]}
+        plugins={[MENTION_PLUGIN]}
         value={{text: '', mentions: []}}
         onChange={onChange}
       />
@@ -117,19 +142,24 @@ describe('MentionInput', () => {
 
     act(() => {
       textbox.dispatchEvent(
-        new CompositionEvent('compositionend', {bubbles: true, data: '日本語'})
+        new CompositionEvent('compositionend', {
+          bubbles: true,
+          data: '日本語',
+        })
       );
     });
     expect(onChange).toHaveBeenCalledWith({text: '日本語', mentions: []});
   });
 
   it('selects a suggestion with the arrow keys', async () => {
-    render(<ControlledMentionInput />);
+    render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
 
-    const aliceOption = await screen.findByRole('option', {name: 'Alice Example'});
+    const aliceOption = await screen.findByRole('option', {
+      name: 'Alice Example',
+    });
     const alexOption = screen.getByRole('option', {name: 'Alex Engineer'});
     expect(textbox).toHaveAttribute('aria-activedescendant', aliceOption.id);
     await userEvent.keyboard('{ArrowDown}');
@@ -144,7 +174,7 @@ describe('MentionInput', () => {
   });
 
   it('dismisses suggestions without changing the draft', async () => {
-    render(<ControlledMentionInput />);
+    render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
@@ -158,7 +188,7 @@ describe('MentionInput', () => {
   });
 
   it('selects the current suggestion with Tab', async () => {
-    render(<ControlledMentionInput />);
+    render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
@@ -170,7 +200,7 @@ describe('MentionInput', () => {
   });
 
   it('turns a mention into ordinary text when its label is edited', async () => {
-    render(<ControlledMentionInput />);
+    render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
@@ -194,7 +224,7 @@ describe('MentionInput', () => {
     };
 
     render(
-      <ControlledMentionInput
+      <ControlledComposer
         initialValue="Continue with @Alice Example"
         initialMentions={[restoredMention]}
       />
@@ -208,8 +238,27 @@ describe('MentionInput', () => {
     );
   });
 
+  it('merges suggestions from sources sharing a trigger', async () => {
+    render(<ControlledComposer sources={[MEMBER_SOURCE, TEAM_SOURCE]} />);
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, '@a');
+
+    expect(
+      await screen.findByRole('listbox', {name: 'Members, Teams suggestions'})
+    ).toBeVisible();
+    expect(screen.getByRole('option', {name: 'Alice Example'})).toBeVisible();
+    const teamOption = screen.getByRole('option', {name: '#infra-alerts'});
+    await userEvent.click(teamOption);
+
+    expect(textbox).toHaveTextContent('#infra-alerts');
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      '#infra-alerts |team:3'
+    );
+  });
+
   it('shows an empty state when a source has no matches', async () => {
-    render(<ControlledMentionInput initialValue="@missing" />);
+    render(<ControlledComposer initialValue="@missing" />);
     await userEvent.click(getEditor());
     await userEvent.keyboard('{End}');
     expect(await screen.findByText('No suggestions found')).toBeVisible();
