@@ -6,8 +6,11 @@ import {Text} from '@sentry/scraps/text';
 import {ScmAlertOptionCard} from 'sentry/components/onboarding/scm/scmAlertOptionCard';
 import {t} from 'sentry/locale';
 import {
-  type AlertRuleOptions,
   INTERVAL_CHOICES,
+  Interval,
+} from 'sentry/views/automations/components/actionFilters/constants';
+import {
+  type AlertRuleOptions,
   METRIC_CHOICES,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
@@ -21,7 +24,7 @@ interface ScmAlertFrequencyProps extends Partial<AlertRuleOptions> {
 
 export function ScmAlertFrequency({
   alertSetting = RuleAction.DEFAULT_ALERT,
-  interval = '1m',
+  interval = Interval.FIVE_MINUTES,
   metric = 0,
   threshold = '10',
   onFieldChange,
@@ -50,7 +53,7 @@ export function ScmAlertFrequency({
               <Text size="md" density="comfortable">
                 {t('When there are more than')}
               </Text>
-              <Grid gap="xl" columns={{'screen:sm': '1fr', 'screen:md': '1fr 1fr'}}>
+              <Grid gap="xl" columns={{zero: '1fr', '3xl': '1fr 1fr'}}>
                 <Input
                   size="md"
                   type="number"
@@ -70,10 +73,11 @@ export function ScmAlertFrequency({
             </Stack>
             <Stack gap="xs">
               <Text size="md" density="comfortable">
-                {t('a unique error in')}
+                {t('a unique error')}
               </Text>
               <Select
                 size="md"
+                aria-label={t('Alert interval')}
                 value={interval}
                 options={INTERVAL_CHOICES}
                 onChange={option => onFieldChange('interval', option.value)}

@@ -7,7 +7,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -26,7 +25,6 @@ import {
   MAX_PICKABLE_DAYS,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 function ConversationsLayout() {
   const organization = useOrganization();
@@ -91,7 +89,6 @@ function ConversationsHeader() {
 
 function ConversationsLandingHeader() {
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const location = useLocation();
   const savedQueryTitle = decodeScalar(location.query.title);
   const savedQueryId = decodeScalar(location.query.id);
@@ -110,40 +107,23 @@ function ConversationsLandingHeader() {
     );
   }
 
-  if (hasNewBreadcrumbs) {
-    return (
-      <Fragment>
-        <TopBar.Slot name="breadcrumbs">
-          <BreadcrumbList
-            items={[
-              {
-                type: 'link',
-                label: CONVERSATIONS_SIDEBAR_LABEL,
-                to: {pathname: conversationsBaseUrl, query: {statsPeriod: '24h'}},
-              },
-            ]}
-          />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">
-          <BreadcrumbList.Title item={{type: 'page-title', label: savedQueryTitle}} />
-        </TopBar.Slot>
-      </Fragment>
-    );
-  }
-
-  // Legacy breadcrumbs (flag off).
   return (
-    <TopBar.Slot name="title">
-      <Breadcrumbs
-        crumbs={[
-          {
-            label: CONVERSATIONS_SIDEBAR_LABEL,
-            to: {pathname: conversationsBaseUrl, query: {statsPeriod: '24h'}},
-          },
-          {label: savedQueryTitle},
-        ]}
-      />
-    </TopBar.Slot>
+    <Fragment>
+      <TopBar.Slot name="breadcrumbs">
+        <BreadcrumbList
+          items={[
+            {
+              type: 'link',
+              label: CONVERSATIONS_SIDEBAR_LABEL,
+              to: {pathname: conversationsBaseUrl, query: {statsPeriod: '24h'}},
+            },
+          ]}
+        />
+      </TopBar.Slot>
+      <TopBar.Slot name="title">
+        <BreadcrumbList.Title item={{type: 'page-title', label: savedQueryTitle}} />
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 

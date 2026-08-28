@@ -9,6 +9,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   type PermissionsTarget,
@@ -49,6 +50,18 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!defined(runId) || !defined(section)) {
+    return null;
+  }
+
+  // Failed create still renders the PR card (Retry PR). That is the next
+  // action — don't offer iteration feedback or "draft a PR" again.
+  const repoPrStates = autofix.runState?.repo_pr_states;
+  if (
+    isPullRequestsSection(section) &&
+    defined(repoPrStates) &&
+    Object.keys(repoPrStates).length > 0 &&
+    !hasCreatedPullRequests(repoPrStates)
+  ) {
     return null;
   }
 

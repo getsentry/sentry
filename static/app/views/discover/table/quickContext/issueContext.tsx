@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 
 import {NoContext} from './quickContextWrapper';
@@ -46,7 +47,7 @@ export function IssueContext(props: BaseContextProps) {
       organizationSlug: organization.slug,
       // The link to issue details doesn't seem to currently pass selected environments
       environments: [],
-      expandDerivedData: organization.features.includes('issue-inbox'),
+      expandDerivedData: orgHasIssueInbox(organization),
     })
   );
 

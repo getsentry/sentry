@@ -100,8 +100,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         # True only when a run exists (so they see results), False otherwise (shows paywall).
         is_free_cohort = is_free_cohort_org(org)
         if is_free_cohort:
-            # Night shift can go through either the regular autofix path (source="autofix") or
-            # the RCA feature path (source="autofix_rca") depending on the organizations:autofix-rca-in-seer.
+            # Existing runs can use either the legacy autofix source or the RCA feature source.
             has_autofix_quota = (
                 runs_for_group(group.id, "autofix").exists()
                 or runs_for_group(group.id, "autofix_rca").exists()

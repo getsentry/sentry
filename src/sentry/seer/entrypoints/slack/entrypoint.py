@@ -423,7 +423,7 @@ class SlackAutofixEntrypoint(
                         "changes": changes_list,
                     }
                 )
-            case SentryAppEventType.SEER_PR_CREATED:
+            case SentryAppEventType.SEER_PR_CREATED | SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
                 pull_requests = [
                     pr_payload.get("pull_request", {})
                     for pr_payload in event_payload.get("pull_requests", [])

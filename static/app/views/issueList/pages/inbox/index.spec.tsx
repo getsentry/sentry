@@ -343,7 +343,7 @@ describe('InboxPage', () => {
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
     const assignedIssue = await screen.findByText('Assigned issue');
     expect(assignedIssue).toBeVisible();
-    expect(screen.getByRole('heading', {name: 'Inbox', level: 1})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /Inbox/, level: 1})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
     for (const [index, query] of [
@@ -994,6 +994,16 @@ describe('InboxPage', () => {
     );
     expect(within(preview).getByLabelText('2,600 events')).toHaveTextContent(
       '2.6KEvents'
+    );
+    expect(within(preview).getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${fixProposedGroup.id}/?referrer=inbox`
+    );
+    expect(
+      within(preview).getByRole('link', {name: /Fix proposed issue/})
+    ).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${fixProposedGroup.id}/?referrer=inbox`
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Back to inbox'}));

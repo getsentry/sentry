@@ -450,19 +450,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         ],
         "pass_kafka_slice_id": True,
     },
-    "process-segments": {
-        "topic": Topic.BUFFERED_SEGMENTS,
-        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
-        "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": [
-            click.Option(
-                ["--skip-produce", "skip_produce"],
-                is_flag=True,
-                default=False,
-            ),
-            *multiprocessing_options(default_max_batch_size=100),
-        ],
-    },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
 
