@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text, type TextProps} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
 
 type ChipSize = 'xs' | 'sm' | 'md';
 
@@ -65,6 +65,7 @@ export function Chip({
   onDismiss,
   ...rest
 }: ChipProps) {
+  const {t} = useTranslation();
   const textSize = SIZES[size].font;
   const textVariant: TextProps<'span'>['variant'] = readonly
     ? 'secondary'

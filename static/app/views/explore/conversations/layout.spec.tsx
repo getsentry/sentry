@@ -67,14 +67,13 @@ describe('ConversationsLayout', () => {
     expect(within(topBar).getByText('My saved query')).toBeInTheDocument();
   });
 
-  it('renders saved query breadcrumbs with BreadcrumbList when the migration flag is on', async () => {
+  it('renders saved query breadcrumbs with BreadcrumbList', async () => {
     renderLayout(
       {
         pathname: `/organizations/${organization.slug}/explore/agents/`,
         query: {id: 'abc', title: 'My saved query'},
       },
-      '/organizations/:orgId/explore/agents/',
-      ['ui-migration-breadcrumbs']
+      '/organizations/:orgId/explore/agents/'
     );
 
     const topBar = screen.getByRole('banner');

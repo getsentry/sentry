@@ -32,7 +32,10 @@ export function DirectEnableButton({
   const {mutate: enable, isPending} = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/integrations/direct-enable/${providerSlug}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/integrations/direct-enable/$providerKey/',
+          {path: {organizationIdOrSlug: organization.slug, providerKey: providerSlug}}
+        ),
         method: 'POST',
         data: {},
       }),

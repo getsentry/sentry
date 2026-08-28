@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -11,13 +12,13 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
@@ -80,7 +81,9 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const organization = useOrganization();
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebouncedValue(searchQuery);
+  const [debouncedSearch] = useDebouncedValue(searchQuery, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 

@@ -63,7 +63,12 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
 from sentry.incidents.endpoints.utils import parse_team_params
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
+)
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
@@ -693,6 +698,33 @@ Metric alert rule trigger actions follow the following structure:
     )
     owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="An optional description of the rule, shown alongside it in the UI and included in notifications.",
+    )
+    detectionType = serializers.ChoiceField(
+        required=False,
+        choices=[(choice.value, choice.label) for choice in AlertRuleDetectionType],
+        help_text="How the alert decides that a threshold has been crossed. `static` compares the aggregate against a fixed `alertThreshold`. `percent` compares it against the same window `comparisonDelta` minutes earlier, and requires `comparisonDelta`. `dynamic` learns the metric's normal behaviour and alerts on anomalies, ignores the trigger thresholds, and requires the `organizations:anomaly-detection-alerts` feature — a request for `dynamic` without it is rejected. Defaults to `static`.",
+    )
+    sensitivity = serializers.ChoiceField(
+        required=False,
+        allow_null=True,
+        choices=[(choice.value, choice.label) for choice in AlertRuleSensitivity],
+        help_text="How readily a dynamic alert treats a deviation as an anomaly, from `low` (fewest alerts) to `high` (most). Only used when `detectionType` is `dynamic`, and ignored otherwise.",
+    )
+    seasonality = serializers.ChoiceField(
+        required=False,
+        allow_null=True,
+        choices=[(choice.value, choice.label) for choice in AlertRuleSeasonality],
+        help_text="Which cycles a dynamic alert expects the metric to follow, so a regular daily or weekly swing is not read as an anomaly. `auto` infers them. Only used when `detectionType` is `dynamic`, and ignored otherwise.",
+    )
+    extrapolationMode = serializers.ChoiceField(
+        required=False,
+        choices=ExtrapolationMode.as_text_choices(),
+        help_text="How sampled spans are scaled to estimate the true aggregate. Only applies to alerts on the `events_analytics_platform` dataset. New alerts accept `client_and_server_weighted` and `unknown`; `server_weighted` and `none` are rejected.",
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
 

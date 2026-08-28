@@ -99,7 +99,10 @@ function OrganizationFeatureFlagsChangeTracking() {
   >({
     mutationFn: ({id}) =>
       api.requestPromise(
-        `/organizations/${organization.slug}/flags/signing-secrets/${id}/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
+          {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
+        ),
         {
           method: 'DELETE',
         }

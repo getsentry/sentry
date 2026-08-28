@@ -50,7 +50,7 @@ function Cta({
       background="secondary"
       padding="xl"
       direction={isBanner ? 'row' : 'column'}
-      gap={isBanner ? {'screen:2xs': 'xl', 'screen:xl': '3xl'} : 'xl'}
+      gap={isBanner ? {zero: 'xl', '5xl': '3xl'} : 'xl'}
       borderBottom={isBanner ? 'primary' : undefined}
       radius={isBanner ? '0 0 md md' : 'md'}
       align="center"
@@ -69,9 +69,7 @@ function Cta({
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
           {title}
         </Text>
-        <Container
-          maxWidth={{'screen:2xs': '300px', 'screen:xl': isBanner ? 'unset' : '300px'}}
-        >
+        <Container maxWidth={{zero: '300px', '5xl': isBanner ? 'unset' : '300px'}}>
           <Text
             variant="muted"
             size="sm"
