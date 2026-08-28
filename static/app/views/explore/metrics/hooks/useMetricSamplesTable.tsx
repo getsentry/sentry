@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -43,6 +44,7 @@ interface UseMetricSamplesTableOptions {
   disabled?: boolean;
   ingestionDelaySeconds?: number;
   queryExtras?: RPCQueryExtras;
+  requiredQuery?: string;
   staleTime?: number;
   traceMetric?: TraceMetric;
 }
@@ -72,12 +74,20 @@ export function getMetricSamplesFields(fields: string[]): string[] {
  * query gets for free from its aggregate arguments. Exported so exports of this table
  * filter identically to what the table shows.
  */
-export function useMetricSamplesQueryString(traceMetric: TraceMetric | undefined) {
+export function useMetricSamplesQueryString(
+  traceMetric: TraceMetric | undefined,
+  requiredQuery?: string
+) {
   const userSearch = useQueryParamsSearch();
   const frozenSearch = useMetricsFrozenSearch();
 
   return useMemo(() => {
-    const newSearch = userSearch.copy();
+    const userQuery = userSearch.formatString();
+    const newSearch = requiredQuery
+      ? new MutableSearch(
+          userQuery ? `${requiredQuery} AND (${userQuery})` : requiredQuery
+        )
+      : userSearch.copy();
 
     if (frozenSearch) {
       newSearch.tokens.push(...frozenSearch.tokens);
@@ -103,7 +113,7 @@ export function useMetricSamplesQueryString(traceMetric: TraceMetric | undefined
     }
 
     return newSearch.formatString();
-  }, [userSearch, frozenSearch, traceMetric]);
+  }, [frozenSearch, requiredQuery, traceMetric, userSearch]);
 }
 
 function useMetricsQueryKey({
@@ -113,12 +123,14 @@ function useMetricsQueryKey({
   ingestionDelaySeconds = INGESTION_DELAY,
   referrer,
   queryExtras,
+  requiredQuery,
 }: {
   fields: string[];
   limit: number;
   referrer: string;
   ingestionDelaySeconds?: number;
   queryExtras?: RPCQueryExtras;
+  requiredQuery?: string;
   traceMetric?: TraceMetric;
 }) {
   const organization = useOrganization();
@@ -128,7 +140,7 @@ function useMetricsQueryKey({
   const location = useLocation();
 
   const fieldsToUse = useMemo(() => getMetricSamplesFields(fields), [fields]);
-  const queryString = useMetricSamplesQueryString(traceMetric);
+  const queryString = useMetricSamplesQueryString(traceMetric, requiredQuery);
 
   const baseDatetime = useMemo(() => {
     const datetime = frozenTracePeriod
@@ -219,6 +231,7 @@ export function useMetricSamplesTable({
   fields,
   ingestionDelaySeconds,
   queryExtras,
+  requiredQuery,
   staleTime,
 }: UseMetricSamplesTableOptions) {
   const canTriggerHighAccuracy = useCallback(
@@ -239,6 +252,7 @@ export function useMetricSamplesTable({
       fields,
       ingestionDelaySeconds,
       queryExtras,
+      requiredQuery,
       staleTime,
     },
     queryOptions: {
@@ -254,6 +268,7 @@ function useMetricSamplesTableImpl({
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
   queryExtras,
+  requiredQuery,
   staleTime,
 }: UseMetricSamplesTableOptions & {enabled: boolean}): MetricSamplesTableResult {
   const {queryKey, other} = useMetricsQueryKey({
@@ -263,6 +278,7 @@ function useMetricSamplesTableImpl({
     ingestionDelaySeconds,
     referrer: 'api.explore.metric-samples-table',
     queryExtras,
+    requiredQuery,
   });
 
   const result = useApiQuery<{data: any[]; meta?: EventsMetaType}>(queryKey, {
