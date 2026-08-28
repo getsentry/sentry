@@ -23,7 +23,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -279,7 +279,7 @@ export function MetricSelector({
     return [
       {
         kind: 'field',
-        label: tct('[emphasis:field]', {emphasis: <em />}),
+        label: <em>{t('field')}</em>,
         textValue: t('field'),
         value: FIELD_OPTION_VALUE,
         tooltip: fieldOption.disabledReason,
