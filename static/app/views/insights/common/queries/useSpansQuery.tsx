@@ -37,6 +37,7 @@ type SpansQueryProps<T = any[]> = {
   enabled?: boolean;
   eventView?: EventView;
   initialData?: T;
+  keepPreviousData?: boolean;
   limit?: number;
   queryExtras?: RPCQueryExtras;
   referrer?: string;
@@ -76,6 +77,7 @@ export function useSpansQueryWithoutPageFilters<T = any[]>({
 function useSpansQueryBase<T>({
   eventView,
   initialData,
+  keepPreviousData,
   limit,
   enabled,
   referrer,
@@ -105,6 +107,7 @@ function useSpansQueryBase<T>({
   const response = queryFunction<T>({
     eventView: newEventView,
     initialData,
+    keepPreviousData,
     limit,
     enabled,
     referrer,
