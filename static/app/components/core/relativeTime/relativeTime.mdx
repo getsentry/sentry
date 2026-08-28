@@ -22,6 +22,10 @@ showing the absolute time twice: once in the viewer's timezone and once in UTC.
   <RelativeTime date="2026-07-29T06:40:00Z" label="Last Seen" suffix="ago" />
 </Storybook.Demo>
 
+```jsx
+<RelativeTime date="2026-07-29T06:40:00Z" label="Last Seen" suffix="ago" />
+```
+
 ## Usage
 
 You usually do not render this yourself. `TimeSince` is the trigger this card belongs to, and
@@ -55,6 +59,10 @@ Most timestamps in the app are already labelled by what they sit beside, so a ca
   <RelativeTime date="2026-07-29T06:40:00Z" suffix="ago" />
 </Storybook.Demo>
 
+```jsx
+<RelativeTime date={date} suffix="ago" />
+```
+
 ## Matching the trigger
 
 The header repeats the relative time so the card reads as an expansion of what was hovered
@@ -70,6 +78,10 @@ header also reads "43min ago", not "43 minutes ago".
     unitStyle="short"
   />
 </Storybook.Demo>
+
+```jsx
+<RelativeTime date={date} label={t('Last Seen')} suffix="ago" unitStyle="short" />
+```
 
 ## Timezones
 
@@ -96,3 +108,7 @@ on both rows with `showSeconds`.
 <Storybook.Demo>
   <RelativeTime date="2026-07-29T06:40:00Z" label="Span start" showSeconds />
 </Storybook.Demo>
+
+```jsx
+<RelativeTime date={date} label={t('Span start')} showSeconds />
+```

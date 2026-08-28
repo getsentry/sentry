@@ -3,8 +3,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
 import {RelativeTime} from '@sentry/scraps/relativeTime';
 
-// 2026-07-29T06:40:00Z is 2026-07-28 11:40 PM in Los Angeles (PDT).
-const DATE = '2026-07-29T06:40:00Z';
+// Midnight UTC on New Year's Day, which is still the previous year in Los
+// Angeles. Rows straddling a date boundary is the case the card exists for.
+const DATE = '2026-01-01T00:00:00Z';
 
 function renderInTimezone(
   children: NonNullable<React.ReactNode>,
@@ -18,7 +19,7 @@ function renderInTimezone(
 
 describe('RelativeTime', () => {
   beforeEach(() => {
-    jest.useFakeTimers().setSystemTime(new Date('2027-03-29T06:40:00Z'));
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00Z'));
   });
 
   afterEach(() => {
@@ -41,7 +42,7 @@ describe('RelativeTime', () => {
     renderInTimezone(<RelativeTime date={DATE} suffix="ago" />, 'America/Los_Angeles');
 
     expect(screen.queryByText('8 months ago')).not.toBeInTheDocument();
-    expect(screen.getByText('PDT')).toBeInTheDocument();
+    expect(screen.getByText('PST')).toBeInTheDocument();
     expect(screen.getByText('UTC')).toBeInTheDocument();
   });
 
@@ -51,22 +52,23 @@ describe('RelativeTime', () => {
       'America/Los_Angeles'
     );
 
-    expect(screen.getByText('PDT')).toBeInTheDocument();
-    expect(screen.getByText('Jul 28, 2026')).toBeInTheDocument();
-    expect(screen.getByText('11:40 PM')).toBeInTheDocument();
+    expect(screen.getByText('PST')).toBeInTheDocument();
+    expect(screen.getByText('Dec 31, 2025')).toBeInTheDocument();
+    expect(screen.getByText('4:00 PM')).toBeInTheDocument();
 
     expect(screen.getByText('UTC')).toBeInTheDocument();
-    expect(screen.getByText('Jul 29, 2026')).toBeInTheDocument();
-    expect(screen.getByText('6:40 AM')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2026')).toBeInTheDocument();
+    expect(screen.getByText('12:00 AM')).toBeInTheDocument();
   });
 
   it('follows the viewer timezone', () => {
     renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Australia/Sydney');
 
-    expect(screen.getByText('AEST')).toBeInTheDocument();
-    expect(screen.getByText('4:40 PM')).toBeInTheDocument();
-    // Sydney is a day ahead, so both rows land on the same calendar date
-    expect(screen.getAllByText('Jul 29, 2026')).toHaveLength(2);
+    expect(screen.getByText('AEDT')).toBeInTheDocument();
+    expect(screen.getByText('11:00 AM')).toBeInTheDocument();
+    // Midnight UTC is mid-morning in Sydney, so unlike Los Angeles both rows
+    // land on the same calendar date
+    expect(screen.getAllByText('Jan 1, 2026')).toHaveLength(2);
   });
 
   it('honors the 24 hour clock preference', () => {
@@ -76,8 +78,8 @@ describe('RelativeTime', () => {
       '24'
     );
 
-    expect(screen.getByText('23:40')).toBeInTheDocument();
-    expect(screen.getByText('06:40')).toBeInTheDocument();
+    expect(screen.getByText('16:00')).toBeInTheDocument();
+    expect(screen.getByText('00:00')).toBeInTheDocument();
   });
 
   it('shows seconds when asked', () => {
@@ -88,16 +90,16 @@ describe('RelativeTime', () => {
       'America/Los_Angeles'
     );
 
-    expect(screen.getByText('11:40:00 PM')).toBeInTheDocument();
-    expect(screen.getByText('6:40:00 AM')).toBeInTheDocument();
+    expect(screen.getByText('4:00:00 PM')).toBeInTheDocument();
+    expect(screen.getByText('12:00:00 AM')).toBeInTheDocument();
   });
 
   it('collapses to one row when the viewer is already in UTC', () => {
     renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'UTC');
 
     expect(screen.getByText('UTC')).toBeInTheDocument();
-    expect(screen.getByText('Jul 29, 2026')).toBeInTheDocument();
-    expect(screen.getByText('6:40 AM')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2026')).toBeInTheDocument();
+    expect(screen.getByText('12:00 AM')).toBeInTheDocument();
   });
 
   it('keeps both rows for a zone that only shares UTC current offset', () => {
@@ -109,14 +111,14 @@ describe('RelativeTime', () => {
 
     expect(screen.getByText('GMT')).toBeInTheDocument();
     expect(screen.getByText('UTC')).toBeInTheDocument();
-    expect(screen.getAllByText('6:40 AM')).toHaveLength(2);
+    expect(screen.getAllByText('12:00 AM')).toHaveLength(2);
   });
 
   it('renders zones that have no abbreviation', () => {
     renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Asia/Kathmandu');
 
     expect(screen.getByText('+0545')).toBeInTheDocument();
-    expect(screen.getByText('12:25 PM')).toBeInTheDocument();
+    expect(screen.getByText('5:45 AM')).toBeInTheDocument();
   });
 
   it('matches the trigger for dates in the future', () => {
@@ -124,7 +126,7 @@ describe('RelativeTime', () => {
     // defaults prefix to "in" — omitting it here must not print `undefined`.
     renderInTimezone(
       <RelativeTime
-        date="2027-04-01T00:00:00Z"
+        date="2026-09-04T00:00:00Z"
         label="Last Seen"
         suffix="ago"
         unitStyle="short"

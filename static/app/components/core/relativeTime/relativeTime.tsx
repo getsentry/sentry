@@ -157,7 +157,8 @@ function TimestampRow({
     <Tooltip.Row
       leadingItems={<TimezoneTag variant={variant}>{abbreviation}</TimezoneTag>}
       trailingItems={
-        // Aligned explicitly, because a tooltip centers its content by default.
+        // Pinned right so the times form a column against the dates. The grid
+        // already reads from the left, so only this cell states an alignment.
         <Text align="right" tabular wrap="nowrap">
           <DateTime
             date={date}
@@ -169,7 +170,7 @@ function TimestampRow({
         </Text>
       }
     >
-      <Text align="left" tabular wrap="nowrap">
+      <Text tabular wrap="nowrap">
         <DateTime date={date} dateOnly year utc={utc} timeZone={false} />
       </Text>
     </Tooltip.Row>
