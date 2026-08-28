@@ -48,7 +48,10 @@ function monitoringProvidersQueryOptions(orgSlug: string) {
 export default function SeerConnectors() {
   const organization = useOrganization();
 
-  if (!organization.features.includes('seer-infra-telemetry')) {
+  if (
+    !organization.features.includes('seer-infra-telemetry') ||
+    !organization.features.includes('seer-infra-telemetry-user-level-auth')
+  ) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
   }
 
