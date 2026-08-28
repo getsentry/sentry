@@ -8,6 +8,7 @@ import {
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ModalStore} from 'sentry/stores/modalStore';
@@ -36,6 +37,7 @@ describe('PrimaryNavigationHelpMenu', () => {
     jest.clearAllMocks();
     ModalStore.reset();
     ConfigStore.set('supportEmail', 'support@sentry.io');
+    setWindowLocation('https://example.test');
     Cookies.remove('sentry_react_auth', {path: '/'});
   });
 
