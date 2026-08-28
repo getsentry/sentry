@@ -1,9 +1,13 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+
+const theme = ThemeFixture();
 
 function renderWithTracking(ui: React.ReactElement) {
   const tracking = jest.fn();
@@ -51,7 +55,9 @@ describe('Button', () => {
       );
 
       const button = screen.getByRole('button', {name: 'Button'});
-      expect(getEmotionRules(button).join('')).toMatch(/height:\s*28px/);
+      expect(getEmotionRules(button).join('')).toContain(
+        `height: ${theme.form.xs.height}`
+      );
 
       act(() => {
         resizeCallback?.(
@@ -59,7 +65,9 @@ describe('Button', () => {
           {} as ResizeObserver
         );
       });
-      expect(getEmotionRules(button).join('')).toMatch(/height:\s*32px/);
+      expect(getEmotionRules(button).join('')).toContain(
+        `height: ${theme.form.sm.height}`
+      );
     });
   });
 
