@@ -808,7 +808,7 @@ export const SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY = {
 } as const;
 
 /** Pixel step used when bucketing layout sizes for analytics cardinality. */
-export const SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET = 50;
+const SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET = 50;
 
 /**
  * Round a CSS-pixel layout size into coarse buckets for analytics (default 50px).
