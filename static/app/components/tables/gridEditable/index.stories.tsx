@@ -139,7 +139,6 @@ export default Storybook.story('GridEditable', story => {
   story('Column Resize', () => {
     const queryBasedColumnResize = useQueryBasedColumnResize({
       columns: columnsWithWidth,
-      paramName: 'width',
     });
 
     return (
