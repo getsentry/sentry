@@ -92,12 +92,8 @@ export const getChartSetting = (
   index: number,
   height: number,
   performanceType: ProjectPerformanceType,
-  defaultType: PerformanceWidgetSetting,
-  forceDefaultChartSetting?: boolean // Used for testing.
+  defaultType: PerformanceWidgetSetting
 ): PerformanceWidgetSetting => {
-  if (forceDefaultChartSetting) {
-    return defaultType;
-  }
   const key = getContainerKey(index, performanceType, height);
   const localObject = getWidgetStorageObject();
   const value = localObject?.[key];

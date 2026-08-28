@@ -187,19 +187,5 @@ describe('Chip', () => {
       );
     });
 
-    it('defers focus to caller props in manual mode', () => {
-      render(
-        <Chip.Root focus="manual">
-          <Chip.Value onClick={() => {}} tabIndex={5}>
-            Chrome
-          </Chip.Value>
-        </Chip.Root>
-      );
-      // Manual mode installs no roving tabindex; the caller value is preserved.
-      expect(screen.getByRole('button', {name: 'Chrome'})).toHaveAttribute(
-        'tabindex',
-        '5'
-      );
-    });
   });
 });

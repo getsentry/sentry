@@ -15,10 +15,6 @@ interface Props extends Omit<InputProps, 'onCopy'> {
   children: string;
   className?: string;
   disabled?: boolean;
-  /**
-   * Icon displayed before the copied text.
-   */
-  icon?: React.ReactNode;
   onCopy?: (value: string) => void;
   style?: React.CSSProperties;
 }
@@ -26,7 +22,6 @@ interface Props extends Omit<InputProps, 'onCopy'> {
 export function TextCopyInput({
   className,
   disabled,
-  icon,
   style,
   onCopy,
   size,
@@ -46,9 +41,6 @@ export function TextCopyInput({
 
   return (
     <InputGroup className={className}>
-      {icon && (
-        <InputGroup.LeadingItems disablePointerEvents>{icon}</InputGroup.LeadingItems>
-      )}
       <StyledInput
         id={textNodeId}
         readOnly

@@ -1,7 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconTerminal} from 'sentry/icons';
 
 describe('TextCopyInput', () => {
   beforeEach(() => {
@@ -20,16 +19,6 @@ describe('TextCopyInput', () => {
     await userEvent.click(button);
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Text to Copy');
-  });
-
-  it('renders a leading icon', () => {
-    render(
-      <TextCopyInput icon={<IconTerminal aria-label="Terminal" />}>
-        Text to Copy
-      </TextCopyInput>
-    );
-
-    expect(screen.getByRole('img', {name: 'Terminal'})).toBeInTheDocument();
   });
 
   it('selects text in input on click', async () => {

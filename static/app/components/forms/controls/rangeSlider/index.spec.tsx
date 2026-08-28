@@ -4,7 +4,14 @@ import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 
 describe('RangeSlider', () => {
   it('changes value / has right label', () => {
-    render(<RangeSlider name="test" value={5} onChange={() => {}} />);
+    render(
+      <RangeSlider
+        name="test"
+        value={5}
+        allowedValues={[0, 1, 2, 3, 4, 5, 6, 7]}
+        onChange={() => {}}
+      />
+    );
     expect(screen.getByRole('slider')).toHaveValue('5');
     fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
     expect(screen.getByRole('slider')).toHaveValue('7');
@@ -12,7 +19,14 @@ describe('RangeSlider', () => {
 
   it('calls onChange', () => {
     const onChange = jest.fn();
-    render(<RangeSlider name="test" value={5} onChange={onChange} />);
+    render(
+      <RangeSlider
+        name="test"
+        value={5}
+        allowedValues={[0, 1, 2, 3, 4, 5, 6, 7]}
+        onChange={onChange}
+      />
+    );
     expect(onChange).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
     expect(onChange).toHaveBeenCalledWith(7, expect.anything());

@@ -56,7 +56,6 @@ interface Props extends ChartRowProps {
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
   withStaticFilters: boolean;
-  forceDefaultChartSetting?: boolean;
 }
 
 function trackChartSettingChange(
@@ -82,8 +81,7 @@ export function WidgetContainer(props: Props) {
     index,
     chartHeight,
     performanceType,
-    rest.defaultChartSetting,
-    rest.forceDefaultChartSetting
+    rest.defaultChartSetting
   );
   const mepSetting = useMEPSettingContext();
   const allowedCharts = filterAllowedChartsMetrics(

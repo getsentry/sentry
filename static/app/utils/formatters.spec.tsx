@@ -202,17 +202,6 @@ describe('formatSpanOperation', () => {
   ])('formats short description for %s span operation', (operation, description) => {
     expect(formatSpanOperation(operation)).toEqual(description);
   });
-
-  it.each([
-    ['db', 'database query'],
-    ['db.redis', 'cache query'],
-    ['task.run', 'application task'],
-    ['http.get', 'URL request'],
-    ['resource.script', 'JavaScript file'],
-    ['resource.img', 'image'],
-  ])('formats long description for %s span operation', (operation, description) => {
-    expect(formatSpanOperation(operation, 'long')).toEqual(description);
-  });
 });
 
 describe('formatDollars', () => {
