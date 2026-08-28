@@ -330,6 +330,91 @@ class TestSeerAgentClient(TestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
+    @with_feature("organizations:seer-explorer-embed-references")
+    def test_embed_references_need_the_caller_to_opt_in(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        """Rendering Markdoc is not enough: an unresolved reference renders nothing where an
+        inline body would have rendered a widget, so the caller has to say it resolves them."""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, enable_code_mode_tools="only")
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_references" not in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    @with_feature("organizations:seer-explorer-embed-references")
+    def test_embed_references_declared_when_opted_in(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            enable_code_mode_tools="only",
+            enable_embed_references=True,
+        )
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["embed_references"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_embed_references_need_the_flag(self, mock_collect_context, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            enable_code_mode_tools="only",
+            enable_embed_references=True,
+        )
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_references" not in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    @with_feature("organizations:seer-explorer-embed-references")
+    def test_embed_references_never_ship_without_widgets(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        """A reference is still an embed tag, so a surface that cannot render one must not be
+        told it may address a payload."""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            enable_code_mode_tools="only",
+            enable_embeds=False,
+            enable_embed_references=True,
+        )
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_references" not in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_code_mode_grants_embed_widgets_without_the_embeds_flag(
         self, mock_collect_context, mock_post, mock_access
     ):
