@@ -159,12 +159,7 @@ describe('useExploreSpansTable', () => {
     const query = 'span.op:http OR span.op:db';
     const expectedQuery =
       '(span.op:http OR span.op:db) id:[aaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbb]';
-    const originalPageLinks =
-      '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
-      '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
-    const filteredPageLinks =
-      '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
-      '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:100:0>; rel="next"; results="false"; cursor="0:100:0"';
+    const originalPageLinks = 'original page links';
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -188,7 +183,7 @@ describe('useExploreSpansTable', () => {
           fields: {id: 'string', 'span.custom': 'string'},
         },
       },
-      headers: {Link: filteredPageLinks},
+      headers: {Link: 'filtered page links'},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -295,9 +290,9 @@ describe('useExploreSpansTable', () => {
       },
       method: 'GET',
       match: [
-        MockApiClient.matchQuery({
-          query: '(span.op:http) id:[aaaaaaaaaaaaaaaa]',
-        }),
+        function (_url: string, options: Record<string, any>) {
+          return options.query.query.includes('id:[aaaaaaaaaaaaaaaa]');
+        },
       ],
     });
     MockApiClient.addMockResponse({

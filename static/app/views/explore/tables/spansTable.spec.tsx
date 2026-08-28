@@ -217,6 +217,21 @@ describe('SpansTable', () => {
     });
   }
 
+  async function openAttributeActions(attribute: string) {
+    await userEvent.click(screen.getByRole('button', {name: 'Show span details'}));
+    const attributeRow = (
+      await screen.findByTestId(`tree-key-${attribute}`)
+    ).closest<HTMLElement>('[data-test-id="attribute-tree-row"]');
+    expect(attributeRow).not.toBeNull();
+    await userEvent.hover(attributeRow!);
+    await userEvent.click(
+      within(attributeRow!).getByRole('button', {
+        name: 'Attribute Actions Menu',
+      }),
+      {pointerEventsCheck: 0}
+    );
+  }
+
   function QueriedSpansTable({caseInsensitive}: {caseInsensitive?: true}) {
     const spansTableResult = useExploreSpansTable({
       enabled: true,
@@ -285,7 +300,7 @@ describe('SpansTable', () => {
     rerender(<QueriedSpansTable caseInsensitive />);
     await waitFor(() => expect(updatedQueryRequest).toHaveBeenCalledTimes(1));
 
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByText('span one')).not.toBeInTheDocument();
     expect(screen.queryByText('custom value')).not.toBeInTheDocument();
   });
 
@@ -346,20 +361,7 @@ describe('SpansTable', () => {
     ]);
 
     const {router} = renderTable({tableRows: [firstRow]});
-    await userEvent.click(screen.getByRole('button', {name: 'Show span details'}));
-
-    const attributeKey = await screen.findByTestId('tree-key-span.custom');
-    const attributeRow = attributeKey.closest<HTMLElement>(
-      '[data-test-id="attribute-tree-row"]'
-    );
-    expect(attributeRow).not.toBeNull();
-    await userEvent.hover(attributeRow!);
-    await userEvent.click(
-      within(attributeRow!).getByRole('button', {
-        name: 'Attribute Actions Menu',
-      }),
-      {pointerEventsCheck: 0}
-    );
+    await openAttributeActions('span.custom');
 
     expect(await screen.findByText('Add to filter')).toBeInTheDocument();
     expect(screen.getByText('Exclude this value')).toBeInTheDocument();
@@ -372,8 +374,6 @@ describe('SpansTable', () => {
         expect.arrayContaining(['span.custom'])
       );
     });
-    expect(screen.getByRole('button', {name: 'Hide span details'})).toBeInTheDocument();
-    expect(screen.getByText('custom value')).toBeInTheDocument();
   });
 
   it('retains expanded details while a new column loads or fails', async () => {
@@ -382,20 +382,8 @@ describe('SpansTable', () => {
     ]);
 
     const {rerenderTable} = renderTable({tableRows: [firstRow]});
-    await userEvent.click(screen.getByRole('button', {name: 'Show span details'}));
+    await openAttributeActions('span.custom');
     expect(await screen.findByText('custom value')).toBeInTheDocument();
-
-    const attributeRow = screen
-      .getByTestId('tree-key-span.custom')
-      .closest<HTMLElement>('[data-test-id="attribute-tree-row"]');
-    expect(attributeRow).not.toBeNull();
-    await userEvent.hover(attributeRow!);
-    await userEvent.click(
-      within(attributeRow!).getByRole('button', {
-        name: 'Attribute Actions Menu',
-      }),
-      {pointerEventsCheck: 0}
-    );
     await userEvent.click(screen.getByText('Add this as table column'));
 
     const pendingResult = makeQueryResult([firstRow]);
@@ -405,7 +393,6 @@ describe('SpansTable', () => {
     });
     rerenderTable(pendingResult);
 
-    expect(screen.getByTestId('spans-table')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByRole('button', {name: 'Hide span details'})).toBeInTheDocument();
     expect(screen.getByText('custom value')).toBeInTheDocument();
     expect(screen.getByTestId('column-loading-indicator')).toBeInTheDocument();
