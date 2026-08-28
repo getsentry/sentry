@@ -1,4 +1,4 @@
-import {type Mention, reconcileMentions} from 'sentry/components/mentionInput/model';
+import {type Mention, reconcileMentions} from './model';
 
 const MENTION: Mention = {
   id: 'user:1',
