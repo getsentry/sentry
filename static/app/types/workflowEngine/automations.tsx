@@ -9,7 +9,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 export type NewAutomationAction = Omit<Action, 'id'>;
 export type NewAutomationDataCondition = Omit<DataCondition, 'id'>;
 
-export interface NewAutomationDataConditionGroup extends Omit<
+interface NewAutomationDataConditionGroup extends Omit<
   DataConditionGroup,
   'actions' | 'conditions' | 'id'
 > {

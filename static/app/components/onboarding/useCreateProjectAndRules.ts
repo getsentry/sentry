@@ -10,8 +10,6 @@ import {
 } from 'sentry/components/onboarding/useCreateProjectRules';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -40,41 +38,14 @@ function useRollbackProject() {
   const organization = useOrganization();
 
   return useCallback(
-    async (project: Project, workflowIds: string[]) => {
+    async (project: Project) => {
       Sentry.logger.error('Rolling back project', {
         projectToRollback: project,
-        workflowsToRollback: workflowIds,
       });
 
       try {
-        const workflowDeletionResults = await Promise.allSettled(
-          workflowIds.map(workflowId =>
-            api.requestPromise(
-              getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  workflowId,
-                },
-              }),
-              {method: 'DELETE'}
-            )
-          )
-        );
-        const failedDeletion = workflowDeletionResults.find(
-          result => result.status === 'rejected'
-        );
-        if (failedDeletion?.status === 'rejected') {
-          throw failedDeletion.reason;
-        }
-      } catch (err) {
-        Sentry.withScope(scope => {
-          scope.setExtra('error', err);
-          scope.setExtra('workflowIds', workflowIds);
-          Sentry.captureMessage('Failed to rollback project alert workflows');
-        });
-      }
-
-      try {
+        // Rolling back the project also deletes its associated alert rules
+        // due to the cascading delete constraint.
         await removeProject({
           api,
           orgSlug: organization.slug,
@@ -120,36 +91,29 @@ export function useCreateProjectAndRules() {
         default_rules: (alertRuleConfig?.defaultRules ?? true) && !integrationAction,
         firstTeamSlug: team,
       });
-      const createdWorkflowIds: string[] = [];
 
       try {
-        const createdRule = shouldCreateWorkflow
-          ? createProjectRules
-              .mutateAsync({
-                projectId: project.id,
-                name: project.name,
-                conditions: alertRuleConfig?.conditions,
-                isHighPriority:
-                  (alertRuleConfig?.defaultRules ?? true) &&
-                  !alertRuleConfig?.shouldCreateCustomRule,
-                actions: [
-                  ...(alertRuleConfig?.actions ?? []),
-                  ...(integrationAction ? [integrationAction] : []),
-                ],
-                frequency: alertRuleConfig?.frequency,
-              })
-              .then(rule => {
-                createdWorkflowIds.push(rule.id);
-                return rule;
-              })
+        const workflow = shouldCreateWorkflow
+          ? await createProjectRules.mutateAsync({
+              projectId: project.id,
+              name: project.name,
+              conditions: alertRuleConfig?.conditions,
+              isHighPriority:
+                (alertRuleConfig?.defaultRules ?? true) &&
+                !alertRuleConfig?.shouldCreateCustomRule,
+              actions: [
+                ...(alertRuleConfig?.actions ?? []),
+                ...(integrationAction ? [integrationAction] : []),
+              ],
+              frequency: alertRuleConfig?.frequency,
+            })
           : undefined;
-        const rule = await createdRule;
-        const notificationRule = integrationAction ? rule : undefined;
-        const ruleIds = [rule].filter(defined).map(created => created.id);
+        const notificationRule = integrationAction ? workflow : undefined;
+        const ruleIds = workflow ? [workflow.id] : [];
 
         return {project, notificationRule, ruleIds};
       } catch (error) {
-        await rollbackProject(project, createdWorkflowIds);
+        await rollbackProject(project);
         throw error;
       }
     },
