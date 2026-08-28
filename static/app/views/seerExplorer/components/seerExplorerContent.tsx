@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
@@ -13,6 +13,7 @@ import {
   AutofixChatProvider,
   type SendMessageOptions,
 } from 'sentry/components/seer/autofixChatContext';
+import {SeerEmbedResolverProvider} from 'sentry/components/seer/markdown';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,6 +52,7 @@ import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlack
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import {useEmbedResolver} from 'sentry/views/seerExplorer/useEmbedResolver';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
@@ -237,6 +239,7 @@ export function SeerExplorerContent({
     }
     return null;
   }, [blocks]);
+  const embedResolver = useEmbedResolver(blocks);
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
   const isAgentWriteApprovalPending =
@@ -624,7 +627,7 @@ export function SeerExplorerContent({
               onSuggestionClick={readOnly ? undefined : sendMessage}
             />
           ) : (
-            <Fragment>
+            <SeerEmbedResolverProvider resolver={embedResolver}>
               {groupTranscript(blocks).map(segment => {
                 const interactionPending =
                   isFileApprovalPending ||
@@ -701,7 +704,7 @@ export function SeerExplorerContent({
                   }
                 />
               )}
-            </Fragment>
+            </SeerEmbedResolverProvider>
           )}
         </BlocksContainer>
         {isTimedOut && (

@@ -1,6 +1,7 @@
 import {z} from 'zod';
 
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
+import type {SeerEmbedLanes} from 'sentry/components/seer/markdown/embeds/schemas';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 
 /**
@@ -135,13 +136,15 @@ export interface ToolResult {
   // returns every surface it produces here rather than on a bespoke block field, so a renderer
   // resolves a surface from this *and* the legacy field. Keys are optional and additive — absent on
   // old seer responses, in which case only the legacy field is read.
-  structuredContent?: {
-    agentWriteApproval?: AgentWriteApproval;
-    artifacts?: Artifact[];
-    calls?: CallRecord[];
-    links?: ToolLink[];
-    todos?: TodoItem[];
-  } | null;
+  structuredContent?:
+    | (SeerEmbedLanes & {
+        agentWriteApproval?: AgentWriteApproval;
+        artifacts?: Artifact[];
+        calls?: CallRecord[];
+        links?: ToolLink[];
+        todos?: TodoItem[];
+      })
+    | null;
 }
 
 export interface ToolCall {

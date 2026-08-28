@@ -8,7 +8,9 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {parseEmbedReference} from './embeds/reference';
 import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
+import {reportUnresolvedEmbed} from './embeds/utils';
 import {SeerEmbedRegistry} from './embeds';
 
 const ISSUE_SHORT_ID_PATTERN =
@@ -40,6 +42,31 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
 
 const IsInsideLinkContext = createContext(false);
 const StructuredContentContext = createContext<Record<string, unknown> | null>(null);
+
+/**
+ * Resolves an embed reference against every tool result in the conversation.
+ *
+ * A tool result's own `structuredContent` reaches only its own renderer, but an embed generally
+ * has to appear in a later assistant message — so the payload is looked up by address instead.
+ * Kept generic over where the payloads come from: the conversation view builds the index.
+ */
+export type SeerEmbedResolver = (blockId: string, name: string, key: string) => unknown;
+
+const EmbedResolverContext = createContext<SeerEmbedResolver | null>(null);
+
+export function SeerEmbedResolverProvider({
+  resolver,
+  children,
+}: {
+  children: ReactNode;
+  resolver: SeerEmbedResolver;
+}) {
+  return (
+    <EmbedResolverContext.Provider value={resolver}>
+      {children}
+    </EmbedResolverContext.Provider>
+  );
+}
 
 function toRelativeHref(href: string): string {
   if (!/^https?:\/\//.test(href)) {
@@ -84,13 +111,38 @@ function reportUnhandledTag(
   });
 }
 
+/**
+ * The payload a `ref` addresses, or undefined when it names nothing this conversation carries.
+ *
+ * A reference whose type segment disagrees with the tag it sits on resolves to nothing rather than
+ * handing a payload to the wrong schema.
+ */
+function resolveReferencedEmbed(
+  name: string,
+  ref: string,
+  resolver: SeerEmbedResolver | null
+): unknown {
+  const parsed = parseEmbedReference(ref);
+  if (parsed?.name !== name || !resolver) {
+    reportUnresolvedEmbed(name, ref);
+    return undefined;
+  }
+  const payload = resolver(parsed.blockId, parsed.name, parsed.key);
+  if (payload === undefined) {
+    reportUnresolvedEmbed(name, ref);
+  }
+  return payload;
+}
+
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   Tag: function SeerTag({name, data, level, attrs}) {
     const structuredContent = useContext(StructuredContentContext);
+    const resolver = useContext(EmbedResolverContext);
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
-      const embedData =
-        name in STRUCTURED_SEER_EMBED_SCHEMAS
+      const embedData = attrs?.ref
+        ? resolveReferencedEmbed(name, attrs.ref, resolver)
+        : name in STRUCTURED_SEER_EMBED_SCHEMAS
           ? structuredContent?.[name]
           : data === undefined
             ? structuredContent?.[name]

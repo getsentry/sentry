@@ -10,6 +10,7 @@ import * as Storybook from 'sentry/stories';
 
 import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
 import {EmbedStory} from './__stories__/embedStory';
+import {ReferencedEmbedStory} from './__stories__/referencedEmbedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
 
 `<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
@@ -197,6 +198,20 @@ const embeds = [Timestamp, MyWidget];
 ```bash
 pnpm gen:embed-widgets
 ```
+
+## Referenced embeds
+
+A tag can address a payload instead of carrying one: `{% chart ref="{blockId}.{type}.{key}" /%}`.
+Seer mints the reference when it puts the payload on a tool result's `structuredContent`, so the
+data never passes through the model — which is what makes it deterministic rather than transcribed.
+
+Resolution is conversation-scoped, so an assistant message can render an embed produced by an
+earlier tool call. Wrap the conversation in `SeerEmbedResolverProvider`; a tag without `ref`
+resolves exactly as before.
+
+<Storybook.Demo>
+  <ReferencedEmbedStory />
+</Storybook.Demo>
 
 ## Props
 
