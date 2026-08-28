@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 from django.db.models import Prefetch, prefetch_related_objects
 
@@ -67,7 +67,6 @@ class SeerNightShiftRunResponse(TypedDict):
     extras: dict[str, Any]
     errorMessage: str | None
     errorType: SeerNightShiftRunErrorType | None
-    status: Literal["succeeded", "failed", "skipped"]
     results: list[SeerNightShiftRunResultResponse]
     issues: list[SeerNightShiftRunIssueResponse]
     seerRuns: list[SeerNightShiftSeerRunResponse]
@@ -172,7 +171,6 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         error_message: str | None = error_details.get("error_message")
         raw_error_type: str | None = error_details.get("error_type")
         error_type = _resolve_error_type(raw_error_type, error_message)
-        status = _get_status(error_type)
         group_titles_by_id = attrs.get("group_titles_by_id", {})
         group_short_ids_by_id = attrs.get("group_short_ids_by_id", {})
         pull_requests_by_result_id = attrs.get("pull_requests_by_result_id", {})
@@ -182,7 +180,6 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             "extras": extras,
             "errorMessage": error_message,
             "errorType": error_type,
-            "status": status,
             "results": [_serialize_result(r) for r in all_results],
             "issues": [
                 _serialize_issue(
@@ -205,10 +202,6 @@ _LEGACY_ERROR_TYPES = {
     "Invalid Night Shift shard plan": SeerNightShiftRunErrorType.INVALID_SHARD_PLAN,
 }
 _ERROR_TYPES_BY_VALUE = {error_type.value: error_type for error_type in SeerNightShiftRunErrorType}
-_SKIPPED_ERROR_TYPES = {
-    SeerNightShiftRunErrorType.NO_QUOTA,
-    SeerNightShiftRunErrorType.NO_SEER_ACCESS,
-}
 
 
 def _resolve_error_type(
@@ -224,16 +217,6 @@ def _resolve_error_type(
     if re.fullmatch(r"Failed to dispatch \d+ of \d+ triage shards", error_message):
         return SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED
     return SeerNightShiftRunErrorType.UNKNOWN
-
-
-def _get_status(
-    error_type: SeerNightShiftRunErrorType | None,
-) -> Literal["succeeded", "failed", "skipped"]:
-    if error_type in _SKIPPED_ERROR_TYPES:
-        return "skipped"
-    if error_type is not None:
-        return "failed"
-    return "succeeded"
 
 
 def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResultResponse:
