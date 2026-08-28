@@ -142,7 +142,7 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
                 {t('Date Created')}
               </Text>
               <Text>
-                <DateTime date={release.dateCreated} seconds={false} />
+                <DateTime date={release.dateCreated} />
               </Text>
             </Stack>
 
@@ -159,12 +159,7 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
                   {getCommitSummary(release.commitCount, release.authors.length)}
                 </Text>
                 <Flex>
-                  <AvatarList
-                    avatarSize={24}
-                    maxVisibleAvatars={5}
-                    typeAvatars="authors"
-                    users={authors}
-                  />
+                  <AvatarList avatarSize={24} typeAvatars="authors" users={authors} />
                 </Flex>
               </Stack>
             ) : null}
