@@ -102,7 +102,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
             </Flex>
           </Container>
           <Container
-             display={{sm: 'none', '2xl': 'block'}}
+            display={{sm: 'none', '2xl': 'block'}}
             flex={1}
             minWidth={0}
             borderLeft="muted"
