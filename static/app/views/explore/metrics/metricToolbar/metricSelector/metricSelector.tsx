@@ -422,9 +422,7 @@ export function MetricSelector({
     position: 'bottom-start',
     offset: 6,
     isOpen: comboBoxState.isOpen,
-    isDismissable: true,
     isKeyboardDismissDisabled: true,
-    shouldApplyMinWidth: true,
     disableTrigger: isFetching && !traceMetric.name,
     onOpenChange: open => {
       if (open === comboBoxState.isOpen) {

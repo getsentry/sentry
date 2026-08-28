@@ -187,7 +187,7 @@ function PriorityActions({
       keywords={['priority', 'urgency', 'critical', 'high', 'medium', 'low']}
     >
       <CMDKAction
-        display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
+        display={{label: t('High'), icon: <IconCellSignal />}}
         onAction={() =>
           onConfirmUpdate(t('set issue priority to high'), {
             priority: PriorityLevel.HIGH,

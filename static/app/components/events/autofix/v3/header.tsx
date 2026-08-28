@@ -72,7 +72,6 @@ export function SeerDrawerHeader({
               <Flex align="center" gap="xs">
                 <Text size="xs">{t('Bash')}</Text>
                 <Switch
-                  size="sm"
                   checked={enableBashTools ?? false}
                   onChange={() => onEnableBashToolsChange(!enableBashTools)}
                   aria-label={t('Enable bash tools')}

@@ -47,7 +47,6 @@ export function NewIssues({release, projectId}: Props) {
       canSelectGroups={false}
       withChart={false}
       renderEmptyMessage={renderEmptyMessage}
-      withPagination
       source="release-drawer"
       numPlaceholderRows={3}
     />

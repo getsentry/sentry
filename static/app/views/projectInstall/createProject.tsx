@@ -520,7 +520,6 @@ export function CreateProject() {
             organization={organization}
             source="project-creation"
             variant="legacy"
-            showOther
             noAutoFilter
           />
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>

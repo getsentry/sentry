@@ -24,7 +24,7 @@ import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 export const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.AREA]: <IconGraph key="area" type="area" />,
   [DisplayType.BAR]: <IconGraph key="bar" type="bar" />,
-  [DisplayType.LINE]: <IconGraph key="line" type="line" />,
+  [DisplayType.LINE]: <IconGraph key="line" />,
   [DisplayType.TABLE]: <IconTable key="table" />,
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,

@@ -483,7 +483,6 @@ export function UsageStatsProjects({
       {!isSingleProject && (
         <Container>
           <SearchBar
-            defaultQuery=""
             query={tableQuery}
             placeholder={t('Filter your projects')}
             aria-label={t('Filter projects')}

@@ -40,7 +40,7 @@ export function SeerExplorerDebugMenu({
           {
             key: 'context-engine',
             label: t('Context Engine'),
-            leadingItems: <Checkbox size="sm" checked={overrideCtxEngEnable} readOnly />,
+            leadingItems: <Checkbox checked={overrideCtxEngEnable} readOnly />,
             onAction: onOverrideCtxEngEnableToggle,
             closeOnSelect: false,
           },
@@ -51,7 +51,7 @@ export function SeerExplorerDebugMenu({
           {
             key: 'show-thinking',
             label: t('Show thinking'),
-            leadingItems: <Checkbox size="sm" checked={showThinking} readOnly />,
+            leadingItems: <Checkbox checked={showThinking} readOnly />,
             onAction: onShowThinkingToggle,
             closeOnSelect: false,
           },

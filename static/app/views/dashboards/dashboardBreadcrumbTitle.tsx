@@ -171,7 +171,6 @@ export function DashboardBreadcrumbTitle({
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to duplicate this dashboard?'),
-          priority: 'primary',
           onConfirm: () => duplicateDashboard(dashboard, 'details'),
         });
       },

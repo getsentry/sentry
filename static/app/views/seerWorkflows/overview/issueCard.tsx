@@ -172,7 +172,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <OpenSeerButton run={run} section={sectionKey} size="sm" variant="secondary" />
+        <OpenSeerButton run={run} section={sectionKey} size="sm" />
       </ActionButtonBar>
     );
   }
@@ -207,12 +207,7 @@ function OverviewAction({
                     {label}
                   </LinkButton>
                 </Tooltip>
-                <OpenSeerButton
-                  run={run}
-                  section={sectionKey}
-                  size="sm"
-                  variant="secondary"
-                />
+                <OpenSeerButton run={run} section={sectionKey} size="sm" />
               </ActionButtonBar>
             );
           })}
