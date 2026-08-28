@@ -17,11 +17,14 @@ interface SlashCommandHandlers {
 
 interface ExplorerMenuProps {
   clearInput: () => void;
+  // Only used for `.style.height` resets and anchor positioning, both of
+  // which work against any element, so this stays valid if the input is
+  // ever backed by something other than a <textarea>.
+  composerRef: React.RefObject<HTMLElement | null>;
   focusInput: () => void;
   inputValue: string;
   panelSize: 'max' | 'med';
   slashCommandHandlers: SlashCommandHandlers;
-  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetFooter?: React.ReactNode;
@@ -42,7 +45,7 @@ export function useExplorerMenu({
   clearInput,
   inputValue,
   focusInput,
-  textAreaRef,
+  composerRef,
   panelSize,
   slashCommandHandlers,
   inputAnchorRef,
@@ -86,11 +89,11 @@ export function useExplorerMenu({
     if (menuMode === 'slash-commands-keyboard') {
       // Clear input and reset textarea height.
       clearInput();
-      if (textAreaRef.current) {
-        textAreaRef.current.style.height = 'auto';
+      if (composerRef.current) {
+        composerRef.current.style.height = 'auto';
       }
     }
-  }, [menuMode, setMenuMode, clearInput, textAreaRef]);
+  }, [menuMode, setMenuMode, clearInput, composerRef]);
 
   const closeAndFocusInput = useCallback(() => {
     close();
@@ -105,16 +108,16 @@ export function useExplorerMenu({
       if (menuMode === 'slash-commands-keyboard') {
         // Clear input and reset textarea height.
         clearInput();
-        if (textAreaRef.current) {
-          textAreaRef.current.style.height = 'auto';
+        if (composerRef.current) {
+          composerRef.current.style.height = 'auto';
         }
       }
 
       // Default to closing the menu after an item is selected and handled.
       closeAndFocusInput();
     },
-    // clearInput and textAreaRef are both expected to be stable.
-    [menuMode, clearInput, textAreaRef, closeAndFocusInput]
+    // clearInput and composerRef are both expected to be stable.
+    [menuMode, clearInput, composerRef, closeAndFocusInput]
   );
 
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.

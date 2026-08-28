@@ -422,7 +422,7 @@ export function SeerExplorerContent({
     clearInput,
     inputValue,
     focusInput,
-    textAreaRef: textareaRef,
+    composerRef: textareaRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
