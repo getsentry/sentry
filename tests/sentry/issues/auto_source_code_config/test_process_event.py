@@ -420,6 +420,35 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             )
 
 
+class TestJavaScriptModuleExtensions(BaseDeriveCodeMappings):
+    def assert_auto_source_code_config(self, platform: str, extension: str) -> None:
+        filename = f"modules/example.{extension}"
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: [f"src/{filename}"]},
+            frames=[self.frame(filename, True)],
+            platform=platform,
+            expected_new_code_mappings=[self.code_mapping("modules/", "src/modules/")],
+        )
+
+    def test_javascript_cjs(self) -> None:
+        self.assert_auto_source_code_config("javascript", "cjs")
+
+    def test_javascript_mts(self) -> None:
+        self.assert_auto_source_code_config("javascript", "mts")
+
+    def test_javascript_cts(self) -> None:
+        self.assert_auto_source_code_config("javascript", "cts")
+
+    def test_node_cjs(self) -> None:
+        self.assert_auto_source_code_config("node", "cjs")
+
+    def test_node_mts(self) -> None:
+        self.assert_auto_source_code_config("node", "mts")
+
+    def test_node_cts(self) -> None:
+        self.assert_auto_source_code_config("node", "cts")
+
+
 class LanguageSpecificDeriveCodeMappings(BaseDeriveCodeMappings):
     @property
     def platform(self) -> str:
