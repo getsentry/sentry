@@ -240,13 +240,19 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         # surface them so a failed shard doesn't read as a healthy run.
         run = SeerNightShiftRun.objects.create(organization=self.organization)
         SeerNightShiftRunShard.objects.create(run=run)
-        SeerNightShiftRunShard.objects.create(run=run, extras={"error_message": "shard failed"})
+        SeerNightShiftRunShard.objects.create(
+            run=run,
+            extras={
+                "error_type": SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value,
+                "error_message": "shard failed",
+            },
+        )
 
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["errorMessage"] == "shard failed"
-        assert response.data[0]["errorType"] == "unknown"
+        assert response.data[0]["errorType"] == "shard_delivery_failed"
 
     def test_returns_structured_error_type(self) -> None:
         run = SeerNightShiftRun.objects.create(
@@ -264,29 +270,27 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert response.data[0]["errorMessage"] == "Diagnostic details"
         assert response.data[0]["errorType"] == "no_quota"
 
-    def test_derives_structured_fields_for_legacy_errors(self) -> None:
-        run = SeerNightShiftRun.objects.create(
+    def test_derives_error_types_for_legacy_messages(self) -> None:
+        dispatch_run = SeerNightShiftRun.objects.create(
             organization=self.organization,
             extras={"error_message": "Failed to dispatch 1 of 3 triage shards"},
         )
-
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
-
-        assert response.data[0]["id"] == str(run.id)
-        assert response.data[0]["errorType"] == "shard_dispatch_failed"
-
-    def test_derives_error_type_for_legacy_errors(self) -> None:
-        run = SeerNightShiftRun.objects.create(
+        no_access_run = SeerNightShiftRun.objects.create(
             organization=self.organization,
             extras={"error_message": "Organization does not have Seer access"},
+        )
+        unknown_run = SeerNightShiftRun.objects.create(
+            organization=self.organization,
+            extras={"error_message": "Unexpected error"},
         )
 
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data[0]["id"] == str(run.id)
-        assert response.data[0]["errorType"] == "no_seer_access"
+        by_run_id = {item["id"]: item for item in response.data}
+        assert by_run_id[str(dispatch_run.id)]["errorType"] == "shard_dispatch_failed"
+        assert by_run_id[str(no_access_run.id)]["errorType"] == "no_seer_access"
+        assert by_run_id[str(unknown_run.id)]["errorType"] == "unknown"
 
     def test_runs_ordered_by_date_added_desc(self) -> None:
         older = SeerNightShiftRun.objects.create(organization=self.organization)
