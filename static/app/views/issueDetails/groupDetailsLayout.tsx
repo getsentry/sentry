@@ -48,6 +48,21 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
   );
 }
 
+function EventDetailsSection({children}: {children: React.ReactNode}) {
+  const {isSidebarOpen} = useIssueDetails();
+
+  return (
+    <Stack
+      as="section"
+      background="secondary"
+      borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
+      borderBottom={{zero: 'primary', '4xl': 'none'}}
+    >
+      {children}
+    </Stack>
+  );
+}
+
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
   event: Event | undefined;
@@ -108,12 +123,7 @@ export function GroupDetailsLayout({
             >
               {tourProps => (
                 <div {...tourProps}>
-                  <Stack
-                    as="section"
-                    background="secondary"
-                    borderRight={{zero: 'none', '4xl': 'primary'}}
-                    borderBottom={{zero: 'primary', '4xl': 'none'}}
-                  >
+                  <EventDetailsSection>
                     {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
                       issueTypeConfig.header.eventNavigation.enabled && (
                         <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
@@ -123,7 +133,7 @@ export function GroupDetailsLayout({
                         </NavigationSidebarWrapper>
                       )}
                     <ContentPadding>{children}</ContentPadding>
-                  </Stack>
+                  </EventDetailsSection>
                 </div>
               )}
             </SharedTourElement>
