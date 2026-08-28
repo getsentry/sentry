@@ -15,6 +15,7 @@ from sentry.utils.redis import (
     RedisClusterManager,
     _add_transaction_checks,
     _assert_redis_transaction_allowed,
+    _matches_redis_transaction_ratchet,
     _redis_transaction_callers,
     _shared_pool,
     check_cluster_versions,
@@ -149,7 +150,9 @@ class TransactionCheckingRedisTest(SentryTestCase):
         "sentry.utils.redis._redis_transaction_callers",
         return_value=(
             "sentry.shared.redis_helper.execute",
-            "sentry.models.counter.increment_project_counter_in_cache",
+            "sentry.ratelimits.redis.RedisRateLimiter.reset",
+            "sentry.auth.twofactor.reset_2fa_rate_limits",
+            "sentry.users.web.accounts.recover_confirm",
         ),
     )
     def test_grandfathered_outer_caller_is_allowed(
@@ -158,6 +161,14 @@ class TransactionCheckingRedisTest(SentryTestCase):
         in_test_assert_no_transaction: mock.MagicMock,
     ) -> None:
         _assert_redis_transaction_allowed("message")
+
+    def test_new_caller_of_grandfathered_adapter_is_rejected(self) -> None:
+        callers = (
+            "sentry.ratelimits.redis.RedisRateLimiter.reset",
+            "sentry.new_code.reset_rate_limit",
+        )
+
+        assert not _matches_redis_transaction_ratchet(callers)
 
     def test_transaction_callers_include_nested_application_frames(self) -> None:
         def outer_caller() -> tuple[str, ...]:

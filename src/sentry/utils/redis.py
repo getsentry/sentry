@@ -38,28 +38,62 @@ _REDIS_DEFAULT_CLIENT_ARGS = {
 _pool_cache: dict[str, ConnectionPool] = {}
 _pool_lock = Lock()
 
-# Existing violations discovered when the guard was enabled. Removing an entry
-# makes that call site subject to enforcement; new call sites fail by default.
-_REDIS_TRANSACTION_ALLOWLIST = frozenset(
+# INC-2410: Existing violations of Redis calls happening during DB transactions at the time the check was added.
+# New entries are not allowed and we should burn this down over time.
+_REDIS_TRANSACTION_ALLOWLIST_RATCHET = frozenset(
     {
-        "getsentry.billing.usagebuffer.redis.RedisUsageBuffer.fetch_pop",
-        "getsentry.models.billingseatassignment.BillingSeatAssignment.schedule_redis_key_sync.<locals>._sync_redis_key",
-        "sentry.dynamic_sampling.rules.helpers.latest_releases.ProjectBoostedReleases.has_boosted_releases",
-        "sentry.event_manager._get_severity_metadata_for_group",
-        "sentry.models.counter.increment_project_counter_in_cache",
-        "sentry.models.counter.refill_cached_short_ids",
-        "sentry.notifications.notifications.activity.base.GroupActivityNotification.__init__",
-        "sentry.ratelimits.redis.RedisRateLimiter.reset",
-        "sentry.rules.actions.integrations.create_ticket.utils.create_issue",
-        "sentry.rules.conditions.event_frequency.EventFrequencyCondition.query_hook",
-        "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition.query_hook",
-        "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition.query_hook",
-        "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
-        "sentry.tasks.assemble.delete_assemble_status",
-        "sentry.uptime.config_producer._send_to_redis",
-        "sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",
-        "sentry.utils.snowflake.get_sequence_value_from_redis",
-        "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+        (
+            "getsentry.billing.usagebuffer.redis.RedisUsageBuffer.fetch_pop",
+            "getsentry.billing.tasks.usagebuffer.flush_usage_buffer",
+        ),
+        (
+            "getsentry.models.billingseatassignment.BillingSeatAssignment.schedule_redis_key_sync.<locals>._sync_redis_key",
+        ),
+        (
+            "sentry.dynamic_sampling.rules.helpers.latest_releases.ProjectBoostedReleases.has_boosted_releases",
+            "sentry.models.releases.release_project.ReleaseProjectModelManager._on_post",
+        ),
+        ("sentry.event_manager._get_severity_metadata_for_group",),
+        (
+            "sentry.models.counter.increment_project_counter_in_cache",
+            "sentry.models.counter.Counter.increment",
+            "sentry.models.project.Project.next_short_id",
+            "sentry.event_manager._get_next_short_id",
+        ),
+        ("sentry.models.counter.refill_cached_short_ids",),
+        ("sentry.notifications.notifications.activity.base.GroupActivityNotification.__init__",),
+        (
+            "sentry.ratelimits.redis.RedisRateLimiter.reset",
+            "sentry.auth.twofactor.reset_2fa_rate_limits",
+            "sentry.users.web.accounts.recover_confirm",
+        ),
+        ("sentry.rules.actions.integrations.create_ticket.utils.create_issue",),
+        ("sentry.rules.conditions.event_frequency.EventFrequencyCondition.query_hook",),
+        ("sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition.query_hook",),
+        ("sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition.query_hook",),
+        (
+            "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
+            "sentry.reprocessing2.get_progress",
+        ),
+        (
+            "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
+            "sentry.reprocessing2.is_reprocessing_active",
+        ),
+        ("sentry.tasks.assemble.delete_assemble_status",),
+        (
+            "sentry.uptime.config_producer._send_to_redis",
+            "sentry.uptime.config_producer.produce_config",
+        ),
+        (
+            "sentry.uptime.config_producer._send_to_redis",
+            "sentry.uptime.config_producer.produce_config_removal",
+        ),
+        ("sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",),
+        ("sentry.utils.snowflake.get_sequence_value_from_redis",),
+        (
+            "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+            "sentry.sentry_apps.external_requests.utils.send_and_save_sentry_app_request",
+        ),
     }
 )
 
@@ -79,6 +113,14 @@ def _redis_transaction_callers() -> tuple[str, ...]:
     return tuple(callers)
 
 
+def _matches_redis_transaction_ratchet(callers: tuple[str, ...]) -> bool:
+    for signature in _REDIS_TRANSACTION_ALLOWLIST_RATCHET:
+        remaining_callers = iter(callers)
+        if all(caller in remaining_callers for caller in signature):
+            return True
+    return False
+
+
 def _assert_redis_transaction_allowed(message: str) -> None:
     try:
         in_test_assert_no_transaction(message)
@@ -89,7 +131,7 @@ def _assert_redis_transaction_allowed(message: str) -> None:
             ("getsentry.testutils.", "sentry.testutils.", "tests.")
         ):
             return
-        if not _REDIS_TRANSACTION_ALLOWLIST.isdisjoint(callers):
+        if _matches_redis_transaction_ratchet(callers):
             return
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
 
