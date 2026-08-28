@@ -22,9 +22,13 @@ const productionEntryPoints = [
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
+  // TODO: Remove when the autofixRef embed consumes it (#122099)
+  'static/app/components/seer/autofixChatContext.tsx',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
+  // React authentication routes are discovered dynamically by the frontend route registry
+  'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
 ];
 
 const testingEntryPoints = [
