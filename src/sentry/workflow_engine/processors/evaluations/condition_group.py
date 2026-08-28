@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from .base import BaseWorkflowEngineEvaluation
-from .condition import DataConditionEvaluation
+from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact
+from .condition import DataConditionEvaluation, DataConditionEvaluationArtifact
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
@@ -15,8 +15,21 @@ class GroupEvaluationData(TypedDict):
     logic_type: DataConditionGroup.Type | str
 
 
+@dataclass(frozen=True)
+class DataConditionGroupEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
+    logic_type: str
+    result: bool
+    condition_evaluations: DataConditionEvaluationArtifact
+
+
 @dataclass(frozen=True, kw_only=True)
-class DataConditionGroupEvaluation(BaseWorkflowEngineEvaluation[bool, GroupEvaluationData]):
+class DataConditionGroupEvaluation(
+    BaseWorkflowEngineEvaluation[
+        bool,
+        GroupEvaluationData,
+        DataConditionEvaluationArtifact,
+    ]
+):
     """
     This class is used to track the evaluation of a DataConditionGroup.
 

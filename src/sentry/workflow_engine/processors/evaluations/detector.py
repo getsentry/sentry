@@ -4,6 +4,7 @@ from typing import Any, TypedDict
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.workflow_engine.processors.evaluations.condition import DataConditionEvaluationArtifact
 from sentry.workflow_engine.types import (
     ConditionError,
     DetectorGroupKey,
@@ -11,7 +12,7 @@ from sentry.workflow_engine.types import (
     DetectorResult,
 )
 
-from .base import BaseWorkflowEngineEvaluation, EvaluationType
+from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact, EvaluationType
 from .condition_group import DataConditionGroupEvaluation
 
 
@@ -30,11 +31,20 @@ class DetectorEvaluationOutcome(StrEnum):
     TRIGGERED = "triggered"
 
 
+@dataclass(frozen=True)
+class DetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
+    event_id: str | None
+    group_key: DetectorGroupKey
+    priority: DetectorPriorityLevel
+    trigger_evaluation: DataConditionEvaluationArtifact
+
+
 @dataclass(frozen=True, kw_only=True)
 class DetectorEvaluation(
     BaseWorkflowEngineEvaluation[
         DetectorResult,
         DetectorEvaluationData,
+        DetectorEvaluationArtifact,
     ]
 ):
     """
@@ -77,7 +87,7 @@ class DetectorEvaluation(
             "event_id": str(event_id) if event_id else None,
             "group_key": self.data["group_key"],
             "priority": self.priority.value,
-            "trigger_group_evaluation": self.data["trigger_group_evaluation"].to_artifact(),
+            "trigger_evaluation": self.data["trigger_group_evaluation"].to_artifact(),
         }
 
 

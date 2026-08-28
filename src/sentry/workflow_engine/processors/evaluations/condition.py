@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 from sentry.workflow_engine.types import DataConditionResult
 
-from .base import BaseWorkflowEngineEvaluation
+from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_condition import DataCondition
@@ -18,9 +18,22 @@ class DataConditionEvaluationException(Exception):
 ConditionEvaluationData: TypeAlias = Any
 
 
+@dataclass(frozen=True)
+class DataConditionEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
+    condition_id: int
+    condition_type: str
+    input_type: str
+    input: bool | int | float | str
+    result: DataConditionResult
+
+
 @dataclass(frozen=True, kw_only=True)
 class DataConditionEvaluation(
-    BaseWorkflowEngineEvaluation[DataConditionResult, ConditionEvaluationData]
+    BaseWorkflowEngineEvaluation[
+        DataConditionResult,
+        ConditionEvaluationData,
+        DataConditionEvaluationArtifact,
+    ]
 ):
     """
     This class is used to track the evaluation of a DataCondition's logic.

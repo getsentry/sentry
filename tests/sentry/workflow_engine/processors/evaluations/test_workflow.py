@@ -112,14 +112,14 @@ class TestWorkflowEvaluationArtifact(TestCase):
             "group_id": self.group.id,
             "outcome": WorkflowEvaluationOutcome.ERROR,
             "triggered_action_ids": [],
-            "trigger_group_evaluation": {
+            "trigger_evaluation": {
                 "triggered": True,
                 "error": "evaluation failed",
-                "logic_type": DataConditionGroup.Type.ANY,
+                "logic_type": DataConditionGroup.Type.ANY.value,
                 "result": True,
                 "condition_evaluations": [],
             },
-            "filter_group_evaluations": [],
+            "filter_evaluations": [],
         }
 
     def test_to_artifact_includes_deferred_conditions(self) -> None:

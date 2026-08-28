@@ -25,8 +25,14 @@ def _find_error(
     return next((item.error for item in items if predicate(item)), None)
 
 
+@dataclass(frozen=True)
+class BaseWorkflowEngineEvaluationArtifact:
+    triggered: bool
+    error: ConditionError | None
+
+
 @dataclass(frozen=True, kw_only=True)
-class BaseWorkflowEngineEvaluation[R, D](ABC):
+class BaseWorkflowEngineEvaluation[R, D, A](ABC):
     """
     This is a shared base class for all Evaluation classes.
 
@@ -60,7 +66,7 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
         """
         return self.error is not None
 
-    def to_artifact(self) -> dict[str, Any]:
+    def to_artifact(self) -> A:
         return {
             **self.artifact_fields,
             "triggered": self.triggered,
