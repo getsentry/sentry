@@ -223,7 +223,6 @@ export function RequestPayloadSection({item}: SectionProps) {
           <StructuredEventData
             data={body}
             forceDefaultExpand
-            maxDefaultDepth={2}
             showCopyButton
             config={config}
           />
@@ -262,7 +261,6 @@ export function ResponsePayloadSection({item}: SectionProps) {
           <StructuredEventData
             data={body}
             forceDefaultExpand
-            maxDefaultDepth={2}
             showCopyButton
             config={config}
           />

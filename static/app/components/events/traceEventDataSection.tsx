@@ -254,9 +254,6 @@ export function TraceEventDataSection({
                 data: stacktraceData,
                 platform: stacktraceData?.frames?.[0]?.platform ?? platform,
                 exception,
-                hasSimilarityEmbeddingsFeature: false,
-                includeLocation: true,
-                rawTrace: true,
                 isMinified: useMinified,
               });
             })
@@ -268,9 +265,6 @@ export function TraceEventDataSection({
         return displayRawContent({
           data: entry.data,
           platform: entry.data.frames?.[0]?.platform ?? platform,
-          hasSimilarityEmbeddingsFeature: false,
-          includeLocation: true,
-          rawTrace: true,
           isMinified: useMinified,
         });
       }
@@ -289,9 +283,6 @@ export function TraceEventDataSection({
               displayRawContent({
                 data: stacktraceData,
                 platform: stacktraceData.frames?.[0]?.platform ?? platform,
-                hasSimilarityEmbeddingsFeature: false,
-                includeLocation: true,
-                rawTrace: true,
                 isMinified: useMinified,
               })
             );

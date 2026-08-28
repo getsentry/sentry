@@ -8,8 +8,10 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
 import {ClientSecretModal} from './clientSecretModal';
@@ -82,7 +84,7 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
   const mutation = useMutation({
     mutationFn: (data: ClientFormValues) =>
       fetchMutation<ClientResponse>({
-        url: '/_admin/instance-level-oauth/',
+        url: getApiUrl('/_admin/instance-level-oauth/'),
         method: 'POST',
         data,
       }),
@@ -96,7 +98,10 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
       ));
     },
     onError: error => {
-      if (error instanceof RequestError && setFieldErrors(form, error)) {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
         return;
       }
       addErrorMessage('Unable to create OAuth client.');

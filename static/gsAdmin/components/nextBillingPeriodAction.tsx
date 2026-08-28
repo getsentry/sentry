@@ -8,6 +8,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
@@ -28,7 +29,9 @@ function EndPeriodEarlyModal({
   const {mutateAsync: endPeriodEarly, isPending} = useMutation<any>({
     mutationFn: () =>
       fetchMutation({
-        url: `/customers/${orgId}/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
         method: 'PUT',
         data: {endPeriodEarly: true},
       }),

@@ -13,6 +13,7 @@ import {
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   HeaderCellContent,
@@ -264,12 +265,21 @@ function Loading(props: ComponentProps<typeof Empty>) {
   );
 }
 
+function ErrorState(props: ComponentProps<typeof LoadingError>) {
+  return (
+    <Empty>
+      <LoadingError {...props} />
+    </Empty>
+  );
+}
+
 SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
 SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = Empty;
+SimpleTable.Error = ErrorState;
 SimpleTable.Loading = Loading;
 SimpleTable.FullWidthCell = FullWidthCell;
 SimpleTable.FullWidthRow = FullWidthRow;

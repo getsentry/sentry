@@ -27,6 +27,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -205,6 +206,8 @@ function InlineMappingForm({
               onChange={field.handleChange}
               isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry Team')}
+              // Portal out of SimpleTable cells so later rows don't cover the menu.
+              menuPortalTarget={document.body}
               queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
             />
           ) : (
@@ -213,6 +216,7 @@ function InlineMappingForm({
               onChange={field.handleChange}
               isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry User')}
+              menuPortalTarget={document.body}
               queryOptions={makeMemberSelectQueryOptions(
                 orgSlug,
                 defaultOptions,
@@ -296,7 +300,7 @@ function ModalMappingForm({
     onSubmit: ({value, formApi}) =>
       mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
         }
       }),
   });

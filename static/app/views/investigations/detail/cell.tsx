@@ -11,7 +11,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
@@ -21,7 +21,6 @@ import {
   IconChevron,
   IconClose,
   IconEllipsis,
-  IconRefresh,
   IconReturn,
   IconSeer,
 } from 'sentry/icons';
@@ -62,9 +61,15 @@ export function InvestigationCell({
   investigation,
 }: InvestigationCellProps) {
   const organizationSlug = useOrganization().slug;
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [traceExecutionId, setTraceExecutionId] = useState<string | null>(null);
-  const [showPrompt, setShowPrompt] = useState(true);
+  const activeExecutionId = isExecutionActive(block.currentExecution?.status)
+    ? (block.currentExecution?.id ?? null)
+    : null;
+  const autoOpenedExecutionId = useRef(activeExecutionId);
+  const [panelOpen, setPanelOpen] = useState(Boolean(activeExecutionId));
+  const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
+    activeExecutionId
+  );
+  const [showPrompt, setShowPrompt] = useState(!activeExecutionId);
   const [prompt, setPrompt] = useState(() =>
     block.outputStatus === 'notRun' ? block.generationPrompt : ''
   );
@@ -108,6 +113,16 @@ export function InvestigationCell({
     {onError: () => addErrorMessage(t('Unable to delete this cell.'))}
   );
 
+  useEffect(() => {
+    if (!activeExecutionId || autoOpenedExecutionId.current === activeExecutionId) {
+      return;
+    }
+    autoOpenedExecutionId.current = activeExecutionId;
+    setPanelOpen(true);
+    setTraceExecutionId(activeExecutionId);
+    setShowPrompt(false);
+  }, [activeExecutionId]);
+
   function openPanel() {
     setPanelOpen(true);
     if (block.currentExecution && isExecutionActive(block.currentExecution.status)) {
@@ -128,38 +143,56 @@ export function InvestigationCell({
       setPanelOpen(true);
       setTraceExecutionId(execution.id);
       setShowPrompt(false);
+      autoOpenedExecutionId.current = execution.id;
     } catch {
       // The mutation owns user-facing error handling.
     }
   }
 
-  const refinementButton = (
-    <Button
-      size="xs"
-      variant="transparent"
-      icon={<IconSeer size="xs" />}
-      aria-label={t('Ask Seer about %s', displayTitle)}
-      disabled={waitingForDependencies}
-      onClick={panelOpen ? () => setPanelOpen(false) : openPanel}
-    />
+  const actionItems: MenuItemProps[] = [];
+  if (block.kind === 'query') {
+    actionItems.push({
+      key: 'rerun',
+      label: t('Rerun'),
+      disabled:
+        !canRun ||
+        rerunMutation.isPending ||
+        isExecutionActive(block.currentExecution?.status) ||
+        !(block.generationPrompt || block.content).trim(),
+      onAction: () => void rerun(),
+    });
+  }
+  actionItems.push(
+    {
+      key: 'refine',
+      label: t('Refine'),
+      disabled: waitingForDependencies,
+      onAction: openPanel,
+    },
+    {
+      key: 'delete',
+      label: t('Delete'),
+      priority: 'danger',
+      disabled:
+        !canRun ||
+        deleteMutation.isPending ||
+        isExecutionActive(block.currentExecution?.status),
+      onAction: () =>
+        openConfirmModal({
+          message: t('Are you sure you want to delete this cell?'),
+          priority: 'danger',
+          confirmText: t('Delete'),
+          onConfirm: () =>
+            deleteMutation.mutate({
+              block,
+              investigationVersion: investigation.version,
+            }),
+        }),
+    }
   );
 
-  const queryHeaderActions = (
-    <Flex align="center" gap="xs" flexShrink={0}>
-      {refinementButton}
-      <Button
-        size="xs"
-        variant="transparent"
-        icon={<IconRefresh size="xs" />}
-        aria-label={t('Rerun %s', displayTitle)}
-        busy={rerunMutation.isPending}
-        disabled={
-          !canRun ||
-          isExecutionActive(block.currentExecution?.status) ||
-          !(block.generationPrompt || block.content).trim()
-        }
-        onClick={() => void rerun()}
-      />
+  const cellActions = (
+    <CellActions flexShrink={0}>
       <DropdownMenu
         position="bottom-end"
         usePortal
@@ -170,30 +203,9 @@ export function InvestigationCell({
           icon: <IconEllipsis size="xs" />,
           'aria-label': t('Cell actions for %s', displayTitle),
         }}
-        items={[
-          {
-            key: 'delete',
-            label: t('Delete'),
-            priority: 'danger',
-            disabled:
-              !canRun ||
-              deleteMutation.isPending ||
-              isExecutionActive(block.currentExecution?.status),
-            onAction: () =>
-              openConfirmModal({
-                message: t('Are you sure you want to delete this cell?'),
-                priority: 'danger',
-                confirmText: t('Delete'),
-                onConfirm: () =>
-                  deleteMutation.mutate({
-                    block,
-                    investigationVersion: investigation.version,
-                  }),
-              }),
-          },
-        ]}
+        items={actionItems}
       />
-    </Flex>
+    </CellActions>
   );
 
   const panel = panelOpen ? (
@@ -223,7 +235,7 @@ export function InvestigationCell({
       {block.kind === 'query' ? (
         <Fragment>
           <QueryResult
-            actions={queryHeaderActions}
+            actions={cellActions}
             block={block}
             progressState={progressState}
           />
@@ -233,8 +245,8 @@ export function InvestigationCell({
         <Fragment>
           <CellResult
             block={block}
+            actions={cellActions}
             progressState={progressState}
-            refinementButton={refinementButton}
             streamedMarkdown={
               isExecutionActive(block.currentExecution?.status)
                 ? streamedTextQuery.data?.partialMarkdown
@@ -249,20 +261,20 @@ export function InvestigationCell({
 }
 
 function CellResult({
+  actions,
   block,
   progressState,
-  refinementButton,
   streamedMarkdown,
 }: {
+  actions: React.ReactNode;
   block: InvestigationBlock;
   progressState: CellProgressState;
-  refinementButton: React.ReactNode;
   streamedMarkdown?: string | null;
 }) {
   const markdown =
     streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
   return (
-    <Stack
+    <CellHoverSurface
       position="relative"
       flex={1}
       minWidth={0}
@@ -271,7 +283,7 @@ function CellResult({
       data-cell-variant="unbordered"
     >
       <Container position="absolute" top={0} right={0}>
-        {refinementButton}
+        {actions}
       </Container>
       <CellExecutionAlert block={block} />
       {markdown ? (
@@ -279,7 +291,7 @@ function CellResult({
       ) : (
         <CellProgress state={progressState} />
       )}
-    </Stack>
+    </CellHoverSurface>
   );
 }
 
@@ -292,7 +304,7 @@ function QueryResult({
   block: InvestigationBlock;
   progressState: CellProgressState;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(block.config.autoRun !== true);
   const output = getQueryOutput(block.output);
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
@@ -304,19 +316,22 @@ function QueryResult({
     getChartMetadata(chart);
 
   return (
-    <Stack width="100%" gap="sm">
-      <QueryDisclosureButton
-        size="sm"
-        variant="transparent"
-        icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
-        aria-label={t('Toggle %s', title)}
-        aria-expanded={expanded}
-        onClick={() => setExpanded(value => !value)}
-      >
-        <Text data-test-id="query-cell-title" size="sm" tabular>
-          {title}
-        </Text>
-      </QueryDisclosureButton>
+    <CellHoverSurface width="100%" gap="sm">
+      <Flex width="100%" align="center" gap="xs" data-test-id="query-cell-toolbar">
+        <QueryDisclosureButton
+          size="sm"
+          variant="transparent"
+          icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
+          aria-label={t('Toggle %s', title)}
+          aria-expanded={expanded}
+          onClick={() => setExpanded(value => !value)}
+        >
+          <Text data-test-id="query-cell-title" size="sm" tabular>
+            {title}
+          </Text>
+        </QueryDisclosureButton>
+        {actions}
+      </Flex>
       {expanded ? (
         <Stack
           width="100%"
@@ -348,7 +363,6 @@ function QueryResult({
                 </Text>
               ) : null}
             </Stack>
-            {actions}
           </Flex>
           <Container width="100%" overflow="hidden" padding={chart ? 'md lg' : '0'}>
             <CellExecutionAlert block={block} />
@@ -364,7 +378,7 @@ function QueryResult({
           </Container>
         </Stack>
       ) : null}
-    </Stack>
+    </CellHoverSurface>
   );
 }
 
@@ -447,6 +461,15 @@ function getCellProgressState(
     return 'blockedByCancellation';
   }
   return 'waiting';
+}
+
+export function shouldDisplayInvestigationBlock(
+  block: InvestigationBlock,
+  blocks: InvestigationBlock[]
+) {
+  // Waiting cells have no useful content yet. Dependency failures and cancellations
+  // remain visible so users can understand why downstream work stopped.
+  return getCellProgressState(block, blocks) !== 'waiting';
 }
 
 export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
@@ -689,7 +712,7 @@ function RefinementPanel({
 
   return (
     <RefinementDisclosure defaultExpanded size="sm">
-      <Disclosure.Title
+      <AgentActivityDisclosureTitle
         leadingItems={<IconSeer size="xs" animation={active ? 'waiting' : undefined} />}
         trailingItems={
           <Flex align="center" gap="sm">
@@ -704,8 +727,8 @@ function RefinementPanel({
           </Flex>
         }
       >
-        <Text monospace>{getExecutionTitle(status)}</Text>
-      </Disclosure.Title>
+        <AgentActivityTitle monospace>{getExecutionTitle(status)}</AgentActivityTitle>
+      </AgentActivityDisclosureTitle>
       <RefinementDisclosureContent>
         <Stack gap="md">
           <Transcript
@@ -1102,9 +1125,30 @@ function getSeriesName(series: {label: string} | {name: string}) {
 }
 
 const QueryDisclosureButton = styled(Button)`
-  width: 100%;
+  flex: 1;
   justify-content: flex-start;
+  padding-inline: ${p => p.theme.space.xs};
   text-align: left;
+`;
+
+const CellActions = styled(Flex)`
+  opacity: 0;
+  pointer-events: none;
+`;
+
+const CellHoverSurface = styled(Stack)`
+  &:hover ${CellActions},
+  &:focus-within ${CellActions} {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (hover: none) {
+    ${CellActions} {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
 `;
 
 const QueryTable = styled('table')`
@@ -1115,6 +1159,24 @@ const QueryTable = styled('table')`
 const RefinementDisclosure = styled(Disclosure)`
   width: 100%;
   margin-top: ${p => p.theme.space.lg};
+
+  & > div:first-child {
+    padding-inline: ${p => p.theme.space['2xs']};
+  }
+`;
+
+const AgentActivityDisclosureTitle = styled(Disclosure.Title)`
+  padding-inline: 0;
+`;
+
+const AgentActivityTitle = styled(Text)`
+  font-size: ${p => p.theme.font.size.sm};
+  font-style: normal;
+  font-weight: 700;
+  line-height: ${p => p.theme.font.lineHeight.fixed};
+  letter-spacing: 0;
+  vertical-align: middle;
+  font-variant-numeric: lining-nums tabular-nums;
 `;
 
 const RefinementPrompt = styled('div')`
