@@ -364,7 +364,6 @@ def _forward_to_judge(
         PullRequestMetrics.objects.filter(
             pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
         ).update(verdict=None)
-        metrics.incr("pr_metrics.judge.enqueue_failed", sample_rate=1.0)
         logger.exception(
             "pr_metrics.judge.enqueue_failed",
             extra={
@@ -472,7 +471,6 @@ def handle_emission(
         PullRequestMetrics.objects.filter(
             pull_request=pr, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
         ).update(verdict=None)
-        metrics.incr("pr_metrics.cooldown.enqueue_failed", sample_rate=1.0)
         logger.exception("pr_metrics.cooldown.enqueue_failed", extra=log_extra)
         return
 
@@ -582,11 +580,10 @@ def handle_metrics(
         return
 
     if is_stale_github_pull_request_payload(pr, pull_request):
-        # Ambient rate: this fires per reordered delivery across the whole webhook
-        # stream, and the unsampled provider-tagged
-        # `scm.webhook.pull_request.stale_snapshot` already counts the same condition
-        # exactly. Read this one as a rate.
-        metrics.incr("pr_metrics.metrics.stale_snapshot")
+        # Counted by the unsampled, provider-tagged
+        # `scm.webhook.pull_request.stale_snapshot` in lifecycle_mapping, which sees the
+        # same condition across every provider; this path keeps only the log, for the
+        # delivery id.
         logger.info(
             "pr_metrics.metrics.stale_snapshot",
             extra={

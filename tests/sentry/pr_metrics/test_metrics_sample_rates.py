@@ -31,7 +31,6 @@ DELIBERATELY_SAMPLED = {
     ("emit.py", "pr_metrics.emit.skipped", "untracked"),
     ("webhooks.py", "pr_metrics.emit.skipped", "untracked"),
     ("webhooks.py", "pr_metrics.check.activity_recorded", None),
-    ("webhooks.py", "pr_metrics.metrics.stale_snapshot", None),
 }
 
 _EMITTERS = ("incr", "gauge", "timing", "distribution", "set")

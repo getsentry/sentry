@@ -153,7 +153,12 @@ def select_verdict(
 
     metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
     if metrics_row is None:
-        logger.warning(
+        # error, not warning: handle_metrics persists this row before emission under
+        # the same gate, so its absence means that write failed and the PR will now
+        # never emit. Silent data loss wants an issue someone owns, not a counter —
+        # only ERROR reaches Sentry as one (the SDK sets event_level=None and the
+        # root `internal` handler is level ERROR).
+        logger.error(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": pull_request.organization_id,
@@ -161,7 +166,6 @@ def select_verdict(
                 "pull_request_id": pull_request.id,
             },
         )
-        metrics.incr("pr_metrics.select_verdict.metrics_row_missing", sample_rate=1.0)
         return VerdictDeferral.INDETERMINATE
 
     has_commits_after_open = _has_commits_after_open(pull_request)
@@ -942,7 +946,10 @@ def _log_reducer_parity(pull_request: PullRequest) -> None:
         activity_doc.human_participant_count(doc),
     )
     if legacy != reduced:
-        logger.warning(
+        # error, not warning: the two reducers disagreeing is a correctness bug to be
+        # told about once, not a rate to trend, so it goes to Sentry rather than to a
+        # counter that is expected to read zero forever.
+        logger.error(
             "pr_metrics.reducer_parity.mismatch",
             extra={
                 "organization_id": pull_request.organization_id,
@@ -952,8 +959,10 @@ def _log_reducer_parity(pull_request: PullRequest) -> None:
                 "reduced": reduced,
             },
         )
-        metrics.incr("pr_metrics.reducer_parity.mismatch", sample_rate=1.0)
     else:
+        # Only the match half is a counter, despite the name pairing: it tracks how
+        # much traffic still takes the legacy path, which is a rate that should drain
+        # to zero. Its mismatch counterpart is handled above.
         metrics.incr("pr_metrics.reducer_parity.match", sample_rate=1.0)
 
 

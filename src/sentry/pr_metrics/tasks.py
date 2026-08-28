@@ -608,7 +608,6 @@ def detect_stale_pull_requests_task() -> None:
                     emitted += 1
             except Exception:
                 logger.exception("pr_metrics.stale.emit_failed", extra={"pull_request_id": pr.id})
-                metrics.incr("pr_metrics.stale.emit_failed", sample_rate=1.0)
 
     metrics.incr("pr_metrics.stale.emitted", amount=emitted, sample_rate=1.0)
     logger.info("pr_metrics.stale.emitted", extra={"count": emitted})

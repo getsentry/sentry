@@ -597,6 +597,14 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
         metrics.incr(
             "pr_metrics.judge.reaper.skipped", tags={"reason": "org_gone"}, sample_rate=1.0
         )
+        logger.info(
+            "pr_metrics.judge.reaper.org_gone",
+            extra={
+                "organization_id": pull_request.organization_id,
+                "repository_id": pull_request.repository_id,
+                "pull_request_id": pull_request.id,
+            },
+        )
         return
 
     if not features.has("organizations:pr-metrics", organization):
@@ -607,6 +615,14 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
                 "pr_metrics.judge.reaper.released",
                 tags={"reason": "feature_disabled"},
                 sample_rate=1.0,
+            )
+            logger.info(
+                "pr_metrics.judge.reaper.feature_disabled",
+                extra={
+                    "organization_id": pull_request.organization_id,
+                    "repository_id": pull_request.repository_id,
+                    "pull_request_id": pull_request.id,
+                },
             )
         return
 
