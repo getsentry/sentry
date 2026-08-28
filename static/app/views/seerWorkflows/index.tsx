@@ -54,6 +54,7 @@ import {
 import type {
   RunStatus,
   SeerNightShiftRun,
+  SeerNightShiftRunErrorType,
   SeerNightShiftRunIssue,
   SeerNightShiftRunPullRequest,
   WorkflowKind,
@@ -917,7 +918,7 @@ function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
 }
 
 function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
-  const errorPresentation = getErrorPresentation(run.errorMessage);
+  const errorPresentation = getErrorPresentation(run.errorType ?? null);
   const agentRunId = run.extras.agent_run_id;
   return {
     id: `${run.id}:agentic_triage`,
@@ -943,23 +944,22 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
 }
 
 function getErrorPresentation(
-  errorMessage: string | null
+  errorType: SeerNightShiftRunErrorType | null
 ): {resultText: string; status: RunStatus} | null {
-  switch (errorMessage) {
+  switch (errorType) {
     case null:
       return null;
-    case 'No Seer quota available':
+    case 'no_quota':
       return {status: 'skipped', resultText: t('No Seer quota available')};
-    case 'Organization does not have Seer access':
+    case 'no_seer_access':
       return {status: 'skipped', resultText: t('Seer is not enabled')};
-    case 'Failed to get eligible projects':
+    case 'eligible_projects_failed':
       return {status: 'failed', resultText: t('Could not check eligible projects')};
-    case 'Invalid Night Shift shard plan':
+    case 'invalid_shard_plan':
       return {status: 'failed', resultText: t('Could not prepare triage')};
+    case 'shard_dispatch_failed':
+      return {status: 'failed', resultText: t('Could not start all triage batches')};
     default:
-      if (/^Failed to dispatch \d+ of \d+ triage shards$/.test(errorMessage)) {
-        return {status: 'failed', resultText: t('Could not start all triage batches')};
-      }
       return {status: 'failed', resultText: t('Run failed')};
   }
 }

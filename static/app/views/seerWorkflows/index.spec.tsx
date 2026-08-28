@@ -59,6 +59,7 @@ describe('SeerWorkflows', () => {
           dateAdded: '2026-04-20T00:00:00Z',
           triageStrategy: 'agentic',
           errorMessage: 'Unexpected Seer error',
+          errorType: 'unknown',
           extras: {},
           issues: [],
         },
@@ -79,16 +80,12 @@ describe('SeerWorkflows', () => {
   });
 
   it.each([
-    ['No Seer quota available', 'No Seer quota available', 'Skipped'],
-    ['Organization does not have Seer access', 'Seer is not enabled', 'Skipped'],
-    ['Failed to get eligible projects', 'Could not check eligible projects', 'Failed'],
-    ['Invalid Night Shift shard plan', 'Could not prepare triage', 'Failed'],
-    [
-      'Failed to dispatch 1 of 3 triage shards',
-      'Could not start all triage batches',
-      'Failed',
-    ],
-  ])('shows friendly messaging for %s', async (errorMessage, resultText, status) => {
+    ['no_quota', 'No Seer quota available', 'Skipped'],
+    ['no_seer_access', 'Seer is not enabled', 'Skipped'],
+    ['eligible_projects_failed', 'Could not check eligible projects', 'Failed'],
+    ['invalid_shard_plan', 'Could not prepare triage', 'Failed'],
+    ['shard_dispatch_failed', 'Could not start all triage batches', 'Failed'],
+  ])('shows friendly messaging for %s', async (errorType, resultText, status) => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -96,7 +93,8 @@ describe('SeerWorkflows', () => {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
           triageStrategy: 'agentic',
-          errorMessage,
+          errorMessage: 'Backend diagnostic details',
+          errorType,
           extras: {},
           issues: [],
         },
@@ -778,6 +776,7 @@ describe('SeerWorkflows', () => {
           dateAdded: '2026-04-21T00:00:00Z',
           triageStrategy: 'agentic',
           errorMessage: 'Unexpected Seer error',
+          errorType: 'unknown',
           extras: {options: {source: 'cron'}},
           issues: [],
         },
@@ -926,6 +925,7 @@ describe('SeerWorkflows', () => {
           dateAdded: '2026-04-20T00:00:00Z',
           triageStrategy: 'agentic',
           errorMessage: 'Unexpected Seer error',
+          errorType: 'unknown',
           extras: {agent_run_id: 42},
           issues: [],
         },
@@ -975,6 +975,7 @@ describe('SeerWorkflows', () => {
           dateAdded: '2026-04-21T00:00:00Z',
           triageStrategy: 'agentic',
           errorMessage: 'Unexpected Seer error',
+          errorType: 'unknown',
           extras: {},
           issues: [],
         },
