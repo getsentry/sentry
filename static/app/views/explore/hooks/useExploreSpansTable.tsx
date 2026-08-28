@@ -70,6 +70,7 @@ export function useExploreSpansTable({
       JSON.stringify([
         cursor,
         dataset,
+        extrapolate,
         limit,
         query,
         queryExtras,
@@ -78,7 +79,7 @@ export function useExploreSpansTable({
         selection.projects,
         sortBys,
       ]),
-    [cursor, dataset, limit, query, queryExtras, selection, sortBys]
+    [cursor, dataset, extrapolate, limit, query, queryExtras, selection, sortBys]
   );
   const [requestState, setRequestState] = useState<SpanSamplesRequestState>({
     lastResolved: null,
