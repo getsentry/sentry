@@ -31,12 +31,12 @@ const functionArguments = [
   {name: 'span.description', kind: FieldKind.TAG},
 ];
 
-const getSpanFieldDefinition = (key: string) => {
+const getSpanFieldDefinition = (key: string, attributeTexts?: readonly string[]) => {
   const argument = functionArguments.find(
     functionArgument => functionArgument.name === key
   );
 
-  return getExploreEquationFieldDefinition(key, argument?.kind, true);
+  return getExploreEquationFieldDefinition(key, argument?.kind, true, attributeTexts);
 };
 
 const getSuggestedKey = (key: string) => {
@@ -1228,6 +1228,56 @@ describe('token', () => {
       expect(dispatch).not.toHaveBeenCalledWith(
         expect.objectContaining({type: 'REPLACE_TOKEN'})
       );
+    });
+
+    it('flushes pending filter edits when leaving the arguments grid', async () => {
+      const dispatch = jest.fn();
+      render(<Tokens expression="avg_if(``,span.duration)" dispatch={dispatch} />);
+
+      const argsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
+      const filterArg = within(argsGrid).getByRole('combobox', {name: 'Add a filter'});
+      const columnArg = within(argsGrid).getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op:db');
+      await userEvent.click(columnArg);
+      await waitFor(() => {
+        expect(columnArg).toHaveFocus();
+      });
+      await userEvent.click(getLastInput());
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'avg_if(`span.op:db`,span.duration)',
+          })
+        );
+      });
+    });
+
+    it('keeps Discover-style avg_if arguments editable when the feature is on', async () => {
+      render(<Tokens expression="avg_if(span.duration,span.op,equals,queue.process)" />);
+
+      const argumentsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
+
+      expect(
+        within(argumentsGrid).queryByRole('combobox', {name: 'Add a filter'})
+      ).not.toBeInTheDocument();
+
+      const [numberArg, stringArg] = within(argumentsGrid).getAllByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      expect(numberArg).toHaveValue('span.duration');
+      expect(stringArg).toHaveValue('span.op');
+      expect(
+        within(argumentsGrid).getByRole('combobox', {name: 'Select an option'})
+      ).toBeInTheDocument();
+      expect(
+        within(argumentsGrid).getByRole('textbox', {name: 'Add a value'})
+      ).toHaveValue('queue.process');
     });
 
     it('suggests attributes for each argument of avg_if', async () => {

@@ -47,6 +47,28 @@ describe('getConditionalFilterClauseAtCursor', () => {
       clauseStart: 35,
     });
   });
+
+  it('limits the clause to the next operator when the cursor is on a boolean operator', () => {
+    const value = 'span.op:db and span.description:foo and span.status:ok';
+    const andIndex = value.indexOf(' and ');
+    expect(getConditionalFilterClauseAtCursor(value, andIndex + 1)).toEqual({
+      clause: 'span.description:foo',
+      clauseCursorIndex: 0,
+      clauseEnd: 35,
+      clauseStart: 15,
+    });
+  });
+
+  it('limits the clause to the next operator when the cursor is at the end of a boolean operator', () => {
+    const value = 'span.op:db and span.description:foo and span.status:ok';
+    const secondClauseStart = value.indexOf('span.description');
+    expect(getConditionalFilterClauseAtCursor(value, secondClauseStart)).toEqual({
+      clause: 'span.description:foo',
+      clauseCursorIndex: 0,
+      clauseEnd: 35,
+      clauseStart: 15,
+    });
+  });
 });
 
 describe('getConditionalFilterEditPhase', () => {

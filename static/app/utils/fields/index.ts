@@ -3933,19 +3933,40 @@ export const getFieldDefinition = (
  * Span field definitions for the Explore equation builder. When
  * `explore-conditional-aggregates` is on, `_if` combinators use the EAP filter-first
  * signature (`avg_if(\`span.op:db\`,span.duration)`), including `count_if`.
+ *
+ * Existing Discover-style calls (`avg_if(span.duration,span.op,equals,db)`) keep the
+ * Discover definition so editing them does not reinterpret the first column as a filter.
  */
 export function getExploreEquationFieldDefinition(
   key: string,
   kind?: FieldKind,
-  hasConditionalAggregates = false
+  hasConditionalAggregates = false,
+  attributeTexts?: readonly string[]
 ): FieldDefinition | null {
   if (hasConditionalAggregates) {
     const conditionalDefinition = SPAN_CONDITIONAL_AGGREGATION_FIELDS[key];
     if (conditionalDefinition) {
+      if (usesDiscoverStyleConditionalAggregateArgs(attributeTexts)) {
+        return getFieldDefinition(key, 'span', kind);
+      }
       return conditionalDefinition;
     }
   }
   return getFieldDefinition(key, 'span', kind);
+}
+
+/**
+ * Discover `_if` aggregates put a column first. EAP filter-first forms wrap the first
+ * argument in backticks (`\`span.op:db\`` or empty `` ` ` ``).
+ */
+export function usesDiscoverStyleConditionalAggregateArgs(
+  attributeTexts: readonly string[] | undefined
+): boolean {
+  if (!attributeTexts?.length) {
+    return false;
+  }
+  const first = attributeTexts[0]!.trim();
+  return !(first.startsWith('`') && first.endsWith('`'));
 }
 
 export function isDeviceClass(key: any): boolean {

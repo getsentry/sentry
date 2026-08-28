@@ -128,13 +128,14 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
-  const {getFieldDefinition} = useArithmeticBuilder();
+  const {dispatch, getFieldDefinition} = useArithmeticBuilder();
 
   const resolveArgumentLabel = useCallback(
     (index: number, fallbackLabel: string) => {
-      const fieldDefinition = getFieldDefinition(functionToken.function)?.parameters?.[
-        index
-      ];
+      const fieldDefinition = getFieldDefinition(
+        functionToken.function,
+        functionToken.attributes.map(attr => attr.text)
+      )?.parameters?.[index];
       return resolveArgumentDisplayLabel(fieldDefinition, fallbackLabel);
     },
     [getFieldDefinition, functionToken]
@@ -149,9 +150,29 @@ function ArgumentsGrid({
     })
   );
 
+  const argsRef = useRef(args);
+  argsRef.current = args;
+  const functionTokenRef = useRef(functionToken);
+  functionTokenRef.current = functionToken;
+
+  const commitArgumentsIfChanged = useCallback(() => {
+    const nextArgs = argsRef.current.map(argument => argument.value).join(',');
+    const prevArgs = functionTokenRef.current.attributes
+      .map(attribute => attribute.text)
+      .join(',');
+    if (nextArgs === prevArgs) {
+      return;
+    }
+    dispatch({
+      type: 'REPLACE_TOKEN',
+      token: functionTokenRef.current,
+      text: `${functionTokenRef.current.function}(${nextArgs})`,
+    });
+  }, [dispatch]);
+
   const updateArgumentAtIndex = (index: number, argument: string) => {
-    setArguments(prev =>
-      prev.map((item, i) =>
+    setArguments(prev => {
+      const next = prev.map((item, i) =>
         index === i
           ? {
               ...item,
@@ -159,8 +180,10 @@ function ArgumentsGrid({
               label: resolveArgumentLabel(index, prettifyTagKey(argument)),
             }
           : item
-      )
-    );
+      );
+      argsRef.current = next;
+      return next;
+    });
   };
 
   if (!args.length) {
@@ -176,6 +199,7 @@ function ArgumentsGrid({
       item={functionItem}
       state={functionListState}
       token={functionToken}
+      onArgumentsBlur={commitArgumentsIfChanged}
       onArgumentsChange={(index: number, argument: string) =>
         updateArgumentAtIndex(index, argument)
       }
@@ -189,6 +213,7 @@ interface GridListProps
   extends AriaGridListOptions<TokenAttribute>, ArithmeticTokenFunctionProps {
   arguments: Argument[];
   children: CollectionChildren<TokenAttribute>;
+  onArgumentsBlur: () => void;
   onArgumentsChange: (index: number, argument: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
@@ -197,6 +222,7 @@ function ArgumentsGridList({
   item: functionItem,
   state: functionListState,
   token: functionToken,
+  onArgumentsBlur,
   onArgumentsChange,
   arguments: functionArguments,
   rowRef,
@@ -258,6 +284,7 @@ function ArgumentsGridList({
               argumentsListState={state}
               argumentRef={ref}
               argumentIndex={index}
+              onArgumentsBlur={onArgumentsBlur}
               onArgumentsChange={onArgumentsChange}
             />
             {index < functionToken.attributes.length - 1 && ','}
@@ -279,6 +306,7 @@ interface InternalInputProps {
   functionItem: Node<Token>;
   functionListState: ListState<Token>;
   functionToken: TokenFunction;
+  onArgumentsBlur: () => void;
   onArgumentsChange: (index: number, argument: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
@@ -293,6 +321,7 @@ function InternalInput({
   argument,
   argumentRef,
   arguments: functionArguments,
+  onArgumentsBlur,
   onArgumentsChange,
 }: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -317,7 +346,11 @@ function InternalInput({
   } = useArithmeticBuilder();
 
   const parameterDefinition = useMemo(
-    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
+    () =>
+      getFieldDefinition(
+        functionToken.function,
+        functionToken.attributes.map(attr => attr.text)
+      )?.parameters?.[argumentIndex],
     [argumentIndex, getFieldDefinition, functionToken]
   );
 
@@ -333,6 +366,7 @@ function InternalInput({
   const [currentValue, setCurrentValue] = useState(initialLabel);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
   const [selectionIndex, setSelectionIndex] = useState(0);
+  const skipBlurFlushRef = useRef(false);
 
   const isFilterParameter = isSearchFilterParameter(parameterDefinition);
 
@@ -478,10 +512,50 @@ function InternalInput({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const onInputBlur = useCallback(() => {
-    resetInputValue();
-    setIsCurrentlyEditing(false);
-  }, [resetInputValue]);
+  const flushArgumentsIfLeavingGrid = useCallback(
+    (evt?: FocusEvent<HTMLInputElement>) => {
+      if (skipBlurFlushRef.current) {
+        skipBlurFlushRef.current = false;
+        return;
+      }
+
+      if (!evt) {
+        window.setTimeout(() => {
+          if (skipBlurFlushRef.current) {
+            skipBlurFlushRef.current = false;
+            return;
+          }
+          const stayingInArgs = Boolean(
+            document.activeElement &&
+            argumentRef.current?.contains(document.activeElement)
+          );
+          if (!stayingInArgs) {
+            onArgumentsBlur();
+          }
+        }, 0);
+        return;
+      }
+
+      const argsGrid = evt.currentTarget.closest('[role="grid"]');
+      const related = evt.relatedTarget;
+      const stayingInArgs = Boolean(
+        argsGrid && related instanceof Node && argsGrid.contains(related)
+      );
+      if (!stayingInArgs) {
+        onArgumentsBlur();
+      }
+    },
+    [argumentRef, onArgumentsBlur]
+  );
+
+  const onInputBlur = useCallback(
+    (evt?: FocusEvent<HTMLInputElement>) => {
+      resetInputValue();
+      setIsCurrentlyEditing(false);
+      flushArgumentsIfLeavingGrid(evt);
+    },
+    [flushArgumentsIfLeavingGrid, resetInputValue]
+  );
 
   const resolveValue = useCallback(
     (raw: string): string => {
@@ -503,6 +577,7 @@ function InternalInput({
 
   // Persist free-text filter edits on blur. Skip REPLACE_TOKEN while focus stays inside
   // the arguments grid — that remounts the function and steals focus from the next arg.
+  // Pending edits are flushed via onArgumentsBlur when focus finally leaves the grid.
   const onFilterInputBlur = useCallback(
     (evt?: FocusEvent<HTMLInputElement>) => {
       const value = inputValue ? ensureSearchFilterArgument(inputValue) : null;
@@ -512,87 +587,33 @@ function InternalInput({
       }
       resetInputValue();
       setIsCurrentlyEditing(false);
-
-      if (!value || value === functionToken.attributes[argumentIndex]?.text) {
-        return;
-      }
-
-      const commitFilter = () => {
-        dispatch({
-          text: `${functionToken.function}(${updateAttrsWith(value)})`,
-          type: 'REPLACE_TOKEN',
-          token: functionToken,
-        });
-      };
-
-      if (evt) {
-        const argsGrid = evt.currentTarget.closest('[role="grid"]');
-        const related = evt.relatedTarget;
-        const stayingInArgs = Boolean(
-          argsGrid && related instanceof Node && argsGrid.contains(related)
-        );
-        if (!stayingInArgs) {
-          commitFilter();
-        }
-        return;
-      }
-
-      // Click-outside closes the menu without a focus event; check after focus settles.
-      window.setTimeout(() => {
-        const stayingInArgs = Boolean(
-          document.activeElement && argumentRef.current?.contains(document.activeElement)
-        );
-        if (!stayingInArgs) {
-          commitFilter();
-        }
-      }, 0);
+      flushArgumentsIfLeavingGrid(evt);
     },
     [
       argumentIndex,
-      argumentRef,
-      dispatch,
-      functionToken,
+      flushArgumentsIfLeavingGrid,
       inputValue,
       onArgumentsChange,
       resetInputValue,
-      updateAttrsWith,
     ]
   );
 
-  // Non-filter free-text values (e.g. apdex threshold) still use InputBox and can use the
-  // relatedTarget check to REPLACE only when leaving the arguments grid.
+  // Non-filter free-text values (e.g. apdex threshold) flush pending edits when leaving.
   const onTextInputBlur = useCallback(
     (evt: FocusEvent<HTMLInputElement>) => {
       if (inputValue) {
         onArgumentsChange(argumentIndex, inputValue);
-
-        const argsGrid = evt.currentTarget.closest('[role="grid"]');
-        const related = evt.relatedTarget;
-        const stayingInArgs = Boolean(
-          related instanceof Node && argsGrid?.contains(related)
-        );
-        if (
-          !stayingInArgs &&
-          inputValue !== functionToken.attributes[argumentIndex]?.text
-        ) {
-          dispatch({
-            text: `${functionToken.function}(${updateAttrsWith(inputValue)})`,
-            type: 'REPLACE_TOKEN',
-            token: functionToken,
-          });
-        }
       }
       resetInputValue();
       setIsCurrentlyEditing(false);
+      flushArgumentsIfLeavingGrid(evt);
     },
     [
       argumentIndex,
-      dispatch,
-      functionToken,
+      flushArgumentsIfLeavingGrid,
       inputValue,
       onArgumentsChange,
       resetInputValue,
-      updateAttrsWith,
     ]
   );
 
@@ -616,6 +637,7 @@ function InternalInput({
 
     setCurrentValue(resolveDisplayLabel(value));
     onArgumentsChange(argumentIndex, value);
+    skipBlurFlushRef.current = true;
 
     dispatch({
       text: `${functionToken.function}(${updateAttrsWith(value)})`,
@@ -794,13 +816,14 @@ function InternalInput({
       }
 
       setCurrentValue(resolveDisplayLabel(prettifyTagKey(option.value)));
+      onArgumentsChange(argumentIndex, option.value);
       if (hasNextArgument) {
         focusTarget(
           argumentsListState,
           argumentsListState.collection.getKeyAfter(argumentItem.key)
         );
-        onArgumentsChange(argumentIndex, option.value);
       } else {
+        skipBlurFlushRef.current = true;
         dispatch({
           text: `${functionToken.function}(${updateAttrsWith(option.value)})`,
           type: 'REPLACE_TOKEN',

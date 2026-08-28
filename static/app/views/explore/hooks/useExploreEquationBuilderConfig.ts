@@ -69,9 +69,14 @@ export function useExploreEquationBuilderConfig({
   );
 
   const getFieldDefinition = useCallback(
-    (key: string) => {
+    (key: string, attributeTexts?: readonly string[]) => {
       const tag = numberTags[key] ?? stringTags[key];
-      return getExploreEquationFieldDefinition(key, tag?.kind, hasConditionalAggregates);
+      return getExploreEquationFieldDefinition(
+        key,
+        tag?.kind,
+        hasConditionalAggregates,
+        attributeTexts
+      );
     },
     [hasConditionalAggregates, numberTags, stringTags]
   );

@@ -14,7 +14,10 @@ interface ArithmeticBuilderContextData {
   dispatch: Dispatch<ArithmeticBuilderAction>;
   focusOverride: FocusOverride | null;
   functionArguments: FunctionArgument[];
-  getFieldDefinition: (key: string) => FieldDefinition | null;
+  getFieldDefinition: (
+    key: string,
+    attributeTexts?: readonly string[]
+  ) => FieldDefinition | null;
   /**
    * Fetches tag values for `_if` combinator filter arguments (e.g. after `span.op:`).
    */

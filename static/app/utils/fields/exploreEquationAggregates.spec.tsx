@@ -56,6 +56,21 @@ describe('Explore equation conditional aggregates', () => {
     });
   });
 
+  it('keeps Discover avg_if when existing args are not backtick filters', () => {
+    const definition = getExploreEquationFieldDefinition('avg_if', undefined, true, [
+      'span.duration',
+      'span.op',
+      'equals',
+      'db',
+    ]);
+    expect(definition?.parameters?.map(parameter => parameter.name)).toEqual([
+      'column',
+      'condition_column',
+      'condition',
+      'value',
+    ]);
+  });
+
   it('keeps Discover count_if unless the feature is on', () => {
     const ungated = getFieldDefinition('count_if', 'span');
     expect(ungated?.parameters?.map(parameter => parameter.name)).toEqual([

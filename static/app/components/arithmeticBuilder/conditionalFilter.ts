@@ -146,21 +146,23 @@ function getConditionalFilterClauseBounds(
   cursorIndex: number,
   booleanOperators: BooleanOperatorMatch[] = findBooleanOperators(value)
 ): {clauseEnd: number; clauseStart: number} {
-  const cursor = Math.max(0, Math.min(cursorIndex, value.length));
+  let cursor = Math.max(0, Math.min(cursorIndex, value.length));
+
+  // Cursor on a boolean operator counts as the start of the following clause.
+  for (const operator of booleanOperators) {
+    if (cursor >= operator.start && cursor <= operator.end) {
+      cursor = operator.end;
+      break;
+    }
+  }
+
   let clauseStart = 0;
   let clauseEnd = value.length;
 
   for (const operator of booleanOperators) {
-    if (cursor > operator.end) {
+    if (cursor >= operator.end) {
       clauseStart = operator.end;
       continue;
-    }
-
-    if (cursor >= operator.start && cursor <= operator.end) {
-      return {
-        clauseStart: operator.end,
-        clauseEnd: value.length,
-      };
     }
 
     if (cursor < operator.start) {
