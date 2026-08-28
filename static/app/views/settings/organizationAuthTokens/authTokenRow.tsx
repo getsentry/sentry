@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Confirm} from 'sentry/components/confirm';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -81,8 +81,8 @@ export function OrganizationAuthTokensAuthTokenRow({
   revokeToken?: (token: OrgAuthToken) => void;
 }) {
   return (
-    <Fragment>
-      <div>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
         <Label>
           <Link to={`/settings/${organization.slug}/auth-tokens/${token.id}/`}>
             {token.name}
@@ -94,9 +94,9 @@ export function OrganizationAuthTokensAuthTokenRow({
             {tokenPreview(token.tokenLastCharacters, 'sntrys_')}
           </TokenPreview>
         )}
-      </div>
+      </SimpleTable.RowCell>
 
-      <Flex align="center" gap="xs">
+      <SimpleTable.RowCell gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -104,9 +104,9 @@ export function OrganizationAuthTokensAuthTokenRow({
             <TimeSince date={token.dateCreated} />
           </Fragment>
         )}
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex align="center" gap="xs">
+      <SimpleTable.RowCell gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -116,9 +116,9 @@ export function OrganizationAuthTokensAuthTokenRow({
             organization={organization}
           />
         )}
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex justify="end">
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={t('You must be an organization owner or manager to revoke a token.')}
           disabled={!!revokeToken}
@@ -141,8 +141,8 @@ export function OrganizationAuthTokensAuthTokenRow({
             </Button>
           </Confirm>
         </Tooltip>
-      </Flex>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 

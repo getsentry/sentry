@@ -1245,9 +1245,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # (degrading to a plain last_seen sort) when there are too many candidates to score
         # the progress rank in memory.
         "progress": "last_seen",
-        # We don't need a corresponding snuba field here, since this sort only happens
-        # in Postgres
-        "inbox": "",
     }
 
     aggregation_defs = {
@@ -1819,9 +1816,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             sentry_sdk.set_tag("search.sort_fallback", sort_by)
             sentry_sdk.set_attribute("search.sort_fallback", sort_by)
             # Keep the original sort only if it maps to a real Snuba aggregation for the
-            # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
-            # sorts like "inbox"), have no aggregation and must fall back to `date` instead
-            # of flowing an empty sort_field into the aggregation lookup.
+            # chunked path. Keys absent from sort_strategies or mapped to an empty string
+            # have no aggregation and must fall back to `date`.
             if not self.sort_strategies.get(sort_by):
                 sort_by = "date"
 

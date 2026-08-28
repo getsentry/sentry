@@ -5,6 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {
@@ -24,10 +25,10 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
@@ -238,10 +239,18 @@ export function SeerAutomationProjectList() {
               updateData.seerScannerAutomation = true;
             }
 
-            return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: updateData,
-            });
+            return api.requestPromise(
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {
+                method: 'PUT',
+                data: updateData,
+              }
+            );
           })
         );
       }
@@ -278,10 +287,18 @@ export function SeerAutomationProjectList() {
             if (!project) {
               return Promise.resolve();
             }
-            return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: {seerScannerAutomation: value},
-            });
+            return api.requestPromise(
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {
+                method: 'PUT',
+                data: {seerScannerAutomation: value},
+              }
+            );
           })
         );
       }
@@ -364,9 +381,10 @@ export function SeerAutomationProjectList() {
         </PanelHeader>
         <PanelBody>
           {filteredProjects.length === 0 && search && (
-            <SimpleTable.Empty>
-              {t('No projects found matching "%(search)s"', {search})}
-            </SimpleTable.Empty>
+            <EmptyState
+              padding="3xl"
+              title={t('No projects found matching "%(search)s"', {search})}
+            />
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>

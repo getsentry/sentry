@@ -1,6 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import SeerWorkflows from 'sentry/views/seerWorkflows';
 
@@ -643,7 +649,9 @@ describe('SeerWorkflows', () => {
     );
     expect(resultsDesc).toEqual(['2 issues', '1 issue']);
 
-    await userEvent.click(screen.getByRole('columnheader', {name: /Date/}));
+    await userEvent.click(
+      within(screen.getByRole('columnheader', {name: /Date/})).getByRole('button')
+    );
 
     expect(router.location.query.sort).toBe('asc');
     const resultsAsc = (await screen.findAllByText(/issues?$/)).map(el => el.textContent);
@@ -749,7 +757,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/',
+          pathname: '/organizations/org-slug/issues/autofix/workflows/',
           query: {status: 'failed'},
         },
       },
@@ -788,7 +796,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/',
+          pathname: '/organizations/org-slug/issues/autofix/workflows/',
           query: {status: 'failed'},
         },
       },
@@ -826,7 +834,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/',
+          pathname: '/organizations/org-slug/issues/autofix/workflows/',
           query: {status: 'failed', strategy: 'agentic_triage', period: '7d'},
         },
       },
@@ -965,7 +973,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/autofix/',
+          pathname: '/organizations/org-slug/issues/autofix/workflows/',
           query: {expandLatest: 'agentic_triage', status: 'succeeded'},
         },
       },

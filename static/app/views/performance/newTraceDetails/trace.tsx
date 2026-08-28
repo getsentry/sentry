@@ -136,11 +136,13 @@ interface TraceProps {
   scheduler: TraceScheduler;
   trace: TraceTree;
   trace_id: string | undefined;
+  onScrollToNode?: (node: BaseNode) => Promise<BaseNode | null>;
 }
 
 export function Trace({
   trace,
   onRowClick,
+  onScrollToNode,
   manager,
   previouslyFocusedNodeRef,
   onTraceSearch,
@@ -492,6 +494,18 @@ export function Trace({
                     key={i}
                     ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
                     className={`TraceIndicatorLabelContainer ${status} ${colorMode}`}
+                    onClick={
+                      onScrollToNode
+                        ? event => {
+                            trackAnalytics('trace.trace_layout.zoom_to_fill', {
+                              organization,
+                            });
+                            event.stopPropagation();
+                            void onScrollToNode(indicator.node);
+                            manager.onZoomToVital(indicator.start, indicator.type);
+                          }
+                        : undefined
+                    }
                   >
                     <Tooltip
                       title={
@@ -1111,6 +1125,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorLabel {
     padding: 2px;
     border-radius: 100px;
+    user-select: none;
   }
 
   .TraceIndicator {

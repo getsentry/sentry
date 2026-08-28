@@ -81,6 +81,7 @@ describe('useInfiniteLogsQuery', () => {
       isReady: true,
       pinnedFilters: new Set(),
       shouldPersist: true,
+      adjustments: {},
       selection: PageFiltersFixture(),
     });
     queryClient.clear();
@@ -448,6 +449,7 @@ describe('useInfiniteLogsQuery', () => {
         isReady: true,
         pinnedFilters: new Set(),
         shouldPersist: true,
+        adjustments: {},
         selection: PageFiltersFixture({
           datetime: {
             start: '2025-04-03T00:00:00',
@@ -978,6 +980,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       isReady: true,
       pinnedFilters: new Set(),
       shouldPersist: true,
+      adjustments: {},
       selection: PageFiltersFixture(),
     });
   });
@@ -1001,7 +1004,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper: createWrapper({}),
       organization,
     });
 
@@ -1088,7 +1091,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper: createWrapper({}),
       organization,
     });
 

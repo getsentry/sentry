@@ -1,3 +1,4 @@
+import re
 import uuid
 from unittest.mock import ANY, Mock, patch
 
@@ -17,11 +18,15 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -221,6 +226,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     metadata={},
                     status=0,
                 ),
+                repo_id=1,
                 missing_scopes=["contents"],
             )
         }
@@ -234,6 +240,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 "warning_type": "github_app_permissions",
                 "repo_name": "getsentry/sentry",
                 "installation_id": "9999",
+                "installation_url": "https://github.com/settings/installations/9999/permissions/update",
             }
         ]
 
@@ -444,6 +451,71 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo")},
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": 42, "insert_index": 3},
+            format="json",
+        )
+
+        assert response.status_code == 409, response.data
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_insert_index_allowed_when_pr_creation_failed(
+        self, mock_run_state, mock_trigger_explorer
+    ):
+        """A push that failed stranded no PR, so the re-run is allowed."""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=42
+        )
+        mock_run_state.return_value = SeerRunState(
+            run_id=42,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_creation_status="error",
+                )
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "code_changes", "run_id": 42, "insert_index": 3},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_insert_index_rejected_when_push_failed_onto_open_pr(
+        self, mock_run_state, mock_trigger_explorer
+    ):
+        """A push onto an already-open PR can fail, and that PR is still stranded."""
+        group = self.create_group()
+        mock_run_state.return_value = SeerRunState(
+            run_id=42,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_number=7,
+                    pr_url="https://github.com/owner/repo/pull/7",
+                    pr_creation_status="error",
+                )
+            },
         )
 
         self.login_as(user=self.user)
@@ -708,6 +780,41 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Cannot iterate on a PR before one has been created"
         mock_try_enqueue.assert_not_called()
 
+    @with_feature("organizations:autofix-pr-iteration-manual")
+    @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_pr_iteration_allowed_when_push_failed_onto_open_pr(
+        self, mock_run_state, mock_try_enqueue, mock_consume
+    ):
+        """The failed push is the thing to iterate out of, so the PR still counts."""
+        group = self.create_group()
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_number=7,
+                    pr_url="https://github.com/owner/repo/pull/7",
+                    pr_creation_status="error",
+                )
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "pr_iteration", "run_id": 123, "user_context": "please fix this"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_try_enqueue.assert_called_once()
+        mock_consume.apply_async.assert_called_once()
+
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):
         mock_trigger_explorer.side_effect = SeerPermissionError("Unknown run id for group")
@@ -943,3 +1050,119 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 403, response.data
+
+
+@with_feature("organizations:gen-ai-features")
+class GroupAutofixConditionalGetTest(APITestCase):
+    def _get_url(self, group_id: int) -> str:
+        return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        self.enterContext(override_options({"api.conditional_get.enabled": True}))
+        self.group = self.create_group()
+        self.login_as(user=self.user)
+
+    def _run_state(self) -> SeerRunState:
+        return SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+
+    def _queued_feedback(self) -> QueuedAutofixFeedback:
+        return QueuedAutofixFeedback(
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+            feedback=Feedback(
+                source=UserUIFeedbackSource(user_id=self.user.id, user_feedback="go")
+            ),
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+        )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_sets_validator_headers(self, mock_get_explorer_state):
+        mock_get_explorer_state.return_value = self._run_state()
+
+        response = self.client.get(self._get_url(self.group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert re.fullmatch(r'"[0-9a-f]{32}"', response["ETag"])
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_identical_requests_share_an_etag(self, mock_get_explorer_state):
+        mock_get_explorer_state.return_value = self._run_state()
+
+        first = self.client.get(self._get_url(self.group.id), format="json")
+        second = self.client.get(self._get_url(self.group.id), format="json")
+
+        assert first["ETag"] == second["ETag"]
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_matched_validator_returns_304_without_a_body(self, mock_get_explorer_state):
+        mock_get_explorer_state.return_value = self._run_state()
+        first = self.client.get(self._get_url(self.group.id), format="json")
+
+        response = self.client.get(
+            self._get_url(self.group.id), format="json", HTTP_IF_NONE_MATCH=first["ETag"]
+        )
+
+        assert response.status_code == 304
+        assert response.content == b""
+        assert response["ETag"] == first["ETag"]
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_stale_validator_returns_the_full_body(self, mock_get_explorer_state):
+        mock_get_explorer_state.return_value = self._run_state()
+
+        current = self.client.get(self._get_url(self.group.id), format="json")["ETag"]
+
+        response = self.client.get(
+            self._get_url(self.group.id), format="json", HTTP_IF_NONE_MATCH='"stale"'
+        )
+
+        assert response.status_code == 200, response.data
+        assert response["ETag"] == current
+        assert response.data["autofix"]["run_id"] == 888
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.peek_queued_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_queued_feedback_changes_the_etag(self, mock_get_explorer_state, mock_peek):
+        mock_get_explorer_state.return_value = self._run_state()
+        mock_peek.return_value = []
+        empty = self.client.get(self._get_url(self.group.id), format="json")
+
+        mock_peek.return_value = [self._queued_feedback()]
+        queued = self.client.get(self._get_url(self.group.id), format="json")
+
+        assert queued.status_code == 200, queued.data
+        assert queued["ETag"] != empty["ETag"]
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_llm_format_has_its_own_etag(self, mock_get_explorer_state):
+        mock_get_explorer_state.return_value = self._run_state()
+
+        with self.feature("organizations:issue-standardized-markdown-for-llm"):
+            plain = self.client.get(self._get_url(self.group.id), format="json")
+            formatted = self.client.get(
+                self._get_url(self.group.id) + "?llmFormat=markdown", format="json"
+            )
+
+        assert "formatted" in formatted.data
+        assert plain["ETag"] != formatted["ETag"]
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    @override_options({"api.conditional_get.enabled": False})
+    def test_disabled_option_sets_no_validator(self, mock_get_explorer_state):
+        mock_get_explorer_state.return_value = self._run_state()
+
+        response = self.client.get(self._get_url(self.group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert "ETag" not in response

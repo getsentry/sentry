@@ -5,13 +5,15 @@ import {useQuery} from '@tanstack/react-query';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -20,6 +22,12 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {ProjectProguardRow} from './projectProguardRow';
+
+const MAPPING_COLUMNS: TableColumnConfig[] = [
+  {key: 'mapping', width: 'minmax(220px, 1fr)'},
+  {key: 'fileSize', width: 'max-content'},
+  {key: 'actions', width: '120px'},
+];
 
 export default function ProjectProguard() {
   const api = useApi();
@@ -67,9 +75,12 @@ export default function ProjectProguard() {
       setLoading(true);
       try {
         await api.requestPromise(
-          `/projects/${
-            organization.slug
-          }/${project.slug}/files/dsyms/?id=${encodeURIComponent(id)}`,
+          `${getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          })}?id=${encodeURIComponent(id)}`,
           {
             method: 'DELETE',
           }
@@ -110,21 +121,27 @@ export default function ProjectProguard() {
           onSearch={handleSearch}
           query={query}
         />
-        <StyledPanelTable
-          headers={[
-            t('Mapping'),
-            <SizeColumn key="size">{t('File Size')}</SizeColumn>,
-            '',
-          ]}
-          emptyMessage={
-            query
-              ? t('There are no mappings that match your search.')
-              : t('There are no mappings for this project.')
+        <SimpleTable
+          columns={MAPPING_COLUMNS}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Mapping')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>
+                <SizeColumn>{t('File Size')}</SizeColumn>
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell />
+            </SimpleTable.HeaderRow>
           }
-          isEmpty={mappings?.length === 0}
-          isLoading={isLoading}
         >
-          {mappings?.length
+          {isLoading && <SimpleTable.Loading />}
+          {!isLoading && mappings?.length === 0 && (
+            <SimpleTable.Empty>
+              {query
+                ? t('There are no mappings that match your search.')
+                : t('There are no mappings for this project.')}
+            </SimpleTable.Empty>
+          )}
+          {!isLoading && mappings?.length
             ? mappings.map(mapping => {
                 const downloadUrl = `${api.baseUrl}/projects/${
                   organization.slug
@@ -141,16 +158,12 @@ export default function ProjectProguard() {
                 );
               })
             : null}
-        </StyledPanelTable>
+        </SimpleTable>
         <Pagination pageLinks={mappingsPageLinks} />
       </Stack>
     </Fragment>
   );
 }
-
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(220px, 1fr) max-content 120px;
-`;
 
 const SizeColumn = styled('div')`
   text-align: right;

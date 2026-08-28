@@ -882,6 +882,7 @@ class TestGetOrganizationFeatures(APITestCase):
 @with_feature("organizations:seer-infra-telemetry")
 @cell_silo_test
 class TestGetMonitoringProviderConnections(APITestCase):
+    @with_feature("organizations:seer-infra-telemetry-user-level-auth")
     def test_returns_connections(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
         identity = self.create_identity(

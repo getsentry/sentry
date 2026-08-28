@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
+from sentry.issues.endpoints.group_events import FULL_PAYLOAD_MAX_PER_PAGE
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.search.eap.occurrences.rollout_utils import EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION
@@ -470,6 +471,56 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
         assert len(response.data) == 1
+
+    def _store_events(self, count: int) -> Group:
+        event = None
+        for i in range(count):
+            event = self.store_event(
+                data={
+                    "fingerprint": ["group_1"],
+                    "event_id": f"{i:032x}",
+                    "message": "foo",
+                    "timestamp": self.min_ago.isoformat(),
+                },
+                project_id=self.project.id,
+            )
+        assert event is not None
+        return event.group
+
+    def test_full_clamps_per_page_and_pages_with_cursor(self) -> None:
+        self.login_as(user=self.user)
+        total = FULL_PAYLOAD_MAX_PER_PAGE + 5
+        group = self._store_events(total)
+
+        url: str | None = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/"
+            f"?full=true&per_page=100"
+        )
+        seen: list[str] = []
+        pages = 0
+        while url and pages < 4:
+            response = self.do_request(url)
+            assert response.status_code == 200, response.content
+            assert len(response.data) <= FULL_PAYLOAD_MAX_PER_PAGE
+            seen.extend(row["eventID"] for row in response.data)
+            links = self._parse_links(response["Link"])
+            url = links["next"]["href"] if links["next"]["results"] == "true" else None
+            pages += 1
+
+        assert pages == 2
+        assert len(set(seen)) == total
+
+    def test_per_page_not_clamped_without_full(self) -> None:
+        self.login_as(user=self.user)
+        total = FULL_PAYLOAD_MAX_PER_PAGE + 5
+        group = self._store_events(total)
+
+        url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/?per_page=100"
+        )
+        response = self.do_request(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == total
 
     def test_orderby(self) -> None:
         self.login_as(user=self.user)

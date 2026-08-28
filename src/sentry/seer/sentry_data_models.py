@@ -548,6 +548,17 @@ class TeamMembersResponse(_DictProxyMixin):
     members: list[IssueOwner]
 
 
+class UserIdentity(BaseModel):
+    id: int
+    username: str
+
+
+class GroupAssigneesResponse(_DictProxyMixin):
+    # Dict keys are int issue IDs, but JSON serializes them as strings, so make that explicit.
+    # Consumer will convert back to int.
+    assignees: dict[str, UserIdentity]
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK
