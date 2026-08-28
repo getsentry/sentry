@@ -37,6 +37,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -217,8 +218,11 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         logger, agent_state, organization_id, autofix_run.group_id
     )
 
-    # Report failures here rather than in the SCM event stream error monitoring
-    # so it's easier to find errors in Sentry in the PR iteration flow
+    # Report failures here rather than only in the SCM event stream so they
+    # are searchable under the PR-iteration identity. Swallow so
+    # ``exec_listener`` does not emit a second Sentry event of the same
+    # failure; increment the metric so a counter still exists after the SCM
+    # ``run_listener.failed`` tag goes quiet.
     try:
         enqueued = try_enqueue_autofix_feedback(
             log_ctx=log_ctx,
@@ -254,6 +258,10 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        metrics.incr(
+            "autofix.pr_iteration.check_suite.failed",
+            tags={"error_type": type(e).__name__},
+        )
         log_ctx.error(
             "autofix.pr_iteration.check_suite.failed",
             error_type=type(e).__name__,

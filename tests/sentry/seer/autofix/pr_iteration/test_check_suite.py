@@ -535,6 +535,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert mock_logger.error.call_args.kwargs["extra"]["installation_id"] == 987
         assert mock_logger.error.call_args.kwargs["exc_info"] is True
 
+    @patch(f"{CHECK_PATH}.metrics")
     @patch(f"{CHECK_PATH}.logger")
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", side_effect=RuntimeError("redis is down"))
@@ -547,6 +548,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_enqueue: MagicMock,
         mock_capture: MagicMock,
         mock_logger: MagicMock,
+        mock_metrics: MagicMock,
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
@@ -563,6 +565,10 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert extra["error_type"] == "RuntimeError"
         assert extra["check_suite_id"] == 1
         mock_capture.assert_called_once()
+        mock_metrics.incr.assert_called_once_with(
+            "autofix.pr_iteration.check_suite.failed",
+            tags={"error_type": "RuntimeError"},
+        )
 
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH, side_effect=RuntimeError("celery is down"))
