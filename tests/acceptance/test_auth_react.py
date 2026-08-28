@@ -84,6 +84,10 @@ class ReactAuthTest(AcceptanceTestCase):
             xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
         )
 
+    def leave_organization_sso(self) -> None:
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Wrong organization']")
+        self.browser.wait_until('[aria-label="Email"]')
+
     def begin_organization_sso(self, organization_slug: str) -> None:
         self.select_organization_sso(organization_slug)
         self.browser.click_when_visible(xpath="//button[normalize-space(.)='SSO']")
@@ -297,13 +301,17 @@ class ReactAuthTest(AcceptanceTestCase):
         self.create_member(organization=organization, user=user)
         self.create_auth_provider(organization_id=organization.id, provider="dummy")
 
-        # Selecting an SSO-required organization does not force the user to start SSO.
+        # Leaving the SSO-required organization makes password authentication available.
         self.select_organization_sso(organization.slug)
+        self.leave_organization_sso()
         self.submit_visible_credentials(user.email, PASSWORD)
 
-        # Password authentication succeeds, but it does not grant access to the organization.
+        # Password authentication succeeds without granting access to the organization.
         self.browser.wait_until_script_execution(
-            "return window.location.pathname === '/settings/account/'"
+            f"return window.location.pathname === '/auth/login/{organization.slug}/'"
+        )
+        self.browser.wait_until(
+            xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
         )
 
     def test_password_login_uses_organization_without_sso(self) -> None:
@@ -315,14 +323,15 @@ class ReactAuthTest(AcceptanceTestCase):
         self.create_auth_provider(organization_id=sso_organization.id, provider="dummy")
         password_organization = self.create_organization(owner=user, slug="password-org")
 
-        # Password login cannot enter the selected organization because it requires SSO.
+        # Leaving the SSO-required organization allows login to a password-capable one.
         self.select_organization_sso(sso_organization.slug)
+        self.leave_organization_sso()
         self.submit_visible_credentials(user.email, PASSWORD)
 
         # The authenticated user lands in an accessible organization instead.
         self.wait_for_authenticated_organization(password_organization.slug)
 
-    def test_password_login_preserves_sso_organization_destination(self) -> None:
+    def test_sso_login_preserves_organization_destination(self) -> None:
         user = self.create_user(email="preserved-sso-destination@example.com")
         user.set_password(PASSWORD)
         user.save()
@@ -341,12 +350,6 @@ class ReactAuthTest(AcceptanceTestCase):
             expires="Tue, 20 Jun 2035 19:07:44 GMT",
         )
         self.browser.get(f"/organizations/{sso_organization.slug}/issues/")
-        self.browser.wait_until('[aria-label="Email"]')
-
-        # Password authentication establishes the account session, but the protected
-        # destination takes precedence over the password-capable fallback organization.
-        self.submit_visible_credentials(user.email, PASSWORD)
-        self.browser.wait_until_not('[aria-label="Email"]')
         self.browser.wait_until_script_execution(
             f"return window.location.pathname === '/auth/login/{sso_organization.slug}/'"
         )
@@ -354,6 +357,7 @@ class ReactAuthTest(AcceptanceTestCase):
             xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
         )
 
+        # SSO authentication returns to the protected organization destination.
         self.browser.click_when_visible(xpath="//button[normalize-space(.)='SSO']")
         self.browser.wait_until('form > input[type="email"][name="email"]:only-child')
         self.complete_dummy_sso(user.email)
