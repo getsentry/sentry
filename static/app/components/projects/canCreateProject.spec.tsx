@@ -45,6 +45,7 @@ describe('ProjectCreationAccess', () => {
   it('passes for team admins when allowMemberProjectCreation is disabled', () => {
     const memberOrg = OrganizationFixture({
       access: ['org:read', 'team:read', 'project:read'],
+      features: ['team-roles'],
       allowMemberProjectCreation: false,
     });
     const teams = [
@@ -56,5 +57,22 @@ describe('ProjectCreationAccess', () => {
 
     const result = canCreateProject(memberOrg, teams);
     expect(result).toBeTruthy();
+  });
+
+  it('fails for team admins without team-roles when allowMemberProjectCreation is disabled', () => {
+    const memberOrg = OrganizationFixture({
+      access: ['org:read', 'team:read', 'project:read'],
+      features: [],
+      allowMemberProjectCreation: false,
+    });
+    const teams = [
+      TeamFixture({
+        teamRole: 'admin',
+        access: ['team:admin', 'team:write', 'team:read'],
+      }),
+    ];
+
+    const result = canCreateProject(memberOrg, teams);
+    expect(result).toBeFalsy();
   });
 });
