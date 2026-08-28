@@ -77,6 +77,7 @@ export type TraceWaterfallSource =
   | 'issues'
   | 'performance'
   | 'replay'
+  | 'seer_embed'
   | 'trace_view';
 
 export interface TraceWaterfallProps {
@@ -756,7 +757,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   // On the standalone trace page these two moved into the page-title crumb.
   // Embedded waterfalls (issues, replay) have no such crumb, so they keep them.
-  const showToolbarTraceActions = props.source !== 'performance';
+  // The Seer embed supplies its own compact trace link above the waterfall.
+  const showToolbarTraceActions =
+    props.source !== 'performance' && props.source !== 'seer_embed';
 
   return (
     <Stack flex={1}>
