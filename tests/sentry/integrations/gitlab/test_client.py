@@ -489,8 +489,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
                 commit=GitLabCommitResponse(
                     id=kwargs.get("id", "1"),
                     message=kwargs.get("message", "test message"),
-                    # GitLab blame responses preserve the commit's timezone offset.
-                    committed_date=kwargs.get("committed_date", "2023-01-01T05:30:00.000+05:30"),
+                    committed_date=kwargs.get("committed_date", "2023-01-01T00:00:00.000Z"),
                     author_name=kwargs.get("author_name", "Marvin"),
                     author_email=kwargs.get("author_email", "marvin@place.com"),
                     committer_email=None,

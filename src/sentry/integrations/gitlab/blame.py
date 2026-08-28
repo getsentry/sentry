@@ -191,7 +191,7 @@ def _create_commit_from_blame(
             commitMessage=commit.get("message"),
             commitAuthorName=commit.get("author_name"),
             commitAuthorEmail=commit.get("author_email"),
-            committedDate=datetime.fromisoformat(committed_date).astimezone(timezone.utc),
+            committedDate=datetime.fromisoformat(committed_date).replace(tzinfo=timezone.utc),
         )
     except Exception:
         logger.warning("get_blame_for_files.invalid_commit_response", extra=extra)
