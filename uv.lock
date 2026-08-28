@@ -2360,7 +2360,7 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.2.0" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-options", specifier = ">=1.2.6" },
+    { name = "sentry-options", specifier = ">=1.2.7" },
     { name = "sentry-protos", specifier = ">=0.64.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.28" },
@@ -2375,7 +2375,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.20.21" },
+    { name = "taskbroker-client", specifier = ">=0.20.22" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2531,12 +2531,12 @@ wheels = [
 
 [[package]]
 name = "sentry-options"
-version = "1.2.6"
+version = "1.2.7"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.6-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:846ab8cffa3a5277c156f4afc20c7d20b5731caa2b6a8881c4c6a5861a54177d" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.6-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e3bb1a1e71f054548430aba00ef8769590cd563be02c38fbbc9a2ec39be04a3e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.6-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:34ff3c680eaf2e0c72ca86260c34c12af1975f9fa36814e947a060de598069b5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.7-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:ac4ec6449a95d45a1640747f19e93220e5d52179c1fd3ff424b4fe395322f491" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.7-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4d9d45949da55f030a26cb4cb5df814e77bd641a98ef861ce0799b220eebca84" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.7-cp311-abi3-manylinux_2_31_aarch64.whl", hash = "sha256:aca91bbc5d6bae010d648f8166e35ad1c974e0648f6e63124959f537fa06f02f" },
 ]
 
 [[package]]
@@ -2705,10 +2705,10 @@ wheels = [
 
 [[package]]
 name = "sqlparse"
-version = "0.5.4"
+version = "0.6.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sqlparse-0.5.4-py3-none-any.whl", hash = "sha256:99a9f0314977b76d776a0fcb8554de91b9bb8a18560631d6bc48721d07023dcb" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sqlparse-0.6.0-py3-none-any.whl", hash = "sha256:b861c0288ce2fa56209a9a6412d2e066ac664b3873b89c26c9d8415e8e32996f" },
 ]
 
 [[package]]
@@ -2765,7 +2765,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.20.21"
+version = "0.20.22"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka" },
@@ -2782,7 +2782,7 @@ dependencies = [
     { name = "zstandard" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.21-py3-none-any.whl", hash = "sha256:59b4f14ef85fbfa99057b587986c839ce9280d8d41788fda46cd44f350aea2fa" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.22-py3-none-any.whl", hash = "sha256:2489928a067f326406c6597eebddef102f6e24c2d5ae813bdd24ae07f899e755" },
 ]
 
 [[package]]

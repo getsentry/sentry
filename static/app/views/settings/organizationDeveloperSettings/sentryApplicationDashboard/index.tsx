@@ -21,6 +21,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -97,6 +98,10 @@ function SentryApplicationDashboard() {
   }
   const showInstallData = app.status === 'published';
   const showComponentInteractions = Boolean(app.schema?.elements);
+  const canViewRequestLogs =
+    organization.access.includes('org:admin') ||
+    organization.access.includes('org:integrations') ||
+    isActiveSuperuser();
 
   return (
     <div>
@@ -115,7 +120,7 @@ function SentryApplicationDashboard() {
       {showComponentInteractions ? (
         <ComponentInteractionsSection appSlug={appSlug} timeRange={timeRange} />
       ) : null}
-      <RequestLog app={app} />
+      {canViewRequestLogs && <RequestLog app={app} />}
     </div>
   );
 }

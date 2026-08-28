@@ -1,7 +1,8 @@
+import {focusManager} from '@tanstack/react-query';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
@@ -538,11 +539,52 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('CodeChangesNextStep', () => {
+    const reposUrl = '/organizations/org-slug/issues/1/autofix/repos/';
+
+    function addRepoPermissionsResponse(
+      writeAccess: boolean | boolean[],
+      asyncDelay?: Promise<unknown>
+    ) {
+      const writeAccessByRepo = Array.isArray(writeAccess) ? writeAccess : [writeAccess];
+
+      return MockApiClient.addMockResponse({
+        url: reposUrl,
+        body: {
+          repos: writeAccessByRepo.map(hasWriteAccess => ({
+            has_write_access: hasWriteAccess,
+            has_read_access: true,
+            integration_id: 123,
+          })),
+        },
+        asyncDelay,
+      });
+    }
+
+    function addGithubIntegrationResponse({
+      providerKey = 'github',
+      providerName = 'GitHub',
+    } = {}) {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/123/',
+        body: {
+          id: '123',
+          externalId: '456',
+          accountType: 'Organization',
+          domainName: 'github.com/test-org',
+          provider: {key: providerKey, name: providerName},
+        },
+      });
+    }
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        url: reposUrl,
         body: {repos: [{has_write_access: true}]},
       });
+    });
+
+    afterEach(() => {
+      focusManager.setFocused(undefined);
     });
 
     it('returns null when section has no artifacts', () => {
@@ -584,6 +626,215 @@ describe('SeerDrawerNextStep', () => {
       );
       await userEvent.click(await screen.findByRole('button', {name: 'Yes, draft a PR'}));
       expect(autofix.createPR).toHaveBeenCalledWith(1);
+    });
+
+    it('checks provider permissions on refocus and proceeds when access is granted', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse({
+        providerKey: 'github_enterprise',
+        providerName: 'GitHub Enterprise',
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Yes, view GitHub Enterprise permissions',
+        })
+      );
+      act(() => focusManager.setFocused(false));
+
+      let resolvePermissionsRequest!: () => void;
+      const permissionsRequestDelay = new Promise<void>(resolve => {
+        resolvePermissionsRequest = resolve;
+      });
+      const permissionsRequest = addRepoPermissionsResponse(
+        true,
+        permissionsRequestDelay
+      );
+
+      act(() => focusManager.setFocused(true));
+
+      const checkingButton = screen.getByRole('button', {
+        name: 'Checking GitHub Enterprise permissions',
+      });
+      expect(checkingButton).toHaveAttribute('aria-busy', 'true');
+      expect(permissionsRequest).toHaveBeenCalledTimes(1);
+
+      resolvePermissionsRequest();
+
+      expect(
+        await screen.findByRole('button', {name: 'Yes, draft a PR'})
+      ).toBeInTheDocument();
+    });
+
+    it('offers a retry when the permission check fails', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={makeAutofix()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      );
+      act(() => focusManager.setFocused(false));
+      const permissionsRequest = MockApiClient.addMockResponse({
+        url: reposUrl,
+        statusCode: 500,
+        body: {detail: 'Internal Error'},
+      });
+
+      act(() => focusManager.setFocused(true));
+
+      await waitFor(() => expect(permissionsRequest).toHaveBeenCalledTimes(1));
+      expect(
+        await screen.findByRole('button', {name: 'Check access again'})
+      ).toBeInTheDocument();
+    });
+
+    it('requires write access to every repository in the integration', async () => {
+      addRepoPermissionsResponse([false, false]);
+      addGithubIntegrationResponse();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={makeAutofix()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      );
+      act(() => focusManager.setFocused(false));
+      const permissionsRequest = addRepoPermissionsResponse([true, false]);
+
+      act(() => focusManager.setFocused(true));
+
+      await waitFor(() => expect(permissionsRequest).toHaveBeenCalledTimes(1));
+      expect(
+        await screen.findByRole('button', {name: 'Check access again'})
+      ).toBeInTheDocument();
+    });
+
+    it('cancels the pending permission check when switching to feedback', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={makeAutofix()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      );
+      const permissionsRequest = addRepoPermissionsResponse(true);
+      act(() => focusManager.setFocused(true));
+      expect(permissionsRequest).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+      await userEvent.type(screen.getByRole('textbox'), 'Keep this feedback');
+
+      act(() => focusManager.setFocused(false));
+      act(() => focusManager.setFocused(true));
+
+      expect(permissionsRequest).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox')).toHaveValue('Keep this feedback');
+    });
+
+    it('preserves feedback when write access is granted', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={makeAutofix()}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'No'}));
+      await userEvent.type(screen.getByRole('textbox'), 'Keep this feedback');
+      await userEvent.click(
+        screen.getByRole('button', {name: 'View GitHub permissions'})
+      );
+      act(() => focusManager.setFocused(false));
+      const permissionsRequest = addRepoPermissionsResponse(true);
+
+      act(() => focusManager.setFocused(true));
+
+      await waitFor(() => expect(permissionsRequest).toHaveBeenCalledTimes(1));
+      expect(
+        await screen.findByRole('button', {name: 'Nevermind, draft a PR'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toHaveValue('Keep this feedback');
+    });
+
+    it('rechecks after revisiting permissions and supports a manual retry', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      );
+      act(() => focusManager.setFocused(false));
+      const refocusRequest = addRepoPermissionsResponse(false);
+
+      act(() => focusManager.setFocused(true));
+      await waitFor(() => expect(refocusRequest).toHaveBeenCalledTimes(1));
+      expect(
+        await screen.findByRole('button', {name: 'Check access again'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'View GitHub permissions'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Yes, view GitHub permissions'})
+      ).not.toBeInTheDocument();
+
+      act(() => {
+        focusManager.setFocused(false);
+        focusManager.setFocused(true);
+      });
+      expect(refocusRequest).toHaveBeenCalledTimes(1);
+
+      const retryLinkRequest = addRepoPermissionsResponse(false);
+      await userEvent.click(screen.getByRole('link', {name: 'View GitHub permissions'}));
+      act(() => focusManager.setFocused(false));
+      act(() => focusManager.setFocused(true));
+      await waitFor(() => expect(retryLinkRequest).toHaveBeenCalledTimes(1));
+
+      const retryRequest = addRepoPermissionsResponse(true);
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Check access again'})
+      );
+
+      expect(retryRequest).toHaveBeenCalledTimes(1);
+      expect(
+        await screen.findByRole('button', {name: 'Yes, draft a PR'})
+      ).toBeInTheDocument();
     });
 
     it('shows feedback UI on no click', async () => {

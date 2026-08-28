@@ -29,6 +29,7 @@ type Input = {
   integration: OrganizationIntegration | undefined;
   provider: string | undefined;
   setChannel: (channel?: IntegrationChannel) => void;
+  options?: {refetchOnWindowFocus?: boolean};
   /**
    * For project creation, identifies the SCM or legacy experience so the
    * appropriate analytics events are emitted. Omit for flows that do not
@@ -54,7 +55,8 @@ export type UseMessagingChannelResult = {
 
 /**
  * Owns the channel-loading half of messaging alert rules:
- *   - /channels/ query (staleTime: Infinity, skipped without provider + integration)
+ *   - /channels/ query (skipped without provider + integration; staleTime
+ *     Infinity unless refetchOnWindowFocus is set)
  *   - /channel-validate/ for manually entered channels
  *   - channelOptions shaping (Slack keyed by display name; Discord and MS Teams
  *     keyed by id with `display (id)` labels, since the name alone cannot
@@ -70,16 +72,18 @@ export function useMessagingChannel({
   provider,
   setChannel,
   variant,
+  options,
 }: Input): UseMessagingChannelResult {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const refetchOnWindowFocus = options?.refetchOnWindowFocus ?? false;
 
   const {
     data: channels,
     isPending,
-    isError: isChannelsError,
-  } = useQuery(
-    apiOptions.as<ChannelListResponse>()(
+    isLoadingError: isChannelsError,
+  } = useQuery({
+    ...apiOptions.as<ChannelListResponse>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
       {
         path:
@@ -89,10 +93,11 @@ export function useMessagingChannel({
                 integrationId: integration.id,
               }
             : skipToken,
-        staleTime: Infinity,
+        staleTime: refetchOnWindowFocus ? 0 : Infinity,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus,
+  });
 
   const validateChannelOptions = validateChannelQueryOptions({
     organizationSlug: organization.slug,
@@ -102,11 +107,12 @@ export function useMessagingChannel({
   const validateChannel = useQuery({
     ...validateChannelOptions,
     enabled: !!integration?.id && !!channel?.new,
+    refetchOnWindowFocus,
   });
   const channelError =
     validateChannel.data?.valid === false
       ? (validateChannel.data.detail ?? t('Channel not found or restricted'))
-      : validateChannel.error
+      : validateChannel.isLoadingError
         ? t('Unexpected integration channel validation error')
         : undefined;
   const clearChannelValidation = () =>

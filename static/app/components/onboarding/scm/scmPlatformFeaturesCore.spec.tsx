@@ -1,23 +1,17 @@
 import {useState} from 'react';
-import debounce from 'lodash/debounce';
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
 
 import {ScmPlatformFeaturesCore} from './scmPlatformFeaturesCore';
 
-type MockDebouncedFunction = ReturnType<typeof jest.fn> & {
-  callback: () => void;
-};
-
-jest.mock('lodash/debounce', () =>
-  jest.fn((callback: () => void) => Object.assign(jest.fn(), {callback}))
-);
+jest.unmock('@tanstack/react-pacer');
 
 // Mock the virtualizer so the manual-picker Select renders in JSDOM (no layout
 // engine).
@@ -44,7 +38,11 @@ jest.mock('sentry/data/platforms', () => {
     ...actual,
     platforms: actual.platforms.filter(
       (p: {id: string}) =>
-        p.id === 'javascript' || p.id === 'python' || p.id === 'python-django'
+        p.id === 'javascript' ||
+        p.id === 'python' ||
+        p.id === 'python-django' ||
+        // Not in the curated popular list, so the picker gets both sections.
+        p.id === 'deno'
     ),
   };
 });
@@ -81,11 +79,8 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
 describe('ScmPlatformFeaturesCore', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(() => {
-    jest.mocked(debounce).mockClear();
-  });
-
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -195,9 +190,22 @@ describe('ScmPlatformFeaturesCore', () => {
     );
   });
 
+  it('sections the manual picker dropdown into Popular and Other platforms', async () => {
+    render(<ScmPlatformFeaturesCore {...defaultProps({selectedPlatform: undefined})} />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('textbox'));
+
+    expect(screen.getByText('Popular')).toBeInTheDocument();
+    expect(screen.getByText('Other platforms')).toBeInTheDocument();
+  });
+
   it('tracks one debounced manual platform search with its result count', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    render(
+    const {unmount} = render(
       <ScmPlatformFeaturesCore
         {...defaultProps({
           analyticsFlow: 'project-creation',
@@ -207,21 +215,15 @@ describe('ScmPlatformFeaturesCore', () => {
       {organization}
     );
 
-    await userEvent.type(screen.getByRole('textbox'), 'java ');
+    await user.type(screen.getByRole('textbox'), 'java ');
 
     expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
       'growth.platformpicker_search',
       expect.anything()
     );
 
-    const activeDebouncedCallbacks = jest
-      .mocked(debounce)
-      .mock.results.map(({value}) => value as unknown as MockDebouncedFunction)
-      .filter(debounced => debounced.mock.calls.length > 0);
-    expect(activeDebouncedCallbacks).toHaveLength(1);
-
     act(() => {
-      activeDebouncedCallbacks[0]!.callback();
+      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION);
     });
 
     expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
@@ -233,6 +235,15 @@ describe('ScmPlatformFeaturesCore', () => {
       source: 'project-creation',
       variant: 'scm',
     });
+
+    await user.type(screen.getByRole('textbox'), 'script');
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(2);
+    expect(trackAnalyticsSpy).toHaveBeenLastCalledWith(
+      'growth.platformpicker_search',
+      expect.objectContaining({search: 'java script'})
+    );
   });
 
   it('clears the selected platform from the manual picker', async () => {

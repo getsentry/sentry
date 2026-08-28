@@ -4,6 +4,8 @@ import pytest
 
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -30,6 +32,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
                 self.group,
                 referrer=AutofixReferrer.NIGHT_SHIFT,
                 user_context="an upstream triage summary",
+                stopping_point=AutofixStoppingPoint.OPEN_PR,
             )
 
         assert run is fake_run
@@ -49,7 +52,15 @@ class TestTriggerAutofixRCAFeature(TestCase):
         assert payload["short_id"] == (self.group.qualified_short_id or str(self.group.id))
         assert payload["title"] == self.group.title
         assert payload["tweaks"]["user_context"] == "an upstream triage summary"
-        assert run_kwargs["extras"] == {"referrer": AutofixReferrer.NIGHT_SHIFT.value}
+        # Seer persists this hook on the Explorer run so later PR iteration
+        # completions continue through the Autofix completion flow.
+        assert payload["on_completion_hook"] == {
+            "module_path": AutofixOnCompletionHook.get_module_path()
+        }
+        assert run_kwargs["extras"] == {
+            "referrer": AutofixReferrer.NIGHT_SHIFT.value,
+            "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+        }
         assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
 
         # A new run consumes Seer autofix budget.

@@ -1,4 +1,3 @@
-import {focusManager} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -40,7 +39,6 @@ function renderProviders() {
 describe('useScmMessagingProviders', () => {
   afterEach(() => {
     cleanup();
-    focusManager.setFocused(undefined);
     MockApiClient.clearMockResponses();
   });
 
@@ -286,38 +284,7 @@ describe('useScmMessagingProviders', () => {
     expect(result.current.providers).toHaveLength(3);
   });
 
-  it('refetches integrations on window focus and marks a newly connected provider', async () => {
-    mockProviders();
-    mockIntegrations([]);
-
-    const {result} = renderProviders();
-    await waitFor(() => expect(result.current.isPending).toBe(false));
-    expect(result.current.providers.find(p => p.providerKey === 'slack')?.status).toBe(
-      'installable'
-    );
-
-    mockIntegrations([
-      OrganizationIntegrationsFixture({
-        id: '10',
-        status: 'active',
-        organizationIntegrationStatus: 'active',
-      }),
-    ]);
-    act(() => {
-      focusManager.setFocused(false);
-    });
-    act(() => {
-      focusManager.setFocused(true);
-    });
-
-    await waitFor(() =>
-      expect(result.current.providers.find(p => p.providerKey === 'slack')?.status).toBe(
-        'connected'
-      )
-    );
-  });
-
-  it('keeps cached providers when a window-focus refetch fails', async () => {
+  it('keeps cached providers when a later integrations refetch fails', async () => {
     mockProviders();
     mockIntegrations([]);
 
@@ -326,19 +293,18 @@ describe('useScmMessagingProviders', () => {
     expect(result.current.isError).toBe(false);
     expect(result.current.providers).toHaveLength(3);
 
-    const failingRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       statusCode: 500,
       match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
-    act(() => {
-      focusManager.setFocused(false);
-    });
-    act(() => {
-      focusManager.setFocused(true);
+
+    await act(async () => {
+      await result.current.refetchIntegrations();
     });
 
-    await waitFor(() => expect(failingRequest).toHaveBeenCalled());
+    // A failed background refetch (isRefetchError) must not flip isError,
+    // because isError only gates on isLoadingError. Cached rows stay visible.
     expect(result.current.isError).toBe(false);
     expect(result.current.providers).toHaveLength(3);
   });

@@ -1,5 +1,5 @@
 import {act, Fragment, useState} from 'react';
-import {focusManager, QueryClientProvider} from '@tanstack/react-query';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
@@ -142,7 +142,6 @@ describe('ScmMessaging', () => {
 
   afterEach(() => {
     cleanup();
-    focusManager.setFocused(undefined);
     MockApiClient.clearMockResponses();
     // Context-backed tests persist onboarding state to session storage, and
     // useSessionStorage prefers a stored value over initialValue.
@@ -226,27 +225,47 @@ describe('ScmMessaging', () => {
     await waitFor(() => expect(screen.queryByText(warning)).not.toBeInTheDocument());
   });
 
-  it('clears the stale channel warning once a window-focus refetch resolves the channel', async () => {
+  it('Continue stays enabled when revalidation queries fail on a later refetch', async () => {
+    const queryClient = makeTestQueryClient();
     mockIntegration();
-    mockChannelValidate(false);
-    renderMessaging(jest.fn());
-
-    const warning = "We couldn't verify the saved channel. Choose a destination again.";
-    expect(await screen.findByText(warning)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
-
     mockChannelValidate(true);
-    act(() => {
-      focusManager.setFocused(false);
-    });
-    act(() => {
-      focusManager.setFocused(true);
-    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ScmMessaging
+          messagingSetup={selectedMessagingSetup}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+        />
+      </QueryClientProvider>
+    );
 
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
     );
-    await waitFor(() => expect(screen.queryByText(warning)).not.toBeInTheDocument());
+
+    // Both validation queries now return 500 on the next background refetch.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      statusCode: 500,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channel-validate/',
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({channel: '#alerts'})],
+    });
+    await act(async () => {
+      await queryClient.invalidateQueries();
+    });
+
+    // isRefetchError keeps both queries settled; cached {valid: true} stays usable.
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+    // isLoadingError (not isError) gates the danger alert, so it must not appear.
+    expect(
+      screen.queryByText(
+        "We couldn't check the saved destination. Reload the page to try again."
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('marks the channel stale without resetting session state when channel-validate returns false', async () => {

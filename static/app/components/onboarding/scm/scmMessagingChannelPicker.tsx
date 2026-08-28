@@ -109,6 +109,7 @@ export function ScmMessagingChannelPicker({
     integration: selectedIntegration,
     provider: providerKey,
     setChannel,
+    options: {refetchOnWindowFocus: true},
   });
 
   const handleIntegrationChange = (option: SelectValue<OrganizationIntegration>) => {

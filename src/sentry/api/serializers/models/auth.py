@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64encode
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, TypedDict
@@ -7,6 +8,7 @@ from typing import Any, Literal, TypedDict
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, serialize
+from sentry.auth.authenticators.base import ActivationChallengeResult, ActivationMessageResult
 from sentry.users.api.serializers.user import (
     DetailedSelfUserSerializer,
     DetailedSelfUserSerializerResponse,
@@ -42,6 +44,26 @@ class AuthSuccessSerializer(Serializer[AuthSuccessSerializerResponse]):
 
 def serialize_auth_success(user: User, next_uri: str) -> AuthSuccessSerializerResponse:
     return serialize(AuthSuccess(user=user, next_uri=next_uri), user, AuthSuccessSerializer())
+
+
+@dataclass(frozen=True)
+class AuthDetail:
+    detail: str
+
+
+class AuthDetailSerializerResponse(TypedDict):
+    detail: str
+
+
+class AuthDetailSerializer(Serializer[AuthDetailSerializerResponse]):
+    def serialize(
+        self,
+        obj: AuthDetail,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AuthDetailSerializerResponse:
+        return {"detail": obj.detail}
 
 
 @dataclass(frozen=True)
@@ -134,3 +156,87 @@ def serialize_auth_mfa_required(
 ) -> AuthMfaRequiredSerializerResponse:
     methods = tuple(AuthMfaMethod(method_id) for method_id in method_ids)
     return serialize(AuthMfaRequired(methods), user, AuthMfaRequiredSerializer())
+
+
+@dataclass(frozen=True)
+class AuthMfaWebAuthnChallenge:
+    challenge: str
+
+
+@dataclass(frozen=True)
+class AuthMfaSmsChallenge:
+    expires_in: int
+
+
+class AuthMfaWebAuthnChallengeData(TypedDict):
+    webAuthnAuthenticationData: str
+
+
+class AuthMfaWebAuthnChallengeSerializerResponse(TypedDict):
+    method: Literal["u2f"]
+    challenge: AuthMfaWebAuthnChallengeData
+
+
+class AuthMfaSmsChallengeSerializerResponse(TypedDict):
+    method: Literal["sms"]
+    expiresIn: int
+
+
+AuthMfaChallengeSerializerResponse = (
+    AuthMfaWebAuthnChallengeSerializerResponse | AuthMfaSmsChallengeSerializerResponse
+)
+
+
+class AuthMfaWebAuthnChallengeSerializer(Serializer[AuthMfaWebAuthnChallengeSerializerResponse]):
+    def serialize(
+        self,
+        obj: AuthMfaWebAuthnChallenge,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AuthMfaWebAuthnChallengeSerializerResponse:
+        return {
+            "method": "u2f",
+            "challenge": {"webAuthnAuthenticationData": obj.challenge},
+        }
+
+
+class AuthMfaSmsChallengeSerializer(Serializer[AuthMfaSmsChallengeSerializerResponse]):
+    def serialize(
+        self,
+        obj: AuthMfaSmsChallenge,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AuthMfaSmsChallengeSerializerResponse:
+        return {"method": "sms", "expiresIn": obj.expires_in}
+
+
+class AuthMfaChallengeSerializer(Serializer[AuthMfaChallengeSerializerResponse]):
+    def serialize(
+        self,
+        obj: AuthMfaWebAuthnChallenge | AuthMfaSmsChallenge,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AuthMfaChallengeSerializerResponse:
+        if isinstance(obj, AuthMfaWebAuthnChallenge):
+            return AuthMfaWebAuthnChallengeSerializer().serialize(obj, attrs, user)
+        return AuthMfaSmsChallengeSerializer().serialize(obj, attrs, user)
+
+
+def serialize_activation(
+    method: str,
+    activation: ActivationChallengeResult | ActivationMessageResult,
+    user: User,
+) -> AuthMfaChallengeSerializerResponse:
+    challenge: AuthMfaWebAuthnChallenge | AuthMfaSmsChallenge
+
+    if isinstance(activation, ActivationChallengeResult):
+        challenge = AuthMfaWebAuthnChallenge(b64encode(activation.challenge).decode("ascii"))
+    elif method == "sms" and activation.expires_in is not None:
+        challenge = AuthMfaSmsChallenge(activation.expires_in)
+    else:
+        raise ValueError(f"Unsupported activation result for method: {method}")
+
+    return serialize(challenge, user, AuthMfaChallengeSerializer())
