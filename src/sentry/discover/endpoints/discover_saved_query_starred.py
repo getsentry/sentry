@@ -40,7 +40,7 @@ class DiscoverSavedQueryStarredEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization: Organization, id: int) -> Response:
         """
-        Update the starred status of a saved Explore query for the current organization member.
+        Update the starred status of a saved Discover query for the current organization member.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
