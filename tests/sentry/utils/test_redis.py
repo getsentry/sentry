@@ -12,6 +12,7 @@ from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
     _add_transaction_checks,
+    _assert_redis_transaction_allowed,
     _shared_pool,
     check_cluster_versions,
     get_cluster_from_options,
@@ -129,6 +130,40 @@ class ClusterManagerTestCase(TestCase):
             "Redis commands must run outside database transactions"
         )
         execute_command.assert_called_once_with("GET", "key")
+
+    @mock.patch(
+        "sentry.utils.redis.in_test_assert_no_transaction",
+        side_effect=AssertionError,
+    )
+    @mock.patch(
+        "sentry.utils.redis._redis_transaction_caller",
+        return_value="sentry.models.counter.increment_project_counter_in_cache",
+    )
+    def test_grandfathered_transaction_caller_is_allowed(
+        self,
+        _redis_transaction_caller: mock.MagicMock,
+        in_test_assert_no_transaction: mock.MagicMock,
+    ) -> None:
+        _assert_redis_transaction_allowed("message")
+
+    @mock.patch(
+        "sentry.utils.redis.in_test_assert_no_transaction",
+        side_effect=AssertionError,
+    )
+    @mock.patch(
+        "sentry.utils.redis._redis_transaction_caller",
+        return_value="sentry.new_code.unexpected_redis_call",
+    )
+    def test_new_transaction_caller_is_rejected(
+        self,
+        _redis_transaction_caller: mock.MagicMock,
+        in_test_assert_no_transaction: mock.MagicMock,
+    ) -> None:
+        with pytest.raises(
+            AssertionError,
+            match=r"message \(Redis caller: sentry.new_code.unexpected_redis_call\)",
+        ):
+            _assert_redis_transaction_allowed("message")
 
 
 def test_get_cluster_from_options_cluster_provided() -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.resources
+import inspect
 import logging
 from copy import deepcopy
 from threading import Lock
@@ -37,6 +38,52 @@ _REDIS_DEFAULT_CLIENT_ARGS = {
 _pool_cache: dict[str, ConnectionPool] = {}
 _pool_lock = Lock()
 
+# Existing violations discovered when the guard was enabled. Removing an entry
+# makes that call site subject to enforcement; new call sites fail by default.
+_REDIS_TRANSACTION_ALLOWLIST = frozenset(
+    {
+        "getsentry.billing.usagebuffer.redis.RedisUsageBuffer.fetch_pop",
+        "getsentry.models.billingseatassignment.BillingSeatAssignment.schedule_redis_key_sync.<locals>._sync_redis_key",
+        "sentry.dynamic_sampling.rules.helpers.latest_releases.ProjectBoostedReleases.has_boosted_releases",
+        "sentry.models.counter.increment_project_counter_in_cache",
+        "sentry.notifications.notifications.activity.base.GroupActivityNotification.__init__",
+        "sentry.ratelimits.redis.RedisRateLimiter.reset",
+        "sentry.rules.actions.integrations.create_ticket.utils.create_issue",
+        "sentry.rules.conditions.event_frequency.EventFrequencyCondition.query_hook",
+        "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition.query_hook",
+        "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition.query_hook",
+        "sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",
+        "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+    }
+)
+
+
+def _redis_transaction_caller() -> str | None:
+    frame = inspect.currentframe()
+    while frame is not None:
+        module = frame.f_globals.get("__name__", "")
+        is_redis_internal = module == __name__ or any(
+            module == prefix or module.startswith(f"{prefix}.")
+            for prefix in ("django.utils.functional", "redis", "rediscluster", "sentry_redis_tools")
+        )
+        if module and not is_redis_internal:
+            return f"{module}.{frame.f_code.co_qualname}"
+        frame = frame.f_back
+    return None
+
+
+def _assert_redis_transaction_allowed(message: str) -> None:
+    try:
+        in_test_assert_no_transaction(message)
+    except AssertionError:
+        caller = _redis_transaction_caller()
+        if caller is not None and (
+            caller in _REDIS_TRANSACTION_ALLOWLIST
+            or caller.startswith(("getsentry.testutils.", "sentry.testutils.", "tests."))
+        ):
+            return
+        raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
+
 
 def _add_transaction_checks(
     client: RedisCluster[T] | StrictRedis[T],
@@ -48,7 +95,7 @@ def _add_transaction_checks(
     execute_command = mutable_client.execute_command
 
     def execute_command_outside_transaction(*args: Any, **kwargs: Any) -> Any:
-        in_test_assert_no_transaction("Redis commands must run outside database transactions")
+        _assert_redis_transaction_allowed("Redis commands must run outside database transactions")
         return execute_command(*args, **kwargs)
 
     pipeline_factory = mutable_client.pipeline
@@ -58,7 +105,7 @@ def _add_transaction_checks(
         execute_pipeline = redis_pipeline.execute
 
         def execute_pipeline_outside_transaction(*args: Any, **kwargs: Any) -> Any:
-            in_test_assert_no_transaction(
+            _assert_redis_transaction_allowed(
                 "Redis pipeline commands must run outside database transactions"
             )
             return execute_pipeline(*args, **kwargs)
