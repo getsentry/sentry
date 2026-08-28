@@ -154,6 +154,10 @@ const HeadCell = styled(Table.HeadCell, {
     p.align &&
     css`
       justify-content: ${p.align};
+
+      ${HeaderCellContent} {
+        justify-content: ${p.align};
+      }
     `}
 `;
 

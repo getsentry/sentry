@@ -97,8 +97,10 @@ export const HeaderCellContent = styled('div', {
   color: inherit;
   cursor: ${p => (p.onClick || p.to ? 'pointer' : 'default')};
   display: flex;
+  flex: 1;
   font: inherit;
   gap: ${p => p.theme.space.xs};
+  min-width: 0;
   overflow: hidden;
   padding: 0;
   text-align: inherit;
