@@ -4,7 +4,6 @@ from sentry import options
 from sentry.options.rollout import in_rollout_group
 
 KILLSWITCH_OPTION = "dynamic-sampling.per_org.killswitch"
-ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.rollout-rate"
 RECALIBRATION_ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.recalibration-rollout-rate"
 SERVING_ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.serving-rollout-rate"
 SERVING_ORG_IDS_OPTION = "dynamic-sampling.per_org.serving-org-ids"
@@ -35,18 +34,6 @@ def _org_ids(option_name: str) -> set[int]:
 
 def is_killswitch_engaged() -> bool:
     return bool(options.get(KILLSWITCH_OPTION))
-
-
-def rollout_rate() -> float:
-    return float(options.get(ROLLOUT_RATE_OPTION))
-
-
-def is_rollout_enabled() -> bool:
-    return rollout_rate() > 0
-
-
-def is_org_in_rollout(org_id: int) -> bool:
-    return in_rollout_group(ROLLOUT_RATE_OPTION, org_id)
 
 
 def is_org_in_recalibration_rollout(org_id: int) -> bool:

@@ -8,11 +8,7 @@ from typing import TypeVar
 
 import sentry_sdk
 
-from sentry.dynamic_sampling.per_org.gate import (
-    is_killswitch_engaged,
-    is_rollout_enabled,
-    metrics_sample_rate,
-)
+from sentry.dynamic_sampling.per_org.gate import is_killswitch_engaged, metrics_sample_rate
 from sentry.utils import metrics
 from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
 
@@ -72,8 +68,6 @@ class DynamicSamplingStatus(StrEnum):
     ORG_HAS_NO_DYNAMIC_SAMPLING = "org_has_no_dynamic_sampling"
     ORG_HAS_NO_PROJECTS = "org_has_no_projects"
     ORG_NOT_FOUND = "org_not_found"
-    ROLLOUT_DISABLED = "rollout_disabled"
-    ROLLOUT_EXCLUDED = "rollout_excluded"
     SNUBA_TIMEOUT = "snuba_timeout"
     SNUBA_ERROR = "snuba_error"
 
@@ -152,8 +146,6 @@ def track_dynamic_sampling(func: F) -> F:
             try:
                 if is_killswitch_engaged():
                     result = DynamicSamplingStatus.KILLSWITCHED
-                elif not is_rollout_enabled():
-                    result = DynamicSamplingStatus.ROLLOUT_DISABLED
                 else:
                     result = func(*args, **kwargs)
             except DynamicSamplingException as exc:

@@ -15,7 +15,6 @@ from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
 _GATE_OPTIONS = {
     "dynamic-sampling.per_org.killswitch": False,
     "dynamic-sampling.per_org.metrics-sample-rate": 1.0,
-    "dynamic-sampling.per_org.rollout-rate": 1.0,
 }
 
 
@@ -86,17 +85,4 @@ def test_killswitch_skips_the_wrapped_function() -> None:
         return "ran"
 
     assert work() == DynamicSamplingStatus.KILLSWITCHED
-    assert calls == []
-
-
-@override_options({**_GATE_OPTIONS, "dynamic-sampling.per_org.rollout-rate": 0.0})
-def test_disabled_rollout_skips_the_wrapped_function() -> None:
-    calls: list[None] = []
-
-    @track_dynamic_sampling
-    def work() -> str:
-        calls.append(None)
-        return "ran"
-
-    assert work() == DynamicSamplingStatus.ROLLOUT_DISABLED
     assert calls == []
