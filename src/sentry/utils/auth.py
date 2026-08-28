@@ -220,12 +220,63 @@ def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     return login_redirect
 
 
+# Path suffixes that are static assets, not app destinations. Used so a poisoned
+# session `_next` (e.g. a service-worker source map requested while logged out)
+# cannot become the post-login redirect for a real user.
+_STATIC_LOGIN_REDIRECT_SUFFIXES = (
+    ".js",
+    ".css",
+    ".map",
+    ".json",
+    ".txt",
+    ".xml",
+    ".ico",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".webp",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".eot",
+    ".wasm",
+    ".pdf",
+    ".html",
+    ".htm",
+)
+
+
+def _path_is_static_asset_redirect(path: str) -> bool:
+    """True if path is a static/asset URL that should never be a login destination."""
+    # Strip trailing slashes so `/foo.js.map/` still matches suffixes.
+    normalized = path.lower().rstrip("/") or "/"
+    basename = normalized.rsplit("/", 1)[-1]
+
+    static_prefixes = getattr(settings, "ANONYMOUS_STATIC_PREFIXES", ())
+    for prefix in static_prefixes:
+        prefix_norm = prefix.lower()
+        prefix_root = prefix_norm.rstrip("/")
+        if normalized == prefix_root or normalized.startswith(prefix_norm):
+            return True
+
+    # Service worker is served at /service-worker.js; browsers also request hashed
+    # siblings and source maps that are not real app routes.
+    if basename == "service-worker.js" or basename.startswith("service-worker."):
+        return True
+
+    return any(basename.endswith(suffix) for suffix in _STATIC_LOGIN_REDIRECT_SUFFIXES)
+
+
 def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> bool:
     if not url:
         return False
     if url.startswith(get_login_url()):
         return False
     parsed_url = urlparse(url)
+    if _path_is_static_asset_redirect(parsed_url.path or ""):
+        return False
     url_host = parsed_url.netloc
     base_hostname = settings.SENTRY_BASE_HOSTNAME
     if url_host.endswith(f".{base_hostname}"):
