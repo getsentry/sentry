@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 
@@ -26,6 +27,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.datadog.client import validate_datadog_credentials
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -34,6 +36,7 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.agent.monitoring_providers import (
+    ConnectionHealth,
     OrgMonitoringProvider,
     org_monitoring_provider_registry,
 )
@@ -212,6 +215,18 @@ class DatadogIntegrationProvider(IntegrationProvider):
         site = integration.metadata.get("site")
         if site:
             integration.update(debug_data={**(integration.debug_data or {}), "site": site})
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=organization.id, integration_id=integration.id
+        )
+        health: ConnectionHealth = {
+            "status": "connected",
+            "last_checked_at": timezone.now().isoformat(),
+            "details": [],
+        }
+        config = dict(org_integration.config)
+        config["connection_health"] = health
+        org_integration.update(config=config)
 
 
 @org_monitoring_provider_registry.register(IntegrationProviderSlug.DATADOG.value)

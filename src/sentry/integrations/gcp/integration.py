@@ -33,6 +33,7 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.agent.monitoring_providers import (
+    ConnectionHealth,
     OrgMonitoringProvider,
     org_monitoring_provider_registry,
 )
@@ -68,9 +69,7 @@ class GcpConfig(TypedDict):
     sentry_sa_email: str
     customer_sa_email: str
     projects: list[str]
-    connection_status: str
-    project_statuses: list[GcpProjectVerification]
-    last_verified_at: str | None
+    connection_health: ConnectionHealth
 
 
 class GcpConfigInputSerializer(CamelSnakeSerializer["GcpConfigInput"]):
@@ -258,6 +257,7 @@ class GcpIntegration(IntegrationInstallation):
             "sentry_sa_email": config.get("sentry_sa_email", ""),
             "customer_sa_email": config.get("customer_sa_email", ""),
             "projects": ", ".join(config.get("projects", [])),
+            "connection_health": config.get("connection_health"),
         }
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
@@ -345,13 +345,23 @@ class GcpIntegrationProvider(IntegrationProvider):
                 ],
             }
 
+        connection_health: ConnectionHealth = {
+            "status": verification["connection_status"],
+            "last_checked_at": last_verified_at,
+            "details": [
+                {
+                    "resource_id": project["gcp_project_id"],
+                    "status": project["connection_status"],
+                    "error_detail": project.get("error_detail"),
+                }
+                for project in verification["projects"]
+            ],
+        }
         gcp_config: GcpConfig = {
             "sentry_sa_email": extra["sentry_sa_email"],
             "customer_sa_email": extra["customer_sa_email"],
             "projects": extra["projects"],
-            "connection_status": verification["connection_status"],
-            "project_statuses": verification["projects"],
-            "last_verified_at": last_verified_at,
+            "connection_health": connection_health,
         }
         org_integration.update(config=gcp_config)
 
