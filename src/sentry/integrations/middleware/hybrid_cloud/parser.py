@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 from abc import ABC
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -28,6 +27,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.killswitches import get_killswitch_value, value_matches
+from sentry.logging.handlers import SamplingFilter
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
@@ -41,7 +41,10 @@ if TYPE_CHECKING:
 
 SHED_INBOUND_KILLSWITCH = "hybridcloud.webhookpayload.shed-inbound"
 SHED_RETRY_AFTER_SECONDS = 60
-SHED_LOG_SAMPLE_RATE = 0.1
+# Its own logger so the sampling stays on the shed line, rather than quietly
+# applying to every info log a future caller adds to this module.
+shed_logger = logging.getLogger(f"{__name__}.shed")
+shed_logger.addFilter(SamplingFilter(0.1))
 
 
 def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
@@ -233,11 +236,10 @@ class BaseRequestParser(ABC):
             tags={"provider": self.provider},
             sample_rate=1.0,
         )
-        if random.random() < SHED_LOG_SAMPLE_RATE:
-            logger.info(
-                "hybridcloud.webhookpayload.shed",
-                extra={"provider": self.provider, "integration_id": integration_id},
-            )
+        shed_logger.info(
+            "hybridcloud.webhookpayload.shed",
+            extra={"provider": self.provider, "integration_id": integration_id},
+        )
 
         response = HttpResponse(status=status.HTTP_429_TOO_MANY_REQUESTS)
         response["Retry-After"] = str(SHED_RETRY_AFTER_SECONDS)
