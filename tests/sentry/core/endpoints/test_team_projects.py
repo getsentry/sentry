@@ -199,23 +199,22 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             status_code=201,
         )
 
-    @with_feature({"organizations:team-roles": False})
-    def test_member_cannot_create_project_on_other_team_without_team_roles(self) -> None:
-        organization = self.create_organization(flags=0)
+    def test_member_can_create_project_on_any_team_with_open_membership(self) -> None:
+        organization = self.create_organization(flags=1)  # allow_joinleave
         team = self.create_team(organization=organization)
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=organization, role="member", teams=[])
         self.login_as(user=user)
 
-        self.get_error_response(
+        self.get_success_response(
             organization.slug,
             team.slug,
             **self.data,
-            status_code=403,
+            status_code=201,
         )
 
-    @with_feature("organizations:team-roles")
-    def test_member_cannot_create_project_on_other_team_with_team_roles(self) -> None:
+    def test_member_cannot_create_project_on_other_team(self) -> None:
+        # No team membership means no team role to honor, so team-roles cannot change this.
         organization = self.create_organization(flags=0)
         team = self.create_team(organization=organization)
         user = self.create_user(is_superuser=False)
