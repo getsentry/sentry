@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
 import {css} from '@emotion/react';
+import * as Sentry from '@sentry/react';
 
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -51,8 +52,40 @@ function toRelativeHref(href: string): string {
   return href;
 }
 
+/**
+ * Markdown re-lexes and re-renders on every streamed chunk, so an unhandled tag
+ * would otherwise report once per chunk. Report each tag only once per page load.
+ */
+const reportedUnhandledTags = new Set<string>();
+
+function reportUnhandledTag(
+  name: string,
+  level: 'block' | 'inline',
+  attrs: Record<string, string>
+) {
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.warn(`[Markdown] no renderer for tag: ${name}`, attrs);
+    return;
+  }
+
+  if (reportedUnhandledTags.has(name)) {
+    return;
+  }
+  reportedUnhandledTags.add(name);
+
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('markdown.tag', name);
+    scope.setTag('markdown.tag_level', level);
+    scope.setExtra('attrs', attrs);
+    scope.setFingerprint(['markdown-unhandled-tag', name]);
+    Sentry.captureException(new Error(`[Markdown] no renderer for tag: ${name}`));
+  });
+}
+
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
-  Tag: function SeerTag({name, data, level, Default, ...rest}) {
+  Tag: function SeerTag({name, data, level, attrs}) {
     const structuredContent = useContext(StructuredContentContext);
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
@@ -78,7 +111,10 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
         </Container>
       );
     }
-    return <Default name={name} data={data} level={level} {...rest} />;
+    // Unknown embeds are expected to be registered here; drop them and report
+    // instead of echoing plaintext like default Markdown.
+    reportUnhandledTag(name, level, attrs);
+    return null;
   },
   Link: ({children, Default, href, title}) => (
     <IsInsideLinkContext.Provider value>
