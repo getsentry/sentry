@@ -97,7 +97,6 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           disabled={disabled}
         >
           <Button
-            type="button"
             aria-label={t('Undiscard')}
             tooltipProps={{
               title: disabled

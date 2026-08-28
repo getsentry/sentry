@@ -611,7 +611,6 @@ function ReleasesListInnerPage() {
                       description={t(
                         'View the latest releases for your project. Select a release to review new and regressed issues, and business critical metrics like crash rate, and user adoption. '
                       )}
-                      position="top-start"
                     >
                       {props => (
                         <div {...props}>
